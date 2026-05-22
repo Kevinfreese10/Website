@@ -203,7 +203,7 @@ export default function EmployeesPage() {
   const filteredEmployees = employees.filter(emp => 
     `${emp.name} ${emp.surname}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.idNumber.includes(searchTerm) ||
-    emp.jobTitle.toLowerCase().includes(searchTerm.toLowerCase())
+    emp.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -327,9 +327,17 @@ export default function EmployeesPage() {
                       <Badge variant="outline" className="text-[9px] uppercase font-black tracking-tighter bg-muted/50">{emp.department}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={emp.status === 'Active' ? 'success' : 'secondary'} className="text-[10px] uppercase font-bold px-2 py-0">
+                      <Badge 
+                        variant={emp.status === 'Active' ? 'success' : emp.status === 'Terminated' ? 'destructive' : 'secondary'} 
+                        className="text-[10px] uppercase font-bold px-2 py-0"
+                      >
                         {emp.status}
                       </Badge>
+                      {emp.status === 'Terminated' && emp.terminationDate && (
+                          <p className="text-[9px] text-muted-foreground mt-0.5">
+                              {format(emp.terminationDate.toDate ? emp.terminationDate.toDate() : new Date(emp.terminationDate), 'dd MMM yy')}
+                          </p>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -341,13 +349,13 @@ export default function EmployeesPage() {
                                         size="icon" 
                                         className="h-8 w-8 text-primary"
                                         onClick={() => handleEditPayslip(emp)}
-                                        disabled={isFetchingPayslip && payslipEmployee?.id === emp.id}
+                                        disabled={(isFetchingPayslip && payslipEmployee?.id === emp.id) || emp.status === 'Terminated'}
                                     >
                                         {isFetchingPayslip && payslipEmployee?.id === emp.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <ReceiptText className="h-4 w-4" />}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Edit Current Payslip</p>
+                                    <p>{emp.status === 'Terminated' ? 'Cannot edit terminated employee payslip' : 'Edit Current Payslip'}</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -363,7 +371,7 @@ export default function EmployeesPage() {
                             <DropdownMenuItem onClick={() => { setSelectedEmployee(emp); setIsFormOpen(true); }}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditPayslip(emp)}>
+                            <DropdownMenuItem onClick={() => handleEditPayslip(emp)} disabled={emp.status === 'Terminated'}>
                                 <Calculator className="mr-2 h-4 w-4" /> Edit Current Payslip
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />

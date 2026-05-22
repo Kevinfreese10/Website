@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Employee } from '@/lib/types';
-import { Loader2, User, Briefcase, Landmark, Calendar as CalendarIcon, Save, MapPin, Phone, Mail, Hash, BadgeDollarSign, Clock } from 'lucide-react';
+import { Loader2, User, Briefcase, Landmark, Calendar as CalendarIcon, Save, MapPin, Phone, Mail, Hash, BadgeDollarSign, Clock, UserX } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -34,6 +34,8 @@ const formSchema = z.object({
   cellNumber: z.string().min(10, 'A valid cell number is required.'),
   email: z.string().email('A valid email address is required.'),
   joinDate: z.date({ required_error: 'Join date is required.' }),
+  status: z.enum(['Active', 'Terminated', 'Inactive']).default('Active'),
+  terminationDate: z.date().optional().nullable(),
   taxNumber: z.string().optional(),
   payType: z.enum(['Salary', 'Hourly']).default('Salary'),
   basicSalary: z.preprocess(val => Number(val), z.number().min(0, 'Salary must be a positive number.')),
@@ -83,6 +85,8 @@ export default function EmployeeForm({
       jobTitle: employee?.jobTitle || '',
       department: employee?.department || '',
       joinDate: employee?.joinDate ? (employee.joinDate.toDate ? employee.joinDate.toDate() : new Date(employee.joinDate)) : new Date(),
+      status: employee?.status || 'Active',
+      terminationDate: employee?.terminationDate ? (employee.terminationDate.toDate ? employee.terminationDate.toDate() : new Date(employee.terminationDate)) : undefined,
       taxNumber: employee?.taxNumber || '',
       payType: employee?.payType || 'Salary',
       basicSalary: employee?.basicSalary || 0,
@@ -99,6 +103,7 @@ export default function EmployeeForm({
   });
 
   const payType = form.watch('payType');
+  const status = form.watch('status');
 
   return (
     <Form {...form}>
@@ -115,6 +120,57 @@ export default function EmployeeForm({
             <FormField control={form.control} name="surname" render={({ field }) => ( <FormItem><FormLabel>Surname</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
           </div>
           <FormField control={form.control} name="idNumber" render={({ field }) => ( <FormItem><FormLabel>RSA ID Number</FormLabel><FormControl><Input placeholder="8801015000081" {...field} /></FormControl><FormMessage /></FormItem> )} />
+        </section>
+
+        <Separator />
+
+        {/* Employment Status */}
+        <section className="space-y-4 p-4 rounded-xl border bg-muted/10">
+          <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-widest">
+            <ShieldAlert className="h-4 w-4" /> Employment Status
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField control={form.control} name="status" render={({ field }) => ( 
+                <FormItem>
+                    <FormLabel>Employment Status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Terminated">Terminated</SelectItem>
+                            <SelectItem value="Inactive">Inactive / Suspended</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </FormItem> 
+            )} />
+
+            {status === 'Terminated' && (
+                <FormField
+                    control={form.control}
+                    name="terminationDate"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col animate-in fade-in slide-in-from-top-2">
+                        <FormLabel className="mb-1">Termination Date</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal border-destructive/20", !field.value && "text-muted-foreground")}>
+                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                <UserX className="ml-auto h-4 w-4 opacity-50 text-destructive" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                        <FormDescription className="text-[10px] text-destructive font-bold">This employee will be excluded from future cycles after the current period.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            )}
+          </div>
         </section>
 
         <Separator />

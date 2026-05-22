@@ -228,6 +228,65 @@ export type FranchiseConfig = {
     setupFeePaid: boolean;
 };
 
+export type Employee = {
+  id: string;
+  employeeCode: string;
+  initials: string;
+  name: string;
+  surname: string;
+  idNumber: string;
+  address: {
+    street: string;
+    suburb?: string;
+    city: string;
+    province?: string;
+    zip?: string;
+  };
+  cellNumber: string;
+  email: string;
+  joinDate: any;
+  taxNumber?: string;
+  payType: 'Salary' | 'Hourly';
+  basicSalary: number;
+  hourlyRate: number;
+  isNetSalary: boolean;
+  paymentFrequency: 'Monthly';
+  bankingDetails: {
+    bankName: string;
+    accountNumber: string;
+    accountType: string;
+    branchCode: string;
+  };
+  jobTitle?: string;
+  department?: string;
+  status: 'Active' | 'Terminated' | 'Inactive';
+  terminationDate?: any;
+};
+
+export type PayslipItem = {
+  label: string;
+  amount: number;
+  isStatutory?: boolean;
+};
+
+export type Payslip = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  period: string;
+  date: any;
+  earnings: PayslipItem[];
+  deductions: PayslipItem[];
+  contributions: PayslipItem[];
+  fringeBenefits: PayslipItem[];
+  grossPay: number;
+  totalDeductions: number;
+  netPay: number;
+  frequency: 'Monthly' | 'Weekly' | 'Fortnightly';
+  status: 'draft' | 'finalized';
+  hoursWorked?: number;
+};
+
 export type User = {
   uid: string; // Firebase Authentication UID
   id: string; // Document ID
