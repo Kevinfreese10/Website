@@ -217,7 +217,7 @@ export default function HomePageClient() {
           <div className="container mx-auto px-4">
               <div className="text-center mb-16 space-y-4">
                   <h2 className="text-3xl font-black text-slate-900 md:text-5xl uppercase tracking-tighter">Core Business Services</h2>
-                  <p className="text-muted-foreground text-lg">Specialised accounting and tax compliance for the South African market.</p>
+                  <p className="text-muted-foreground text-lg">Specialised Accounting and Tax Compliance for the South African Market.</p>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -235,25 +235,25 @@ export default function HomePageClient() {
                               <li className="group">
                                   <Link href="/monthly-accounting" className="text-sm font-bold text-slate-700 hover:text-primary transition-colors flex items-center gap-2">
                                       <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                                      Monthly accounting services
+                                      Monthly Accounting Services
                                   </Link>
                               </li>
                               <li className="group">
                                   <Link href="/annual-financial-statements" className="text-sm font-bold text-slate-700 hover:text-primary transition-colors flex items-center gap-2">
                                       <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                                      Financial statement preparation
+                                      Financial Statement Preparation
                                   </Link>
                               </li>
                               <li className="group">
                                   <Link href="/management-accounts" className="text-sm font-bold text-slate-700 hover:text-primary transition-colors flex items-center gap-2">
                                       <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                                      Management accounts
+                                      Management Accounts
                                   </Link>
                               </li>
                               <li className="group">
                                   <Link href="/contact" className="text-sm font-bold text-slate-700 hover:text-primary transition-colors flex items-center gap-2">
                                       <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                                      Outsourced accounting
+                                      Outsourced Accounting
                                   </Link>
                               </li>
                           </ul>
@@ -316,13 +316,13 @@ export default function HomePageClient() {
                       </CardHeader>
                       <CardContent className="space-y-4">
                           <p className="text-[10px] text-muted-foreground font-medium uppercase leading-tight italic">
-                              Targeting payroll services South Africa, PAYE submissions, and IRP5 submissions.
+                              Targeting Payroll Services South Africa, PAYE Submissions, and IRP5 Submissions.
                           </p>
                           <ul className="space-y-4">
                               <li className="group">
                                   <Link href="/monthly-payroll" className="text-sm font-bold text-slate-700 hover:text-primary transition-colors flex items-center gap-2">
                                       <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                                      Payroll outsourcing
+                                      Payroll Outsourcing
                                   </Link>
                               </li>
                               <li className="group">
@@ -340,7 +340,7 @@ export default function HomePageClient() {
                               <li className="group">
                                   <Link href="/payroll-administration" className="text-sm font-bold text-slate-700 hover:text-primary transition-colors flex items-center gap-2">
                                       <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                                      Payroll compliance (EMP501)
+                                      Payroll Compliance (EMP501)
                                   </Link>
                               </li>
                           </ul>
