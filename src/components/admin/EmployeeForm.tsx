@@ -8,12 +8,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Employee } from '@/lib/types';
-import { Loader2, User, Briefcase, Landmark, Calendar as CalendarIcon, Save, MapPin, Phone, Mail, Hash, BadgeDollarSign, Clock, UserX } from 'lucide-react';
+import { Loader2, User, Briefcase, Landmark, Calendar as CalendarIcon, Save, MapPin, Phone, Mail, Hash, BadgeDollarSign, Clock, UserX, ShieldAlert } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
+import { Separator } from '../ui/separator';
 import { Switch } from '../ui/switch';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
@@ -185,7 +185,7 @@ export default function EmployeeForm({
             <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
           </div>
           <div className="space-y-4 pt-2">
-            <FormField control={form.control} name="address.street" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Street Address</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
+            <FormField control={form.control} name="address.street" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel className="text-xs">Street Address</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
             <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="address.suburb" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Suburb</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
                 <FormField control={form.control} name="address.city" render={({ field }) => ( <FormItem><FormLabel className="text-xs">City</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
