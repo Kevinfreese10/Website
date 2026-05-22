@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowRight, Search, Building, Archive, PlusCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
-import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, Timestamp, limit } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User } from '@/lib/types';
 import Link from 'next/link';
@@ -18,8 +18,51 @@ import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { chartOfAccounts as initialChartOfAccounts } from '@/lib/chart-of-accounts';
 import { allocationRules as initialAllocationRules } from '@/lib/allocation-rules';
+import { format, formatDistanceToNow } from 'date-fns';
 
 const db = getFirestore(firebaseApp);
+
+/**
+ * A small component to fetch and display the last transaction date for a client.
+ */
+function LastImportDate({ clientId }: { clientId: string }) {
+    const [lastDate, setLastDate] = useState<Date | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const q = query(
+            collection(db, 'aiAccountantClients', clientId, 'transactions'),
+            orderBy('date', 'desc'),
+            limit(1)
+        );
+        const unsubscribe = onSnapshot(q, (snap) => {
+            if (!snap.empty) {
+                const data = snap.docs[0].data();
+                const d = data.date?.toDate ? data.date.toDate() : new Date(data.date);
+                if (!isNaN(d.getTime())) {
+                    setLastDate(d);
+                }
+            } else {
+                setLastDate(null);
+            }
+            setLoading(false);
+        }, (err) => {
+            console.error("Failed to fetch last import date:", err);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, [clientId]);
+
+    if (loading) return <div className="flex items-center gap-2 text-[10px] text-muted-foreground animate-pulse"><Loader2 className="h-3 w-3 animate-spin"/> Loading...</div>;
+    if (!lastDate) return <span className="text-[10px] text-muted-foreground italic uppercase tracking-tighter opacity-50">No transactions</span>;
+
+    return (
+        <div className="flex flex-col">
+            <span className="text-xs font-bold text-slate-700">{format(lastDate, 'dd MMM yyyy')}</span>
+            <span className="text-[9px] text-muted-foreground font-medium uppercase">{formatDistanceToNow(lastDate, { addSuffix: true })}</span>
+        </div>
+    );
+}
 
 export default function AIAccountantClientsPage() {
     const [clients, setClients] = useState<User[]>([]);
@@ -112,9 +155,7 @@ export default function AIAccountantClientsPage() {
                 <TableHeader className="bg-muted/10">
                     <TableRow>
                         <TableHead className="font-bold">Client / Company</TableHead>
-                        <TableHead className="font-bold">Email Address</TableHead>
-                        <TableHead className="font-bold">VAT Status</TableHead>
-                        <TableHead className="font-bold">Status</TableHead>
+                        <TableHead className="font-bold">Last Bank Import</TableHead>
                         <TableHead className="text-right font-bold">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -129,18 +170,8 @@ export default function AIAccountantClientsPage() {
                                     )}
                                 </div>
                             </TableCell>
-                            <TableCell className="text-sm text-slate-600">{client.email}</TableCell>
                             <TableCell>
-                                {client.isVatRegistered ? (
-                                    <Badge variant="success" className="text-[10px] font-bold px-2 py-0">Registered</Badge>
-                                ) : (
-                                    <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0 opacity-50">Not Registered</Badge>
-                                )}
-                            </TableCell>
-                            <TableCell>
-                                <Badge variant={client.status === 'Archived' ? 'secondary' : (client.status === 'Active' ? 'default' : 'secondary')} className="text-[10px] uppercase font-bold">
-                                    {client.status || 'Active'}
-                                </Badge>
+                                <LastImportDate clientId={client.id} />
                             </TableCell>
                             <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-2">
