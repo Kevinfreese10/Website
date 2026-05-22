@@ -7,8 +7,8 @@ export const revalidate = 0;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Monthly Accounting & Bookkeeping | My Accountant',
-        description: 'Professional monthly accounting and bookkeeping services for South African SMEs. We handle bank recons, management accounts, and VAT submissions.',
+        title: 'Monthly Accounting & CFO Services | My Accountant',
+        description: 'Professional monthly accounting, financial management, and outsourced CFO services for South African SMEs. Scalable solutions for startups and growing businesses.',
     };
     return getStaticPageMetadata('monthly-accounting', defaults);
 }
