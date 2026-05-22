@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { 
   CheckCircle2, 
+  CheckCircle,
   Calculator, 
   BarChart3, 
   TrendingUp, 
