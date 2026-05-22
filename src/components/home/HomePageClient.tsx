@@ -216,7 +216,7 @@ export default function HomePageClient() {
       <section className="py-24 bg-white border-y">
           <div className="container mx-auto px-4">
               <div className="text-center mb-16 space-y-4">
-                  <h2 className="text-3xl font-black text-slate-900 md:text-5xl uppercase tracking-tighter">Core Business Services</h2>
+                  <h2 className="text-3xl font-black text-slate-900 md:text-5xl tracking-tighter">Core Business Services</h2>
                   <p className="text-muted-foreground text-lg">Specialised Accounting and Tax Compliance for the South African Market.</p>
               </div>
               
