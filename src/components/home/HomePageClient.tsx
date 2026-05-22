@@ -81,11 +81,11 @@ export default function HomePageClient() {
   };
 
   const trustIndicators = [
-    { label: "Trusted by South African businesses", icon: CheckCircle },
-    { label: "Professional accounting & compliance support", icon: ShieldCheck },
-    { label: "Online service delivery nationwide", icon: Globe },
-    { label: "Transparent pricing", icon: Wallet },
-    { label: "Secure document submission", icon: ShieldCheck }
+    { label: "Trusted by South African Businesses", icon: CheckCircle },
+    { label: "Professional Accounting & Compliance Support", icon: ShieldCheck },
+    { label: "Online Service Delivery Nationwide", icon: Globe },
+    { label: "Transparent Pricing", icon: Wallet },
+    { label: "Secure Document Submission", icon: ShieldCheck }
   ];
 
   const trustBlocks = [
@@ -397,8 +397,8 @@ export default function HomePageClient() {
                       <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto lg:mx-0"><MapPin className="h-6 w-6" /></div>
                       
                       <div className="space-y-4">
-                        <h2 className="text-3xl font-black text-slate-900 md:text-4xl">Accounting & Tax Services for Businesses Across South Africa</h2>
-                        <div className="space-y-4 text-lg text-muted-foreground leading-relaxed">
+                        <h2 className="text-3xl font-black text-slate-900 md:text-4xl text-center lg:text-left">Accounting & Tax Services for Businesses Across South Africa</h2>
+                        <div className="space-y-4 text-lg text-muted-foreground leading-relaxed text-center lg:text-left">
                             <p>
                                 My Accountant provides professional online accounting, tax, payroll, bookkeeping, and compliance services to businesses throughout South Africa. Our team assists startups, SMEs, established companies, non-profit organisations, and growing enterprises with reliable financial management, SARS compliance, payroll administration, VAT submissions, annual financial statements, and CIPC services.
                             </p>
@@ -444,7 +444,7 @@ export default function HomePageClient() {
                         </div>
                       </div>
 
-                      <p className="text-lg font-medium text-slate-900 leading-relaxed italic">
+                      <p className="text-lg font-medium text-slate-900 leading-relaxed italic text-center lg:text-left">
                         My Accountant combines technology-driven convenience with experienced financial professionals to help South African businesses remain compliant, financially organised, and focused on growth.
                       </p>
                   </div>
