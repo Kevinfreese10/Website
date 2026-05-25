@@ -18,12 +18,15 @@ import {
   Calculator,
   Gavel,
   CheckCircle2,
-  HelpCircle
+  HelpCircle,
+  Info,
+  XCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function SarsCompromisePageClient() {
   const serviceList = [
