@@ -1,205 +1,177 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { CheckCircle, ShieldCheck, Scale, FileText, LifeBuoy } from 'lucide-react';
+import { 
+  CheckCircle, 
+  ShieldCheck, 
+  Scale, 
+  FileText, 
+  LifeBuoy, 
+  AlertTriangle, 
+  TrendingDown, 
+  Landmark, 
+  Users, 
+  MapPin, 
+  ArrowRight,
+  Calculator,
+  Gavel,
+  CheckCircle2,
+  HelpCircle
+} from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 export default function SarsCompromisePageClient() {
-  const serviceIncludes = [
-    'Assessment of eligibility for Section 200',
-    'Financial distress analysis',
-    'Preparation of a legally compliant motivation',
-    'Compilation of all SARS-required supporting documentation',
-    'Submission and engagement with SARS',
-    'Ongoing support until SARS issues a decision',
+  const serviceList = [
+    'SARS compromise applications',
+    'Tax debt negotiations',
+    'SARS payment arrangements',
+    'Suspension of payment requests',
+    'Penalty remissions',
+    'Interest remissions',
+    'SARS debt restructuring',
+    'Objections and appeals',
+    'SARS compliance restoration',
+    'Tax debt management strategies',
   ];
 
-  const whyChooseUs = [
-    {
-      title: 'Deep SARS Knowledge',
-      description: 'Deep procedural knowledge.',
-      icon: ShieldCheck,
-    },
-    {
-      title: 'Experienced',
-      description: 'Strong experience with distressed taxpayers.',
-      icon: LifeBuoy,
-    },
-    {
-      title: 'Clear Motivations',
-      description: 'Structured motivations aligned to the Act.',
-      icon: FileText,
-    },
-    {
-      title: 'Honest Advice',
-      description: 'Honest advice on likelihood of success.',
-      icon: Scale,
-    },
+  const compromiseBenefits = [
+    'Reduce the total amount payable to SARS',
+    'Settle debt over time',
+    'Avoid aggressive collection action',
+    'Improve cash flow',
+    'Restore compliance status',
+    'Prevent further legal enforcement action',
   ];
 
-  const sarsSections = [
-    {
-        title: 'Section 200 – Compromise of Tax Debt',
-        content: `SARS may compromise a tax debt if:
-- The taxpayer is in serious financial hardship
-- Recovery of the full amount is unlikely
-- The compromise is fair, equitable, and in the public interest
-
-Key point:
-👉 This is discretionary — SARS is not obliged to agree.`
-    },
-    {
-        title: 'Section 201 – Request for Compromise',
-        content: `The taxpayer must:
-- Apply voluntarily
-- Submit the request in the prescribed form
-- Disclose full and honest financial information
-
-Any false or misleading information = automatic rejection.`
-    },
-    {
-        title: 'Section 202 – Information Required by SARS',
-        content: `SARS may require:
-- Full statement of assets and liabilities
-- Income and expenditure details
-- Bank statements
-- Business financials (if applicable)
-- Details of connected persons and entities
-- Explanation of how the debt arose
-- Proposed compromise amount and basis
-
-👉 Full disclosure is mandatory.`
-    },
-    {
-        title: 'Section 203 – Evaluation by SARS',
-        content: `SARS will consider:
-- The taxpayer’s ability to pay
-- Whether liquidation, sequestration, or judgment would recover more
-- Whether the compromise amount is commercially reasonable
-- Compliance history
-- Public interest and precedent risk
-
-If SARS believes it can recover more via enforcement, the application will fail.`
-    },
-    {
-        title: 'Section 204 – Effect of Accepted Compromise',
-        content: `Once accepted:
-- The agreed amount becomes legally payable
-- Remaining debt is written off
-- The compromise replaces the original tax liability
-- Non-compliance with the compromise terms voids the agreement
-
-👉 The compromise is final and binding.`
-    },
-    {
-        title: 'Section 205 – Invalid or Void Compromises',
-        content: `A compromise becomes invalid if:
-- Information was false or incomplete
-- The taxpayer fails to meet the agreed terms
-- Fraud or misrepresentation is later discovered
-
-In such cases:
-- SARS may reinstate the full original debt
-- Enforcement action may resume immediately`
-    },
+  const reductionAssistance = [
+    'Reviewing SARS statements and balances',
+    'Identifying incorrect assessments',
+    'Reviewing penalties and interest charges',
+    'Identifying potential dispute opportunities',
+    'Negotiating settlement proposals',
+    'Preparing compromise submissions',
+    'Supporting repayment negotiations',
+    'Managing SARS correspondence',
+    'Advising on tax compliance risks',
   ];
 
-  const whenYouCannot = [
-    {
-        title: '1. Where SARS Can Recover the Full Debt',
-        content: `You cannot enter into a compromise if SARS can reasonably recover the debt through:
-- Instalment payment agreements
-- Judgments
-- Third-party appointments
-- Liquidation or sequestration
+  const risksOfIgnoring = [
+    'Third-party appointments',
+    'Bank account attachments',
+    'Garnishee orders',
+    'Legal collection action',
+    'Tax clearance issues',
+    'Business cash flow disruption',
+    'Compliance penalties',
+  ];
 
-📌 If enforcement is likely to recover more than the compromise offer, SARS must reject the application.`
+  const managementServices = [
+    'Tax debt restructuring',
+    'SARS payment arrangements',
+    'Deferred payment requests',
+    'Compliance recovery plans',
+    'Tax return corrections',
+    'SARS statement reconciliations',
+    'VAT and PAYE debt management',
+    'Provisional tax management',
+    'Ongoing SARS liaison',
+  ];
+
+  const applicationSupport = [
+    'Financial disclosure preparation',
+    'Drafting legal compromise submissions',
+    'Tax debt analysis',
+    'Supporting affidavit preparation',
+    'SARS negotiations',
+    'Settlement proposal preparation',
+    'Compliance review',
+    'Tax administration support',
+  ];
+
+  const servicesGrid = [
+    {
+        title: 'SARS Compromise Applications',
+        desc: 'Professional preparation and submission of compromise applications under the Tax Administration Act.',
+        icon: FileText
     },
     {
-        title: '2. Where the Taxpayer Is Not in Genuine Financial Distress',
-        content: `A compromise is not allowed where:
-- The taxpayer has sufficient income or assets
-- The financial hardship is temporary
-- Cash flow constraints are short-term
-- Assets could be sold without severe hardship
-
-👉 A compromise is reserved for severe, long-term distress.`
+        title: 'SARS Payment Arrangements',
+        desc: 'Negotiating structured repayment terms with SARS.',
+        icon: Calculator
     },
     {
-        title: '3. Where There Is Dishonesty or Non-Disclosure',
-        content: `SARS will not enter into a compromise if:
-- Information was false, misleading, or incomplete
-- Assets or income are concealed
-- There is failure to disclose connected parties
-- The taxpayer is not fully transparent
-
-📌 Even after approval, non-disclosure can void the compromise under Section 205.`
+        title: 'Suspension of Payment Requests',
+        desc: 'Assisting taxpayers in requesting temporary suspension of collection action during disputes or objections.',
+        icon: Scale
     },
     {
-        title: '4. Where the Tax debt Arose From Fraud or Intentional Tax Evasion',
-        content: `You cannot enter into a compromise if the debt is linked to:
-- Fraud
-- Intentional tax evasion
-- Falsified returns
-- Fabricated supporting documents
-
-📌 SARS policy is extremely strict where intentional misconduct is present.`
+        title: 'Penalty & Interest Remissions',
+        desc: 'Applying for the reduction or remission of penalties and interest where justified.',
+        icon: AlertTriangle
     },
     {
-        title: '5. Where the Taxpayer Is Non-Compliant With Submissions',
-        content: `SARS will not consider a compromise if:
-- Returns are outstanding (even if unpaid)
-- Compliance obligations are ignored
-- The taxpayer refuses to regularise submissions
-
-👉 All returns must be submitted before SARS will evaluate a compromise.`
+        title: 'SARS Disputes & Objections',
+        desc: 'Reviewing assessments and lodging objections and appeals where appropriate.',
+        icon: Gavel
     },
     {
-        title: '6. Where the Application Is Used to Delay Enforcement',
-        content: `A compromise is not permitted where:
-- The application is submitted solely to delay collections
-- There is no genuine settlement intent
-- The offer is unrealistic or speculative
-
-📌 SARS actively screens for abusive or tactical applications.`
-    },
-    {
-        title: '7. Where the Proposed Offer Is Not Commercially Reasonable',
-        content: `SARS will reject the compromise if:
-- The offer is materially below what SARS could recover
-- No credible funding source exists
-- The offer lacks a rational basis
-
-👉 SARS requires a realistic, defensible offer, not a “best-case wish”.`
-    },
-    {
-        title: '8. Where the Taxpayer Has a History of Repeat Non-Compliance',
-        content: `A compromise is unlikely or unavailable if:
-- The taxpayer has repeated defaults
-- Previous arrangements were breached
-- There is a pattern of ignoring SARS obligations
-
-📌 Compliance history weighs heavily in SARS’s decision.`
-    },
-    {
-        title: '9. Where the Compromise Would Undermine Public Interest',
-        content: `SARS will not enter into a compromise if:
-- It creates a negative precedent
-- It undermines voluntary compliance
-- It is inconsistent with fairness to compliant taxpayers`
+        title: 'SARS Compliance Restoration',
+        desc: 'Helping taxpayers become compliant with outstanding returns and submissions.',
+        icon: CheckCircle2
     }
   ];
 
-  const keywordButtons = [
-    { label: 'Entity Registrations', href: '/products#entity-registrations' },
-    { label: 'SARS Services', href: '/products#sars-services' },
-    { label: 'CIPC Services', href: '/products#cipc-services' },
-    { label: 'Accounting Services', href: '/products#accounting-services' },
-    { label: 'Payroll Services', href: '/products#payroll-services' },
+  const whyChooseUs = [
+    'Experienced SARS tax practitioners',
+    'Professional tax debt negotiation support',
+    'Knowledge of the Tax Administration Act',
+    'SARS compliance expertise',
+    'Assistance with large and complex SARS debt matters',
+    'Online service delivery across South Africa',
+    'Dedicated case management',
+    'Confidential handling of sensitive tax matters',
+    'Fixed-fee and structured pricing options',
+    'Trusted by businesses nationwide',
+  ];
+
+  const assistedEntities = [
+    'Small businesses',
+    'Companies with PAYE or VAT debt',
+    'Directors with personal tax debt',
+    'Sole proprietors',
+    'Freelancers and consultants',
+    'NGOs and non-profit organisations',
+    'Individuals with outstanding SARS liabilities',
+    'Businesses facing cash flow challenges',
+    'Taxpayers under SARS collection pressure',
+  ];
+
+  const faqs = [
+    {
+      q: "What is a SARS compromise?",
+      a: "A SARS compromise is a legal agreement where SARS may accept a reduced amount in settlement of outstanding tax debt under qualifying circumstances in terms of the Tax Administration Act."
+    },
+    {
+      q: "Can SARS reduce tax debt?",
+      a: "In certain circumstances, SARS may agree to compromise or reduce tax debt through formal legal processes, repayment arrangements, or penalty remissions."
+    },
+    {
+      q: "What happens if I ignore SARS debt?",
+      a: "Ignoring SARS debt can lead to collection action, including bank account attachments, garnishee orders, legal proceedings, and additional penalties and interest."
+    },
+    {
+      q: "Can SARS penalties and interest be removed?",
+      a: "In some cases, penalties and interest may be reduced or remitted where there are valid legal grounds or exceptional circumstances."
+    },
+    {
+      q: "Do I need to be compliant before applying for a SARS compromise?",
+      a: "Generally, taxpayers should ensure outstanding returns and compliance obligations are addressed before or during the compromise process."
+    }
   ];
 
   return (
@@ -207,104 +179,328 @@ In such cases:
       {/* HERO SECTION */}
       <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
         <div className="container relative z-10 mx-auto px-4">
+          <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
+            SARS Compromise & SARS Debt Relief Services South Africa
+          </Badge>
           <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
-            SARS <span className="text-gradient">#Section 200</span> Compromise
+            Reduce, Settle or Manage Your <span className="text-gradient">SARS Tax Debt</span> With Professional Assistance
           </h1>
-          <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto text-center">
-            Settle Your Tax Debt Legally & Affordably. If you owe SARS money and cannot realistically pay the full amount, a Section 200 Compromise may allow you to settle for less.
-          </p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center pt-4">
-            <Button asChild size="lg" className="font-bold px-10 shadow-xl">
-                <Link href="/contact">Book a Free Consultation</Link>
+          <div className="mx-auto mb-10 max-w-4xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
+            <p>
+              If you owe money to the South African Revenue Service and are struggling to settle your outstanding tax debt, penalties, or interest, My Accountant provides professional SARS compromise, SARS debt management, and SARS debt reduction services to businesses and individuals throughout South Africa.
+            </p>
+          </div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+            <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-xl">
+              <Link href="/contact">Speak to a SARS Debt Specialist</Link>
             </Button>
           </div>
-          <div className="flex flex-wrap justify-center gap-3 pt-6">
-            {keywordButtons.map((btn) => (
-              <Button key={btn.label} asChild variant="outline" className="h-9 md:h-11 px-4 md:px-6 rounded-full font-bold transition-all text-xs md:text-sm">
-                <Link href={btn.href}>{btn.label}</Link>
-              </Button>
-            ))}
-          </div>
         </div>
       </section>
 
-      <TrustIndexWidget />
+      <div className="container mx-auto px-4">
+        <TrustIndexWidget />
+      </div>
 
-      <section className="container mx-auto px-4 bg-white">
-        <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-center">When Is a Compromise Appropriate?</h2>
-        </div>
-        <Card className="max-w-xl mx-auto mt-4 text-left border-2 bg-slate-50 shadow-sm">
-            <CardHeader>
-                <CardTitle>A compromise may be suitable if:</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-muted-foreground">
-                <ul className="list-disc pl-6 space-y-2 text-sm">
-                    <li>Your tax debt has become unmanageable.</li>
-                    <li>SARS enforcement is imminent.</li>
-                    <li>The business is at risk of closure or liquidation.</li>
-                    <li>You cannot meet normal payment arrangements.</li>
-                    <li>Full recovery by SARS is unlikely or uneconomical.</li>
-                </ul>
-            </CardContent>
-        </Card>
-      </section>
-
-       <section className="py-16 bg-white border-t border-b">
-        <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-center">What Our Service Includes</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                {serviceIncludes.map((item, index) => (
-                <div key={index} className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100 shadow-sm">
-                    <div className="bg-primary/10 rounded-full h-10 w-10 flex items-center justify-center flex-shrink-0">
-                         <CheckCircle className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                        <p className="font-medium text-sm leading-relaxed">{item}</p>
-                    </div>
+      {/* CORE SERVICES LIST */}
+      <section className="container mx-auto px-4 max-w-5xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-slate-900">Expert Assistance with SARS Debt</h2>
+                <p className="text-muted-foreground leading-relaxed">Our experienced tax practitioners assist taxpayers with a full range of debt resolution options:</p>
+                <div className="grid grid-cols-1 gap-2">
+                    {serviceList.map(item => (
+                        <div key={item} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                            <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> {item}
+                        </div>
+                    ))}
                 </div>
-                ))}
-            </div>
-        </div>
+                <p className="font-bold text-slate-900 mt-4">
+                    We help clients legally reduce tax exposure, negotiate sustainable repayment terms, and restore compliance with SARS.
+                </p>
+              </div>
+              <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-xl space-y-6">
+                  <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
+                    <LifeBuoy className="h-6 w-6" /> Why Seek Help?
+                  </h3>
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    SARS debt can place severe financial pressure on businesses and individuals. Ignoring the problem only leads to higher interest and aggressive collection actions.
+                  </p>
+                  <Button asChild variant="secondary" className="w-full font-bold h-12">
+                      <Link href="/contact">Get Professional Support</Link>
+                  </Button>
+              </div>
+          </div>
       </section>
 
-       <section className="container mx-auto px-4 max-w-4xl bg-white">
-         <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-center">SARS Section 200 to 205 Explained</h2>
-        </div>
-         <Accordion type="single" collapsible className="w-full space-y-4">
-            {sarsSections.map((section, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="bg-slate-50 border rounded-xl px-4 shadow-sm overflow-hidden text-left">
-                <AccordionTrigger className="text-left font-semibold hover:no-underline">{section.title}</AccordionTrigger>
-                <AccordionContent className="whitespace-pre-line text-muted-foreground text-sm leading-relaxed pb-4">{section.content}</AccordionContent>
+      {/* WHAT IS A COMPROMISE */}
+      <section className="bg-slate-50 py-24 border-y">
+          <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto text-center space-y-8 mb-16">
+                  <h2 className="text-3xl font-bold text-slate-900">What Is a SARS Compromise?</h2>
+                  <p className="text-lg text-muted-foreground leading-relaxed">
+                    A SARS compromise is a legal process available under Sections 200 to 204 of the Tax Administration Act (TAA), allowing qualifying taxpayers to negotiate a reduced settlement amount with SARS for outstanding tax debt under specific circumstances.
+                  </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                  <Card className="border-2 border-slate-100 shadow-sm">
+                      <CardHeader>
+                          <CardTitle className="text-lg font-bold">The Benefits</CardTitle>
+                          <CardDescription>A compromise application may allow taxpayers to:</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <ul className="space-y-3">
+                              {compromiseBenefits.map((item, i) => (
+                                  <li key={i} className="flex items-start gap-3 text-sm font-medium text-slate-700">
+                                      <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                                      {item}
+                                  </li>
+                              ))}
+                          </ul>
+                      </CardContent>
+                  </Card>
+                  <div className="flex flex-col justify-center space-y-6 p-4">
+                      <p className="text-muted-foreground leading-relaxed">
+                        The compromise process is typically considered where taxpayers cannot reasonably settle their full tax debt due to financial hardship or exceptional circumstances.
+                      </p>
+                      <div className="p-6 bg-white rounded-2xl border border-dashed border-primary/30 text-center">
+                          <p className="text-xs font-black uppercase tracking-widest text-primary mb-2">Legal Framework</p>
+                          <p className="text-sm font-bold text-slate-900">Sections 200 - 204 of the Tax Administration Act</p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* DEBT REDUCTION & MANAGEMENT */}
+      <section className="container mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              {/* Reduction */}
+              <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h2 className="text-3xl font-bold text-slate-900">SARS Debt Reduction Services</h2>
+                    <p className="text-muted-foreground leading-relaxed">Identifying lawful strategies to minimise outstanding liabilities and negotiate improved outcomes.</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {reductionAssistance.map(item => (
+                          <div key={item} className="flex items-start gap-2 p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs font-bold text-slate-700">
+                              <CheckCircle className="h-4 w-4 text-primary shrink-0" /> {item}
+                          </div>
+                      ))}
+                  </div>
+                  <Alert className="bg-primary/5 border-primary/20">
+                      <Info className="h-4 w-4 text-primary" />
+                      <AlertTitle className="font-bold">Did you know?</AlertTitle>
+                      <AlertDescription className="text-xs">Many taxpayers unknowingly pay excessive penalties and interest or fail to utilise available legal remedies under the Tax Administration Act.</AlertDescription>
+                  </Alert>
+              </div>
+
+              {/* Management */}
+              <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h2 className="text-3xl font-bold text-slate-900">SARS Debt Management Services</h2>
+                    <p className="text-muted-foreground leading-relaxed">A structured and proactive approach to resolving liabilities and preventing enforcement.</p>
+                  </div>
+                  <div className="bg-destructive/5 p-6 rounded-2xl border border-destructive/20">
+                      <h3 className="text-sm font-black uppercase tracking-widest text-destructive mb-4">Risks of Ignoring Debt</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {risksOfIgnoring.map(risk => (
+                              <div key={risk} className="flex items-center gap-2 text-xs font-bold text-destructive">
+                                  <AlertTriangle className="h-3.5 w-3.5" /> {risk}
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                       {managementServices.map(item => (
+                          <div key={item} className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> {item}
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* COMPROMISE APPLICATIONS DETAIL */}
+      <section className="bg-slate-900 text-white py-24">
+          <div className="container mx-auto px-4">
+              <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                  <div className="space-y-6">
+                      <h2 className="text-3xl font-bold md:text-4xl">Preparing Your SARS Compromise Application</h2>
+                      <p className="text-slate-400 leading-relaxed">Requires detailed financial analysis, legal motivation, and precise supporting documentation.</p>
+                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {applicationSupport.map((item, i) => (
+                              <li key={i} className="flex items-center gap-3 text-sm font-medium">
+                                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0" /> {item}
+                              </li>
+                          ))}
+                      </ul>
+                      <p className="text-sm text-slate-400 italic pt-4">We tailor every compromise application based on the taxpayer’s specific financial circumstances and SARS risk factors.</p>
+                  </div>
+                  <Card className="bg-white text-slate-900 border-none shadow-2xl">
+                      <CardHeader className="bg-slate-50 border-b">
+                          <CardTitle className="text-lg">Compromise Eligibility</CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-6 space-y-6">
+                          <div className="space-y-3">
+                              <h4 className="text-xs font-black uppercase text-green-600 tracking-widest">SARS May Consider If:</h4>
+                              {[
+                                  'Taxpayer cannot realistically settle the full debt',
+                                  'Collection of the full debt is unlikely',
+                                  'Taxpayer is experiencing financial distress',
+                                  'Settlement provides better recovery outcome for SARS',
+                                  'Taxpayer wishes to regularise tax affairs'
+                              ].map(item => (
+                                  <div key={item} className="flex items-start gap-2 text-xs font-medium">
+                                      <CheckCircle className="h-4 w-4 text-green-500 shrink-0" /> {item}
+                                  </div>
+                              ))}
+                          </div>
+                          <Separator />
+                          <div className="space-y-3">
+                              <h4 className="text-xs font-black uppercase text-destructive tracking-widest">SARS May Reject If:</h4>
+                              {[
+                                  'Taxpayer remains non-compliant',
+                                  'Financial disclosures are incomplete',
+                                  'SARS believes recovery remains possible',
+                                  'Fraud or intentional tax evasion is involved',
+                                  'Previous compromise recently granted'
+                              ].map(item => (
+                                  <div key={item} className="flex items-start gap-2 text-xs font-medium">
+                                      <XCircle className="h-4 w-4 text-destructive shrink-0" /> {item}
+                                  </div>
+                              ))}
+                          </div>
+                      </CardContent>
+                  </Card>
+              </div>
+          </div>
+      </section>
+
+      {/* SERVICES GRID */}
+      <section className="container mx-auto px-4 py-12">
+          <div className="text-center mb-16 space-y-4">
+              <h2 className="text-3xl font-bold">Our SARS Tax Debt Services Include</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {servicesGrid.map((service, i) => (
+                  <Card key={i} className="border-2 bg-slate-50 hover:border-primary/20 transition-all shadow-sm">
+                      <CardHeader className="pb-2">
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-3">
+                              <service.icon className="h-5 w-5" />
+                          </div>
+                          <CardTitle className="text-lg font-bold">{service.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{service.desc}</p>
+                      </CardContent>
+                  </Card>
+              ))}
+          </div>
+      </section>
+
+      {/* WHY CHOOSE US & ASSISTED ENTITIES */}
+      <section className="bg-slate-50 py-24 border-y">
+          <div className="container mx-auto px-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                  <div className="space-y-8">
+                      <h2 className="text-3xl font-bold text-slate-900">Why Choose My Accountant for SARS Debt Assistance?</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        {whyChooseUs.map(item => (
+                            <div key={item} className="flex items-start gap-3 p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:border-primary/20 transition-all">
+                                <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                                <span className="text-xs font-bold text-slate-700">{item}</span>
+                            </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">
+                        Our professionals are associated with recognized organisations including the South African Institute of Chartered Accountants (SAICA), Chartered Institute for Business Accountants (CIBA), and South African Institute of Taxation (SAIT).
+                      </p>
+                  </div>
+                  <div className="space-y-6">
+                      <h2 className="text-3xl font-bold text-slate-900">Businesses & Individuals We Assist</h2>
+                      <div className="bg-white p-8 rounded-3xl border-2 border-dashed border-slate-200">
+                        <div className="grid grid-cols-1 gap-3">
+                            {assistedEntities.map(item => (
+                                <div key={item} className="flex items-center gap-3 text-sm font-bold text-muted-foreground">
+                                    <Users className="h-4 w-4 text-primary" /> {item}
+                                </div>
+                            ))}
+                        </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* REGIONAL SEO SECTION */}
+      <section className="container mx-auto px-4 max-w-6xl py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              <div className="space-y-8">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
+                  <div className="space-y-4 text-center lg:text-left">
+                    <h2 className="text-3xl font-bold text-slate-900">SARS Debt Assistance Across South Africa</h2>
+                    <p className="text-lg text-muted-foreground leading-relaxed">
+                        My Accountant provides online SARS compromise and tax debt management services to clients throughout South Africa.
+                    </p>
+                    <div className="flex flex-wrap justify-center lg:justify-start gap-2 pt-2">
+                        {["Johannesburg", "Randburg", "Sandton", "Midrand", "Pretoria", "Durban", "Cape Town", "Gauteng"].map(loc => (
+                            <Badge key={loc} variant="outline" className="bg-white border-primary/20 text-primary font-bold">{loc}</Badge>
+                        ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground italic">
+                        Our online systems allow taxpayers nationwide to securely share documentation and receive professional tax assistance remotely.
+                    </p>
+                  </div>
+              </div>
+              <div className="h-[400px] rounded-3xl overflow-hidden shadow-xl border-8 border-slate-50">
+                  <iframe
+                      src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen={false}
+                      loading="lazy"
+                  ></iframe>
+              </div>
+          </div>
+      </section>
+
+      {/* FAQ SECTION */}
+      <section className="container mx-auto px-4 max-w-4xl py-12 border-t">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate-900 flex items-center justify-center gap-2">
+                <HelpCircle className="h-8 w-8 text-primary" /> Frequently Asked Questions
+            </h2>
+          </div>
+          <Accordion type="single" collapsible className="w-full space-y-4">
+            {faqs.map((faq, idx) => (
+              <AccordionItem key={idx} value={`item-${idx}`} className="bg-slate-50 border rounded-xl px-6">
+                <AccordionTrigger className="text-left font-bold text-slate-900 hover:no-underline">{faq.q}</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground leading-relaxed text-sm font-medium pb-6">{faq.a}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
       </section>
-      
-       <section className="py-24 bg-white border-t">
-         <div className="container mx-auto px-4 max-w-4xl">
-            <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-center">When You Cannot Enter Into a SARS Section 200 Compromise</h2>
-            </div>
-            <Accordion type="single" collapsible className="w-full space-y-4">
-                {whenYouCannot.map((item, index) => (
-                <AccordionItem key={index} value={`item-cannot-${index}`} className="bg-slate-50 border rounded-xl px-4 shadow-sm overflow-hidden text-left">
-                    <AccordionTrigger className="text-left font-semibold hover:no-underline">{item.title}</AccordionTrigger>
-                    <AccordionContent className="whitespace-pre-line text-muted-foreground text-sm leading-relaxed pb-4">{item.content}</AccordionContent>
-                </AccordionItem>
-                ))}
-            </Accordion>
-         </div>
-      </section>
 
-      <section className="container mx-auto px-4 text-center bg-white">
-        <h2 className="text-3xl font-bold text-center">Need Help With a SARS Compromise?</h2>
-        <Button asChild size="lg" className="mt-8 shadow-xl font-bold px-10">
-            <Link href="/contact">Contact Us For A Confidential Assessment</Link>
-        </Button>
+      {/* FINAL CTA */}
+      <section className="container mx-auto px-4 text-center">
+        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-900 text-white shadow-2xl relative overflow-hidden">
+            <div className="relative z-10 space-y-8">
+                <h2 className="text-4xl font-black">Speak to a SARS Debt Specialist</h2>
+                <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+                    If you are struggling with SARS debt, tax penalties, or SARS collection pressure, My Accountant can assist you with practical and professional tax debt solutions.
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                    <Button asChild size="lg" className="h-14 px-12 text-lg font-bold shadow-lg">
+                        <Link href="/contact">Contact My Accountant Today</Link>
+                    </Button>
+                </div>
+            </div>
+            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none"><ShieldCheck size={400} /></div>
+        </div>
       </section>
     </div>
   );
