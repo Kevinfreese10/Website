@@ -1,6 +1,11 @@
 import ProductsPageClient from '@/components/products/ProductsPageClient';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import { Metadata } from 'next';
+import { getFirestore, collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+import { firebaseApp } from '@/lib/firebase';
+import { Service } from '@/lib/types';
+
+const db = getFirestore(firebaseApp);
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -13,6 +18,26 @@ export async function generateMetadata(): Promise<Metadata> {
     return getStaticPageMetadata('products', defaults);
 }
 
-export default function ProductsPage() {
-  return <ProductsPageClient />;
+export default async function ProductsPage() {
+  // Fetch data server-side for bot discovery and SEO
+  const servicesSnapshot = await getDocs(query(collection(db, "services"), orderBy("title")));
+  const services = servicesSnapshot.docs.map(doc => {
+    const data = doc.data();
+    const serviceData = { ...data, id: doc.id } as any;
+    // Serialize Firestore Timestamps
+    if (data.createdAt && data.createdAt instanceof Timestamp) {
+        serviceData.createdAt = data.createdAt.toDate().toISOString();
+    }
+    return serviceData as Service;
+  });
+
+  const categoriesSnapshot = await getDocs(query(collection(db, "categories"), orderBy("order")));
+  const categories = categoriesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+
+  return (
+    <ProductsPageClient 
+        initialServices={services} 
+        initialCategories={categories as any} 
+    />
+  );
 }

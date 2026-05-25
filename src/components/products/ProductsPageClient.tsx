@@ -18,7 +18,7 @@ import {
   FileUp, 
   RefreshCw 
 } from 'lucide-react';
-import { collection, getFirestore, orderBy, query, onSnapshot } from 'firebase/firestore';
+import { collection, getFirestore, orderBy, query, onSnapshot, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Service } from '@/lib/types';
 import { useEffect, useState, useMemo } from 'react';
@@ -37,19 +37,33 @@ const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-ZA', {
       style: 'currency',
       currency: 'ZAR',
-      minimumFractionDigits: price % 1 === 0 ? 0 : 2,
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(price);
 };
 
-export default function ProductsPageClient() {
-  const [services, setServices] = useState<Service[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default function ProductsPageClient({ 
+    initialServices = [], 
+    initialCategories = [] 
+}: { 
+    initialServices?: Service[], 
+    initialCategories?: Category[] 
+}) {
+  const [services, setServices] = useState<Service[]>(initialServices);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [isLoading, setIsLoading] = useState(initialServices.length === 0);
 
   useEffect(() => {
+    // Setup real-time listener to keep prices and details in sync
     const servicesUnsubscribe = onSnapshot(query(collection(db, 'services'), orderBy('title')), (snapshot) => {
-        const fetchedServices = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Service));
+        const fetchedServices = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const serviceData = { ...data, id: doc.id } as any;
+            if (data.createdAt && data.createdAt instanceof Timestamp) {
+                serviceData.createdAt = data.createdAt.toDate().toISOString();
+            }
+            return serviceData as Service;
+        });
         setServices(fetchedServices);
         setIsLoading(false);
     });
@@ -84,7 +98,6 @@ export default function ProductsPageClient() {
         </p>
       </div>
 
-      {/* PROCESS SECTION MOVED TO TOP */}
       <section className="py-12 bg-white border-y mb-12">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 space-y-4">
@@ -117,7 +130,7 @@ export default function ProductsPageClient() {
       <TrustIndexWidget />
 
       <div className="space-y-12">
-        {isLoading ? (
+        {isLoading && services.length === 0 ? (
             <div className="flex justify-center items-center h-40">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
@@ -140,7 +153,7 @@ export default function ProductsPageClient() {
                         )}
                         <div className="flex items-center text-muted-foreground pt-1">
                             <Clock className="h-4 w-4 mr-1.5" />
-                            <span className="text-xs font-medium">{service.turnaroundTime}</span>
+                            <span className="text-sm font-medium">{service.turnaroundTime}</span>
                         </div>
                     </CardHeader>
                     <CardContent className="flex-grow">
