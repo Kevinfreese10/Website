@@ -1,83 +1,142 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { CheckCircle, ShieldCheck, Scale, FileText, Gavel, AlertCircle } from 'lucide-react';
+import { 
+  CheckCircle, 
+  ShieldCheck, 
+  Scale, 
+  FileText, 
+  Gavel, 
+  AlertCircle,
+  Landmark,
+  Calculator,
+  TrendingUp,
+  Search,
+  CheckCircle2,
+  Users,
+  MapPin,
+  ArrowRight,
+  HelpCircle,
+  AlertTriangle
+} from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function SarsDisputesPageClient() {
-  const serviceIncludes = [
-    'Analysis of the grounds for assessment',
-    'Drafting of Section 104 Notice of Objection (NOO)',
-    'Preparation of comprehensive supporting evidence',
-    'Submission of Suspension of Payment requests',
-    'Managing Notice of Appeal (NOA) where necessary',
-    'Representation in Alternative Dispute Resolution (ADR)',
+  const serviceList = [
+    'SARS objections',
+    'SARS appeals',
+    'Disputed assessments',
+    'VAT disputes',
+    'PAYE disputes',
+    'Income tax disputes',
+    'Penalty disputes',
+    'Interest disputes',
+    'SARS audit disputes',
+    'Estimated assessments',
+    'Suspension of payment applications',
+    'SARS debt disputes',
+  ];
+
+  const commonDisputes = [
+    'Additional income tax assessments',
+    'VAT adjustments',
+    'PAYE disputes',
+    'Disallowed expenses or deductions',
+    'Estimated assessments',
+    'Administrative penalties',
+    'Understatement penalties',
+    'Interest charges',
+    'Audit findings',
+    'Customs and excise disputes',
+    'Disputes relating to tax debt collection',
+  ];
+
+  const objectionServices = [
+    'Reviewing SARS assessments',
+    'Analysing audit findings',
+    'Preparing legal grounds for objection',
+    'Drafting detailed objection submissions',
+    'Supporting document preparation',
+    'Tax legislation analysis',
+    'SARS procedural compliance',
+    'Uploading objections through eFiling',
+    'Managing SARS correspondence',
+  ];
+
+  const appealServices = [
+    'Notice of Appeal preparation',
+    'Alternative dispute resolution support',
+    'Tax Board and Tax Court preparation',
+    'Legal and financial analysis',
+    'Negotiation support',
+    'Supporting affidavit preparation',
+    'Tax technical submissions',
+    'SARS settlement discussions',
+  ];
+
+  const auditSupport = [
+    'SARS audit responses',
+    'Supporting documentation preparation',
+    'Tax reconciliation reviews',
+    'Financial statement analysis',
+    'VAT and payroll reconciliations',
+    'Legal response drafting',
+    'SARS engagement and negotiations',
+  ];
+
+  const industries = [
+    'Construction companies',
+    'Retail businesses',
+    'E-commerce businesses',
+    'Property companies',
+    'Consultants and freelancers',
+    'Production and media companies',
+    'Logistics businesses',
+    'NGOs and non-profit organisations',
+    'Professional service firms',
+    'Small and medium enterprises',
   ];
 
   const whyChooseUs = [
-    {
-      title: 'Procedural Experts',
-      description: 'Experts in Tax Administration Act procedures.',
-      icon: <Gavel className="h-4 w-4" />,
-    },
-    {
-      title: 'Strong Arguments',
-      description: 'Legally sound, merit-based motivations.',
-      icon: <FileText className="h-4 w-4" />,
-    },
-    {
-      title: 'Risk Management',
-      description: 'Strategic advice on when to settle or fight.',
-      icon: <ShieldCheck className="h-4 w-4" />,
-    },
-    {
-      title: 'Results Driven',
-      description: 'Proven track record in successful objections.',
-      icon: <Scale className="h-4 w-4" />,
-    },
+    'Experienced SARS tax practitioners',
+    'Knowledge of the Tax Administration Act',
+    'Assistance with objections and appeals',
+    'SARS audit support',
+    'Tax debt negotiation expertise',
+    'Online service delivery nationwide',
+    'Strategic dispute management',
+    'Professional tax analysis',
+    'Fast turnaround times',
+    'Dedicated client support',
   ];
 
-  const disputeSteps = [
+  const faqs = [
     {
-        title: 'Step 1: Notice of Objection (NOO)',
-        content: `Under Section 104, if you disagree with a SARS assessment, you must lodge an objection.
-- Must be lodged within 80 days of the assessment.
-- Must clearly state the grounds for the objection.
-- Must include all relevant supporting documentation.
-
-📌 Missing the 80-day deadline requires a separate application for Condonation based on "Reasonable Grounds".`
+      q: "How do I dispute a SARS assessment?",
+      a: "Taxpayers may dispute a SARS assessment by lodging a formal Notice of Objection through SARS eFiling within the prescribed timeframes."
     },
     {
-        title: 'Step 2: Suspension of Payment',
-        content: `Lodging an objection does NOT automatically stop SARS from collecting the debt.
-- We apply for a formal "Suspension of Payment".
-- This prevents SARS from using third-party appointments (bank sweeps) while the dispute is active.
-- SARS considers the risk of dissipation of assets when deciding.`
+      q: "How long do SARS disputes take?",
+      a: "The timeframe varies depending on the complexity of the dispute, SARS response times, and whether the matter proceeds to appeal or Tax Court."
     },
     {
-        title: 'Step 3: SARS Decision',
-        content: `SARS must decide on the objection (Allow, Disallow, or Partially Allow).
-- If allowed, the assessment is corrected and the debt removed.
-- If disallowed, the next step is a formal Appeal.`
+      q: "Can SARS collect money while a dispute is ongoing?",
+      a: "Yes. SARS may continue collection action unless a suspension of payment application is approved."
     },
     {
-        title: 'Step 4: Notice of Appeal (NOA)',
-        content: `If an objection is disallowed, you have 30 days to lodge an appeal.
-- This leads to Alternative Dispute Resolution (ADR) or the Tax Board/Court.
-- Most cases are resolved during the ADR stage through negotiation.`
+      q: "What happens if SARS rejects my objection?",
+      a: "If SARS disallows an objection, taxpayers may lodge an appeal and pursue further dispute resolution procedures."
+    },
+    {
+      q: "Can penalties and interest be disputed?",
+      a: "Yes. Certain penalties and interest charges may be disputed or remitted where valid legal grounds exist."
     }
-  ];
-
-  const keywordButtons = [
-    { label: 'Entity Registrations', href: '/products#entity-registrations' },
-    { label: 'SARS Services', href: '/products#sars-services' },
-    { label: 'CIPC Services', href: '/products#cipc-services' },
-    { label: 'Accounting Services', href: '/products#accounting-services' },
-    { label: 'Payroll Services', href: '/products#payroll-services' },
   ];
 
   return (
@@ -85,87 +144,295 @@ export default function SarsDisputesPageClient() {
       {/* HERO SECTION */}
       <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
         <div className="container relative z-10 mx-auto px-4">
+          <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
+            SARS Dispute Resolution South Africa
+          </Badge>
           <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
-            SARS <span className="text-gradient">#Disputes</span> & Objections
+            Professional Assistance With SARS <span className="text-gradient">Objections, Appeals</span> & Tax Disputes
           </h1>
-          <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto text-center">
-            Challenge incorrect assessments legally. Don't pay for SARS errors. If you have received an assessment that is factually incorrect, you have the legal right to dispute it.
-          </p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center pt-4">
-            <Button asChild size="lg" className="font-bold px-10 shadow-xl">
-                <Link href="/contact">Challenge My Assessment</Link>
+          <div className="mx-auto mb-10 max-w-4xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
+            <p>
+              Receiving an additional assessment, audit finding, penalty, or demand from the South African Revenue Service can place significant financial pressure. We provide professional dispute resolution to protect your rights.
+            </p>
+          </div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+            <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-xl">
+              <Link href="/contact">Speak to a Dispute Specialist</Link>
             </Button>
           </div>
-          <div className="flex flex-wrap justify-center gap-3 pt-6">
-            {keywordButtons.map((btn) => (
-              <Button key={btn.label} asChild variant="outline" className="h-9 md:h-11 px-4 md:px-6 rounded-full font-bold transition-all text-xs md:text-sm">
-                <Link href={btn.href}>{btn.label}</Link>
-              </Button>
-            ))}
-          </div>
         </div>
       </section>
 
-      <TrustIndexWidget />
+      <div className="container mx-auto px-4">
+        <TrustIndexWidget />
+      </div>
 
-       <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-center">What Our Dispute Service Includes</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                {serviceIncludes.map((item, index) => (
-                <div key={index} className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100 shadow-sm">
-                    <div className="bg-primary/10 rounded-full h-10 w-10 flex items-center justify-center flex-shrink-0">
-                         <CheckCircle className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                        <p className="font-medium text-sm leading-relaxed">{item}</p>
-                    </div>
+      {/* OVERVIEW SECTION */}
+      <section className="container mx-auto px-4 max-w-5xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-slate-900">Protect Your Rights Under the TAA</h2>
+                <p className="text-muted-foreground leading-relaxed">Our experienced tax practitioners assist businesses and individuals with a full range of formal dispute services:</p>
+                <div className="grid grid-cols-1 gap-2">
+                    {serviceList.map(item => (
+                        <div key={item} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                            <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> {item}
+                        </div>
+                    ))}
                 </div>
-                ))}
+              </div>
+              <div className="bg-slate-50 p-8 rounded-3xl border-2 border-dashed border-slate-200 space-y-4">
+                  <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
+                    <Gavel className="h-6 w-6" /> What is a SARS Dispute?
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    A SARS dispute arises when a taxpayer disagrees with an assessment, penalty, decision, or finding. Formal resolution procedures are provided for under the Tax Administration Act.
+                  </p>
+                  <Separator />
+                  <div className="grid grid-cols-1 gap-1.5">
+                      {commonDisputes.slice(0, 5).map(d => (
+                          <div key={d} className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+                              <ArrowRight className="h-3 w-3 text-primary" /> {d}
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* CORE PILLARS */}
+      <section className="bg-slate-50 py-24 border-y">
+        <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Objections */}
+                <Card className="border-2 border-slate-100 shadow-sm flex flex-col hover:border-primary/20 transition-all">
+                    <CardHeader className="pb-4">
+                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
+                            <FileText className="h-6 w-6" />
+                        </div>
+                        <CardTitle className="text-2xl font-bold">SARS Objections</CardTitle>
+                        <CardDescription className="text-xs font-bold uppercase tracking-wider text-primary">Notice of Objection (NOO)</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                        <p className="text-sm text-muted-foreground mb-6">The first formal step in challenging a SARS decision. We ensure submissions are technically aligned with legislation.</p>
+                        <ul className="space-y-3">
+                            {objectionServices.slice(0, 6).map((service, i) => (
+                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-slate-700">
+                                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                                    {service}
+                                </li>
+                            ))}
+                        </ul>
+                    </CardContent>
+                </Card>
+
+                {/* Appeals */}
+                <Card className="border-2 border-slate-100 shadow-sm flex flex-col hover:border-primary/20 transition-all">
+                    <CardHeader className="pb-4">
+                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
+                            <Scale className="h-6 w-6" />
+                        </div>
+                        <CardTitle className="text-2xl font-bold">SARS Appeals</CardTitle>
+                        <CardDescription className="text-xs font-bold uppercase tracking-wider text-primary">Appellate Procedures</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                        <p className="text-sm text-muted-foreground mb-6">If an objection is disallowed, we represent you in alternative dispute resolution (ADR) and preparaty phases.</p>
+                        <ul className="space-y-3">
+                            {appealServices.slice(0, 6).map((service, i) => (
+                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-slate-700">
+                                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                                    {service}
+                                </li>
+                            ))}
+                        </ul>
+                    </CardContent>
+                </Card>
+
+                {/* Audits */}
+                <Card className="border-2 border-slate-100 shadow-sm flex flex-col hover:border-primary/20 transition-all">
+                    <CardHeader className="pb-4">
+                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
+                            <Search className="h-6 w-6" />
+                        </div>
+                        <CardTitle className="text-2xl font-bold">Audit Disputes</CardTitle>
+                        <CardDescription className="text-xs font-bold uppercase tracking-wider text-primary">Verification Support</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                        <p className="text-sm text-muted-foreground mb-6">Managing SARS engagements early during audits to prevent incorrect assessments and penalties.</p>
+                        <ul className="space-y-3">
+                            {auditSupport.slice(0, 6).map((service, i) => (
+                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-slate-700">
+                                    <CheckCircle2 className="h-4 w-4 text-slate-900 shrink-0" />
+                                    {service}
+                                </li>
+                            ))}
+                        </ul>
+                    </CardContent>
+                </Card>
             </div>
         </div>
       </section>
 
-       <section className="py-24 bg-white border-t">
-         <div className="container mx-auto px-4 max-w-4xl">
-            <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-center">The SARS Dispute Process</h2>
-            </div>
-            <Accordion type="single" collapsible className="w-full space-y-4">
-                {disputeSteps.map((step, index) => (
-                <AccordionItem key={index} value={`item-${index}`} className="bg-slate-50 border rounded-xl px-4 shadow-sm overflow-hidden text-left">
-                    <AccordionTrigger className="text-left font-semibold hover:no-underline">{step.title}</AccordionTrigger>
-                    <AccordionContent className="whitespace-pre-line text-muted-foreground text-sm leading-relaxed pb-4">{step.content}</AccordionContent>
-                </AccordionItem>
-                ))}
-            </Accordion>
-         </div>
+      {/* SUSPENSION OF PAYMENT */}
+      <section className="container mx-auto px-4 max-w-4xl py-12">
+          <Card className="border-2 border-destructive/20 bg-destructive/5 shadow-lg overflow-hidden">
+              <CardHeader className="bg-destructive/10 pb-4 border-b border-destructive/10">
+                  <CardTitle className="flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="h-6 w-6" />
+                      Suspension of Payment Applications
+                  </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                  <p className="text-sm font-medium leading-relaxed">
+                    Lodging an objection does NOT automatically stop SARS from collecting debt. We apply for a formal "Suspension of Payment" to protect your cash flow during the dispute.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                      {[
+                          'Legal motivation for suspension',
+                          'Financial hardship representations',
+                          'SARS collection management',
+                          'Debt negotiation support'
+                      ].map(item => (
+                          <div key={item} className="flex items-center gap-2 text-xs font-bold text-destructive">
+                              <CheckCircle className="h-4 w-4 shrink-0" /> {item}
+                          </div>
+                      ))}
+                  </div>
+              </CardContent>
+          </Card>
       </section>
-      
-        <section className="container mx-auto px-4 bg-white">
-            <Card className="max-w-3xl mx-auto border-destructive/20 bg-destructive/5 shadow-sm">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-destructive">
-                        <AlertCircle className="h-5 w-5" />
-                        Important: The "Pay Now, Argue Later" Rule
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-destructive-foreground opacity-90 leading-relaxed">
-                    <p>
-                        SARS generally operates on the principle that tax must be paid even if it is under dispute. To avoid SARS collecting funds from your bank account, we formally apply for a Suspension of Payment as part of our service.
-                    </p>
-                </CardContent>
-            </Card>
-        </section>
 
-      <section className="container mx-auto px-4 text-center bg-white py-12">
-        <h2 className="text-3xl font-bold text-center">Unfair SARS Assessment?</h2>
-        <Button asChild size="lg" className="mt-8 shadow-xl font-bold px-10">
-            <Link href="/contact">Book a Consultation</Link>
-        </Button>
+      {/* ESTIMATED ASSESSMENTS */}
+      <section className="container mx-auto px-4 max-w-5xl py-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6">
+                <h2 className="text-3xl font-bold text-slate-900">Estimated Assessments & SARS Debt</h2>
+                <p className="text-lg text-muted-foreground leading-relaxed">
+                    SARS may issue estimates when returns are outstanding or information is incomplete. These often significantly overstate liabilities.
+                </p>
+                <div className="grid grid-cols-1 gap-3">
+                    {[
+                        'Reviewing estimated assessments',
+                        'Correcting historical returns',
+                        'Reconstructing financial records',
+                        'Submitting revised information',
+                        'Challenging incorrect findings'
+                    ].map(item => (
+                        <div key={item} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> {item}
+                        </div>
+                    ))}
+                </div>
+              </div>
+              <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-xl">
+                  <h3 className="text-xl font-bold mb-4 text-primary">Penalty & Interest Remissions</h3>
+                  <p className="text-sm text-slate-300 mb-6 leading-relaxed">SARS imposes administrative and understatement penalties (up to 200%). We request remission based on "Reasonable Grounds" or exceptional circumstances.</p>
+                  <Button asChild variant="secondary" className="w-full font-bold">
+                      <Link href="/remission-of-fines">Learn About Remissions</Link>
+                  </Button>
+              </div>
+          </div>
+      </section>
+
+      {/* INDUSTRIES & WHY US */}
+      <section className="bg-slate-50 py-24 border-y">
+          <div className="container mx-auto px-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                  <div className="space-y-8">
+                      <h2 className="text-3xl font-bold text-slate-900">Why Choose My Accountant?</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        {whyChooseUs.map(item => (
+                            <div key={item} className="flex items-start gap-3 p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:border-primary/20 transition-all">
+                                <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                                <span className="text-xs font-bold text-slate-700">{item}</span>
+                            </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">
+                        Our professionals are associated with recognized organisations including SAICA, CIBA, and SAIT.
+                      </p>
+                  </div>
+                  <div className="space-y-6">
+                      <h2 className="text-3xl font-bold text-slate-900">Industries We Assist</h2>
+                      <div className="bg-white p-8 rounded-3xl border-2 border-dashed border-slate-200">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {industries.map(item => (
+                                <div key={item} className="flex items-center gap-3 text-sm font-bold text-muted-foreground">
+                                    <Users className="h-4 w-4 text-primary" /> {item}
+                                </div>
+                            ))}
+                        </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* REGIONAL SEO SECTION */}
+      <section className="container mx-auto px-4 max-w-6xl py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              <div className="space-y-8">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
+                  <div className="space-y-4 text-center lg:text-left">
+                    <h2 className="text-3xl font-bold text-slate-900">SARS Dispute Resolution Across South Africa</h2>
+                    <p className="text-lg text-muted-foreground leading-relaxed">
+                        My Accountant provides online SARS dispute resolution services to taxpayers throughout South Africa. Our secure systems allow for professional assistance from anywhere.
+                    </p>
+                    <div className="flex flex-wrap justify-center lg:justify-start gap-2 pt-2">
+                        {["Johannesburg", "Randburg", "Sandton", "Midrand", "Pretoria", "Durban", "Cape Town", "Gauteng"].map(loc => (
+                            <Badge key={loc} variant="outline" className="bg-white border-primary/20 text-primary font-bold">{loc}</Badge>
+                        ))}
+                    </div>
+                  </div>
+              </div>
+              <div className="h-[400px] rounded-3xl overflow-hidden shadow-xl border-8 border-slate-50">
+                  <iframe
+                      src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen={false}
+                      loading="lazy"
+                  ></iframe>
+              </div>
+          </div>
+      </section>
+
+      {/* FAQ SECTION */}
+      <section className="container mx-auto px-4 max-w-4xl py-12 border-t">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-slate-900 flex items-center justify-center gap-2">
+                <HelpCircle className="h-8 w-8 text-primary" /> Frequently Asked Questions
+            </h2>
+          </div>
+          <Accordion type="single" collapsible className="w-full space-y-4">
+            {faqs.map((faq, idx) => (
+              <AccordionItem key={idx} value={`item-${idx}`} className="bg-slate-50 border rounded-xl px-6">
+                <AccordionTrigger className="text-left font-bold text-slate-900 hover:no-underline">{faq.q}</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground leading-relaxed text-sm font-medium pb-6">{faq.a}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="container mx-auto px-4 text-center">
+        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-900 text-white shadow-2xl relative overflow-hidden">
+            <div className="relative z-10 space-y-8">
+                <h2 className="text-4xl font-black">Speak to a SARS Dispute Specialist</h2>
+                <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+                    If you are facing a SARS audit, disputed assessment, tax penalties, or collection pressure, we can assist with professional dispute resolution services.
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                    <Button asChild size="lg" className="h-14 px-12 text-lg font-bold shadow-lg">
+                        <Link href="/contact">Contact My Accountant Today</Link>
+                    </Button>
+                </div>
+            </div>
+            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none"><ShieldCheck size={400} /></div>
+        </div>
       </section>
     </div>
   );
 }
+
