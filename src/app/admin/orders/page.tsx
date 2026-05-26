@@ -134,7 +134,9 @@ export default function AdminOrdersPage() {
         // 1. Direct Customer Orders (resellerId is null or empty)
         // 2. Explicitly Outsourced Work (resellerId IS set AND originalOrderId IS set)
         // 3. HIDE: Internal Partner Orders (resellerId IS set AND originalOrderId IS NULL)
+        // 4. HIDE: Cancelled orders (per user request)
         const visibleOrders = ordersWithClientDetails.filter(order => {
+            if (order.status === 'Cancelled') return false;
             const isDirectOrder = !order.resellerId;
             const isOutsourcedWork = !!(order.resellerId && order.originalOrderId);
             return (isDirectOrder || isOutsourcedWork);
@@ -412,7 +414,7 @@ export default function AdminOrdersPage() {
                     <div className="space-y-1">
                         <CardTitle>All Client Orders</CardTitle>
                         <CardDescription>
-                            {user?.role === 'staff' ? 'Showing all orders assigned to you.' : 'View and manage all orders in the system.'}
+                            {user?.role === 'staff' ? 'Showing all orders assigned to you.' : 'View and manage all active orders in the system.'}
                         </CardDescription>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -436,7 +438,6 @@ export default function AdminOrdersPage() {
                                     <SelectItem value="Pending Payment">Pending Payment</SelectItem>
                                     <SelectItem value="Processing">Processing</SelectItem>
                                     <SelectItem value="Completed">Completed</SelectItem>
-                                    <SelectItem value="Cancelled">Cancelled</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -450,7 +451,7 @@ export default function AdminOrdersPage() {
                 </div>
             ) : filteredOrders.length === 0 ? (
                 <div className="py-20 text-center space-y-4">
-                    <p className="text-muted-foreground font-medium">No orders matching your search or filters.</p>
+                    <p className="text-muted-foreground font-medium">No active orders matching your search or filters.</p>
                     <Button variant="outline" onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}>Clear Filters</Button>
                 </div>
             ) : (
@@ -593,7 +594,7 @@ export default function AdminOrdersPage() {
             </CardContent>
             <CardFooter className="bg-muted/30 border-t py-3 justify-between items-center">
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                    Showing {filteredOrders.length} of {orders.length} orders
+                    Showing {filteredOrders.length} of {orders.length} active orders
                 </p>
                 {filteredOrders.length < orders.length && (
                     <Button variant="link" size="sm" onClick={() => { setSearchTerm(''); setStatusFilter('all'); }} className="h-auto p-0 text-[10px] font-black uppercase">
