@@ -9,6 +9,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const AdInputSchema = z.object({
+  id: z.string().describe('The unique ID of the product.'),
   productName: z.string(),
   price: z.number(),
   turnaroundTime: z.string(),
@@ -24,7 +25,7 @@ const SocialAdInputSchema = z.object({
 export type SocialAdInput = z.infer<typeof SocialAdInputSchema>;
 
 const AdVariantSchema = z.object({
-  productId: z.string(),
+  productId: z.string().describe('Must match the input ID of the product.'),
   hook: z.string().describe('A catchy opening line to stop the scroll.'),
   body: z.string().describe('The main ad copy, highlighting benefits and pain points.'),
   cta: z.string().describe('A clear call to action.'),
@@ -51,14 +52,16 @@ const prompt = ai.definePrompt({
   The tone should be: {{{tone}}}.
   
   **INSTRUCTIONS**:
-  1. **Hook**: Start with a relatable pain point or a bold statement (e.g., "Tired of SARS deadlines?" or "Did you know 70% of SMEs pay too much tax?").
-  2. **Body**: Briefly explain how the service solves the problem. Focus on benefits like "Peace of Mind," "Saving Time," and "Compliance." Use emojis effectively.
-  3. **Mandatory Info**: You MUST explicitly mention the price and the turnaround time immediately after the hook (at the very start of the body text). You must also include the direct product link within the ad copy text.
-  4. **CTA**: Provide a clear call to action that directs users to the provided URL.
-  5. **Context**: Use South African terminology (SARS, CIPC, Pty Ltd, etc.).
+  1. **Mapping**: For each ad, the 'productId' field MUST exactly match the 'id' field from the input product.
+  2. **Hook**: Start with a relatable pain point or a bold statement (e.g., "Tired of SARS deadlines?" or "Did you know 70% of SMEs pay too much tax?").
+  3. **Body**: Briefly explain how the service solves the problem. Focus on benefits like "Peace of Mind," "Saving Time," and "Compliance." Use emojis effectively.
+  4. **Mandatory Info**: You MUST explicitly mention the price and the turnaround time immediately after the hook (at the very start of the body text). You must also include the direct product link within the ad copy text.
+  5. **CTA**: Provide a clear call to action that directs users to the provided URL.
+  6. **Context**: Use South African terminology (SARS, CIPC, Pty Ltd, etc.).
   
   **PRODUCTS TO ADVERTISE**:
   {{#each products}}
+  - ID: "{{this.id}}"
   - Product: "{{this.productName}}"
   - Price: R{{this.price}}
   - Turnaround: {{this.turnaroundTime}}

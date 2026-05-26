@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Sparkles, Megaphone, Copy, Facebook, Share2, Info, ArrowRight, RefreshCw, Trash2 } from 'lucide-react';
 import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -16,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
 
 const db = getFirestore(firebaseApp);
 
@@ -50,12 +50,13 @@ export default function SocialMarketingPage() {
         const productsToAd = services
             .filter(s => selectedIds.includes(s.id))
             .map(s => ({
+                id: s.id, // Ensure ID is passed for mapping
                 productName: s.title,
                 price: s.price,
                 turnaroundTime: s.turnaroundTime,
                 description: s.description,
                 category: s.category,
-                url: `${process.env.NEXT_PUBLIC_APP_URL}/products/${s.slug}`
+                url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/products/${s.slug}`
             }));
 
         try {
@@ -63,7 +64,8 @@ export default function SocialMarketingPage() {
             setGeneratedAds(result);
             toast({ title: "Ads Generated!", description: `Created marketing content for ${selectedIds.length} products.` });
         } catch (e) {
-            toast({ title: "Generation Failed", variant: "destructive" });
+            console.error("Ad Generation Error:", e);
+            toast({ title: "Generation Failed", description: "The AI failed to generate content. Please try again.", variant: "destructive" });
         } finally {
             setIsGenerating(false);
         }
@@ -148,9 +150,9 @@ export default function SocialMarketingPage() {
                     </CardFooter>
                 </Card>
 
-                <div className="lg:col-span-8 space-y-6">
+                <div className="lg:col-span-8 h-[calc(100vh-12rem)] min-h-[600px] flex flex-col">
                     {!generatedAds ? (
-                        <div className="h-[600px] border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center p-12 bg-muted/5">
+                        <div className="flex-grow border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center p-12 bg-muted/5">
                             <Sparkles className="h-16 w-16 text-primary opacity-10 mb-4" />
                             <h3 className="text-xl font-bold text-slate-900">Campaign Content Creator</h3>
                             <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-2">
@@ -158,7 +160,8 @@ export default function SocialMarketingPage() {
                             </p>
                         </div>
                     ) : (
-                        <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
+                        <ScrollArea className="flex-grow">
+                        <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500 pr-4">
                             <Alert className="bg-primary/5 border-primary/20 border-2">
                                 <Info className="h-4 w-4 text-primary" />
                                 <AlertTitle className="text-xs font-black uppercase text-primary tracking-widest">Automation Info</AlertTitle>
@@ -169,7 +172,7 @@ export default function SocialMarketingPage() {
 
                             <div className="grid grid-cols-1 gap-6">
                                 {generatedAds.ads.map((ad, idx) => {
-                                    const service = services.find(s => s.title === ad.productId) || services.find(s => s.id === ad.productId);
+                                    const service = services.find(s => s.id === ad.productId);
                                     return (
                                         <Card key={idx} className="border-2 shadow-sm overflow-hidden">
                                             <CardHeader className="bg-muted/30 border-b py-3 flex flex-row justify-between items-center">
@@ -219,6 +222,7 @@ export default function SocialMarketingPage() {
                                 })}
                             </div>
                         </div>
+                        </ScrollArea>
                     )}
                 </div>
             </div>
