@@ -39,7 +39,7 @@ const CVAnalysisOutputSchema = z.object({
 });
 export type CVAnalysisOutput = z.infer<typeof CVAnalysisOutputSchema>;
 
-const CV_CHECKER_API_KEY = 'AIzaSyB1a77Wn8MZF0N4SeF3rCRp5xpIUMte3zU';
+const CV_CHECKER_API_KEY = 'AIzaSyCA6NIJNhxhweEMkQIn8rj4dBDz4YIr4W0';
 
 /**
  * Analyzes a CV PDF and returns scores and suggestions.
