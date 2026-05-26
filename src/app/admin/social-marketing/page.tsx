@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, Megaphone, Copy, Facebook, Share2, Info, ArrowRight, RefreshCw, Trash2 } from 'lucide-react';
 import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
