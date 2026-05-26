@@ -37,10 +37,6 @@ const SocialAdOutputSchema = z.object({
 });
 export type SocialAdOutput = z.infer<typeof SocialAdOutputSchema>;
 
-export async function generateSocialAds(input: SocialAdInput): Promise<SocialAdOutput> {
-  return generateSocialAdFlow(input);
-}
-
 const prompt = ai.definePrompt({
   name: 'generateSocialAdPrompt',
   model: 'googleai/gemini-2.5-flash',
@@ -70,7 +66,7 @@ const prompt = ai.definePrompt({
   ---
   {{/each}}
   
-  Return a list of ads, one for each product.`,
+  Return the result as structured JSON matching the output schema exactly.`,
 });
 
 const generateSocialAdFlow = ai.defineFlow(
@@ -80,7 +76,29 @@ const generateSocialAdFlow = ai.defineFlow(
     outputSchema: SocialAdOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
-    return output!;
+    let retries = 3;
+    let lastError;
+    
+    while (retries > 0) {
+      try {
+        const { output } = await prompt(input);
+        if (!output) throw new Error("AI returned empty output");
+        return output;
+      } catch (error: any) {
+        lastError = error;
+        const isTransient = error.message?.includes('503') || error.message?.includes('high demand') || error.message?.includes('Service Unavailable');
+        if (retries > 1 && isTransient) {
+          retries--;
+          await new Promise(resolve => setTimeout(resolve, (4 - retries) * 2000));
+          continue;
+        }
+        break;
+      }
+    }
+    throw lastError || new Error('Failed to generate social ads after retries.');
   }
 );
+
+export async function generateSocialAds(input: SocialAdInput): Promise<SocialAdOutput> {
+  return generateSocialAdFlow(input);
+}

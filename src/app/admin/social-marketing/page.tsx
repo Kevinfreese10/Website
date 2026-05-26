@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, Megaphone, Copy, Facebook, Share2, Info, ArrowRight, RefreshCw, Trash2 } from 'lucide-react';
+import { Loader2, Sparkles, Megaphone, Copy, Facebook, Share2, Info, ArrowRight, RefreshCw, Trash2, X } from 'lucide-react';
 import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Service } from '@/lib/types';
@@ -51,7 +51,7 @@ export default function SocialMarketingPage() {
         const productsToAd = services
             .filter(s => selectedIds.includes(s.id))
             .map(s => ({
-                id: s.id, // Ensure ID is passed for mapping
+                id: s.id,
                 productName: s.title,
                 price: s.price,
                 turnaroundTime: s.turnaroundTime,
@@ -62,11 +62,19 @@ export default function SocialMarketingPage() {
 
         try {
             const result = await generateSocialAds({ products: productsToAd, tone });
-            setGeneratedAds(result);
-            toast({ title: "Ads Generated!", description: `Created marketing content for ${selectedIds.length} products.` });
-        } catch (e) {
+            if (result && result.ads) {
+                setGeneratedAds(result);
+                toast({ title: "Ads Generated!", description: `Created marketing content for ${selectedIds.length} products.` });
+            } else {
+                throw new Error("Invalid output received from AI");
+            }
+        } catch (e: any) {
             console.error("Ad Generation Error:", e);
-            toast({ title: "Generation Failed", description: "The AI failed to generate content. Please try again.", variant: "destructive" });
+            toast({ 
+                title: "Generation Failed", 
+                description: e.message || "The AI failed to generate content. Please try again.", 
+                variant: "destructive" 
+            });
         } finally {
             setIsGenerating(false);
         }
