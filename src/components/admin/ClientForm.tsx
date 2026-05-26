@@ -18,7 +18,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 import { allVatTypes } from '@/lib/vat-types';
 import { chartOfAccounts as masterChartOfAccounts } from '@/lib/chart-of-accounts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -46,7 +46,7 @@ const formSchema = z.object({
   registrationNumber: z.string().optional(),
   payeReference: z.string().optional(),
   firstProcessingMonth: z.string().optional(),
-  firstRunStartDate: z.date().optional(),
+  firstRunStartDate: z.date().optional().nullable(),
   payrollFrequency: z.enum(['Monthly', 'Fortnightly']).default('Monthly'),
   excludeSdl: z.boolean().default(false),
   yearEnd: z.string().optional(),
@@ -99,12 +99,12 @@ export default function ClientForm({
             registrationNumber: client?.registrationNumber || '',
             payeReference: client?.payeReference || '',
             firstProcessingMonth: client?.firstProcessingMonth || '',
-            firstRunStartDate: client?.firstRunStartDate ? (client.firstRunStartDate.toDate ? client.firstRunStartDate.toDate() : new Date(client.firstRunStartDate)) : undefined,
+            firstRunStartDate: client?.firstRunStartDate ? (client.firstRunStartDate.toDate ? client.firstRunStartDate.toDate() : new Date(client.firstRunStartDate)) : null,
             payrollFrequency: client?.payrollFrequency || 'Monthly',
             excludeSdl: client?.excludeSdl || false,
             yearEnd: client?.yearEnd || 'February',
             isVatRegistered: client?.isVatRegistered || false,
-            vatCategory: client?.vatCategory || undefined,
+            vatCategory: client?.vatCategory || null,
             vatNumber: client?.vatNumber || '',
             status: client?.status || 'Active',
             address: {
@@ -187,6 +187,16 @@ export default function ClientForm({
         try {
             const { initialRules, useGlobalRules, disableGlobalRules, isBlankProfile, ...rest } = values;
             
+            // Explicitly handle undefined to null conversion for Firestore compatibility
+            const submitData = {
+                ...rest,
+                firstRunStartDate: values.firstRunStartDate ?? null,
+                vatCategory: values.vatCategory ?? null,
+                registrationNumber: values.registrationNumber ?? null,
+                payeReference: values.payeReference ?? null,
+                firstProcessingMonth: values.firstProcessingMonth ?? null,
+            };
+
             // Logic: If Isolated Mode or Blank Profile is ON, we force shouldImport to false.
             const shouldImport = useGlobalRules && !disableGlobalRules && !isBlankProfile && !isPayrollClient;
 
@@ -199,7 +209,7 @@ export default function ClientForm({
             })) : [];
 
             await onSubmit({
-                ...rest,
+                ...submitData,
                 disableGlobalRules,
                 isBlankProfile,
                 allocationRules: processedRules
@@ -276,7 +286,7 @@ export default function ClientForm({
                                                     </FormControl>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                    <Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus />
                                                 </PopoverContent>
                                             </Popover>
                                             <FormDescription className="text-[10px]">The first bi-weekly payment date.</FormDescription>
