@@ -1,11 +1,9 @@
 import ProductsPageClient from '@/components/products/ProductsPageClient';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import { Metadata } from 'next';
-import { getFirestore, collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Service } from '@/lib/types';
-
-const db = getFirestore(firebaseApp);
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

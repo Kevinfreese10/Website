@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestore, doc, updateDoc, getDoc, collection, query, where, getDocs, arrayUnion, Timestamp, increment } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { doc, updateDoc, getDoc, collection, query, where, getDocs, arrayUnion, Timestamp, increment } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import crypto from 'crypto';
-import { ItnLog, Order, User } from '@/lib/types';
+import { Order, User } from '@/lib/types';
 import ipaddr from 'ipaddr.js';
 import { render } from '@react-email/components';
 import React from 'react';
 import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
 import { sendEmail } from '@/lib/email';
 import { services as allServices } from '@/lib/data';
-
-const db = getFirestore(firebaseApp);
 
 // PayFast's valid IP ranges
 const PAYFAST_IP_RANGES = [

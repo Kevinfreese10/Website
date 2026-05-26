@@ -1,9 +1,7 @@
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Metadata } from 'next';
 import { SITE_URL, GLOBAL_OG_IMAGE } from './constants';
-
-const db = getFirestore(firebaseApp);
 
 /**
  * Fetches dynamic SEO overrides for static pages from Firestore.

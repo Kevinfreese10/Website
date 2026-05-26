@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI agent for answering questions based on website content and general knowledge.
@@ -11,11 +10,9 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { fetchKnowledgeBase } from '@/lib/knowledge-base';
-import { getFirestore, collection, addDoc, Timestamp, getDocs, query, orderBy } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { collection, addDoc, Timestamp, getDocs, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Service, BlogPost } from '@/lib/types';
-
-const db = getFirestore(firebaseApp);
 
 const WebsiteQAndAInputSchema = z.object({
   question: z.string().describe('The user\'s question.'),

@@ -1,16 +1,13 @@
-import { getFirestore, collection, getDocs, query, orderBy, where, Timestamp } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { User, Service } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle2, ArrowRight, MapPin } from 'lucide-react';
+import { Clock, ArrowRight, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
-
-const db = getFirestore(firebaseApp);
 
 export const dynamic = 'force-dynamic';
 

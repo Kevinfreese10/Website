@@ -1,9 +1,6 @@
-
 import { KnowledgeBaseItem } from './types';
-import { collection, getDocs, query, orderBy, getFirestore } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
-
-const db = getFirestore(firebaseApp);
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export let knowledgeBaseItems: KnowledgeBaseItem[] = [
     {

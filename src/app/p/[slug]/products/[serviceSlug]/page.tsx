@@ -1,6 +1,6 @@
-import { getFirestore, collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
-import { User, Service, Order } from '@/lib/types';
+import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { User, Service } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Clock, ClipboardCheck, BadgeCheck, ArrowLeft } from 'lucide-react';
@@ -8,12 +8,10 @@ import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Metadata } from 'next';
 import Script from 'next/script';
 import { generateStructuredData } from '@/lib/schema/productSchema';
-
-const db = getFirestore(firebaseApp);
 
 async function getPartnerBySlug(slug: string): Promise<User | null> {
   const q = query(

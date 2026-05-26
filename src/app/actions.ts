@@ -1,7 +1,7 @@
 'use server';
 
-import { getFirestore, doc, updateDoc, getDoc, arrayUnion, Timestamp, collection, getDocs, where, query, setDoc, writeBatch, serverTimestamp, addDoc, deleteField, increment, limit } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { doc, updateDoc, getDoc, arrayUnion, Timestamp, collection, getDocs, where, query, setDoc, writeBatch, serverTimestamp, addDoc, deleteField, increment, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Order, Service, User, OrderNote, Task, DocumentUpload, DemoLead, ImportedTransaction, SmartAllocationResult, AllocationRule, ClientCustomer, Employee, Payslip } from '@/lib/types';
 import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
@@ -12,8 +12,6 @@ import { NewNoteNotificationEmail } from '@/components/emails/NewNoteNotificatio
 import { OutstandingDocumentsEmail } from '@/components/emails/OutstandingDocumentsEmail';
 import { format, addDays, addMonths, addYears } from 'date-fns';
 import { BankCleaner } from '@/lib/bank-cleaner';
-
-const db = getFirestore(firebaseApp);
 
 /**
  * Checks if a territory slug is available for a new franchisee.

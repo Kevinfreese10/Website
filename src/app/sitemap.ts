@@ -1,9 +1,7 @@
-import { getFirestore, collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { BlogPost, Service } from '@/lib/types';
 import { MetadataRoute } from 'next';
-
-const db = getFirestore(firebaseApp);
 
 const BASE_URL = 'https://www.myacc.co.za';
 

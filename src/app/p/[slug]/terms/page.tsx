@@ -1,11 +1,8 @@
-
-import { getFirestore, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { User } from '@/lib/types';
 import { notFound } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-const db = getFirestore(firebaseApp);
+import { Card, CardContent } from '@/components/ui/card';
 
 async function getPartnerBySlug(slug: string): Promise<User | null> {
   const q = query(

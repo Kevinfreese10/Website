@@ -1,13 +1,11 @@
-import { getFirestore, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { User } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import PartnerHeader from '@/components/partner/PartnerHeader';
 import PartnerFooter from '@/components/partner/PartnerFooter';
 import { Metadata } from 'next';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
-
-const db = getFirestore(firebaseApp);
 
 export const dynamic = 'force-dynamic';
 
