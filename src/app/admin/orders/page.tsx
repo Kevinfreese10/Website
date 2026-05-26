@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { getFirestore, collection, getDocs, orderBy, query, where, doc, updateDoc, arrayUnion, getDoc, Timestamp, addDoc, writeBatch, onSnapshot } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -17,8 +17,16 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server } from 'lucide-react';
+import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,12 +56,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
-
 const db = getFirestore(firebaseApp);
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { toast } = useToast();
   const { user } = useAuth();
   const [allStaff, setAllStaff] = useState<User[]>([]);
@@ -121,16 +130,14 @@ export default function AdminOrdersPage() {
             return order;
         }));
         
-        // ADMIN VISIBILITY LOGIC:
+        // ADMIN VISIBILITY BASE LOGIC:
         // 1. Direct Customer Orders (resellerId is null or empty)
         // 2. Explicitly Outsourced Work (resellerId IS set AND originalOrderId IS set)
         // 3. HIDE: Internal Partner Orders (resellerId IS set AND originalOrderId IS NULL)
         const visibleOrders = ordersWithClientDetails.filter(order => {
             const isDirectOrder = !order.resellerId;
             const isOutsourcedWork = !!(order.resellerId && order.originalOrderId);
-            const isCancelled = order.status === 'Cancelled';
-            
-            return (isDirectOrder || isOutsourcedWork) && !isCancelled;
+            return (isDirectOrder || isOutsourcedWork);
         });
 
         setOrders(visibleOrders);
@@ -143,6 +150,26 @@ export default function AdminOrdersPage() {
 
     return () => unsubscribe();
   }, [user, toast]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+        // Status filter
+        if (statusFilter !== 'all' && order.status !== statusFilter) return false;
+
+        // Search term filter
+        if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase();
+            const matchesId = order.id.toLowerCase().includes(term);
+            const matchesOriginalId = order.originalOrderId?.toLowerCase().includes(term);
+            const matchesName = order.customerName.toLowerCase().includes(term) || order.endCustomerName?.toLowerCase().includes(term);
+            const matchesEmail = order.customerEmail.toLowerCase().includes(term) || order.endCustomerEmail?.toLowerCase().includes(term);
+            
+            if (!matchesId && !matchesOriginalId && !matchesName && !matchesEmail) return false;
+        }
+
+        return true;
+    });
+  }, [orders, searchTerm, statusFilter]);
 
    const handleAssignment = async (orderId: string, staffId: string) => {
     try {
@@ -366,8 +393,11 @@ export default function AdminOrdersPage() {
   return (
     <Dialog>
         <div className="space-y-8">
-        <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight">Manage Orders</h1>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Manage Orders</h1>
+                <p className="text-sm text-muted-foreground">Monitor and update client orders across the practice.</p>
+            </div>
             <Button asChild>
             <Link href="/admin/orders/new">
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -375,23 +405,57 @@ export default function AdminOrdersPage() {
             </Link>
             </Button>
         </div>
-        <Card>
-            <CardHeader>
-            <CardTitle>All Client Orders</CardTitle>
-            <CardDescription>
-                {user?.role === 'staff' ? 'Showing all orders assigned to you.' : 'View and manage all orders in the system.'}
-            </CardDescription>
+
+        <Card className="border-2 shadow-sm">
+            <CardHeader className="bg-muted/10 pb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                        <CardTitle>All Client Orders</CardTitle>
+                        <CardDescription>
+                            {user?.role === 'staff' ? 'Showing all orders assigned to you.' : 'View and manage all orders in the system.'}
+                        </CardDescription>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <div className="relative w-full sm:w-64">
+                            <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search orders, customers..." 
+                                className="pl-9 h-10 border-primary/10" 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="h-10 w-full sm:w-[200px] font-bold border-primary/10">
+                                    <SelectValue placeholder="All Statuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Statuses</SelectItem>
+                                    <SelectItem value="Pending Payment">Pending Payment</SelectItem>
+                                    <SelectItem value="Processing">Processing</SelectItem>
+                                    <SelectItem value="Completed">Completed</SelectItem>
+                                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
             {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-            ) : orders.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No orders to display.</p>
+            ) : filteredOrders.length === 0 ? (
+                <div className="py-20 text-center space-y-4">
+                    <p className="text-muted-foreground font-medium">No orders matching your search or filters.</p>
+                    <Button variant="outline" onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}>Clear Filters</Button>
+                </div>
             ) : (
                 <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/5">
                     <TableRow>
                     <TableHead>Order ID</TableHead>
                     <TableHead>Customer</TableHead>
@@ -404,56 +468,63 @@ export default function AdminOrdersPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {orders.map((order) => {
+                    {filteredOrders.map((order) => {
                     const assignee = getAssignee(order.assignedTo?.[0]);
                     const lastNote = order.notes && order.notes.length > 0 ? order.notes[order.notes.length - 1] : null;
                     const lastNoteAuthor = lastNote ? getAssignee(lastNote.authorId) : null;
                     const customerName = getCustomerName(order);
                     return (
-                    <TableRow key={order.id}>
-                        <TableCell className="font-medium">
+                    <TableRow key={order.id} className="hover:bg-muted/5 transition-colors">
+                        <TableCell className="font-bold text-slate-900">
                             <p>{order.originalOrderId || order.id}</p>
-                            <p className="text-xs text-muted-foreground">{format(new Date(order.date), 'dd/MM/yyyy')}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{format(new Date(order.date), 'dd MMM yyyy')}</p>
                         </TableCell>
-                        <TableCell>{customerName}</TableCell>
+                        <TableCell>
+                            <div className="flex flex-col">
+                                <span className="font-semibold text-slate-700">{customerName}</span>
+                                <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{order.customerEmail}</span>
+                            </div>
+                        </TableCell>
                         <TableCell>
                         {assignee ? (
                             <TooltipProvider>
                             <Tooltip>
-                                <TooltipTrigger>
-                                    <span>{assignee.name}</span>
+                                <TooltipTrigger asChild>
+                                    <Badge variant="outline" className="font-bold border-primary/20 text-primary bg-primary/5 cursor-help">
+                                        {assignee.name.split(' ')[0]}
+                                    </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                <p>{assignee.name}</p>
+                                <p>{assignee.name} ({assignee.department})</p>
                                 </TooltipContent>
                             </Tooltip>
                             </TooltipProvider>
                         ) : (
-                            <span className="text-muted-foreground">N/A</span>
+                            <span className="text-muted-foreground text-xs italic">Unassigned</span>
                         )}
                         </TableCell>
-                        <TableCell className="max-w-[250px] truncate">
+                        <TableCell className="max-w-[200px] truncate">
                             {lastNote && lastNoteAuthor ? (
                                 <div className="flex items-start gap-2">
-                                    <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                                    <div className="text-xs">
-                                        <span className="font-semibold">{lastNoteAuthor.name}:</span>
+                                    <MessageSquare className="h-3 w-3 text-primary flex-shrink-0 mt-0.5" />
+                                    <div className="text-[10px] leading-tight">
+                                        <span className="font-black text-slate-900">{lastNoteAuthor.name.split(' ')[0]}:</span>
                                         <span className="text-muted-foreground ml-1">"{lastNote.subject || lastNote.text}"</span>
                                     </div>
                                 </div>
                             ) : (
-                                <span className="text-muted-foreground text-xs">No updates</span>
+                                <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tighter opacity-50">No updates</span>
                             )}
                         </TableCell>
                         <TableCell>
-                        <Badge variant={getStatusVariant(order.status)}>
+                        <Badge variant={getStatusVariant(order.status)} className="text-[10px] uppercase font-black px-2 py-0.5">
                             {order.status === 'Outsourced' ? 'Processing' : order.status}
                         </Badge>
                         </TableCell>
                         <TableCell>
-                        <Badge variant="secondary">{getSourceText(order)}</Badge>
+                        <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-tighter">{getSourceText(order)}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
+                        <TableCell className="text-right font-black tabular-nums text-slate-900">{formatPrice(order.total)}</TableCell>
                         <TableCell className="text-right">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -462,7 +533,7 @@ export default function AdminOrdersPage() {
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent>
+                            <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
                                      <Link href={`/admin/orders/${order.id}`}>View Order</Link>
                                 </DropdownMenuItem>
@@ -520,6 +591,16 @@ export default function AdminOrdersPage() {
                 </Table>
             )}
             </CardContent>
+            <CardFooter className="bg-muted/30 border-t py-3 justify-between items-center">
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                    Showing {filteredOrders.length} of {orders.length} orders
+                </p>
+                {filteredOrders.length < orders.length && (
+                    <Button variant="link" size="sm" onClick={() => { setSearchTerm(''); setStatusFilter('all'); }} className="h-auto p-0 text-[10px] font-black uppercase">
+                        Clear all filters
+                    </Button>
+                )}
+            </CardFooter>
         </Card>
         </div>
     </Dialog>
