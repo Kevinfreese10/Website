@@ -168,7 +168,7 @@ async function startSeoBatchOptimization() {
                 }
                 
                 successCount++;
-            } catch (pageError) {
+            } catch (pageError: any) {
                 console.error(`  [Firestore SKIP] Failed to optimize page "${item.currentTitle}":`, pageError.message || pageError);
                 skipCount++;
             }
