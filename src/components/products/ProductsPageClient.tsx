@@ -23,6 +23,7 @@ import { firebaseApp } from '@/lib/firebase';
 import { Service } from '@/lib/types';
 import { useEffect, useState, useMemo } from 'react';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
+import { Badge } from '@/components/ui/badge';
 
 const db = getFirestore(firebaseApp);
 
@@ -90,13 +91,21 @@ export default function ProductsPageClient({
 
 
   return (
-    <div className="container mx-auto px-4 py-12 bg-white">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900">Our <span className="text-gradient">Products</span></h1>
-        <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-          Comprehensive solutions to meet all your financial needs. We offer a range of products for individuals and businesses.
-        </p>
-      </div>
+    <div className="w-full bg-white flex flex-col min-h-screen animate-in fade-in">
+      {/* RICH HERO SECTION */}
+      <section className="relative w-full overflow-hidden bg-slate-50 border-b pt-12 pb-16 text-center mb-12">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <Badge variant="secondary" className="mb-4 uppercase tracking-wider">Service Catalog</Badge>
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+            Our Professional <span className="text-gradient">Services & Solutions</span>
+          </h1>
+          <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
+            Explore our comprehensive range of accounting, taxation, company registration, and compliance solutions tailored for South African businesses, entrepreneurs, and individuals.
+          </p>
+        </div>
+      </section>
+      
+      <div className="container mx-auto px-4 pb-12 flex-grow">
 
       <section className="py-12 bg-white border-y mb-12">
         <div className="container mx-auto px-4">
@@ -173,5 +182,6 @@ export default function ProductsPageClient({
         )}
       </div>
     </div>
+  </div>
   );
 }
