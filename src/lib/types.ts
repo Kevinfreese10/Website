@@ -50,6 +50,7 @@ export type Service = {
   aggregateRatingValue?: number;
   reviewCount?: number;
   priceValidUntilOverride?: string;
+  faqs?: { q: string; a: string }[];
 };
 
 export type BlogPost = {

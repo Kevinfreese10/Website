@@ -50,7 +50,7 @@ export default function BlogPageClient() {
                     <Link href={`/blog/${post.slug}`}>{post.title}</Link>
                 </CardTitle>
                 <CardDescription>
-                    by {post.author} on {format(new Date(post.date), 'dd/MM/yyyy')}
+                    by Kevin Freese (CIBA, SAIT) on {format(new Date(post.date), 'dd/MM/yyyy')}
                 </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
