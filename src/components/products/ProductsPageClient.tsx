@@ -104,6 +104,10 @@ export default function ProductsPageClient({
           </p>
         </div>
       </section>
+
+      <div className="text-center mb-8 animate-in fade-in">
+        <TrustIndexWidget />
+      </div>
       
       <div className="container mx-auto px-4 pb-12 flex-grow">
 
@@ -135,8 +139,6 @@ export default function ProductsPageClient({
           </div>
         </div>
       </section>
-
-      <TrustIndexWidget />
 
       <div className="space-y-12">
         {isLoading && services.length === 0 ? (
