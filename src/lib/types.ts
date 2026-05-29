@@ -347,7 +347,7 @@ export type User = {
   managementAccountsDay?: number;
   isVatRegistered?: boolean;
   vatNumber?: string;
-  vatCategory?: 'A' | 'B' | 'C';
+  vatCategory?: 'A' | 'B' | 'C' | null;
   preparesPayroll?: boolean;
   payrollDay?: number;
   payrollDueDate?: any;
@@ -375,6 +375,10 @@ export type User = {
   payrollFrequency?: 'Monthly' | 'Weekly' | 'Fortnightly';
   firstRunStartDate?: any;
   franchise?: FranchiseConfig;
+  allocationRules?: AllocationRule[];
+  disableGlobalRules?: boolean;
+  chartOfAccounts?: ChartOfAccount[];
+  subscription?: SubscriptionData;
 };
 
 export type DiscountCode = {
@@ -413,8 +417,9 @@ export type Task = {
   tags?: string[];
   triggerField?: string;
   vatCategory?: 'A' | 'B' | 'C';
-  dueMonthOffset: number;
-  dueDay: number;
+  dueMonthOffset?: number;
+  dueDay?: number;
+  department?: string;
 };
 
 export type DemoLead = {
@@ -438,3 +443,117 @@ export const FindStoryNameOutputSchema = z.object({
   storyName: z.string().optional().describe('The corresponding story name found in the knowledge base. Returns nothing if no match is found.'),
 });
 export type FindStoryNameOutput = z.infer<typeof FindStoryNameOutputSchema>;
+
+// Missing Accounting, CRM, and AI Accountant type definitions
+export type SmartAllocationResult = {
+  accountId: string;
+  accountType?: 'account' | 'supplier' | 'customer' | string;
+  vatType: string;
+  confidence: number;
+  summary?: string;
+  ruleId?: string;
+  matchedKeyword?: string;
+  suggestedKeyword?: string;
+  reasoning?: string;
+};
+
+export type ImportedTransaction = {
+  id: string;
+  bankAccountId: string;
+  date: any;
+  description: string;
+  amount: number;
+  status: 'new' | 'ai_processing' | 'ai_review' | 'reviewed';
+  isExpense: boolean;
+  allocatedTo?: {
+    value: string;
+    type: 'account' | 'supplier' | 'customer';
+  };
+  vatType?: string;
+  reference?: string;
+  smartAllocationResult?: SmartAllocationResult;
+  allocationSource?: 'rule' | 'ai' | 'manual' | 'chat' | 'none' | 'history' | 'global_db';
+  merchantKey?: string;
+  cleanDescription?: string;
+  rawDescription?: string;
+  clientComment?: string;
+  clientExplanation?: string;
+  allocatedAt?: any;
+  matchedRuleId?: string;
+  matchedRuleDescription?: string;
+  matchedKeyword?: string;
+  auditFiles?: { name: string; url: string }[];
+};
+
+export type AllocationRule = {
+  id: string;
+  keywords: string[];
+  accountId: string;
+  accountType?: string;
+  vatType: string;
+  description?: string;
+  priority?: number;
+  type?: string;
+  scope?: string;
+};
+
+export type ClientCustomer = {
+  id: string;
+  name: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  cellNumber?: string;
+  vatNumber?: string;
+  address?: string;
+  street?: string;
+  suburb?: string;
+  city?: string;
+  country?: string;
+  zip?: string;
+};
+
+export type ChartOfAccount = {
+  id: string;
+  accountNumber: string;
+  code?: string;
+  name?: string;
+  type?: 'Income' | 'Expense' | 'Asset' | 'Liability' | 'Equity' | string;
+  description: string;
+  section?: string;
+};
+
+export type VatType = 
+  | 'standard_rated_sales' 
+  | 'zero_rated_sales' 
+  | 'exempt_sales' 
+  | 'standard_rated_purchases' 
+  | 'capital_goods_purchases' 
+  | 'zero_rated_purchases' 
+  | 'exempt_purchases' 
+  | 'no_vat';
+
+export type AllocatedTransaction = ImportedTransaction & {
+  allocatedTo: {
+    value: string;
+    type: 'account' | 'supplier' | 'customer';
+  };
+  allocatedAt: any;
+};
+
+export type Supplier = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  vatNumber?: string;
+  address?: string;
+};
+
+export interface ExtractedInvoice {
+  supplier: string;
+  invoiceNumber: string;
+  date: string;
+  invoiceTotal: number;
+}
+

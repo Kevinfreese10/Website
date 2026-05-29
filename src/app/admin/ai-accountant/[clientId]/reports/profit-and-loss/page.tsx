@@ -110,11 +110,11 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
                 }
 
                 // Updated: Include 'reviewed' status to correctly map Smart Match Queue items
-                const contraAccountId = (tx.status === 'allocated' || tx.status === 'reviewed') && tx.allocatedTo 
+                const contraAccountId = ((tx.status as string) === 'allocated' || tx.status === 'reviewed') && tx.allocatedTo 
                     ? tx.allocatedTo.value 
                     : '9500-001'; // Suspense Account
 
-                const contraType = (tx.status === 'allocated' || tx.status === 'reviewed') && tx.allocatedTo
+                const contraType = ((tx.status as string) === 'allocated' || tx.status === 'reviewed') && tx.allocatedTo
                     ? tx.allocatedTo.type
                     : 'account';
                 

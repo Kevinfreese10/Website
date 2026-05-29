@@ -21,7 +21,7 @@ export type SuggestTransactionAllocationInput = z.infer<typeof SuggestTransactio
 
 const SuggestTransactionAllocationOutputSchema = z.object({
   accountId: z.string().describe("The ID of the suggested account from the chart of accounts (e.g., '3800/000'). This must exactly match an ID from the provided chart of accounts."),
-  vatType: z.enum(allVatTypes.map(v => v.name) as [string, ...string[]]).describe("The suggested VAT type for this transaction. If isVatRegistered is false, this must be 'no_vat'."),
+  vatType: z.enum(allVatTypes.map(v => v.name) as unknown as [string, ...string[]]).describe("The suggested VAT type for this transaction. If isVatRegistered is false, this must be 'no_vat'."),
   confidence: z.number().min(0).max(100).describe('A confidence score (0-100) of how certain you are about the allocation. A higher score means more confidence. Base confidence on how clear the description is (e.g., "PICK N PAY" is high, "DEBIT ORDER" is low).'),
   summary: z.string().describe('A brief, one-sentence summary of the transaction nature from a CA perspective (e.g., "Looks like a recurring software subscription" or "Likely a local retail purchase").'),
   suggestedKeyword: z.string().describe('A concise, uppercase "root" keyword derived from the description to be used for a future allocation rule (e.g., "VODACOM" or "SHELL").'),

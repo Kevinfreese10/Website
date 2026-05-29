@@ -177,6 +177,7 @@ export default function CreateOrderForm() {
             authorId: currentUser.uid,
             type: 'email',
             subject: confirmationEmailSubject,
+            attachments: null,
         };
 
       const orderData: Order = {

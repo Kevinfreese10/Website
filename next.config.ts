@@ -8,10 +8,10 @@ const nextConfig: NextConfig = {
     return `build-${new Date().getTime()}`;
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   experimental: {
     serverActions: {

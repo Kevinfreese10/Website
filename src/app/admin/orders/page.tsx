@@ -308,8 +308,8 @@ export default function AdminOrdersPage() {
       const reseller = orderToUpdate.resellerId ? allStaff.find(u => u.id === orderToUpdate.resellerId) : undefined;
       const isOutsourced = !!orderToUpdate.resellerId;
       const emailTo = isOutsourced ? orderToUpdate.endCustomerEmail : orderToUpdate.customerEmail;
-      const customerName = isOutsourced ? orderToUpdate.endCustomerName : orderToUpdate.customerName;
-      const emailOrder = {...orderToUpdate, customerName, id: orderToUpdate.originalOrderId || orderToUpdate.id };
+      const customerName = (isOutsourced ? orderToUpdate.endCustomerName : orderToUpdate.customerName) || '';
+      const emailOrder = {...orderToUpdate, customerName, id: orderToUpdate.originalOrderId || orderToUpdate.id } as Order;
       
       if (newStatus === 'Processing' && emailTo && user.email) {
         const subject = `Action Required for Your Order #${emailOrder.id}`;
@@ -519,7 +519,7 @@ export default function AdminOrdersPage() {
                         </TableCell>
                         <TableCell>
                         <Badge variant={getStatusVariant(order.status)} className="text-[10px] uppercase font-black px-2 py-0.5">
-                            {order.status === 'Outsourced' ? 'Processing' : order.status}
+                            {(order.status as string) === 'Outsourced' ? 'Processing' : order.status}
                         </Badge>
                         </TableCell>
                         <TableCell>

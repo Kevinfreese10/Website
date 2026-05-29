@@ -158,7 +158,7 @@ export default function SeoManagementPage() {
             if (result) {
                 form.setValue(`pages.${originalIndex}.title`, result.metaTitle);
                 form.setValue(`pages.${originalIndex}.description`, result.metaDescription);
-                form.setValue(`pages.${originalIndex}.keywords`, result.metaKeywords.map(k => ({ value: k })));
+                form.setValue(`pages.${originalIndex}.keywords`, (result.metaKeywords as any).map((k: any) => ({ value: typeof k === 'object' ? k.value : k })));
             }
         }
         

@@ -74,6 +74,7 @@ export default function PaymentSuccessPage() {
                                 authorId: 'system', // System-sent
                                 type: 'email',
                                 subject: `Action Required for Your Order #${orderId}`,
+                                attachments: null,
                             };
                             await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
                         } catch(e) {

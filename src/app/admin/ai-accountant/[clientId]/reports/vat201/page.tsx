@@ -168,7 +168,7 @@ export default function Vat201ReportPage() {
                     const clientData = clientSnap.data() as User;
                     setClient(clientData);
                     if (clientData.isVatRegistered) {
-                        const periods = generateVatPeriods(clientData.vatCategory);
+                        const periods = generateVatPeriods(clientData.vatCategory || undefined);
                         setVatPeriods(periods);
                         if(periods.length > 0) {
                             setSelectedPeriod(JSON.stringify({
@@ -211,7 +211,7 @@ export default function Vat201ReportPage() {
         const vatTransactions = transactions.filter(tx => {
             const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date);
             // Fix: Include both 'allocated' and 'reviewed' statuses
-            return txDate >= fromDate && txDate <= toDate && (tx.status === 'allocated' || tx.status === 'reviewed');
+            return txDate >= fromDate && txDate <= toDate && ((tx.status as string) === 'allocated' || tx.status === 'reviewed');
         });
         
         let totalStandardSales = 0;

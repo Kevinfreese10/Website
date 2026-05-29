@@ -9,7 +9,7 @@ import { firebaseApp } from '@/lib/firebase';
 import { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import ClientForm from '@/components/admin/ClientForm';
+import AICustomerForm from '@/components/admin/AICustomerForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -158,12 +158,11 @@ export default function ClientCustomersPage() {
                                     Add a new customer for this client.
                                 </DialogDescription>
                             </DialogHeader>
-                             <ClientForm 
-                                client={selectedCustomer} 
-                                onSubmit={handleFormSubmit}
-                                onCancel={() => setIsFormOpen(false)}
-                                isAIClient={true}
-                            />
+                              <AICustomerForm 
+                                 customer={selectedCustomer} 
+                                 onSubmit={handleFormSubmit}
+                                 onCancel={() => setIsFormOpen(false)}
+                             />
                        </DialogContent>
                     </Dialog>
                 </div>

@@ -144,7 +144,7 @@ export default function PayslipEditor({
             fringe += p.fringeBenefits.reduce((s, i) => s + i.amount, 0);
         });
 
-        return { gross, tax, contrib, fringe };
+        return { gross, tax, contributions: contrib, fringe };
     }, [allPayslips, employee.id, payslip.period, totals, payslip.id]);
 
     const handleAddItem = (type: 'earning' | 'deduction' | 'contribution' | 'fringe') => {
@@ -389,7 +389,7 @@ export default function PayslipEditor({
                                 <TableRow className="text-[11px] font-bold text-slate-900 bg-white/50">
                                     <TableCell>{formatCurrency(ytdTotals.gross)}</TableCell>
                                     <TableCell className="text-right text-destructive">{formatCurrency(ytdTotals.tax)}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(ytdTotals.contrib)}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(ytdTotals.contributions)}</TableCell>
                                     <TableCell className="text-right">{formatCurrency(ytdTotals.fringe)}</TableCell>
                                 </TableRow>
                             </TableBody>

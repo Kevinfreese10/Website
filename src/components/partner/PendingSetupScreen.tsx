@@ -33,13 +33,13 @@ export function PendingSetupScreen({ user }: { user: User }) {
             
             let setupOrder: Order | null = null;
             
-            // Look for the specific setup fee item
-            snap.docs.forEach(doc => {
+            for (const doc of snap.docs) {
                 const data = doc.data() as Order;
                 if (data.items.some(i => i.id === 'partner_setup_fee')) {
                     setupOrder = { ...data, id: doc.id };
+                    break;
                 }
-            });
+            }
 
             if (!setupOrder) {
                 toast({ 

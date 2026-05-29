@@ -24,7 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const db = getFirestore(firebaseApp);
 
 const departments = ['Accounting and Tax', 'Administration', 'CAP'] as const;
-const taskRecurrences: Task['recurrence'][] = ['None', 'Daily', 'Weekly', 'Monthly', 'Bi-Monthly', 'Semi-Annually', 'Annually'];
+const taskRecurrences = ['None', 'Daily', 'Weekly', 'Monthly', 'Bi-Monthly', 'Semi-Annually', 'Annually'] as const;
 const triggerFields = [
     'preparesFinancials', 
     'requiresManagementAccounts', 
@@ -35,8 +35,8 @@ const triggerFields = [
     'isVatRegistered',
     'submitsAnnualReturns',
     'submitsBeneficialOwnership',
-];
-const vatCategories: ('A' | 'B' | 'C')[] = ['A', 'B', 'C'];
+] as const;
+const vatCategories = ['A', 'B', 'C'] as const;
 
 
 const formSchema = z.object({
@@ -48,8 +48,8 @@ const formSchema = z.object({
     recurrence: z.enum(taskRecurrences),
     dueMonthOffset: z.preprocess(val => Number(val), z.number()),
     dueDay: z.preprocess(val => Number(val), z.number().min(1).max(31)),
-    triggerField: z.enum([...triggerFields, '']),
-    vatCategory: z.enum([...vatCategories, '']).optional(),
+    triggerField: z.enum([...triggerFields, ''] as const),
+    vatCategory: z.enum([...vatCategories, ''] as const).optional(),
 });
 
 function TemplateForm({ template, onSubmit, onCancel }: { template: Task | null; onSubmit: (data: any) => void; onCancel: () => void; }) {
@@ -59,13 +59,13 @@ function TemplateForm({ template, onSubmit, onCancel }: { template: Task | null;
             id: template?.id || '',
             title: template?.title || '{clientName} - ',
             description: template?.description || '',
-            department: template?.department || 'Administration',
+            department: (template?.department as any) || 'Administration',
             priority: template?.priority || 'Medium',
             recurrence: template?.recurrence || 'Annually',
             dueMonthOffset: template?.dueMonthOffset || 0,
             dueDay: template?.dueDay || 1,
-            triggerField: template?.triggerField || '',
-            vatCategory: template?.vatCategory || '',
+            triggerField: (template?.triggerField as any) || '',
+            vatCategory: (template?.vatCategory as any) || '',
         },
     });
     

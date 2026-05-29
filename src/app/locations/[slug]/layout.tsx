@@ -38,6 +38,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
+    alternates: {
+      canonical: `${SITE_URL}/locations/${slug}`,
+    },
     openGraph: {
       title,
       description,
@@ -48,7 +51,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
           alt: title
       }],
       type: 'website',
-      url: `${SITE_URL}/${slug}`,
+      url: `${SITE_URL}/locations/${slug}`,
       siteName: 'My Accountant',
       locale: 'en_ZA',
     }

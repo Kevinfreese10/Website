@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Mail, ShieldCheck, Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function PartnerSettingsPage() {
   return (

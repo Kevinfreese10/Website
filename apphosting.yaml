@@ -12,7 +12,45 @@ runConfig:
 # Environment variables and secrets
 env:
   - variable: STORAGE_BUCKET
-    value: mybucket.firebasestorage.app
+    value: studio-2604127518-57889.firebasestorage.app
     availability:
       - BUILD
       - RUNTIME
+  - variable: NEXT_PUBLIC_PAYFAST_MERCHANT_ID
+    value: "23836312"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_PAYFAST_MERCHANT_KEY
+    value: "h4fkhz6ouoksx"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_PAYFAST_PROCESS_URL
+    value: "https://www.payfast.co.za/eng/process"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: SMTP_HOST
+    value: "mail.myacc.co.za"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: SMTP_PORT
+    value: "465"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: SMTP_USER
+    value: "info@myacc.co.za"
+    availability:
+      - BUILD
+      - RUNTIME
+
+secrets:
+  - variable: GEMINI_API_KEY
+    secret: gemini_api_key
+  - variable: PAYFAST_PASSPHRASE
+    secret: payfast_passphrase
+  - variable: SMTP_PASS
+    secret: smtp_pass

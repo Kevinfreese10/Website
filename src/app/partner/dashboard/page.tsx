@@ -320,16 +320,16 @@ export default function PartnerDashboardPage() {
         const source = practiceProfile || user;
         if (!source) return [];
         
-        const watchedBanking = source.bankingDetails;
-        const watchedLp = source.landingPage || {};
+        const watchedBanking = (source as User).bankingDetails;
+        const watchedLp = (source as User).landingPage;
 
         return [
             { label: 'Update Pricing', done: overrideCount > 0, description: 'Set your markups in the Services tab.' },
             { label: 'Update Banking Details', done: !!(watchedBanking?.bankName && watchedBanking?.accountNumber), description: 'Required for client EFT payments.' },
-            { label: 'Edit Landing Content & Images', done: !!(watchedLp.heroImageUrl && watchedLp.aboutUs && watchedLp.aboutUs.length > 50), description: 'Customize your public practice website.' },
+            { label: 'Edit Landing Content & Images', done: !!(watchedLp?.heroImageUrl && watchedLp?.aboutUs && watchedLp?.aboutUs.length > 50), description: 'Customize your public practice website.' },
             { 
                 label: 'Branding & Theme', 
-                done: !!watchedLp.themePreset && (watchedLp.themePreset !== 'custom' || (watchedLp.primaryColor && watchedLp.primaryColor !== '#214392')), 
+                done: !!watchedLp?.themePreset && (watchedLp?.themePreset !== 'custom' || (watchedLp?.primaryColor && watchedLp?.primaryColor !== '#214392')), 
                 description: 'Apply your custom colors and styling.' 
             },
         ];

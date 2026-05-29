@@ -63,7 +63,26 @@ const Footer = () => {
             </div>
 
         </div>
-        <div className="mt-8 border-t pt-6 text-center text-sm text-muted-foreground">
+        <div className="mt-8 border-t pt-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center border-b pb-8 mb-6">
+            <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-2">
+              <span className="text-xs font-black uppercase tracking-[0.15em] text-primary">CIBA Practice Designation</span>
+              <p className="text-sm font-bold text-slate-900">Chartered Business Accountant in Practice</p>
+              <span className="text-xs text-muted-foreground font-mono bg-slate-50 border px-2 py-0.5 rounded">CIBA201509-5372</span>
+            </div>
+            <div className="flex flex-col items-center text-center space-y-2">
+              <span className="text-xs font-black uppercase tracking-[0.15em] text-primary">SAIT Member Credentials</span>
+              <p className="text-sm font-bold text-slate-900">General Tax Practitioner (SA)™</p>
+              <span className="text-xs text-muted-foreground font-mono bg-slate-50 border px-2 py-0.5 rounded">Member ID: 47011519</span>
+            </div>
+            <div className="flex flex-col items-center md:items-end text-center md:text-right space-y-2">
+              <span className="text-xs font-black uppercase tracking-[0.15em] text-primary">SARS Reference Number</span>
+              <p className="text-sm font-bold text-slate-900">Registered Tax Practitioner</p>
+              <span className="text-xs text-muted-foreground font-mono bg-slate-50 border px-2 py-0.5 rounded">PR-0098553</span>
+            </div>
+          </div>
+        </div>
+        <div className="text-center text-sm text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} My Accountant. All rights reserved.</p>
           {buildId && (
             <div className="mt-4 inline-block px-3 py-1 rounded-md border bg-muted/50 text-[10px] font-mono select-all">

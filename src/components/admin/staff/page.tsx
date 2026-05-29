@@ -45,7 +45,7 @@ function StaffForm({ staffMember, onSubmit, onCancel }: { staffMember: User | nu
             name: staffMember?.name || '',
             email: staffMember?.email || '',
             password: '',
-            department: staffMember?.department || 'Administration',
+            department: (staffMember?.department as any) || 'Administration',
             role: staffMember?.role === 'admin' ? 'admin' : 'staff',
         },
     });
@@ -58,7 +58,7 @@ function StaffForm({ staffMember, onSubmit, onCancel }: { staffMember: User | nu
                 ...staffMember,
                 role: staffMember?.role === 'admin' ? 'admin' : 'staff',
                 password: ''
-            });
+            } as any);
         } else {
             form.reset({
                 uid: '',

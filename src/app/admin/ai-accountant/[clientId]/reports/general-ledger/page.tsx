@@ -209,22 +209,25 @@ function GeneralLedgerReport({ client, transactions, dateRange, fromAccount, toA
             const isJournal = tx.bankAccountId === 'JOURNAL';
 
             if(isJournal) {
-                 // Map sub-ledger actor IDs back to their Control Accounts
-                 let targetGLId = tx.allocatedTo!.value;
-                 if (tx.allocatedTo.type === 'supplier') targetGLId = supplierControlAccountId;
-                 else if (tx.allocatedTo.type === 'customer') targetGLId = customerControlAccountId;
+                 const allocatedTo = tx.allocatedTo;
+                 if (allocatedTo) {
+                     // Map sub-ledger actor IDs back to their Control Accounts
+                     let targetGLId = allocatedTo.value;
+                     if (allocatedTo.type === 'supplier') targetGLId = supplierControlAccountId;
+                     else if (allocatedTo.type === 'customer') targetGLId = customerControlAccountId;
 
-                 const entry = grouped.get(targetGLId);
-                 if (entry) {
-                     entry.transactions.push({
-                        id: tx.id,
-                        isJournal,
-                        date: txDate,
-                        description: cleanDisplayDescription(tx.description, tx.allocatedTo),
-                        ref: tx.reference,
-                        debit: tx.amount > 0 ? tx.amount : 0,
-                        credit: tx.amount < 0 ? -tx.amount : 0,
-                     });
+                     const entry = grouped.get(targetGLId);
+                     if (entry) {
+                         entry.transactions.push({
+                            id: tx.id,
+                            isJournal,
+                            date: txDate,
+                            description: cleanDisplayDescription(tx.description, tx.allocatedTo),
+                            ref: tx.reference,
+                            debit: tx.amount > 0 ? tx.amount : 0,
+                            credit: tx.amount < 0 ? -tx.amount : 0,
+                         });
+                     }
                  }
             } else {
                 const inclusiveAmount = tx.amount;
@@ -255,7 +258,7 @@ function GeneralLedgerReport({ client, transactions, dateRange, fromAccount, toA
                 let targetContraGLId = suspenseAccountId;
                 let currentAllocatedTo = tx.allocatedTo;
 
-                if (tx.status === 'allocated' || tx.status === 'reviewed') {
+                if ((tx.status as string) === 'allocated' || tx.status === 'reviewed') {
                     if (tx.allocatedTo?.type === 'supplier') targetContraGLId = supplierControlAccountId;
                     else if (tx.allocatedTo?.type === 'customer') targetContraGLId = customerControlAccountId;
                     else if (tx.allocatedTo?.value) targetContraGLId = tx.allocatedTo.value;

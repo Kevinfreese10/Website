@@ -129,7 +129,7 @@ function calculateBalances(client: User, transactions: (ImportedTransaction | Al
             let contraAccountId = '9500-001'; // Default to suspense
             let contraType = 'account';
             
-            if ((tx.status === 'allocated' || tx.status === 'reviewed') && tx.allocatedTo) {
+            if (((tx.status as string) === 'allocated' || tx.status === 'reviewed') && tx.allocatedTo) {
                 contraAccountId = tx.allocatedTo.value;
                 contraType = tx.allocatedTo.type || 'account';
             }

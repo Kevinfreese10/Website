@@ -33,12 +33,7 @@ function initializeFirebase(): FirebaseServices {
 
   if (typeof window !== 'undefined' && !persistenceEnabled) {
     enableIndexedDbPersistence(db, {
-        // Use memoryLocalCache as a fallback for multiple tabs.
-        // This prevents the "failed-precondition" error and subsequent timeouts.
-        localCache: memoryLocalCache({
-          // Force ownership of the local cache.
-          forceOwnership: true,
-        }),
+        forceOwnership: true,
       })
       .then(() => {
         persistenceEnabled = true;

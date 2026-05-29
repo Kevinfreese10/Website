@@ -46,7 +46,7 @@ function UserForm({ user, onSubmit, onCancel }: { user: User | null, onSubmit: (
             name: user?.name || '',
             email: user?.email || '',
             password: '',
-            role: user?.role || 'client',
+            role: (user?.role as any) || 'client',
         },
     });
 
@@ -56,7 +56,7 @@ function UserForm({ user, onSubmit, onCancel }: { user: User | null, onSubmit: (
         if(isEditing){
             form.reset({
                 ...user,
-                role: user?.role,
+                role: user?.role as any,
                 password: '', // Always clear password on edit
             });
         }

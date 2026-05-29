@@ -1,4 +1,4 @@
-import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, Timestamp, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { BlogPost, Service } from '@/lib/types';
 import { MetadataRoute } from 'next';
@@ -38,6 +38,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
   }));
 
+  const franchiseesSnapshot = await getDocs(query(collection(db, "users"), where("role", "==", "franchisee")));
+  const franchiseeRoutes = franchiseesSnapshot.docs
+    .map(doc => doc.data())
+    .filter(u => u.franchise?.areaSlug)
+    .map(u => ({
+      url: `${BASE_URL}/locations/${u.franchise.areaSlug}`,
+      lastModified: new Date(),
+    }));
+
   const blogPostsSnapshot = await getDocs(query(collection(db, "blogPosts"), orderBy("date", "desc")));
   const blogPosts = blogPostsSnapshot.docs.map(doc => doc.data() as BlogPost);
   
@@ -60,6 +69,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticRoutes,
     ...serviceRoutes,
+    ...franchiseeRoutes,
     ...blogPostRoutes,
   ];
 }

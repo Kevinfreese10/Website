@@ -233,7 +233,7 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
             date: Timestamp.now(),
             department: service.department || null,
             source: partnerId ? 'Partner Landing Page' : 'Client',
-            resellerId: partnerId || null,
+            resellerId: partnerId || undefined,
         };
 
         await setDoc(doc(db, 'orders', orderId), orderData);

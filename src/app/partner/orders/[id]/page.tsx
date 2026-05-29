@@ -414,7 +414,7 @@ export default function PartnerOrderDetailsPage() {
     return undefined;
   }
 
-  const getStatusVariant = (status: Order['status']) => {
+  const getStatusVariant = (status: Order['status'] | 'Outsourced') => {
     switch (status) {
       case 'Completed': return 'success';
       case 'Processing': return 'info';

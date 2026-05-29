@@ -21,6 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { getNextOrderId } from '@/lib/sequence';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
 
 
 const db = getFirestore(firebaseApp);
@@ -252,8 +253,8 @@ export default function AIAccountantClientsPage() {
                 clientSource: 'ai_accountant',
             };
              if (!data.isVatRegistered) {
-                updateData.vatNumber = null;
-                updateData.vatCategory = null;
+                updateData.vatNumber = null as any;
+                updateData.vatCategory = null as any;
             }
             await setDoc(doc(db, "aiAccountantClients", selectedClient.id), updateData, { merge: true });
             toast({ title: 'Client Updated'});
@@ -272,8 +273,8 @@ export default function AIAccountantClientsPage() {
             };
 
             if (!data.isVatRegistered) {
-                newClientData.vatNumber = null;
-                newClientData.vatCategory = null;
+                newClientData.vatNumber = null as any;
+                newClientData.vatCategory = null as any;
             }
 
             const newDocRef = doc(collection(db, 'aiAccountantClients'));

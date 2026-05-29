@@ -61,8 +61,9 @@ export default function PartnerOutsourcedOrderDetailsPage() {
           } as Order;
           setOrder(fetchedOrder);
           
-          if (fetchedOrder.assignedTo && fetchedOrder.assignedTo.length > 0) {
-            const assignedUser = fetchedStaff.find(u => u.id === fetchedOrder.assignedTo[0]);
+          const assignedToArr = fetchedOrder.assignedTo;
+          if (assignedToArr && assignedToArr.length > 0) {
+            const assignedUser = fetchedStaff.find(u => u.id === assignedToArr[0]);
             setAssignee(assignedUser || null);
           }
 
@@ -133,7 +134,7 @@ export default function PartnerOutsourcedOrderDetailsPage() {
                     <CardHeader>
                         <CardTitle>Order {order.id}</CardTitle>
                         <CardDescription>
-                        Date: {format(new Date(order.date), 'dd MMMM yyyy')} | Status: <Badge variant={getStatusVariant(order.status)}>{order.status === 'Outsourced' ? 'Processing' : order.status}</Badge>
+                        Date: {format(new Date(order.date), 'dd MMMM yyyy')} | Status: <Badge variant={getStatusVariant(order.status)}>{(order.status as any) === 'Outsourced' ? 'Processing' : order.status}</Badge>
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

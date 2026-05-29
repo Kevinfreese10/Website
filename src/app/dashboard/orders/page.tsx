@@ -146,7 +146,7 @@ export default function DashboardPage() {
                                         <TableCell>{format(new Date(order.date), 'dd MMMM yyyy')}</TableCell>
                                         <TableCell>
                                             <Badge variant={getStatusVariant(order.status)}>
-                                                {order.status === 'Outsourced' ? 'Processing' : order.status}
+                                                {(order.status as any) === 'Outsourced' ? 'Processing' : order.status}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">{formatPrice(order.total)}</TableCell>

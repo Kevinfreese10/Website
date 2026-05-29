@@ -147,9 +147,9 @@ export default function EmployeesPage() {
                   clientId,
                   employeeId: employee.id,
                   basicSalary: baseValue
-              });
+              }) as any;
               
-              if (res.success && res.id) {
+              if (res.success && 'id' in res && res.id) {
                   const newSnap = await getDoc(doc(db, 'aiPayrollClients', clientId, 'payslips', res.id));
                   if (newSnap.exists()) {
                       setEditingPayslip({ id: newSnap.id, ...newSnap.data() } as Payslip);

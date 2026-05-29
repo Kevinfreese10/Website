@@ -155,7 +155,7 @@ function SearchResultsView({
                                 <TableCell>{getAllocationDescription(tx)}</TableCell>
                                 <TableCell>{client.chartOfAccounts?.find(acc => acc.id === tx.bankAccountId)?.description}</TableCell>
                                 <TableCell>{tx.reference}</TableCell>
-                                <TableCell><Badge variant={tx.status === 'allocated' ? 'success' : tx.status === 'new' ? 'secondary' : 'default'}>{tx.status}</Badge></TableCell>
+                                <TableCell><Badge variant={(tx.status as string) === 'allocated' ? 'success' : (tx.status as string) === 'new' ? 'secondary' : 'default'}>{tx.status}</Badge></TableCell>
                                 <TableCell className="text-right font-mono">{formatPrice(tx.amount)}</TableCell>
                             </TableRow>
                         ))}

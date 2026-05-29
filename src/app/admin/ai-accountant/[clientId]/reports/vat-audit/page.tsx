@@ -134,7 +134,7 @@ function VatAuditReport({ client, transactions, period, onUpload, onDeleteFile }
             Inclusive: tx.inclusiveAmount,
             Exclusive: tx.exclusiveAmount,
             VAT: tx.vatAmount,
-            Documents: tx.auditFiles?.map(f => f.url).join(', ') || '',
+            Documents: (tx as any).auditFiles?.map((f: any) => f.url).join(', ') || '',
         }));
 
         const salesData = createSheetData(reportData.sales);
@@ -167,7 +167,7 @@ function VatAuditReport({ client, transactions, period, onUpload, onDeleteFile }
                                 <TableCell className="text-right font-mono">{formatPrice(tx.inclusiveAmount)}</TableCell>
                                 <TableCell>
                                     <div className="flex flex-col gap-2">
-                                        {tx.auditFiles?.map(file => (
+                                        {(tx as any).auditFiles?.map((file: any) => (
                                             <div key={file.url} className="flex items-center justify-between text-xs bg-muted p-1 rounded-md">
                                                 <a href={file.url} target="_blank" rel="noopener noreferrer" className="truncate hover:underline flex-grow pr-2">{file.name}</a>
                                                 <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onDeleteFile(tx.id, file.url)}><Trash2 className="h-3 w-3 text-destructive"/></Button>
@@ -179,7 +179,7 @@ function VatAuditReport({ client, transactions, period, onUpload, onDeleteFile }
                                             className="hidden"
                                             onChange={(e) => e.target.files?.[0] && onUpload(tx.id, e.target.files[0])}
                                         />
-                                        <Button asChild variant="outline" size="xs">
+                                        <Button asChild variant="outline" size="sm">
                                             <Label htmlFor={`file-upload-${tx.id}`} className="cursor-pointer">
                                                 <Upload className="mr-2 h-3 w-3"/> Upload File
                                             </Label>
@@ -231,7 +231,7 @@ export default function VatAuditPage() {
                 const clientData = docSnap.data() as User;
                 setClient(clientData);
                 if (clientData.isVatRegistered) {
-                    const periods = generateVatPeriods(clientData.vatCategory);
+                    const periods = generateVatPeriods(clientData.vatCategory || undefined);
                     setVatPeriods(periods);
                     if (periods.length > 0 && !selectedPeriod) {
                         setSelectedPeriod(JSON.stringify({

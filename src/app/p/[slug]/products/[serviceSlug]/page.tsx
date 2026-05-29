@@ -141,7 +141,8 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
       turnaroundTime: override.turnaroundTime || rawService.turnaroundTime,
   } : rawService;
 
-  const jsonLd = generateStructuredData(service);
+  const partnerProductUrl = `https://www.myacc.co.za/p/${slug}/products/${serviceSlug}`;
+  const jsonLd = generateStructuredData(service, partnerProductUrl);
 
   return (
     <>
@@ -188,7 +189,7 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
                 <h2 className="text-xl font-semibold">What's Included</h2>
                 <Separator className="opacity-20" />
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {service.whatsIncluded.map((item, i) => (
+                  {service.whatsIncluded.map((item: string, i: number) => (
                     <li key={i} className="flex items-start p-3 rounded-lg partner-card border">
                       <BadgeCheck className="h-5 w-5 mr-3 mt-0.5 partner-icon flex-shrink-0" />
                       <span className="text-sm">{item}</span>
@@ -203,7 +204,7 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
               <Separator className="opacity-20" />
               <div className="border p-6 rounded-xl partner-card" style={{ borderLeftWidth: '4px', borderLeftColor: lp?.primaryColor }}>
                 <ul className="space-y-3">
-                  {service.clientRequirements.map((req, i) => (
+                  {service.clientRequirements.map((req: string, i: number) => (
                     <li key={i} className="flex items-start">
                       <ClipboardCheck className="h-5 w-5 partner-icon mr-3 mt-0.5 flex-shrink-0" />
                       <span className="text-sm opacity-90">{req}</span>

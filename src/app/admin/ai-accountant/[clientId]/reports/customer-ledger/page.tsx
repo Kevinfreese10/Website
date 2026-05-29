@@ -105,7 +105,7 @@ function CustomerLedgerReport({
     }, [reportData]);
 
     const handleDownloadExcel = () => {
-        const dataToExport = reportData.map(tx => ({
+        const dataToExport: any[] = reportData.map(tx => ({
             'Date': safeFormatDate(tx.date),
             'Reference': tx.reference,
             'Description': tx.description,
@@ -120,7 +120,7 @@ function CustomerLedgerReport({
             Description: '',
             Debit: totals.totalDebits,
             Credit: totals.totalCredits,
-            Balance: '',
+            Balance: '' as any,
         });
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport, { skipHeader: true });

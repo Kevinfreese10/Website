@@ -222,6 +222,40 @@ export default function SeoManagementClient() {
     try {
         const pagesToUpdate = pageGroups[groupName as keyof typeof pageGroups];
         const allPages = getValues('pages');
+        let count = 0;
+        let successCount = 0;
+        let failureCount = 0;
+
+        const executeWithRetry = async (
+          pageTitle: string,
+          pageContent: string,
+          retriesLeft = 3,
+          delayMs = 15000
+        ): Promise<any> => {
+          try {
+            return await generateBlogPostSeo({ title: pageTitle, content: pageContent });
+          } catch (error: any) {
+            const errorMsg = error?.message || String(error);
+            console.error(`Error generating SEO for "${pageTitle}":`, error);
+            
+            if (retriesLeft > 0) {
+              const isRateLimit = errorMsg.includes('429') || 
+                                  errorMsg.toLowerCase().includes('quota') || 
+                                  errorMsg.toLowerCase().includes('rate limit');
+              const waitTime = isRateLimit ? 65000 : delayMs;
+              
+              toast({
+                title: isRateLimit ? `Rate Limit Hit (429)` : `AI Request Failed`,
+                description: `Waiting ${Math.round(waitTime / 1000)}s before retrying "${pageTitle}"... (${retriesLeft} retries left)`,
+                variant: isRateLimit ? 'default' : 'destructive',
+              });
+              
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              return executeWithRetry(pageTitle, pageContent, retriesLeft - 1, delayMs * 2);
+            }
+            throw error;
+          }
+        };
 
         for (const page of pagesToUpdate) {
             const originalIndex = allPages.findIndex(p => p.id === page.id);
@@ -247,19 +281,55 @@ export default function SeoManagementClient() {
             }
 
             if (originalTitle) {
-                const seoResult = await generateBlogPostSeo({ title: originalTitle, content });
-                if (seoResult) {
-                    form.setValue(`pages.${originalIndex}.title`, seoResult.metaTitle);
-                    form.setValue(`pages.${originalIndex}.description`, seoResult.metaDescription);
-                    if (seoResult.metaKeywords) {
-                        form.setValue(`pages.${originalIndex}.keywords`, seoResult.metaKeywords);
-                    }
+                // To avoid exceeding the Gemini API free tier rate limit of 5 requests per minute (5 RPM),
+                // we insert a 12-second delay between consecutive AI operations.
+                if (count > 0) {
+                    toast({
+                        title: `Rate Limit Protection`,
+                        description: `Waiting 12 seconds before optimizing next page (${count + 1}/${pagesToUpdate.length})...`
+                    });
+                    await new Promise(resolve => setTimeout(resolve, 12000));
                 }
+
+                toast({
+                    title: `Optimizing Page ${count + 1}/${pagesToUpdate.length}`,
+                    description: `Generating SEO content for "${originalTitle}"...`
+                });
+
+                try {
+                    const seoResult = await executeWithRetry(originalTitle, content);
+                    if (seoResult) {
+                        form.setValue(`pages.${originalIndex}.title`, seoResult.metaTitle);
+                        form.setValue(`pages.${originalIndex}.description`, seoResult.metaDescription);
+                        if (seoResult.metaKeywords) {
+                            form.setValue(`pages.${originalIndex}.keywords`, seoResult.metaKeywords);
+                        }
+                        successCount++;
+                    }
+                } catch (pageError) {
+                    console.error(`Skipping page "${originalTitle}" due to persistent failures:`, pageError);
+                    toast({
+                        title: `Skipped Page`,
+                        description: `Could not optimize "${originalTitle}" after retries. Moving to next page...`,
+                        variant: 'destructive',
+                    });
+                    failureCount++;
+                }
+                count++;
             }
         }
-        toast({ title: 'Optimization Complete!' });
+
+        if (failureCount > 0) {
+            toast({ 
+                title: 'Optimization Finished with Warnings', 
+                description: `Successfully optimized ${successCount} pages. ${failureCount} pages failed and were skipped.`,
+                variant: 'default'
+            });
+        } else {
+            toast({ title: 'Optimization Complete!', description: `All ${successCount} pages optimized successfully.` });
+        }
     } catch (error) {
-        toast({ title: 'AI Update Failed', variant: 'destructive' });
+        toast({ title: 'AI Update Failed', description: 'Exceeded rate limits or API error occurred.', variant: 'destructive' });
     } finally {
         setIsAiUpdating(null);
     }

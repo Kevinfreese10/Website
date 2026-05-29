@@ -18,7 +18,7 @@ export type AnalyzeClientCommentInput = z.infer<typeof AnalyzeClientCommentInput
 
 const AnalyzeClientCommentOutputSchema = z.object({
   accountId: z.string().describe("The ID of the suggested account from the chart of accounts."),
-  vatType: z.enum(allVatTypes.map(v => v.name) as [string, ...string[]]).describe("The suggested VAT type."),
+  vatType: z.enum(allVatTypes.map(v => v.name) as unknown as [string, ...string[]]).describe("The suggested VAT type."),
   confidence: z.number().min(0).max(100).describe('Confidence score.'),
   reasoning: z.string().describe('Short explanation of why this was chosen.'),
 });

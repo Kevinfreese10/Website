@@ -103,7 +103,7 @@ function EditJournalDialog({ isOpen, onOpenChange, journalEntries, client, actor
         if (journalEntries && journalEntries.length > 0) {
             const entryDate = journalEntries[0].date?.toDate ? journalEntries[0].date.toDate() : new Date(journalEntries[0].date);
             form.reset({
-                reference: journalEntries[0].reference,
+                reference: journalEntries[0].reference || '',
                 date: isNaN(entryDate.getTime()) ? new Date() : entryDate,
                 lines: journalEntries.map(entry => ({
                     id: entry.id,
@@ -675,7 +675,7 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
     const groupedJournals = useMemo(() => {
         const grouped = new Map<string, AllocatedTransaction[]>();
         allJournals.forEach(tx => {
-            const key = tx.reference;
+            const key = tx.reference || '';
             if (!grouped.has(key)) grouped.set(key, []);
             grouped.get(key)?.push(tx);
         });
@@ -816,7 +816,7 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
                                                                 <AlertDialogHeader><AlertDialogTitle>Delete Journal {ref}?</AlertDialogTitle><AlertDialogDescription>This will remove all associated transactions from the ledger.</AlertDialogDescription></AlertDialogHeader>
                                                                 <AlertDialogFooter>
                                                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDeleteJournal(ref)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                                                                    <AlertDialogAction onClick={() => handleDeleteJournal(ref || '')} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
                                                                 </AlertDialogFooter>
                                                             </AlertDialogContent>
                                                         </AlertDialog>

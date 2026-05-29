@@ -66,7 +66,7 @@ function ImportSuppliersDialog({ clientId, onImportComplete }: { clientId: strin
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet) as { 'Supplier Name'?: string }[];
+                const json = XLSX.utils.sheet_to_json(worksheet) as Record<string, any>[];
 
                 const supplierNames = json.map(row => row['Supplier Name'] || row['supplierName'] || row['Name']).filter((name): name is string => !!name);
 

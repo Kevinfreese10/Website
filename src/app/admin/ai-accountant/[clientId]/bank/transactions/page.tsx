@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { runAiAccountantAnalysis, prepareAiAccountantAnalysis, moveTransactionToNew, researchMerchantWithAi, updateGlobalMerchantDb, resetAiAccountantAnalysis, combineMerchantGroups, proposeRegroups, applyRegroups, proposeAiRegroups, analyzeClientCommentAndSuggest, bulkMoveTransactionsToNew, matchTransactionsToSuppliers } from '@/app/actions';
+import { runAiAccountantAnalysis, prepareAiAccountantAnalysis, moveTransactionToNew, researchMerchantWithAi, updateGlobalMerchantDb, resetAiAccountantAnalysis, proposeRegroups, applyRegroups, proposeAiRegroups, analyzeClientCommentAndSuggest, bulkMoveTransactionsToNew, matchTransactionsToSuppliers } from '@/app/actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -680,7 +680,18 @@ function CreateGeneralAccountDialog({ client, onAccountCreated, open, onOpenChan
 
 // #endregion
 
-const NewTransactionsTab = React.forwardRef<any, any>(({ client, bankAccountId, globalRules, onAccountCreated, setActiveTab, currentBalance, customers, suppliers }, ref) => {
+interface NewTransactionsTabProps {
+  client: User;
+  bankAccountId: string;
+  globalRules: AllocationRule[];
+  onAccountCreated: () => void;
+  setActiveTab: (tab: string) => void;
+  currentBalance: number;
+  customers: ClientCustomer[];
+  suppliers: Supplier[];
+}
+
+const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ client, bankAccountId, globalRules, onAccountCreated, setActiveTab, currentBalance, customers, suppliers }, ref) => {
     const { user } = useAuth();
     const { toast } = useToast();
     const [activeSubTab, setActiveSubTab] = useState<'expenses' | 'income'>('expenses');
@@ -712,12 +723,12 @@ const NewTransactionsTab = React.forwardRef<any, any>(({ client, bankAccountId, 
     const getAllocationName = useCallback((allocation?: { value: string, type: 'account' | 'customer' | 'supplier' }) => {
         if (!allocation) return 'Select Account...';
         if (allocation.type === 'customer') {
-            return customers.find(c => c.id === allocation.value)?.name || 'Selected Customer';
+            return customers.find((c: ClientCustomer) => c.id === allocation.value)?.name || 'Selected Customer';
         }
         if (allocation.type === 'supplier') {
-            return suppliers.find(s => s.id === allocation.value)?.name || 'Selected Supplier';
+            return suppliers.find((s: Supplier) => s.id === allocation.value)?.name || 'Selected Supplier';
         }
-        return client?.chartOfAccounts?.find(a => a.id === allocation.value)?.description || 'Selected Account';
+        return client?.chartOfAccounts?.find((a: ChartOfAccount) => a.id === allocation.value)?.description || 'Selected Account';
     }, [client?.chartOfAccounts, customers, suppliers]);
 
     // REAL-TIME LISTENER FOR THE ENTIRE WORK QUEUE FOR THIS ACCOUNT
@@ -1030,12 +1041,12 @@ const NewTransactionsTab = React.forwardRef<any, any>(({ client, bankAccountId, 
         const wb = XLSX.utils.book_new();
         
         // Main Data
-        const rows = [['Date', 'Description', 'Reference', 'Amount', 'Allocate To', 'VAT Type']];
+        const rows: (string | number)[][] = [['Date', 'Description', 'Reference', 'Amount', 'Allocate To', 'VAT Type']];
         filteredTransactions.forEach(tx => {
             rows.push([
                 format(new Date(tx.date), 'dd/MM/yyyy'),
                 tx.description,
-                tx.reference,
+                tx.reference || '',
                 tx.amount,
                 '',
                 ''
@@ -1393,7 +1404,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                 merchantKey: key,
                 transactions: txs,
                 suggestion: txs[0].smartAllocationResult || null,
-                status: txs[0].status === 'ai_processing' ? 'server_researching' : 'ready'
+                status: txs[0].status === 'ai_processing' ? ('server_researching' as const) : ('ready' as const)
             })).sort((a, b) => a.merchantKey.localeCompare(b.merchantKey));
 
             setGroups(initialGroups);
@@ -1761,7 +1772,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         if (!client) return;
         const wb = XLSX.utils.book_new();
         
-        const rows = [['Merchant Group / Description', 'Date', 'Amount', 'Allocate To', 'VAT Type']];
+        const rows: (string | number)[][] = [['Merchant Group / Description', 'Date', 'Amount', 'Allocate To', 'VAT Type']];
         const validations: any[] = [];
         let currentRow = 2;
 
@@ -2586,7 +2597,7 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                                         ) : tx.allocationSource === 'global_db' ? (
                                             <Badge variant="outline" className="text-[10px] gap-1 border-green-500/30 text-green-600"><RotateCcw className="h-3 w-3"/> Smart DB</Badge>
                                         ) : (
-                                            <Badge variant="ghost" className="text-[10px] opacity-50">Manual</Badge>
+                                            <Badge variant="secondary" className="text-[10px] opacity-50">Manual</Badge>
                                         )}
                                     </TableCell>
                                     {client?.isVatRegistered && (
@@ -2880,13 +2891,13 @@ export default function BankTransactionsPage() {
                         <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
                     </TabsList>
                     <TabsContent value="new-transactions" className="p-0">
-                        <NewTransactionsTab client={client} bankAccountId={accountId} currentBalance={stats.balance} globalRules={globalRules} onAccountCreated={fetchClientData} setActiveTab={setActiveTab} customers={customers} suppliers={suppliers} />
+                        <NewTransactionsTab client={client} bankAccountId={accountId || ''} currentBalance={stats.balance} globalRules={globalRules} onAccountCreated={fetchClientData} setActiveTab={setActiveTab} customers={customers} suppliers={suppliers} />
                     </TabsContent>
                     <TabsContent value="ai-workflow" className="p-0">
-                        <AIWorkflowTab client={client} bankAccountId={accountId} onAccountCreated={fetchClientData} />
+                        <AIWorkflowTab client={client} bankAccountId={accountId || ''} onAccountCreated={fetchClientData} />
                     </TabsContent>
                     <TabsContent value="reviewed" className="p-0">
-                        <ReviewedTab client={client} bankAccountId={accountId} customers={customers} suppliers={suppliers} globalRules={globalRules} onAccountCreated={fetchClientData} />
+                        <ReviewedTab client={client} bankAccountId={accountId || ''} customers={customers} suppliers={suppliers} globalRules={globalRules} onAccountCreated={fetchClientData} />
                     </TabsContent>
                 </Tabs>
             </div>

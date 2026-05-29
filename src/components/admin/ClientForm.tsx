@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '../ui/separator';
 import { Switch } from '../ui/switch';
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Trash2, CheckCircle2, AlertCircle, Building, Landmark, CreditCard, Image as ImageIcon, Calendar, ShieldAlert, Settings, Eraser, Info, CalendarIcon } from 'lucide-react';
+import { Loader2, Trash2, CheckCircle2, AlertCircle, Building, Landmark, CreditCard, Image as ImageIcon, ShieldAlert, Settings, Eraser, Info, CalendarIcon } from 'lucide-react';
+import { Calendar } from '../ui/calendar';
 import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +25,7 @@ import { cn } from '@/lib/utils';
 
 const db = getFirestore(firebaseApp);
 
-const clientStatuses: ('Active' | 'Inactive' | 'Archived')[] = ['Active', 'Inactive', 'Archived'];
+const clientStatuses = ['Active', 'Inactive', 'Archived', 'Pending Setup Payment'] as const;
 const months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
 const vatCategories: { value: 'A' | 'B' | 'C'; label: string }[] = [
     { value: 'A', label: 'Category A (Odd Months)' },
@@ -100,13 +101,13 @@ export default function ClientForm({
             payeReference: client?.payeReference || '',
             firstProcessingMonth: client?.firstProcessingMonth || '',
             firstRunStartDate: client?.firstRunStartDate ? (client.firstRunStartDate.toDate ? client.firstRunStartDate.toDate() : new Date(client.firstRunStartDate)) : null,
-            payrollFrequency: client?.payrollFrequency || 'Monthly',
+            payrollFrequency: (client?.payrollFrequency as any) || 'Monthly',
             excludeSdl: client?.excludeSdl || false,
             yearEnd: client?.yearEnd || 'February',
             isVatRegistered: client?.isVatRegistered || false,
             vatCategory: client?.vatCategory || null,
             vatNumber: client?.vatNumber || '',
-            status: client?.status || 'Active',
+            status: (client?.status as any) || 'Active',
             address: {
                 street: client?.address?.street || '',
                 suburb: client?.address?.suburb || '',
@@ -124,7 +125,7 @@ export default function ClientForm({
             useGlobalRules: false,
             initialRules: [],
             disableGlobalRules: client?.disableGlobalRules || false,
-            isBlankProfile: client?.isBlankProfile || false,
+            isBlankProfile: (client as any)?.isBlankProfile || false,
         },
     });
 
@@ -164,7 +165,7 @@ export default function ClientForm({
                         const data = doc.data() as AllocationRule;
                         return {
                             id: doc.id,
-                            description: data.description,
+                            description: data.description || '',
                             keywords: data.keywords.join(', '),
                             accountId: data.accountId,
                             vatType: data.vatType,

@@ -1,7 +1,7 @@
 'use server';
 
-import { doc, updateDoc, getDoc, arrayUnion, Timestamp, collection, getDocs, where, query, setDoc, writeBatch, serverTimestamp, addDoc, deleteField, increment, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getAdminDb } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { Order, Service, User, OrderNote, Task, DocumentUpload, DemoLead, ImportedTransaction, SmartAllocationResult, AllocationRule, ClientCustomer, Employee, Payslip } from '@/lib/types';
 import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
@@ -18,9 +18,10 @@ import { BankCleaner } from '@/lib/bank-cleaner';
  */
 export async function checkTerritoryAvailability(slug: string) {
     try {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('franchise.areaSlug', '==', slug.toLowerCase().trim()));
-        const snap = await getDocs(q);
+        const adminDb = getAdminDb();
+        const snap = await adminDb.collection('users')
+            .where('franchise.areaSlug', '==', slug.toLowerCase().trim())
+            .get();
         return { available: snap.empty };
     } catch (e) {
         console.error("Territory check failed:", e);
@@ -30,11 +31,12 @@ export async function checkTerritoryAvailability(slug: string) {
 
 export async function saveDemoLead(data: Omit<DemoLead, 'id' | 'createdAt'>) {
     try {
-        const docRef = doc(collection(db, 'demoLeads'));
-        await setDoc(docRef, {
+        const adminDb = getAdminDb();
+        const docRef = adminDb.collection('demoLeads').doc();
+        await docRef.set({
             ...data,
             id: docRef.id,
-            createdAt: serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
         });
         return { success: true, id: docRef.id };
     } catch (e) {
@@ -62,10 +64,12 @@ export async function notifyStaffOfDocumentUpload({ orderId, clientName, assigne
 
 export async function sendDocumentReviewFeedback({ orderId, clientName, clientEmail, documentUploads, resellerId }: { orderId: string, clientName: string, clientEmail: string, documentUploads: DocumentUpload[], resellerId?: string }) {
     let resellerName = 'The My Accountant Team';
+    const adminDb = getAdminDb();
     if (resellerId) {
-        const resellerSnap = await getDoc(doc(db, 'users', resellerId));
-        if (resellerSnap.exists()) {
-            resellerName = resellerSnap.data().companyName || resellerSnap.data().name;
+        const resellerSnap = await adminDb.collection('users').doc(resellerId).get();
+        if (resellerSnap.exists) {
+            const resellerData = resellerSnap.data() as User;
+            resellerName = resellerData.companyName || resellerData.name;
         }
     }
 
@@ -96,7 +100,7 @@ export async function notifyOfNewNote({
     actionUrl, 
     isToClient,
     resellerId 
-}: { 
+    }: { 
     recipientEmail: string, 
     recipientName: string, 
     senderName: string, 
@@ -105,12 +109,14 @@ export async function notifyOfNewNote({
     actionUrl: string, 
     isToClient: boolean,
     resellerId?: string 
-}) {
+    }) {
     let resellerName = 'My Accountant';
+    const adminDb = getAdminDb();
     if (resellerId && isToClient) {
-        const resellerSnap = await getDoc(doc(db, 'users', resellerId));
-        if (resellerSnap.exists()) {
-            resellerName = resellerSnap.data().companyName || resellerSnap.data().name;
+        const resellerSnap = await adminDb.collection('users').doc(resellerId).get();
+        if (resellerSnap.exists) {
+            const resellerData = resellerSnap.data() as User;
+            resellerName = resellerData.companyName || resellerData.name;
         }
     }
 
@@ -136,10 +142,12 @@ export async function notifyOfNewNote({
 
 export async function sendOutstandingDocumentsReminder({ orderId, clientName, clientEmail, resellerId }: { orderId: string, clientName: string, clientEmail: string, resellerId?: string }) {
     let resellerName = 'The My Accountant Team';
+    const adminDb = getAdminDb();
     if (resellerId) {
-        const resellerSnap = await getDoc(doc(db, 'users', resellerId));
-        if (resellerSnap.exists()) {
-            resellerName = resellerSnap.data().companyName || resellerSnap.data().name;
+        const resellerSnap = await adminDb.collection('users').doc(resellerId).get();
+        if (resellerSnap.exists) {
+            const resellerData = resellerSnap.data() as User;
+            resellerName = resellerData.companyName || resellerData.name;
         }
     }
 
@@ -161,9 +169,10 @@ export async function sendOutstandingDocumentsReminder({ orderId, clientName, cl
 }
 
 export async function generateNextTaskOccurrence(taskId: string) {
-    const taskRef = doc(db, 'tasks', taskId);
-    const taskSnap = await getDoc(taskRef);
-    if (!taskSnap.exists()) return;
+    const adminDb = getAdminDb();
+    const taskRef = adminDb.collection('tasks').doc(taskId);
+    const taskSnap = await taskRef.get();
+    if (!taskSnap.exists) return;
     const task = taskSnap.data() as Task;
 
     if (!task.recurrence || task.recurrence === 'None') return;
@@ -208,13 +217,13 @@ export async function generateNextTaskOccurrence(taskId: string) {
     const newTaskData = {
         ...rest,
         title: newTitle,
-        dueDate: Timestamp.fromDate(nextDueDate),
+        dueDate: nextDueDate,
         status: 'To-Do' as const,
-        createdAt: serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
         comments: [],
     };
 
-    await addDoc(collection(db, 'tasks'), newTaskData);
+    await adminDb.collection('tasks').add(newTaskData);
 }
 
 // AI ACCOUNTANT ACTIONS
@@ -231,13 +240,16 @@ export async function extractStatementChunk({ chunkBase64 }: { chunkBase64: stri
 }
 
 export async function prepareAiAccountantAnalysis({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
-    const transRef = collection(db, 'aiAccountantClients', clientId, 'transactions');
-    const q = query(transRef, where('bankAccountId', '==', bankAccountId), where('status', '==', 'new'), where('isExpense', '==', true));
-    const snap = await getDocs(q);
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('bankAccountId', '==', bankAccountId)
+        .where('status', '==', 'new')
+        .where('isExpense', '==', true)
+        .get();
     
     if (snap.empty) return { count: 0 };
 
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
     snap.docs.forEach(d => batch.update(d.ref, { status: 'ai_processing' }));
     await batch.commit();
 
@@ -245,21 +257,23 @@ export async function prepareAiAccountantAnalysis({ clientId, bankAccountId }: {
 }
 
 export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiatorEmail }: { clientId: string, bankAccountId: string, initiatorEmail: string }) {
-    const transRef = collection(db, 'aiAccountantClients', clientId, 'transactions');
-    const q = query(transRef, where('bankAccountId', '==', bankAccountId), where('status', '==', 'ai_processing'));
-    const snap = await getDocs(q);
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('bankAccountId', '==', bankAccountId)
+        .where('status', '==', 'ai_processing')
+        .get();
 
     if (snap.empty) return;
 
-    const clientDoc = await getDoc(doc(db, 'aiAccountantClients', clientId));
+    const clientDoc = await adminDb.collection('aiAccountantClients').doc(clientId).get();
     const clientData = clientDoc.data() as User;
     let allRules = [...(clientData.allocationRules || [])];
     if (!clientData.disableGlobalRules) {
-        const globalSnap = await getDocs(collection(db, 'allocationRules'));
+        const globalSnap = await adminDb.collection('allocationRules').get();
         allRules = [...allRules, ...globalSnap.docs.map(d => ({ ...d.data(), id: d.id } as AllocationRule))];
     }
 
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
     for (const d of snap.docs) {
         const tx = d.data() as ImportedTransaction;
         const result = BankCleaner.process(tx.description);
@@ -294,29 +308,31 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
 }
 
 export async function moveTransactionToNew({ clientId, transactionId }: { clientId: string, transactionId: string }) {
-    const txRef = doc(db, 'aiAccountantClients', clientId, 'transactions', transactionId);
-    await updateDoc(txRef, {
+    const adminDb = getAdminDb();
+    const txRef = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(transactionId);
+    await txRef.update({
         status: 'new',
-        allocatedTo: deleteField(),
-        vatType: deleteField(),
-        smartAllocationResult: deleteField(),
-        allocationSource: deleteField(),
-        merchantKey: deleteField(),
-        cleanDescription: deleteField(),
-        rawDescription: deleteField()
+        allocatedTo: FieldValue.delete(),
+        vatType: FieldValue.delete(),
+        smartAllocationResult: FieldValue.delete(),
+        allocationSource: FieldValue.delete(),
+        merchantKey: FieldValue.delete(),
+        cleanDescription: FieldValue.delete(),
+        rawDescription: FieldValue.delete()
     });
 }
 
 export async function bulkMoveTransactionsToNew({ clientId, transactionIds }: { clientId: string, transactionIds: string[] }) {
-    const batch = writeBatch(db);
+    const adminDb = getAdminDb();
+    const batch = adminDb.batch();
     transactionIds.forEach(id => {
-        const ref = doc(db, 'aiAccountantClients', clientId, 'transactions', id);
+        const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
         batch.update(ref, {
             status: 'new',
-            allocatedTo: deleteField(),
-            vatType: deleteField(),
-            smartAllocationResult: deleteField(),
-            allocationSource: deleteField()
+            allocatedTo: FieldValue.delete(),
+            vatType: FieldValue.delete(),
+            smartAllocationResult: FieldValue.delete(),
+            allocationSource: FieldValue.delete()
         });
     });
     await batch.commit();
@@ -338,23 +354,27 @@ export async function updateGlobalMerchantDb(data: any) {
 }
 
 export async function resetAiAccountantAnalysis({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
-    const transRef = collection(db, 'aiAccountantClients', clientId, 'transactions');
-    const q = query(transRef, where('bankAccountId', '==', bankAccountId), where('status', 'in', ['ai_processing', 'ai_review']));
-    const snap = await getDocs(q);
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('bankAccountId', '==', bankAccountId)
+        .where('status', 'in', ['ai_processing', 'ai_review'])
+        .get();
     
     if (snap.empty) return { count: 0 };
 
-    const batch = writeBatch(db);
-    snap.docs.forEach(d => batch.update(d.ref, { status: 'new', smartAllocationResult: deleteField() }));
+    const batch = adminDb.batch();
+    snap.docs.forEach(d => batch.update(d.ref, { status: 'new', smartAllocationResult: FieldValue.delete() }));
     await batch.commit();
 
     return { count: snap.size };
 }
 
 export async function proposeRegroups({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
-    const transRef = collection(db, 'aiAccountantClients', clientId, 'transactions');
-    const q = query(transRef, where('bankAccountId', '==', bankAccountId), where('status', '==', 'ai_review'));
-    const snap = await getDocs(q);
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('bankAccountId', '==', bankAccountId)
+        .where('status', '==', 'ai_review')
+        .get();
     
     const txs = snap.docs.map(d => ({ ...d.data(), id: d.id } as ImportedTransaction));
     const groups: Record<string, string[]> = {};
@@ -388,10 +408,11 @@ export async function proposeRegroups({ clientId, bankAccountId }: { clientId: s
 }
 
 export async function applyRegroups({ clientId, merges, userId }: { clientId: string, merges: any[], userId: string }) {
-    const batch = writeBatch(db);
+    const adminDb = getAdminDb();
+    const batch = adminDb.batch();
     merges.forEach(m => {
         m.fromTxIds.forEach((id: string) => {
-            const ref = doc(db, 'aiAccountantClients', clientId, 'transactions', id);
+            const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
             batch.update(ref, { merchantKey: m.toKey });
         });
     });
@@ -400,9 +421,11 @@ export async function applyRegroups({ clientId, merges, userId }: { clientId: st
 
 export async function proposeAiRegroups({ clientId, bankAccountId, selectedMerchantKeys }: any) {
     const { aiSmartRegroup } = await import('@/ai/flows/ai-smart-regroup');
-    const transRef = collection(db, 'aiAccountantClients', clientId, 'transactions');
-    const q = query(transRef, where('bankAccountId', '==', bankAccountId), where('status', '==', 'ai_review'));
-    const snap = await getDocs(q);
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('bankAccountId', '==', bankAccountId)
+        .where('status', '==', 'ai_review')
+        .get();
     
     const txs = snap.docs.map(d => ({ ...d.data(), id: d.id } as ImportedTransaction));
     const groupData: any[] = [];
@@ -441,9 +464,10 @@ export async function analyzeClientCommentAndSuggest({ clientId, transactionIds,
         isVatRegistered
     });
 
-    const batch = writeBatch(db);
+    const adminDb = getAdminDb();
+    const batch = adminDb.batch();
     transactionIds.forEach((id: string) => {
-        const ref = doc(db, 'aiAccountantClients', clientId, 'transactions', id);
+        const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
         batch.update(ref, { 
             clientComment: comment,
             smartAllocationResult: {
@@ -460,14 +484,17 @@ export async function analyzeClientCommentAndSuggest({ clientId, transactionIds,
 }
 
 export async function matchTransactionsToSuppliers({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
-    const supSnap = await getDocs(collection(db, `aiAccountantClients/${clientId}/suppliers`));
+    const adminDb = getAdminDb();
+    const supSnap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('suppliers').get();
     const suppliers = supSnap.docs.map(d => ({ id: d.id, name: d.data().name.toUpperCase() }));
 
-    const transRef = collection(db, 'aiAccountantClients', clientId, 'transactions');
-    const q = query(transRef, where('bankAccountId', '==', bankAccountId), where('status', 'in', ['new', 'ai_review']), where('isExpense', '==', true));
-    const snap = await getDocs(q);
+    const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('bankAccountId', '==', bankAccountId)
+        .where('status', 'in', ['new', 'ai_review'])
+        .where('isExpense', '==', true)
+        .get();
 
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
     let count = 0;
 
     snap.docs.forEach(d => {
@@ -478,7 +505,7 @@ export async function matchTransactionsToSuppliers({ clientId, bankAccountId }: 
                 status: 'reviewed',
                 allocatedTo: { value: match.id, type: 'supplier' },
                 vatType: 'no_vat',
-                allocatedAt: serverTimestamp(),
+                allocatedAt: FieldValue.serverTimestamp(),
                 allocationSource: 'manual'
             });
             count++;
@@ -490,13 +517,14 @@ export async function matchTransactionsToSuppliers({ clientId, bankAccountId }: 
 }
 
 export async function finalizeChatAllocation({ clientId, transactionId, accountId, vatType, explanation }: any) {
-    const txRef = doc(db, 'aiAccountantClients', clientId, 'transactions', transactionId);
-    await updateDoc(txRef, {
+    const adminDb = getAdminDb();
+    const txRef = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(transactionId);
+    await txRef.update({
         status: 'reviewed',
         allocatedTo: { value: accountId, type: 'account' },
         vatType: vatType,
         clientExplanation: explanation,
-        allocatedAt: serverTimestamp(),
+        allocatedAt: FieldValue.serverTimestamp(),
         allocationSource: 'chat'
     });
 }
@@ -505,11 +533,12 @@ export async function finalizeChatAllocation({ clientId, transactionId, accountI
 
 export async function saveEmployeeAction({ clientId, employeeId, data }: { clientId: string, employeeId?: string, data: any }) {
     try {
+        const adminDb = getAdminDb();
         const targetRef = employeeId 
-            ? doc(db, 'aiPayrollClients', clientId, 'employees', employeeId)
-            : doc(collection(db, 'aiPayrollClients', clientId, 'employees'));
+            ? adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc(employeeId)
+            : adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc();
         
-        await setDoc(targetRef, { ...data, updatedAt: serverTimestamp() }, { merge: true });
+        await targetRef.set({ ...data, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
         
         if (!employeeId) {
             const { PayrollService } = await import('@/services/PayrollService');
@@ -533,14 +562,17 @@ export async function generateEmployeePayslipAction({ clientId, employeeId, basi
 }
 
 export async function updateDraftPayslipHoursAction({ clientId, employeeId, hours }: any) {
-    const psRef = collection(db, 'aiPayrollClients', clientId, 'payslips');
-    const q = query(psRef, where('employeeId', '==', employeeId), where('status', '==', 'draft'), limit(1));
-    const snap = await getDocs(q);
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips')
+        .where('employeeId', '==', employeeId)
+        .where('status', '==', 'draft')
+        .limit(1)
+        .get();
     
     if (snap.empty) throw new Error("No draft payslip found");
 
     const ps = snap.docs[0].data() as Payslip;
-    const empSnap = await getDoc(doc(db, 'aiPayrollClients', clientId, 'employees', employeeId));
+    const empSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc(employeeId).get();
     const employee = empSnap.data() as Employee;
     
     const { PayrollService } = await import('@/services/PayrollService');
@@ -552,7 +584,7 @@ export async function updateDraftPayslipHoursAction({ clientId, employeeId, hour
     const deductions = PayrollService.getInitialDeductions(gross, ps.period, freq);
     const totalDeductions = deductions.reduce((s, i) => s + i.amount, 0);
 
-    await updateDoc(snap.docs[0].ref, {
+    await snap.docs[0].ref.update({
         earnings,
         deductions,
         grossPay: gross,
@@ -565,9 +597,12 @@ export async function updateDraftPayslipHoursAction({ clientId, employeeId, hour
 }
 
 export async function syncEmployeeSalaryToActivePayslipAction({ clientId, employeeId, newSalary, isNetSalary }: any) {
-    const psRef = collection(db, 'aiPayrollClients', clientId, 'payslips');
-    const q = query(psRef, where('employeeId', '==', employeeId), where('status', '==', 'draft'), limit(1));
-    const snap = await getDocs(q);
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips')
+        .where('employeeId', '==', employeeId)
+        .where('status', '==', 'draft')
+        .limit(1)
+        .get();
     
     if (snap.empty) return { success: false };
 
@@ -575,14 +610,14 @@ export async function syncEmployeeSalaryToActivePayslipAction({ clientId, employ
     const { PayrollService } = await import('@/services/PayrollService');
     const freq = PayrollService.getFrequencyMultiplier(ps.frequency);
 
-    const empSnap = await getDoc(doc(db, 'aiPayrollClients', clientId, 'employees', employeeId));
+    const empSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc(employeeId).get();
     const employee = empSnap.data() as Employee;
 
     const earnings = PayrollService.calculateEarningsList(employee, newSalary, ps.period, freq);
     const gross = earnings.reduce((s, i) => s + i.amount, 0);
     const deductions = PayrollService.getInitialDeductions(gross, ps.period, freq);
     
-    await updateDoc(snap.docs[0].ref, {
+    await snap.docs[0].ref.update({
         earnings,
         deductions,
         grossPay: gross,
@@ -594,8 +629,9 @@ export async function syncEmployeeSalaryToActivePayslipAction({ clientId, employ
 
 export async function updatePayslipAction({ clientId, payslipId, data }: { clientId: string, payslipId: string, data: any }) {
     try {
-        const psRef = doc(db, 'aiPayrollClients', clientId, 'payslips', payslipId);
-        await updateDoc(psRef, { ...data, status: 'finalized', updatedAt: serverTimestamp() });
+        const adminDb = getAdminDb();
+        const psRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc(payslipId);
+        await psRef.update({ ...data, status: 'finalized', updatedAt: FieldValue.serverTimestamp() });
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
@@ -603,27 +639,30 @@ export async function updatePayslipAction({ clientId, payslipId, data }: { clien
 }
 
 export async function rollForwardPayrollAction({ clientId }: { clientId: string }) {
-    const clientRef = doc(db, 'aiPayrollClients', clientId);
-    const clientSnap = await getDoc(clientRef);
+    const adminDb = getAdminDb();
+    const clientRef = adminDb.collection('aiPayrollClients').doc(clientId);
+    const clientSnap = await clientRef.get();
     const client = clientSnap.data() as User;
 
     const currentPeriod = client.firstProcessingMonth!;
     const nextPeriod = format(addMonths(parse(currentPeriod, 'MMMM yyyy', new Date()), 1), 'MMMM yyyy');
 
-    const empsSnap = await getDocs(query(collection(db, 'aiPayrollClients', clientId, 'employees'), where('status', '==', 'Active')));
+    const empsSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('employees')
+        .where('status', '==', 'Active')
+        .get();
     
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
     let created = 0;
 
     for (const d of empsSnap.docs) {
         const emp = d.data() as Employee;
-        const newPsRef = doc(collection(db, 'aiPayrollClients', clientId, 'payslips'));
+        const newPsRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc();
         batch.set(newPsRef, {
             employeeId: d.id,
             employeeName: `${emp.name} ${emp.surname}`,
             period: nextPeriod,
             status: 'draft',
-            createdAt: serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
             earnings: [],
             deductions: [],
             contributions: [],
@@ -643,16 +682,19 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
 }
 
 export async function rollBackPayrollAction({ clientId }: { clientId: string }) {
-    const clientRef = doc(db, 'aiPayrollClients', clientId);
-    const clientSnap = await getDoc(clientRef);
+    const adminDb = getAdminDb();
+    const clientRef = adminDb.collection('aiPayrollClients').doc(clientId);
+    const clientSnap = await clientRef.get();
     const client = clientSnap.data() as User;
 
     const currentPeriod = client.firstProcessingMonth!;
     const prevPeriod = format(addMonths(parse(currentPeriod, 'MMMM yyyy', new Date()), -1), 'MMMM yyyy');
 
-    const psSnap = await getDocs(query(collection(db, 'aiPayrollClients', clientId, 'payslips'), where('period', '==', currentPeriod)));
+    const psSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips')
+        .where('period', '==', currentPeriod)
+        .get();
     
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
     psSnap.forEach(d => batch.delete(d.ref));
     batch.update(clientRef, { firstProcessingMonth: prevPeriod });
     
@@ -662,10 +704,11 @@ export async function rollBackPayrollAction({ clientId }: { clientId: string }) 
 }
 
 export async function reactivatePracticeSubscription({ userId }: { userId: string }) {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
+    const adminDb = getAdminDb();
+    const userRef = adminDb.collection('users').doc(userId);
+    await userRef.update({
         'subscription.subscriptionStatus': 'active',
-        'subscription.subscriptionEndDate': Timestamp.fromDate(addMonths(new Date(), 1))
+        'subscription.subscriptionEndDate': addMonths(new Date(), 1)
     });
     return { success: true };
 }

@@ -45,8 +45,8 @@ export default function Emp201ReportPage() {
         // 1. Fetch Client
         const unsubClient = onSnapshot(doc(db, 'aiPayrollClients', clientId), (snap) => {
             if (snap.exists()) {
-                const data = snap.data() as User;
-                setClient({ id: snap.id, ...data } as User);
+                const data = snap.data();
+                setClient({ ...data, id: snap.id } as User);
                 // Default to current month if not set
                 if (!selectedMonth) {
                     setSelectedMonth(format(new Date(), 'MMMM yyyy'));

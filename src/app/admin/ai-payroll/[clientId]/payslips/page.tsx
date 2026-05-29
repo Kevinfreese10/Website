@@ -125,7 +125,7 @@ export default function PayslipsPage() {
     setIsRolling(true);
     
     try {
-        const res = await rollForwardPayrollAction({ clientId });
+        const res = (await rollForwardPayrollAction({ clientId })) as any;
         if (res.success) {
             toast({ 
                 title: "Month Rolled Forward", 
@@ -146,7 +146,7 @@ export default function PayslipsPage() {
     setIsRollingBack(true);
     
     try {
-        const res = await rollBackPayrollAction({ clientId });
+        const res = (await rollBackPayrollAction({ clientId })) as any;
         if (res.success) {
             toast({ 
                 title: "Month Rolled Back", 
@@ -191,7 +191,7 @@ export default function PayslipsPage() {
                       clientId,
                       employeeId: employee.id,
                       basicSalary: baseValue
-                  });
+                  }) as any;
                   
                   if (res.success && res.id) {
                       const newSnap = await getDoc(doc(db, 'aiPayrollClients', clientId, 'payslips', res.id));

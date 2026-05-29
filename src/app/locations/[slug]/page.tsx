@@ -8,6 +8,8 @@ import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import Script from 'next/script';
+import { generateBranchSchema } from '@/lib/schema/productSchema';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,8 +76,16 @@ export default async function FranchiseLandingPage({ params }: { params: Promise
     }))
     .filter(c => c.data.length > 0);
 
+  const branchSchema = generateBranchSchema(franchisee);
+
   return (
-    <div className="space-y-24 pb-24">
+    <>
+      <Script
+        id="branch-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(branchSchema) }}
+      />
+      <div className="space-y-24 pb-24">
       {/* Hero Section */}
       <section className="bg-slate-900 text-white py-24 relative overflow-hidden">
         <div className="container mx-auto px-4 text-center relative z-10">
@@ -160,5 +170,6 @@ export default async function FranchiseLandingPage({ params }: { params: Promise
             ))}
       </section>
     </div>
+    </>
   );
 }

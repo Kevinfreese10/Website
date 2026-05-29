@@ -175,10 +175,10 @@ export default function PartnerOrdersPage() {
                 id: newOrderId,
                 customerName: partnerProfile.companyName || partnerProfile.name,
                 customerEmail: partnerProfile.email,
-                customerPhone: partnerProfile.contactNumber || null,
+                customerPhone: (partnerProfile.contactNumber || undefined) as string | undefined,
                 endCustomerName: selectedOrderForOutsource.endCustomerName || selectedOrderForOutsource.customerName,
                 endCustomerEmail: selectedOrderForOutsource.endCustomerEmail || selectedOrderForOutsource.customerEmail,
-                documentContact: docContactPreference,
+                documentContact: docContactPreference === 'reseller' ? 'partner' : 'client',
                 date: Timestamp.now(),
                 items: selectedOrderForOutsource.items.map(item => ({
                     id: item.id,
@@ -219,7 +219,7 @@ export default function PartnerOrdersPage() {
             batch.update(originalOrderRef, {
                 isOutsourced: true,
                 status: 'Processing',
-                documentContact: docContactPreference,
+                documentContact: docContactPreference === 'reseller' ? 'partner' : 'client',
             });
 
             // Commit Batch
@@ -557,7 +557,7 @@ export default function PartnerOrdersPage() {
                             </TableCell>
                             <TableCell>
                             <Badge variant={getStatusVariant(order.status)}>
-                                {order.status === 'Outsourced' ? 'Processing' : order.status}
+                                {(order.status as any) === 'Outsourced' ? 'Processing' : order.status}
                             </Badge>
                             </TableCell>
                             <TableCell>

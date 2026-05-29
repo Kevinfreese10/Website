@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { doc, updateDoc, getDoc, collection, query, where, getDocs, arrayUnion, Timestamp, increment } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getAdminDb } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import crypto from 'crypto';
 import { Order, User } from '@/lib/types';
 import ipaddr from 'ipaddr.js';
@@ -20,7 +20,7 @@ const PAYFAST_IP_RANGES = [
 
 function isIpAllowed(req: NextRequest): boolean {
     // Priority check for x-forwarded-for in proxy environments
-    let ipStr = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.ip;
+    let ipStr = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || (req as any).ip;
     
     if (!ipStr) {
         console.warn('ITN Warning: Could not determine request IP address.');
@@ -90,10 +90,11 @@ export async function POST(req: NextRequest) {
             return new NextResponse('OK', { status: 200 });
         }
 
+        // Initialize Admin Firestore
+        const adminDb = getAdminDb();
+
         // Find the order
-        const ordersRef = collection(db, "orders");
-        const q = query(ordersRef, where("id", "==", orderId));
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await adminDb.collection('orders').where('id', '==', orderId).get();
 
         if (querySnapshot.empty) {
             console.error(`Order ${orderId} not found.`);
@@ -115,11 +116,11 @@ export async function POST(req: NextRequest) {
         
         if (!isValid) {
             console.error('Signature mismatch for order:', orderId);
-            await updateDoc(orderRef, { 
-                itnHistory: arrayUnion({ 
+            await orderRef.update({ 
+                itnHistory: FieldValue.arrayUnion({ 
                     status: 'Failed', 
                     message: 'Signature verification failed. Check passphrase.', 
-                    receivedAt: Timestamp.now(),
+                    receivedAt: new Date(),
                     payload: data
                 }) 
             });
@@ -131,11 +132,11 @@ export async function POST(req: NextRequest) {
         const receivedAmount = parseFloat(data.amount_gross);
         if (Math.abs(orderTotal - receivedAmount) > 0.01) {
              console.error(`Amount mismatch. Expected: ${orderTotal}, Received: ${receivedAmount}`);
-             await updateDoc(orderRef, { 
-                itnHistory: arrayUnion({ 
+             await orderRef.update({ 
+                itnHistory: FieldValue.arrayUnion({ 
                     status: 'Failed', 
                     message: `Amount mismatch. Expected ${orderTotal}, got ${receivedAmount}`, 
-                    receivedAt: Timestamp.now(),
+                    receivedAt: new Date(),
                     payload: data
                 }) 
             });
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
 
         // 4. Update Order Status
         if (data.payment_status === 'COMPLETE') {
-          await updateDoc(orderRef, { status: 'Processing' });
+          await orderRef.update({ status: 'Processing' });
           
           // Handle Partner Credit Top-ups & Setup Fees
           const isSetup = currentOrderData.items.some(i => i.id === 'partner_setup_fee');
@@ -153,11 +154,11 @@ export async function POST(req: NextRequest) {
           if (isSetup || isTopup) {
               const partnerId = currentOrderData.resellerId || currentOrderData.userId;
               if (partnerId) {
-                  const partnerRef = doc(db, 'users', partnerId);
+                  const partnerRef = adminDb.collection('users').doc(partnerId);
                   // Setup logic: R4950 setup adds R2475 (50%) to wallet
                   const creditAmount = isSetup ? 2475 : currentOrderData.total;
-                  await updateDoc(partnerRef, {
-                      creditBalance: increment(creditAmount),
+                  await partnerRef.update({
+                      creditBalance: FieldValue.increment(creditAmount),
                       status: 'Active'
                   });
               }
@@ -176,7 +177,7 @@ export async function POST(req: NextRequest) {
               const itemsWithServices = currentOrderData.items.map(item => {
                   const service = allServices.find(s => s.id === item.id);
                   return { ...item, service };
-              }).filter(item => item.service) as { service: Service }[];
+              }).filter(item => item.service) as any[];
 
               const emailHtml = render(React.createElement(DocumentRequestEmail, {
                   order: { ...currentOrderData, id: orderId! },
@@ -191,10 +192,10 @@ export async function POST(req: NextRequest) {
                   resellerId: currentOrderData.resellerId || undefined,
               });
 
-              await updateDoc(orderRef, { 
-                  notes: arrayUnion({
+              await orderRef.update({ 
+                  notes: FieldValue.arrayUnion({
                       text: `Sent "Request Documents" email to ${recipientEmail} (Automated via PayFast ITN).`,
-                      date: Timestamp.now(),
+                      date: new Date(),
                       authorId: 'system',
                       type: 'email',
                       subject: `Action Required for Your Order #${orderId}`,
@@ -203,20 +204,20 @@ export async function POST(req: NextRequest) {
               });
           }
 
-          await updateDoc(orderRef, { 
-              itnHistory: arrayUnion({ 
+          await orderRef.update({ 
+              itnHistory: FieldValue.arrayUnion({ 
                   status: 'Success', 
                   message: 'Payment verified and order set to Processing.', 
-                  receivedAt: Timestamp.now(),
+                  receivedAt: new Date(),
                   payload: data
               }) 
           });
         } else {
-          await updateDoc(orderRef, { 
-              itnHistory: arrayUnion({ 
+          await orderRef.update({ 
+              itnHistory: FieldValue.arrayUnion({ 
                   status: 'Failed', 
                   message: `Payment status was ${data.payment_status}`, 
-                  receivedAt: Timestamp.now(),
+                  receivedAt: new Date(),
                   payload: data
               }) 
           });

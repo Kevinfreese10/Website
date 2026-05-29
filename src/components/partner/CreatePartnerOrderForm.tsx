@@ -114,7 +114,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
     const unsubscribe = onSnapshot(overridesRef, (snap) => {
         const data: Record<string, any> = {};
         snap.docs.forEach(doc => data[doc.id] = doc.data());
-        setOverrides(data);
+        setServiceOverrides(data);
     });
     return () => unsubscribe();
   }, [partnerId]);
@@ -336,7 +336,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
             customerPhone: partner.contactNumber,
             endCustomerName: customerFullName,
             endCustomerEmail: values.customerEmail,
-            documentContact: 'reseller',
+            documentContact: 'partner',
             date: Timestamp.now(),
             items: values.items.map(item => ({ 
                 id: item.serviceId,

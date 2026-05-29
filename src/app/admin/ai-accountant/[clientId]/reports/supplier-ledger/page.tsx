@@ -120,7 +120,7 @@ function SupplierLedgerReport({
 
     const handleDownloadExcel = () => {
         if (!supplier) return;
-        const dataToExport = reportData.map(tx => ({
+        const dataToExport: any[] = reportData.map(tx => ({
             'Date': safeFormatDate(tx.date),
             'Reference': tx.reference,
             'Description': tx.description,
