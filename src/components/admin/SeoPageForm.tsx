@@ -74,13 +74,17 @@ export default function SeoPageForm({ control, index, page, form }: SeoPageFormP
 
         try {
             const result = await generateBlogPostSeo({ title, content });
-            if (result.metaKeywords) {
-                replaceKeywords(result.metaKeywords);
+            if (!result.success) {
+                throw new Error(result.error.message);
+            }
+            const data = result.data;
+            if (data.metaKeywords) {
+                replaceKeywords(data.metaKeywords);
                 toast({ title: "Keywords Generated", description: "Meta keywords updated based on page content." });
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            toast({ title: "AI Generation Failed", variant: "destructive" });
+            toast({ title: "AI Generation Failed", description: e?.message || "Could not generate keywords.", variant: "destructive" });
         } finally {
             setIsGeneratingKeywords(false);
         }

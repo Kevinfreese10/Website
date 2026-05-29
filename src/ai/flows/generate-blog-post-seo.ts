@@ -23,11 +23,40 @@ const GenerateBlogPostSeoOutputSchema = z.object({
 });
 export type GenerateBlogPostSeoOutput = z.infer<typeof GenerateBlogPostSeoOutputSchema>;
 
+export type GenerateBlogPostSeoResult = {
+  success: true;
+  data: GenerateBlogPostSeoOutput;
+} | {
+  success: false;
+  error: {
+    message: string;
+    isRateLimit: boolean;
+  };
+};
+
 export async function generateBlogPostSeo(
   input: GenerateBlogPostSeoInput
-): Promise<GenerateBlogPostSeoOutput> {
-  return generateBlogPostSeoFlow(input);
+): Promise<GenerateBlogPostSeoResult> {
+  try {
+    const data = await generateBlogPostSeoFlow(input);
+    return { success: true, data };
+  } catch (error: any) {
+    const errorMsg = error?.message || String(error);
+    const isRateLimit = errorMsg.includes('429') || 
+                        errorMsg.toLowerCase().includes('quota') || 
+                        errorMsg.toLowerCase().includes('rate limit') ||
+                        (error?.status === 429);
+    
+    return {
+      success: false,
+      error: {
+        message: errorMsg,
+        isRateLimit
+      }
+    };
+  }
 }
+
 
 const prompt = ai.definePrompt({
   name: 'generateBlogPostSeoPrompt',

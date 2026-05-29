@@ -233,15 +233,17 @@ export default function SeoManagementClient() {
           delayMs = 15000
         ): Promise<any> => {
           try {
-            return await generateBlogPostSeo({ title: pageTitle, content: pageContent });
-          } catch (error: any) {
-            const errorMsg = error?.message || String(error);
-            console.error(`Error generating SEO for "${pageTitle}":`, error);
+            const res = await generateBlogPostSeo({ title: pageTitle, content: pageContent });
+            
+            if (res.success) {
+              return res.data;
+            }
+            
+            const errorMsg = res.error.message;
+            const isRateLimit = res.error.isRateLimit;
+            console.error(`Error generating SEO for "${pageTitle}":`, errorMsg);
             
             if (retriesLeft > 0) {
-              const isRateLimit = errorMsg.includes('429') || 
-                                  errorMsg.toLowerCase().includes('quota') || 
-                                  errorMsg.toLowerCase().includes('rate limit');
               const waitTime = isRateLimit ? 65000 : delayMs;
               
               toast({
@@ -251,6 +253,18 @@ export default function SeoManagementClient() {
               });
               
               await new Promise(resolve => setTimeout(resolve, waitTime));
+              return executeWithRetry(pageTitle, pageContent, retriesLeft - 1, delayMs * 2);
+            }
+            throw new Error(errorMsg);
+          } catch (error: any) {
+            console.error(`Unexpected exception in executeWithRetry for "${pageTitle}":`, error);
+            if (retriesLeft > 0) {
+              toast({
+                title: `AI Connection Issue`,
+                description: `Waiting ${Math.round(delayMs / 1000)}s before retrying "${pageTitle}"... (${retriesLeft} retries left)`,
+                variant: 'destructive',
+              });
+              await new Promise(resolve => setTimeout(resolve, delayMs));
               return executeWithRetry(pageTitle, pageContent, retriesLeft - 1, delayMs * 2);
             }
             throw error;

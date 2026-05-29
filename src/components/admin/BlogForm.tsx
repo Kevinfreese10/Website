@@ -150,18 +150,22 @@ export default function BlogForm({ post, onSubmit }: BlogFormProps) {
 
     try {
         const result = await generateBlogPostSeo({ title });
-        form.setValue('metaTitle', result.metaTitle);
-        form.setValue('metaDescription', result.metaDescription);
-        form.setValue('metaKeywords', (result.metaKeywords as any).map((k: any) => ({ value: typeof k === 'object' ? k.value : k })));
+        if (!result.success) {
+            throw new Error(result.error.message);
+        }
+        const data = result.data;
+        form.setValue('metaTitle', data.metaTitle);
+        form.setValue('metaDescription', data.metaDescription);
+        form.setValue('metaKeywords', (data.metaKeywords as any).map((k: any) => ({ value: typeof k === 'object' ? k.value : k })));
         toast({
             title: 'SEO Content Updated',
             description: 'The SEO fields have been populated by AI.',
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("AI SEO Generation Error: ", error);
         toast({
             title: 'AI Update Failed',
-            description: 'There was an error generating SEO content. Please try again.',
+            description: error?.message || 'There was an error generating SEO content. Please try again.',
             variant: 'destructive',
         });
     } finally {

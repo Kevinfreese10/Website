@@ -156,9 +156,13 @@ export default function SeoManagementPage() {
             }
 
             if (result) {
-                form.setValue(`pages.${originalIndex}.title`, result.metaTitle);
-                form.setValue(`pages.${originalIndex}.description`, result.metaDescription);
-                form.setValue(`pages.${originalIndex}.keywords`, (result.metaKeywords as any).map((k: any) => ({ value: typeof k === 'object' ? k.value : k })));
+                const data = 'success' in result && result.success ? result.data : result;
+                if ('error' in result && !result.success) {
+                    throw new Error((result as any).error.message);
+                }
+                form.setValue(`pages.${originalIndex}.title`, (data as any).metaTitle);
+                form.setValue(`pages.${originalIndex}.description`, (data as any).metaDescription);
+                form.setValue(`pages.${originalIndex}.keywords`, ((data as any).metaKeywords as any).map((k: any) => ({ value: typeof k === 'object' ? k.value : k })));
             }
         }
         
