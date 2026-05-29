@@ -10,12 +10,45 @@ import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
 import { sendEmail } from '@/lib/email';
 import { services as allServices } from '@/lib/data';
 
-// PayFast's valid IP ranges
+// PayFast's valid IP ranges (combining legacy ranges, sandbox, and new AWS IP blocks)
 const PAYFAST_IP_RANGES = [
+    // Core/Legacy PayFast IP blocks
+    '197.97.145.144/28',
+    '41.74.179.192/27',
+    '102.216.36.0/28',
+    '102.216.36.128/28',
+    
+    // Legacy whitelist fallbacks
     '197.97.183.80/28',
     '196.25.7.240/28',
     '197.242.144.240/28',
     '41.74.178.192/28',
+
+    // Sandbox ITN server
+    '144.126.193.139/32',
+
+    // New AWS-based IP addresses
+    '3.163.236.237/32',
+    '3.163.238.237/32',
+    '3.163.251.237/32',
+    '3.163.232.237/32',
+    '3.163.241.237/32',
+    '3.163.245.237/32',
+    '3.163.248.237/32',
+    '3.163.234.237/32',
+    '3.163.237.237/32',
+    '3.163.243.237/32',
+    '3.163.247.237/32',
+    '3.163.242.237/32',
+    '3.163.244.237/32',
+    '3.163.249.237/32',
+    '3.163.252.237/32',
+    '3.163.235.237/32',
+    '3.163.239.237/32',
+    '3.163.250.237/32',
+    '3.163.233.237/32',
+    '3.163.246.237/32',
+    '3.163.240.237/32',
 ];
 
 function isIpAllowed(req: NextRequest): boolean {
@@ -48,7 +81,11 @@ function verifyPayFastSignature(rawBody: string, receivedSignature: string, pass
     let signatureString = '';
 
     for (const param of params) {
-        const [key, value] = param.split('=');
+        const eqIndex = param.indexOf('=');
+        if (eqIndex === -1) continue;
+        const key = param.substring(0, eqIndex);
+        const value = param.substring(eqIndex + 1);
+
         if (key !== 'signature') {
             signatureString += `${key}=${value}&`;
         }
@@ -70,10 +107,11 @@ function verifyPayFastSignature(rawBody: string, receivedSignature: string, pass
 export async function POST(req: NextRequest) {
     console.log(`ITN Processing: ${new Date().toISOString()}`);
   
-    // 1. IP Validation
-    if (!isIpAllowed(req)) {
-        console.error('ITN Error: Invalid IP address access attempt.');
-        return new NextResponse('Forbidden', { status: 403 });
+    // 1. IP Validation (Non-blocking warning to prevent cloud proxy headers/AWS range shifts from aborting payments)
+    const isIpRecognized = isIpAllowed(req);
+    if (!isIpRecognized) {
+        let clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || (req as any).ip || 'unknown';
+        console.warn(`ITN Warning: Unrecognized incoming IP address: ${clientIp}. Relying on secure signature verification.`);
     }
 
     try {
