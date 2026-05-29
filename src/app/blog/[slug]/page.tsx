@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { Metadata, ResolvingMetadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
@@ -148,6 +149,17 @@ export default async function BlogPostPage({ params }: Props) {
 
   const isKevin = true; // Globally override to Kevin Freese as requested by the user
 
+  // Split title to dynamically add a gorgeous homepage-style text gradient
+  const titleWords = post.title.split(' ');
+  let firstPart = post.title;
+  let secondPart = '';
+  
+  if (titleWords.length > 1) {
+      const splitIndex = Math.ceil(titleWords.length / 2);
+      firstPart = titleWords.slice(0, splitIndex).join(' ');
+      secondPart = titleWords.slice(splitIndex).join(' ');
+  }
+
   return (
     <>
       <Script
@@ -155,33 +167,41 @@ export default async function BlogPostPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <article className="container mx-auto max-w-4xl px-4 py-12">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight md:text-5xl">{post.title}</h1>
-          <div className="mt-6 flex items-center gap-4">
-            <div>
-              <p className="font-semibold text-slate-900 leading-tight">
-                {isKevin ? 'Kevin Freese (Chartered Business Accountant & Registered Tax Practitioner)' : post.author}
+      
+      {/* DYNAMIC PREMIUM HERO SECTION */}
+      <section className="relative w-full overflow-hidden bg-slate-50 border-b pt-16 pb-20 text-center animate-in fade-in">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <Badge variant="secondary" className="mb-4 uppercase tracking-wider">Tax Tip Blog</Badge>
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl leading-tight">
+            {firstPart} {secondPart && <span className="text-gradient">{secondPart}</span>}
+          </h1>
+          <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
+            {post.excerpt}
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground font-semibold">
+            <div className="text-center sm:text-left">
+              <p className="font-bold text-slate-900 leading-tight">
+                Kevin Freese (Chartered Business Accountant & Registered Tax Practitioner)
               </p>
-              {isKevin && (
-                <p className="text-xs text-muted-foreground font-semibold mt-0.5">
-                  CIBA (SBA Practitioner) | SAIT (General Tax Practitioner SA)
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Published on {format(new Date(post.date), 'dd/MM/yyyy')}
+              <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+                CIBA (SBA Practitioner) | SAIT (General Tax Practitioner SA)
               </p>
             </div>
+            <span className="hidden sm:inline text-slate-300">|</span>
+            <span className="flex items-center"><Clock className="h-4 w-4 mr-1.5 text-primary" /> {format(new Date(post.date), 'dd/MM/yyyy')}</span>
           </div>
-        </header>
-        
-        <div className="relative my-8 h-64 md:h-96 w-full">
+        </div>
+      </section>
+
+      <article className="container mx-auto max-w-4xl px-4 py-12">
+        <div className="relative my-8 h-64 md:h-[450px] w-full">
           <Image
             src={post.imageUrl}
             alt={post.title}
             fill
-            className="rounded-lg object-cover shadow-lg"
+            className="rounded-xl object-cover shadow-xl border"
             data-ai-hint={post.imageHint}
+            priority
           />
         </div>
 
