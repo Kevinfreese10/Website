@@ -5,6 +5,7 @@
  * - checkCV - A function that analyzes a CV PDF and returns scores and suggestions.
  */
 
+import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const CVAnalysisInputSchema = z.object({
@@ -39,20 +40,10 @@ const CVAnalysisOutputSchema = z.object({
 });
 export type CVAnalysisOutput = z.infer<typeof CVAnalysisOutputSchema>;
 
-const CV_CHECKER_API_KEY = 'AIzaSyCA6NIJNhxhweEMkQIn8rj4dBDz4YIr4W0';
-
 /**
  * Analyzes a CV PDF and returns scores and suggestions.
- * Uses a dedicated API key for CV checker operations.
  */
 export async function checkCV(input: CVAnalysisInput): Promise<CVAnalysisOutput> {
-  const { genkit } = await import('genkit');
-  const { googleAI } = await import('@genkit-ai/google-genai');
-  
-  const ai = genkit({
-    plugins: [googleAI({ apiKey: CV_CHECKER_API_KEY })],
-  });
-
   const { output } = await ai.generate({
     model: 'googleai/gemini-2.5-flash',
     output: { schema: CVAnalysisOutputSchema },
