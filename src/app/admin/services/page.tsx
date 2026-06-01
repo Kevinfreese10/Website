@@ -220,19 +220,36 @@ export default function AdminServicesPage() {
   };
 
   const handleDownloadTsv = () => {
-    const dataForTsv = services.map(service => ({
-      id: service.id,
-      title: service.title,
-      description: service.longDescription,
-      link: `${process.env.NEXT_PUBLIC_APP_URL}/products/${service.slug}`,
-      image_link: service.imageUrl,
-      availability: service.availability === 'in_stock' ? 'in_stock' : 'out_of_stock',
-      price: !service.isPriceTbc ? `${service.price.toFixed(2)} ${service.currency || 'ZAR'}` : '0.00 ZAR',
-      condition: service.condition || 'new',
-      brand: service.brand || 'My Accountant',
-      google_product_category: service.google_product_category || 'Business & Industrial > Business Services',
-      product_type: service.product_type || `Accounting > ${service.category}`,
-    }));
+    const dataForTsv = services.map(service => {
+      // 1. Fallback to canonical URL for links if NEXT_PUBLIC_APP_URL is not set
+      const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za';
+      const productLink = `${siteUrl}/products/${service.slug}`;
+      
+      // 2. Standardize relative image paths to fully qualified absolute URLs
+      const absoluteImageLink = service.imageUrl?.startsWith('http') 
+        ? service.imageUrl 
+        : `${siteUrl}${service.imageUrl || '/og-image.jpg'}`;
+
+      // 3. Dynamic price fallback for variable-price (TBC) products (consistent with productSchema.ts)
+      const numericPrice = !service.isPriceTbc && service.price > 0 
+        ? service.price 
+        : 950;
+      const formattedPrice = `${numericPrice.toFixed(2)} ${service.currency || 'ZAR'}`;
+
+      return {
+        id: service.id,
+        title: service.title,
+        description: service.longDescription,
+        link: productLink,
+        image_link: absoluteImageLink,
+        availability: service.availability === 'in_stock' ? 'in_stock' : 'out_of_stock',
+        price: formattedPrice,
+        condition: service.condition || 'new',
+        brand: service.brand || 'My Accountant',
+        google_product_category: service.google_product_category || 'Business & Industrial > Business Services',
+        product_type: service.product_type || `Accounting > ${service.category}`,
+      };
+    });
 
     const tsv = Papa.unparse(dataForTsv, {
       delimiter: '\t',
