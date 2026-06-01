@@ -5,9 +5,9 @@ import { getFirestore, Firestore, enableIndexedDbPersistence, memoryLocalCache }
 
 export const firebaseConfig = {
   "projectId": "studio-2604127518-57889",
-  "appId": "1:248831476160:web:4ad085282b5fd36518c825",
+  "appId": "1:248831476160:web:c55ffde9271313ad18c825",
   "storageBucket": "studio-2604127518-57889.firebasestorage.app",
-  "apiKey": "AIzaSyD6-yfkYDj_ONK_tZdHhQy3RITU8F9zrU8",
+  "apiKey": "AIzaSyAxu9Wf1LY0q828bpZxq0US_ckbgONv6eI",
   "authDomain": "studio-2604127518-57889.firebaseapp.com",
   "messagingSenderId": "248831476160"
 };
