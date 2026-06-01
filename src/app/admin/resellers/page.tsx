@@ -260,9 +260,14 @@ export default function AdminPartnersPage() {
   const [partners, setPartners] = useState<User[]>([]);
   const [allServices, setAllServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPartnerForCredits, setSelectedPartnerForCredits] = useState<User | null>(null);
-  const [selectedPartnerForProfile, setSelectedPartnerForProfile] = useState<User | null>(null);
-  const [selectedPartnerForConfiguration, setSelectedPartnerForConfiguration] = useState<User | null>(null);
+  const [selectedPartnerIdForCredits, setSelectedPartnerIdForCredits] = useState<string | null>(null);
+  const [selectedPartnerIdForProfile, setSelectedPartnerIdForProfile] = useState<string | null>(null);
+  const [selectedPartnerIdForConfiguration, setSelectedPartnerIdForConfiguration] = useState<string | null>(null);
+
+  const selectedPartnerForCredits = useMemo(() => partners.find(p => p.id === selectedPartnerIdForCredits) || null, [partners, selectedPartnerIdForCredits]);
+  const selectedPartnerForProfile = useMemo(() => partners.find(p => p.id === selectedPartnerIdForProfile) || null, [partners, selectedPartnerIdForProfile]);
+  const selectedPartnerForConfiguration = useMemo(() => partners.find(p => p.id === selectedPartnerIdForConfiguration) || null, [partners, selectedPartnerIdForConfiguration]);
+
   const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
@@ -272,26 +277,29 @@ export default function AdminPartnersPage() {
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-        const partnerQuery = query(collection(db, "users"), where('role', '==', 'partner'));
         const servicesQuery = query(collection(db, "services"));
-        
-        const [partnerSnap, servicesSnap] = await Promise.all([
-            getDocs(partnerQuery),
-            getDocs(servicesQuery)
-        ]);
-
-        setPartners(partnerSnap.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User)));
+        const servicesSnap = await getDocs(servicesQuery);
         setAllServices(servicesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Service)));
     } catch (error) {
-        console.error("Error fetching admin data:", error);
-        toast({ title: 'Error', description: 'Could not load practice records.', variant: 'destructive'});
-    } finally {
-        setIsLoading(false);
+        console.error("Error fetching services:", error);
     }
   };
 
   useEffect(() => {
     fetchInitialData();
+
+    // Listen to partners list in real-time
+    const partnerQuery = query(collection(db, "users"), where('role', '==', 'partner'));
+    const unsubscribe = onSnapshot(partnerQuery, (snap) => {
+        setPartners(snap.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User)));
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Error listening to partners:", error);
+        setIsLoading(false);
+        toast({ title: 'Error', description: 'Could not load practice records.', variant: 'destructive'});
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleSendAssistanceEmail = async (partner: User) => {
@@ -361,7 +369,10 @@ export default function AdminPartnersPage() {
       <ManualCreditDialog 
         partner={selectedPartnerForCredits}
         open={isCreditDialogOpen}
-        onOpenChange={setIsCreditDialogOpen}
+        onOpenChange={(open) => {
+            setIsCreditDialogOpen(open);
+            if (!open) setSelectedPartnerIdForCredits(null);
+        }}
         onUpdate={fetchInitialData}
       />
 
@@ -369,11 +380,17 @@ export default function AdminPartnersPage() {
         partner={selectedPartnerForProfile}
         allServices={allServices}
         open={isProfileDialogOpen}
-        onOpenChange={setIsProfileDialogOpen}
+        onOpenChange={(open) => {
+            setIsProfileDialogOpen(open);
+            if (!open) setSelectedPartnerIdForProfile(null);
+        }}
       />
 
       {/* Admin Full Practice Configuration Modal */}
-      <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
+      <Dialog open={isConfigDialogOpen} onOpenChange={(open) => {
+          setIsConfigDialogOpen(open);
+          if (!open) setSelectedPartnerIdForConfiguration(null);
+      }}>
           <DialogContent className="sm:max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
               <DialogHeader className="p-6 bg-slate-900 text-white border-b border-slate-800 shrink-0">
                   <DialogTitle className="text-xl flex items-center gap-2">
@@ -451,16 +468,16 @@ export default function AdminPartnersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Management</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => { setSelectedPartnerForConfiguration(partner); setIsConfigDialogOpen(true); }}>
+                            <DropdownMenuItem onClick={() => { setSelectedPartnerIdForConfiguration(partner.id); setIsConfigDialogOpen(true); }}>
                                 <Wrench className="mr-2 h-4 w-4" /> Configure Practice
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { setSelectedPartnerForProfile(partner); setIsProfileDialogOpen(true); }}>
+                            <DropdownMenuItem onClick={() => { setSelectedPartnerIdForProfile(partner.id); setIsProfileDialogOpen(true); }}>
                                 <FileText className="mr-2 h-4 w-4" /> View Profile & Docs
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleSendAssistanceEmail(partner)}>
                                 <Mail className="mr-2 h-4 w-4" /> Send Assistance Email
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { setSelectedPartnerForCredits(partner); setIsCreditDialogOpen(true); }}>
+                            <DropdownMenuItem onClick={() => { setSelectedPartnerIdForCredits(partner.id); setIsCreditDialogOpen(true); }}>
                                 <Wallet2 className="mr-2 h-4 w-4" /> Manage Credits
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />

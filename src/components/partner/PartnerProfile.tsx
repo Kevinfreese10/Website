@@ -439,7 +439,14 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
         </Card>
 
         <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+            console.error("Partner profile validation failed:", errors);
+            toast({
+                title: "Validation Failed",
+                description: "Please check all required fields and correct any errors before saving.",
+                variant: "destructive"
+            });
+        })} className="space-y-8">
             <div className="space-y-6">
                 <h3 className="text-xl font-bold flex items-center gap-2">
                     <Building className="h-5 w-5 text-primary" />
