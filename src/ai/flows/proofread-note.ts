@@ -23,7 +23,18 @@ export type ProofreadNoteOutput = z.infer<typeof ProofreadNoteOutputSchema>;
 export async function proofreadNote(
   input: ProofreadNoteInput
 ): Promise<ProofreadNoteOutput> {
-  return proofreadNoteFlow(input);
+  try {
+    console.log("[proofreadNote] Starting proofreading flow...");
+    console.log("[proofreadNote] GEMINI_API_KEY exists in env:", !!process.env.GEMINI_API_KEY);
+    const res = await proofreadNoteFlow(input);
+    console.log("[proofreadNote] Proofreading flow successfully completed.");
+    return res;
+  } catch (error: any) {
+    console.error("[proofreadNote] RUNTIME ERROR during proofreading:");
+    console.error("Error Message:", error.message);
+    console.error("Error Stack:", error.stack);
+    throw error;
+  }
 }
 
 const prompt = ai.definePrompt({

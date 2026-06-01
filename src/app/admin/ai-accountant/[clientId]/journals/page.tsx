@@ -687,13 +687,18 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
         const term = searchTerm.toLowerCase();
         return groupedJournals.filter(entries => {
             const first = entries[0];
+            const actorEntry = entries.find(e => e.allocatedTo?.type === journalType);
+            const actorName = actorEntry 
+                ? (actors.find(a => a.id === actorEntry.allocatedTo.value)?.name || '') 
+                : '';
             return (
                 first.reference?.toLowerCase().includes(term) ||
                 first.description?.toLowerCase().includes(term) ||
+                actorName.toLowerCase().includes(term) ||
                 entries.some(e => e.description?.toLowerCase().includes(term))
             );
         });
-    }, [groupedJournals, searchTerm]);
+    }, [groupedJournals, searchTerm, actors, journalType]);
 
     const allGLAccounts = useMemo(() => client?.chartOfAccounts?.sort((a,b) => a.description.localeCompare(b.description)) || [], [client]);
 
@@ -787,7 +792,7 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
                                 <TableHeader className="bg-muted/30">
                                     <TableRow>
                                         <TableHead className="px-6">Date</TableHead>
-                                        <TableHead>Reference</TableHead>
+                                        <TableHead>{journalType === 'customer' ? 'Customer' : 'Supplier'}</TableHead>
                                         <TableHead>Description</TableHead>
                                         <TableHead className="text-right">Total (Incl)</TableHead>
                                         <TableHead className="text-right px-6">Actions</TableHead>
@@ -800,10 +805,14 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
                                         const ref = entries[0].reference;
                                         const total = entries.reduce((s, e) => s + (e.amount > 0 ? e.amount : 0), 0);
                                         const date = entries[0].date?.toDate ? entries[0].date.toDate() : new Date(entries[0].date);
+                                        const actorEntry = entries.find(e => e.allocatedTo?.type === journalType);
+                                        const actorName = actorEntry 
+                                            ? (actors.find(a => a.id === actorEntry.allocatedTo.value)?.name || 'Unknown') 
+                                            : 'Unknown';
                                         return (
                                             <TableRow key={i}>
                                                 <TableCell className="px-6 text-xs font-medium">{format(date, 'dd/MM/yyyy')}</TableCell>
-                                                <TableCell className="font-bold text-primary">{ref}</TableCell>
+                                                <TableCell className="font-bold text-primary">{actorName}</TableCell>
                                                 <TableCell className="text-xs text-muted-foreground line-clamp-1">{entries[0].description}</TableCell>
                                                 <TableCell className="text-right font-mono font-bold">{formatPrice(total)}</TableCell>
                                                 <TableCell className="text-right px-6">

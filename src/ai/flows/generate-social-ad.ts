@@ -100,5 +100,16 @@ const generateSocialAdFlow = ai.defineFlow(
 );
 
 export async function generateSocialAds(input: SocialAdInput): Promise<SocialAdOutput> {
-  return generateSocialAdFlow(input);
+  try {
+    console.log("[generateSocialAds] Starting ad generation flow...");
+    console.log("[generateSocialAds] GEMINI_API_KEY exists in env:", !!process.env.GEMINI_API_KEY);
+    const res = await generateSocialAdFlow(input);
+    console.log("[generateSocialAds] Ad generation flow successfully completed.");
+    return res;
+  } catch (error: any) {
+    console.error("[generateSocialAds] RUNTIME ERROR during ad generation:");
+    console.error("Error Message:", error.message);
+    console.error("Error Stack:", error.stack);
+    throw error;
+  }
 }
