@@ -174,22 +174,70 @@ function GeneralLedgerReport({ client, transactions, dateRange, fromAccount, toA
         if (!description) return '';
         let clean = description.replace(/^(Contra:\s*|VAT:\s*)/i, '').trim();
 
-        if (allocatedTo && (allocatedTo.type === 'supplier' || allocatedTo.type === 'customer')) {
-            const actor = (allocatedTo.type === 'supplier' ? suppliers : customers).find(a => a.id === allocatedTo.value);
-            if (actor) {
-                const name = actor.name.toUpperCase();
-                if (clean.toUpperCase().startsWith(name)) {
-                    let remaining = clean.substring(name.length).trim();
-                    if (remaining.startsWith('-')) {
-                        remaining = remaining.substring(1).trim();
-                    }
-                    clean = remaining;
+        // Helper to check if a prefix string matches a supplier/customer name
+        const isMatch = (prefix: string, actorName: string): boolean => {
+            const p = prefix.toUpperCase().trim();
+            const a = actorName.toUpperCase().trim();
+            if (!p || !a) return false;
+            
+            if (p === a || p.startsWith(a)) return true;
+            
+            if (a.startsWith(p)) {
+                if (p.length >= 4) return true;
+                const aWords = a.split(/\s+/);
+                const pWords = p.split(/\s+/);
+                if (pWords.every((w, i) => aWords[i] === w)) return true;
+            }
+            
+            // Abbreviation / partial word prefix matching
+            const pWords = p.split(/\s+/).filter(Boolean);
+            const aWords = a.split(/\s+/).filter(Boolean);
+            if (pWords.length > 0 && pWords.length <= aWords.length) {
+                const matchesAll = pWords.every((pw, idx) => {
+                    const aw = aWords[idx];
+                    return aw && aw.startsWith(pw);
+                });
+                if (matchesAll) {
+                    const totalLen = pWords.join('').length;
+                    if (totalLen >= 3) return true;
                 }
             }
+            
+            return false;
+        };
+
+        // 1. Try matching with exact supplier/customer names starting directly
+        const sortedActors = [...suppliers, ...customers].sort((a, b) => b.name.length - a.name.length);
+        for (const actor of sortedActors) {
+            const name = actor.name.toUpperCase().trim();
+            if (name && clean.toUpperCase().startsWith(name)) {
+                let remaining = clean.substring(name.length).trim();
+                if (remaining.startsWith('-')) {
+                    remaining = remaining.substring(1).trim();
+                } else if (remaining.startsWith(':')) {
+                    remaining = remaining.substring(1).trim();
+                }
+                clean = remaining;
+                break;
+            }
         }
-        
+
+        // 2. Try matching with delimiter-separated prefixes (e.g. "UP INFORMATION TECH - ")
+        const separatorRegex = /\s+(?:-|–|—)\s+|:\s+/;
+        const match = clean.match(separatorRegex);
+        if (match && match.index !== undefined) {
+            const prefix = clean.substring(0, match.index).trim();
+            const remainder = clean.substring(match.index + match[0].length).trim();
+            
+            const hasMatch = sortedActors.some(actor => isMatch(prefix, actor.name));
+            if (hasMatch) {
+                clean = remainder;
+            }
+        }
+
         return clean;
     };
+
 
 
     const groupedTransactions = useMemo(() => {
