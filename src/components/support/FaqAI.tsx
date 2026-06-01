@@ -34,9 +34,13 @@ export default function FaqAI() {
     setError('');
     try {
       const response = await faqAIResponder({ question: values.question });
-      setAnswer(response.answer);
-    } catch (e) {
-      setError('Sorry, our AI is taking a break. Please try again later.');
+      if (response && response.success && response.answer) {
+        setAnswer(response.answer);
+      } else {
+        throw new Error(response?.error || 'Sorry, our AI is taking a break. Please try again later.');
+      }
+    } catch (e: any) {
+      setError(e.message || 'Sorry, our AI is taking a break. Please try again later.');
       console.error(e);
     } finally {
       setIsLoading(false);

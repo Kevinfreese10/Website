@@ -21,18 +21,24 @@ const FAQAIResponderOutputSchema = z.object({
 });
 export type FAQAIResponderOutput = z.infer<typeof FAQAIResponderOutputSchema>;
 
-export async function faqAIResponder(input: FAQAIResponderInput): Promise<FAQAIResponderOutput> {
+export type FAQAIResponderResult = {
+  success: boolean;
+  answer?: string;
+  error?: string;
+};
+
+export async function faqAIResponder(input: FAQAIResponderInput): Promise<FAQAIResponderResult> {
   try {
     console.log("[faqAIResponder] Starting FAQ responder flow...");
     console.log("[faqAIResponder] GEMINI_API_KEY exists in env:", !!process.env.GEMINI_API_KEY);
     const res = await faqAIResponderFlow(input);
     console.log("[faqAIResponder] FAQ responder flow successfully completed.");
-    return res;
+    return { success: true, answer: res.answer };
   } catch (error: any) {
     console.error("[faqAIResponder] RUNTIME ERROR during FAQ response:");
     console.error("Error Message:", error.message);
     console.error("Error Stack:", error.stack);
-    throw error;
+    return { success: false, error: error.message || 'An unknown error occurred during FAQ response.' };
   }
 }
 

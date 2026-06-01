@@ -20,20 +20,26 @@ const ProofreadNoteOutputSchema = z.object({
 });
 export type ProofreadNoteOutput = z.infer<typeof ProofreadNoteOutputSchema>;
 
+export type ProofreadNoteResult = {
+  success: boolean;
+  proofreadText?: string;
+  error?: string;
+};
+
 export async function proofreadNote(
   input: ProofreadNoteInput
-): Promise<ProofreadNoteOutput> {
+): Promise<ProofreadNoteResult> {
   try {
     console.log("[proofreadNote] Starting proofreading flow...");
     console.log("[proofreadNote] GEMINI_API_KEY exists in env:", !!process.env.GEMINI_API_KEY);
     const res = await proofreadNoteFlow(input);
     console.log("[proofreadNote] Proofreading flow successfully completed.");
-    return res;
+    return { success: true, proofreadText: res.proofreadText };
   } catch (error: any) {
     console.error("[proofreadNote] RUNTIME ERROR during proofreading:");
     console.error("Error Message:", error.message);
     console.error("Error Stack:", error.stack);
-    throw error;
+    return { success: false, error: error.message || 'An unknown error occurred during proofreading.' };
   }
 }
 

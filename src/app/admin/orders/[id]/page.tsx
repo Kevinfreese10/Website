@@ -235,11 +235,15 @@ export default function AdminOrderDetailsPage() {
     setIsProofreading(true);
     try {
       const result = await proofreadNote({ text: currentNote });
-      noteForm.setValue('noteText', result.proofreadText);
-      toast({ title: "Note Proofread", description: "Your note has been improved by AI." });
-    } catch (e) {
+      if (result && result.success && result.proofreadText) {
+        noteForm.setValue('noteText', result.proofreadText);
+        toast({ title: "Note Proofread", description: "Your note has been improved by AI." });
+      } else {
+        throw new Error(result?.error || "Failed to proofread note.");
+      }
+    } catch (e: any) {
       console.error(e);
-      toast({ title: "Proofreading Failed", variant: "destructive" });
+      toast({ title: "Proofreading Failed", description: e.message || "Failed to proofread note.", variant: "destructive" });
     } finally {
       setIsProofreading(false);
     }

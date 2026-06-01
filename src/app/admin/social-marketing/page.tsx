@@ -62,11 +62,11 @@ export default function SocialMarketingPage() {
 
         try {
             const result = await generateSocialAds({ products: productsToAd, tone });
-            if (result && result.ads) {
-                setGeneratedAds(result);
+            if (result && result.success && result.ads) {
+                setGeneratedAds({ ads: result.ads } as SocialAdOutput);
                 toast({ title: "Ads Generated!", description: `Created marketing content for ${selectedIds.length} products.` });
             } else {
-                throw new Error("Invalid output received from AI");
+                throw new Error(result?.error || "Invalid output received from AI");
             }
         } catch (e: any) {
             console.error("Ad Generation Error:", e);
