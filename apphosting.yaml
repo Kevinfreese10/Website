@@ -48,7 +48,13 @@ env:
       - RUNTIME
   - variable: GEMINI_API_KEY
     secret: gemini_api_key
+    availability:
+      - RUNTIME
   - variable: PAYFAST_PASSPHRASE
     secret: payfast_passphrase
+    availability:
+      - RUNTIME
   - variable: SMTP_PASS
     secret: smtp_pass
+    availability:
+      - RUNTIME
