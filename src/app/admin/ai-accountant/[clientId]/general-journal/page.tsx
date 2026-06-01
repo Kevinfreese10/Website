@@ -482,6 +482,89 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
         replaceQuick(lines);
     };
 
+    const handleDownloadAllJournals = () => {
+        if (!client || allJournals.length === 0) {
+            toast({ title: "No Journals", description: "There are no reviewed journals to download.", variant: "destructive" });
+            return;
+        }
+
+        const headers = ['Date (DD/MM/YYYY)', 'Effect (Debit/Credit)', 'Account Number', 'Reference', 'Description', 'VAT Type', 'Amount (Excl)', 'VAT Amount', 'Amount (Incl)', 'Affecting Account Number'];
+        
+        const csvRows: any[] = [];
+        const vatControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '7000-008')?.id;
+
+        groupedJournals.forEach(entries => {
+            if (entries.length === 0) return;
+
+            const dateVal = new Date(entries[0].date);
+            const dateStr = format(isNaN(dateVal.getTime()) ? new Date() : dateVal, 'dd/MM/yyyy');
+            const refStr = entries[0].reference || '';
+            const descStr = entries[0].description || '';
+
+            const vatEntries = entries.filter(e => e.allocatedTo?.value === vatControlAccount || e.description?.startsWith('VAT: '));
+            const nonVatEntries = entries.filter(e => e.allocatedTo?.value !== vatControlAccount && !e.description?.startsWith('VAT: '));
+
+            const debits = nonVatEntries.filter(e => e.amount > 0);
+            const credits = nonVatEntries.filter(e => e.amount < 0);
+
+            const maxLen = Math.max(debits.length, credits.length);
+
+            for (let i = 0; i < maxLen; i++) {
+                const debit = debits[i];
+                const credit = credits[i];
+
+                if (!debit && !credit) continue;
+
+                let primary = debit || credit;
+                let affecting = credit || debit;
+                let effect: 'Debit' | 'Credit' = debit ? 'Debit' : 'Credit';
+
+                const associatedVat = vatEntries.find(v => {
+                    const primarySign = primary.amount > 0 ? 1 : -1;
+                    const vatSign = v.amount > 0 ? 1 : -1;
+                    return primarySign === vatSign;
+                });
+
+                const primaryAccount = client.chartOfAccounts?.find(a => a.id === primary.allocatedTo?.value);
+                const affectingAccount = client.chartOfAccounts?.find(a => a.id === affecting.allocatedTo?.value);
+
+                const primaryAccNum = primaryAccount?.accountNumber || primary.allocatedTo?.value || '';
+                const affectingAccNum = affectingAccount?.accountNumber || affecting.allocatedTo?.value || '';
+
+                const exclAmt = Math.abs(primary.amount);
+                const vatAmt = associatedVat ? Math.abs(associatedVat.amount) : 0;
+                const inclAmt = exclAmt + vatAmt;
+
+                const vatTypeObj = allVatTypes.find(v => v.name === primary.vatType);
+                const vatTypeLabel = vatTypeObj?.label || 'No VAT';
+
+                csvRows.push([
+                    dateStr,
+                    effect,
+                    primaryAccNum,
+                    refStr,
+                    primary.description || descStr,
+                    vatTypeLabel,
+                    exclAmt.toFixed(2),
+                    vatAmt.toFixed(2),
+                    inclAmt.toFixed(2),
+                    affectingAccNum
+                ]);
+            }
+        });
+
+        const csvContent = Papa.unparse([headers, ...csvRows]);
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', `reviewed_journals_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({ title: "Download Successful", description: `Exported ${csvRows.length} journal entries.` });
+    };
+
     const onQuickSubmit = async (data: z.infer<typeof quickFormSchema>) => {
         if (!client) return;
         setIsLoading(true);
@@ -599,7 +682,13 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                             <button className={cn("px-6 py-3 text-sm font-bold flex items-center gap-2 transition-all", activeTab === 'post' ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:bg-muted/50")} onClick={() => setActiveTab('post')}><Plus className="h-4 w-4" /> Post New Journal</button>
                             <button className={cn("px-6 py-3 text-sm font-bold flex items-center gap-2 transition-all", activeTab === 'reviewed' ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:bg-muted/50")} onClick={() => setActiveTab('reviewed')}><History className="h-4 w-4" /> Reviewed Journals</button>
                         </div>
-                        {activeTab === 'post' && <ImportJournalDialog client={client} onImported={handleImportedLines} />}
+                        {activeTab === 'post' ? (
+                            <ImportJournalDialog client={client} onImported={handleImportedLines} />
+                        ) : (
+                            <Button variant="outline" size="sm" className="gap-2 text-xs font-bold" onClick={handleDownloadAllJournals}>
+                                <Download className="h-4 w-4" /> Download CSV
+                            </Button>
+                        )}
                     </div>
 
                     <div className="p-0">

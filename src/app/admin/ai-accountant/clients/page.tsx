@@ -4,14 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, Search, Building, Archive, PlusCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
-import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, Timestamp, limit } from 'firebase/firestore';
+import { Loader2, ArrowRight, Search, Building, Archive, PlusCircle, MoreHorizontal, Edit, Trash2, Copy } from 'lucide-react';
+import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, Timestamp, limit, getDoc, getDocs } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User } from '@/lib/types';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import ClientForm from '@/components/admin/ClientForm';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +71,86 @@ export default function AIAccountantClientsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState<User | null>(null);
     const { toast } = useToast();
+
+    // Copy Client states
+    const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false);
+    const [clientToCopy, setClientToCopy] = useState<User | null>(null);
+    const [copyCompanyName, setCopyCompanyName] = useState('');
+    const [copyClientName, setCopyClientName] = useState('');
+    const [copyClientEmail, setCopyClientEmail] = useState('');
+    const [isCopying, setIsCopying] = useState(false);
+
+    const handleStartCopy = (client: User) => {
+        setClientToCopy(client);
+        setCopyCompanyName(`Copy of ${client.companyName || client.name}`);
+        setCopyClientName(client.name || '');
+        setCopyClientEmail(client.email ? `copy_${client.email}` : '');
+        setIsCopyDialogOpen(true);
+    };
+
+    const handleCopyConfirm = async () => {
+        if (!clientToCopy) return;
+        setIsCopying(true);
+        try {
+            const newDocRef = doc(collection(db, 'aiAccountantClients'));
+            
+            // 1. Fetch parent document
+            const sourceDoc = await getDoc(doc(db, 'aiAccountantClients', clientToCopy.id));
+            if (!sourceDoc.exists()) {
+                throw new Error("Source client profile not found.");
+            }
+            
+            const sourceData = sourceDoc.data();
+            const newClientData = {
+                ...sourceData,
+                id: newDocRef.id,
+                uid: newDocRef.id,
+                name: copyClientName,
+                companyName: copyCompanyName,
+                email: copyClientEmail,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            };
+
+            // 2. Save new parent doc
+            await setDoc(newDocRef, newClientData);
+
+            // 3. Clone Customers sub-collection
+            const customersSnap = await getDocs(collection(db, 'aiAccountantClients', clientToCopy.id, 'customers'));
+            for (const customerDoc of customersSnap.docs) {
+                await setDoc(doc(db, 'aiAccountantClients', newDocRef.id, 'customers', customerDoc.id), customerDoc.data());
+            }
+
+            // 4. Clone Suppliers sub-collection
+            const suppliersSnap = await getDocs(collection(db, 'aiAccountantClients', clientToCopy.id, 'suppliers'));
+            for (const supplierDoc of suppliersSnap.docs) {
+                await setDoc(doc(db, 'aiAccountantClients', newDocRef.id, 'suppliers', supplierDoc.id), supplierDoc.data());
+            }
+
+            // 5. Clone Transactions sub-collection
+            const transactionsSnap = await getDocs(collection(db, 'aiAccountantClients', clientToCopy.id, 'transactions'));
+            for (const transactionDoc of transactionsSnap.docs) {
+                await setDoc(doc(db, 'aiAccountantClients', newDocRef.id, 'transactions', transactionDoc.id), transactionDoc.data());
+            }
+
+            toast({
+                title: 'Client Cloned!',
+                description: `Successfully duplicated all profiles, settings, and transactions into ${copyCompanyName}.`
+            });
+            
+            setIsCopyDialogOpen(false);
+            setClientToCopy(null);
+        } catch (e: any) {
+            console.error("Cloning failed:", e);
+            toast({
+                title: 'Cloning Failed',
+                description: e.message || "An unexpected error occurred during company duplication.",
+                variant: 'destructive'
+            });
+        } finally {
+            setIsCopying(false);
+        }
+    };
 
     useEffect(() => {
         const q = query(collection(db, 'aiAccountantClients'), orderBy('name'));
@@ -191,6 +271,9 @@ export default function AIAccountantClientsPage() {
                                             <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsFormOpen(true); }}>
                                                 <Edit className="mr-2 h-4 w-4" /> Edit Profile
                                             </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleStartCopy(client)}>
+                                                <Copy className="mr-2 h-4 w-4" /> Copy Client
+                                            </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
@@ -261,6 +344,59 @@ export default function AIAccountantClientsPage() {
                                 onCancel={() => setIsFormOpen(false)}
                                 isAIClient={true}
                             />
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={isCopyDialogOpen} onOpenChange={setIsCopyDialogOpen}>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <Copy className="h-5 w-5 text-primary" />
+                                    Copy Client Profile
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Duplicate the general ledger settings, chart of accounts, allocation rules, custom customers, suppliers, and all transaction histories from <strong>{clientToCopy?.companyName || clientToCopy?.name}</strong> to a new company.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4 space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-700">New Company Name</label>
+                                    <Input 
+                                        placeholder="e.g. Acme Corp (Pty) Ltd"
+                                        value={copyCompanyName}
+                                        onChange={(e) => setCopyCompanyName(e.target.value)}
+                                        disabled={isCopying}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-700">Owner Name</label>
+                                    <Input 
+                                        placeholder="e.g. John Doe"
+                                        value={copyClientName}
+                                        onChange={(e) => setCopyClientName(e.target.value)}
+                                        disabled={isCopying}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-700">Owner Email</label>
+                                    <Input 
+                                        type="email"
+                                        placeholder="e.g. john@acme.com"
+                                        value={copyClientEmail}
+                                        onChange={(e) => setCopyClientEmail(e.target.value)}
+                                        disabled={isCopying}
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter className="flex justify-end gap-2 border-t pt-4">
+                                <Button variant="ghost" onClick={() => setIsCopyDialogOpen(false)} disabled={isCopying}>
+                                    Cancel
+                                </Button>
+                                <Button onClick={handleCopyConfirm} disabled={isCopying || !copyCompanyName || !copyClientName || !copyClientEmail} className="gap-2">
+                                    {isCopying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+                                    {isCopying ? 'Duplicating Client...' : 'Confirm Copy'}
+                                </Button>
+                            </DialogFooter>
                         </DialogContent>
                     </Dialog>
                 </div>
