@@ -79,22 +79,26 @@ export default function AIAccountantClientsPage() {
     const [copyClientName, setCopyClientName] = useState('');
     const [copyClientEmail, setCopyClientEmail] = useState('');
     const [isCopying, setIsCopying] = useState(false);
+    const [copyProgress, setCopyProgress] = useState('');
 
     const handleStartCopy = (client: User) => {
         setClientToCopy(client);
         setCopyCompanyName(`Copy of ${client.companyName || client.name}`);
         setCopyClientName(client.name || '');
         setCopyClientEmail(client.email ? `copy_${client.email}` : '');
+        setCopyProgress('');
         setIsCopyDialogOpen(true);
     };
 
     const handleCopyConfirm = async () => {
         if (!clientToCopy) return;
         setIsCopying(true);
+        setCopyProgress('Connecting to database...');
         try {
             const newDocRef = doc(collection(db, 'aiAccountantClients'));
             
             // 1. Fetch parent document
+            setCopyProgress('Reading source company profile...');
             const sourceDoc = await getDoc(doc(db, 'aiAccountantClients', clientToCopy.id));
             if (!sourceDoc.exists()) {
                 throw new Error("Source client profile not found.");
@@ -113,24 +117,57 @@ export default function AIAccountantClientsPage() {
             };
 
             // 2. Save new parent doc
+            setCopyProgress('Creating new company profile...');
             await setDoc(newDocRef, newClientData);
 
+            const chunkArray = <T,>(arr: T[], size: number): T[][] => {
+                const chunks: T[][] = [];
+                for (let i = 0; i < arr.length; i += size) {
+                    chunks.push(arr.slice(i, i + size));
+                }
+                return chunks;
+            };
+
             // 3. Clone Customers sub-collection
+            setCopyProgress('Checking custom customer records...');
             const customersSnap = await getDocs(collection(db, 'aiAccountantClients', clientToCopy.id, 'customers'));
-            for (const customerDoc of customersSnap.docs) {
-                await setDoc(doc(db, 'aiAccountantClients', newDocRef.id, 'customers', customerDoc.id), customerDoc.data());
+            if (!customersSnap.empty) {
+                setCopyProgress(`Cloning ${customersSnap.size} customer profiles...`);
+                const customerChunks = chunkArray(customersSnap.docs, 100);
+                for (let i = 0; i < customerChunks.length; i++) {
+                    setCopyProgress(`Cloning customers (batch ${i + 1}/${customerChunks.length})...`);
+                    await Promise.all(customerChunks[i].map(customerDoc => 
+                        setDoc(doc(db, 'aiAccountantClients', newDocRef.id, 'customers', customerDoc.id), customerDoc.data())
+                    ));
+                }
             }
 
             // 4. Clone Suppliers sub-collection
+            setCopyProgress('Checking custom supplier records...');
             const suppliersSnap = await getDocs(collection(db, 'aiAccountantClients', clientToCopy.id, 'suppliers'));
-            for (const supplierDoc of suppliersSnap.docs) {
-                await setDoc(doc(db, 'aiAccountantClients', newDocRef.id, 'suppliers', supplierDoc.id), supplierDoc.data());
+            if (!suppliersSnap.empty) {
+                setCopyProgress(`Cloning ${suppliersSnap.size} supplier profiles...`);
+                const supplierChunks = chunkArray(suppliersSnap.docs, 100);
+                for (let i = 0; i < supplierChunks.length; i++) {
+                    setCopyProgress(`Cloning suppliers (batch ${i + 1}/${supplierChunks.length})...`);
+                    await Promise.all(supplierChunks[i].map(supplierDoc => 
+                        setDoc(doc(db, 'aiAccountantClients', newDocRef.id, 'suppliers', supplierDoc.id), supplierDoc.data())
+                    ));
+                }
             }
 
             // 5. Clone Transactions sub-collection
+            setCopyProgress('Checking transaction histories...');
             const transactionsSnap = await getDocs(collection(db, 'aiAccountantClients', clientToCopy.id, 'transactions'));
-            for (const transactionDoc of transactionsSnap.docs) {
-                await setDoc(doc(db, 'aiAccountantClients', newDocRef.id, 'transactions', transactionDoc.id), transactionDoc.data());
+            if (!transactionsSnap.empty) {
+                setCopyProgress(`Cloning ${transactionsSnap.size} journal & ledger entries...`);
+                const txnChunks = chunkArray(transactionsSnap.docs, 100);
+                for (let i = 0; i < txnChunks.length; i++) {
+                    setCopyProgress(`Cloning transactions (batch ${i + 1}/${txnChunks.length})...`);
+                    await Promise.all(txnChunks[i].map(transactionDoc => 
+                        setDoc(doc(db, 'aiAccountantClients', newDocRef.id, 'transactions', transactionDoc.id), transactionDoc.data())
+                    ));
+                }
             }
 
             toast({
@@ -149,6 +186,7 @@ export default function AIAccountantClientsPage() {
             });
         } finally {
             setIsCopying(false);
+            setCopyProgress('');
         }
     };
 
@@ -384,9 +422,14 @@ export default function AIAccountantClientsPage() {
                                         placeholder="e.g. john@acme.com"
                                         value={copyClientEmail}
                                         onChange={(e) => setCopyClientEmail(e.target.value)}
-                                        disabled={isCopying}
-                                    />
+                                        />
                                 </div>
+                                {isCopying && copyProgress && (
+                                    <div className="flex items-center gap-2 justify-center py-2.5 px-3 bg-primary/5 border border-primary/10 rounded-lg text-xs font-semibold text-primary animate-pulse">
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                                        <span>{copyProgress}</span>
+                                    </div>
+                                )}
                             </div>
                             <DialogFooter className="flex justify-end gap-2 border-t pt-4">
                                 <Button variant="ghost" onClick={() => setIsCopyDialogOpen(false)} disabled={isCopying}>
@@ -394,7 +437,7 @@ export default function AIAccountantClientsPage() {
                                 </Button>
                                 <Button onClick={handleCopyConfirm} disabled={isCopying || !copyCompanyName || !copyClientName || !copyClientEmail} className="gap-2">
                                     {isCopying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
-                                    {isCopying ? 'Duplicating Client...' : 'Confirm Copy'}
+                                    {isCopying ? 'Processing...' : 'Confirm Copy'}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
