@@ -679,8 +679,14 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
             if (!grouped.has(key)) grouped.set(key, []);
             grouped.get(key)?.push(tx);
         });
-        return Array.from(grouped.values()).sort((a,b) => new Date(b[0].date).getTime() - new Date(a[0].date).getTime());
-    }, [allJournals]);
+        const allGroups = Array.from(grouped.values());
+        // Only show journals processed in this specific module (supplier or customer)
+        const filteredGroups = allGroups.filter(entries => 
+            entries.some(tx => tx.allocatedTo?.type === journalType)
+        );
+        return filteredGroups.sort((a,b) => new Date(b[0].date).getTime() - new Date(a[0].date).getTime());
+    }, [allJournals, journalType]);
+
 
     const filteredGroupedJournals = useMemo(() => {
         if (!searchTerm.trim()) return groupedJournals;

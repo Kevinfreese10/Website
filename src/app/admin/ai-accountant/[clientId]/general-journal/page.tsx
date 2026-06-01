@@ -661,8 +661,14 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
             if (!grouped.has(key)) grouped.set(key, []);
             grouped.get(key)?.push(tx);
         });
-        return Array.from(grouped.values()).sort((a,b) => new Date(b[0].date).getTime() - new Date(a[0].date).getTime());
+        const allGroups = Array.from(grouped.values());
+        // Only show journals processed in the General Journal module (which do not allocate to suppliers or customers)
+        const filteredGroups = allGroups.filter(entries => 
+            !entries.some(tx => tx.allocatedTo?.type === 'supplier' || tx.allocatedTo?.type === 'customer')
+        );
+        return filteredGroups.sort((a,b) => new Date(b[0].date).getTime() - new Date(a[0].date).getTime());
     }, [allJournals]);
+
 
     return (
         <div className="space-y-8">
