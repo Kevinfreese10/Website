@@ -133,13 +133,14 @@ export default function AdminOrdersPage() {
         // ADMIN VISIBILITY BASE LOGIC:
         // 1. Direct Customer Orders (resellerId is null or empty)
         // 2. Explicitly Outsourced Work (resellerId IS set AND originalOrderId IS set)
-        // 3. HIDE: Internal Partner Orders (resellerId IS set AND originalOrderId IS NULL)
+        // 3. HIDE: Internal Partner Orders (resellerId IS set AND originalOrderId IS NULL) - EXCEPT Partner purchases (setup fees/topups)
         // 4. HIDE: Cancelled orders (per user request)
         const visibleOrders = ordersWithClientDetails.filter(order => {
             if (order.status === 'Cancelled') return false;
             const isDirectOrder = !order.resellerId;
             const isOutsourcedWork = !!(order.resellerId && order.originalOrderId);
-            return (isDirectOrder || isOutsourcedWork);
+            const isPartnerPurchase = !!(order.resellerId && !order.originalOrderId && order.items?.some(i => i.id.startsWith('partner_') || i.id.includes('topup') || i.id.includes('setup')));
+            return (isDirectOrder || isOutsourcedWork || isPartnerPurchase);
         });
 
         setOrders(visibleOrders);
