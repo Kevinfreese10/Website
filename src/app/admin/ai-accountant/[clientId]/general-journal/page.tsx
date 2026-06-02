@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Plus, Trash2, Eye, Calculator, ArrowRightLeft, X, ListTree, History, CheckCircle2, FileUp, Download, AlertCircle, FileWarning, Edit, Save, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Plus, Trash2, Eye, Calculator, ArrowRightLeft, X, ListTree, History, CheckCircle2, FileUp, Download, AlertCircle, FileWarning, Edit, Save, Calendar as CalendarIcon, Search } from 'lucide-react';
 import { getFirestore, doc, collection, writeBatch, Timestamp, query, where, orderBy, getDocs, updateDoc, arrayUnion, serverTimestamp, getDoc, deleteField } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useParams } from 'next/navigation';
@@ -69,6 +69,17 @@ const editJournalFormSchema = z.object({
 const formatPrice = (price: number | undefined) => {
     if (price === undefined || price === null || isNaN(price)) return '0.00';
     return new Intl.NumberFormat('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price);
+};
+
+const getInclusiveAmount = (amount: number, vatType?: string) => {
+    const isStandard = vatType === 'standard_rated_sales' || 
+                       vatType === 'standard_rated_purchases' || 
+                       vatType === 'capital_goods_purchases';
+    const absAmt = Math.abs(amount);
+    if (isStandard) {
+        return absAmt * 1.15;
+    }
+    return absAmt;
 };
 
 function EditJournalDialog({ isOpen, onOpenChange, journalEntries, client, onSave }: { 
@@ -455,6 +466,7 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
     const [editingJournal, setEditingJournal] = useState<AllocatedTransaction[] | null>(null);
     const [isCreateAccountOpen, setIsCreateAccountOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'post' | 'reviewed'>('post');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const quickForm = useForm<z.infer<typeof quickFormSchema>>({
         resolver: zodResolver(quickFormSchema),
@@ -669,6 +681,22 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
         return filteredGroups.sort((a,b) => new Date(b[0].date).getTime() - new Date(a[0].date).getTime());
     }, [allJournals]);
 
+    const flatJournals = useMemo(() => {
+        const flat: AllocatedTransaction[] = [];
+        groupedJournals.forEach(entries => {
+            flat.push(...entries);
+        });
+        return flat;
+    }, [groupedJournals]);
+
+    const filteredFlatJournals = useMemo(() => {
+        if (!searchQuery.trim()) return flatJournals;
+        const query = searchQuery.toLowerCase().trim();
+        return flatJournals.filter(tx => 
+            (tx.description || '').toLowerCase().includes(query)
+        );
+    }, [flatJournals, searchQuery]);
+
 
     return (
         <div className="space-y-8">
@@ -746,49 +774,101 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
 
                         {activeTab === 'reviewed' && (
                             <div className="p-0">
-                                <Table>
-                                    <TableHeader className="bg-muted/30">
-                                        <TableRow>
-                                            <TableHead className="px-6">Date</TableHead>
-                                            <TableHead>Reference</TableHead>
-                                            <TableHead>Description</TableHead>
-                                            <TableHead className="text-right">Total (Incl)</TableHead>
-                                            <TableHead className="text-right px-6">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {groupedJournals.length === 0 ? (
-                                            <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground italic">No journals found.</TableCell></TableRow>
-                                        ) : groupedJournals.map((entries, i) => {
-                                            const ref = entries[0].reference;
-                                            const total = entries.reduce((s, e) => s + (e.amount > 0 ? e.amount : 0), 0);
-                                            return (
-                                                <TableRow key={i}>
-                                                    <TableCell className="px-6 text-xs font-medium">{format(new Date(entries[0].date), 'dd/MM/yyyy')}</TableCell>
-                                                    <TableCell className="font-bold text-primary">{ref}</TableCell>
-                                                    <TableCell className="text-xs text-muted-foreground line-clamp-1">{entries[0].description}</TableCell>
-                                                    <TableCell className="text-right font-mono font-bold">{formatPrice(total)}</TableCell>
-                                                    <TableCell className="text-right px-6">
-                                                        <div className="flex justify-end gap-1">
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => setEditingJournal(entries)}><Edit className="h-4 w-4" /></Button>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingJournal(entries)}><Eye className="h-4 w-4" /></Button>
-                                                            <AlertDialog>
-                                                                <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button></AlertDialogTrigger>
-                                                                <AlertDialogContent>
-                                                                    <AlertDialogHeader><AlertDialogTitle>Delete Journal {ref}?</AlertDialogTitle><AlertDialogDescription>This will remove all associated lines.</AlertDialogDescription></AlertDialogHeader>
-                                                                    <AlertDialogFooter>
-                                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                        <AlertDialogAction onClick={() => handleDeleteJournal(ref || '')} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
-                                                                    </AlertDialogFooter>
-                                                                </AlertDialogContent>
-                                                            </AlertDialog>
-                                                        </div>
+                                <div className="p-4 border-b bg-muted/5 flex items-center justify-between gap-4">
+                                    <div className="relative w-full max-w-sm">
+                                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Search descriptions..."
+                                            className="pl-9 h-9 border-primary/10 text-xs"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                        {searchQuery && (
+                                            <button 
+                                                onClick={() => setSearchQuery('')}
+                                                className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground font-medium shrink-0">
+                                        Showing {filteredFlatJournals.length} transaction lines
+                                    </div>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader className="bg-muted/30">
+                                            <TableRow>
+                                                <TableHead className="px-6 w-[120px]">Date</TableHead>
+                                                <TableHead className="text-right w-[120px]">Debit</TableHead>
+                                                <TableHead className="pl-6">Description</TableHead>
+                                                <TableHead className="text-right w-[120px]">Credit</TableHead>
+                                                <TableHead className="text-right w-[120px]">Total (Incl)</TableHead>
+                                                <TableHead className="text-right px-6 w-[140px]">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredFlatJournals.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={6} className="text-center py-20 text-muted-foreground italic">
+                                                        No journals found.
                                                     </TableCell>
                                                 </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
+                                            ) : filteredFlatJournals.map((tx, i) => {
+                                                const isDebit = tx.amount > 0;
+                                                const isCredit = tx.amount < 0;
+                                                const groupEntries = allJournals.filter(j => j.reference === tx.reference);
+                                                
+                                                return (
+                                                    <TableRow key={tx.id || i} className="hover:bg-muted/5">
+                                                        <TableCell className="px-6 text-xs font-medium whitespace-nowrap">
+                                                            {format(new Date(tx.date), 'dd/MM/yyyy')}
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-mono text-xs text-green-600 font-bold whitespace-nowrap">
+                                                            {isDebit ? formatPrice(tx.amount) : ''}
+                                                        </TableCell>
+                                                        <TableCell className="pl-6 text-xs font-semibold text-primary">
+                                                            <div className="flex flex-col">
+                                                                <span>{tx.description}</span>
+                                                                <span className="text-[9px] text-muted-foreground font-mono font-normal">Ref: {tx.reference}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-mono text-xs text-red-600 font-bold whitespace-nowrap">
+                                                            {isCredit ? formatPrice(Math.abs(tx.amount)) : ''}
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-mono text-xs font-black whitespace-nowrap">
+                                                            R {formatPrice(getInclusiveAmount(tx.amount, tx.vatType))}
+                                                        </TableCell>
+                                                        <TableCell className="text-right px-6 whitespace-nowrap">
+                                                            <div className="flex justify-end gap-1">
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => setEditingJournal(groupEntries)} title="Edit Journal Group"><Edit className="h-4 w-4" /></Button>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingJournal(groupEntries)} title="View Journal Group"><Eye className="h-4 w-4" /></Button>
+                                                                <AlertDialog>
+                                                                    <AlertDialogTrigger asChild>
+                                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title="Delete Journal Group"><Trash2 className="h-4 w-4"/></Button>
+                                                                    </AlertDialogTrigger>
+                                                                    <AlertDialogContent>
+                                                                        <AlertDialogHeader>
+                                                                            <AlertDialogTitle>Delete Journal {tx.reference}?</AlertDialogTitle>
+                                                                            <AlertDialogDescription>
+                                                                                This will remove all associated lines in this journal transaction group.
+                                                                            </AlertDialogDescription>
+                                                                        </AlertDialogHeader>
+                                                                        <AlertDialogFooter>
+                                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                            <AlertDialogAction onClick={() => handleDeleteJournal(tx.reference || '')} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                                                                        </AlertDialogFooter>
+                                                                    </AlertDialogContent>
+                                                                </AlertDialog>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             </div>
                         )}
                     </div>
