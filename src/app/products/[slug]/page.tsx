@@ -275,6 +275,11 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
         </div>
 
+        {/* TRUSTINDEX REVIEWS WIDGET */}
+        <div className="mt-12">
+          <TrustIndexWidget />
+        </div>
+
         {/* DYNAMIC FAQ ACCORDION SECTION (Strictly aligned with Google Search Engine requirements) */}
         {serviceFaqs && serviceFaqs.length > 0 && (
           <div className="mt-16 bg-slate-50 rounded-2xl p-8 border shadow-sm max-w-4xl mx-auto">

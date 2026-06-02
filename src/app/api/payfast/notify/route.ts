@@ -86,7 +86,7 @@ function verifyPayFastSignature(rawBody: string, receivedSignature: string, pass
         const key = param.substring(0, eqIndex);
         const value = param.substring(eqIndex + 1);
 
-        if (key !== 'signature') {
+        if (key !== 'signature' && value !== '') {
             signatureString += `${key}=${value}&`;
         }
     }
@@ -150,8 +150,36 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Signature Validation using the RAW body
-        const isValid = verifyPayFastSignature(rawBody, data.signature, process.env.PAYFAST_PASSPHRASE);
+        let isValid = verifyPayFastSignature(rawBody, data.signature, process.env.PAYFAST_PASSPHRASE);
         
+        if (!isValid) {
+            console.warn(`ITN Warning: Local signature mismatch for order ${orderId}. Attempting server confirmation fallback.`);
+            try {
+                const isSandbox = data.merchant_id === '10042278';
+                const validationUrl = isSandbox 
+                    ? 'https://sandbox.payfast.co.za/eng/query/validate'
+                    : 'https://www.payfast.co.za/eng/query/validate';
+                
+                const validationRes = await fetch(validationUrl, {
+                    method: 'POST',
+                    body: rawBody,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'User-Agent': 'MyAccountant-NextJS-ITN-Handler/1.0',
+                    }
+                });
+                
+                const validationText = (await validationRes.text()).trim();
+                console.log(`ITN Validation response from PayFast for order ${orderId}: "${validationText}"`);
+                
+                if (validationText === 'VALID') {
+                    isValid = true;
+                }
+            } catch (fallbackError) {
+                console.error(`ITN Error: Server confirmation fallback failed for order ${orderId}:`, fallbackError);
+            }
+        }
+
         if (!isValid) {
             console.error('Signature mismatch for order:', orderId);
             await orderRef.update({ 
@@ -184,6 +212,174 @@ export async function POST(req: NextRequest) {
         // 4. Update Order Status
         if (data.payment_status === 'COMPLETE') {
           await orderRef.update({ status: 'Processing' });
+          
+          // Staff Workload Querying & Load-Balanced Allocation
+          try {
+              let department: 'Accounting and Tax' | 'Administration' | 'CAP' = 'Administration';
+              
+              if (currentOrderData.department) {
+                  department = currentOrderData.department as any;
+              } else {
+                  const itemIds = currentOrderData.items.map(i => i.id);
+                  for (const itemId of itemIds) {
+                      const service = allServices.find(s => s.id === itemId);
+                      if (service && service.department) {
+                          department = service.department as any;
+                          break;
+                      }
+                  }
+              }
+              
+              console.log(`Allocating staff for order ${orderId} in department ${department}`);
+              
+              const staffSnapshot = await adminDb.collection('users')
+                  .where('role', '==', 'staff')
+                  .get();
+              
+              const matchingStaff = staffSnapshot.docs
+                  .map(doc => ({ id: doc.id, ...doc.data() } as User))
+                  .filter(staff => {
+                      if (staff.status === 'Inactive' || staff.status === 'Archived') return false;
+                      if (staff.department === department) return true;
+                      if (Array.isArray(staff.departments) && staff.departments.includes(department)) return true;
+                      return false;
+                  });
+              
+              let assignedStaffId: string | null = null;
+              
+              if (matchingStaff.length > 0) {
+                  const processingOrdersSnapshot = await adminDb.collection('orders')
+                      .where('status', '==', 'Processing')
+                      .get();
+                  
+                  const workloadMap: { [userId: string]: number } = {};
+                  matchingStaff.forEach(staff => {
+                      workloadMap[staff.id] = 0;
+                  });
+                  
+                  processingOrdersSnapshot.docs.forEach(doc => {
+                      const orderData = doc.data();
+                      const assigned = orderData.assignedTo;
+                      if (Array.isArray(assigned)) {
+                          assigned.forEach((staffId: string) => {
+                              if (workloadMap[staffId] !== undefined) {
+                                  workloadMap[staffId]++;
+                              }
+                          });
+                      } else if (typeof assigned === 'string') {
+                          if (workloadMap[assigned] !== undefined) {
+                              workloadMap[assigned]++;
+                          }
+                      }
+                  });
+                  
+                  let minWorkload = Infinity;
+                  matchingStaff.forEach(staff => {
+                      const workload = workloadMap[staff.id] || 0;
+                      if (workload < minWorkload) {
+                          minWorkload = workload;
+                          assignedStaffId = staff.id;
+                      }
+                  });
+              } else {
+                  console.warn(`No staff found for department ${department}. Checking general active staff.`);
+                  const generalStaff = staffSnapshot.docs
+                      .map(doc => ({ id: doc.id, ...doc.data() } as User))
+                      .filter(staff => staff.status !== 'Inactive' && staff.status !== 'Archived');
+                  
+                  if (generalStaff.length > 0) {
+                      const processingOrdersSnapshot = await adminDb.collection('orders')
+                          .where('status', '==', 'Processing')
+                          .get();
+                      
+                      const workloadMap: { [userId: string]: number } = {};
+                      generalStaff.forEach(staff => {
+                          workloadMap[staff.id] = 0;
+                      });
+                      
+                      processingOrdersSnapshot.docs.forEach(doc => {
+                          const orderData = doc.data();
+                          const assigned = orderData.assignedTo;
+                          if (Array.isArray(assigned)) {
+                              assigned.forEach((staffId: string) => {
+                                  if (workloadMap[staffId] !== undefined) {
+                                      workloadMap[staffId]++;
+                                  }
+                              });
+                          } else if (typeof assigned === 'string') {
+                              if (workloadMap[assigned] !== undefined) {
+                                  workloadMap[assigned]++;
+                              }
+                          }
+                      });
+                      
+                      let minWorkload = Infinity;
+                      generalStaff.forEach(staff => {
+                          const workload = workloadMap[staff.id] || 0;
+                          if (workload < minWorkload) {
+                              minWorkload = workload;
+                              assignedStaffId = staff.id;
+                          }
+                      });
+                  }
+              }
+              
+              if (assignedStaffId) {
+                  const staffUser = staffSnapshot.docs.find(d => d.id === assignedStaffId)?.data() as User;
+                  const staffName = staffUser ? staffUser.name : 'Unknown Staff';
+                  
+                  console.log(`Assigning order ${orderId} to staff member ${staffName} (${assignedStaffId})`);
+                  
+                  await orderRef.update({
+                      assignedTo: [assignedStaffId],
+                      department: department,
+                      notes: FieldValue.arrayUnion({
+                          text: `Order automatically assigned to ${staffName} (Department: ${department}) based on least active workload.`,
+                          date: new Date(),
+                          authorId: 'system',
+                          type: 'note',
+                          subject: null,
+                          attachments: null,
+                      })
+                  });
+                  
+                  const taskRef = adminDb.collection('tasks').doc();
+                  await taskRef.set({
+                      id: taskRef.id,
+                      title: `Order #${orderId} - Fulfill Services`,
+                      description: `Please fulfill the following services for ${currentOrderData.customerName}:\n` + 
+                          currentOrderData.items.map(item => `- ${item.title} (Qty: ${item.quantity})`).join('\n'),
+                      assignedTo: [assignedStaffId],
+                      createdBy: 'system',
+                      createdAt: FieldValue.serverTimestamp(),
+                      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                      priority: 'Medium',
+                      status: 'To-Do',
+                      orderId: orderId,
+                      clientId: currentOrderData.userId || null,
+                      clientSource: currentOrderData.source || 'Client',
+                      department: department,
+                      comments: []
+                  });
+                  
+                  console.log(`Task ${taskRef.id} successfully created and assigned to ${staffName}`);
+              } else {
+                  console.warn(`No staff available at all. Order ${orderId} remains unassigned.`);
+                  await orderRef.update({
+                      department: department,
+                      notes: FieldValue.arrayUnion({
+                          text: `Order set to department: ${department}. Could not assign staff (no active staff members found).`,
+                          date: new Date(),
+                          authorId: 'system',
+                          type: 'note',
+                          subject: null,
+                          attachments: null,
+                      })
+                  });
+              }
+          } catch (allocationError) {
+              console.error(`Error during staff allocation/task creation for order ${orderId}:`, allocationError);
+          }
           
           // Handle Partner Credit Top-ups & Setup Fees
           const isSetup = currentOrderData.items.some(i => i.id === 'partner_setup_fee');

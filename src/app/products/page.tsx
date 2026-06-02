@@ -32,10 +32,30 @@ export default async function ProductsPage() {
   const categoriesSnapshot = await getDocs(query(collection(db, "categories"), orderBy("order")));
   const categories = categoriesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "My Accountant Services",
+    "description": "Comprehensive accounting, tax, CIPC, and payroll compliance services for South African businesses and individuals.",
+    "url": "https://www.myacc.co.za/products",
+    "itemListElement": services.map((service, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "url": `https://www.myacc.co.za/products/${service.slug}`
+    }))
+  };
+
   return (
-    <ProductsPageClient 
-        initialServices={services} 
-        initialCategories={categories as any} 
-    />
+    <>
+      <script
+        id="products-list-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+      />
+      <ProductsPageClient 
+          initialServices={services} 
+          initialCategories={categories as any} 
+      />
+    </>
   );
 }
