@@ -71,7 +71,7 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
     "@type": "Offer",
     "url": fullUrl,
     "priceCurrency": service.currency || "ZAR",
-    "price": numericPrice.toFixed(2),
+    "price": parseFloat(numericPrice.toFixed(2)),
     "availability": `https://schema.org/${service.availability === 'out_of_stock' ? 'OutOfStock' : 'InStock'}`,
     "itemCondition": "https://schema.org/NewCondition",
     "priceValidUntil": expiryDate,
@@ -99,12 +99,17 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
     }
   };
 
-  // 5. Add AggregateRating and Review if enabled to trigger star snippets in SERPs
-  if (service.enableAggregateRating && service.aggregateRatingValue) {
+  // 5. Add AggregateRating and Review to trigger star snippets in SERPs.
+  // Defaults to site-wide TrustIndex rating (4.9 with 187 reviews) if not custom defined,
+  // unless explicitly disabled.
+  if (service.enableAggregateRating !== false) {
+    const ratingValue = service.aggregateRatingValue || 4.9;
+    const reviewCount = service.reviewCount || 187;
+
     schema.aggregateRating = {
       "@type": "AggregateRating",
-      "ratingValue": service.aggregateRatingValue.toString(),
-      "reviewCount": (service.reviewCount || 187).toString(),
+      "ratingValue": ratingValue.toString(),
+      "reviewCount": reviewCount.toString(),
       "bestRating": "5",
       "worstRating": "1"
     };
@@ -113,7 +118,7 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
       "@type": "Review",
       "reviewRating": {
         "@type": "Rating",
-        "ratingValue": service.aggregateRatingValue.toString(),
+        "ratingValue": ratingValue.toString(),
         "bestRating": "5"
       },
       "author": {

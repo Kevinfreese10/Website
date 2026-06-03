@@ -95,8 +95,11 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-4 lg:gap-8">
+          <Link href="/" className="font-black text-xl tracking-tight text-slate-900 flex items-center hover:opacity-85 transition-opacity">
+            My<span className="text-primary font-black">Accountant</span>
+          </Link>
           {!isAuthPage && (
-            <nav className="hidden items-center gap-1 lg:flex">
+            <nav className="hidden items-center gap-2 lg:flex pl-4 border-l">
               {navGroups.map(group => (
                 <DropdownMenu key={group.label}>
                     <DropdownMenuTrigger asChild>

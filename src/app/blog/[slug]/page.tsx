@@ -1,8 +1,7 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { BlogPost, Service } from '@/lib/types';
-import { getFirestore, collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { format } from 'date-fns';
 import { Metadata, ResolvingMetadata } from 'next';
 import Link from 'next/link';
@@ -14,23 +13,21 @@ import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import Script from 'next/script';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-const db = getFirestore(firebaseApp);
-
 export const dynamic = 'force-dynamic';
 
 async function getPost(slug: string): Promise<BlogPost | null> {
-    const q = query(collection(db, "blogPosts"), where("slug", "==", slug));
-    const querySnapshot = await getDocs(q);
-    if (querySnapshot.empty) {
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('blogPosts').where('slug', '==', slug).get();
+    if (snap.empty) {
         return null;
     }
-    const docData = querySnapshot.docs[0].data();
+    const docData = snap.docs[0].data();
     
     const date = docData.date?.toDate ? docData.date.toDate().toISOString() : docData.date;
     
     return {
         ...docData,
-        id: querySnapshot.docs[0].id,
+        id: snap.docs[0].id,
         date: date,
     } as BlogPost;
 }
@@ -39,10 +36,9 @@ async function getRelatedServices(serviceIds: string[]): Promise<Service[]> {
   if (!serviceIds || serviceIds.length === 0) {
     return [];
   }
-  const servicesRef = collection(db, 'services');
-  const q = query(servicesRef, where('__name__', 'in', serviceIds));
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+  const adminDb = getAdminDb();
+  const snap = await adminDb.collection('services').where('__name__', 'in', serviceIds).get();
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
 }
 
 type Props = {

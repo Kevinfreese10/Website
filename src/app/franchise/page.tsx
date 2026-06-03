@@ -11,7 +11,7 @@ import { Metadata } from 'next';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function generateMetadata(): Promise<Metadata> {
+export function generateMetadata(): Metadata | Promise<Metadata> {
     const defaults: Metadata = {
         title: 'Own a My Accountant Franchise',
         description: 'Explore exclusive territory opportunities with the My Accountant Franchise model and own your exclusive My Accountant territory.',

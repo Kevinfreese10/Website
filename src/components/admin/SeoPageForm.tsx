@@ -16,6 +16,8 @@ import { generateBlogPostSeo } from '@/ai/flows/generate-blog-post-seo';
 import { Separator } from '../ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { db } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 // Schema without .max constraints to allow saving over-length tags
 const seoSchema = z.object({
@@ -49,6 +51,7 @@ export default function SeoPageForm({ control, index, page, form }: SeoPageFormP
     const { toast } = useToast();
     const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
     const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
+    const [isOptimizing, setIsOptimizing] = useState(false);
 
     const { fields: keywordFields, append: appendKeyword, remove: removeKeyword, replace: replaceKeywords } = useFieldArray({
         control,
@@ -97,6 +100,67 @@ export default function SeoPageForm({ control, index, page, form }: SeoPageFormP
         toast({ title: "Link Copied!", description: `URL for ${page.id} is on your clipboard.` });
     };
 
+    const handleAutoOptimize = async () => {
+        let title = form.getValues(`pages.${index}.title`) || '';
+        const content = page.pageContent || '';
+        
+        let queryTitle = title;
+        if (queryTitle.includes('|')) {
+            queryTitle = queryTitle.split('|')[0].trim();
+        }
+        if (!queryTitle && page.id) {
+            queryTitle = page.id.replace(/-/g, ' ');
+        }
+        
+        setIsOptimizing(true);
+        toast({ title: "Optimizing Page", description: "Generating high-quality meta title, description, and keywords..." });
+        
+        try {
+            const result = await generateBlogPostSeo({ title: queryTitle, content });
+            if (!result.success) {
+                throw new Error(result.error.message);
+            }
+            
+            const data = result.data;
+            
+            // Update the form fields
+            form.setValue(`pages.${index}.title`, data.metaTitle, { shouldDirty: true, shouldValidate: true });
+            form.setValue(`pages.${index}.description`, data.metaDescription, { shouldDirty: true, shouldValidate: true });
+            if (data.metaKeywords && data.metaKeywords.length > 0) {
+                replaceKeywords(data.metaKeywords);
+            }
+            
+            // Save immediately to Firestore
+            const commonData = {
+                metaTitle: data.metaTitle,
+                metaDescription: data.metaDescription,
+                metaKeywords: data.metaKeywords?.map((k: any) => k.value) || [],
+                seoImageUrl: form.getValues(`pages.${index}.seoImageUrl`) || '',
+                seoImageLabel: form.getValues(`pages.${index}.seoImageLabel`) || '',
+            };
+            
+            if (page.id.startsWith('service-')) {
+                const serviceId = page.id.replace('service-', '');
+                await setDoc(doc(db, 'services', serviceId), commonData, { merge: true });
+            } else if (page.id.startsWith('blog-')) {
+                const blogId = page.id.replace('blog-', '');
+                await setDoc(doc(db, 'blogPosts', blogId), commonData, { merge: true });
+            } else {
+                await setDoc(doc(db, 'staticSeo', page.id), {
+                    ...commonData,
+                    path: page.path
+                });
+            }
+            
+            toast({ title: "Page Optimized & Saved", description: `SEO for ${page.path} has been updated and saved to Firestore.` });
+        } catch (e: any) {
+            console.error(e);
+            toast({ title: "Optimization Failed", description: e?.message || "Could not optimize page.", variant: "destructive" });
+        } finally {
+            setIsOptimizing(false);
+        }
+    };
+
     return (
         <div className="p-6 border rounded-xl bg-card shadow-sm space-y-6">
             <Dialog open={isMediaLibraryOpen} onOpenChange={setIsMediaLibraryOpen}>
@@ -118,6 +182,17 @@ export default function SeoPageForm({ control, index, page, form }: SeoPageFormP
                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">Page Identifier: {page.id}</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleAutoOptimize} 
+                        disabled={isOptimizing} 
+                        className="h-7 text-[10px] gap-1 font-bold text-primary border-primary/30 hover:bg-primary/5"
+                    >
+                        {isOptimizing ? <Loader2 className="h-3 w-3 animate-spin"/> : <Sparkles className="h-3 w-3" />}
+                        Auto-Optimize
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleCopyLink} className="h-7 text-[10px] gap-1 font-bold">
                         <Copy className="h-3 w-3" /> Copy Link
                     </Button>

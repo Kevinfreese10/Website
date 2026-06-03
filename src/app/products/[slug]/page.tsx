@@ -1,11 +1,10 @@
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { BadgeCheck, Clock, ClipboardCheck } from 'lucide-react';
+import { getAdminDb } from '@/lib/firebase-admin';
 import { Service } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
-import { getFirestore, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
 import { Metadata, ResolvingMetadata } from 'next';
 import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
 import Script from 'next/script';
@@ -13,19 +12,16 @@ import { generateStructuredData } from '@/lib/schema/productSchema';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-
-const db = getFirestore(firebaseApp);
-
 export const dynamic = 'force-dynamic';
 
 async function getService(slug: string): Promise<Service | null> {
-    const q = query(collection(db, 'services'), where('slug', '==', slug));
-    const querySnapshot = await getDocs(q);
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('services').where('slug', '==', slug).get();
 
-    if (querySnapshot.empty) {
+    if (snap.empty) {
         return null;
     }
-    const doc = querySnapshot.docs[0];
+    const doc = snap.docs[0];
     const data = doc.data();
 
     const serviceData = {
@@ -33,8 +29,8 @@ async function getService(slug: string): Promise<Service | null> {
         ...data,
     } as any;
 
-    if (data.createdAt && data.createdAt instanceof Timestamp) {
-        serviceData.createdAt = data.createdAt.toDate().toISOString();
+    if (data.createdAt) {
+        serviceData.createdAt = data.createdAt.toDate ? data.createdAt.toDate().toISOString() : data.createdAt;
     }
     
     return serviceData as Service;

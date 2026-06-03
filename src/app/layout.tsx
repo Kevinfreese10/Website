@@ -55,15 +55,13 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
+      <body className={cn("antialiased", bodyFont.variable, headlineFont.variable)} suppressHydrationWarning>
         <ExternalScripts />
         <Script
           id="organization-schema"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
-      </head>
-      <body className={cn("antialiased", bodyFont.variable, headlineFont.variable)} suppressHydrationWarning>
         <AuthProvider>
             <ClientProviders>
                 <FirebaseErrorListener />
