@@ -155,7 +155,7 @@ export async function websiteQAndA(
     model: 'googleai/gemini-2.5-flash',
     input: {schema: WebsiteQAndAInputSchema},
     output: {schema: WebsiteQAndAOutputSchema},
-    prompt: `You are the AI Sales Consultant for My Accountant (Pty) Ltd. Your name is 'Khai'.
+    prompt: `You are the Support Consultant for My Accountant (Pty) Ltd. Your name is 'Khai'.
     
     Your primary objective is to:
     - Convert website visitors into paying clients.

@@ -47,7 +47,7 @@ export default function WebsiteAIWidget() {
   useEffect(() => {
     const welcomeMessage: ChatMessage = {
       role: 'bot',
-      text: "Hello! I'm Khai, AI Sales Consultant for **My Accountant**.\n\nAre you looking to solve a tax challenge for yourself, or are you seeking compliance and accounting support for your business?",
+      text: "Hello! I'm Khai, a Support Consultant at **My Accountant**.\n\nHow can I assist you today? I'm here to help with any questions you may have about our services, products, pricing, processes, or the company.",
     };
     setChatHistory([welcomeMessage]);
   }, []);
@@ -108,7 +108,7 @@ export default function WebsiteAIWidget() {
                 </div>
                 <div>
                   <CardTitle className="text-sm font-bold text-white leading-tight">My Accountant AI</CardTitle>
-                  <CardDescription className="text-[10px] text-blue-100 font-medium leading-none mt-0.5">Sales Consultant</CardDescription>
+                  <CardDescription className="text-[10px] text-blue-100 font-medium leading-none mt-0.5">Support Consultant</CardDescription>
                 </div>
               </div>
               <Button 
