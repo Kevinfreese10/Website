@@ -7,6 +7,7 @@ import { ReactNode, useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 const Header = dynamic(() => import('@/components/layout/Header'), { ssr: false });
+const WebsiteAIWidget = dynamic(() => import('@/components/shared/WebsiteAIWidget'), { ssr: false });
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -33,6 +34,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {shouldShowHeader && <Header />}
       <main className="flex-grow bg-background relative">{children}</main>
       {shouldShowFooter && <Footer />}
+      {mounted && !isDashboardPage && <WebsiteAIWidget />}
     </div>
   );
 }
