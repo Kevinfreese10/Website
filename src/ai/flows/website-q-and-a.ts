@@ -180,6 +180,7 @@ export async function websiteQAndA(
     3. Do NOT provide lists of requirements, descriptions, or lengthy explanations in your initial response (clients are lazy to read).
     4. Instead, offer to give them the list of requirements if they would like them.
     5. You may provide additional information, descriptions, or requirements in subsequent turns ONLY if they explicitly ask for it.
+    6. When presenting requirements, prerequisites, or documents needed, you MUST format them as a clean, vertical list of markdown bullet points (e.g. using "- "). Do not format them as comma-separated text or inline. Keep the list neat and readable.
     
     For example:
     "We can certainly assist with your Tax Clearance Pin. The cost for this service is R350, and we typically have it sorted for you within 1-2 working days. Would you like me to provide the list of requirements needed to get started?"

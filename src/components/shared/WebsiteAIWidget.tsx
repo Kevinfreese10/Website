@@ -50,6 +50,13 @@ export default function WebsiteAIWidget() {
       text: "Hello! I'm Khai, a Support Consultant at **My Accountant**.\n\nHow can I assist you today? I'm here to help with any questions you may have about our services, products, pricing, processes, or the company.",
     };
     setChatHistory([welcomeMessage]);
+
+    // Automatically open the widget as a popup after a short delay of 1.5 seconds
+    const timer = setTimeout(() => {
+      setIsOpen(true);
+    }, 1500);
+
+    return () => clearTimeout(timer);
   }, []);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
