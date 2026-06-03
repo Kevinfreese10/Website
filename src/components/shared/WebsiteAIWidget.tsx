@@ -22,6 +22,7 @@ type ChatMessage = {
   role: 'user' | 'bot';
   text: string;
   serviceUrl?: string;
+  orderId?: string;
 }
 
 export default function WebsiteAIWidget() {
@@ -62,7 +63,12 @@ export default function WebsiteAIWidget() {
         question: values.question,
         history: chatHistory.map(m => ({ role: m.role, content: m.text }))
        });
-      const botMessage: ChatMessage = { role: 'bot', text: response.answer, serviceUrl: response.serviceUrl };
+      const botMessage: ChatMessage = { 
+        role: 'bot', 
+        text: response.answer, 
+        serviceUrl: response.serviceUrl,
+        orderId: response.orderId 
+      };
       setChatHistory(prev => [...prev, botMessage]);
     } catch (e) {
       const errorMessage: ChatMessage = { role: 'bot', text: 'Sorry, I am having trouble connecting. Please try again later.' };
@@ -167,7 +173,7 @@ export default function WebsiteAIWidget() {
                       {message.text}
                     </ReactMarkdown>
 
-                    {message.role === 'bot' && message.serviceUrl && (
+                    {message.role === 'bot' && message.serviceUrl && !message.orderId && (
                        <Button 
                          asChild 
                          variant="link" 
@@ -175,6 +181,17 @@ export default function WebsiteAIWidget() {
                        >
                          <Link href={message.serviceUrl}>
                            View Service Details <ArrowRight className="ml-1 h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                         </Link>
+                       </Button>
+                    )}
+
+                    {message.role === 'bot' && message.orderId && (
+                       <Button 
+                         asChild 
+                         className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 flex items-center justify-center rounded-xl h-10 shadow-md text-sm border-none transition-all active:scale-95 duration-150"
+                       >
+                         <Link href={`/order-confirmation/${message.orderId}`}>
+                           Complete Payment <ArrowRight className="h-4 w-4 text-white" />
                          </Link>
                        </Button>
                     )}

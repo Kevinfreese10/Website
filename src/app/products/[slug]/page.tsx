@@ -228,6 +228,10 @@ export default async function ProductDetailPage({ params }: Props) {
         </div>
       </section>
 
+      <div className="text-center -mt-6 mb-8 animate-in fade-in">
+        <TrustIndexWidget />
+      </div>
+
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="space-y-8 md:col-span-2">
@@ -273,11 +277,6 @@ export default async function ProductDetailPage({ params }: Props) {
           <div className="md:col-span-1">
               <ServiceCheckoutForm service={service} />
           </div>
-        </div>
-
-        {/* TRUSTINDEX REVIEWS WIDGET */}
-        <div className="mt-12">
-          <TrustIndexWidget />
         </div>
 
         {/* DYNAMIC FAQ ACCORDION SECTION (Strictly aligned with Google Search Engine requirements) */}

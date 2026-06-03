@@ -13,6 +13,16 @@ import { fetchKnowledgeBase } from '@/lib/knowledge-base';
 import { collection, addDoc, Timestamp, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Service, BlogPost } from '@/lib/types';
+import { getAdminDb } from '@/lib/firebase-admin';
+import { getAuth as getAdminAuth } from 'firebase-admin/auth';
+import { FieldValue } from 'firebase-admin/firestore';
+import { render } from '@react-email/components';
+import OrderConfirmationEmail from '@/components/emails/OrderConfirmationEmail';
+import { sendEmail } from '@/lib/email';
+import React from 'react';
+import { customAlphabet } from 'nanoid';
+
+const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 10);
 
 const WebsiteQAndAInputSchema = z.object({
   question: z.string().describe('The user\'s question.'),
@@ -27,6 +37,16 @@ const WebsiteQAndAOutputSchema = z.object({
   answer: z.string().describe('A concise and helpful answer to the user\'s question. Prioritize information from the provided context, but use general knowledge if the answer is not available there. If you cannot answer, state that.'),
   confidence: z.number().min(0).max(100).describe('A confidence score (0-100) of how certain you are about the answer. If the answer is directly stated in the context, confidence should be high (90-100). If it is inferred from the context, it should be medium (60-80). If using general knowledge, confidence should be lower (40-60). If you cannot answer, it should be very low (0-10).'),
   serviceUrl: z.string().optional().describe("If the user's question is about a specific service, provide the URL for that service page. The URL should be in the format '/products/service-slug'."),
+  orderTrigger: z.object({
+    email: z.string().describe('The email address provided by the user.'),
+    firstName: z.string().describe('The first name / given name provided by the user.'),
+    lastName: z.string().describe('The surname / last name provided by the user.'),
+    phone: z.string().describe('The cell number / contact number provided by the user.'),
+    serviceId: z.string().describe('The ID of the service from the context they want to order.'),
+    serviceTitle: z.string().describe('The title of the service from the context they want to order.'),
+    price: z.number().describe('The price of the service as a number.'),
+  }).optional().describe("Include this ONLY when the user has provided all their Name, Surname, Email, and Cell Number, and has explicitly confirmed that they agree to the prerequisites and the refund policy, and wants to place the order now. Never guess or populate this if the user hasn't explicitly agreed and confirmed all details in the chat."),
+  orderId: z.string().optional().describe('Leave blank. This will be populated by the backend after order generation.'),
 });
 export type WebsiteQAndAOutput = z.infer<typeof WebsiteQAndAOutputSchema>;
 
@@ -183,6 +203,22 @@ export async function websiteQAndA(
     3. Recommend: Provide the service cost, timeline, link, and offer to provide the requirements/documents required. Do not list requirements or long descriptions upfront.
     4. Convert: Always end with a clear next step (e.g. quote, consultant contact, checklist, name/email/phone capture).
     
+    ORDER GENERATION FLOW:
+    If the user indicates they want to place an order, purchase a service, or proceed with buying:
+    1. Verify you know which specific service/product from the context they want to order.
+    2. Ask the user to provide the following details:
+       - First Name
+       - Surname
+       - Email Address
+       - Cell Number
+    3. You MUST explicitly ask them to confirm:
+       "Please confirm:
+       1. You have all the prerequisites for this service.
+       2. You agree to the refund policy."
+    4. Once (and ONLY once) the user has provided all 4 details (First Name, Surname, Email, Cell Number) and has explicitly confirmed both conditions, populate the 'orderTrigger' object in your JSON output with the exact details (look up ID, Title, and Price in the context).
+    5. In your text answer, state that you are creating the order.
+    6. Never populate 'orderTrigger' until all these conditions are fully satisfied in the chat history.
+    
     LEAD QUALIFICATION:
     Always try to capture:
     - Name
@@ -257,6 +293,119 @@ export async function websiteQAndA(
   });
 
   const {output} = await prompt(input);
+
+  // Process AI Order Generation Trigger
+  if (output && output.orderTrigger) {
+      try {
+          const { email, firstName, lastName, phone, serviceId, serviceTitle, price } = output.orderTrigger;
+          const adminDb = getAdminDb();
+          const authAdmin = getAdminAuth();
+
+          let finalUserId = '';
+          let isNewUser = false;
+          let generatedPassword = '';
+
+          const emailClean = email.toLowerCase().trim();
+          const usersSnap = await adminDb.collection('users').where('email', '==', emailClean).get();
+          
+          if (!usersSnap.empty) {
+              finalUserId = usersSnap.docs[0].id;
+          } else {
+              try {
+                  const userRecord = await authAdmin.getUserByEmail(emailClean);
+                  finalUserId = userRecord.uid;
+              } catch (authError: any) {
+                  if (authError.code === 'auth/user-not-found') {
+                      // Create new User in Firebase Auth with a secure random temporary password
+                      const password = nanoid();
+                      generatedPassword = password;
+                      const userRecord = await authAdmin.createUser({
+                          email: emailClean,
+                          password: password,
+                          displayName: `${firstName} ${lastName}`,
+                      });
+                      finalUserId = userRecord.uid;
+                      isNewUser = true;
+
+                      // Create user document in Firestore users collection
+                      await adminDb.collection('users').doc(finalUserId).set({
+                          id: finalUserId,
+                          uid: finalUserId,
+                          name: `${firstName} ${lastName}`,
+                          email: emailClean,
+                          contactNumber: phone,
+                          role: 'client',
+                          source: 'AI Sales Chatbot',
+                          createdAt: FieldValue.serverTimestamp(),
+                      });
+                  } else {
+                      throw authError;
+                  }
+              }
+          }
+
+          // Generate next sequential order ID using Admin transaction
+          const counterRef = adminDb.collection('sequences').doc('orders');
+          const orderId = await adminDb.runTransaction(async (transaction) => {
+              const counterDoc = await transaction.get(counterRef);
+              if (!counterDoc.exists) {
+                  transaction.set(counterRef, { current: 9400 });
+                  return '9400';
+              }
+              const newCurrentValue = counterDoc.data()!.current + 1;
+              transaction.update(counterRef, { current: newCurrentValue });
+              return newCurrentValue.toString();
+          });
+
+          // Create the Order document in Firestore orders collection
+          const orderData = {
+              id: orderId,
+              userId: finalUserId,
+              customerName: `${firstName} ${lastName}`,
+              customerEmail: emailClean,
+              customerPhone: phone,
+              items: [{ id: serviceId, title: serviceTitle, price: price, quantity: 1 }],
+              total: price,
+              discountCode: null,
+              discountAmount: null,
+              paymentMethod: 'PayFast',
+              status: 'Pending Payment',
+              date: FieldValue.serverTimestamp(),
+              department: null,
+              source: 'AI Sales Chatbot',
+          };
+
+          await adminDb.collection('orders').doc(orderId).set(orderData);
+
+          // Render and dispatch the Order Confirmation Email
+          const emailHtml = await render(
+              React.createElement(OrderConfirmationEmail, {
+                  order: {
+                      ...orderData,
+                      date: { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 } as any
+                  } as any,
+                  reseller: undefined,
+                  isNewUser: isNewUser,
+                  generatedPassword: generatedPassword,
+                  showPaymentButton: true,
+              })
+          );
+
+          await sendEmail({
+              to: emailClean,
+              subject: `Order Confirmation #${orderId}`,
+              html: emailHtml,
+          });
+
+          // Set orderId in output schema to let widget render redirect buttons
+          output.orderId = orderId;
+          output.answer = `${output.answer}\n\n🎉 **Order Generated Successfully!**\n\nI have successfully generated **Order #${orderId}** for you. A confirmation email has been sent to **${emailClean}**.\n\nPlease click the button below to complete your secure payment.`;
+
+      } catch (error: any) {
+          console.error("Error generating order in flow:", error);
+          output.answer = `${output.answer}\n\n❌ *Sorry, I ran into an error trying to generate your order: ${error.message || 'database error'}. Please try checking out directly on the service page.*`;
+      }
+  }
       
   if (output && output.confidence < 15) {
       try {
@@ -272,7 +421,6 @@ export async function websiteQAndA(
   // Automated Lead Logging: Capture lead summary blocks and save them to a Firestore collection
   if (output && output.answer.includes('Lead Summary:')) {
       try {
-          // Extract matching fields dynamically from text if possible, or save full lead payload
           const lines = output.answer.split('\n');
           const getField = (prefix: string) => {
               const line = lines.find(l => l.toLowerCase().startsWith(prefix.toLowerCase()));
