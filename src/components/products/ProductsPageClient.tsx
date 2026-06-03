@@ -16,7 +16,9 @@ import {
   ArrowRight, 
   ShoppingCart, 
   FileUp, 
-  RefreshCw 
+  RefreshCw,
+  Search,
+  X
 } from 'lucide-react';
 import { collection, getFirestore, orderBy, query, onSnapshot, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -50,9 +52,10 @@ export default function ProductsPageClient({
     initialServices?: Service[], 
     initialCategories?: Category[] 
 }) {
-  const [services, setServices] = useState<Service[]>(initialServices);
+   const [services, setServices] = useState<Service[]>(initialServices);
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [isLoading, setIsLoading] = useState(initialServices.length === 0);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     // Setup real-time listener to keep prices and details in sync
@@ -81,13 +84,24 @@ export default function ProductsPageClient({
   }, []);
   
   const categorizedServices = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
     return categories
-      .map(category => ({
-        ...category,
-        data: services.filter(s => s.category === category.name)
-      }))
+      .map(category => {
+        const filteredData = services.filter(s => {
+          const categoryMatches = s.category === category.name;
+          const searchMatches = !query || 
+            s.title.toLowerCase().includes(query) || 
+            s.description.toLowerCase().includes(query) ||
+            s.category.toLowerCase().includes(query);
+          return categoryMatches && searchMatches;
+        });
+        return {
+          ...category,
+          data: filteredData
+        };
+      })
       .filter(c => c.data.length > 0);
-  }, [categories, services]);
+  }, [categories, services, searchQuery]);
 
 
   return (
@@ -140,16 +154,48 @@ export default function ProductsPageClient({
         </div>
       </section>
 
+      {/* SEARCH BAR SECTION */}
+      <div className="max-w-md mx-auto mb-12">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-slate-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search for tax clearance, VAT, registration..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="block w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl bg-slate-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-sm font-medium text-slate-800 shadow-sm transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+ 
       <div className="space-y-12">
         {isLoading && services.length === 0 ? (
             <div className="flex justify-center items-center h-40">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         ) : (
-            categorizedServices.map(category => (
-            <section key={category.id} id={category.name.toLowerCase().replace(/ /g, '-')} className="scroll-m-20">
-                <h2 className="text-2xl font-bold mb-6">{category.name}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            categorizedServices.length === 0 ? (
+                <div className="text-center py-16 space-y-4">
+                    <p className="text-slate-500 font-medium text-lg">No services found matching "{searchQuery}"</p>
+                    <Button variant="outline" size="sm" onClick={() => setSearchQuery("")} className="rounded-xl font-semibold">
+                        Clear Search
+                    </Button>
+                </div>
+            ) : (
+                categorizedServices.map(category => (
+                <section key={category.id} id={category.name.toLowerCase().replace(/ /g, '-')} className="scroll-m-20">
+                    <h2 className="text-2xl font-bold mb-6">{category.name}</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {category.data.map(service => (
                     <Card
                     key={service.id}
@@ -180,7 +226,7 @@ export default function ProductsPageClient({
                 ))}
                 </div>
             </section>
-            ))
+            )))
         )}
       </div>
     </div>
