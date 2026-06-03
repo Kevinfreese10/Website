@@ -212,10 +212,10 @@ export async function websiteQAndA(
        - Surname
        - Email Address
        - Cell Number
-    3. You MUST explicitly ask them to confirm:
-       "Please confirm:
-       1. You have all the prerequisites for this service.
-       2. You agree to the refund policy."
+    3. You MUST explicitly ask them to confirm, presenting links to the policies and requirements (replace [service_url] with the actual product URL from context, e.g., /products/vat-registration):
+        "Please confirm:
+        1. You have all the prerequisites for this service (you can review them on the [Service Page]([service_url])).
+        2. You agree to the [Refund Policy](/refund-policy)."
     4. Once (and ONLY once) the user has provided all 4 details (First Name, Surname, Email, Cell Number) and has explicitly confirmed both conditions, populate the 'orderTrigger' object in your JSON output with the exact details (look up ID, Title, and Price in the context).
     5. In your text answer, state that you are creating the order.
     6. Never populate 'orderTrigger' until all these conditions are fully satisfied in the chat history.
