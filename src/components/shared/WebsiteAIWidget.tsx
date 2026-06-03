@@ -108,7 +108,7 @@ export default function WebsiteAIWidget() {
             <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-white animate-pulse" />
           </div>
           <div>
-            <CardTitle className="text-sm font-bold text-white leading-tight">My Accountant AI</CardTitle>
+            <CardTitle className="text-sm font-bold text-white leading-tight">Khai</CardTitle>
             <CardDescription className="text-[10px] text-blue-100 font-medium leading-none mt-0.5">Support Consultant</CardDescription>
           </div>
         </div>
