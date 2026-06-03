@@ -52,7 +52,7 @@ env:
       - BUILD
       - RUNTIME
   - variable: PAYFAST_PASSPHRASE
-    value: "Thinkestry10$"
+    value: "KhaiFreese11"
     availability:
       - BUILD
       - RUNTIME

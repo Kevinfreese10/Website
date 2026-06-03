@@ -3,6 +3,26 @@
 import Script from 'next/script';
 import { usePathname } from 'next/navigation';
 
+declare global {
+  interface Window {
+    merchantwidget?: {
+      start: (config: {
+        merchant_id: number;
+        position?: 'BOTTOM_LEFT' | 'BOTTOM_RIGHT' | 'INLINE';
+        region?: string;
+      }) => void;
+    };
+    renderOptIn?: (orderData: {
+      id: string;
+      customerEmail: string;
+      estimated_delivery_date: string;
+      delivery_country?: string;
+      products?: { gtin: string }[];
+    }) => void;
+    gapi?: any;
+  }
+}
+
 export default function ExternalScripts() {
   const pathname = usePathname();
   // Check if the current route is a partner landing page
@@ -36,14 +56,20 @@ export default function ExternalScripts() {
             }
             if (window.gapi) {
               window.gapi.load('surveyoptin', function() {
-                window.gapi.surveyoptin.render(
-                  {
-                    "merchant_id": 5394656984,
-                    "order_id": orderData.id,
-                    "email": orderData.customerEmail,
-                    "delivery_country": "ZA",
-                    "estimated_delivery_date": orderData.estimated_delivery_date
-                  });
+                const optInParams = {
+                  "merchant_id": 5394656984,
+                  "order_id": orderData.id,
+                  "email": orderData.customerEmail,
+                  "delivery_country": orderData.delivery_country || "ZA",
+                  "estimated_delivery_date": orderData.estimated_delivery_date
+                };
+
+                // Pass optional products array if it contains valid GTINs
+                if (orderData.products && orderData.products.length > 0) {
+                  optInParams["products"] = orderData.products;
+                }
+
+                window.gapi.surveyoptin.render(optInParams);
               });
             }
           }
@@ -55,9 +81,7 @@ export default function ExternalScripts() {
         src="https://www.gstatic.com/shopping/merchant/merchantwidget.js"
         strategy="lazyOnload"
         onLoad={() => {
-          // @ts-ignore
           if (window.merchantwidget) {
-            // @ts-ignore
             window.merchantwidget.start({
               merchant_id: 5394656984,
               position: "BOTTOM_RIGHT",

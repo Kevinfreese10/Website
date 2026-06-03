@@ -129,9 +129,13 @@ export default function PaymentSuccessPage() {
             <Card>
                 <CardHeader className="text-center">
                     <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-                    <CardTitle className="text-3xl mt-4">Order Placed Successfully!</CardTitle>
+                    <CardTitle className="text-3xl mt-4">
+                        {order.paymentMethod === 'EFT' ? 'Order Placed Successfully!' : 'Payment Successful!'}
+                    </CardTitle>
                     <CardDescription>
-                       We have received your order. Please remember to complete your payment via EFT.
+                       {order.paymentMethod === 'EFT' 
+                        ? "We have received your order. Please remember to complete your payment via EFT."
+                        : "Your payment was successful! We have received your order and will begin processing it."}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-8">

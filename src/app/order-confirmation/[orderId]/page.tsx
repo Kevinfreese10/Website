@@ -49,11 +49,17 @@ export default function OrderConfirmationPage() {
 
                     // Trigger Google Customer Reviews Opt-in
                     const deliveryDate = format(addDays(new Date(), 10), 'yyyy-MM-dd');
+                    const reviewProducts = orderData.items
+                        .map((item: any) => item.gtin ? { gtin: item.gtin } : null)
+                        .filter(Boolean);
+
                     if (typeof window !== 'undefined' && (window as any).renderOptIn) {
                         (window as any).renderOptIn({
                             id: orderData.id,
                             customerEmail: orderData.customerEmail,
-                            estimated_delivery_date: deliveryDate
+                            estimated_delivery_date: deliveryDate,
+                            delivery_country: "ZA",
+                            products: reviewProducts.length > 0 ? reviewProducts : undefined
                         });
                     }
 
