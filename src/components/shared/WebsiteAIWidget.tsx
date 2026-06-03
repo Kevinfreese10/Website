@@ -102,8 +102,8 @@ export default function WebsiteAIWidget() {
       <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 flex flex-row items-center justify-between space-y-0 border-b border-blue-700">
         <div className="flex items-center gap-2">
           <div className="relative">
-            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20">
-              <Bot className="h-6 w-6 text-white" />
+            <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center border border-white/20 overflow-hidden">
+              <img src="/favicon.ico" alt="AI Mascot" className="h-8 w-8 object-contain" />
             </div>
             <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-white animate-pulse" />
           </div>
@@ -136,8 +136,8 @@ export default function WebsiteAIWidget() {
             )}
           >
             {message.role === 'bot' && (
-              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200 shrink-0">
-                <Bot className="h-5 w-5 text-blue-600" />
+              <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center border border-slate-200 shrink-0 overflow-hidden shadow-sm">
+                <img src="/favicon.ico" alt="AI Mascot" className="h-6 w-6 object-contain" />
               </div>
             )}
             <div 
@@ -195,8 +195,8 @@ export default function WebsiteAIWidget() {
         
         {isLoading && (
           <div className="flex items-end gap-2 justify-start animate-pulse">
-              <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0">
-                 <Bot className="h-5 w-5 text-blue-600" />
+              <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center border border-slate-200 shrink-0 overflow-hidden shadow-sm">
+                 <img src="/favicon.ico" alt="AI Mascot" className="h-6 w-6 object-contain" />
               </div>
               <div className="p-3.5 rounded-2xl rounded-bl-none bg-white border border-slate-100 shadow-sm flex items-center justify-center">
                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
@@ -248,9 +248,9 @@ export default function WebsiteAIWidget() {
         <Button 
           onClick={toggleChat} 
           size="icon" 
-          className="w-14 h-14 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 duration-200 group flex items-center justify-center"
+          className="w-14 h-14 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 duration-200 group flex items-center justify-center overflow-hidden"
         >
-           {isOpen ? <X className="h-6 w-6 text-white" /> : <MessageCircle className="h-6 w-6 text-white group-hover:rotate-12 transition-transform duration-200" />}
+           {isOpen ? <X className="h-6 w-6 text-white" /> : <img src="/favicon.ico" alt="Chat Mascot" className="w-10 h-10 object-contain group-hover:rotate-6 transition-transform duration-200" />}
         </Button>
       </div>
 
