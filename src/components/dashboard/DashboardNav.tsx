@@ -20,6 +20,7 @@ import {
   Presentation,
   Megaphone,
   Calculator,
+  MessageSquare,
 } from 'lucide-react';
 
 import {
@@ -60,6 +61,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
     pathname.startsWith('/admin/staff') ||
     pathname.startsWith('/admin/discounts') ||
     pathname.startsWith('/admin/knowledge-base') ||
+    pathname.startsWith('/admin/chats') ||
     pathname.startsWith('/admin/media')
   );
 
@@ -97,6 +99,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
     { href: '/admin/users', label: 'Manage Users', icon: Users, roles: ['admin'] },
     { href: '/admin/discounts', label: 'Manage Discounts', icon: Percent, roles: ['admin'] },
     { href: '/admin/knowledge-base', label: 'Knowledge Base', icon: FileText, roles: ['admin'] },
+    { href: '/admin/chats', label: 'Chatbot History', icon: MessageSquare, roles: ['admin'] },
     { href: '/admin/media', label: 'Media', icon: Images, roles: ['admin'] },
   ];
 

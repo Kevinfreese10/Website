@@ -27,6 +27,7 @@ const WebsiteQAndAInputSchema = z.object({
     role: z.enum(['user', 'bot']),
     content: z.string(),
   })).optional().describe('The conversation history.'),
+  conversationId: z.string().optional().describe('The unique conversation/session ID.'),
 });
 export type WebsiteQAndAInput = z.infer<typeof WebsiteQAndAInputSchema>;
 
@@ -126,7 +127,16 @@ export async function websiteQAndA(
     ${blogPosts.map(p => `Title: ${p.title}, Excerpt: ${p.excerpt}`).join('\n\n')}
 
     KNOWLEDGE BASE:
-    ${knowledgeBaseItems.map(item => `Question: ${item.question}, Answer: ${item.answer}`).join('\n\n')}
+    ${knowledgeBaseItems.map(item => {
+      const type = item.sourceType || 'qa';
+      if (type === 'link') {
+        return `Resource Link: ${item.linkUrl} (Topic: ${item.question})\nDescription/Info: ${item.answer || item.textValue || ''}`;
+      } else if (type === 'text') {
+        return `Topic: ${item.question}\nReference Information: ${item.answer || item.textValue || ''}`;
+      } else {
+        return `Question: ${item.question}\nAnswer: ${item.answer}`;
+      }
+    }).join('\n\n')}
     
     AI ACCOUNTANT:
     ${aiAccountantPageContent}
@@ -487,5 +497,90 @@ export async function websiteQAndA(
       }
   }
   
+  // Log Conversation to Firestore
+  if (input.conversationId && output) {
+      try {
+          const chatRef = adminDb.collection('chatbotConversations').doc(input.conversationId);
+          
+          const userMsg = {
+              role: 'user',
+              content: input.question,
+              timestamp: new Date().toISOString()
+          };
+          
+          const botMsg = {
+              role: 'bot',
+              content: output.answer,
+              timestamp: new Date().toISOString(),
+              serviceUrl: output.serviceUrl || null,
+              orderId: output.orderId || null
+          };
+
+          let userName = 'Guest';
+          let userEmail = 'Anonymous';
+
+          if (output.orderTrigger) {
+              userName = `${output.orderTrigger.firstName} ${output.orderTrigger.lastName}`.trim();
+              userEmail = output.orderTrigger.email.toLowerCase().trim();
+          } else {
+              const fullHistoryAndCurrent = [
+                  ...(input.history || []).map(h => h.content),
+                  input.question,
+                  output.answer
+              ].join('\n');
+              
+              const nameMatch = fullHistoryAndCurrent.match(/Name:\s*([^\n]+)/i);
+              const emailMatch = fullHistoryAndCurrent.match(/Email:\s*([^\n]+)/i);
+              
+              if (nameMatch) userName = nameMatch[1].trim();
+              if (emailMatch) userEmail = emailMatch[1].trim().toLowerCase();
+          }
+
+          const existingChat = await chatRef.get();
+          let messages = [];
+          let startedAt = FieldValue.serverTimestamp();
+
+          if (existingChat.exists) {
+              const data = existingChat.data();
+              messages = data?.messages || [];
+              startedAt = data?.startedAt || startedAt;
+              
+              if (userName === 'Guest' && data?.userName && data.userName !== 'Guest') {
+                  userName = data.userName;
+              }
+              if (userEmail === 'Anonymous' && data?.userEmail && data.userEmail !== 'Anonymous') {
+                  userEmail = data.userEmail;
+              }
+          }
+
+          const historyMessages = (input.history || []).map((m, idx) => {
+              const existingMsg = messages[idx];
+              return {
+                  role: m.role,
+                  content: m.content,
+                  timestamp: existingMsg?.timestamp || new Date().toISOString(),
+              };
+          });
+
+          const updatedMessages = [
+              ...historyMessages,
+              userMsg,
+              botMsg
+          ];
+
+          await chatRef.set({
+              id: input.conversationId,
+              userName,
+              userEmail,
+              startedAt,
+              updatedAt: FieldValue.serverTimestamp(),
+              messages: updatedMessages
+          }, { merge: true });
+
+      } catch (chatError) {
+          console.error("Error logging chatbot conversation to Firestore:", chatError);
+      }
+  }
+
   return output!;
 }

@@ -81,6 +81,9 @@ export type KnowledgeBaseItem = {
   id: string;
   question: string;
   answer: string;
+  sourceType?: 'qa' | 'text' | 'link';
+  textValue?: string;
+  linkUrl?: string;
 }
 
 export type CartItem = {

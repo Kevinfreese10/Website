@@ -14,6 +14,7 @@ const settingsNav = [
     { title: 'Manage Users', href: '/admin/users' },
     { title: 'Manage Discounts', href: '/admin/discounts' },
     { title: 'Knowledge Base & Training', href: '/admin/knowledge-base' },
+    { title: 'Chatbot History', href: '/admin/chats' },
     { title: 'Media', href: '/admin/media' },
 ];
 

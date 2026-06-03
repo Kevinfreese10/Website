@@ -30,6 +30,7 @@ export default function WebsiteAIWidget() {
   const [isModal, setIsModal] = useState(true);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string>('');
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -46,6 +47,10 @@ export default function WebsiteAIWidget() {
   }, [chatHistory, isLoading]);
   
   useEffect(() => {
+    // Generate a unique session/conversation ID for logging
+    const newId = 'chat_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    setConversationId(newId);
+
     const welcomeMessage: ChatMessage = {
       role: 'bot',
       text: "Hello! I'm Khai, a Support Consultant at **My Accountant**.\n\nHow can I assist you today? I'm here to help with any questions you may have about our services, products, pricing, processes, or the company.",
@@ -78,7 +83,8 @@ export default function WebsiteAIWidget() {
     try {
       const response = await websiteQAndA({ 
         question: values.question,
-        history: chatHistory.map(m => ({ role: m.role, content: m.text }))
+        history: chatHistory.map(m => ({ role: m.role, content: m.text })),
+        conversationId: conversationId
        });
       const botMessage: ChatMessage = { 
         role: 'bot', 

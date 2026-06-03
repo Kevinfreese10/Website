@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Badge } from '@/components/ui/badge';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,8 +34,10 @@ const db = getFirestore(firebaseApp);
 
 const formSchema = z.object({
   id: z.string().optional(),
-  question: z.string().min(10, 'Question must be at least 10 characters.'),
-  answer: z.string().min(20, 'Answer must be at least 20 characters.'),
+  question: z.string().min(5, 'Question or topic title must be at least 5 characters.'),
+  answer: z.string().min(10, 'Answer or content details must be at least 10 characters.'),
+  sourceType: z.enum(['qa', 'text', 'link']).default('qa'),
+  linkUrl: z.string().url('Please enter a valid URL (including https://).').or(z.literal('')).optional(),
 });
 
 function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem> | null, onSubmit: (data: any) => void, onCancel: () => void }) {
@@ -43,6 +47,8 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
             id: item?.id || '',
             question: item?.question || '',
             answer: item?.answer || '',
+            sourceType: item?.sourceType || 'qa',
+            linkUrl: item?.linkUrl || '',
         },
     });
 
@@ -51,10 +57,18 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
             id: item?.id || '',
             question: item?.question || '',
             answer: item?.answer || '',
+            sourceType: item?.sourceType || 'qa',
+            linkUrl: item?.linkUrl || '',
         });
     }, [item, form]);
 
+    const sourceType = form.watch('sourceType');
+
     const handleSubmit = (values: z.infer<typeof formSchema>) => {
+        if (values.sourceType === 'link' && !values.linkUrl) {
+            form.setError('linkUrl', { message: 'URL is required when source type is Link.' });
+            return;
+        }
         onSubmit(values);
     };
     
@@ -63,33 +77,94 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                 <FormField
                     control={form.control}
-                    name="question"
+                    name="sourceType"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Question / Topic</FormLabel>
-                            <FormControl><Textarea {...field} rows={2} placeholder="e.g., What is our refund policy?" /></FormControl>
+                            <FormLabel>Information Source Type</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select source type" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="qa">Question & Answer Pair (Standard FAQ)</SelectItem>
+                                    <SelectItem value="text">Text Resource (Guidelines, general details)</SelectItem>
+                                    <SelectItem value="link">Reference Link (External website / articles)</SelectItem>
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
+
+                <FormField
+                    control={form.control}
+                    name="question"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>
+                                {sourceType === 'qa' && 'Question / Topic'}
+                                {sourceType === 'text' && 'Resource Topic / Title'}
+                                {sourceType === 'link' && 'Website Link Title / Topic'}
+                            </FormLabel>
+                            <FormControl>
+                                <Textarea {...field} rows={2} placeholder={
+                                    sourceType === 'qa' ? "e.g., What is our refund policy?" :
+                                    sourceType === 'text' ? "e.g., VAT Registration Eligibility Rules" :
+                                    "e.g., SARS Rules for Dispute Objections"
+                                } />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                {sourceType === 'link' && (
+                    <FormField
+                        control={form.control}
+                        name="linkUrl"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Resource URL / Link</FormLabel>
+                                <FormControl>
+                                    <Input {...field} placeholder="https://www.sars.gov.za/..." />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+
                 <FormField
                     control={form.control}
                     name="answer"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Answer / Information</FormLabel>
-                            <FormControl><Textarea {...field} rows={5} placeholder="Provide a detailed and accurate answer."/></FormControl>
+                            <FormLabel>
+                                {sourceType === 'qa' && 'Answer / Information'}
+                                {sourceType === 'text' && 'Reference Text / Content'}
+                                {sourceType === 'link' && 'Description / Context (What information is at this URL)'}
+                            </FormLabel>
+                            <FormControl>
+                                <Textarea {...field} rows={sourceType === 'text' ? 8 : 5} placeholder={
+                                    sourceType === 'qa' ? "Provide a detailed and accurate answer." :
+                                    sourceType === 'text' ? "Paste the reference document content here. The AI will learn from this raw text." :
+                                    "Describe the context/information available at this link so the AI knows when to reference it."
+                                } />
+                            </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
+
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-                    <Button type="submit">Save Item</Button>
+                    <Button type="submit">Save Resource</Button>
                 </div>
             </form>
         </Form>
-    )
+    );
 }
 
 export default function AdminKnowledgeBasePage() {
@@ -186,14 +261,21 @@ export default function AdminKnowledgeBasePage() {
 
   const handleFormSubmit = async (data: Omit<KBItem, 'id'> & { id?: string }) => {
     try {
+      const saveData = {
+        question: data.question,
+        answer: data.answer,
+        sourceType: data.sourceType || 'qa',
+        linkUrl: data.sourceType === 'link' ? (data.linkUrl || '') : '',
+      };
+
       if (selectedItem && selectedItem.id && items.some(i => i.id === selectedItem.id)) {
         // Editing an existing KB item
-        await updateDoc(doc(db, 'knowledgeBase', selectedItem.id), { question: data.question, answer: data.answer });
-        toast({ title: 'Item Updated', description: 'The knowledge base has been updated.' });
+        await updateDoc(doc(db, 'knowledgeBase', selectedItem.id), saveData);
+        toast({ title: 'Resource Updated', description: 'The knowledge base resource has been updated.' });
       } else { 
         // Adding a new item
-        await addDoc(collection(db, 'knowledgeBase'), { question: data.question, answer: data.answer });
-        toast({ title: 'Item Added', description: 'The new information has been added to the knowledge base.'});
+        await addDoc(collection(db, 'knowledgeBase'), saveData);
+        toast({ title: 'Resource Added', description: 'The new resource has been added to the knowledge base.'});
         
         // If it was from an unanswered question, delete it
         if (selectedItem && selectedItem.id && questions.some(q => q.id === selectedItem.id)) {
@@ -205,7 +287,7 @@ export default function AdminKnowledgeBasePage() {
       loadData(); // Reload all data
     } catch (error) {
        console.error("Error submitting form:", error);
-       toast({ title: 'Error', description: 'Could not save the item.', variant: 'destructive'});
+       toast({ title: 'Error', description: 'Could not save the resource.', variant: 'destructive'});
     }
   };
 
@@ -217,9 +299,9 @@ export default function AdminKnowledgeBasePage() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
-                    <DialogTitle>{selectedItem?.answer ? 'Edit Item' : 'Add to Knowledge Base'}</DialogTitle>
+                    <DialogTitle>{selectedItem?.id && items.some(i => i.id === selectedItem.id) ? 'Edit Resource' : 'Add to Knowledge Base'}</DialogTitle>
                     <DialogDescription>
-                        {selectedItem?.answer ? 'Update this piece of information for the AI.' : 'Add a new piece of information for the AI to learn.'}
+                        Provide standard Q&As, detailed reference texts, or links for the AI assistant to learn from.
                     </DialogDescription>
                 </DialogHeader>
                 <KnowledgeBaseForm 
@@ -309,14 +391,34 @@ export default function AdminKnowledgeBasePage() {
                 <TableHeader>
                 <TableRow>
                     <TableHead>Question / Topic</TableHead>
-                    <TableHead>Answer</TableHead>
+                    <TableHead>Resource Details / Answer</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
                 {items.map(item => (
                     <TableRow key={item.id}>
-                    <TableCell className="font-medium align-top">{item.question}</TableCell>
+                    <TableCell className="font-medium align-top max-w-xs">
+                        <div className="flex flex-col gap-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="font-semibold">{item.question}</span>
+                                {item.sourceType === 'link' && (
+                                    <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 text-[10px] py-0 px-1.5">Link</Badge>
+                                )}
+                                {item.sourceType === 'text' && (
+                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[10px] py-0 px-1.5">Text Resource</Badge>
+                                )}
+                                {(item.sourceType === 'qa' || !item.sourceType) && (
+                                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] py-0 px-1.5">Q&A</Badge>
+                                )}
+                            </div>
+                            {item.sourceType === 'link' && item.linkUrl && (
+                                <a href={item.linkUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[240px]">
+                                    {item.linkUrl}
+                                </a>
+                            )}
+                        </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground align-top max-w-lg truncate">{item.answer}</TableCell>
                     <TableCell className="text-right align-top">
                         <AlertDialog>

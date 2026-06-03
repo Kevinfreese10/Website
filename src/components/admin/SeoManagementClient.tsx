@@ -101,18 +101,21 @@ export default function SeoManagementClient() {
             { id: 'signup', path: '/signup', title: 'Create an Account | My Accountant', description: 'Sign up for a My Accountant account to manage your tax and accounting services online.' },
         ];
 
-        const staticPages = staticPagesConfig.map(page => ({
-            id: page.id,
-            path: page.path,
-            title: staticOverrides[page.id]?.title || page.title,
-            description: staticOverrides[page.id]?.description || page.description,
-            keywords: staticOverrides[page.id]?.keywords?.map((k: string) => ({ value: k })) || [],
-            seoImageUrl: staticOverrides[page.id]?.seoImageUrl || '',
-            seoImageLabel: staticOverrides[page.id]?.seoImageLabel || '',
-            fallbackImageUrl: '', 
-            fallbackImageLabel: '',
-            pageContent: '', 
-        }));
+        const staticPages = staticPagesConfig.map(page => {
+            const override = staticOverrides[page.id];
+            return {
+                id: page.id,
+                path: page.path,
+                title: override?.metaTitle || override?.title || page.title,
+                description: override?.metaDescription || override?.description || page.description,
+                keywords: (override?.metaKeywords || override?.keywords)?.map((k: string) => ({ value: k })) || [],
+                seoImageUrl: override?.seoImageUrl || '',
+                seoImageLabel: override?.seoImageLabel || '',
+                fallbackImageUrl: '', 
+                fallbackImageLabel: '',
+                pageContent: '', 
+            };
+        });
 
         const servicePages = fetchedServices.map(s => ({
             id: `service-${s.id}`,
