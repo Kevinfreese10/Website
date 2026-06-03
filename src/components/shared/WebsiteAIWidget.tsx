@@ -248,9 +248,9 @@ export default function WebsiteAIWidget() {
         <Button 
           onClick={toggleChat} 
           size="icon" 
-          className="w-14 h-14 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 duration-200 group flex items-center justify-center overflow-hidden"
+          className="w-14 h-14 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 duration-200 group flex items-center justify-center"
         >
-           {isOpen ? <X className="h-6 w-6 text-white" /> : <img src="/favicon.ico" alt="Chat Mascot" className="w-10 h-10 object-contain scale-[1.8] group-hover:rotate-6 transition-transform duration-200 origin-center" />}
+           {isOpen ? <X className="h-6 w-6 text-white" /> : <MessageCircle className="h-6 w-6 text-white group-hover:rotate-12 transition-transform duration-200" />}
         </Button>
       </div>
 
