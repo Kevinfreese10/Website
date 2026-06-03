@@ -2,14 +2,16 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore, enableIndexedDbPersistence, memoryLocalCache } from 'firebase/firestore';
+import { getAnalytics, Analytics } from 'firebase/analytics';
 
 export const firebaseConfig = {
-  "projectId": "studio-2604127518-57889",
-  "appId": "1:248831476160:web:c55ffde9271313ad18c825",
-  "storageBucket": "studio-2604127518-57889.firebasestorage.app",
-  "apiKey": "AIzaSyAxu9Wf1LY0q828bpZxq0US_ckbgONv6eI",
-  "authDomain": "studio-2604127518-57889.firebaseapp.com",
-  "messagingSenderId": "248831476160"
+  apiKey: "AIzaSyAxu9Wf1LY0q828bpZxq0US_ckbgONv6eI",
+  authDomain: "studio-2604127518-57889.firebaseapp.com",
+  projectId: "studio-2604127518-57889",
+  storageBucket: "studio-2604127518-57889.firebasestorage.app",
+  messagingSenderId: "248831476160",
+  appId: "1:248831476160:web:bb7a5968b7dd2e1318c825",
+  measurementId: "G-LVKV0215TP"
 };
 
 type FirebaseServices = {
@@ -57,4 +59,9 @@ function initializeFirebase(): FirebaseServices {
 // Immediately initialize and export the services.
 const { app: firebaseApp, auth, db } = initializeFirebase();
 
-export { firebaseApp, auth, db };
+let analytics: Analytics | undefined;
+if (typeof window !== 'undefined') {
+  analytics = getAnalytics(firebaseApp);
+}
+
+export { firebaseApp, auth, db, analytics };

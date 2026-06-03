@@ -10,12 +10,9 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { fetchKnowledgeBase } from '@/lib/knowledge-base';
-import { collection, addDoc, Timestamp, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { Service, BlogPost } from '@/lib/types';
-import { getAdminDb } from '@/lib/firebase-admin';
-import { getAuth as getAdminAuth } from 'firebase-admin/auth';
-import { FieldValue } from 'firebase-admin/firestore';
 import { render } from '@react-email/components';
 import OrderConfirmationEmail from '@/components/emails/OrderConfirmationEmail';
 import { sendEmail } from '@/lib/email';
@@ -53,11 +50,14 @@ export type WebsiteQAndAOutput = z.infer<typeof WebsiteQAndAOutputSchema>;
 export async function websiteQAndA(
   input: WebsiteQAndAInput
 ): Promise<WebsiteQAndAOutput> {
-  // Fetch live data from Firestore
-  const servicesSnapshot = await getDocs(query(collection(db, 'services'), orderBy('title')));
+  const adminDb = getAdminDb();
+  const authAdmin = getAdminAuth();
+
+  // Fetch live data from Firestore using Admin SDK
+  const servicesSnapshot = await adminDb.collection('services').orderBy('title').get();
   const services = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
 
-  const blogPostsSnapshot = await getDocs(query(collection(db, 'blogPosts'), orderBy('date', 'desc')));
+  const blogPostsSnapshot = await adminDb.collection('blogPosts').orderBy('date', 'desc').get();
   const blogPosts = blogPostsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
   
   const knowledgeBaseItems = await fetchKnowledgeBase();
@@ -298,49 +298,54 @@ export async function websiteQAndA(
   if (output && output.orderTrigger) {
       try {
           const { email, firstName, lastName, phone, serviceId, serviceTitle, price } = output.orderTrigger;
-          const adminDb = getAdminDb();
-          const authAdmin = getAdminAuth();
 
           let finalUserId = '';
           let isNewUser = false;
           let generatedPassword = '';
 
           const emailClean = email.toLowerCase().trim();
+          
+          // Query user document by email from Firestore using Admin SDK
           const usersSnap = await adminDb.collection('users').where('email', '==', emailClean).get();
           
           if (!usersSnap.empty) {
               finalUserId = usersSnap.docs[0].id;
           } else {
               try {
-                  const userRecord = await authAdmin.getUserByEmail(emailClean);
-                  finalUserId = userRecord.uid;
-              } catch (authError: any) {
-                  if (authError.code === 'auth/user-not-found') {
-                      // Create new User in Firebase Auth with a secure random temporary password
-                      const password = nanoid();
-                      generatedPassword = password;
-                      const userRecord = await authAdmin.createUser({
-                          email: emailClean,
-                          password: password,
-                          displayName: `${firstName} ${lastName}`,
-                      });
+                  // Check if user already exists in Firebase Auth
+                  try {
+                      const userRecord = await authAdmin.getUserByEmail(emailClean);
                       finalUserId = userRecord.uid;
-                      isNewUser = true;
+                  } catch (authError: any) {
+                      if (authError.code === 'auth/user-not-found') {
+                          // Create new User in Firebase Auth with a secure random temporary password
+                          const password = nanoid();
+                          generatedPassword = password;
+                          const userRecord = await authAdmin.createUser({
+                              email: emailClean,
+                              password: password,
+                              displayName: `${firstName} ${lastName}`,
+                          });
+                          finalUserId = userRecord.uid;
+                          isNewUser = true;
 
-                      // Create user document in Firestore users collection
-                      await adminDb.collection('users').doc(finalUserId).set({
-                          id: finalUserId,
-                          uid: finalUserId,
-                          name: `${firstName} ${lastName}`,
-                          email: emailClean,
-                          contactNumber: phone,
-                          role: 'client',
-                          source: 'AI Sales Chatbot',
-                          createdAt: FieldValue.serverTimestamp(),
-                      });
-                  } else {
-                      throw authError;
+                          // Create user document in Firestore users collection
+                          await adminDb.collection('users').doc(finalUserId).set({
+                              id: finalUserId,
+                              uid: finalUserId,
+                              name: `${firstName} ${lastName}`,
+                              email: emailClean,
+                              contactNumber: phone,
+                              role: 'client',
+                              source: 'AI Sales Chatbot',
+                              createdAt: FieldValue.serverTimestamp(),
+                          });
+                      } else {
+                          throw authError;
+                      }
                   }
+              } catch (authError: any) {
+                  throw authError;
               }
           }
 
@@ -357,7 +362,7 @@ export async function websiteQAndA(
               return newCurrentValue.toString();
           });
 
-          // Create the Order document in Firestore orders collection
+          // Create the Order document in Firestore using Admin SDK
           const orderData = {
               id: orderId,
               userId: finalUserId,
@@ -409,7 +414,7 @@ export async function websiteQAndA(
       
   if (output && output.confidence < 15) {
       try {
-          await addDoc(collection(db, 'unansweredQuestions'), {
+          await adminDb.collection('unansweredQuestions').add({
               question: input.question,
               timestamp: Timestamp.now(),
           });
@@ -427,7 +432,7 @@ export async function websiteQAndA(
               return line ? line.substring(prefix.length).trim() : '';
           };
 
-          await addDoc(collection(db, 'leads'), {
+          await adminDb.collection('leads').add({
               name: getField('Name:'),
               companyName: getField('Company:'),
               email: getField('Email:'),
