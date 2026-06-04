@@ -95,7 +95,7 @@ export default function PayrollSummaryReportPage() {
 
     // Aggregation
     const reportData = useMemo(() => {
-        if (!selectedMonth) return { breakdown: [], totals: { gross: 0, paye: 0, uifEe: 0, uifEr: 0, sdl: 0, net: 0, totalCost: 0 } };
+        if (!selectedMonth) return { breakdown: [], uniqueEarningLabels: [], earningTotals: {}, totals: { gross: 0, paye: 0, uifEe: 0, uifEr: 0, sdl: 0, net: 0, totalCost: 0 } };
 
         const targetDate = parse(selectedMonth, 'MMMM yyyy', new Date());
         const start = startOfMonth(targetDate);
@@ -128,6 +128,15 @@ export default function PayrollSummaryReportPage() {
             return isWithinInterval(psPeriodDate, { start, end });
         });
 
+        // Gather all unique earning labels in this period
+        const earningLabels = new Set<string>();
+        periodPayslips.forEach(ps => {
+            ps.earnings.forEach(e => {
+                earningLabels.add(e.label);
+            });
+        });
+        const uniqueEarningLabels = Array.from(earningLabels).sort();
+
         let totalGross = 0;
         let totalPaye = 0;
         let totalUifEe = 0;
@@ -152,8 +161,16 @@ export default function PayrollSummaryReportPage() {
                     uifEr: 0,
                     sdl: 0,
                     net: 0,
+                    earningsBreakdown: {}
                 };
+                uniqueEarningLabels.forEach(label => {
+                    empMap[ps.employeeId].earningsBreakdown[label] = 0;
+                });
             }
+
+            ps.earnings.forEach(e => {
+                empMap[ps.employeeId].earningsBreakdown[e.label] = (empMap[ps.employeeId].earningsBreakdown[e.label] || 0) + e.amount;
+            });
 
             empMap[ps.employeeId].gross += (ps.grossPay || 0);
             empMap[ps.employeeId].paye += paye;
@@ -170,8 +187,21 @@ export default function PayrollSummaryReportPage() {
             totalNet += (ps.netPay || 0);
         });
 
+        // Sum up custom earnings totals
+        const earningTotals: Record<string, number> = {};
+        uniqueEarningLabels.forEach(label => {
+            earningTotals[label] = 0;
+        });
+        Object.values(empMap).forEach((b: any) => {
+            uniqueEarningLabels.forEach(label => {
+                earningTotals[label] += (b.earningsBreakdown[label] || 0);
+            });
+        });
+
         return {
             breakdown: Object.values(empMap),
+            uniqueEarningLabels,
+            earningTotals,
             totals: {
                 gross: totalGross,
                 paye: totalPaye,
@@ -188,17 +218,30 @@ export default function PayrollSummaryReportPage() {
         if (!client || !reportData || !selectedMonth) return;
 
         const wb = XLSX.utils.book_new();
+        const headers = [
+            "Staff Member",
+            ...reportData.uniqueEarningLabels,
+            "Gross Earnings",
+            "PAYE (Tax)",
+            "UIF (Employee)",
+            "UIF (Employer)",
+            "SDL (Employer)",
+            "Net Pay",
+            "Total Cost to Employer"
+        ];
+
         const summary: any[][] = [
             ["PAYROLL SUMMARY REPORT"],
             ["Company", client.companyName || client.name],
             ["Active Period", selectedMonth],
             [""],
-            ["Staff Member", "Gross Earnings", "PAYE (Tax)", "UIF (Employee)", "UIF (Employer)", "SDL (Employer)", "Net Pay", "Total Cost to Employer"]
+            headers
         ];
 
         reportData.breakdown.forEach(b => {
             summary.push([
                 b.name,
+                ...reportData.uniqueEarningLabels.map(label => b.earningsBreakdown[label] || 0),
                 b.gross,
                 b.paye,
                 b.uifEe,
@@ -209,9 +252,9 @@ export default function PayrollSummaryReportPage() {
             ]);
         });
 
-        // Add Grand Totals
         summary.push([
             "GRAND TOTALS",
+            ...reportData.uniqueEarningLabels.map(label => reportData.earningTotals[label] || 0),
             reportData.totals.gross,
             reportData.totals.paye,
             reportData.totals.uifEe,
@@ -238,7 +281,6 @@ export default function PayrollSummaryReportPage() {
             });
         };
 
-        // Header
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.text("PAYROLL SUMMARY REPORT", 15, 20);
@@ -248,43 +290,52 @@ export default function PayrollSummaryReportPage() {
         doc.text(`Company: ${client.companyName || client.name}`, 15, 28);
         doc.text(`Period: ${selectedMonth}`, 15, 34);
 
-        // Details Table
+        const pdfHeaders = [
+            'Staff Member',
+            ...reportData.uniqueEarningLabels,
+            'Gross ZAR',
+            'PAYE ZAR',
+            'UIF EE ZAR',
+            'UIF ER ZAR',
+            'SDL ZAR',
+            'Net Pay ZAR',
+            'Total Cost ZAR'
+        ];
+
+        const pdfBody = [
+            ...reportData.breakdown.map(b => [
+                b.name,
+                ...reportData.uniqueEarningLabels.map(label => formatCurr(b.earningsBreakdown[label] || 0)),
+                formatCurr(b.gross),
+                formatCurr(b.paye),
+                formatCurr(b.uifEe),
+                formatCurr(b.uifEr),
+                formatCurr(b.sdl),
+                formatCurr(b.net),
+                formatCurr(b.gross + b.uifEr + b.sdl)
+            ]),
+            [
+                'GRAND TOTALS',
+                ...reportData.uniqueEarningLabels.map(label => formatCurr(reportData.earningTotals[label] || 0)),
+                formatCurr(reportData.totals.gross),
+                formatCurr(reportData.totals.paye),
+                formatCurr(reportData.totals.uifEe),
+                formatCurr(reportData.totals.uifEr),
+                formatCurr(reportData.totals.sdl),
+                formatCurr(reportData.totals.net),
+                formatCurr(reportData.totals.totalCost)
+            ]
+        ];
+
         autoTable(doc, {
             startY: 40,
-            head: [['Staff Member', 'Gross ZAR', 'PAYE ZAR', 'UIF EE ZAR', 'UIF ER ZAR', 'SDL ZAR', 'Net Pay ZAR', 'Total Cost ZAR']],
-            body: [
-                ...reportData.breakdown.map(b => [
-                    b.name,
-                    formatCurr(b.gross),
-                    formatCurr(b.paye),
-                    formatCurr(b.uifEe),
-                    formatCurr(b.uifEr),
-                    formatCurr(b.sdl),
-                    formatCurr(b.net),
-                    formatCurr(b.gross + b.uifEr + b.sdl)
-                ]),
-                [
-                    'GRAND TOTALS',
-                    formatCurr(reportData.totals.gross),
-                    formatCurr(reportData.totals.paye),
-                    formatCurr(reportData.totals.uifEe),
-                    formatCurr(reportData.totals.uifEr),
-                    formatCurr(reportData.totals.sdl),
-                    formatCurr(reportData.totals.net),
-                    formatCurr(reportData.totals.totalCost)
-                ]
-            ],
+            head: [pdfHeaders],
+            body: pdfBody,
             theme: 'grid',
-            headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+            headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5 },
+            bodyStyles: { fontSize: 6.5 },
             columnStyles: {
-                0: { cellWidth: 60, fontStyle: 'bold' },
-                1: { cellWidth: 28, halign: 'right' },
-                2: { cellWidth: 28, halign: 'right' },
-                3: { cellWidth: 28, halign: 'right' },
-                4: { cellWidth: 28, halign: 'right' },
-                5: { cellWidth: 25, halign: 'right' },
-                6: { cellWidth: 28, halign: 'right' },
-                7: { cellWidth: 32, halign: 'right', fontStyle: 'bold' }
+                0: { fontStyle: 'bold' }
             },
             didParseCell: (data) => {
                 if (data.row.index === reportData.breakdown.length) {
@@ -294,7 +345,6 @@ export default function PayrollSummaryReportPage() {
             }
         });
 
-        // Save
         const fileName = `Payroll_Summary_${(client.companyName || client.name).replace(/\s/g, '_')}_${selectedMonth.replace(/\s/g, '_')}.pdf`;
         doc.save(fileName);
     };
@@ -386,6 +436,9 @@ export default function PayrollSummaryReportPage() {
                             <TableHeader>
                                 <TableRow className="bg-muted/10">
                                     <TableHead className="font-bold">Staff Member</TableHead>
+                                    {reportData.uniqueEarningLabels.map(label => (
+                                        <TableHead key={label} className="text-right font-bold text-slate-800">{label}</TableHead>
+                                    ))}
                                     <TableHead className="text-right font-bold text-slate-800">Gross Earnings</TableHead>
                                     <TableHead className="text-right font-bold text-primary">PAYE</TableHead>
                                     <TableHead className="text-right font-bold">UIF (EE)</TableHead>
@@ -398,7 +451,7 @@ export default function PayrollSummaryReportPage() {
                             <TableBody>
                                 {reportData.breakdown.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-center py-12 text-muted-foreground italic">
+                                        <TableCell colSpan={8 + reportData.uniqueEarningLabels.length} className="text-center py-12 text-muted-foreground italic">
                                             No finalized payslips found in this month.
                                         </TableCell>
                                     </TableRow>
@@ -406,6 +459,9 @@ export default function PayrollSummaryReportPage() {
                                     reportData.breakdown.map((row, idx) => (
                                         <TableRow key={idx} className="hover:bg-slate-50/50">
                                             <TableCell className="font-bold text-slate-900">{row.name}</TableCell>
+                                            {reportData.uniqueEarningLabels.map(label => (
+                                                <TableCell key={label} className="text-right font-mono text-xs">{formatCurrency(row.earningsBreakdown[label] || 0)}</TableCell>
+                                            ))}
                                             <TableCell className="text-right font-mono text-xs font-semibold">{formatCurrency(row.gross)}</TableCell>
                                             <TableCell className="text-right font-mono text-xs font-bold text-primary">{formatCurrency(row.paye)}</TableCell>
                                             <TableCell className="text-right font-mono text-xs">{formatCurrency(row.uifEe)}</TableCell>
@@ -420,6 +476,9 @@ export default function PayrollSummaryReportPage() {
                             <TableFooter className="bg-muted/20">
                                 <TableRow>
                                     <TableCell className="font-black text-slate-900 uppercase text-[10px]">Grand Totals</TableCell>
+                                    {reportData.uniqueEarningLabels.map(label => (
+                                        <TableCell key={label} className="text-right font-black text-slate-900">{formatCurrency(reportData.earningTotals[label] || 0)}</TableCell>
+                                    ))}
                                     <TableCell className="text-right font-black text-slate-900">{formatCurrency(reportData.totals.gross)}</TableCell>
                                     <TableCell className="text-right font-black text-primary">{formatCurrency(reportData.totals.paye)}</TableCell>
                                     <TableCell className="text-right font-black text-slate-900">{formatCurrency(reportData.totals.uifEe)}</TableCell>
