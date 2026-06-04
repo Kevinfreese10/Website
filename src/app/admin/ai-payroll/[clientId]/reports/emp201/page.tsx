@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import * as XLSX from 'xlsx';
 import { Loader2, Download, Users, Calculator } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, isWithinInterval, parse } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval, parse, isValid } from 'date-fns';
 
 const db = getFirestore(firebaseApp);
 
@@ -112,7 +112,7 @@ export default function Emp201ReportPage() {
         });
     }, [payslips, client]);
 
-    // Aggregation Logic: Find all payslips whose payment date is in the selected month
+    // Aggregation Logic: Find all payslips whose payroll period matches the selected month
     const reportData = useMemo(() => {
         if (!selectedMonth) return { breakdown: [], totals: { gross: 0, paye: 0, uif: 0, sdl: 0, payable: 0 } };
 
@@ -120,11 +120,36 @@ export default function Emp201ReportPage() {
         const start = startOfMonth(targetDate);
         const end = endOfMonth(targetDate);
 
-        // Filter for finalized payslips within the calendar month
+        const getPeriodDate = (periodStr?: string): Date => {
+            if (!periodStr) return new Date();
+            
+            // Check if it's a date string (DD/MM/YYYY)
+            if (periodStr.includes('/')) {
+                // If it is a range, get the end date (last part)
+                const parts = periodStr.split(' - ');
+                const datePart = parts[parts.length - 1].trim();
+                const parsed = parse(datePart, 'dd/MM/yyyy', new Date());
+                return isValid(parsed) ? parsed : new Date();
+            }
+
+            const base = periodStr.split(' - ')[0];
+            const parts = base.trim().split(' ');
+            if (parts.length < 2) return new Date();
+            const monthName = parts[0];
+            const year = parseInt(parts[1]);
+            const months = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            const monthIdx = months.indexOf(monthName);
+            return new Date(year, monthIdx !== -1 ? monthIdx : 0, 1);
+        };
+
+        // Filter for finalized payslips within the calendar month of the payroll period
         const periodPayslips = payslips.filter(ps => {
             if (ps.status !== 'finalized') return false;
-            const psDate = ps.date?.toDate ? ps.date.toDate() : new Date(ps.date || Date.now());
-            return isWithinInterval(psDate, { start, end });
+            const psPeriodDate = getPeriodDate(ps.period);
+            return isWithinInterval(psPeriodDate, { start, end });
         });
         
         let totalPaye = 0;
