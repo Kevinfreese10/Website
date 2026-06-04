@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
   question: z.string().min(1, 'Cannot send an empty message.'),
@@ -34,6 +34,9 @@ export default function WebsiteAIWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string>('');
   const [chatMode, setChatMode] = useState<'ai' | 'agent'>('ai');
+  const [chatEmail, setChatEmail] = useState<string>('');
+  const [emailInput, setEmailInput] = useState('');
+  const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -50,8 +53,26 @@ export default function WebsiteAIWidget() {
   }, [chatHistory, isLoading]);
   
   useEffect(() => {
-    // 1. Persist or generate conversationId
-    let cid = localStorage.getItem('myacc_chat_id');
+    // 1. Check for resumeChat parameter in URL
+    let cid = '';
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const resumeId = params.get('resumeChat');
+      if (resumeId) {
+        cid = resumeId;
+        localStorage.setItem('myacc_chat_id', cid);
+        setIsOpen(true);
+        setIsModal(false);
+        // Clean query parameter from URL
+        const newUrl = window.location.pathname + window.location.search.replace(/[\?&]resumeChat=[^&]+/, '').replace(/^&/, '?');
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
+
+    // 2. Fetch or create conversationId
+    if (!cid) {
+      cid = localStorage.getItem('myacc_chat_id') || '';
+    }
     if (!cid) {
       cid = 'chat_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       localStorage.setItem('myacc_chat_id', cid);
@@ -63,12 +84,13 @@ export default function WebsiteAIWidget() {
       text: "Hello! I'm Khai, a Support Consultant at **My Accountant**.\n\nHow can I assist you today? I'm here to help with any questions you may have about our services, products, pricing, processes, or the company.",
     };
 
-    // 2. Listen to conversation real-time
+    // 3. Listen to conversation real-time
     const docRef = doc(db, 'chatbotConversations', cid);
     const unsubscribe = onSnapshot(docRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
         setChatMode(data.mode || 'ai');
+        setChatEmail(data.userEmail || '');
         if (data.messages && data.messages.length > 0) {
           const mapped = data.messages.map((m: any) => ({
             role: m.role || 'bot',
@@ -109,6 +131,32 @@ export default function WebsiteAIWidget() {
       setIsModal(false);
     }
     setIsOpen(!isOpen);
+  };
+
+  const handleRegisterEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const emailClean = emailInput.trim();
+    if (!emailClean) return;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailClean)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    setIsSubmittingEmail(true);
+    try {
+      const docRef = doc(db, 'chatbotConversations', conversationId);
+      await updateDoc(docRef, { 
+        userEmail: emailClean,
+        updatedAt: serverTimestamp()
+      });
+      setChatEmail(emailClean);
+    } catch (err) {
+      console.error("Error setting email:", err);
+    } finally {
+      setIsSubmittingEmail(false);
+    }
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -278,39 +326,78 @@ export default function WebsiteAIWidget() {
         )}
       </CardContent>
 
-      {/* Input Form Footer */}
-      <CardFooter className="p-3 border-t bg-white">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="w-full flex items-center gap-2">
-            <FormField
-              control={form.control}
-              name="question"
-              render={({ field }) => (
-                <FormItem className="flex-grow">
-                  <FormControl>
-                    <Input 
-                      placeholder="Ask about compliance, registration, bookkeeping..." 
-                      {...field} 
-                      autoComplete="off" 
-                      disabled={isLoading}
-                      className="bg-slate-50 border-slate-200 focus-visible:ring-blue-600 focus-visible:bg-white text-sm font-medium text-slate-800 placeholder-slate-400 rounded-xl h-10 shadow-inner"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+      {/* Input Form Footer or Email Capture */}
+      {chatMode === 'agent' && (!chatEmail || chatEmail === 'Anonymous' || chatEmail === '') ? (
+        <CardFooter className="p-4 border-t bg-indigo-50/30 flex flex-col items-stretch gap-3">
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold text-indigo-950 flex items-center gap-1 select-none">
+              <ShieldCheck className="h-3.5 w-3.5 text-indigo-600 animate-pulse" />
+              Advisor Connecting...
+            </h4>
+            <p className="text-[10px] text-indigo-900 leading-relaxed select-none">
+              Please enter your email so we can notify you when the advisor replies.
+            </p>
+          </div>
+          <form onSubmit={handleRegisterEmail} className="flex gap-2 w-full">
+            <Input 
+              placeholder="yourname@example.com"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              disabled={isSubmittingEmail}
+              className="flex-grow h-9 text-xs border-indigo-200 focus-visible:ring-indigo-600 bg-white"
+              required
+              type="email"
             />
             <Button 
               type="submit" 
-              size="icon" 
-              disabled={isLoading} 
-              className="rounded-xl h-10 w-10 bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center shrink-0 shadow-md"
+              size="sm" 
+              disabled={isSubmittingEmail}
+              className="bg-indigo-600 hover:bg-indigo-700 text-xs font-bold shrink-0"
             >
-              <Send className="h-4.5 w-4.5 text-white" />
+              {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : "Connect"}
             </Button>
           </form>
-        </Form>
-      </CardFooter>
+        </CardFooter>
+      ) : (
+        <CardFooter className="p-3 border-t bg-white">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="w-full flex items-center gap-2">
+              <FormField
+                control={form.control}
+                name="question"
+                render={({ field }) => (
+                  <FormItem className="flex-grow">
+                    <FormControl>
+                      <Input 
+                        placeholder={chatMode === 'agent' ? "Type your message to the advisor..." : "Ask about compliance, registration, bookkeeping..."}
+                        {...field} 
+                        autoComplete="off" 
+                        disabled={isLoading}
+                        className={cn(
+                          "bg-slate-50 border-slate-200 focus-visible:bg-white text-sm font-medium text-slate-800 placeholder-slate-400 rounded-xl h-10 shadow-inner",
+                          chatMode === 'agent' ? "focus-visible:ring-indigo-600" : "focus-visible:ring-blue-600"
+                        )}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button 
+                type="submit" 
+                size="icon" 
+                disabled={isLoading} 
+                className={cn(
+                  "rounded-xl h-10 w-10 active:scale-95 transition-all flex items-center justify-center shrink-0 shadow-md",
+                  chatMode === 'agent' ? "bg-indigo-600 hover:bg-indigo-700" : "bg-blue-600 hover:bg-blue-700"
+                )}
+              >
+                <Send className="h-4.5 w-4.5 text-white" />
+              </Button>
+            </form>
+          </Form>
+        </CardFooter>
+      )}
     </>
   );
 

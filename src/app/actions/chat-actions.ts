@@ -1,0 +1,36 @@
+'use server';
+
+import { render } from '@react-email/components';
+import { sendEmail } from '@/lib/email';
+import React from 'react';
+import ChatNotificationEmail from '@/components/emails/ChatNotificationEmail';
+import { SITE_URL } from '@/lib/constants';
+
+export async function sendChatNotificationEmail(
+  conversationId: string,
+  recipientEmail: string,
+  recipientName: string,
+  lastMessagePreview: string
+) {
+  try {
+    const actionUrl = `${SITE_URL}?resumeChat=${conversationId}`;
+    const emailHtml = await render(
+      React.createElement(ChatNotificationEmail, {
+        recipientName: recipientName || 'Guest',
+        lastMessagePreview,
+        actionUrl,
+      })
+    );
+
+    await sendEmail({
+      to: recipientEmail.trim().toLowerCase(),
+      subject: `Live Chat Reply from My Accountant Support`,
+      html: emailHtml,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error sending chat notification email:", error);
+    return { success: false, error: error.message || 'Unknown error' };
+  }
+}

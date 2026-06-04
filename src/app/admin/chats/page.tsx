@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { collection, deleteDoc, doc, query, orderBy, getFirestore, onSnapshot, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { formatDistanceToNow, format } from 'date-fns';
+import { sendChatNotificationEmail } from '@/app/actions/chat-actions';
 
 type ChatMessage = {
   role: 'user' | 'bot' | 'agent';
@@ -37,6 +38,7 @@ export default function AdminChatsPage() {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [replyText, setReplyText] = useState('');
+  const [shouldNotifyEmail, setShouldNotifyEmail] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -162,6 +164,19 @@ export default function AdminChatsPage() {
         messages: arrayUnion(newMsg),
         updatedAt: serverTimestamp()
       });
+
+      // Deliver background email notification if client is offline/anonymous
+      if (shouldNotifyEmail && activeChat && activeChat.userEmail && activeChat.userEmail !== 'Anonymous' && activeChat.userEmail.includes('@')) {
+        sendChatNotificationEmail(selectedChatId, activeChat.userEmail, activeChat.userName, textToSend)
+          .then((res) => {
+            if (res.success) {
+              console.log("Chat email notification sent successfully.");
+            } else {
+              console.error("Chat email notification failed:", res.error);
+            }
+          })
+          .catch((err) => console.error("Error in email dispatch:", err));
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
@@ -424,7 +439,7 @@ export default function AdminChatsPage() {
 
               {/* Chat Send Input Box / Banner */}
               {activeChat.mode === 'agent' ? (
-                <CardFooter className="p-3 border-t bg-white">
+                <CardFooter className="p-3 border-t bg-white flex flex-col items-stretch gap-2 shrink-0">
                   <form onSubmit={handleSendMessage} className="w-full flex items-center gap-2">
                     <Input
                       placeholder="Type a reply to the prospect..."
@@ -441,6 +456,25 @@ export default function AdminChatsPage() {
                       <Send className="h-4.5 w-4.5 text-white" />
                     </Button>
                   </form>
+                  {activeChat.userEmail && activeChat.userEmail !== 'Anonymous' && activeChat.userEmail.includes('@') ? (
+                    <div className="flex items-center gap-2 px-1 select-none text-[10px] text-muted-foreground font-semibold">
+                      <input 
+                        type="checkbox" 
+                        id="notify-email"
+                        checked={shouldNotifyEmail}
+                        onChange={(e) => setShouldNotifyEmail(e.target.checked)}
+                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 accent-indigo-600 cursor-pointer"
+                      />
+                      <label htmlFor="notify-email" className="cursor-pointer">
+                        Notify client by email ({activeChat.userEmail})
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-amber-600 font-bold px-1 select-none flex items-center gap-1.5 animate-pulse">
+                      <ShieldAlert className="h-3.5 w-3.5" />
+                      Client is anonymous. Waiting for them to provide their email address.
+                    </div>
+                  )}
                 </CardFooter>
               ) : (
                 <div className="p-3 border-t bg-indigo-50/50 flex items-center justify-between text-xs text-indigo-900/80 font-semibold select-none">
