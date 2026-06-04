@@ -344,6 +344,8 @@ export type User = {
     secure?: boolean;
   },
   wantsOutsourcedWork?: boolean;
+  overflowApproved?: boolean;
+  overflowApprovedAt?: any;
   cvUrl?: string;
   certificateUrl?: string;
   capableServices?: string[];

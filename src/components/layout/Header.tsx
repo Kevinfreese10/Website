@@ -68,9 +68,9 @@ const navGroups = [
   },
   {
     label: 'Become a Partner',
-    href: '/BEI',
+    href: '/become-a-partner',
     items: [
-      { label: 'Partner Program (BEI)', href: '/BEI' },
+      { label: 'Partner Program (BEI)', href: '/become-a-partner' },
       { label: 'Franchise Model', href: '/franchise' },
       { label: 'Sign Up', href: '/partner-signup' },
     ],

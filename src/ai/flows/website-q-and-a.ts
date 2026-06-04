@@ -131,7 +131,7 @@ export async function websiteQAndA(
     - Client CRM: Advanced dashboard that automatically creates tasks based on client requirements (VAT, PAYE, etc.).
     - Staff Management: Manage your team, assign tasks, and track internal project workflows.
     - Pricing Control: Partners can set their own client selling prices while My Accountant's base cost remains fixed.
-    How it works: Apply online, pay R5000 setup (loaded as practice credits), and get access to your dashboard. R499/month hosting fee deducted from credits.
+    How it works: Apply online, pay R4,950 once-off setup and activation fee, and get lifetime access to your dashboard. There are zero monthly subscription or hosting fees. Upon successful payment of the setup fee, your practice wallet is instantly credited with R2,475 in practice credits to spend on outsourcing.
     Who can join: Freelance Bookkeepers, Startup Accounting Firms, Tax Practitioners, Business Consultants, Payroll Administrators. No need to be a registered accountant to offer services, but to receive outsourced work from My Accountant, you must belong to a recognized professional body (SAICA, SAIT, CIBA, or SAIPA).
   `;
   

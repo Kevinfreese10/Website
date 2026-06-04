@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { User, Service } from '@/lib/types';
-import { getFirestore, collection, getDocs, doc, deleteDoc, query, where, updateDoc, increment, orderBy, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, deleteDoc, query, where, updateDoc, increment, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -37,9 +37,36 @@ function PartnerProfileDialog({
     open: boolean, 
     onOpenChange: (open: boolean) => void 
 }) {
+    const [isUpdating, setIsUpdating] = useState(false);
+    const { toast } = useToast();
+
     if (!partner) return null;
 
     const expertise = partner.capableServices?.map(id => allServices.find(s => s.id === id)?.title).filter(Boolean) || [];
+
+    const handleSetOverflowApproval = async (approved: boolean) => {
+        setIsUpdating(true);
+        try {
+            const userRef = doc(db, 'users', partner.id);
+            await updateDoc(userRef, {
+                overflowApproved: approved,
+                overflowApprovedAt: serverTimestamp()
+            });
+            toast({
+                title: approved ? "Partner Approved" : "Approval Revoked",
+                description: `Successfully updated overflow program status for ${partner.companyName || partner.name}.`
+            });
+        } catch (error) {
+            console.error("Error setting overflow approval status:", error);
+            toast({
+                title: "Operation Failed",
+                description: "Could not update the overflow program status.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -50,9 +77,22 @@ function PartnerProfileDialog({
                             <DialogTitle className="text-2xl font-bold">{partner.companyName || partner.name}</DialogTitle>
                             <DialogDescription>Professional Practice Profile</DialogDescription>
                         </div>
-                        <Badge variant={partner.status === 'Active' ? 'success' : 'secondary'} className="uppercase font-bold">
-                            {partner.status}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1.5">
+                            <Badge variant={partner.status === 'Active' ? 'success' : 'secondary'} className="uppercase font-bold w-fit">
+                                {partner.status}
+                            </Badge>
+                            {partner.wantsOutsourcedWork && (
+                                partner.overflowApproved ? (
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] w-fit font-bold">
+                                        Overflow Approved
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="destructive" className="bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] w-fit font-bold">
+                                        Overflow Pending Approval
+                                    </Badge>
+                                )
+                            )}
+                        </div>
                     </div>
                 </DialogHeader>
                 
@@ -87,8 +127,32 @@ function PartnerProfileDialog({
 
                         {partner.wantsOutsourcedWork && (
                             <section className="space-y-4">
-                                <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
-                                    <FileText className="h-3.5 w-3.5" /> Compliance Documents
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-primary font-bold uppercase text-[10px] tracking-widest">
+                                        <FileText className="h-3.5 w-3.5" /> Compliance Documents
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {partner.overflowApproved ? (
+                                            <Button 
+                                                size="xs" 
+                                                variant="outline" 
+                                                className="text-destructive border-destructive hover:bg-destructive/5 font-semibold h-7"
+                                                onClick={() => handleSetOverflowApproval(false)}
+                                                disabled={isUpdating}
+                                            >
+                                                Revoke Overflow Approval
+                                            </Button>
+                                        ) : (
+                                            <Button 
+                                                size="xs" 
+                                                className="bg-green-600 hover:bg-green-700 text-white font-semibold h-7"
+                                                onClick={() => handleSetOverflowApproval(true)}
+                                                disabled={isUpdating}
+                                            >
+                                                Approve for Overflow Pool
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <Card className="shadow-sm border-dashed">
@@ -450,9 +514,22 @@ export default function AdminPartnersPage() {
                       </div>
                   </TableCell>
                   <TableCell>
-                      <Badge variant={partner.status === 'Active' ? 'success' : 'secondary'} className="text-[10px] uppercase font-bold">
-                          {partner.status}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                          <Badge variant={partner.status === 'Active' ? 'success' : 'secondary'} className="text-[10px] uppercase font-bold w-fit">
+                              {partner.status}
+                          </Badge>
+                          {partner.wantsOutsourcedWork && (
+                              partner.overflowApproved ? (
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] w-fit font-bold">
+                                      Overflow Approved
+                                  </Badge>
+                              ) : (
+                                  <Badge variant="destructive" className="bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] w-fit font-bold">
+                                      Overflow Pending Approval
+                                  </Badge>
+                              )
+                          )}
+                      </div>
                   </TableCell>
                   <TableCell className="text-right font-mono font-bold text-primary">
                       {formatPrice(partner.creditBalance || 0)}
@@ -480,6 +557,39 @@ export default function AdminPartnersPage() {
                             <DropdownMenuItem onClick={() => { setSelectedPartnerIdForCredits(partner.id); setIsCreditDialogOpen(true); }}>
                                 <Wallet2 className="mr-2 h-4 w-4" /> Manage Credits
                             </DropdownMenuItem>
+                             {partner.wantsOutsourcedWork && (
+                                 partner.overflowApproved ? (
+                                     <DropdownMenuItem onClick={async () => {
+                                         try {
+                                             const userRef = doc(db, 'users', partner.id);
+                                             await updateDoc(userRef, {
+                                                 overflowApproved: false,
+                                                 overflowApprovedAt: serverTimestamp()
+                                             });
+                                             toast({ title: 'Approval Revoked', description: `Revoked overflow pool approval for ${partner.companyName}.` });
+                                         } catch (err) {
+                                             toast({ title: 'Operation Failed', variant: 'destructive' });
+                                         }
+                                     }}>
+                                         <XCircle className="mr-2 h-4 w-4 text-destructive" /> Revoke Overflow
+                                     </DropdownMenuItem>
+                                 ) : (
+                                     <DropdownMenuItem onClick={async () => {
+                                         try {
+                                             const userRef = doc(db, 'users', partner.id);
+                                             await updateDoc(userRef, {
+                                                 overflowApproved: true,
+                                                 overflowApprovedAt: serverTimestamp()
+                                             });
+                                             toast({ title: 'Overflow Approved', description: `Approved ${partner.companyName} for overflow pool.` });
+                                         } catch (err) {
+                                             toast({ title: 'Operation Failed', variant: 'destructive' });
+                                         }
+                                     }}>
+                                         <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" /> Approve Overflow
+                                     </DropdownMenuItem>
+                                 )
+                             )}
                             <DropdownMenuSeparator />
                              <AlertDialogTrigger asChild>
                                 <DropdownMenuItem className="text-destructive">

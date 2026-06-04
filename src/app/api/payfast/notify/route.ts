@@ -7,6 +7,7 @@ import ipaddr from 'ipaddr.js';
 import { render } from '@react-email/components';
 import React from 'react';
 import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
+import PartnerOnboardingEmail from '@/components/emails/PartnerOnboardingEmail';
 import { sendEmail } from '@/lib/email';
 import { services as allServices } from '@/lib/data';
 
@@ -395,6 +396,47 @@ export async function POST(req: NextRequest) {
                       creditBalance: FieldValue.increment(creditAmount),
                       status: 'Active'
                   });
+
+                  if (isSetup) {
+                      try {
+                          const partnerSnap = await partnerRef.get();
+                          if (partnerSnap.exists) {
+                              const partnerData = partnerSnap.data();
+                              const partnerName = partnerData?.contactPerson || partnerData?.name || 'Partner';
+                              const partnerEmail = partnerData?.email || currentOrderData.customerEmail;
+
+                              const onboardingHtml = await render(
+                                  React.createElement(PartnerOnboardingEmail, {
+                                      partnerName: partnerName,
+                                      email: partnerEmail,
+                                      creditAmount: creditAmount,
+                                      loginUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/login`,
+                                  })
+                              );
+
+                              await sendEmail({
+                                  to: partnerEmail,
+                                  cc: ['kev@thinkestry.co.za'],
+                                  subject: "Your My Accountant Practice is Activated! 🚀",
+                                  html: onboardingHtml,
+                              });
+
+                              await orderRef.update({
+                                  notes: FieldValue.arrayUnion({
+                                      text: `Sent "Practice Onboarding" email to ${partnerEmail} and CC'd kev@thinkestry.co.za (Automated via PayFast ITN).`,
+                                      date: new Date(),
+                                      authorId: 'system',
+                                      type: 'email',
+                                      subject: "Your My Accountant Practice is Activated! 🚀",
+                                      attachments: null,
+                                  })
+                              });
+                              console.log(`Onboarding email successfully sent to partner ${partnerEmail}.`);
+                          }
+                      } catch (emailErr) {
+                          console.error("Error sending BEI partner onboarding email:", emailErr);
+                      }
+                  }
               }
           }
 

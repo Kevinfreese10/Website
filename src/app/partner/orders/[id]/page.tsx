@@ -74,6 +74,8 @@ export default function PartnerOrderDetailsPage() {
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [isRejectionDialogOpen, setIsRejectionDialogOpen] = useState(false);
   const [documentToReject, setDocumentToReject] = useState<DocumentUpload | null>(null);
+  const [uploadingFiles, setUploadingFiles] = useState<{ [key: string]: number }>({});
+  const [textInputs, setTextInputs] = useState<{ [key: string]: string }>({});
 
   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
     resolver: zodResolver(noteFormSchema),
@@ -333,6 +335,110 @@ export default function PartnerOrderDetailsPage() {
     }
   };
 
+  const handleFileUpload = (file: File, serviceId: string, requirementLabel: string) => {
+    if (!currentUser || !order) return;
+
+    const uniqueFileName = `${Date.now()}-${file.name}`;
+    const storageRef = ref(storage, `orders/${order.id}/${uniqueFileName}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    const uploadKey = `${serviceId}-${requirementLabel}`;
+    setUploadingFiles(prev => ({ ...prev, [uploadKey]: 0 }));
+
+    uploadTask.on('state_changed',
+        (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setUploadingFiles(prev => ({ ...prev, [uploadKey]: progress }));
+        },
+        (error) => {
+            console.error("Upload failed:", error);
+            toast({ title: 'Upload Failed', description: 'Could not upload your file.', variant: 'destructive'});
+            setUploadingFiles(prev => {
+                const newUploading = { ...prev };
+                delete newUploading[uploadKey];
+                return newUploading;
+            });
+        },
+        async () => {
+            try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                const newUpload: DocumentUpload = {
+                    serviceId,
+                    requirementLabel,
+                    type: 'file',
+                    fileUrl: downloadURL,
+                    fileName: file.name,
+                    uploadedAt: Timestamp.now(),
+                    status: 'approved',
+                };
+
+                const currentUploads = order.documentUploads || [];
+                const filteredUploads = currentUploads.filter(
+                    d => !(d.serviceId === serviceId && d.requirementLabel === requirementLabel)
+                );
+                const updatedUploads = [...filteredUploads, newUpload];
+
+                const orderRef = doc(db, 'orders', order.id);
+                await updateDoc(orderRef, {
+                    documentUploads: updatedUploads
+                });
+
+                toast({ title: 'File Uploaded', description: `${file.name} has been successfully submitted and approved.`});
+                await fetchOrder();
+            } catch (error) {
+                console.error("Error saving document:", error);
+                toast({ title: 'Error', description: 'Failed to save document record.', variant: 'destructive' });
+            } finally {
+                setUploadingFiles(prev => {
+                    const newUploading = { ...prev };
+                    delete newUploading[uploadKey];
+                    return newUploading;
+                });
+            }
+        }
+    );
+  };
+
+  const handleTextChange = (requirementLabel: string, value: string) => {
+    setTextInputs(prev => ({ ...prev, [requirementLabel]: value }));
+  };
+
+  const handleTextSubmit = async (serviceId: string, requirementLabel: string) => {
+    const text = textInputs[requirementLabel];
+    if (!currentUser || !order || !text || !text.trim()) {
+         toast({ title: "Cannot Submit", description: "The field cannot be empty.", variant: "destructive" });
+         return;
+    }
+
+    const newUpload: DocumentUpload = {
+        serviceId,
+        requirementLabel,
+        type: 'text',
+        textValue: text,
+        uploadedAt: Timestamp.now(),
+        status: 'approved',
+    };
+
+    try {
+        const currentUploads = order.documentUploads || [];
+        const filteredUploads = currentUploads.filter(
+            d => !(d.serviceId === serviceId && d.requirementLabel === requirementLabel)
+        );
+        const updatedUploads = [...filteredUploads, newUpload];
+
+        const orderRef = doc(db, 'orders', order.id);
+        await updateDoc(orderRef, {
+            documentUploads: updatedUploads
+        });
+        toast({ title: 'Information Submitted', description: 'Your information has been successfully saved.' });
+        setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
+        await fetchOrder();
+    } catch (error) {
+        console.error("Error submitting text:", error);
+        toast({ title: "Submission Failed", description: "Could not save the information.", variant: "destructive" });
+    }
+  };
+
   const handleSendFeedback = async () => {
     if (!order || !order.documentUploads) return;
     const emailTo = order.endCustomerEmail || order.customerEmail;
@@ -554,6 +660,7 @@ export default function PartnerOrderDetailsPage() {
                                             {item.service.informationToProvide.map((req, index) => {
                                                 const upload = order.documentUploads?.find(d => d.serviceId === item.id && d.requirementLabel === req.label);
                                                 const identifier = upload ? (upload.type === 'file' ? upload.fileUrl! : upload.textValue!) : '';
+                                                const uploadKey = `${item.id}-${req.label}`;
                                                 return (
                                                     <li key={index} className="pt-3">
                                                         <div className="flex items-center justify-between">
@@ -584,9 +691,73 @@ export default function PartnerOrderDetailsPage() {
                                                                  {upload.status === 'rejected' && upload.rejectionReason && (
                                                                     <p className="text-xs text-destructive italic">Reason: {upload.rejectionReason}</p>
                                                                 )}
+                                                                {upload.status === 'rejected' && (
+                                                                    <div className="mt-3 pt-3 border-t space-y-2">
+                                                                        <p className="text-xs font-semibold text-muted-foreground">Upload replacement:</p>
+                                                                        {req.type === 'pdf' ? (
+                                                                            uploadingFiles[uploadKey] !== undefined ? (
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                                                                    <p className="text-sm text-muted-foreground">Uploading... {Math.round(uploadingFiles[uploadKey])}%</p>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <Input 
+                                                                                    type="file" 
+                                                                                    accept="application/pdf,image/*" 
+                                                                                    className="h-9 cursor-pointer" 
+                                                                                    onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.id, req.label)} 
+                                                                                />
+                                                                            )
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Input 
+                                                                                    type="text" 
+                                                                                    className="h-9" 
+                                                                                    placeholder="Enter information here..." 
+                                                                                    value={textInputs[req.label] || ''} 
+                                                                                    onChange={(e) => handleTextChange(req.label, e.target.value)} 
+                                                                                />
+                                                                                <Button size="sm" onClick={() => handleTextSubmit(item.id, req.label)}>Save</Button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ) : (
-                                                            <p className="text-xs text-muted-foreground mt-1">Awaiting client submission.</p>
+                                                            <div className="mt-2 space-y-2">
+                                                                {req.type === 'pdf' ? (
+                                                                    uploadingFiles[uploadKey] !== undefined ? (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                                                            <p className="text-sm text-muted-foreground">Uploading... {Math.round(uploadingFiles[uploadKey])}%</p>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="space-y-1">
+                                                                            <Input 
+                                                                                type="file" 
+                                                                                accept="application/pdf,image/*" 
+                                                                                className="h-9 cursor-pointer" 
+                                                                                onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.id, req.label)} 
+                                                                            />
+                                                                            <p className="text-xs text-muted-foreground">Upload document (PDF or Image) on behalf of client</p>
+                                                                        </div>
+                                                                    )
+                                                                ) : (
+                                                                    <div className="space-y-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Input 
+                                                                                type="text" 
+                                                                                className="h-9" 
+                                                                                placeholder="Enter information here..." 
+                                                                                value={textInputs[req.label] || ''} 
+                                                                                onChange={(e) => handleTextChange(req.label, e.target.value)} 
+                                                                            />
+                                                                            <Button size="sm" onClick={() => handleTextSubmit(item.id, req.label)}>Save</Button>
+                                                                        </div>
+                                                                        <p className="text-xs text-muted-foreground font-light">Submit response on behalf of client</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </li>
                                                 )

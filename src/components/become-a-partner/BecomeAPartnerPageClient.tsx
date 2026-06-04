@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Rocket, ShieldCheck, Wallet, Bot, Cpu, Briefcase, Users, FileText, GraduationCap, CheckCircle2, ArrowRight, LayoutDashboard, LifeBuoy, Percent, TrendingUp, ShieldAlert, ClipboardList, ShoppingBag, CheckCircle, Globe, Scale, Loader2, ExternalLink } from 'lucide-react';
+import { Rocket, ShieldCheck, Wallet, Bot, Cpu, Briefcase, Users, FileText, GraduationCap, CheckCircle2, ArrowRight, LayoutDashboard, LifeBuoy, Percent, TrendingUp, ShieldAlert, ClipboardList, ShoppingBag, CheckCircle, Globe, Scale, Loader2, ExternalLink, BadgeDollarSign } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import dynamicImport from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,10 +18,106 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { saveDemoLead } from '@/app/actions';
+import { getFirestore, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { firebaseApp } from '@/lib/firebase';
+import { Service } from '@/lib/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const TrustIndexWidget = dynamicImport(() => import('@/components/shared/TrustIndexWidget'), {
   ssr: false,
 });
+
+const db = getFirestore(firebaseApp);
+
+function PartnerPricingDialog() {
+    const [services, setServices] = useState<Service[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
+
+    const fetchPricing = async () => {
+        setIsLoading(true);
+        try {
+            const q = query(collection(db, "services"), orderBy("title"));
+            const snap = await getDocs(q);
+            setServices(snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Service)));
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) fetchPricing();
+    }, [isOpen]);
+
+    const formatPrice = (price: number) => {
+        return new Intl.NumberFormat('en-ZA', {
+          style: 'currency',
+          currency: 'ZAR',
+        }).format(price);
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <button className="text-primary font-bold text-xs flex items-center gap-1 mt-2 hover:underline ml-8 animate-in fade-in">
+                    View Partner Pricing <ExternalLink className="h-3 w-3" />
+                </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-6 bg-slate-50 border-b shrink-0">
+                    <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                        <BadgeDollarSign className="h-6 w-6 text-primary" />
+                        Wholesale Partner Pricing
+                    </DialogTitle>
+                    <DialogDescription>
+                        Practice members receive a standard 25% discount on all service fees.
+                    </DialogDescription>
+                </DialogHeader>
+                
+                <div className="flex-grow overflow-hidden px-6 py-2 bg-white">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center h-full gap-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-sm font-medium text-muted-foreground">Fetching latest rates...</p>
+                        </div>
+                    ) : (
+                        <ScrollArea className="h-full pr-4">
+                            <div className="border rounded-lg overflow-hidden my-4">
+                                <Table>
+                                    <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                        <TableRow>
+                                            <TableHead className="w-1/2">Service Description</TableHead>
+                                            <TableHead className="text-right">Retail Price</TableHead>
+                                            <TableHead className="text-right text-primary">Partner Cost (25% Off)</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {services.filter(s => !s.isPriceTbc).map((service) => (
+                                            <TableRow key={service.id}>
+                                                <TableCell className="font-medium text-xs sm:text-sm">{service.title}</TableCell>
+                                                <TableCell className="text-right text-xs opacity-50 line-through">{formatPrice(service.price)}</TableCell>
+                                                <TableCell className="text-right font-bold text-primary text-xs sm:text-sm">{formatPrice(service.resellerPrice || service.price * 0.75)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </ScrollArea>
+                    )}
+                </div>
+                <DialogFooter className="p-4 bg-muted/30 border-t shrink-0 sm:justify-between items-center">
+                    <p className="text-[10px] text-muted-foreground italic px-4">
+                        * Prices exclude 3rd party statutory costs (e.g. CIPC fees) which are passed through at cost.
+                    </p>
+                    <Button onClick={() => setIsOpen(false)}>Close List</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 const demoFormSchema = z.object({
   name: z.string().min(2, "First name is required."),
@@ -97,6 +193,7 @@ const featureBenefits = [
         icon: Percent,
         feature: '25% Wholesale Discount',
         benefit: 'Increase your profit margins instantly. You buy services at wholesale rates and sell at retail prices, keeping 100% of the markup.',
+        showPricing: true,
     },
     {
         icon: LayoutDashboard,
@@ -357,12 +454,13 @@ export default function BecomeAPartnerPageClient() {
                                     <h3 className="font-bold text-lg text-slate-900 leading-tight">{item.feature}</h3>
                                 </div>
                             </div>
-                            <div className="p-6 bg-white group-hover:bg-transparent transition-colors flex flex-col justify-center">
+                            <div className="p-6 bg-white group-hover:bg-transparent transition-colors flex flex-col justify-center items-start">
                                 <span className="md:hidden text-[10px] font-black uppercase text-green-600 tracking-widest block mb-2">The Benefit to You</span>
                                 <div className="flex items-start gap-3">
                                     <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
                                     <p className="text-sm text-muted-foreground font-medium leading-relaxed">{item.benefit}</p>
                                 </div>
+                                {item.showPricing && <PartnerPricingDialog />}
                             </div>
                         </div>
                     ))}
