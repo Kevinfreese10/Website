@@ -90,8 +90,11 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
           const unitComplex = [addr.unit, addr.complex].filter(Boolean).join(', ');
           const addrLines = [unitComplex, addr.street, addr.suburb, addr.city, addr.zip].filter(Boolean);
           addrLines.forEach(line => {
-              doc.text(String(line), 15, currentY);
-              currentY += 5;
+              const wrapped = doc.splitTextToSize(String(line), 100);
+              wrapped.forEach((subLine: string) => {
+                  doc.text(subLine, 15, currentY);
+                  currentY += 5;
+              });
           });
       }
 
@@ -151,8 +154,11 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
           const unitComplex = [employee.address.unit, employee.address.complex].filter(Boolean).join(', ');
           const lines = [unitComplex, employee.address.street, employee.address.suburb, employee.address.city, employee.address.zip].filter(Boolean);
           lines.forEach(line => {
-              doc.text(String(line), col1X + 30, addrY);
-              addrY += 5;
+              const wrapped = doc.splitTextToSize(String(line), 30);
+              wrapped.forEach((subLine: string) => {
+                  doc.text(subLine, col1X + 30, addrY);
+                  addrY += 5;
+              });
           });
       }
       
