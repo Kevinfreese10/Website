@@ -442,7 +442,7 @@ export async function POST(req: NextRequest) {
 
           // 5. Send Document Request Email (Automated)
           const isOutsourced = !!currentOrderData.resellerId;
-          const recipientEmail = isOutsourced && currentOrderData.endCustomerEmail 
+          const recipientEmail = isOutsourced && currentOrderData.documentContact === 'client' 
               ? currentOrderData.endCustomerEmail 
               : currentOrderData.customerEmail;
 

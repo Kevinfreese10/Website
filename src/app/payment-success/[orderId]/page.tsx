@@ -95,30 +95,32 @@ export default function PaymentSuccessPage() {
                                 path: item.service.attachmentUrl!,
                             }));
                         
-                        const recipientEmail = orderData.resellerId && orderData.endCustomerEmail 
+                        const recipientEmail = orderData.resellerId && orderData.documentContact === 'client' 
                             ? orderData.endCustomerEmail 
                             : orderData.customerEmail;
 
-                        try {
-                            await sendEmail({
-                                to: recipientEmail,
-                                subject: `Action Required for Your Order #${orderId}`,
-                                html: emailHtml,
-                                attachments: attachments,
-                                resellerId: orderData.resellerId || undefined,
-                            });
-                             const emailNote: OrderNote = {
-                                text: `Sent "Request Documents" email to ${recipientEmail} (Payment Successful).`,
-                                date: Timestamp.now(),
-                                authorId: 'system',
-                                type: 'email',
-                                subject: `Action Required for Your Order #${orderId}`,
-                                attachments: null,
-                            };
-                            await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
-                        } catch(e) {
-                             console.error("Failed to send document request email:", e);
-                             toast({ title: 'Email Failed', description: 'Could not notify client. Please check your SMTP settings.', variant: 'destructive'});
+                        if (recipientEmail) {
+                            try {
+                                await sendEmail({
+                                    to: recipientEmail,
+                                    subject: `Action Required for Your Order #${orderId}`,
+                                    html: emailHtml,
+                                    attachments: attachments,
+                                    resellerId: orderData.resellerId || undefined,
+                                });
+                                 const emailNote: OrderNote = {
+                                    text: `Sent "Request Documents" email to ${recipientEmail} (Payment Successful).`,
+                                    date: Timestamp.now(),
+                                    authorId: 'system',
+                                    type: 'email',
+                                    subject: `Action Required for Your Order #${orderId}`,
+                                    attachments: null,
+                                };
+                                await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
+                            } catch(e) {
+                                 console.error("Failed to send document request email:", e);
+                                 toast({ title: 'Email Failed', description: 'Could not notify client. Please check your SMTP settings.', variant: 'destructive'});
+                            }
                         }
                     }
                     

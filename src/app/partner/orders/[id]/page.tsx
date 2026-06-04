@@ -192,8 +192,8 @@ export default function PartnerOrderDetailsPage() {
         notes: arrayUnion(newNote),
       });
 
-      const emailTo = order.endCustomerEmail || order.customerEmail;
-      const recipientName = order.endCustomerName || order.customerName;
+      const emailTo = order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail;
+      const recipientName = order.documentContact === 'client' ? order.endCustomerName : order.customerName;
 
       if (emailTo && recipientName) {
           notifyOfNewNote({
@@ -243,7 +243,7 @@ export default function PartnerOrderDetailsPage() {
   };
 
   const generateNoteTemplate = (type: 'docs' | 'payment' | 'review') => {
-      const contactName = order?.endCustomerName || order?.customerName;
+      const contactName = order?.documentContact === 'client' ? order?.endCustomerName : order?.customerName;
       let text = `Hi ${contactName?.split(' ')[0]},\n\n`;
       const orderId = order?.originalOrderId || order?.id;
 
@@ -260,7 +260,7 @@ export default function PartnerOrderDetailsPage() {
 
   const handleGenerateDiscount = async () => {
     if (!order) return;
-    const contactName = order?.endCustomerName || order?.customerName;
+    const contactName = order?.documentContact === 'client' ? order?.endCustomerName : order?.customerName;
     
     if (order.discountCode) {
       toast({ title: 'Discount Already Generated', description: `This order already has a discount code: ${order.discountCode}`, variant: 'destructive' });
@@ -441,8 +441,13 @@ export default function PartnerOrderDetailsPage() {
 
   const handleSendFeedback = async () => {
     if (!order || !order.documentUploads) return;
-    const emailTo = order.endCustomerEmail || order.customerEmail;
-    const clientName = order.endCustomerName || order.customerName;
+    const emailTo = order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail;
+    const clientName = order.documentContact === 'client' ? order.endCustomerName : order.customerName;
+
+    if (!emailTo || !clientName) {
+        toast({ title: "Cannot send feedback", description: "Missing client contact details.", variant: "destructive" });
+        return;
+    }
 
     setIsSendingFeedback(true);
     toast({ title: "Sending Feedback...", description: "Notifying the client of the review status." });
@@ -480,8 +485,13 @@ export default function PartnerOrderDetailsPage() {
 
   const handleSendFollowUp = async () => {
     if (!order) return;
-    const emailTo = order.endCustomerEmail || order.customerEmail;
-    const clientName = order.endCustomerName || order.customerName;
+    const emailTo = order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail;
+    const clientName = order.documentContact === 'client' ? order.endCustomerName : order.customerName;
+
+    if (!emailTo || !clientName) {
+        toast({ title: "Cannot send reminder", description: "Missing client contact details.", variant: "destructive" });
+        return;
+    }
 
     setIsSendingReminder(true);
     toast({ title: "Sending Reminder...", description: "Notifying the client of outstanding documents." });

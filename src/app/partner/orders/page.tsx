@@ -232,7 +232,7 @@ export default function PartnerOrdersPage() {
             });
 
             // 4. Notify Client (Document Request)
-            const emailTo = newOrderData.endCustomerEmail || newOrderData.customerEmail;
+            const emailTo = newOrderData.documentContact === 'client' ? newOrderData.endCustomerEmail : newOrderData.customerEmail;
             if (emailTo) {
                 const itemsWithServices = newOrderData.items.map(item => {
                     const service = allServices.find(s => s.id === item.id);
@@ -337,7 +337,9 @@ export default function PartnerOrdersPage() {
           }
 
           // NOTIFY CLIENT: Confirmation of payment & Request for documents
-          const emailTo = orderToUpdate.endCustomerEmail || orderToUpdate.customerEmail;
+          const emailTo = orderToUpdate.isOutsourced && orderToUpdate.documentContact === 'client' 
+              ? orderToUpdate.endCustomerEmail 
+              : orderToUpdate.customerEmail;
           if (emailTo) {
               const itemsWithServices = orderToUpdate.items.map(item => {
                   const service = allServices.find(s => s.id === item.id);

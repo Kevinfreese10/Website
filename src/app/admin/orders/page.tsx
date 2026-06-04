@@ -308,8 +308,8 @@ export default function AdminOrdersPage() {
       
       const reseller = orderToUpdate.resellerId ? allStaff.find(u => u.id === orderToUpdate.resellerId) : undefined;
       const isOutsourced = !!orderToUpdate.resellerId;
-      const emailTo = isOutsourced ? orderToUpdate.endCustomerEmail : orderToUpdate.customerEmail;
-      const customerName = (isOutsourced ? orderToUpdate.endCustomerName : orderToUpdate.customerName) || '';
+      const emailTo = isOutsourced && orderToUpdate.documentContact === 'client' ? orderToUpdate.endCustomerEmail : orderToUpdate.customerEmail;
+      const customerName = (isOutsourced && orderToUpdate.documentContact === 'client' ? orderToUpdate.endCustomerName : orderToUpdate.customerName) || '';
       const emailOrder = {...orderToUpdate, customerName, id: orderToUpdate.originalOrderId || orderToUpdate.id } as Order;
       
       if (newStatus === 'Processing' && emailTo && user.email) {
