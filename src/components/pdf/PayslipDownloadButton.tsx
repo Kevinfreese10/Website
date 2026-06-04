@@ -98,12 +98,12 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
           });
       }
 
-      if (client.registrationNumber) {
+      if (client.registrationNumber && client.registrationNumber !== 'N/A') {
           doc.text(`Reg No: ${client.registrationNumber}`, 15, currentY);
           currentY += 5;
       }
 
-      if (client.payeReference) {
+      if (client.payeReference && client.payeReference !== 'N/A') {
           doc.text(`PAYE Ref: ${client.payeReference}`, 15, currentY);
           currentY += 5;
       }
@@ -137,7 +137,8 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
       const col2X = 80;
       const col3X = 140;
 
-      const drawLabelValue = (label: string, value: string, x: number, y: number) => {
+      const drawLabelValue = (label: string, value: string | undefined | null, x: number, y: number) => {
+          if (!value || value === 'N/A') return;
           doc.setFont('helvetica', 'bold');
           doc.text(label, x, y);
           doc.setFont('helvetica', 'normal');
@@ -151,18 +152,31 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
       currentY += 6;
 
       // Row 2
-      drawLabelValue('Job title', employee.jobTitle || 'N/A', col1X, currentY);
+      drawLabelValue('Job title', employee.jobTitle, col1X, currentY);
       drawLabelValue('Identity Number', employee.idNumber, col2X, currentY);
-      drawLabelValue('Bank Name', employee.bankingDetails?.bankName || 'N/A', col3X, currentY);
+      drawLabelValue('Bank Name', employee.bankingDetails?.bankName, col3X, currentY);
       currentY += 6;
 
       // Row 3
-      drawLabelValue('Address', '', col1X, currentY);
-      drawLabelValue('Employed from', employee.joinDate?.toDate ? format(employee.joinDate.toDate(), 'yyyy/MM/dd') : (employee.joinDate ? format(new Date(employee.joinDate), 'yyyy/MM/dd') : 'N/A'), col2X, currentY);
-      drawLabelValue('Branch Code', employee.bankingDetails?.branchCode || 'N/A', col3X, currentY);
+      const hasAddress = employee.address && (
+          employee.address.unit ||
+          employee.address.complex ||
+          employee.address.street ||
+          employee.address.suburb ||
+          employee.address.city ||
+          employee.address.zip
+      );
+      if (hasAddress) {
+          doc.setFont('helvetica', 'bold');
+          doc.text('Address', col1X, currentY);
+      }
+
+      const joinDateStr = employee.joinDate?.toDate ? format(employee.joinDate.toDate(), 'yyyy/MM/dd') : (employee.joinDate ? format(new Date(employee.joinDate), 'yyyy/MM/dd') : '');
+      drawLabelValue('Employed from', joinDateStr, col2X, currentY);
+      drawLabelValue('Branch Code', employee.bankingDetails?.branchCode, col3X, currentY);
       
       let addrY = currentY;
-      if (employee.address) {
+      if (employee.address && hasAddress) {
           const unitComplex = [employee.address.unit, employee.address.complex].filter(Boolean).join(', ');
           const lines = [unitComplex, employee.address.street, employee.address.suburb, employee.address.city, employee.address.zip].filter(Boolean);
           lines.forEach(line => {
@@ -176,8 +190,8 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
       
       const hourlyRate = p.grossPay / 160;
       drawLabelValue('Rate per hour', formatCurr(hourlyRate), col2X, currentY + 6);
-      drawLabelValue('Account Number', employee.bankingDetails?.accountNumber || 'N/A', col3X, currentY + 6);
-      drawLabelValue('Account Holder', employee.bankingDetails?.accountHolder || 'N/A', col3X, currentY + 12);
+      drawLabelValue('Account Number', employee.bankingDetails?.accountNumber, col3X, currentY + 6);
+      drawLabelValue('Account Holder', employee.bankingDetails?.accountHolder, col3X, currentY + 12);
 
       currentY = Math.max(addrY, currentY + 20);
       doc.line(15, currentY, 195, currentY);

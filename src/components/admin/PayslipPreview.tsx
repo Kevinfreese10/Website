@@ -51,14 +51,30 @@ export default function PayslipPreview({ payslip, employee, client }: PayslipPre
           <div className="space-y-1.5 border-l-2 border-primary/20 pl-4">
             <p className="text-lg font-bold">{employee.name} {employee.surname}</p>
             <div className="grid grid-cols-2 gap-x-4 text-xs">
-              <span className="text-muted-foreground">Employee Code:</span>
-              <span className="font-semibold">{employee.employeeCode}</span>
-              <span className="text-muted-foreground">ID Number:</span>
-              <span className="font-semibold">{employee.idNumber}</span>
-              <span className="text-muted-foreground">Job Title:</span>
-              <span className="font-semibold">{employee.jobTitle}</span>
-              <span className="text-muted-foreground">Tax Number:</span>
-              <span className="font-semibold">{employee.taxNumber || 'N/A'}</span>
+              {employee.employeeCode && employee.employeeCode !== 'N/A' && (
+                <>
+                  <span className="text-muted-foreground">Employee Code:</span>
+                  <span className="font-semibold">{employee.employeeCode}</span>
+                </>
+              )}
+              {employee.idNumber && employee.idNumber !== 'N/A' && (
+                <>
+                  <span className="text-muted-foreground">ID Number:</span>
+                  <span className="font-semibold">{employee.idNumber}</span>
+                </>
+              )}
+              {employee.jobTitle && employee.jobTitle !== 'N/A' && (
+                <>
+                  <span className="text-muted-foreground">Job Title:</span>
+                  <span className="font-semibold">{employee.jobTitle}</span>
+                </>
+              )}
+              {employee.taxNumber && employee.taxNumber !== 'N/A' && (
+                <>
+                  <span className="text-muted-foreground">Tax Number:</span>
+                  <span className="font-semibold">{employee.taxNumber}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -70,8 +86,12 @@ export default function PayslipPreview({ payslip, employee, client }: PayslipPre
           </div>
           <div className="space-y-1.5 border-l-2 border-slate-200 pl-4 text-xs">
             <p className="font-bold">{client.companyName || client.name}</p>
-            <p className="text-muted-foreground">{client.registrationNumber || 'N/A'}</p>
-            <p className="text-muted-foreground">PAYE Ref: {client.payeReference || 'N/A'}</p>
+            {client.registrationNumber && client.registrationNumber !== 'N/A' && (
+              <p className="text-muted-foreground">Reg No: {client.registrationNumber}</p>
+            )}
+            {client.payeReference && client.payeReference !== 'N/A' && (
+              <p className="text-muted-foreground">PAYE Ref: {client.payeReference}</p>
+            )}
             {client.address && (
               <p className="text-muted-foreground max-w-[200px]">
                 {[
