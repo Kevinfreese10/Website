@@ -47,9 +47,9 @@ export default function Emp201ReportPage() {
             if (snap.exists()) {
                 const data = snap.data();
                 setClient({ ...data, id: snap.id } as User);
-                // Default to current month if not set
+                // Default to active processing month if set, otherwise current month
                 if (!selectedMonth) {
-                    setSelectedMonth(format(new Date(), 'MMMM yyyy'));
+                    setSelectedMonth(data.firstProcessingMonth || format(new Date(), 'MMMM yyyy'));
                 }
             }
         });
@@ -81,6 +81,12 @@ export default function Emp201ReportPage() {
     // Available EMP201 months (Standard Monthly Declaration)
     const availableMonths = useMemo(() => {
         const months = new Set<string>();
+        
+        // Add current active processing month if set
+        if (client?.firstProcessingMonth) {
+            months.add(client.firstProcessingMonth);
+        }
+
         // Add current and past 12 months as options
         const now = new Date();
         for (let i = 0; i < 13; i++) {
@@ -104,7 +110,7 @@ export default function Emp201ReportPage() {
             const dateB = new Date(b);
             return dateB.getTime() - dateA.getTime();
         });
-    }, [payslips]);
+    }, [payslips, client]);
 
     // Aggregation Logic: Find all payslips whose payment date is in the selected month
     const reportData = useMemo(() => {
