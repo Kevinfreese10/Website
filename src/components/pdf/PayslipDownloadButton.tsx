@@ -98,13 +98,25 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
           });
       }
 
+      if (client.registrationNumber) {
+          doc.text(`Reg No: ${client.registrationNumber}`, 15, currentY);
+          currentY += 5;
+      }
+
+      if (client.payeReference) {
+          doc.text(`PAYE Ref: ${client.payeReference}`, 15, currentY);
+          currentY += 5;
+      }
+
+      const dividerY = Math.max(currentY + 5, 45);
+
       // --- 2. Pay Date (Far Right) ---
       const payDate = getPayDate(payslip.period);
       const payDateStr = format(payDate, 'yyyy/MM/dd');
       doc.setFont('helvetica', 'bold');
-      doc.text('Pay Date:', 150, 40);
+      doc.text('Pay Date:', 150, dividerY - 5);
       doc.setFont('helvetica', 'normal');
-      doc.text(payDateStr, 195, 40, { align: 'right' });
+      doc.text(payDateStr, 195, dividerY - 5, { align: 'right' });
 
       // --- 3. Logo (Top Right) ---
       if (client.logoUrl) {
@@ -115,7 +127,7 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
           }
       }
 
-      currentY = 45;
+      currentY = dividerY;
       doc.setDrawColor(200);
       doc.line(15, currentY, 195, currentY);
       currentY += 7;
