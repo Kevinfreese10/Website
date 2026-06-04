@@ -80,16 +80,22 @@ export default function ExternalScripts() {
         id="merchant-widget"
         src="https://www.gstatic.com/shopping/merchant/merchantwidget.js"
         strategy="lazyOnload"
-        onLoad={() => {
-          if (window.merchantwidget) {
-            window.merchantwidget.start({
-              merchant_id: 5394656984,
-              position: "BOTTOM_RIGHT",
-              region: "ZA",
-            });
-          }
-        }}
       />
+      <Script id="merchant-widget-init" strategy="lazyOnload">
+        {`
+          (function tryInitWidget(attempts) {
+            if (window.merchantwidget) {
+              window.merchantwidget.start({
+                merchant_id: 5394656984,
+                position: "BOTTOM_RIGHT",
+                region: "ZA",
+              });
+            } else if (attempts > 0) {
+              setTimeout(function() { tryInitWidget(attempts - 1); }, 500);
+            }
+          })(10);
+        `}
+      </Script>
       {/* Only show the respond.io widget if we are NOT on a partner landing page */}
       {!isPartnerPage && (
         <Script
