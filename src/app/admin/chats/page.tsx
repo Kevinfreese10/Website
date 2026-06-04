@@ -29,6 +29,8 @@ type Conversation = {
   updatedAt: any;
   messages: ChatMessage[];
   mode?: 'ai' | 'agent';
+  status?: 'online' | 'offline';
+  lastActiveAt?: any;
 };
 
 const db = getFirestore(firebaseApp);
@@ -40,8 +42,28 @@ export default function AdminChatsPage() {
   const [replyText, setReplyText] = useState('');
   const [shouldNotifyEmail, setShouldNotifyEmail] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [tick, setTick] = useState(0);
   const { toast } = useToast();
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Trigger a re-render every 10 seconds to keep online/offline presence status accurate in real-time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isUserActive = (chat: Conversation) => {
+    if (!chat.lastActiveAt) return false;
+    try {
+      const lastActive = chat.lastActiveAt.toDate ? chat.lastActiveAt.toDate() : new Date(chat.lastActiveAt);
+      const diffInSeconds = (new Date().getTime() - lastActive.getTime()) / 1000;
+      return chat.status === 'online' && diffInSeconds < 40;
+    } catch {
+      return false;
+    }
+  };
 
   // Set up real-time listener for the chatbot conversations collection
   useEffect(() => {
@@ -58,6 +80,8 @@ export default function AdminChatsPage() {
           updatedAt: data.updatedAt,
           messages: data.messages || [],
           mode: data.mode || 'ai',
+          status: data.status || 'offline',
+          lastActiveAt: data.lastActiveAt || null,
         };
       });
       setConversations(fetched);
@@ -267,7 +291,10 @@ export default function AdminChatsPage() {
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="font-semibold text-sm truncate max-w-[140px]">{chat.userName}</div>
+                      <div className="flex items-center gap-1.5 truncate max-w-[140px] font-semibold text-sm">
+                        <span className={`h-2 w-2 rounded-full shrink-0 ${isUserActive(chat) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                        <span className="truncate">{chat.userName}</span>
+                      </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {chat.mode === 'agent' && (
                           <Badge className="bg-indigo-600 text-white text-[9px] hover:bg-indigo-700 font-bold px-1.5 py-0 border-none">
@@ -299,6 +326,10 @@ export default function AdminChatsPage() {
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
                     <CardTitle className="text-base font-bold text-slate-900">{activeChat.userName}</CardTitle>
+                    <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full text-[10px] font-bold select-none text-slate-700 dark:text-slate-300">
+                      <span className={`h-1.5 w-1.5 rounded-full ${isUserActive(activeChat) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                      {isUserActive(activeChat) ? 'Active Now' : 'Offline'}
+                    </div>
                     <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-medium border-slate-200 bg-white">
                       ID: {activeChat.id.substring(0, 12)}
                     </Badge>

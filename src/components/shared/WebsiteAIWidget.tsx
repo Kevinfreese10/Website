@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
   question: z.string().min(1, 'Cannot send an empty message.'),
@@ -51,6 +51,51 @@ export default function WebsiteAIWidget() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatHistory, isLoading]);
+
+  // Heartbeat tracking to update visitor presence in Firestore while widget is open
+  useEffect(() => {
+    if (!isOpen || !conversationId) return;
+
+    const updatePresence = async (statusVal: 'online' | 'offline') => {
+      try {
+        const docRef = doc(db, 'chatbotConversations', conversationId);
+        await setDoc(docRef, {
+          status: statusVal,
+          lastActiveAt: serverTimestamp(),
+        }, { merge: true });
+      } catch (err) {
+        console.error("Error updating presence:", err);
+      }
+    };
+
+    updatePresence('online');
+
+    const interval = setInterval(() => {
+      updatePresence('online');
+    }, 15000);
+
+    const handleUnload = () => {
+      updatePresence('offline');
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        updatePresence('offline');
+      } else {
+        updatePresence('online');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('beforeunload', handleUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      updatePresence('offline');
+    };
+  }, [isOpen, conversationId]);
   
   useEffect(() => {
     // 1. Check for resumeChat parameter in URL
@@ -109,13 +154,13 @@ export default function WebsiteAIWidget() {
       console.error("Firestore onSnapshot error:", error);
     });
 
-    // Automatically open the widget as a popup in modal mode after a short delay of 1.5 seconds (only once per session)
-    const hasOpenedBefore = sessionStorage.getItem('myacc_chat_opened');
+    // Automatically open the widget as a popup in modal mode after a short delay of 1.5 seconds (only once ever per user)
+    const hasOpenedBefore = localStorage.getItem('myacc_chat_opened');
     const timer = setTimeout(() => {
       if (!hasOpenedBefore) {
         setIsModal(true);
         setIsOpen(true);
-        sessionStorage.setItem('myacc_chat_opened', 'true');
+        localStorage.setItem('myacc_chat_opened', 'true');
       }
     }, 1500);
 
@@ -147,10 +192,13 @@ export default function WebsiteAIWidget() {
     setIsSubmittingEmail(true);
     try {
       const docRef = doc(db, 'chatbotConversations', conversationId);
-      await updateDoc(docRef, { 
+      await setDoc(docRef, { 
         userEmail: emailClean,
-        updatedAt: serverTimestamp()
-      });
+        mode: chatMode || 'ai',
+        userName: 'Guest',
+        updatedAt: serverTimestamp(),
+        startedAt: serverTimestamp()
+      }, { merge: true });
       setChatEmail(emailClean);
     } catch (err) {
       console.error("Error setting email:", err);
@@ -327,37 +375,70 @@ export default function WebsiteAIWidget() {
       </CardContent>
 
       {/* Input Form Footer or Email Capture */}
-      {chatMode === 'agent' && (!chatEmail || chatEmail === 'Anonymous' || chatEmail === '') ? (
-        <CardFooter className="p-4 border-t bg-indigo-50/30 flex flex-col items-stretch gap-3">
-          <div className="space-y-1">
-            <h4 className="text-xs font-bold text-indigo-950 flex items-center gap-1 select-none">
-              <ShieldCheck className="h-3.5 w-3.5 text-indigo-600 animate-pulse" />
-              Advisor Connecting...
-            </h4>
-            <p className="text-[10px] text-indigo-900 leading-relaxed select-none">
-              Please enter your email so we can notify you when the advisor replies.
-            </p>
-          </div>
-          <form onSubmit={handleRegisterEmail} className="flex gap-2 w-full">
-            <Input 
-              placeholder="yourname@example.com"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              disabled={isSubmittingEmail}
-              className="flex-grow h-9 text-xs border-indigo-200 focus-visible:ring-indigo-600 bg-white"
-              required
-              type="email"
-            />
-            <Button 
-              type="submit" 
-              size="sm" 
-              disabled={isSubmittingEmail}
-              className="bg-indigo-600 hover:bg-indigo-700 text-xs font-bold shrink-0"
-            >
-              {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : "Connect"}
-            </Button>
-          </form>
-        </CardFooter>
+      {(!chatEmail || chatEmail === 'Anonymous' || chatEmail === '') ? (
+        chatMode === 'agent' ? (
+          <CardFooter className="p-4 border-t bg-indigo-50/30 flex flex-col items-stretch gap-3">
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-indigo-950 flex items-center gap-1 select-none">
+                <ShieldCheck className="h-3.5 w-3.5 text-indigo-600 animate-pulse" />
+                Advisor Connecting...
+              </h4>
+              <p className="text-[10px] text-indigo-900 leading-relaxed select-none">
+                Please enter your email so we can notify you when the advisor replies.
+              </p>
+            </div>
+            <form onSubmit={handleRegisterEmail} className="flex gap-2 w-full">
+              <Input 
+                placeholder="yourname@example.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                disabled={isSubmittingEmail}
+                className="flex-grow h-9 text-xs border-indigo-200 focus-visible:ring-indigo-600 bg-white"
+                required
+                type="email"
+              />
+              <Button 
+                type="submit" 
+                size="sm" 
+                disabled={isSubmittingEmail}
+                className="bg-indigo-600 hover:bg-indigo-700 text-xs font-bold shrink-0 text-white"
+              >
+                {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : "Connect"}
+              </Button>
+            </form>
+          </CardFooter>
+        ) : (
+          <CardFooter className="p-4 border-t bg-blue-50/30 flex flex-col items-stretch gap-3">
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-blue-950 flex items-center gap-1 select-none">
+                <ShieldCheck className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
+                Welcome to My Accountant Support
+              </h4>
+              <p className="text-[10px] text-slate-600 leading-relaxed select-none">
+                Please enter your email address to start chatting.
+              </p>
+            </div>
+            <form onSubmit={handleRegisterEmail} className="flex gap-2 w-full">
+              <Input 
+                placeholder="yourname@example.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                disabled={isSubmittingEmail}
+                className="flex-grow h-9 text-xs border-blue-200 focus-visible:ring-blue-600 bg-white"
+                required
+                type="email"
+              />
+              <Button 
+                type="submit" 
+                size="sm" 
+                disabled={isSubmittingEmail}
+                className="bg-blue-600 hover:bg-blue-700 text-xs font-bold shrink-0 text-white"
+              >
+                {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : "Start Chat"}
+              </Button>
+            </form>
+          </CardFooter>
+        )
       ) : (
         <CardFooter className="p-3 border-t bg-white">
           <Form {...form}>

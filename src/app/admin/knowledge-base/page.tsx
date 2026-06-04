@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, PlusCircle, Trash, Loader2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash, Loader2, Sparkles, BrainCircuit, CheckCircle2, HelpCircle, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { analyzeKbContent, integrateKbClarifications, AnalyzeKbContentOutput } from '@/ai/flows/analyze-kb-content';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -52,6 +53,12 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
         },
     });
 
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState<AnalyzeKbContentOutput | null>(null);
+    const [clarifications, setClarifications] = useState<{ [question: string]: string }>({});
+    const [isIntegrating, setIsIntegrating] = useState(false);
+    const [analysisError, setAnalysisError] = useState<string | null>(null);
+
     useEffect(() => {
         form.reset({
             id: item?.id || '',
@@ -60,9 +67,22 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
             sourceType: item?.sourceType || 'qa',
             linkUrl: item?.linkUrl || '',
         });
+        setAnalysisResult(null);
+        setClarifications({});
+        setAnalysisError(null);
     }, [item, form]);
 
     const sourceType = form.watch('sourceType');
+    const watchedQuestion = form.watch('question');
+    const watchedAnswer = form.watch('answer');
+    const watchedLinkUrl = form.watch('linkUrl');
+
+    // Reset analysis result if inputs change, to keep it fresh
+    useEffect(() => {
+        setAnalysisResult(null);
+        setClarifications({});
+        setAnalysisError(null);
+    }, [watchedQuestion, watchedAnswer, sourceType, watchedLinkUrl]);
 
     const handleSubmit = (values: z.infer<typeof formSchema>) => {
         if (values.sourceType === 'link' && !values.linkUrl) {
@@ -70,6 +90,84 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
             return;
         }
         onSubmit(values);
+    };
+
+    const handleAnalyze = async () => {
+        setAnalysisError(null);
+        const isValid = await form.trigger(['question', 'answer', 'linkUrl']);
+        if (!isValid) return;
+
+        const values = form.getValues();
+        setIsAnalyzing(true);
+        try {
+            const res = await analyzeKbContent({
+                question: values.question,
+                answer: values.answer,
+                sourceType: values.sourceType,
+            });
+
+            if (res.success && res.data) {
+                setAnalysisResult(res.data);
+                const initialClarifications: { [q: string]: string } = {};
+                res.data.questions.forEach(q => {
+                    initialClarifications[q] = '';
+                });
+                setClarifications(initialClarifications);
+            } else {
+                setAnalysisError(res.error || 'Failed to analyze content.');
+            }
+        } catch (err: any) {
+            setAnalysisError(err.message || 'An unexpected error occurred during analysis.');
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleIntegrateClarifications = async () => {
+        const values = form.getValues();
+        const clarificationList = Object.entries(clarifications)
+            .filter(([_, answer]) => answer.trim() !== '')
+            .map(([question, answer]) => ({ question, answer }));
+
+        if (clarificationList.length === 0) {
+            setAnalysisError('Please provide at least one answer to the clarifying questions.');
+            return;
+        }
+
+        setIsIntegrating(true);
+        setAnalysisError(null);
+        try {
+            const res = await integrateKbClarifications({
+                question: values.question,
+                answer: values.answer,
+                sourceType: values.sourceType,
+                clarifications: clarificationList,
+            });
+
+            if (res.success && res.updatedAnswer) {
+                form.setValue('answer', res.updatedAnswer, { shouldValidate: true });
+                setClarifications({});
+                
+                // Automatically re-run the analysis
+                const nextRes = await analyzeKbContent({
+                    question: values.question,
+                    answer: res.updatedAnswer,
+                    sourceType: values.sourceType,
+                });
+
+                if (nextRes.success && nextRes.data) {
+                    setAnalysisResult(nextRes.data);
+                } else {
+                    setAnalysisResult(null);
+                }
+            } else {
+                setAnalysisError(res.error || 'Failed to integrate clarifications.');
+            }
+        } catch (err: any) {
+            setAnalysisError(err.message || 'An unexpected error occurred during integration.');
+        } finally {
+            setIsIntegrating(false);
+        }
     };
     
     return (
@@ -158,9 +256,141 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
                     )}
                 />
 
-                <div className="flex justify-end gap-2">
-                    <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-                    <Button type="submit">Save Resource</Button>
+                {/* Analysis Loading / Results Panel */}
+                {(isAnalyzing || analysisResult || analysisError) && (
+                    <div className="rounded-xl border border-violet-100 dark:border-violet-900/50 bg-violet-50/30 dark:bg-violet-950/10 p-4 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {isAnalyzing && (
+                            <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
+                                <Loader2 className="h-8 w-8 animate-spin text-violet-600 dark:text-violet-400" />
+                                <p className="text-sm font-medium text-violet-800 dark:text-violet-300">Khai is analyzing your content...</p>
+                                <p className="text-xs text-muted-foreground">Ensuring I understand the details perfectly.</p>
+                            </div>
+                        )}
+
+                        {analysisError && (
+                            <div className="flex items-start gap-3 text-sm text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                                <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-semibold">Analysis Issue</p>
+                                    <p className="text-xs">{analysisError}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {!isAnalyzing && analysisResult && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between border-b pb-3">
+                                    <div className="flex items-center gap-2">
+                                        <BrainCircuit className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                                        <h4 className="font-semibold text-sm text-violet-900 dark:text-violet-200">Khai's Comprehension</h4>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {analysisResult.understood ? (
+                                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50">
+                                                <CheckCircle2 className="mr-1 h-3 w-3" /> Fully Understood
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/50">
+                                                <HelpCircle className="mr-1 h-3 w-3 animate-pulse" /> Clarifications Needed
+                                            </Badge>
+                                        )}
+                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300">
+                                            {analysisResult.comprehensionScore}%
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="text-sm text-violet-800 dark:text-violet-300 bg-violet-50/50 dark:bg-violet-950/20 p-3 rounded-lg">
+                                    <p className="font-semibold text-xs text-violet-950 dark:text-violet-200 uppercase tracking-wider mb-1">What I Understand:</p>
+                                    <p className="italic text-xs leading-relaxed">{analysisResult.summary}</p>
+                                </div>
+
+                                {analysisResult.missingDetails && analysisResult.missingDetails.length > 0 && (
+                                    <div className="space-y-1.5">
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Identified Gaps:</p>
+                                        <ul className="list-disc pl-4 text-xs text-muted-foreground space-y-1">
+                                            {analysisResult.missingDetails.map((detail, idx) => (
+                                                <li key={idx}>{detail}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {!analysisResult.understood && analysisResult.questions && analysisResult.questions.length > 0 && (
+                                    <div className="space-y-3 pt-2 border-t border-violet-100/50 dark:border-violet-900/30">
+                                        <p className="text-xs font-semibold text-violet-950 dark:text-violet-200 uppercase tracking-wider">Help me understand better:</p>
+                                        
+                                        <div className="space-y-3">
+                                            {analysisResult.questions.map((question, index) => (
+                                                <div key={index} className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-lg border border-violet-100/80 dark:border-violet-900/40">
+                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-start gap-1.5">
+                                                        <span className="text-violet-600 dark:text-violet-400 font-bold">Q{index + 1}:</span>
+                                                        {question}
+                                                    </label>
+                                                    <Textarea
+                                                        rows={2}
+                                                        value={clarifications[question] || ''}
+                                                        onChange={(e) => setClarifications(prev => ({
+                                                            ...prev,
+                                                            [question]: e.target.value
+                                                        }))}
+                                                        placeholder="Provide the missing details..."
+                                                        className="text-xs min-h-[48px] resize-none focus-visible:ring-violet-500"
+                                                        disabled={isIntegrating}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <Button
+                                            type="button"
+                                            onClick={handleIntegrateClarifications}
+                                            disabled={isIntegrating || !Object.values(clarifications).some(v => v.trim() !== '')}
+                                            className="w-full bg-violet-600 hover:bg-violet-700 text-white text-xs py-2"
+                                        >
+                                            {isIntegrating ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                                    Integrating clarifications...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles className="mr-2 h-3.5 w-3.5" />
+                                                    Integrate &amp; Update Content
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <div className="flex items-center justify-between gap-2 border-t pt-4">
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handleAnalyze} 
+                        disabled={isAnalyzing || isIntegrating}
+                        className="bg-violet-50 text-violet-700 hover:bg-violet-100 hover:text-violet-800 border-violet-200 dark:bg-violet-950/30 dark:text-violet-300 dark:border-violet-800 dark:hover:bg-violet-900/50"
+                    >
+                        {isAnalyzing ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin text-violet-600" />
+                                Analyzing...
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles className="mr-2 h-4 w-4 text-violet-500" />
+                                Analyze with Khai AI
+                            </>
+                        )}
+                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button type="button" variant="ghost" onClick={onCancel} disabled={isAnalyzing || isIntegrating}>Cancel</Button>
+                        <Button type="submit" disabled={isAnalyzing || isIntegrating}>Save Resource</Button>
+                    </div>
                 </div>
             </form>
         </Form>
@@ -297,7 +527,7 @@ export default function AdminKnowledgeBasePage() {
             <DialogTrigger asChild>
                 <span/>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{selectedItem?.id && items.some(i => i.id === selectedItem.id) ? 'Edit Resource' : 'Add to Knowledge Base'}</DialogTitle>
                     <DialogDescription>
