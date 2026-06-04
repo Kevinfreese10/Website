@@ -151,14 +151,16 @@ export default function BankReconPage() {
             const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
             const pageCount = pdfDoc.getPageCount();
 
-            // Extract Metadata from page 1
-            const firstPageDoc = await PDFDocument.create();
-            const firstPages = await firstPageDoc.copyPages(pdfDoc, [0]);
-            firstPageDoc.addPage(firstPages[0]);
-            const firstPageBase64 = `data:application/pdf;base64,${await firstPageDoc.saveAsBase64()}`;
+            // Extract Metadata from first 3 pages (or less if document is smaller)
+            const metaPageCount = Math.min(pageCount, 3);
+            const firstPagesDoc = await PDFDocument.create();
+            const pageIndices = Array.from({ length: metaPageCount }, (_, idx) => idx);
+            const copiedPages = await firstPagesDoc.copyPages(pdfDoc, pageIndices);
+            copiedPages.forEach(p => firstPagesDoc.addPage(p));
+            const firstPagesBase64 = `data:application/pdf;base64,${await firstPagesDoc.saveAsBase64()}`;
 
             updateStatement(id, { progress: 20 });
-            const metaRes = await extractStatementMetadataAction({ fileBase64: firstPageBase64 });
+            const metaRes = await extractStatementMetadataAction({ fileBase64: firstPagesBase64 });
             
             if (!metaRes.success || !metaRes.metadata) {
                 throw new Error(metaRes.error || "Failed to extract metadata");
@@ -168,14 +170,14 @@ export default function BankReconPage() {
             updateStatement(id, {
                 status: 'extracting_txs',
                 progress: 40,
-                bankName: meta.bankName,
-                accountNumber: meta.accountNumber,
-                holderName: meta.holderName,
-                startDate: meta.startDate,
-                endDate: meta.endDate,
-                openingBalance: meta.openingBalance,
-                closingBalance: meta.closingBalance,
-                currency: meta.currency
+                bankName: meta.bankName || 'Unknown Bank',
+                accountNumber: meta.accountNumber || 'UNIDENTIFIED-ACCOUNT',
+                holderName: meta.holderName || 'Unknown Holder',
+                startDate: meta.startDate || '',
+                endDate: meta.endDate || '',
+                openingBalance: meta.openingBalance || 0,
+                closingBalance: meta.closingBalance || 0,
+                currency: meta.currency || 'ZAR'
             });
 
             // Extract transactions in chunks of 5 pages
@@ -248,8 +250,8 @@ export default function BankReconPage() {
     const groupedAccounts = useMemo(() => {
         const groups: Record<string, ExtractedStatement[]> = {};
         statements.forEach(s => {
-            if (s.status === 'complete' && s.accountNumber) {
-                const cleanAccNum = s.accountNumber.replace(/\s+/g, '');
+            if (s.status === 'complete') {
+                const cleanAccNum = (s.accountNumber || "UNIDENTIFIED-ACCOUNT").replace(/\s+/g, '').toUpperCase();
                 if (!groups[cleanAccNum]) groups[cleanAccNum] = [];
                 groups[cleanAccNum].push(s);
             }
@@ -691,6 +693,85 @@ export default function BankReconPage() {
                                 <p className="text-xs text-muted-foreground">Unable to load document preview</p>
                             )}
                         </div>
+
+                        {/* Statement Header Details Card (Editable) */}
+                        <Card className="border border-muted shadow-sm">
+                            <CardHeader className="py-2.5 px-4 bg-muted/20">
+                                <CardTitle className="text-xs uppercase font-bold text-muted-foreground flex items-center gap-1">
+                                    <Info className="h-3.5 w-3.5 text-primary" /> Correct Detected Metadata
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-[9px] uppercase font-bold text-muted-foreground">Bank Name</Label>
+                                        <Input 
+                                            value={activeStatement.bankName || ''} 
+                                            onChange={(e) => updateStatement(activeStatement.id, { bankName: e.target.value })}
+                                            className="h-8 text-xs bg-white" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[9px] uppercase font-bold text-muted-foreground">Account Number</Label>
+                                        <Input 
+                                            value={activeStatement.accountNumber || ''} 
+                                            onChange={(e) => updateStatement(activeStatement.id, { accountNumber: e.target.value })}
+                                            className="h-8 text-xs font-mono bg-white" 
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[9px] uppercase font-bold text-muted-foreground">Account Holder Name</Label>
+                                    <Input 
+                                        value={activeStatement.holderName || ''} 
+                                        onChange={(e) => updateStatement(activeStatement.id, { holderName: e.target.value })}
+                                        className="h-8 text-xs bg-white" 
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-[9px] uppercase font-bold text-muted-foreground">Start Date</Label>
+                                        <Input 
+                                            type="date"
+                                            value={activeStatement.startDate || ''} 
+                                            onChange={(e) => updateStatement(activeStatement.id, { startDate: e.target.value })}
+                                            className="h-8 text-xs bg-white" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[9px] uppercase font-bold text-muted-foreground">End Date</Label>
+                                        <Input 
+                                            type="date"
+                                            value={activeStatement.endDate || ''} 
+                                            onChange={(e) => updateStatement(activeStatement.id, { endDate: e.target.value })}
+                                            className="h-8 text-xs bg-white" 
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-[9px] uppercase font-bold text-muted-foreground">Opening Balance</Label>
+                                        <Input 
+                                            type="number"
+                                            step="0.01"
+                                            value={activeStatement.openingBalance || 0} 
+                                            onChange={(e) => updateStatement(activeStatement.id, { openingBalance: parseFloat(e.target.value) || 0 })}
+                                            className="h-8 text-xs font-mono bg-white" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[9px] uppercase font-bold text-muted-foreground">Closing Balance</Label>
+                                        <Input 
+                                            type="number"
+                                            step="0.01"
+                                            value={activeStatement.closingBalance || 0} 
+                                            onChange={(e) => updateStatement(activeStatement.id, { closingBalance: parseFloat(e.target.value) || 0 })}
+                                            className="h-8 text-xs font-mono bg-white" 
+                                        />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     {/* Right: Editable Transaction Grid */}
