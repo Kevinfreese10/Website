@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MessageSquare, Search, Calendar, User, Trash, ExternalLink, ShieldCheck, ShieldAlert, Send } from 'lucide-react';
+import { Loader2, MessageSquare, Search, Calendar, User, Trash, ExternalLink, ShieldCheck, ShieldAlert, Send, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { collection, deleteDoc, doc, query, orderBy, getFirestore, onSnapshot, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
@@ -363,8 +363,8 @@ export default function AdminChatsPage() {
                       }`}
                     >
                       {msg.role === 'bot' && (
-                        <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center border shrink-0 overflow-hidden shadow-sm">
-                          <img src="/favicon.ico" alt="Khai Mascot" className="h-6 w-6 object-contain scale-[1.8]" />
+                        <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0 shadow-sm">
+                          <Bot className="h-4.5 w-4.5 text-blue-600" />
                         </div>
                       )}
                       

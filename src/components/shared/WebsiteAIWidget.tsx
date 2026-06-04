@@ -152,8 +152,8 @@ export default function WebsiteAIWidget() {
       <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 flex flex-row items-center justify-between space-y-0 border-b border-blue-700">
         <div className="flex items-center gap-2">
           <div className="relative">
-            <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center border border-white/20 overflow-hidden">
-              <img src="/favicon.ico" alt="AI Mascot" className="h-8 w-8 object-contain scale-[1.8] origin-center" />
+            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center border border-white/25">
+              <Bot className="h-5 w-5 text-white" />
             </div>
             <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-white animate-pulse" />
           </div>
@@ -197,8 +197,8 @@ export default function WebsiteAIWidget() {
             )}
           >
             {message.role === 'bot' && (
-              <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center border border-slate-200 shrink-0 overflow-hidden shadow-sm">
-                <img src="/favicon.ico" alt="AI Mascot" className="h-6 w-6 object-contain scale-[1.8] origin-center" />
+              <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0 shadow-sm">
+                <Bot className="h-4.5 w-4.5 text-blue-600" />
               </div>
             )}
             {message.role === 'agent' && (
@@ -268,8 +268,8 @@ export default function WebsiteAIWidget() {
         
         {isLoading && (
           <div className="flex items-end gap-2 justify-start animate-pulse">
-              <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center border border-slate-200 shrink-0 overflow-hidden shadow-sm">
-                 <img src="/favicon.ico" alt="AI Mascot" className="h-6 w-6 object-contain scale-[1.8] origin-center" />
+              <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0 shadow-sm">
+                 <Bot className="h-4.5 w-4.5 text-blue-600" />
               </div>
               <div className="p-3.5 rounded-2xl rounded-bl-none bg-white border border-slate-100 shadow-sm flex items-center justify-center">
                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
