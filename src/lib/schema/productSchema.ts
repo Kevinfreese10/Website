@@ -95,6 +95,21 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
         "@type": "MonetaryAmount",
         "value": "0",
         "currency": "ZAR"
+      },
+      "deliveryTime": {
+        "@type": "ShippingDeliveryTime",
+        "handlingTime": {
+          "@type": "QuantitativeValue",
+          "minValue": 0,
+          "maxValue": 1,
+          "unitCode": "d"
+        },
+        "transitTime": {
+          "@type": "QuantitativeValue",
+          "minValue": 0,
+          "maxValue": 1,
+          "unitCode": "d"
+        }
       }
     }
   };
