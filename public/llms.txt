@@ -1,0 +1,23 @@
+# My Accountant
+
+> My Accountant is a premier digital accounting and tax services provider in South Africa. Powered by Khai, our smart financial AI assistant, we offer automated bookkeeping, CIPC registrations, SARS compliance checks, tax dispute resolutions, and specialized business advisory services.
+
+## Core Products & Services
+* [/products](https://www.myacc.co.za/products) - Our suite of professional accounting, payroll, and tax products available for purchase online.
+* [/ai-accountant](https://www.myacc.co.za/ai-accountant) - Meet Khai, the AI Accountant that automates your entire bookkeeping workflow from receipts to reconciliations.
+* [/compliance](https://www.myacc.co.za/compliance) - Free SARS & CIPC Compliance Check tool to instantly assess your South African business compliance status.
+* [/sars-compromise](https://www.myacc.co.za/sars-compromise) - Professional assistance for negotiating a debt settlement or Compromise of Debt with SARS.
+* [/sars-disputes](https://www.myacc.co.za/sars-disputes) - Expert support for lodging SARS disputes, objections (Section 104), and appeals.
+* [/remission-of-fines](https://www.myacc.co.za/remission-of-fines) - Request for Remission (RFR) submissions to remove or reduce administrative and understatement tax penalties.
+* [/liquidations](https://www.myacc.co.za/liquidations) - Voluntary company liquidation services to close your South African business legally and responsibly.
+
+## Partner Programs
+* [/become-a-partner](https://www.myacc.co.za/become-a-partner) - Learn about the Bookkeeper Empowerment Initiative (BEI) to get 25% off standard service fees and white-label tools.
+* [/franchise](https://www.myacc.co.za/franchise) - Opportunities to own an exclusive local My Accountant territory and franchise branch.
+
+## Information & Support
+* [/blog](https://www.myacc.co.za/blog) - Our Tax Tip Blog featuring standard-aligned accounting and tax advice for South Africans.
+* [/contact](https://www.myacc.co.za/contact) - Contact form and direct communication channels to speak to our expert accountants.
+* [/terms](https://www.myacc.co.za/terms) - Terms and conditions governing all services and partnerships.
+* [/popia](https://www.myacc.co.za/popia) - Our POPIA (Protection of Personal Information Act) compliance policy.
+* [/refund-policy](https://www.myacc.co.za/refund-policy) - Terms for refunds on services purchased through the My Accountant store.
