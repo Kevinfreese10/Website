@@ -492,6 +492,20 @@ export type ImportedTransaction = {
   matchedRuleDescription?: string;
   matchedKeyword?: string;
   auditFiles?: { name: string; url: string }[];
+  splitFrom?: string;
+  isSplitChild?: boolean;
+  parentTxData?: {
+    amount: number;
+    description: string;
+    date: any;
+    reference?: string;
+    bankAccountId: string;
+    isExpense: boolean;
+    status: string;
+    cleanDescription?: string;
+    rawDescription?: string;
+    merchantKey?: string;
+  };
 };
 
 export type AllocationRule = {

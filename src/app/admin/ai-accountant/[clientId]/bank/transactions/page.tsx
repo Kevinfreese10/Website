@@ -678,6 +678,329 @@ function CreateGeneralAccountDialog({ client, onAccountCreated, open, onOpenChan
     );
 }
 
+function SplitTransactionDialog({ 
+    client, 
+    transaction, 
+    open, 
+    onOpenChange, 
+    onSplitComplete,
+    customers,
+    suppliers
+}: { 
+    client: User | null; 
+    transaction: ImportedTransaction | null; 
+    open: boolean; 
+    onOpenChange: (open: boolean) => void; 
+    onSplitComplete: () => void;
+    customers: ClientCustomer[];
+    suppliers: Supplier[];
+}) {
+    const { toast } = useToast();
+    const [isSaving, setIsSaving] = useState(false);
+    
+    interface SplitRow {
+        amount: string;
+        allocatedTo: { value: string, type: 'account' | 'supplier' | 'customer' } | null;
+        vatType: string;
+    }
+
+    const [rows, setRows] = useState<SplitRow[]>([
+        { amount: '', allocatedTo: null, vatType: 'no_vat' },
+        { amount: '', allocatedTo: null, vatType: 'no_vat' }
+    ]);
+
+    useEffect(() => {
+        if (open && transaction) {
+            setRows([
+                { amount: '', allocatedTo: null, vatType: transaction.isExpense ? 'standard_rated_purchases' : 'standard_rated_sales' },
+                { amount: '', allocatedTo: null, vatType: transaction.isExpense ? 'standard_rated_purchases' : 'standard_rated_sales' }
+            ]);
+        }
+    }, [open, transaction]);
+
+    const uniqueChartOfAccounts = React.useMemo(() => {
+        const coa = [...(client?.chartOfAccounts || [])];
+        const unique = Array.from(new Map(coa.map(a => [a.accountNumber, a])).values());
+        return unique.sort((a, b) => a.description.toLowerCase().localeCompare(b.description.toLowerCase()));
+    }, [client]);
+
+    const getAllocationName = React.useCallback((allocation: { value: string, type: 'account' | 'supplier' | 'customer' }) => {
+        if (allocation.type === 'customer') {
+            return customers.find(c => c.id === allocation.value)?.name || 'Selected Customer';
+        }
+        if (allocation.type === 'supplier') {
+            return suppliers.find(s => s.id === allocation.value)?.name || 'Selected Supplier';
+        }
+        return uniqueChartOfAccounts.find(a => a.id === allocation.value)?.description || 'Selected Account';
+    }, [uniqueChartOfAccounts, customers, suppliers]);
+
+    if (!transaction) return null;
+
+    const originalAbs = Math.abs(transaction.amount);
+    const currentSum = rows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+    const diff = Math.round(originalAbs * 100) - Math.round(currentSum * 100);
+    const remaining = diff / 100;
+    const isBalanced = diff === 0;
+
+    const handleAddRow = () => {
+        setRows([...rows, { amount: '', allocatedTo: null, vatType: transaction.isExpense ? 'standard_rated_purchases' : 'standard_rated_sales' }]);
+    };
+
+    const handleRemoveRow = (index: number) => {
+        if (rows.length <= 2) return;
+        const newRows = [...rows];
+        newRows.splice(index, 1);
+        setRows(newRows);
+    };
+
+    const handleRowChange = (index: number, field: keyof SplitRow, value: any) => {
+        const newRows = [...rows];
+        newRows[index] = { ...newRows[index], [field]: value };
+        setRows(newRows);
+    };
+
+    const isValid = isBalanced && rows.every(r => {
+        const amt = parseFloat(r.amount);
+        return !isNaN(amt) && amt > 0 && r.allocatedTo && r.allocatedTo.value;
+    });
+
+    const handleSaveSplits = async () => {
+        if (!client?.uid || !transaction) return;
+        setIsSaving(true);
+        try {
+            const batch = writeBatch(db);
+            const txCollection = collection(db, 'aiAccountantClients', client.uid, 'transactions');
+            
+            // Delete original
+            batch.delete(doc(txCollection, transaction.id));
+            
+            // Create splits
+            const sign = transaction.isExpense ? -1 : 1;
+            rows.forEach((row, index) => {
+                const amtVal = parseFloat(row.amount);
+                const subAmount = amtVal * sign;
+                const subRef = transaction.reference ? `${transaction.reference}-S${index + 1}` : `CSV-${Date.now()}-S${index + 1}`;
+                const subDescription = `${transaction.description} (Split ${index + 1}/${rows.length})`;
+                
+                const subTxData = {
+                    clientId: client.uid,
+                    bankAccountId: transaction.bankAccountId,
+                    date: transaction.date,
+                    description: subDescription,
+                    amount: subAmount,
+                    status: 'reviewed',
+                    isExpense: transaction.isExpense,
+                    allocatedTo: {
+                        value: row.allocatedTo!.value,
+                        type: row.allocatedTo!.type
+                    },
+                    vatType: client.isVatRegistered ? row.vatType : 'no_vat',
+                    reference: subRef,
+                    allocatedAt: serverTimestamp(),
+                    allocationSource: 'manual',
+                    splitFrom: transaction.id,
+                    isSplitChild: true,
+                    parentTxData: {
+                        id: transaction.id,
+                        amount: transaction.amount,
+                        description: transaction.description,
+                        date: transaction.date,
+                        reference: transaction.reference || '',
+                        bankAccountId: transaction.bankAccountId,
+                        isExpense: transaction.isExpense,
+                        status: transaction.status,
+                        ...(transaction.cleanDescription ? { cleanDescription: transaction.cleanDescription } : {}),
+                        ...(transaction.rawDescription ? { rawDescription: transaction.rawDescription } : {}),
+                        ...(transaction.merchantKey ? { merchantKey: transaction.merchantKey } : {})
+                    }
+                };
+                
+                const newDocRef = doc(txCollection);
+                batch.set(newDocRef, subTxData);
+            });
+            
+            await batch.commit();
+            toast({ title: 'Transaction Split Successfully', description: `${rows.length} sub-transactions created.` });
+            onSplitComplete();
+            onOpenChange(false);
+        } catch (error) {
+            console.error("Error saving splits:", error);
+            toast({ title: 'Error Saving Splits', description: 'Failed to split the transaction.', variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-6">
+                <DialogHeader className="pb-4">
+                    <DialogTitle className="flex items-center gap-2">
+                        <Layers className="h-5 w-5 text-primary" />
+                        Split Transaction Allocation
+                    </DialogTitle>
+                    <DialogDescription>
+                        Split the transaction amount of <strong>{formatPrice(originalAbs)}</strong> into multiple allocations.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="bg-muted/30 p-3 rounded-lg border text-sm space-y-1 mb-4 flex flex-col md:flex-row justify-between gap-4">
+                    <div>
+                        <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Original Transaction</p>
+                        <p className="font-semibold text-foreground mt-0.5">{transaction.description}</p>
+                        {transaction.reference && <p className="text-[10px] text-muted-foreground font-mono">Ref: {transaction.reference}</p>}
+                    </div>
+                    <div className="text-right">
+                        <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Original Amount</p>
+                        <p className="text-lg font-mono font-bold text-foreground mt-0.5">{formatPrice(originalAbs)}</p>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-[300px]">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-40">Amount</TableHead>
+                                <TableHead>Allocation Target</TableHead>
+                                {client?.isVatRegistered && <TableHead className="w-56">VAT Type</TableHead>}
+                                <TableHead className="w-12"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {rows.map((row, index) => (
+                                <TableRow key={index} className="align-middle">
+                                    <TableCell className="align-middle">
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={row.amount}
+                                            onChange={(e) => handleRowChange(index, 'amount', e.target.value)}
+                                            className="font-mono text-sm h-9"
+                                        />
+                                    </TableCell>
+                                    <TableCell className="align-middle">
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" className="h-9 text-[11px] w-full justify-start text-left font-normal border-muted-foreground/30">
+                                                    <span className="truncate">
+                                                        {row.allocatedTo ? getAllocationName(row.allocatedTo) : 'Select account, supplier, customer...'}
+                                                    </span>
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[300px] p-0" align="start">
+                                                <Command className="w-full">
+                                                    <CommandInput placeholder="Search allocations..." />
+                                                    <CommandList className="max-h-60 overflow-y-auto">
+                                                        <CommandEmpty>No results found.</CommandEmpty>
+                                                        <CommandGroup heading="GL Accounts">
+                                                            {uniqueChartOfAccounts.map(a => (
+                                                                <CommandItem
+                                                                    key={a.id}
+                                                                    value={a.description}
+                                                                    onSelect={() => handleRowChange(index, 'allocatedTo', { value: a.id, type: 'account' })}
+                                                                    className="p-2 cursor-pointer hover:bg-muted"
+                                                                >
+                                                                    {a.description}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                        <CommandGroup heading="Suppliers">
+                                                            {suppliers.map(s => (
+                                                                <CommandItem
+                                                                    key={s.id}
+                                                                    value={s.name}
+                                                                    onSelect={() => handleRowChange(index, 'allocatedTo', { value: s.id, type: 'supplier' })}
+                                                                    className="p-2 cursor-pointer hover:bg-muted"
+                                                                >
+                                                                    {s.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                        <CommandGroup heading="Customers">
+                                                            {customers.map(c => (
+                                                                <CommandItem
+                                                                    key={c.id}
+                                                                    value={c.name}
+                                                                    onSelect={() => handleRowChange(index, 'allocatedTo', { value: c.id, type: 'customer' })}
+                                                                    className="p-2 cursor-pointer hover:bg-muted"
+                                                                >
+                                                                    {c.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </TableCell>
+                                    {client?.isVatRegistered && (
+                                        <TableCell className="align-middle">
+                                            <Select
+                                                value={row.vatType}
+                                                onValueChange={(v) => handleRowChange(index, 'vatType', v)}
+                                            >
+                                                <SelectTrigger className="h-9 text-[10px] w-full"><SelectValue placeholder="Select VAT..." /></SelectTrigger>
+                                                <SelectContent>
+                                                    {allVatTypes.map(vt => <SelectItem key={vt.name} value={vt.name}>{vt.label}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                    )}
+                                    <TableCell className="align-middle text-center">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleRemoveRow(index)}
+                                            disabled={rows.length <= 2}
+                                            className="h-8 w-8 text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+
+                    <Button variant="outline" size="sm" onClick={handleAddRow} className="mt-2 font-semibold">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Split Allocation
+                    </Button>
+                </div>
+
+                <div className="mt-6 pt-4 border-t flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="flex flex-wrap gap-4 text-sm font-medium">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground">Split Total:</span>
+                            <span className="font-mono font-bold text-foreground">{formatPrice(currentSum)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground">Remaining:</span>
+                            <span className={cn("font-mono font-bold", isBalanced ? "text-green-600" : "text-destructive")}>
+                                {isBalanced ? (
+                                    <span className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4"/> Balanced</span>
+                                ) : (
+                                    <span>{formatPrice(remaining)}</span>
+                                )}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving} className="w-full md:w-auto">
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSaveSplits} disabled={!isValid || isSaving} className="w-full md:w-auto font-bold">
+                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Save Split Allocations
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 // #endregion
 
 interface NewTransactionsTabProps {
@@ -703,6 +1026,8 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
     const [isCreateRuleOpen, setIsCreateOpen] = useState(false);
     const [isManualTxOpen, setIsManualTxOpen] = useState(false);
     const [isCreateGeneralAccountOpen, setIsCreateGeneralAccountOpen] = useState(false);
+    const [splitTransaction, setSplitTransaction] = useState<ImportedTransaction | null>(null);
+    const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false);
     const [ruleDefaultValues, setRuleDefaultValues] = useState<any>({});
     const [transactionDescriptionForRule, setTransactionDescriptionForRule] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -1093,6 +1418,15 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
             <CreateRuleDialog client={client} onRuleCreated={() => {}} open={isCreateRuleOpen} onOpenChange={setIsCreateOpen} defaultValues={ruleDefaultValues} transactionDescription={transactionDescriptionForRule} existingRules={globalRules} customers={customers} suppliers={suppliers} />
             <CreateGeneralAccountDialog client={client} onAccountCreated={onAccountCreated} open={isCreateGeneralAccountOpen} onOpenChange={setIsCreateGeneralAccountOpen} />
             <AIAllocationReviewDialog open={isAiReviewOpen} onOpenChange={setIsAiReviewOpen} suggestion={aiSuggestion} transaction={selectedTxForAi} onAction={handleAiReviewAction} />
+            <SplitTransactionDialog 
+                client={client} 
+                transaction={splitTransaction} 
+                open={isSplitDialogOpen} 
+                onOpenChange={setIsSplitDialogOpen} 
+                onSplitComplete={() => {}} 
+                customers={customers} 
+                suppliers={suppliers} 
+            />
             
             <Card>
                 <CardHeader className="p-0 border-b">
@@ -1310,6 +1644,11 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => {
+                                                        setSplitTransaction(tx);
+                                                        setIsSplitDialogOpen(true);
+                                                    }}>Split Transaction</DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
                                                     <DropdownMenuItem onClick={() => {
                                                         const keyword = tx.cleanDescription?.split(/\s+/)[0] || tx.description.split(/\s+/)[0];
                                                         setTransactionDescriptionForRule(tx.description);
@@ -2154,6 +2493,9 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
     const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
     const [editedAllocations, setEditedAllocations] = useState<any>({});
     const [viewingRuleData, setViewingRuleData] = useState<{ rule: AllocationRule, keyword?: string } | null>(null);
+    const [splitTransaction, setSplitTransaction] = useState<ImportedTransaction | null>(null);
+    const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false);
+    const [unsplitConfirmTx, setUnsplitConfirmTx] = useState<ImportedTransaction | null>(null);
 
     const uniqueChartOfAccounts = useMemo(() => {
         const coa = [...(client?.chartOfAccounts || [])];
@@ -2275,6 +2617,58 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
         }
     };
 
+    const handleUnsplitAndReset = async (tx: ImportedTransaction) => {
+        if (!client?.uid || !tx.splitFrom || !tx.parentTxData) return;
+        setIsMovingBack(tx.id);
+        try {
+            const batch = writeBatch(db);
+            const txCollection = collection(db, 'aiAccountantClients', client.uid, 'transactions');
+            
+            // Query all sub-transactions belonging to this split
+            const q = query(txCollection, where('splitFrom', '==', tx.splitFrom));
+            const snap = await getDocs(q);
+            
+            snap.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            
+            // Recreate parent transaction
+            const parentData = tx.parentTxData;
+            const parentDocRef = doc(txCollection, tx.splitFrom);
+            
+            const restoredTx = {
+                clientId: client.uid,
+                bankAccountId: parentData.bankAccountId,
+                date: parentData.date,
+                description: parentData.description,
+                amount: parentData.amount,
+                status: 'new',
+                isExpense: parentData.isExpense,
+                reference: parentData.reference || '',
+                ...(parentData.cleanDescription ? { cleanDescription: parentData.cleanDescription } : {}),
+                ...(parentData.rawDescription ? { rawDescription: parentData.rawDescription } : {}),
+                ...(parentData.merchantKey ? { merchantKey: parentData.merchantKey } : {})
+            };
+            
+            batch.set(parentDocRef, restoredTx);
+            
+            await batch.commit();
+            
+            toast({ 
+                title: "Transaction Reunited", 
+                description: "Split transactions deleted and original transaction restored to 'New'." 
+            });
+            
+            setUnsplitConfirmTx(null);
+            refetch();
+        } catch (e) {
+            console.error(e);
+            toast({ title: "Failed to reunite transaction", variant: "destructive" });
+        } finally {
+            setIsMovingBack(null);
+        }
+    };
+
     const handleBulkMoveToNew = async () => {
         if (!client?.uid || selectedTransactions.length === 0) return;
         setIsBulkMoving(true);
@@ -2339,6 +2733,39 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                 rule={viewingRuleData?.rule || null}
                 matchedKeyword={viewingRuleData?.keyword}
             />
+            <SplitTransactionDialog 
+                client={client} 
+                transaction={splitTransaction} 
+                open={isSplitDialogOpen} 
+                onOpenChange={setIsSplitDialogOpen} 
+                onSplitComplete={() => refetch()} 
+                customers={customers} 
+                suppliers={suppliers} 
+            />
+            {unsplitConfirmTx && (
+                <AlertDialog open={!!unsplitConfirmTx} onOpenChange={(open) => !open && setUnsplitConfirmTx(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                                Re-unite Split Transaction?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This transaction is part of a split allocation. Moving it back to "New" will delete all sub-transactions belonging to this split and restore the original transaction of <strong>{formatPrice(Math.abs(unsplitConfirmTx.parentTxData?.amount || 0))}</strong>.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                                onClick={() => handleUnsplitAndReset(unsplitConfirmTx)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                                Re-unite & Move
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
             <Card>
                 <CardHeader className="p-0 border-b">
                     <Tabs value={activeSubTab} onValueChange={(v: any) => { setActiveSubTab(v); setSelectedGlAccountId("all"); setEditedAllocations({}); }} className="w-full">
@@ -2636,8 +3063,21 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                                                     <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleResetToNew(tx.id)} className="text-destructive">
+                                                    <DropdownMenuItem onClick={() => {
+                                                        if (tx.isSplitChild && tx.splitFrom) {
+                                                            setUnsplitConfirmTx(tx);
+                                                        } else {
+                                                            handleResetToNew(tx.id);
+                                                        }
+                                                    }} className="text-destructive">
                                                         <Undo2 className="mr-2 h-4 w-4" /> Move to New
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem onClick={() => {
+                                                        setSplitTransaction(tx);
+                                                        setIsSplitDialogOpen(true);
+                                                    }}>
+                                                        <Layers className="mr-2 h-4 w-4" /> Split Transaction
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem onClick={() => {
