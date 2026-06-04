@@ -54,6 +54,51 @@ export async function websiteQAndA(
   const adminDb = getAdminDb();
   const authAdmin = getAdminAuth();
 
+  // If the conversation is in agent takeover mode, bypass AI and save user message
+  if (input.conversationId) {
+    const chatRef = adminDb.collection('chatbotConversations').doc(input.conversationId);
+    const docSnap = await chatRef.get();
+    if (docSnap.exists) {
+      const chatData = docSnap.data();
+      if (chatData?.mode === 'agent') {
+        const userMsg = {
+          role: 'user',
+          content: input.question,
+          timestamp: new Date().toISOString()
+        };
+        const messages = chatData.messages || [];
+        const updatedMessages = [...messages, userMsg];
+
+        const fullHistoryAndCurrent = [
+          ...messages.map((m: any) => m.content),
+          input.question
+        ].join('\n');
+        
+        const nameMatch = fullHistoryAndCurrent.match(/Name:\s*([^\n]+)/i);
+        const emailMatch = fullHistoryAndCurrent.match(/Email:\s*([^\n]+)/i);
+        
+        const updateData: any = {
+          updatedAt: FieldValue.serverTimestamp(),
+          messages: updatedMessages
+        };
+        
+        if (nameMatch && (!chatData.userName || chatData.userName === 'Guest')) {
+          updateData.userName = nameMatch[1].trim();
+        }
+        if (emailMatch && (!chatData.userEmail || chatData.userEmail === 'Anonymous')) {
+          updateData.userEmail = emailMatch[1].trim().toLowerCase();
+        }
+
+        await chatRef.set(updateData, { merge: true });
+
+        return {
+          answer: '', // Empty answer since human agent is handling it
+          confidence: 100
+        };
+      }
+    }
+  }
+
   // Fetch live data from Firestore using Admin SDK
   const servicesSnapshot = await adminDb.collection('services').orderBy('title').get();
   const services = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));

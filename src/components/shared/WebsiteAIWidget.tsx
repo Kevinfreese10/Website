@@ -9,17 +9,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { Loader2, MessageCircle, Send, X, Bot, User, ArrowRight } from 'lucide-react';
+import { Loader2, MessageCircle, Send, X, Bot, User, ArrowRight, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const formSchema = z.object({
   question: z.string().min(1, 'Cannot send an empty message.'),
 });
 
 type ChatMessage = {
-  role: 'user' | 'bot';
+  role: 'user' | 'bot' | 'agent';
   text: string;
   serviceUrl?: string;
   orderId?: string;
@@ -31,6 +33,7 @@ export default function WebsiteAIWidget() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string>('');
+  const [chatMode, setChatMode] = useState<'ai' | 'agent'>('ai');
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -47,23 +50,57 @@ export default function WebsiteAIWidget() {
   }, [chatHistory, isLoading]);
   
   useEffect(() => {
-    // Generate a unique session/conversation ID for logging
-    const newId = 'chat_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    setConversationId(newId);
+    // 1. Persist or generate conversationId
+    let cid = localStorage.getItem('myacc_chat_id');
+    if (!cid) {
+      cid = 'chat_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('myacc_chat_id', cid);
+    }
+    setConversationId(cid);
 
     const welcomeMessage: ChatMessage = {
       role: 'bot',
       text: "Hello! I'm Khai, a Support Consultant at **My Accountant**.\n\nHow can I assist you today? I'm here to help with any questions you may have about our services, products, pricing, processes, or the company.",
     };
-    setChatHistory([welcomeMessage]);
 
-    // Automatically open the widget as a popup in modal mode after a short delay of 1.5 seconds
+    // 2. Listen to conversation real-time
+    const docRef = doc(db, 'chatbotConversations', cid);
+    const unsubscribe = onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setChatMode(data.mode || 'ai');
+        if (data.messages && data.messages.length > 0) {
+          const mapped = data.messages.map((m: any) => ({
+            role: m.role || 'bot',
+            text: m.content || '',
+            serviceUrl: m.serviceUrl,
+            orderId: m.orderId
+          }));
+          setChatHistory(mapped);
+        } else {
+          setChatHistory([welcomeMessage]);
+        }
+      } else {
+        setChatHistory([welcomeMessage]);
+      }
+    }, (error) => {
+      console.error("Firestore onSnapshot error:", error);
+    });
+
+    // Automatically open the widget as a popup in modal mode after a short delay of 1.5 seconds (only once per session)
+    const hasOpenedBefore = sessionStorage.getItem('myacc_chat_opened');
     const timer = setTimeout(() => {
-      setIsModal(true);
-      setIsOpen(true);
+      if (!hasOpenedBefore) {
+        setIsModal(true);
+        setIsOpen(true);
+        sessionStorage.setItem('myacc_chat_opened', 'true');
+      }
     }, 1500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   const toggleChat = () => {
@@ -76,29 +113,36 @@ export default function WebsiteAIWidget() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     const userMessage: ChatMessage = { role: 'user', text: values.question };
+    
+    // Optimistically update chat history for instant UI feedback
     setChatHistory(prev => [...prev, userMessage]);
-    setIsLoading(true);
+    
+    const isAgent = chatMode === 'agent';
+    if (!isAgent) {
+      setIsLoading(true);
+    }
+    
     form.reset();
 
     try {
-      const response = await websiteQAndA({ 
+      await websiteQAndA({ 
         question: values.question,
-        history: chatHistory.map(m => ({ role: m.role, content: m.text })),
+        history: chatHistory.map(m => ({ role: m.role === 'user' ? 'user' : 'bot', content: m.text })),
         conversationId: conversationId
-       });
-      const botMessage: ChatMessage = { 
-        role: 'bot', 
-        text: response.answer, 
-        serviceUrl: response.serviceUrl,
-        orderId: response.orderId 
-      };
-      setChatHistory(prev => [...prev, botMessage]);
+      });
+      // In AI mode, if the response was successful, the Firestore listener 
+      // will update the state with the bot's response.
+      // In Agent mode, the Server Action just logs the message and we wait for the human.
     } catch (e) {
-      const errorMessage: ChatMessage = { role: 'bot', text: 'Sorry, I am having trouble connecting. Please try again later.' };
-      setChatHistory(prev => [...prev, errorMessage]);
       console.error(e);
+      if (!isAgent) {
+        const errorMessage: ChatMessage = { role: 'bot', text: 'Sorry, I am having trouble connecting. Please try again later.' };
+        setChatHistory(prev => [...prev, errorMessage]);
+      }
     } finally {
-      setIsLoading(false);
+      if (!isAgent) {
+        setIsLoading(false);
+      }
     }
   }
 
@@ -128,6 +172,17 @@ export default function WebsiteAIWidget() {
         </Button>
       </CardHeader>
 
+      {/* Agent Takeover Banner */}
+      {chatMode === 'agent' && (
+        <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-2 flex items-center justify-between text-[11px] font-bold text-indigo-700 select-none animate-in slide-in-from-top duration-200">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
+            Human Advisor connected
+          </span>
+          <span className="text-[10px] text-indigo-500 uppercase font-black tracking-wider">Live Support</span>
+        </div>
+      )}
+
       {/* Messages Body */}
       <CardContent 
         ref={chatContainerRef} 
@@ -146,17 +201,29 @@ export default function WebsiteAIWidget() {
                 <img src="/favicon.ico" alt="AI Mascot" className="h-6 w-6 object-contain scale-[1.8] origin-center" />
               </div>
             )}
+            {message.role === 'agent' && (
+              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center border border-indigo-200 shrink-0 overflow-hidden shadow-sm">
+                <User className="h-4.5 w-4.5 text-indigo-600" />
+              </div>
+            )}
             <div 
               className={cn(
                 "max-w-[85%] rounded-2xl p-3.5 text-sm font-medium leading-relaxed shadow-sm",
                 message.role === 'user' 
                   ? "bg-blue-600 text-white rounded-br-none" 
-                  : "bg-white text-slate-800 border border-slate-100 rounded-bl-none"
+                  : message.role === 'agent'
+                    ? "bg-indigo-600 text-white rounded-bl-none border border-indigo-700"
+                    : "bg-white text-slate-800 border border-slate-100 rounded-bl-none"
               )}
             >
+              {message.role === 'agent' && (
+                <div className="text-[9px] text-indigo-200 font-extrabold uppercase tracking-widest mb-1.5 select-none flex items-center gap-1">
+                  <ShieldCheck className="h-3 w-3 text-indigo-200" /> Human Advisor
+                </div>
+              )}
               <div className={cn(
                 "prose prose-sm max-w-none",
-                message.role === 'user' ? "prose-invert text-white" : "prose-slate text-slate-800"
+                message.role === 'user' || message.role === 'agent' ? "prose-invert text-white" : "prose-slate text-slate-800"
               )}>
                  <ReactMarkdown>{message.text}</ReactMarkdown>
               </div>
@@ -168,7 +235,7 @@ export default function WebsiteAIWidget() {
                     onClick={() => setIsOpen(false)}
                     className={cn(
                       "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all",
-                      message.role === 'user' 
+                      message.role === 'user' || message.role === 'agent'
                         ? "bg-white/20 hover:bg-white/35 text-white" 
                         : "bg-blue-50 hover:bg-blue-100 text-blue-600"
                     )}
