@@ -49,6 +49,44 @@ export class PayrollService {
   }
 
   /**
+   * Calculates how many pay periods remain in the current SA tax year
+   * (March–February) from the employee's join date. If the employee joined
+   * before the current tax year, returns the full frequency (12 or 26).
+   */
+  static getRemainingPeriods(period?: string, joinDate?: any, frequency: number = 12): number {
+    if (!joinDate) return frequency;
+
+    const join = joinDate.toDate ? joinDate.toDate() : new Date(joinDate);
+    if (isNaN(join.getTime())) return frequency;
+
+    const periodDate = this.getPeriodDate(period);
+
+    // Determine tax year start (1 March)
+    let taxYearStartYear = periodDate.getFullYear();
+    if (periodDate.getMonth() < 2) { // Jan or Feb → tax year started previous year
+      taxYearStartYear -= 1;
+    }
+    const taxYearStart = new Date(taxYearStartYear, 2, 1); // 1 March
+
+    // Employee joined before this tax year → full year
+    if (join < taxYearStart) return frequency;
+
+    if (frequency === 12) {
+      // Monthly: count from join month through February (inclusive)
+      const taxYearEndYear = taxYearStartYear + 1;
+      const taxYearEndMonth = 1; // February = index 1
+      const remaining = (taxYearEndYear * 12 + taxYearEndMonth) - (join.getFullYear() * 12 + join.getMonth()) + 1;
+      return Math.max(1, Math.min(12, remaining));
+    } else {
+      // Fortnightly: approximate remaining fortnights until end of February
+      const taxYearEnd = new Date(taxYearStartYear + 1, 1, 28);
+      const diffDays = (taxYearEnd.getTime() - join.getTime()) / (1000 * 60 * 60 * 24);
+      const remaining = Math.round(diffDays / 14);
+      return Math.max(1, Math.min(26, remaining));
+    }
+  }
+
+  /**
    * Identifies the tax year based on the period string (e.g. "March 2026" or "06/03/2026")
    */
   static getTaxConfig(period?: string) {
@@ -104,9 +142,10 @@ export class PayrollService {
   /**
    * Calculates PAYE based on earnings.
    */
-  static calculatePaye(periodEarnings: number, period?: string, frequency: number = 12): number {
+  static calculatePaye(periodEarnings: number, period?: string, frequency: number = 12, joinDate?: any): number {
     const config = this.getTaxConfig(period);
-    const annualGross = periodEarnings * frequency;
+    const effectivePeriods = this.getRemainingPeriods(period, joinDate, frequency);
+    const annualGross = periodEarnings * effectivePeriods;
     let annualTax = 0;
 
     const bracket = [...config.brackets].reverse().find(b => annualGross > b.threshold);
@@ -118,7 +157,7 @@ export class PayrollService {
     }
 
     const netAnnualTax = Math.max(0, annualTax - config.rebate);
-    return parseFloat((netAnnualTax / frequency).toFixed(2));
+    return parseFloat((netAnnualTax / effectivePeriods).toFixed(2));
   }
 
   /**
@@ -134,7 +173,7 @@ export class PayrollService {
   /**
    * Calculates Gross from a desired Net amount using iterative approximation.
    */
-  static calculateGrossFromNet(targetNet: number, period?: string, frequency: number = 12): number {
+  static calculateGrossFromNet(targetNet: number, period?: string, frequency: number = 12, joinDate?: any): number {
     if (targetNet <= 0) return 0;
     
     let low = targetNet;
@@ -143,7 +182,7 @@ export class PayrollService {
     let iterations = 0;
     
     while (iterations < 50) {
-      const currentPaye = this.calculatePaye(mid, period, frequency);
+      const currentPaye = this.calculatePaye(mid, period, frequency, joinDate);
       const currentUif = this.calculateUif(mid, period, frequency);
       const currentNet = mid - currentPaye - currentUif;
       
@@ -185,7 +224,7 @@ export class PayrollService {
           }
 
           if (employee.isNetSalary) {
-              periodAmount = this.calculateGrossFromNet(periodAmount, basePeriod, frequency);
+              periodAmount = this.calculateGrossFromNet(periodAmount, basePeriod, frequency, employee.joinDate);
           }
           
           earnings.push({ label: frequency === 26 ? 'Fortnightly salary' : 'Basic salary', amount: parseFloat(periodAmount.toFixed(2)) });
@@ -209,9 +248,9 @@ export class PayrollService {
       return earnings;
   }
 
-  static getInitialDeductions(gross: number, period: string, frequency: number): PayslipItem[] {
+  static getInitialDeductions(gross: number, period: string, frequency: number, joinDate?: any): PayslipItem[] {
       return [
-          { label: 'Tax', amount: this.calculatePaye(gross, period, frequency), isStatutory: true },
+          { label: 'Tax', amount: this.calculatePaye(gross, period, frequency, joinDate), isStatutory: true },
           { label: 'Unemployment insurance fund', amount: this.calculateUif(gross, period, frequency), isStatutory: true }
       ];
   }
@@ -255,7 +294,7 @@ export class PayrollService {
       const earnings = this.calculateEarningsList(employee, baseValue, periodLabel, frequency, hours);
       const gross = earnings.reduce((sum, i) => sum + i.amount, 0);
 
-      const deductions = this.getInitialDeductions(gross, periodLabel, frequency);
+      const deductions = this.getInitialDeductions(gross, periodLabel, frequency, employee.joinDate);
       const contributions = this.getInitialContributions(gross, periodLabel, frequency, !!clientData.excludeSdl);
 
       const totalDeductions = deductions.reduce((sum, item) => sum + item.amount, 0);

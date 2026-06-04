@@ -25,6 +25,8 @@ const formSchema = z.object({
   surname: z.string().min(2, 'Surname is required.'),
   idNumber: z.string().min(13, 'A valid 13-digit RSA ID number is required.').max(13),
   address: z.object({
+    unit: z.string().optional(),
+    complex: z.string().optional(),
     street: z.string().min(1, 'Street address is required.'),
     suburb: z.string().optional(),
     city: z.string().min(1, 'City is required.'),
@@ -74,6 +76,8 @@ export default function EmployeeForm({
       surname: employee?.surname || '',
       idNumber: employee?.idNumber || '',
       address: {
+        unit: employee?.address?.unit || '',
+        complex: employee?.address?.complex || '',
         street: employee?.address?.street || '',
         suburb: employee?.address?.suburb || '',
         city: employee?.address?.city || '',
@@ -114,7 +118,7 @@ export default function EmployeeForm({
             <User className="h-4 w-4" /> Identity & Basic Information
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField control={form.control} name="employeeCode" render={({ field }) => ( <FormItem><FormLabel>Employee Code</FormLabel><FormControl><Input placeholder="e.g. EMP001" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="employeeCode" render={({ field }) => ( <FormItem><FormLabel>Employee Code</FormLabel><FormControl><Input placeholder="e.g. EMP001" {...field} readOnly={!!employee?.id} className={employee?.id ? 'bg-muted cursor-not-allowed opacity-70' : ''} /></FormControl>{employee?.id && <FormDescription className="text-[10px]">Employee code cannot be changed once created.</FormDescription>}<FormMessage /></FormItem> )} />
             <FormField control={form.control} name="initials" render={({ field }) => ( <FormItem><FormLabel>Initials</FormLabel><FormControl><Input placeholder="e.g. J.D." {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="surname" render={({ field }) => ( <FormItem><FormLabel>Surname</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
@@ -185,6 +189,10 @@ export default function EmployeeForm({
             <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
           </div>
           <div className="space-y-4 pt-2">
+            <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="address.unit" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Unit Number</FormLabel><FormControl><Input placeholder="e.g. Unit 5" {...field} /></FormControl></FormItem> )} />
+                <FormField control={form.control} name="address.complex" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Complex / Estate Name</FormLabel><FormControl><Input placeholder="e.g. Sunset Heights" {...field} /></FormControl></FormItem> )} />
+            </div>
             <FormField control={form.control} name="address.street" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel className="text-xs">Street Address</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />
             <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="address.suburb" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Suburb</FormLabel><FormControl><Input {...field} /></FormControl></FormItem> )} />

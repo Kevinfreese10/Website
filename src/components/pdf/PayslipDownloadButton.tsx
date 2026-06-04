@@ -117,7 +117,8 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
       
       let addrY = currentY;
       if (employee.address) {
-          const lines = [employee.address.street, employee.address.suburb, employee.address.city, employee.address.zip].filter(Boolean);
+          const unitComplex = [employee.address.unit, employee.address.complex].filter(Boolean).join(', ');
+          const lines = [unitComplex, employee.address.street, employee.address.suburb, employee.address.city, employee.address.zip].filter(Boolean);
           lines.forEach(line => {
               doc.text(String(line), col1X + 30, addrY);
               addrY += 5;

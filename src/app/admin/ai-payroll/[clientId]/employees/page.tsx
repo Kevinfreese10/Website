@@ -169,7 +169,7 @@ export default function EmployeesPage() {
                       period: periodLabel,
                       date: new Date().toISOString() as any,
                       earnings: initialEarnings,
-                      deductions: PayrollService.getInitialDeductions(initialGross, basePeriod, freqNum),
+                      deductions: PayrollService.getInitialDeductions(initialGross, basePeriod, freqNum, employee.joinDate),
                       contributions: PayrollService.getInitialContributions(initialGross, basePeriod, freqNum, !!client?.excludeSdl),
                       fringeBenefits: [],
                       grossPay: initialGross,

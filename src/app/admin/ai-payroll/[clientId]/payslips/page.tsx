@@ -212,7 +212,7 @@ export default function PayslipsPage() {
                           period: periodLabel,
                           date: new Date().toISOString() as any,
                           earnings: initialEarnings,
-                          deductions: PayrollService.getInitialDeductions(initialGross, periodLabel, freqNum),
+                          deductions: PayrollService.getInitialDeductions(initialGross, periodLabel, freqNum, employee.joinDate),
                           contributions: PayrollService.getInitialContributions(initialGross, periodLabel, freqNum, !!client?.excludeSdl),
                           fringeBenefits: [],
                           grossPay: initialGross,
@@ -410,8 +410,8 @@ export default function PayslipsPage() {
                             const period = client?.firstProcessingMonth;
                             const baseValue = employee.payType === 'Hourly' ? (employee.hourlyRate || 0) * 160 : (employee.basicSalary || 0);
                             
-                            displayGross = employee.isNetSalary ? PayrollService.calculateGrossFromNet(baseValue, period, frequency) : baseValue;
-                            displayTax = PayrollService.calculatePaye(displayGross, period, frequency);
+                            displayGross = employee.isNetSalary ? PayrollService.calculateGrossFromNet(baseValue, period, frequency, employee.joinDate) : baseValue;
+                            displayTax = PayrollService.calculatePaye(displayGross, period, frequency, employee.joinDate);
                             displayNet = displayGross - displayTax - PayrollService.calculateUif(displayGross, period, frequency);
                         }
 

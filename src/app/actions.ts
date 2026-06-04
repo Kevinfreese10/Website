@@ -534,9 +534,22 @@ export async function finalizeChatAllocation({ clientId, transactionId, accountI
 export async function saveEmployeeAction({ clientId, employeeId, data }: { clientId: string, employeeId?: string, data: any }) {
     try {
         const adminDb = getAdminDb();
+        const employeesCol = adminDb.collection('aiPayrollClients').doc(clientId).collection('employees');
+
+        if (!employeeId) {
+            // New employee — check that the employee code is unique
+            const existingSnap = await employeesCol.where('employeeCode', '==', data.employeeCode).limit(1).get();
+            if (!existingSnap.empty) {
+                return { success: false, error: `Employee code "${data.employeeCode}" is already in use. Each employee must have a unique code.` };
+            }
+        } else {
+            // Editing — strip the employee code so it cannot be changed
+            delete data.employeeCode;
+        }
+
         const targetRef = employeeId 
-            ? adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc(employeeId)
-            : adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc();
+            ? employeesCol.doc(employeeId)
+            : employeesCol.doc();
         
         await targetRef.set({ ...data, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
         
@@ -581,7 +594,7 @@ export async function updateDraftPayslipHoursAction({ clientId, employeeId, hour
 
     const earnings = PayrollService.calculateEarningsList(employee, baseValue, ps.period, freq, hours);
     const gross = earnings.reduce((s, i) => s + i.amount, 0);
-    const deductions = PayrollService.getInitialDeductions(gross, ps.period, freq);
+    const deductions = PayrollService.getInitialDeductions(gross, ps.period, freq, employee.joinDate);
     const totalDeductions = deductions.reduce((s, i) => s + i.amount, 0);
 
     await snap.docs[0].ref.update({
@@ -615,7 +628,7 @@ export async function syncEmployeeSalaryToActivePayslipAction({ clientId, employ
 
     const earnings = PayrollService.calculateEarningsList(employee, newSalary, ps.period, freq);
     const gross = earnings.reduce((s, i) => s + i.amount, 0);
-    const deductions = PayrollService.getInitialDeductions(gross, ps.period, freq);
+    const deductions = PayrollService.getInitialDeductions(gross, ps.period, freq, employee.joinDate);
     
     await snap.docs[0].ref.update({
         earnings,

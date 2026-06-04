@@ -43,10 +43,15 @@ export default function AIPayrollClientsPage() {
     const handleFormSubmit = async (data: any) => {
         try {
             if (selectedClient?.id) {
-                // Update
+                // Update — strip locked payroll fields that cannot be changed once set
+                const updateData = { ...data };
+                if (selectedClient.payrollFrequency) delete updateData.payrollFrequency;
+                if (selectedClient.firstProcessingMonth) delete updateData.firstProcessingMonth;
+                if (selectedClient.firstRunStartDate) delete updateData.firstRunStartDate;
+
                 const clientRef = doc(db, "aiPayrollClients", selectedClient.id);
                 await setDoc(clientRef, {
-                    ...data,
+                    ...updateData,
                     updatedAt: serverTimestamp(),
                 }, { merge: true });
                 toast({ title: 'Client Updated', description: 'Changes have been saved successfully.' });

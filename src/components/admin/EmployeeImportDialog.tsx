@@ -35,7 +35,7 @@ export default function EmployeeImportDialog({
             'Job Title', 'Department', 'Join Date (YYYY-MM-DD)', 'Tax Number', 
             'Pay Type (Salary/Hourly)', 'Basic Salary', 'Hourly Rate', 
             'Frequency (Monthly/Fortnightly/Weekly)', 'Bank', 'Acc Number', 'Acc Type', 'Branch', 
-            'Street', 'Suburb', 'City', 'Zip',
+            'Unit', 'Complex', 'Street', 'Suburb', 'City', 'Zip',
             'Normal Hours', 'Public Holiday Hours', 'Overtime 1.5x Hours', 'Overtime 2x Hours', 'Standby Allowance'
         ];
         
@@ -44,7 +44,7 @@ export default function EmployeeImportDialog({
             'Sales Manager', 'Sales', '2024-03-01', '1234567890',
             'Salary', '25000', '0',
             'Monthly', 'FNB', '62000000000', 'Savings', '250655',
-            '123 Main Street', 'Sandton', 'Johannesburg', '2196',
+            'Unit 5', 'Sunset Heights', '123 Main Street', 'Sandton', 'Johannesburg', '2196',
             '160', '8', '10', '0', '500'
         ];
 
@@ -123,6 +123,8 @@ export default function EmployeeImportDialog({
                                 branchCode: row['Branch'] || '',
                             },
                             address: {
+                                unit: row['Unit'] || '',
+                                complex: row['Complex'] || '',
                                 street: row['Street'] || '',
                                 suburb: row['Suburb'] || '',
                                 city: row['City'] || '',

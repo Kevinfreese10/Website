@@ -246,54 +246,69 @@ export default function ClientForm({
                     {isPayrollClient && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField control={form.control} name="payrollFrequency" render={({ field }) => (
+                                <FormField control={form.control} name="payrollFrequency" render={({ field }) => {
+                                    const isLocked = !!client?.id && !!client?.payrollFrequency;
+                                    return (
                                     <FormItem>
                                         <FormLabel>Payroll Cycle Frequency</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={isLocked}>
+                                            <FormControl><SelectTrigger className={isLocked ? 'bg-muted cursor-not-allowed opacity-70' : ''}><SelectValue /></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 <SelectItem value="Monthly">Monthly</SelectItem>
                                                 <SelectItem value="Fortnightly">Bi-Weekly (Fortnightly)</SelectItem>
                                             </SelectContent>
                                         </Select>
+                                        {isLocked && <FormDescription className="text-[10px]">Payroll frequency cannot be changed once set.</FormDescription>}
                                         <FormMessage />
                                     </FormItem>
-                                )} />
+                                )}} />
 
                                 {payrollFrequency === 'Monthly' ? (
-                                    <FormField control={form.control} name="firstProcessingMonth" render={({ field }) => ( 
+                                    <FormField control={form.control} name="firstProcessingMonth" render={({ field }) => {
+                                        const isLocked = !!client?.id && !!client?.firstProcessingMonth;
+                                        return ( 
                                         <FormItem>
                                             <FormLabel>1st Processing Month (Start Period)</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Select start period..." /></SelectTrigger></FormControl>
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={isLocked}>
+                                                <FormControl><SelectTrigger className={isLocked ? 'bg-muted cursor-not-allowed opacity-70' : ''}><SelectValue placeholder="Select start period..." /></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     {processingPeriods.map(period => <SelectItem key={period} value={period}>{period}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
+                                            {isLocked && <FormDescription className="text-[10px]">Start period cannot be changed once set.</FormDescription>}
                                             <FormMessage />
                                         </FormItem>
-                                    )} />
+                                    )}} />
                                 ) : (
-                                    <FormField control={form.control} name="firstRunStartDate" render={({ field }) => ( 
+                                    <FormField control={form.control} name="firstRunStartDate" render={({ field }) => {
+                                        const isLocked = !!client?.id && !!client?.firstRunStartDate;
+                                        return ( 
                                         <FormItem className="flex flex-col">
                                             <FormLabel className="mb-1">1st Period Start Date</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? format(field.value, "dd/MM/yyyy") : <span>Pick a date</span>}
-                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus />
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormDescription className="text-[10px]">The first bi-weekly payment date.</FormDescription>
+                                            {isLocked ? (
+                                                <Button variant={"outline"} disabled className="w-full pl-3 text-left font-normal bg-muted cursor-not-allowed opacity-70">
+                                                    {field.value ? format(field.value, "dd/MM/yyyy") : <span>Pick a date</span>}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            ) : (
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                                {field.value ? format(field.value, "dd/MM/yyyy") : <span>Pick a date</span>}
+                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar mode="single" selected={field.value || undefined} onSelect={field.onChange} initialFocus />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            )}
+                                            <FormDescription className="text-[10px]">{isLocked ? 'Start date cannot be changed once set.' : 'The first bi-weekly payment date.'}</FormDescription>
                                             <FormMessage />
                                         </FormItem>
-                                    )} />
+                                    )}} />
                                 )}
                             </div>
 

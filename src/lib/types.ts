@@ -240,6 +240,8 @@ export type Employee = {
   surname: string;
   idNumber: string;
   address: {
+    unit?: string;
+    complex?: string;
     street: string;
     suburb?: string;
     city: string;
