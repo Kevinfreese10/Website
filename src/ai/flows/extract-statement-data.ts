@@ -27,37 +27,6 @@ const ExtractStatementDataOutputSchema = z.object({
 });
 export type ExtractStatementDataOutput = z.infer<typeof ExtractStatementDataOutputSchema>;
 
-const prompt = ai.definePrompt({
-  name: 'extractStatementDataPrompt',
-  model: 'googleai/gemini-2.5-flash',
-  input: { schema: ExtractStatementDataInputSchema },
-  output: { schema: ExtractStatementDataOutputSchema },
-  prompt: `You are an expert OCR and data extraction agent specializing in South African bank statements.
-
-Your task is to analyze the provided bank statement (PDF or Image) and extract the following information for every single transaction with perfect accuracy:
-1.  **Date**: The date the transaction occurred, formatted as YYYY-MM-DD.
-2.  **Description**: The full, untruncated description of the transaction as it appears on the statement.
-3.  **Amount**: The transaction amount. It is CRITICAL to use negative numbers for any debits, payments, or withdrawals, and positive numbers for any credits, deposits, or receipts.
-
-If the document is a scanned image, use advanced OCR to ensure every character is read correctly.
-
-Analyze the following bank statement:
-{{media url=statementFile}}
-  `,
-});
-
-const extractStatementDataFlow = ai.defineFlow(
-  {
-    name: 'extractStatementDataFlow',
-    inputSchema: ExtractStatementDataInputSchema,
-    outputSchema: ExtractStatementDataOutputSchema,
-  },
-  async (input) => {
-    const { output } = await prompt(input);
-    return output!;
-  }
-);
-
 /**
  * Wrapper function called by the application.
  */
@@ -67,20 +36,22 @@ export async function extractStatementData(
   // Extract MIME type from data URI
   const mimeType = input.statementFile.split(';')[0].split(':')[1] || 'application/pdf';
 
-  // If an API key is provided, we use a local genkit instance to perform the generation
+  let currentAi = ai;
+
   if (input.apiKey) {
     const { genkit } = await import('genkit');
     const { googleAI } = await import('@genkit-ai/google-genai');
     
-    const customAi = genkit({
+    currentAi = genkit({
       plugins: [googleAI({ apiKey: input.apiKey })],
     });
+  }
 
-    const { output } = await customAi.generate({
-      model: 'googleai/gemini-2.5-flash',
-      output: { schema: ExtractStatementDataOutputSchema },
-      prompt: [
-        { text: `You are an expert OCR and data extraction agent specializing in South African bank statements.
+  const { output } = await currentAi.generate({
+    model: 'googleai/gemini-2.5-flash',
+    output: { schema: ExtractStatementDataOutputSchema },
+    prompt: [
+      { text: `You are an expert OCR and data extraction agent specializing in South African bank statements.
 
 Your task is to analyze the provided bank statement (PDF or Image) and extract the following information for every single transaction with perfect accuracy:
 1.  **Date**: The date the transaction occurred, formatted as YYYY-MM-DD.
@@ -88,12 +59,14 @@ Your task is to analyze the provided bank statement (PDF or Image) and extract t
 3.  **Amount**: The transaction amount. It is CRITICAL to use negative numbers for any debits, payments, or withdrawals, and positive numbers for any credits, deposits, or receipts.
 
 If the document is a scanned image, use advanced OCR to ensure every character is read correctly.` },
-        { media: { url: input.statementFile, contentType: mimeType } }
-      ],
-    });
+      { media: { url: input.statementFile, contentType: mimeType } }
+    ],
+  });
 
-    return output!;
+  if (!output) {
+    throw new Error("Failed to extract statement transactions");
   }
 
-  return extractStatementDataFlow(input);
+  return output;
 }
+

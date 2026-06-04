@@ -203,9 +203,28 @@ export default function BankReconPage() {
                 }
             }
 
+            // Fallback calculation for startDate / endDate if missing or invalid
+            let finalStartDate = meta.startDate || '';
+            let finalEndDate = meta.endDate || '';
+
+            if (allTxs.length > 0) {
+                const validTxs = allTxs.filter(t => t.date && !isNaN(new Date(t.date).getTime()));
+                if (validTxs.length > 0) {
+                    const sortedTxs = [...validTxs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    if (!finalStartDate || isNaN(new Date(finalStartDate).getTime())) {
+                        finalStartDate = sortedTxs[0].date;
+                    }
+                    if (!finalEndDate || isNaN(new Date(finalEndDate).getTime())) {
+                        finalEndDate = sortedTxs[sortedTxs.length - 1].date;
+                    }
+                }
+            }
+
             updateStatement(id, {
                 status: 'complete',
                 progress: 100,
+                startDate: finalStartDate,
+                endDate: finalEndDate,
                 transactions: allTxs.map(t => ({ ...t, excluded: false }))
             });
 
@@ -246,6 +265,32 @@ export default function BankReconPage() {
         return bytes.buffer;
     };
 
+    const getStatementStartDate = (s: ExtractedStatement) => {
+        if (s.startDate && !isNaN(new Date(s.startDate).getTime())) {
+            return new Date(s.startDate).getTime();
+        }
+        if (s.transactions && s.transactions.length > 0) {
+            const times = s.transactions
+                .map(t => new Date(t.date).getTime())
+                .filter(t => !isNaN(t));
+            if (times.length > 0) return Math.min(...times);
+        }
+        return 0;
+    };
+
+    const getStatementEndDate = (s: ExtractedStatement) => {
+        if (s.endDate && !isNaN(new Date(s.endDate).getTime())) {
+            return new Date(s.endDate).getTime();
+        }
+        if (s.transactions && s.transactions.length > 0) {
+            const times = s.transactions
+                .map(t => new Date(t.date).getTime())
+                .filter(t => !isNaN(t));
+            if (times.length > 0) return Math.max(...times);
+        }
+        return 0;
+    };
+
     // Grouping & Recon validation logic
     const groupedAccounts = useMemo(() => {
         const groups: Record<string, ExtractedStatement[]> = {};
@@ -260,9 +305,7 @@ export default function BankReconPage() {
         const resultList = Object.entries(groups).map(([accNum, list]) => {
             // Sort statements chronologically
             const sortedList = [...list].sort((a, b) => {
-                const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
-                const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
-                return dateA - dateB;
+                return getStatementStartDate(a) - getStatementStartDate(b);
             });
 
             // Audit flow
@@ -287,14 +330,17 @@ export default function BankReconPage() {
                     }
 
                     // Gap Check (e.g. days between prev end date and curr start date)
-                    if (prev.endDate && curr.startDate) {
-                        const prevEnd = new Date(prev.endDate);
-                        const currStart = new Date(curr.startDate);
-                        const diffTime = currStart.getTime() - prevEnd.getTime();
+                    const prevEnd = getStatementEndDate(prev);
+                    const currStart = getStatementStartDate(curr);
+
+                    if (prevEnd > 0 && currStart > 0) {
+                        const diffTime = currStart - prevEnd;
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                         
                         if (diffDays > 2) {
-                            gapWarning = `Missing gap: ${diffDays - 1} days (from ${prev.endDate} to ${curr.startDate})`;
+                            const formattedPrevEnd = format(new Date(prevEnd), 'yyyy-MM-dd');
+                            const formattedCurrStart = format(new Date(currStart), 'yyyy-MM-dd');
+                            gapWarning = `Missing gap: ${diffDays - 1} days (from ${formattedPrevEnd} to ${formattedCurrStart})`;
                         } else if (diffDays < 0) {
                             overlapWarning = true;
                         }
@@ -557,12 +603,17 @@ export default function BankReconPage() {
                     </h2>
                     
                     {groupedAccounts.map(group => (
-                        <Card key={group.accountNumber} className="border-primary/10 overflow-hidden shadow-md">
-                            <CardHeader className="bg-primary/5 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4 py-4 px-6">
+                        <Card key={group.accountNumber} className={cn("border-primary/10 overflow-hidden shadow-md", group.accountNumber === "UNIDENTIFIED-ACCOUNT" && "border-destructive/30 shadow-destructive/5")}>
+                            <CardHeader className={cn("bg-primary/5 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4 py-4 px-6", group.accountNumber === "UNIDENTIFIED-ACCOUNT" && "bg-destructive/5")}>
                                 <div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge className="font-black bg-primary text-white">{group.bankName}</Badge>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Badge className={cn("font-black bg-primary text-white", group.accountNumber === "UNIDENTIFIED-ACCOUNT" && "bg-destructive")}>{group.bankName}</Badge>
                                         <span className="text-sm font-bold text-muted-foreground font-mono">{group.accountNumber}</span>
+                                        {group.accountNumber === "UNIDENTIFIED-ACCOUNT" && (
+                                            <Badge variant="destructive" className="font-black animate-pulse flex items-center gap-1 text-[10px]">
+                                                <AlertTriangle className="h-3.5 w-3.5" /> Unidentified Account (Please click statements below to manually correct account number)
+                                            </Badge>
+                                        )}
                                     </div>
                                     <p className="text-xs text-muted-foreground mt-0.5 font-semibold">Holder: {group.holderName}</p>
                                 </div>
@@ -712,11 +763,11 @@ export default function BankReconPage() {
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <Label className="text-[9px] uppercase font-bold text-muted-foreground">Account Number</Label>
+                                        <Label className={cn("text-[9px] uppercase font-bold text-muted-foreground", activeStatement.accountNumber === "UNIDENTIFIED-ACCOUNT" && "text-destructive")}>Account Number</Label>
                                         <Input 
                                             value={activeStatement.accountNumber || ''} 
                                             onChange={(e) => updateStatement(activeStatement.id, { accountNumber: e.target.value })}
-                                            className="h-8 text-xs font-mono bg-white" 
+                                            className={cn("h-8 text-xs font-mono bg-white", activeStatement.accountNumber === "UNIDENTIFIED-ACCOUNT" && "border-destructive focus-visible:ring-destructive")} 
                                         />
                                     </div>
                                 </div>
