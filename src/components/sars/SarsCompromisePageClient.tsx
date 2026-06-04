@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -20,13 +21,22 @@ import {
   CheckCircle2,
   HelpCircle,
   Info,
-  XCircle
+  XCircle,
+  Coins,
+  Percent,
+  Briefcase,
+  Check,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { sendEmail } from '@/lib/email';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SarsCompromisePageClient() {
   const serviceList = [
@@ -176,6 +186,102 @@ export default function SarsCompromisePageClient() {
       a: "Generally, taxpayers should ensure outstanding returns and compliance obligations are addressed before or during the compromise process."
     }
   ];
+  const { toast } = useToast();
+  
+  // Calculator States
+  const [debtInput, setDebtInput] = useState('');
+  const [assetsInput, setAssetsInput] = useState('');
+  const [liabilitiesInput, setLiabilitiesInput] = useState('');
+  
+  // Lead Capture States
+  const [leadName, setLeadName] = useState('');
+  const [leadEmail, setLeadEmail] = useState('');
+  const [leadPhone, setLeadPhone] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Parsing values
+  const debtVal = parseFloat(debtInput.replace(/[^\d.-]/g, '')) || 0;
+  const assetsVal = parseFloat(assetsInput.replace(/[^\d.-]/g, '')) || 0;
+  const liabilitiesVal = parseFloat(liabilitiesInput.replace(/[^\d.-]/g, '')) || 0;
+
+  // Logic
+  const nav = assetsVal - liabilitiesVal;
+  const hasInputs = debtInput !== '' && assetsInput !== '' && liabilitiesInput !== '';
+  const isEligible = hasInputs && nav < debtVal;
+  const potentialSavings = isEligible ? (debtVal - Math.max(0, nav)) : 0;
+  
+  const upfrontFee = 20000;
+  const successFee = potentialSavings * 0.10;
+
+  const formatZar = (val: number) => {
+    return new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: 'ZAR',
+      minimumFractionDigits: 2,
+    }).format(val);
+  };
+
+  const handleLeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leadName || !leadEmail || !leadPhone) {
+      toast({
+        title: "Missing Fields",
+        description: "Please complete your name, email, and phone number.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      await sendEmail({
+        to: 'info@myacc.co.za',
+        subject: `SARS Compromise Lead: ${leadName} - ${isEligible ? 'Eligible' : 'Not Eligible'}`,
+        replyTo: leadEmail,
+        html: `
+          <h3>SARS Compromise Eligibility Calculator Lead</h3>
+          <p><strong>Contact Name:</strong> ${leadName}</p>
+          <p><strong>Email Address:</strong> ${leadEmail}</p>
+          <p><strong>Phone Number:</strong> ${leadPhone}</p>
+          <hr />
+          <h4>Calculation Details:</h4>
+          <ul>
+            <li><strong>Total SARS Debt:</strong> ${formatZar(debtVal)}</li>
+            <li><strong>Total Assets:</strong> ${formatZar(assetsVal)}</li>
+            <li><strong>Total Liabilities (Excl. Tax Debt):</strong> ${formatZar(liabilitiesVal)}</li>
+            <li><strong>Net Asset Value (NAV):</strong> ${formatZar(nav)}</li>
+            <li><strong>Eligibility Result:</strong> ${isEligible ? '<span style="color: green; font-weight: bold;">ELIGIBLE</span>' : '<span style="color: red; font-weight: bold;">NOT ELIGIBLE</span>'}</li>
+            <li><strong>Estimated Savings Potential:</strong> ${formatZar(potentialSavings)}</li>
+          </ul>
+          <hr />
+          <h4>Fee Estimate:</h4>
+          <ul>
+            <li><strong>Upfront Fee:</strong> R20,000.00</li>
+            <li><strong>Estimated Success Fee (10%):</strong> ${formatZar(successFee)}</li>
+          </ul>
+        `
+      });
+      
+      toast({
+        title: "Assessment Submitted!",
+        description: "A SARS Debt Specialist will contact you shortly to review your case."
+      });
+      setIsSubmitted(true);
+      setLeadName('');
+      setLeadEmail('');
+      setLeadPhone('');
+    } catch (error) {
+      console.error("Lead submit error:", error);
+      toast({
+        title: "Submission Failed",
+        description: "There was an error sending your details. Please try again or contact us directly.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-16 pb-16 bg-white">
@@ -271,6 +377,273 @@ export default function SarsCompromisePageClient() {
                           <p className="text-xs font-black uppercase tracking-widest text-primary mb-2">Legal Framework</p>
                           <p className="text-sm font-bold text-slate-900">Sections 200 - 204 of the Tax Administration Act</p>
                       </div>
+                  </div>
+              </div>
+          </div>
+      </section>
+
+      {/* COMPROMISE ELIGIBILITY CALCULATOR */}
+      <section className="bg-slate-50 py-24 border-y">
+          <div className="container mx-auto px-4 max-w-6xl">
+              <div className="max-w-3xl mx-auto text-center space-y-4 mb-16">
+                  <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
+                      Interactive Tool
+                  </Badge>
+                  <h2 className="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
+                      SARS Compromise Eligibility Calculator
+                  </h2>
+                  <p className="text-muted-foreground leading-relaxed">
+                      Determine if you meet the preliminary financial criteria to apply for a SARS tax debt compromise.
+                  </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  {/* Left Column: Input Form */}
+                  <Card className="lg:col-span-7 bg-white shadow-xl border-slate-100 border-2">
+                      <CardHeader className="bg-slate-50 border-b">
+                          <CardTitle className="flex items-center gap-2 text-slate-800">
+                              <Calculator className="h-5 w-5 text-primary" />
+                              Financial Details
+                          </CardTitle>
+                          <CardDescription>
+                              Provide estimates for your outstanding tax debt and current financial position.
+                          </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-6 space-y-6">
+                          <div className="space-y-2">
+                              <Label htmlFor="tax-debt" className="text-sm font-bold text-slate-700">Total SARS Debt (All tax types)</Label>
+                              <div className="relative">
+                                  <span className="absolute left-3.5 top-2.5 text-sm font-bold text-muted-foreground">R</span>
+                                  <Input
+                                      id="tax-debt"
+                                      type="number"
+                                      placeholder="0.00"
+                                      value={debtInput}
+                                      onChange={(e) => setDebtInput(e.target.value)}
+                                      className="pl-8 h-10 border-slate-200"
+                                  />
+                              </div>
+                              <p className="text-[10px] text-muted-foreground">Includes outstanding VAT, PAYE, Income Tax, penalties, and interest.</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                  <Label htmlFor="total-assets" className="text-sm font-bold text-slate-700">Total Assets</Label>
+                                  <div className="relative">
+                                      <span className="absolute left-3.5 top-2.5 text-sm font-bold text-muted-foreground">R</span>
+                                      <Input
+                                          id="total-assets"
+                                          type="number"
+                                          placeholder="0.00"
+                                          value={assetsInput}
+                                          onChange={(e) => setAssetsInput(e.target.value)}
+                                          className="pl-8 h-10 border-slate-200"
+                                      />
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground">Current value of property, vehicles, cash, and other assets.</p>
+                              </div>
+
+                              <div className="space-y-2">
+                                  <Label htmlFor="total-liabilities" className="text-sm font-bold text-slate-700">Total Liabilities (Excl. Tax Debt)</Label>
+                                  <div className="relative">
+                                      <span className="absolute left-3.5 top-2.5 text-sm font-bold text-muted-foreground">R</span>
+                                      <Input
+                                          id="total-liabilities"
+                                          type="number"
+                                          placeholder="0.00"
+                                          value={liabilitiesInput}
+                                          onChange={(e) => setLiabilitiesInput(e.target.value)}
+                                          className="pl-8 h-10 border-slate-200"
+                                      />
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground">Outstanding balances on bonds, car finance, loans, creditors, etc.</p>
+                              </div>
+                          </div>
+
+                          {hasInputs && (
+                              <div className="pt-4 border-t space-y-4">
+                                  <div className="flex justify-between items-center text-sm font-medium">
+                                      <span className="text-muted-foreground">Net Asset Value (NAV):</span>
+                                      <span className="font-mono font-bold text-slate-900">{formatZar(nav)}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-sm font-medium">
+                                      <span className="text-muted-foreground">Outstanding SARS Debt:</span>
+                                      <span className="font-mono font-bold text-slate-900">{formatZar(debtVal)}</span>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground italic bg-slate-50 p-2.5 rounded-lg border">
+                                      *Net Asset Value is calculated as Assets minus Liabilities (excluding the tax debt). Under Section 200 of the TAA, SARS considers if your Net Assets are insufficient to cover your tax liabilities.
+                                  </div>
+                              </div>
+                          )}
+                      </CardContent>
+                  </Card>
+
+                  {/* Right Column: Results & Action */}
+                  <div className="lg:col-span-5 space-y-6">
+                      {!hasInputs ? (
+                          <Card className="border-2 border-dashed border-slate-200 bg-white p-8 text-center h-full flex flex-col justify-center items-center space-y-4 min-h-[350px]">
+                              <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-muted-foreground">
+                                  <Calculator className="h-6 w-6" />
+                              </div>
+                              <div className="space-y-1">
+                                  <h3 className="font-bold text-slate-800">Awaiting Calculations</h3>
+                                  <p className="text-xs text-muted-foreground max-w-xs">
+                                      Enter your outstanding debt, asset value, and liabilities to see your eligibility assessment instantly.
+                                  </p>
+                              </div>
+                          </Card>
+                      ) : (
+                          <>
+                              {/* Eligibility Status Alert */}
+                              <Card className={`border-2 shadow-lg ${isEligible ? "border-green-100 bg-green-50/30" : "border-amber-100 bg-amber-50/30"}`}>
+                                  <CardHeader className={`border-b ${isEligible ? "bg-green-50/50" : "bg-amber-50/50"}`}>
+                                      <CardTitle className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
+                                          {isEligible ? (
+                                              <>
+                                                  <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+                                                  <span className="text-green-800">PRELIMINARILY ELIGIBLE</span>
+                                              </>
+                                          ) : (
+                                              <>
+                                                  <Info className="h-5 w-5 text-amber-600 shrink-0" />
+                                                  <span className="text-amber-800">NOT ELIGIBLE FOR COMPROMISE</span>
+                                              </>
+                                          )}
+                                      </CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="p-6 space-y-4">
+                                      {isEligible ? (
+                                          <div className="space-y-3">
+                                              <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                  Your Net Asset Value (NAV) of <strong>{formatZar(nav)}</strong> is less than your outstanding SARS debt of <strong>{formatZar(debtVal)}</strong>.
+                                              </p>
+                                              <div className="bg-white p-3 rounded-lg border border-green-100 flex justify-between items-center text-sm font-medium">
+                                                  <span className="text-slate-600">Savings Potential:</span>
+                                                  <span className="font-mono font-bold text-green-600 text-lg">{formatZar(potentialSavings)}</span>
+                                              </div>
+                                              <p className="text-xs text-slate-600 leading-relaxed">
+                                                  Because your asset base is not large enough to liquidate and pay SARS in full, we can legally apply for a Compromise of Debt. SARS may accept a lesser amount to write off the remainder.
+                                              </p>
+                                          </div>
+                                      ) : (
+                                          <div className="space-y-3">
+                                              <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                  Your Net Asset Value (NAV) of <strong>{formatZar(nav)}</strong> is equal to or greater than your outstanding SARS debt of <strong>{formatZar(debtVal)}</strong>.
+                                              </p>
+                                              <p className="text-xs text-slate-600 leading-relaxed">
+                                                  Since your net asset value exceeds your outstanding debt, SARS expects you to pay the debt in full (by liquidating assets if necessary). You do not qualify for a compromise under Section 200.
+                                              </p>
+                                              <p className="text-xs font-bold text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-100">
+                                                  Alternative: We can negotiate a Deferred Payment Arrangement (Section 167 of the TAA) to pay off the outstanding balance over time.
+                                              </p>
+                                          </div>
+                                      )}
+                                  </CardContent>
+                              </Card>
+
+                              {/* Fee Structure */}
+                              <Card className="border-2 border-slate-100 bg-white shadow-lg">
+                                  <CardHeader className="bg-slate-50 border-b py-3">
+                                      <CardTitle className="text-sm font-bold flex items-center gap-1.5 text-slate-800">
+                                          <Coins className="h-4 w-4 text-primary" />
+                                          My Accountant Fee Structure
+                                      </CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="p-4 space-y-3 text-sm">
+                                      <div className="flex justify-between items-center">
+                                          <span className="text-slate-600 font-medium flex items-center gap-1">
+                                              <Briefcase className="h-3.5 w-3.5 text-muted-foreground" /> Upfront Retainer:
+                                          </span>
+                                          <span className="font-mono font-bold text-slate-900">{formatZar(upfrontFee)}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                          <span className="text-slate-600 font-medium flex items-center gap-1">
+                                              <Percent className="h-3.5 w-3.5 text-muted-foreground" /> Success Fee (10%):
+                                          </span>
+                                          <span className="font-mono font-bold text-slate-900">
+                                              {isEligible ? `${formatZar(successFee)} (estimated)` : "N/A"}
+                                          </span>
+                                      </div>
+                                      <div className="text-[10px] text-muted-foreground italic border-t pt-2 mt-2">
+                                          *The 10% success fee is billed only upon successful written agreement with SARS, calculated on the total amount saved (compromised).
+                                      </div>
+                                  </CardContent>
+                              </Card>
+
+                              {/* Lead Capture */}
+                              <Card className="border-2 border-primary/20 bg-slate-900 text-white shadow-xl relative overflow-hidden">
+                                  <CardContent className="p-6 space-y-4">
+                                      {isSubmitted ? (
+                                          <div className="text-center py-6 space-y-3">
+                                              <div className="h-10 w-10 bg-green-500 rounded-full flex items-center justify-center mx-auto">
+                                                  <Check className="h-5 w-5 text-white" />
+                                              </div>
+                                              <div className="space-y-1">
+                                                  <h4 className="font-bold text-white text-base">Request Submitted</h4>
+                                                  <p className="text-xs text-slate-300">
+                                                      Thank you! A SARS Debt Specialist has received your eligibility metrics and will contact you shortly.
+                                                  </p>
+                                              </div>
+                                          </div>
+                                      ) : (
+                                          <form onSubmit={handleLeadSubmit} className="space-y-4">
+                                              <div className="space-y-1">
+                                                  <h4 className="font-bold text-white text-sm">Request Debt Compromise Consultation</h4>
+                                                  <p className="text-[11px] text-slate-300">
+                                                      Submit your assessment variables to speak with a tax practitioner about your SARS debt.
+                                                  </p>
+                                              </div>
+                                              
+                                              <div className="space-y-3 pt-2">
+                                                  <div>
+                                                      <Input
+                                                          type="text"
+                                                          placeholder="Full Name"
+                                                          value={leadName}
+                                                          onChange={(e) => setLeadName(e.target.value)}
+                                                          required
+                                                          className="bg-slate-800/80 border-slate-700 text-white h-9 text-xs placeholder:text-slate-400"
+                                                      />
+                                                  </div>
+                                                  <div>
+                                                      <Input
+                                                          type="email"
+                                                          placeholder="Email Address"
+                                                          value={leadEmail}
+                                                          onChange={(e) => setLeadEmail(e.target.value)}
+                                                          required
+                                                          className="bg-slate-800/80 border-slate-700 text-white h-9 text-xs placeholder:text-slate-400"
+                                                      />
+                                                  </div>
+                                                  <div>
+                                                      <Input
+                                                          type="tel"
+                                                          placeholder="Phone Number"
+                                                          value={leadPhone}
+                                                          onChange={(e) => setLeadPhone(e.target.value)}
+                                                          required
+                                                          className="bg-slate-800/80 border-slate-700 text-white h-9 text-xs placeholder:text-slate-400"
+                                                      />
+                                                  </div>
+                                              </div>
+
+                                              <Button type="submit" disabled={isSubmitting} className="w-full bg-primary hover:bg-primary/95 text-slate-900 font-bold h-10 text-xs">
+                                                  {isSubmitting ? (
+                                                      <>
+                                                          <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Submitting...
+                                                      </>
+                                                  ) : (
+                                                      <>
+                                                          Submit Assessment to Specialist <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                                                      </>
+                                                  )}
+                                              </Button>
+                                          </form>
+                                      )}
+                                  </CardContent>
+                              </Card>
+                          </>
+                      )}
                   </div>
               </div>
           </div>
