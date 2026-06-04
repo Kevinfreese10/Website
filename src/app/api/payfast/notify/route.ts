@@ -156,7 +156,10 @@ export async function POST(req: NextRequest) {
         if (!isValid) {
             console.warn(`ITN Warning: Local signature mismatch for order ${orderId}. Attempting server confirmation fallback.`);
             try {
-                const isSandbox = data.merchant_id === '10042278';
+                const isSandbox = data.merchant_id === '10042278' || 
+                                  data.merchant_id === '10049800' || 
+                                  data.merchant_id.startsWith('100') ||
+                                  process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL?.includes('sandbox');
                 const validationUrl = isSandbox 
                     ? 'https://sandbox.payfast.co.za/eng/query/validate'
                     : 'https://www.payfast.co.za/eng/query/validate';

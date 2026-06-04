@@ -51,7 +51,6 @@ export default function DashboardPage() {
         setIsLoading(true);
 
         const staffRef = collection(db, "users");
-        // Expand query to include all roles who might leave notes for white-label support
         const staffUnsubscribe = onSnapshot(query(staffRef, where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant'])), (snapshot) => {
             setAllStaff(snapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User)));
         }, async (error) => {
@@ -63,6 +62,7 @@ export default function DashboardPage() {
         });
 
         let ordersUnsubscribe = () => {};
+
         if (user) {
             const ordersRef = collection(db, 'orders');
             const q = query(

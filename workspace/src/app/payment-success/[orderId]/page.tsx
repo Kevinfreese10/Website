@@ -1,6 +1,5 @@
-
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -10,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { services as allServices } from '@/lib/data';
 import { render } from '@react-email/components';
@@ -33,6 +32,7 @@ export default function PaymentSuccessPage() {
     const [order, setOrder] = useState<Order | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [assignee, setAssignee] = useState<User | null>(null);
+    const { user: currentUser } = useAuth();
     const { toast } = useToast();
 
     useEffect(() => {
@@ -45,14 +45,48 @@ export default function PaymentSuccessPage() {
                 if (orderSnap.exists()) {
                     const orderData = { ...orderSnap.data(), id: orderSnap.id } as Order;
                     
-                    if (orderData.status !== 'Processing' && !orderData.notes?.some(n => n.subject === `Action Required for Your Order #${orderId}`)) {
-                        
+                    // Trigger Google Customer Reviews Opt-in
+                    const deliveryDate = format(addDays(new Date(), 10), 'yyyy-MM-dd');
+                    const reviewProducts = orderData.items
+                        .map((item: any) => item.gtin ? { gtin: item.gtin } : null)
+                        .filter(Boolean);
+
+                    if (typeof window !== 'undefined' && (window as any).renderOptIn) {
+                        (window as any).renderOptIn({
+                            id: orderData.id,
+                            customerEmail: orderData.customerEmail,
+                            estimated_delivery_date: deliveryDate,
+                            delivery_country: "ZA",
+                            products: reviewProducts.length > 0 ? reviewProducts : undefined
+                        });
+                    }
+
+                    // Fetch reseller details if it's a white-label order
+                    let resellerData: User | undefined;
+                    if (orderData.resellerId) {
+                        const resellerSnap = await getDoc(doc(db, 'users', orderData.resellerId));
+                        if (resellerSnap.exists()) {
+                            resellerData = { ...resellerSnap.data(), id: resellerSnap.id } as User;
+                        }
+                    }
+
+                    // CHECK IF NOTIFICATION HAS BEEN SENT
+                    const alreadyNotified = orderData.notes?.some(n => n.subject === `Action Required for Your Order #${orderId}`);
+
+                    if (!alreadyNotified) {
                         const itemsWithServices = orderData.items.map(item => {
                             const service = allServices.find(s => s.id === item.id);
                             return { ...item, service };
                         }).filter(item => item.service) as { service: Service }[];
 
-                        const emailHtml = render(<DocumentRequestEmail order={orderData} items={itemsWithServices} replyTo="info@myacc.co.za" />);
+                        const emailHtml = render(
+                            <DocumentRequestEmail 
+                                order={orderData} 
+                                items={itemsWithServices} 
+                                reseller={resellerData}
+                                replyTo={resellerData?.email || "info@myacc.co.za"} 
+                            />
+                        );
                         
                         const attachments = itemsWithServices
                             .filter(item => item.service.attachmentUrl)
@@ -61,27 +95,33 @@ export default function PaymentSuccessPage() {
                                 path: item.service.attachmentUrl!,
                             }));
                         
-                        try {
-                            await sendEmail({
-                                to: orderData.customerEmail,
-                                subject: `Action Required for Your Order #${orderId}`,
-                                html: emailHtml,
-                                attachments: attachments,
-                            });
-                             const emailNote: OrderNote = {
-                                text: 'Sent "Request Documents" email to client after payment.',
-                                date: Timestamp.now(),
-                                authorId: 'system', // System-sent
-                                type: 'email',
-                                subject: `Action Required for Your Order #${orderId}`,
-                                attachments: null,
-                            };
-                            await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
-                        } catch(e) {
-                             console.error("Failed to send document request email:", e);
-                             toast({ title: 'Email Failed', description: 'Could not send document request email.', variant: 'destructive'});
-                        }
+                        const recipientEmail = orderData.resellerId && orderData.documentContact === 'client' 
+                            ? orderData.endCustomerEmail 
+                            : orderData.customerEmail;
 
+                        if (recipientEmail) {
+                            try {
+                                await sendEmail({
+                                    to: recipientEmail,
+                                    subject: `Action Required for Your Order #${orderId}`,
+                                    html: emailHtml,
+                                    attachments: attachments,
+                                    resellerId: orderData.resellerId || undefined,
+                                });
+                                 const emailNote: OrderNote = {
+                                    text: `Sent "Request Documents" email to ${recipientEmail} (Payment Successful).`,
+                                    date: Timestamp.now(),
+                                    authorId: 'system',
+                                    type: 'email',
+                                    subject: `Action Required for Your Order #${orderId}`,
+                                    attachments: null,
+                                };
+                                await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
+                            } catch(e) {
+                                 console.error("Failed to send document request email:", e);
+                                 toast({ title: 'Email Failed', description: 'Could not notify client. Please check your SMTP settings.', variant: 'destructive'});
+                            }
+                        }
                     }
                     
                     setOrder(orderData);
@@ -99,11 +139,16 @@ export default function PaymentSuccessPage() {
                 setIsLoading(false);
             };
 
-            // Since there is no ITN, we can call this immediately
             fetchOrderDetails();
-
         }
     }, [orderId, toast]);
+
+    const orderUrl = useMemo(() => {
+        if (!currentUser) return '/login';
+        if (currentUser.role === 'admin' || currentUser.role === 'staff') return `/admin/orders/${orderId}`;
+        if (currentUser.role === 'partner' || currentUser.role === 'partner_staff') return `/partner/orders/${orderId}`;
+        return `/dashboard/orders/${orderId}`;
+    }, [currentUser, orderId]);
     
     if (isLoading) {
         return (
@@ -134,7 +179,7 @@ export default function PaymentSuccessPage() {
                     </CardTitle>
                     <CardDescription>
                        {order.paymentMethod === 'EFT' 
-                        ? "We have received your order. Please remember to complete your payment via EFT."
+                        ? "We have received your order. Please complete your payment via EFT to begin processing."
                         : "Your payment was successful! We have received your order and will begin processing it."}
                     </CardDescription>
                 </CardHeader>
@@ -148,7 +193,7 @@ export default function PaymentSuccessPage() {
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Order Date:</span>
-                                <span>{new Date(order.date.seconds * 1000).toLocaleDateString()}</span>
+                                <span>{order.date?.toDate ? format(order.date.toDate(), 'dd/MM/yyyy') : format(new Date(order.date), 'dd/MM/yyyy')}</span>
                             </div>
                             <Separator />
                             {order.items.map((item, index) => (
@@ -160,15 +205,15 @@ export default function PaymentSuccessPage() {
                              <Separator />
                             <div className="flex justify-between font-bold text-lg">
                                 <p>Total Due</p>
-                                <p>{formatPrice(order.total)}</p>
+                                <p>{formatPrice(order.clientTotal || order.total)}</p>
                             </div>
                         </div>
                     </section>
                     
                     <section>
-                        <h3 className="font-semibold text-lg mb-2">Next Steps: Required Documents</h3>
+                        <h3 className="font-semibold text-lg mb-2">Next Steps: Action Required</h3>
                          <p className="text-sm text-muted-foreground mb-4">
-                            To get started, please check your email for instructions on where to upload the following documents.
+                            To get started, please click the button below to log into your dashboard. You can then securely upload all the required documents so that we can start processing your order immediately.
                         </p>
                         <div className="space-y-4">
                             {orderedServices.map(service => (
@@ -185,8 +230,10 @@ export default function PaymentSuccessPage() {
                     </section>
                     
                     <div className="text-center pt-4">
-                        <Button asChild>
-                            <Link href="/">Back to Homepage</Link>
+                        <Button asChild size="lg">
+                            <Link href={orderUrl}>
+                                Go to My Dashboard
+                            </Link>
                         </Button>
                     </div>
                 </CardContent>

@@ -4,11 +4,24 @@
 import LoginForm from '@/components/auth/LoginForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { Metadata } from 'next';
+import { useSearchParams, useRouter } from 'next/navigation';
+
+// Metadata has been removed from this client component and will be placed in a parent server component.
 
 function LoginFormWrapper() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.has("redirect")) {
+      // Use replaceState to clean the URL without a page reload
+      // This keeps the client-side history clean for crawlers.
+      router.replace('/login', { scroll: false });
+    }
+  }, [searchParams, router]);
+
   return (
     <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
       <LoginForm />
@@ -25,7 +38,9 @@ export default function LoginPage() {
           <CardDescription>Enter your email and password to access your dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginFormWrapper />
+          <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <LoginFormWrapper />
+          </Suspense>
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Don't have an account?{' '}
             <Link href="/signup" className="font-semibold text-primary underline-offset-4 hover:underline">

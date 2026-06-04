@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter } from 'lucide-react';
+import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -63,6 +63,7 @@ export default function AdminOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isReconciling, setIsReconciling] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const [allStaff, setAllStaff] = useState<User[]>([]);
@@ -393,6 +394,36 @@ export default function AdminOrdersPage() {
   }
 
 
+  const handleReconcile = async () => {
+    setIsReconciling(true);
+    try {
+      const res = await fetch('/api/admin/reconcile-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ daysBack: 3 }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Reconcile failed');
+
+      const { results } = json;
+      if (results.updated.length > 0) {
+        toast({
+          title: `✅ ${results.updated.length} Order(s) Updated`,
+          description: `Orders ${results.updated.join(', ')} moved to Processing.`,
+        });
+      } else {
+        toast({
+          title: 'No Orders Updated',
+          description: `Checked ${results.notFound.length + results.skipped.length + results.updated.length} pending order(s). None had confirmed PayFast payments in the last 3 days.`,
+        });
+      }
+    } catch (err: any) {
+      toast({ title: 'Reconcile Failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsReconciling(false);
+    }
+  };
+
   return (
     <Dialog>
         <div className="space-y-8">
@@ -401,12 +432,18 @@ export default function AdminOrdersPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Manage Orders</h1>
                 <p className="text-sm text-muted-foreground">Monitor and update client orders across the practice.</p>
             </div>
-            <Button asChild>
-            <Link href="/admin/orders/new">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Custom Order
-            </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleReconcile} disabled={isReconciling}>
+                {isReconciling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                {isReconciling ? 'Reconciling...' : 'Reconcile Payments'}
+              </Button>
+              <Button asChild>
+                <Link href="/admin/orders/new">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Create Custom Order
+                </Link>
+              </Button>
+            </div>
         </div>
 
         <Card className="border-2 shadow-sm">
