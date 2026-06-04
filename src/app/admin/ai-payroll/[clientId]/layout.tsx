@@ -115,6 +115,15 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
         </MenubarMenu>
 
         <MenubarMenu>
+          <MenubarTrigger>Reports <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
+          <MenubarContent>
+            <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/reports/summary`}>Payroll Summary</Link></MenubarItem>
+            <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/reports/changes`}>Payroll Changes</Link></MenubarItem>
+            <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/reports/emp201`}>EMP201 Return</Link></MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+
+        <MenubarMenu>
           <MenubarTrigger>Settings <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
           <MenubarContent>
             <MenubarItem>Payroll Cycles</MenubarItem>

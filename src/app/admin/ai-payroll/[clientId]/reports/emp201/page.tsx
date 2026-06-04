@@ -13,8 +13,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import * as XLSX from 'xlsx';
-import { Loader2, Download, Users, Calculator } from 'lucide-react';
+import { Loader2, Download, Users, Calculator, FileText } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parse, isValid } from 'date-fns';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const db = getFirestore(firebaseApp);
 
@@ -233,6 +235,92 @@ export default function Emp201ReportPage() {
         XLSX.writeFile(wb, `EMP201_${client.name.replace(/\s/g, '_')}_${selectedMonth.replace(/\s/g, '_')}.xlsx`);
     };
 
+    const handleDownloadPdf = () => {
+        if (!client || !reportData || !selectedMonth) return;
+
+        const doc = new jsPDF();
+        
+        const formatCurr = (num: number) => {
+            return num.toLocaleString('en-ZA', { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            });
+        };
+
+        // Title Header
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text("EMP201 MONTHLY DECLARATION (AGGREGATED)", 15, 20);
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Company: ${client.companyName || client.name}`, 15, 28);
+        doc.text(`PAYE Ref: ${client.payeReference || "N/A"}`, 15, 34);
+        doc.text(`Declaration Month: ${selectedMonth}`, 15, 40);
+
+        // Summary Table
+        autoTable(doc, {
+            startY: 46,
+            head: [['Tax Code', 'Description', 'Amount (ZAR)']],
+            body: [
+                ['4101', 'PAYE (Employees Tax)', formatCurr(reportData.totals.paye)],
+                ['4141', 'UIF (Unemployment Insurance Fund)', formatCurr(reportData.totals.uif)],
+                ['4142', 'SDL (Skills Development Levy)', formatCurr(reportData.totals.sdl)],
+                ['', 'TOTAL PAYABLE TO SARS', formatCurr(reportData.totals.payable)]
+            ],
+            theme: 'striped',
+            headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+            columnStyles: {
+                0: { cellWidth: 30 },
+                1: { cellWidth: 100 },
+                2: { cellWidth: 50, halign: 'right' }
+            },
+            didParseCell: (data) => {
+                if (data.row.index === 3) {
+                    data.cell.styles.fontStyle = 'bold';
+                    if (data.column.index === 1) {
+                        data.cell.styles.halign = 'right';
+                    }
+                }
+            }
+        });
+
+        const summaryFinalY = (doc as any).lastAutoTable.finalY || 80;
+
+        // Breakdown Table Title
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Aggregated Employee Totals", 15, summaryFinalY + 15);
+
+        // Details Table
+        autoTable(doc, {
+            startY: summaryFinalY + 20,
+            head: [['Staff Member', 'Runs', 'PAYE (ZAR)', 'UIF (ZAR)', 'SDL (ZAR)', 'Gross Total (ZAR)']],
+            body: reportData.breakdown.map(b => [
+                b.name,
+                String(b.runs),
+                formatCurr(b.paye),
+                formatCurr(b.uif),
+                formatCurr(b.sdl),
+                formatCurr(b.gross)
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255] },
+            columnStyles: {
+                0: { cellWidth: 55 },
+                1: { cellWidth: 15, halign: 'center' },
+                2: { cellWidth: 28, halign: 'right' },
+                3: { cellWidth: 28, halign: 'right' },
+                4: { cellWidth: 24, halign: 'right' },
+                5: { cellWidth: 30, halign: 'right' }
+            }
+        });
+
+        // Save
+        const fileName = `EMP201_${(client.companyName || client.name).replace(/\s/g, '_')}_${selectedMonth.replace(/\s/g, '_')}.pdf`;
+        doc.save(fileName);
+    };
+
     if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
     return (
@@ -255,6 +343,9 @@ export default function Emp201ReportPage() {
                     </Select>
                     <Button variant="outline" className="h-10 gap-2 font-bold" onClick={handleDownloadExcel}>
                         <Download className="h-4 w-4" /> Export Excel
+                    </Button>
+                    <Button variant="outline" className="h-10 gap-2 font-bold text-red-600 border-red-200 hover:bg-red-50" onClick={handleDownloadPdf}>
+                        <FileText className="h-4 w-4" /> Export PDF
                     </Button>
                 </div>
             </div>
