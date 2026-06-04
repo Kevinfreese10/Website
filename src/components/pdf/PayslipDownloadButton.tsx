@@ -7,7 +7,35 @@ import { useToast } from '@/hooks/use-toast';
 import { Payslip, Employee, User, PayslipItem } from '@/lib/types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
+
+function getPayDate(period?: string): Date {
+  if (!period) return new Date();
+  
+  const parts = period.split(' - ');
+  const dateStr = parts[parts.length - 1].trim();
+  
+  if (dateStr.includes('/')) {
+      const parsed = parse(dateStr, 'dd/MM/yyyy', new Date());
+      return isValid(parsed) ? parsed : new Date();
+  }
+
+  const wordParts = dateStr.split(' ');
+  if (wordParts.length < 2) return new Date();
+  const monthName = wordParts[0];
+  const year = parseInt(wordParts[1]);
+  
+  const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+  ];
+  const monthIdx = months.indexOf(monthName);
+  if (monthIdx !== -1 && !isNaN(year)) {
+      return new Date(year, monthIdx + 1, 0);
+  }
+  
+  return new Date();
+}
 
 interface PayslipDownloadButtonProps {
   payslip: Payslip;
@@ -58,19 +86,22 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
       let currentY = 20;
       
       if (client.address) {
-          const addr = client.address;
-          const addrLines = [addr.street, addr.suburb, addr.city, addr.zip].filter(Boolean);
+          const addr = client.address as any;
+          const unitComplex = [addr.unit, addr.complex].filter(Boolean).join(', ');
+          const addrLines = [unitComplex, addr.street, addr.suburb, addr.city, addr.zip].filter(Boolean);
           addrLines.forEach(line => {
               doc.text(String(line), 15, currentY);
               currentY += 5;
           });
       }
 
-      // --- 2. Pay Date (Top Center) ---
+      // --- 2. Pay Date (Far Right) ---
+      const payDate = getPayDate(payslip.period);
+      const payDateStr = format(payDate, 'yyyy/MM/dd');
       doc.setFont('helvetica', 'bold');
-      doc.text('Pay Date', 80, 15);
+      doc.text('Pay Date:', 150, 40);
       doc.setFont('helvetica', 'normal');
-      doc.text(format(new Date(), 'yyyy/MM/dd'), 105, 15);
+      doc.text(payDateStr, 195, 40, { align: 'right' });
 
       // --- 3. Logo (Top Right) ---
       if (client.logoUrl) {
@@ -128,8 +159,9 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
       const hourlyRate = p.grossPay / 160;
       drawLabelValue('Rate per hour', formatCurr(hourlyRate), col2X, currentY + 6);
       drawLabelValue('Account Number', employee.bankingDetails?.accountNumber || 'N/A', col3X, currentY + 6);
+      drawLabelValue('Account Holder', employee.bankingDetails?.accountHolder || 'N/A', col3X, currentY + 12);
 
-      currentY = Math.max(addrY, currentY + 15);
+      currentY = Math.max(addrY, currentY + 20);
       doc.line(15, currentY, 195, currentY);
       currentY += 2;
 

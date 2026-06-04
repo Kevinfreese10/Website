@@ -46,6 +46,7 @@ const formSchema = z.object({
   paymentFrequency: z.literal('Monthly').default('Monthly'),
   bankingDetails: z.object({
     bankName: z.string().min(2, 'Bank name is required.'),
+    accountHolder: z.string().min(2, 'Account holder name is required.'),
     accountNumber: z.string().min(5, 'Account number is required.'),
     accountType: z.string().min(2, 'Account type is required.'),
     branchCode: z.string().min(6, 'Branch code is required.'),
@@ -99,6 +100,7 @@ export default function EmployeeForm({
       paymentFrequency: 'Monthly',
       bankingDetails: {
         bankName: employee?.bankingDetails?.bankName || '',
+        accountHolder: employee?.bankingDetails?.accountHolder || '',
         accountNumber: employee?.bankingDetails?.accountNumber || '',
         accountType: employee?.bankingDetails?.accountType || 'Savings',
         branchCode: employee?.bankingDetails?.branchCode || '',
@@ -332,7 +334,11 @@ export default function EmployeeForm({
             <Hash className="h-4 w-4" /> Banking Details
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField control={form.control} name="bankingDetails.accountHolder" render={({ field }) => ( <FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input placeholder="e.g. John Doe" {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="bankingDetails.bankName" render={({ field }) => ( <FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input placeholder="e.g. FNB" {...field} /></FormControl><FormMessage /></FormItem> )} />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField control={form.control} name="bankingDetails.accountNumber" render={({ field }) => ( <FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="bankingDetails.accountType" render={({ field }) => (
               <FormItem>
                 <FormLabel>Account Type</FormLabel>
@@ -349,7 +355,6 @@ export default function EmployeeForm({
             )} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField control={form.control} name="bankingDetails.accountNumber" render={({ field }) => ( <FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
             <FormField control={form.control} name="bankingDetails.branchCode" render={({ field }) => ( <FormItem><FormLabel>Branch Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
           </div>
         </section>

@@ -74,7 +74,13 @@ export default function PayslipPreview({ payslip, employee, client }: PayslipPre
             <p className="text-muted-foreground">PAYE Ref: {client.payeReference || 'N/A'}</p>
             {client.address && (
               <p className="text-muted-foreground max-w-[200px]">
-                {client.address.street}, {client.address.city}
+                {[
+                  [client.address.unit, client.address.complex].filter(Boolean).join(', '),
+                  client.address.street,
+                  client.address.suburb,
+                  client.address.city,
+                  client.address.zip
+                ].filter(Boolean).join(', ')}
               </p>
             )}
           </div>
@@ -132,6 +138,7 @@ export default function PayslipPreview({ payslip, employee, client }: PayslipPre
             <CreditCard className="h-3 w-3" /> Payment Destination
           </div>
           <div className="text-xs space-y-1">
+            <p><span className="text-muted-foreground">Account Holder:</span> <span className="font-bold">{employee.bankingDetails.accountHolder || `${employee.name} ${employee.surname}`}</span></p>
             <p><span className="text-muted-foreground">Bank:</span> <span className="font-bold">{employee.bankingDetails.bankName}</span></p>
             <p><span className="text-muted-foreground">Account:</span> <span className="font-mono font-bold">{employee.bankingDetails.accountNumber}</span></p>
             <p><span className="text-muted-foreground">Type:</span> <span className="font-bold">{employee.bankingDetails.accountType}</span></p>

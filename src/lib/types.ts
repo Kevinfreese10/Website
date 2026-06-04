@@ -259,6 +259,7 @@ export type Employee = {
   paymentFrequency: 'Monthly';
   bankingDetails: {
     bankName: string;
+    accountHolder?: string;
     accountNumber: string;
     accountType: string;
     branchCode: string;
@@ -315,6 +316,8 @@ export type User = {
   creditBalance?: number;
   geminiApiKey?: string;
   address?: {
+      unit?: string;
+      complex?: string;
       street?: string;
       suburb?: string;
       city?: string;

@@ -34,7 +34,7 @@ export default function EmployeeImportDialog({
             'Code', 'Initials', 'First Name', 'Surname', 'ID Number', 'Email', 'Phone', 
             'Job Title', 'Department', 'Join Date (YYYY-MM-DD)', 'Tax Number', 
             'Pay Type (Salary/Hourly)', 'Basic Salary', 'Hourly Rate', 
-            'Frequency (Monthly/Fortnightly/Weekly)', 'Bank', 'Acc Number', 'Acc Type', 'Branch', 
+            'Frequency (Monthly/Fortnightly/Weekly)', 'Bank', 'Acc Holder', 'Acc Number', 'Acc Type', 'Branch', 
             'Unit', 'Complex', 'Street', 'Suburb', 'City', 'Zip',
             'Normal Hours', 'Public Holiday Hours', 'Overtime 1.5x Hours', 'Overtime 2x Hours', 'Standby Allowance'
         ];
@@ -43,7 +43,7 @@ export default function EmployeeImportDialog({
             'EMP001', 'JD', 'John', 'Doe', '8801015000081', 'john@example.com', '0821234567',
             'Sales Manager', 'Sales', '2024-03-01', '1234567890',
             'Salary', '25000', '0',
-            'Monthly', 'FNB', '62000000000', 'Savings', '250655',
+            'Monthly', 'FNB', 'John Doe', '62000000000', 'Savings', '250655',
             'Unit 5', 'Sunset Heights', '123 Main Street', 'Sandton', 'Johannesburg', '2196',
             '160', '8', '10', '0', '500'
         ];
@@ -118,6 +118,7 @@ export default function EmployeeImportDialog({
                             paymentFrequency: row['Frequency (Monthly/Fortnightly/Weekly)'] || 'Monthly',
                             bankingDetails: {
                                 bankName: row['Bank'] || '',
+                                accountHolder: row['Acc Holder'] || `${row['First Name'] || ''} ${row['Surname'] || ''}`.trim() || 'N/A',
                                 accountNumber: row['Acc Number'] || '',
                                 accountType: row['Acc Type'] || 'Savings',
                                 branchCode: row['Branch'] || '',
