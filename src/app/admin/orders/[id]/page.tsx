@@ -428,13 +428,35 @@ export default function AdminOrderDetailsPage() {
   const contactIsClient = isOutsourced && order.documentContact === 'client';
   const contactName = contactIsClient ? order.endCustomerName : (isOutsourced ? resellerDetails?.companyName || resellerDetails?.name : order.customerName);
 
-  const generateNoteTemplate = (type: 'docs' | 'payment' | 'review') => {
+  const generateNoteTemplate = (type: 'docs' | 'payment' | 'review' | 'outstanding_docs') => {
       let text = `Hi ${contactName?.split(' ')[0]},\n\n`;
       const orderId = order.originalOrderId || order.id;
 
-      if (type === 'payment') text += `This is a friendly reminder that your invoice for order #${orderId} is still outstanding. Please make payment at your earliest convenience to proceed.\n\n`;
-      else if (type === 'docs') text += `This is a reminder to please upload the required documents for your order #${orderId} so that we can begin processing it.\n\n`;
-      else if (type === 'review') text += `We hope you were happy with our service for order #${orderId}. If you have a moment, we would greatly appreciate it if you could leave us a review on Google at the link below:\n\n<a href="https://g.page/r/CVIOzn2bYoiaEAE/review" target="_blank" style="color: blue;">https://g.page/r/CVIOzn2bYoiaEAE/review</a>\n\n`;
+      if (type === 'payment') {
+          text += `This is a friendly reminder that your invoice for order #${orderId} is still outstanding. Please make payment at your earliest convenience to proceed.\n\n`;
+      } else if (type === 'docs') {
+          text += `This is a reminder to please upload the required documents for your order #${orderId} so that we can begin processing it.\n\n`;
+      } else if (type === 'outstanding_docs') {
+          const outstandingRequirements: string[] = [];
+          orderItemsWithServices.forEach(item => {
+              item.service?.informationToProvide?.forEach(req => {
+                  const upload = order.documentUploads?.find(d => d.serviceId === item.id && d.requirementLabel === req.label);
+                  if (!upload || upload.status === 'pending' || upload.status === 'rejected') {
+                      const statusLabel = upload ? `(${upload.status})` : '(missing)';
+                      outstandingRequirements.push(`- ${req.label} ${statusLabel}`);
+                  }
+              });
+          });
+          text += `This is a reminder that we still require the following outstanding information / documents for order #${orderId} before we can proceed:\n\n`;
+          if (outstandingRequirements.length > 0) {
+              text += outstandingRequirements.join('\n') + '\n\n';
+          } else {
+              text += `Please check the portal for outstanding items.\n\n`;
+          }
+          text += `Please log in to the portal and upload these items at your earliest convenience.\n\n`;
+      } else if (type === 'review') {
+          text += `We hope you were happy with our service for order #${orderId}. If you have a moment, we would greatly appreciate it if you could leave us a review on Google at the link below:\n\n<a href="https://g.page/r/CVIOzn2bYoiaEAE/review" target="_blank" style="color: blue;">https://g.page/r/CVIOzn2bYoiaEAE/review</a>\n\n`;
+      }
       
       text += 'Kind regards,\nThe My Accountant Team';
       noteForm.setValue('noteText', text);
@@ -534,6 +556,7 @@ export default function AdminOrderDetailsPage() {
                              <div className="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" onClick={() => generateNoteTemplate('payment')}><Phone className="h-4 w-4 mr-2"/>Payment Follow-up</Button>
                                 <Button size="sm" variant="outline" onClick={() => generateNoteTemplate('docs')}><FileText className="h-4 w-4 mr-2"/>Request Documents</Button>
+                                <Button size="sm" variant="outline" onClick={() => generateNoteTemplate('outstanding_docs')}><AlertTriangle className="h-4 w-4 mr-2"/>Outstanding Info</Button>
                                 <Button size="sm" variant="outline" onClick={() => generateNoteTemplate('review')}><Star className="h-4 w-4 mr-2"/>Request Review</Button>
                                 <Button size="sm" variant="outline" onClick={handleGenerateDiscount} disabled={isGeneratingDiscount || !!order.discountCode}>{isGeneratingDiscount ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Percent className="h-4 w-4 mr-2"/>}{order.discountCode ? 'Discount Generated' : 'Generate 10% Discount'}</Button>
                             </div>
