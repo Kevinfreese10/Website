@@ -27,7 +27,6 @@ const navGroups = [
     href: '/monthly-accounting',
     items: [
         { label: 'Monthly Accounting', href: '/monthly-accounting' },
-        { label: 'All Packages', href: '/products#accounting-services' },
     ]
   },
   {
@@ -35,7 +34,6 @@ const navGroups = [
     href: '/monthly-payroll',
     items: [
         { label: 'Monthly Payroll', href: '/monthly-payroll' },
-        { label: 'Employee Setup', href: '/products#payroll-services' },
     ]
   },
   {
@@ -53,7 +51,6 @@ const navGroups = [
     href: '/liquidations',
     items: [
         { label: 'Voluntary Liquidations', href: '/liquidations' },
-        { label: 'Company Closures', href: '/products#cipc-services' },
     ]
   },
   {
