@@ -114,13 +114,19 @@ export default function AdminOrderDetailsPage() {
             documentUploads: (data.documentUploads || []).map((doc: any) => ({...doc, uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : new Date().toISOString()})),
           } as Order;
           
-          if (fetchedOrder.resellerId && !fetchedOrder.endCustomerEmail) {
-                const originalOrderRef = doc(db, 'orders', fetchedOrder.originalOrderId!);
+          if (fetchedOrder.originalOrderId) {
+                const originalOrderRef = doc(db, 'orders', fetchedOrder.originalOrderId);
                 const originalOrderSnap = await getDoc(originalOrderRef);
                 if (originalOrderSnap.exists()) {
                     const originalOrderData = originalOrderSnap.data();
-                    fetchedOrder.endCustomerName = originalOrderData.customerName;
-                    fetchedOrder.endCustomerEmail = originalOrderData.customerEmail;
+                    if (fetchedOrder.resellerId && !fetchedOrder.endCustomerEmail) {
+                        fetchedOrder.endCustomerName = originalOrderData.customerName;
+                        fetchedOrder.endCustomerEmail = originalOrderData.customerEmail;
+                    }
+                    fetchedOrder.documentUploads = (originalOrderData.documentUploads || []).map((doc: any) => ({
+                        ...doc,
+                        uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : new Date().toISOString()
+                    }));
                 }
           }
 
@@ -262,6 +268,12 @@ export default function AdminOrderDetailsPage() {
     try {
       const orderRef = doc(db, 'orders', order.id);
       await updateDoc(orderRef, { documentUploads: updatedUploads });
+      
+      if (order.originalOrderId) {
+        const originalOrderRef = doc(db, 'orders', order.originalOrderId);
+        await updateDoc(originalOrderRef, { documentUploads: updatedUploads });
+      }
+      
       toast({ title: 'Document Status Updated', description: `The document has been ${status}.`});
       fetchOrderAndStaff();
     } catch (error) {
