@@ -157,8 +157,12 @@ export default function AdminOrdersPage() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-        // Status filter
-        if (statusFilter !== 'all' && order.status !== statusFilter) return false;
+        // Status filter: Hide Completed by default when statusFilter is 'all'
+        if (statusFilter !== 'all') {
+            if (order.status !== statusFilter) return false;
+        } else {
+            if (order.status === 'Completed') return false;
+        }
 
         // Search term filter
         if (searchTerm.trim()) {
@@ -632,9 +636,9 @@ export default function AdminOrdersPage() {
             </CardContent>
             <CardFooter className="bg-muted/30 border-t py-3 justify-between items-center">
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                    Showing {filteredOrders.length} of {orders.length} active orders
+                    Showing {filteredOrders.length} of {orders.length} orders
                 </p>
-                {filteredOrders.length < orders.length && (
+                {(searchTerm || statusFilter !== 'all') && (
                     <Button variant="link" size="sm" onClick={() => { setSearchTerm(''); setStatusFilter('all'); }} className="h-auto p-0 text-[10px] font-black uppercase">
                         Clear all filters
                     </Button>
