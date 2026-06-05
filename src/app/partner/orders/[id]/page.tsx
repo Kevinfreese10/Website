@@ -369,7 +369,7 @@ export default function PartnerOrderDetailsPage() {
                     fileUrl: downloadURL,
                     fileName: file.name,
                     uploadedAt: Timestamp.now(),
-                    status: 'approved',
+                    status: order.isOutsourced ? 'pending' : 'approved',
                 };
 
                 const currentUploads = order.documentUploads || [];
@@ -383,7 +383,18 @@ export default function PartnerOrderDetailsPage() {
                     documentUploads: updatedUploads
                 });
 
-                toast({ title: 'File Uploaded', description: `${file.name} has been successfully submitted and approved.`});
+                if (order.isOutsourced) {
+                    const outsourcedQuery = query(collection(db, 'orders'), where('originalOrderId', '==', order.id));
+                    const outsourcedSnap = await getDocs(outsourcedQuery);
+                    if (!outsourcedSnap.empty) {
+                        const outsourcedDoc = outsourcedSnap.docs[0];
+                        await updateDoc(outsourcedDoc.ref, {
+                            documentUploads: updatedUploads
+                        });
+                    }
+                }
+
+                toast({ title: 'File Uploaded', description: order.isOutsourced ? `${file.name} has been successfully submitted for review.` : `${file.name} has been successfully submitted and approved.`});
                 await fetchOrder();
             } catch (error) {
                 console.error("Error saving document:", error);
@@ -416,7 +427,7 @@ export default function PartnerOrderDetailsPage() {
         type: 'text',
         textValue: text,
         uploadedAt: Timestamp.now(),
-        status: 'approved',
+        status: order.isOutsourced ? 'pending' : 'approved',
     };
 
     try {
@@ -430,7 +441,19 @@ export default function PartnerOrderDetailsPage() {
         await updateDoc(orderRef, {
             documentUploads: updatedUploads
         });
-        toast({ title: 'Information Submitted', description: 'Your information has been successfully saved.' });
+
+        if (order.isOutsourced) {
+            const outsourcedQuery = query(collection(db, 'orders'), where('originalOrderId', '==', order.id));
+            const outsourcedSnap = await getDocs(outsourcedQuery);
+            if (!outsourcedSnap.empty) {
+                const outsourcedDoc = outsourcedSnap.docs[0];
+                await updateDoc(outsourcedDoc.ref, {
+                    documentUploads: updatedUploads
+                });
+            }
+        }
+
+        toast({ title: 'Information Submitted', description: order.isOutsourced ? 'Your information has been successfully submitted for review.' : 'Your information has been successfully saved.' });
         setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
         await fetchOrder();
     } catch (error) {
