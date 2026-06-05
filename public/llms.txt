@@ -4,7 +4,6 @@
 
 ## Core Products & Services
 * [/products](https://www.myacc.co.za/products) - Our suite of professional accounting, payroll, and tax products available for purchase online.
-* [/ai-accountant](https://www.myacc.co.za/ai-accountant) - Meet Khai, the AI Accountant that automates your entire bookkeeping workflow from receipts to reconciliations.
 * [/compliance](https://www.myacc.co.za/compliance) - Free SARS & CIPC Compliance Check tool to instantly assess your South African business compliance status.
 * [/sars-compromise](https://www.myacc.co.za/sars-compromise) - Professional assistance for negotiating a debt settlement or Compromise of Debt with SARS.
 * [/sars-disputes](https://www.myacc.co.za/sars-disputes) - Expert support for lodging SARS disputes, objections (Section 104), and appeals.

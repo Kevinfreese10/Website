@@ -27,7 +27,6 @@ const navGroups = [
     href: '/monthly-accounting',
     items: [
         { label: 'Monthly Accounting', href: '/monthly-accounting' },
-        { label: 'Cloud Bookkeeping', href: '/ai-accountant' },
         { label: 'All Packages', href: '/products#accounting-services' },
     ]
   },
