@@ -10,6 +10,7 @@ import { ClientDocumentUploadEmail } from '@/components/emails/ClientDocumentUpl
 import { DocumentReviewEmail } from '@/components/emails/DocumentReviewEmail';
 import { NewNoteNotificationEmail } from '@/components/emails/NewNoteNotificationEmail';
 import { OutstandingDocumentsEmail } from '@/components/emails/OutstandingDocumentsEmail';
+import { OrderConfirmationEmail } from '@/components/emails/OrderConfirmationEmail';
 import { format, addDays, addMonths, addYears } from 'date-fns';
 import { BankCleaner } from '@/lib/bank-cleaner';
 
@@ -730,4 +731,35 @@ function parse(str: string, fmt: string, base: Date) {
     const parts = str.split(' ');
     const m = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].indexOf(parts[0]);
     return new Date(parseInt(parts[1]), m, 1);
+}
+
+export async function sendOrderConfirmationEmailAction({
+  orderData,
+  resellerData,
+  isNewUser,
+  generatedPassword,
+  showPaymentButton,
+}: {
+  orderData: Order;
+  resellerData?: User;
+  isNewUser?: boolean;
+  generatedPassword?: string | null;
+  showPaymentButton?: boolean;
+}) {
+  const emailHtml = render(
+    React.createElement(OrderConfirmationEmail, {
+      order: orderData,
+      reseller: resellerData,
+      isNewUser,
+      generatedPassword,
+      showPaymentButton,
+    })
+  );
+
+  await sendEmail({
+    to: orderData.customerEmail,
+    subject: `Order Confirmation #${orderData.id}`,
+    html: emailHtml,
+    resellerId: orderData.resellerId || undefined,
+  });
 }

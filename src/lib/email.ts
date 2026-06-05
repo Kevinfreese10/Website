@@ -1,11 +1,8 @@
 'use server';
 
 import nodemailer from 'nodemailer';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
+import { getAdminDb } from './firebase-admin';
 import { User } from './types';
-
-const db = getFirestore(firebaseApp);
 
 type EmailPayload = {
     to: string | string[];
@@ -79,15 +76,14 @@ export async function sendEmail({
   if (resellerId && !smtpOverride) {
     try {
       let partnerData: User | null = null;
-      const userRef = doc(db, 'users', resellerId);
-      const userSnap = await getDoc(userRef);
+      const adminDb = getAdminDb();
+      const userSnap = await adminDb.collection('users').doc(resellerId).get();
       
-      if (userSnap.exists()) {
+      if (userSnap.exists) {
           partnerData = userSnap.data() as User;
       } else {
-          const aiClientRef = doc(db, 'aiAccountantClients', resellerId);
-          const aiClientSnap = await getDoc(aiClientRef);
-          if (aiClientSnap.exists()) {
+          const aiClientSnap = await adminDb.collection('aiAccountantClients').doc(resellerId).get();
+          if (aiClientSnap.exists) {
               partnerData = aiClientSnap.data() as User;
           }
       }

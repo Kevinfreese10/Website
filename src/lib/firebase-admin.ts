@@ -87,3 +87,97 @@ export function getAdminAuth() {
   return getAuth();
 }
 
+// Helper to recursively serialize firestore timestamps and custom objects to clean JSON values
+export function serializeDbData(data: any): any {
+  if (data === null || data === undefined) return data;
+  
+  // Handle Array
+  if (Array.isArray(data)) {
+    return data.map(item => serializeDbData(item));
+  }
+
+  // Handle firestore Timestamp (Node SDK uses admin firestore.Timestamp, which has toDate)
+  if (data && typeof data === 'object' && typeof data.toDate === 'function') {
+    return data.toDate().toISOString();
+  }
+
+  // Handle standard Object
+  if (typeof data === 'object') {
+    const serialized: Record<string, any> = {};
+    for (const key of Object.keys(data)) {
+      serialized[key] = serializeDbData(data[key]);
+    }
+    return serialized;
+  }
+
+  return data;
+}
+
+export async function getPartnerBySlug(slug: string) {
+  const db = getAdminDb();
+  const snapshot = await db.collection("users")
+    .where("landingPage.enabled", "==", true)
+    .where("landingPage.slug", "==", slug)
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  const data = doc.data();
+
+  return {
+    ...serializeDbData(data),
+    id: doc.id,
+    uid: doc.id,
+  } as any;
+}
+
+export async function getServices() {
+  const db = getAdminDb();
+  const snapshot = await db.collection("services").orderBy("title").get();
+  return snapshot.docs.map(doc => ({
+    ...serializeDbData(doc.data()),
+    id: doc.id
+  } as any));
+}
+
+export async function getService(slug: string) {
+  const db = getAdminDb();
+  const snapshot = await db.collection("services")
+    .where("slug", "==", slug)
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  return {
+    ...serializeDbData(doc.data()),
+    id: doc.id
+  } as any;
+}
+
+export async function getPartnerOverrides(partnerId: string) {
+  const db = getAdminDb();
+  const snapshot = await db.collection('users').doc(partnerId).collection('serviceOverrides').get();
+  const overrides: Record<string, any> = {};
+  snapshot.docs.forEach(doc => {
+    overrides[doc.id] = serializeDbData(doc.data());
+  });
+  return overrides;
+}
+
+export async function getPartnerOverride(partnerId: string, serviceId: string) {
+  const db = getAdminDb();
+  const snap = await db.collection('users').doc(partnerId).collection('serviceOverrides').doc(serviceId).get();
+  return snap.exists ? serializeDbData(snap.data()) : null;
+}
+
+export async function getCategories() {
+  const db = getAdminDb();
+  const snapshot = await db.collection("categories").orderBy("order").get();
+  return snapshot.docs.map(doc => ({
+    ...serializeDbData(doc.data()),
+    id: doc.id
+  } as any));
+}
+

@@ -87,15 +87,15 @@ export default async function FranchiseLandingPage({ params }: { params: Promise
       />
       <div className="space-y-24 pb-24">
       {/* Hero Section */}
-      <section className="bg-slate-900 text-white py-24 relative overflow-hidden">
+      <section className="bg-slate-50 text-slate-900 py-24 relative overflow-hidden border-b border-slate-200/50">
         <div className="container mx-auto px-4 text-center relative z-10">
-          <Badge className="mb-4 bg-primary hover:bg-primary text-white border-none px-4 py-1 uppercase font-black tracking-widest flex items-center w-fit mx-auto gap-2">
+          <Badge className="mb-4 bg-primary hover:bg-primary text-slate-900 border-none px-4 py-1 uppercase font-black tracking-widest flex items-center w-fit mx-auto gap-2">
             <MapPin className="h-3 w-3" /> {franchisee.franchise?.areaName} Branch
           </Badge>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
             My Accountant <span className="text-primary">{franchisee.franchise?.areaName}</span>
           </h1>
-          <p className="mt-6 text-xl text-slate-300 max-w-3xl mx-auto font-medium leading-relaxed">
+          <p className="mt-6 text-xl text-slate-600 max-w-3xl mx-auto font-medium leading-relaxed">
             Professional accounting, tax, and compliance solutions delivered with local expertise and national standards.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">

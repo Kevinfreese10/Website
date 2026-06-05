@@ -212,6 +212,146 @@ export default function HomePageClient() {
         </div>
       </section>
 
+      {/* BEST SELLERS SECTION */}
+      <section className="py-20 bg-slate-50 border-t border-b">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center mb-16 space-y-4">
+            <Badge variant="outline" className="px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary border-primary/20 bg-primary/5 rounded-full">
+              Best Sellers
+            </Badge>
+            <h2 className="text-3xl font-black text-slate-900 md:text-5xl tracking-tight">
+              Our Most Popular Services
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Get started quickly with our top-selling compliance and accounting solutions, processed online with fast turnaround times.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            {/* NCR Registration Card */}
+            <Card className="flex flex-col border border-slate-200/80 shadow-md bg-white hover:shadow-lg hover:border-primary/20 transition-all rounded-2xl overflow-hidden group">
+              <CardHeader className="pb-4">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform duration-200">
+                    <Building className="h-6 w-6" />
+                  </div>
+                  <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border-none font-bold text-[10px] uppercase tracking-wider">
+                    NCR Registrations
+                  </Badge>
+                </div>
+                <CardTitle className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">
+                  NCR Registration
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 font-medium">
+                  <Clock className="h-3.5 w-3.5 text-slate-400" /> 15-20 working days
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 pb-6">
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Legally register your business with the National Credit Regulator (NCR) to offer credit, credit facilities, or financial services in South Africa.
+                </p>
+                <div className="mt-6 flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-slate-900">R1,400</span>
+                  <span className="text-xs text-muted-foreground font-semibold">once-off</span>
+                </div>
+              </CardContent>
+              <CardFooter className="pt-0 p-6 border-t border-slate-50 bg-slate-50/50">
+                <Button asChild className="w-full font-bold group-hover:shadow-md transition-all">
+                  <Link href="/products/ncr-registration">
+                    Order NCR Registration
+                    <ArrowRight className="h-4 w-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* Accountant's Letter Card */}
+            <Card className="flex flex-col border border-slate-200/80 shadow-md bg-white hover:shadow-lg hover:border-primary/20 transition-all rounded-2xl overflow-hidden group">
+              <CardHeader className="pb-4">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 group-hover:scale-110 transition-transform duration-200">
+                    <FileUp className="h-6 w-6" />
+                  </div>
+                  <Badge className="bg-violet-50 text-violet-700 hover:bg-violet-50 border-none font-bold text-[10px] uppercase tracking-wider">
+                    Accounting Services
+                  </Badge>
+                </div>
+                <CardTitle className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">
+                  Accountant's Letter
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 font-medium">
+                  <Clock className="h-3.5 w-3.5 text-slate-400" /> 1-2 working days
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 pb-6">
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Get a professional Accountant's Letter signed by a registered accountant for verifying income, financial standing, or loan and visa applications.
+                </p>
+                <div className="mt-6 flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-slate-900">R950</span>
+                  <span className="text-xs text-muted-foreground font-semibold">once-off</span>
+                </div>
+              </CardContent>
+              <CardFooter className="pt-0 p-6 border-t border-slate-50 bg-slate-50/50">
+                <Button asChild className="w-full font-bold group-hover:shadow-md transition-all">
+                  <Link href="/products/accountants-letter">
+                    Order Accountant's Letter
+                    <ArrowRight className="h-4 w-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* Tax Clearance Pin Card */}
+            <Card className="flex flex-col border border-slate-200/80 shadow-md bg-white hover:shadow-lg hover:border-primary/20 transition-all rounded-2xl overflow-hidden group">
+              <CardHeader className="pb-4">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform duration-200">
+                    <ShieldCheck className="h-6 w-6" />
+                  </div>
+                  <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-none font-bold text-[10px] uppercase tracking-wider">
+                    SARS Services
+                  </Badge>
+                </div>
+                <CardTitle className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">
+                  Tax Clearance Pin
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 font-medium">
+                  <Clock className="h-3.5 w-3.5 text-slate-400" /> 1-2 working days
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 pb-6">
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Acquire a SARS Tax Clearance PIN confirming your tax compliance status, essential for commercial tenders, public contracts, or foreign investments.
+                </p>
+                <div className="mt-6 flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-slate-900">R350</span>
+                  <span className="text-xs text-muted-foreground font-semibold">once-off</span>
+                </div>
+              </CardContent>
+              <CardFooter className="pt-0 p-6 border-t border-slate-50 bg-slate-50/50">
+                <Button asChild className="w-full font-bold group-hover:shadow-md transition-all">
+                  <Link href="/products/tax-clearance-pin">
+                    Order Tax Clearance Pin
+                    <ArrowRight className="h-4 w-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+
+          <div className="text-center">
+            <Button asChild size="lg" variant="secondary" className="h-14 px-12 text-lg font-extrabold shadow-lg rounded-xl hover:scale-105 active:scale-95 transition-all">
+              <Link href="/products" className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 mr-1" />
+                Visit our online store
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* CORE SERVICES SEO SECTION */}
       <section className="py-24 bg-white border-y">
           <div className="container mx-auto px-4">

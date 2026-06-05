@@ -126,7 +126,7 @@ export default function WebsiteAIWidget() {
 
     const welcomeMessage: ChatMessage = {
       role: 'bot',
-      text: "Hello! I'm Khai, a Support Consultant at **My Accountant**.\n\nHow can I assist you today? I'm here to help with any questions you may have about our services, products, pricing, processes, or the company.",
+      text: "Hello! I'm Khai, a Support Specialist at **My Accountant**.\n\nHow can I assist you today?\n\nI'm here to help with any questions you may have about our services, pricing, processes, products, or our company. I can also assist you with placing a new order or tracking an existing order.",
     };
 
     // 3. Listen to conversation real-time
@@ -484,8 +484,8 @@ export default function WebsiteAIWidget() {
 
   return (
     <>
-      {/* Bottom-left Launcher Button */}
-      <div className="fixed bottom-4 left-4 z-50">
+      {/* Bottom-right Launcher Button */}
+      <div className="fixed bottom-4 right-4 z-50">
         <Button 
           onClick={toggleChat} 
           size="icon" 
@@ -512,7 +512,7 @@ export default function WebsiteAIWidget() {
             </div>
           </div>
         ) : (
-          <div className="fixed bottom-20 left-4 right-4 z-50 sm:right-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className="fixed bottom-20 left-4 right-4 z-50 sm:left-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-5 duration-300">
             <Card className="flex flex-col h-[65vh] sm:h-[600px] shadow-2xl bg-white border border-slate-200 rounded-2xl overflow-hidden">
               {cardInner}
             </Card>

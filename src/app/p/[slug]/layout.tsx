@@ -1,5 +1,4 @@
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getPartnerBySlug } from '@/lib/firebase-admin';
 import { User } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import PartnerHeader from '@/components/partner/PartnerHeader';
@@ -8,43 +7,6 @@ import { Metadata } from 'next';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
-
-async function getPartnerBySlug(slug: string): Promise<User | null> {
-  const q = query(
-    collection(db, "users"), 
-    where("landingPage.enabled", "==", true),
-    where("landingPage.slug", "==", slug)
-  );
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  const doc = snapshot.docs[0];
-  const data = doc.data();
-
-  const serializedPartner = {
-    ...data,
-    id: doc.id,
-    uid: doc.id,
-  } as any;
-
-  // Serialize any potential timestamps to strings for Client Component transport
-  if (data.createdAt instanceof Timestamp) {
-    serializedPartner.createdAt = data.createdAt.toDate().toISOString();
-  }
-  if (data.yearEnd instanceof Timestamp) {
-    serializedPartner.yearEnd = data.yearEnd.toDate().toISOString();
-  }
-  if (data.subscription) {
-    serializedPartner.subscription = { ...data.subscription };
-    if (data.subscription.lastBillingDate instanceof Timestamp) {
-      serializedPartner.subscription.lastBillingDate = data.subscription.lastBillingDate.toDate().toISOString();
-    }
-    if (data.subscription.subscriptionEndDate instanceof Timestamp) {
-      serializedPartner.subscription.subscriptionEndDate = data.subscription.subscriptionEndDate.toDate().toISOString();
-    }
-  }
-
-  return serializedPartner as User;
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -119,6 +81,11 @@ export default async function PartnerLandingLayout({
           --partner-card-border: ${lp?.cardBorderColor || '#e5e7eb'};
           --partner-btn-bg: ${lp?.buttonColor || lp?.primaryColor || '#214392'};
           --partner-btn-text: ${lp?.buttonTextColor || '#ffffff'};
+
+          /* Tailwind UI standardization overrides */
+          --primary: ${lp?.primaryColor || '#214392'};
+          --ring: ${lp?.primaryColor || '#214392'};
+          --primary-foreground: ${lp?.buttonTextColor || '#ffffff'};
         }
         .partner-btn {
           background-color: ${isOutline ? 'transparent' : 'var(--partner-btn-bg)'} !important;

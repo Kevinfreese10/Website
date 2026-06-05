@@ -99,6 +99,122 @@ export async function websiteQAndA(
     }
   }
 
+  // Order status verification context logic
+  let orderVerificationContext = "";
+
+  // Scan user messages from latest to oldest to find the most recent order ID and email address.
+  // This prevents picking up example order IDs or phone numbers from system/bot messages,
+  // and allows users to correct typos in their inputs during subsequent conversation turns.
+  const userMessages = [
+    ...(input.history || []).filter(h => h.role === 'user').map(h => h.content),
+    input.question
+  ];
+
+  let extractedOrderId: string | null = null;
+  let extractedEmail: string | null = null;
+
+  // Extract email address (scan backwards)
+  const emailRegex = /\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/;
+  for (let i = userMessages.length - 1; i >= 0; i--) {
+    const match = userMessages[i].match(emailRegex);
+    if (match) {
+      extractedEmail = match[1].toLowerCase().trim();
+      break;
+    }
+  }
+
+  // Extract order ID (scan backwards, matching 4-digit numbers starting with 9, or any 5-digit number)
+  const orderIdRegex = /\b(9\d{3}|\d{5})\b/;
+  for (let i = userMessages.length - 1; i >= 0; i--) {
+    const match = userMessages[i].match(orderIdRegex);
+    if (match) {
+      extractedOrderId = match[1];
+      break;
+    }
+  }
+
+  if (extractedOrderId && extractedEmail) {
+    try {
+      const orderRef = adminDb.collection('orders').doc(extractedOrderId);
+      const orderSnap = await orderRef.get();
+      
+      if (orderSnap.exists) {
+        const orderData = orderSnap.data();
+        const customerEmail = (orderData?.customerEmail || "").toLowerCase().trim();
+        const endCustomerEmail = (orderData?.endCustomerEmail || "").toLowerCase().trim();
+        
+        if (customerEmail === extractedEmail || endCustomerEmail === extractedEmail) {
+          const status = orderData?.status || "Pending Payment";
+          const notes = orderData?.notes || [];
+          const lastNote = notes.length > 0 ? notes[notes.length - 1] : null;
+          
+          let lastUpdateText = "Order created and registered.";
+          let updatedBy = "System";
+          let lastUpdateTime = "";
+          
+          if (lastNote) {
+            lastUpdateText = lastNote.text || "";
+            const authorId = lastNote.authorId;
+            if (authorId === 'system') {
+              updatedBy = "My Accountant (System)";
+            } else {
+              const authorSnap = await adminDb.collection('users').doc(authorId).get();
+              if (authorSnap.exists) {
+                updatedBy = authorSnap.data()?.name || "Staff Advisor";
+              } else {
+                updatedBy = "Staff Advisor";
+              }
+            }
+            if (lastNote.date) {
+              try {
+                const dateObj = lastNote.date.toDate ? lastNote.date.toDate() : new Date(lastNote.date);
+                lastUpdateTime = dateObj.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+              } catch (e) {
+                lastUpdateTime = "Recently";
+              }
+            }
+          }
+
+          orderVerificationContext = `
+            ORDER STATUS VERIFICATION:
+            - Order Number: #${extractedOrderId}
+            - Email Verified: SUCCESS (${extractedEmail})
+            - Current Status: ${status}
+            - Last Update: "${lastUpdateText}"
+            - Updated By: ${updatedBy}
+            - Date of Last Update: ${lastUpdateTime}
+          `;
+        } else {
+          orderVerificationContext = `
+            ORDER STATUS VERIFICATION:
+            - Order Number: #${extractedOrderId}
+            - Email Verified: FAILED (Provided: ${extractedEmail}. The email does not match the customer email on file for this order ID.)
+          `;
+        }
+      } else {
+        orderVerificationContext = `
+          ORDER STATUS VERIFICATION:
+          - Order Number: #${extractedOrderId}
+          - Status: NOT FOUND (Order ID does not exist in our database)
+        `;
+      }
+    } catch (err) {
+      console.error("Error verifying order in AI flow:", err);
+    }
+  } else if (extractedOrderId && !extractedEmail) {
+    orderVerificationContext = `
+      ORDER STATUS VERIFICATION:
+      - Order Number: #${extractedOrderId}
+      - Email Verified: PENDING (Client provided the order number but has not provided their email address. Do not disclose status details until email is provided and verified.)
+    `;
+  } else if (!extractedOrderId && extractedEmail) {
+    orderVerificationContext = `
+      ORDER STATUS VERIFICATION:
+      - Email: ${extractedEmail}
+      - Order Number: PENDING (Client provided email but has not provided their order number. Do not disclose status details until order number is provided.)
+    `;
+  }
+
   // Fetch live data from Firestore using Admin SDK
   const servicesSnapshot = await adminDb.collection('services').orderBy('title').get();
   const services = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
@@ -203,6 +319,9 @@ export async function websiteQAndA(
 
     CONTACT AND FOOTER:
     ${footerContent}
+
+    ORDER TRACKING CONTEXT:
+    ${orderVerificationContext || "No order status query in progress. If the user wants to track an order, ask them for their Order Number and Email address."}
   `;
 
   const prompt = ai.definePrompt({
@@ -210,7 +329,7 @@ export async function websiteQAndA(
     model: 'googleai/gemini-2.5-flash',
     input: {schema: WebsiteQAndAInputSchema},
     output: {schema: WebsiteQAndAOutputSchema},
-    prompt: `You are the Support Consultant for My Accountant (Pty) Ltd. Your name is 'Khai'.
+    prompt: `You are the Support Specialist for My Accountant (Pty) Ltd. Your name is 'Khai'.
     
     Your primary objective is to:
     - Convert website visitors into paying clients.
@@ -311,6 +430,23 @@ export async function websiteQAndA(
     - Guess pricing.
     - Invent company policies.
     - Guess or invent services we do not offer.
+    
+    ORDER TRACKING & FOLLOW-UP RULES:
+    1. If a client requests a follow-up or status check on an existing order:
+       a. Check the 'ORDER TRACKING CONTEXT' in the context.
+       b. If no Order Number or Email address has been provided by the user yet:
+          - Ask the user to provide both their Order Number (e.g. 9954) and the Email address used to place the order.
+       c. If the user has provided one detail (either Order Number or Email) but not both (meaning verification is PENDING):
+          - Ask the user to provide the missing detail (e.g. if they provided the Order Number but not the email, ask for their email address).
+       d. If the verification is SUCCESS:
+          - State the current order status clearly (e.g., "Processing", "Completed", "Pending Payment").
+          - Share the details of the last update ("Last Update"), who made the update ("Updated By"), and when ("Date of Last Update").
+          - Keep the tone supportive and reassuring.
+       e. If the verification is FAILED (email mismatch) or the order is NOT FOUND:
+          - Politely inform the user that the details could not be verified or the order was not found.
+          - Explicitly instruct them that if they cannot verify their email and order number, they must contact us via email at info@myacc.co.za or call us at 010 109 1625 to follow up.
+          - Do NOT ask them to try entering details again; direct them to contact us.
+       f. Never disclose any order status, tracking, or update details unless the verification status is explicitly SUCCESS.
     
     UNOFFERED SERVICES & UNAVAILABLE INFO FALLBACK:
     If a user asks for a service that we do not offer (not found in our services database, such as liquor licenses) or if the requested information is not available:

@@ -13,9 +13,7 @@ import { firebaseApp } from '@/lib/firebase';
 import { getNextOrderId } from '@/lib/sequence';
 import { Checkbox } from '../ui/checkbox';
 import { Separator } from '../ui/separator';
-import { render } from '@react-email/components';
-import OrderConfirmationEmail from '../emails/OrderConfirmationEmail';
-import { sendEmail } from '@/lib/email';
+import { sendOrderConfirmationEmailAction } from '@/app/actions';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Input } from '@/components/ui/input';
@@ -238,21 +236,12 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
 
         await setDoc(doc(db, 'orders', orderId), orderData);
         
-        const emailHtml = render(
-            <OrderConfirmationEmail 
-                order={orderData} 
-                reseller={resellerData}
-                isNewUser={isNewUser}
-                generatedPassword={generatedPassword}
-                showPaymentButton={!resellerData?.bankingDetails?.bankName}
-            />
-        );
-        
-        await sendEmail({
-            to: orderData.customerEmail,
-            subject: `Order Confirmation #${orderId}`,
-            html: emailHtml,
-            resellerId: partnerId || undefined,
+        await sendOrderConfirmationEmailAction({
+            orderData,
+            resellerData,
+            isNewUser,
+            generatedPassword,
+            showPaymentButton: !resellerData?.bankingDetails?.bankName,
         });
 
         router.push(`/order-confirmation/${orderId}`);

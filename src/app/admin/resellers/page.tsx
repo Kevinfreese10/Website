@@ -456,12 +456,12 @@ export default function AdminPartnersPage() {
           if (!open) setSelectedPartnerIdForConfiguration(null);
       }}>
           <DialogContent className="sm:max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
-              <DialogHeader className="p-6 bg-slate-900 text-white border-b border-slate-800 shrink-0">
+              <DialogHeader className="p-6 bg-primary/5 border-b shrink-0">
                   <DialogTitle className="text-xl flex items-center gap-2">
                       <Wrench className="h-5 w-5 text-primary" />
                       Configure Practice Settings: {selectedPartnerForConfiguration?.companyName}
                   </DialogTitle>
-                  <DialogDescription className="text-slate-400">
+                  <DialogDescription className="text-muted-foreground">
                       Manage branding, banking, and landing page details on behalf of this partner.
                   </DialogDescription>
               </DialogHeader>

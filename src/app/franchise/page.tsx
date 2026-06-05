@@ -46,20 +46,20 @@ export default function FranchisePage() {
   return (
     <div className="space-y-16 pb-16 bg-white">
       {/* Hero Section */}
-      <section className="bg-slate-900 text-white py-24 relative overflow-hidden">
+      <section className="bg-slate-50 text-slate-900 py-24 relative overflow-hidden border-b border-slate-200/50">
         <div className="container mx-auto px-4 text-center relative z-10">
-          <Badge className="mb-4 bg-primary hover:bg-primary text-white border-none px-4 py-1 uppercase font-black tracking-widest">Franchise Opportunity</Badge>
+          <Badge className="mb-4 bg-primary hover:bg-primary text-slate-900 border-none px-4 py-1 uppercase font-black tracking-widest">Franchise Opportunity</Badge>
           <h1 className="text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl font-black tracking-tight leading-tight">
             Own Your Territory. <br/><span className="text-primary">Scale with Confidence.</span>
           </h1>
-          <p className="mt-8 text-xl text-slate-300 max-w-3xl mx-auto font-medium leading-relaxed">
+          <p className="mt-8 text-xl text-slate-600 max-w-3xl mx-auto font-medium leading-relaxed">
             The My Accountant Franchise model gives you an exclusive local presence with a standardized, turn-key accounting store.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-2xl">
+            <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-xl">
               <Link href="/franchise-signup">Get Started - R10,000 Setup</Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="h-14 px-10 text-lg font-bold border-2 border-slate-700 text-white hover:bg-white hover:text-slate-900 transition-all">
+            <Button asChild variant="outline" size="lg" className="h-14 px-10 text-lg font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all">
               <Link href="/contact">Speak to a Consultant</Link>
             </Button>
           </div>
@@ -147,17 +147,17 @@ export default function FranchisePage() {
 
       {/* Call to Action */}
       <section className="container mx-auto px-4 text-center">
-        <div className="max-w-3xl mx-auto space-y-8 bg-slate-900 text-white p-12 rounded-3xl shadow-2xl relative overflow-hidden">
+        <div className="max-w-3xl mx-auto space-y-8 bg-slate-50 border border-slate-200/80 text-slate-900 p-12 rounded-3xl shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-6">
-                <h2 className="text-4xl font-black">Ready to claim your territory?</h2>
-                <p className="text-xl text-slate-300">
+                <h2 className="text-4xl font-black text-slate-900">Ready to claim your territory?</h2>
+                <p className="text-xl text-slate-600">
                     Join the My Accountant Franchise network today and start building your local legacy with our proven systems.
                 </p>
                 <Button asChild size="lg" className="h-14 px-12 text-lg font-bold shadow-xl">
                     <Link href="/franchise-signup">Apply for a Franchise Now</Link>
                 </Button>
             </div>
-            <div className="absolute top-0 right-0 p-4 opacity-10"><MapPin size={150} /></div>
+            <div className="absolute top-0 right-0 p-4 opacity-10 text-slate-200"><MapPin size={150} /></div>
         </div>
       </section>
     </div>

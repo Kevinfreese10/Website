@@ -6,6 +6,7 @@ import { User, AllocationRule } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '../ui/separator';
 import { Switch } from '../ui/switch';
@@ -56,12 +57,15 @@ const formSchema = z.object({
   vatNumber: z.string().optional(),
   status: z.enum(clientStatuses).optional(),
   address: z.object({
+      unit: z.string().optional(),
+      complex: z.string().optional(),
       street: z.string().optional(),
       suburb: z.string().optional(),
       city: z.string().optional(),
       province: z.string().optional(),
       zip: z.string().optional(),
   }).optional(),
+  defaultInvoiceMessage: z.string().optional(),
   bankingDetails: z.object({
     bankName: z.string().optional(),
     accountHolder: z.string().optional(),
@@ -109,12 +113,15 @@ export default function ClientForm({
             vatNumber: client?.vatNumber || '',
             status: (client?.status as any) || 'Active',
             address: {
+                unit: client?.address?.unit || '',
+                complex: client?.address?.complex || '',
                 street: client?.address?.street || '',
                 suburb: client?.address?.suburb || '',
                 city: client?.address?.city || '',
                 province: client?.address?.province || '',
                 zip: client?.address?.zip || '',
             },
+            defaultInvoiceMessage: client?.defaultInvoiceMessage || '',
             bankingDetails: {
                 bankName: client?.bankingDetails?.bankName || '',
                 accountHolder: client?.bankingDetails?.accountHolder || '',
@@ -237,10 +244,13 @@ export default function ClientForm({
                     )}
 
                     {!isPayrollClient && (
+                        <>
+                        <FormField control={form.control} name="registrationNumber" render={({ field }) => ( <FormItem><FormLabel>Company Registration Number</FormLabel><FormControl><Input {...field} placeholder="e.g. 2024/123456/07" /></FormControl><FormMessage /></FormItem>)} />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField control={form.control} name="status" render={({ field }) => ( <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger></FormControl><SelectContent>{clientStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="yearEnd" render={({ field }) => ( <FormItem><FormLabel>Financial Year End</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a month" /></SelectTrigger></FormControl><SelectContent>{months.map(month => <SelectItem key={month} value={month}>{month}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                         </div>
+                        </>
                     )}
 
                     {isPayrollClient && (
@@ -335,6 +345,10 @@ export default function ClientForm({
                     <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-widest">
                         <ImageIcon className="h-4 w-4" /> Physical Address
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="address.unit" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Unit Number</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                        <FormField control={form.control} name="address.complex" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Complex Name</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
+                    </div>
                     <FormField control={form.control} name="address.street" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel className="text-xs">Street Address</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField control={form.control} name="address.suburb" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Suburb</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>)} />
@@ -377,6 +391,24 @@ export default function ClientForm({
                              <FormField control={form.control} name="bankingDetails.accountHolder" render={({ field }) => ( <FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                              <FormField control={form.control} name="bankingDetails.branchCode" render={({ field }) => ( <FormItem><FormLabel>Branch Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
+                    </section>
+
+                    <Separator />
+
+                    <section className="space-y-4">
+                        <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-widest">
+                            <Settings className="h-4 w-4" /> Invoice Settings
+                        </div>
+                        <FormField control={form.control} name="defaultInvoiceMessage" render={({ field }) => ( 
+                            <FormItem>
+                                <FormLabel>Default Invoice Message</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="e.g. Thank you for your business. Payment is due within 14 days." {...field} />
+                                </FormControl>
+                                <FormDescription className="text-[10px]">This message will be shown on all generated invoices by default.</FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
                     </section>
                     </>
                 )}

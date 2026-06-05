@@ -132,6 +132,9 @@ export default function InvoicesPage() {
                 const clientData = clientSnap.data() as User;
                 setClient(clientData);
                 setAccounts(clientData.chartOfAccounts?.filter(acc => acc.accountNumber.startsWith('1000-')).sort((a,b) => a.accountNumber.localeCompare(b.accountNumber)) || []);
+                if (clientData.defaultInvoiceMessage) {
+                    form.setValue('notes', clientData.defaultInvoiceMessage);
+                }
                 // If client is not VAT registered, default all lines to 'no_vat'
                 if (!clientData.isVatRegistered) {
                     form.getValues('lineItems').forEach((_, index) => {
@@ -272,7 +275,7 @@ export default function InvoicesPage() {
                  invoiceDate: new Date(),
                  dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
                  lineItems: [{ accountId: '', description: '', quantity: 1, rate: 0, vatType: client?.isVatRegistered ? 'standard_rated_sales' : 'no_vat' }],
-                 notes: '',
+                 notes: client?.defaultInvoiceMessage || '',
             });
             fetchData();
         } catch (error) {
@@ -392,6 +395,19 @@ export default function InvoicesPage() {
                                     </div>
                                     <Button type="button" variant="outline" size="sm" onClick={() => append({ accountId: '', description: '', quantity: 1, rate: 0, vatType: client?.isVatRegistered ? 'standard_rated_sales' : 'no_vat' })} className="mt-4"><PlusCircle className="mr-2 h-4 w-4"/>Add Line</Button>
                                 </div>
+                                <FormField
+                                    control={form.control}
+                                    name="notes"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Invoice Notes / Payment Instructions</FormLabel>
+                                            <FormControl>
+                                                <Textarea placeholder="e.g. Thank you for your business. Payment is due within 14 days." {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                                 <InvoiceTotals control={form.control} isVatRegistered={client?.isVatRegistered} />
                                 <div className="flex justify-end pt-4">
                                   <Button type="submit" disabled={isLoading}>{isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Finalizing...</> : "Finalize & Post Invoice"}</Button>

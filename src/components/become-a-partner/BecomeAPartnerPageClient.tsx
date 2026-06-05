@@ -303,13 +303,13 @@ export default function BecomeAPartnerPageClient() {
         </div>
       </section>
 
-      <section className="bg-slate-900 py-24">
+      <section className="bg-slate-50 py-24 border-y">
         <div className="container mx-auto px-4">
             <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div className="text-white space-y-6">
+                <div className="space-y-6">
                     <Badge className="bg-primary hover:bg-primary text-white border-none px-3 py-1 text-[10px] font-black uppercase tracking-widest">Pricing Plan</Badge>
-                    <h2 className="text-4xl md:text-5xl font-black leading-tight">One-Time Practice <br/><span className="text-primary">Investment</span></h2>
-                    <p className="text-lg text-slate-300 leading-relaxed">
+                    <h2 className="text-4xl md:text-5xl font-black leading-tight text-slate-900">One-Time Practice <br/><span className="text-primary">Investment</span></h2>
+                    <p className="text-lg text-muted-foreground leading-relaxed">
                         Scale your firm with a turn-key solution. The BEI setup fee replaces all monthly hosting costs, giving you a lifetime platform for growth.
                     </p>
                     <ul className="space-y-4">
@@ -320,14 +320,14 @@ export default function BecomeAPartnerPageClient() {
                             'Initial Setup & Professional Training',
                             'Direct CA Technical Support Access'
                         ].map((item, i) => (
-                            <li key={i} className="flex items-center gap-3 text-sm font-medium text-slate-200">
+                            <li key={i} className="flex items-center gap-3 text-sm font-semibold text-slate-800">
                                 <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                                 {item}
                             </li>
                         ))}
                     </ul>
                 </div>
-                <Card className="border-none shadow-2xl bg-white overflow-hidden transform lg:scale-110">
+                <Card className="border border-slate-200/80 shadow-2xl bg-white overflow-hidden transform lg:scale-110">
                     <CardHeader className="bg-slate-50 border-b p-8 text-center">
                         <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Setup & Activation</CardTitle>
                         <div className="mt-4 flex items-baseline justify-center gap-1">
@@ -438,8 +438,8 @@ export default function BecomeAPartnerPageClient() {
             </div>
             
             <div className="max-w-5xl mx-auto border rounded-2xl overflow-hidden shadow-xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 bg-slate-900 text-white font-black uppercase tracking-widest text-[10px]">
-                    <div className="p-4 border-r border-slate-800 hidden md:block">The Platform Feature</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 bg-slate-100 border-b border-slate-200 text-slate-800 font-black uppercase tracking-widest text-[10px]">
+                    <div className="p-4 border-r border-slate-200 hidden md:block">The Platform Feature</div>
                     <div className="p-4 hidden md:block">The Business Benefit</div>
                 </div>
                 <div className="divide-y divide-slate-100">

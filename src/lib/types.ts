@@ -390,6 +390,7 @@ export type User = {
   disableGlobalRules?: boolean;
   chartOfAccounts?: ChartOfAccount[];
   subscription?: SubscriptionData;
+  defaultInvoiceMessage?: string;
 };
 
 export type DiscountCode = {

@@ -38,7 +38,7 @@ export default async function IndustryPage({ params }: Props) {
 
   return (
     <div className="space-y-16 pb-16">
-      <section className="bg-slate-900 text-white py-20 lg:py-32">
+      <section className="bg-slate-50 text-slate-900 py-20 lg:py-32 border-b border-slate-200/50">
         <div className="container mx-auto px-4 text-center">
             <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-8">
                 <industry.icon className="h-8 w-8 text-primary" />
@@ -46,7 +46,7 @@ export default async function IndustryPage({ params }: Props) {
             <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl max-w-4xl mx-auto">
                 {industry.heroTitle}
             </h1>
-            <p className="mt-6 text-xl text-slate-300 max-w-2xl mx-auto">
+            <p className="mt-6 text-xl text-slate-600 max-w-2xl mx-auto">
                 {industry.heroSubtitle}
             </p>
             <Button asChild size="lg" className="mt-10 font-bold px-10 h-12">

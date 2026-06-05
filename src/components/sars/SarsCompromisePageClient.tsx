@@ -328,14 +328,14 @@ export default function SarsCompromisePageClient() {
                     We help clients legally reduce tax exposure, negotiate sustainable repayment terms, and restore compliance with SARS.
                 </p>
               </div>
-              <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-xl space-y-6">
+              <div className="bg-slate-50 border border-slate-200/80 text-slate-800 p-8 rounded-3xl shadow-xl space-y-6">
                   <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
                     <LifeBuoy className="h-6 w-6" /> Why Seek Help?
                   </h3>
-                  <p className="text-sm text-slate-300 leading-relaxed">
+                  <p className="text-sm text-slate-600 leading-relaxed">
                     SARS debt can place severe financial pressure on businesses and individuals. Ignoring the problem only leads to higher interest and aggressive collection actions.
                   </p>
-                  <Button asChild variant="secondary" className="w-full font-bold h-12">
+                  <Button asChild className="w-full font-bold h-12">
                       <Link href="/contact">Get Professional Support</Link>
                   </Button>
               </div>
@@ -571,7 +571,7 @@ export default function SarsCompromisePageClient() {
                               </Card>
 
                               {/* Lead Capture */}
-                              <Card className="border-2 border-primary/20 bg-slate-900 text-white shadow-xl relative overflow-hidden">
+                              <Card className="border-2 border-primary/20 bg-white text-slate-900 shadow-xl relative overflow-hidden">
                                   <CardContent className="p-6 space-y-4">
                                       {isSubmitted ? (
                                           <div className="text-center py-6 space-y-3">
@@ -579,8 +579,8 @@ export default function SarsCompromisePageClient() {
                                                   <Check className="h-5 w-5 text-white" />
                                               </div>
                                               <div className="space-y-1">
-                                                  <h4 className="font-bold text-white text-base">Request Submitted</h4>
-                                                  <p className="text-xs text-slate-300">
+                                                  <h4 className="font-bold text-slate-900 text-base">Request Submitted</h4>
+                                                  <p className="text-xs text-slate-500">
                                                       Thank you! A SARS Debt Specialist has received your eligibility metrics and will contact you shortly.
                                                   </p>
                                               </div>
@@ -588,8 +588,8 @@ export default function SarsCompromisePageClient() {
                                       ) : (
                                           <form onSubmit={handleLeadSubmit} className="space-y-4">
                                               <div className="space-y-1">
-                                                  <h4 className="font-bold text-white text-sm">Request Debt Compromise Consultation</h4>
-                                                  <p className="text-[11px] text-slate-300">
+                                                  <h4 className="font-bold text-slate-900 text-sm">Request Debt Compromise Consultation</h4>
+                                                  <p className="text-[11px] text-slate-500">
                                                       Submit your assessment variables to speak with a tax practitioner about your SARS debt.
                                                   </p>
                                               </div>
@@ -602,7 +602,7 @@ export default function SarsCompromisePageClient() {
                                                           value={leadName}
                                                           onChange={(e) => setLeadName(e.target.value)}
                                                           required
-                                                          className="bg-slate-800/80 border-slate-700 text-white h-9 text-xs placeholder:text-slate-400"
+                                                          className="bg-slate-50 border-slate-200 text-slate-900 h-9 text-xs placeholder:text-slate-400 focus-visible:ring-primary"
                                                       />
                                                   </div>
                                                   <div>
@@ -612,7 +612,7 @@ export default function SarsCompromisePageClient() {
                                                           value={leadEmail}
                                                           onChange={(e) => setLeadEmail(e.target.value)}
                                                           required
-                                                          className="bg-slate-800/80 border-slate-700 text-white h-9 text-xs placeholder:text-slate-400"
+                                                          className="bg-slate-50 border-slate-200 text-slate-900 h-9 text-xs placeholder:text-slate-400 focus-visible:ring-primary"
                                                       />
                                                   </div>
                                                   <div>
@@ -622,7 +622,7 @@ export default function SarsCompromisePageClient() {
                                                           value={leadPhone}
                                                           onChange={(e) => setLeadPhone(e.target.value)}
                                                           required
-                                                          className="bg-slate-800/80 border-slate-700 text-white h-9 text-xs placeholder:text-slate-400"
+                                                          className="bg-slate-50 border-slate-200 text-slate-900 h-9 text-xs placeholder:text-slate-400 focus-visible:ring-primary"
                                                       />
                                                   </div>
                                               </div>
@@ -700,12 +700,12 @@ export default function SarsCompromisePageClient() {
       </section>
 
       {/* COMPROMISE APPLICATIONS DETAIL */}
-      <section className="bg-slate-900 text-white py-24">
+      <section className="bg-slate-50 text-slate-900 py-24 border-y border-slate-200/50">
           <div className="container mx-auto px-4">
               <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                   <div className="space-y-6">
                       <h2 className="text-3xl font-bold md:text-4xl">Preparing Your SARS Compromise Application</h2>
-                      <p className="text-slate-400 leading-relaxed">Requires detailed financial analysis, legal motivation, and precise supporting documentation.</p>
+                      <p className="text-slate-600 leading-relaxed">Requires detailed financial analysis, legal motivation, and precise supporting documentation.</p>
                       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {applicationSupport.map((item, i) => (
                               <li key={i} className="flex items-center gap-3 text-sm font-medium">
@@ -713,7 +713,7 @@ export default function SarsCompromisePageClient() {
                               </li>
                           ))}
                       </ul>
-                      <p className="text-sm text-slate-400 italic pt-4">We tailor every compromise application based on the taxpayer’s specific financial circumstances and SARS risk factors.</p>
+                      <p className="text-sm text-slate-600 italic pt-4">We tailor every compromise application based on the taxpayer’s specific financial circumstances and SARS risk factors.</p>
                   </div>
                   <Card className="bg-white text-slate-900 border-none shadow-2xl">
                       <CardHeader className="bg-slate-50 border-b">
@@ -863,10 +863,10 @@ export default function SarsCompromisePageClient() {
 
       {/* FINAL CTA */}
       <section className="container mx-auto px-4 text-center">
-        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-900 text-white shadow-2xl relative overflow-hidden">
+        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-50 border border-slate-200/60 text-slate-900 shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-8">
-                <h2 className="text-4xl font-black">Speak to a SARS Debt Specialist</h2>
-                <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+                <h2 className="text-4xl font-black text-slate-900">Speak to a SARS Debt Specialist</h2>
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
                     If you are struggling with SARS debt, tax penalties, or SARS collection pressure, My Accountant can assist you with practical and professional tax debt solutions.
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -875,7 +875,7 @@ export default function SarsCompromisePageClient() {
                     </Button>
                 </div>
             </div>
-            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none"><ShieldCheck size={400} /></div>
+            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none text-slate-900/5"><ShieldCheck size={400} /></div>
         </div>
       </section>
     </div>

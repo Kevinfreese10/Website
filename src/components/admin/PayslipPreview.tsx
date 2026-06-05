@@ -143,12 +143,12 @@ export default function PayslipPreview({ payslip, employee, client }: PayslipPre
       </div>
 
       {/* Net Pay Box */}
-      <div className="bg-slate-900 rounded-xl p-6 text-white flex justify-between items-center mb-8">
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-slate-900 flex justify-between items-center mb-8">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Net Pay</p>
-          <p className="text-xs opacity-80">Final amount to be paid</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Net Pay</p>
+          <p className="text-xs text-slate-600 font-medium">Final amount to be paid</p>
         </div>
-        <p className="text-4xl font-black tabular-nums">{formatPrice(payslip.netPay)}</p>
+        <p className="text-4xl font-black tabular-nums text-slate-900">{formatPrice(payslip.netPay)}</p>
       </div>
 
       {/* Banking Info Footer */}

@@ -50,7 +50,7 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
       setMessages([
         {
           role: 'bot',
-          content: "Hello! I'm Khai, your AI Support Consultant. This is a testing session. Ask me anything to test my knowledge base training in real time!",
+          content: "Hello! I'm Khai, a Support Specialist at **My Accountant**.\n\nHow can I assist you today?\n\nI'm here to help with any questions you may have about our services, pricing, processes, products, or our company. I can also assist you with placing a new order or tracking an existing order.",
           timestamp: new Date(),
           confidence: 100
         }
@@ -123,7 +123,7 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
     setMessages([
       {
         role: 'bot',
-        content: "Session cleared. Ask me anything to test the current AI knowledge base training!",
+        content: "Hello! I'm Khai, a Support Specialist at **My Accountant**.\n\nHow can I assist you today?\n\nI'm here to help with any questions you may have about our services, pricing, processes, products, or our company. I can also assist you with placing a new order or tracking an existing order.",
         timestamp: new Date(),
         confidence: 100
       }

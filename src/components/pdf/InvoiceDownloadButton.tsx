@@ -46,30 +46,38 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       
-      let currentY = 32;
-      const renderAddress = (address: any, startY: number) => {
+      let leftY = 32;
+      if (client.registrationNumber) {
+          doc.text(`Reg No: ${client.registrationNumber}`, 20, leftY);
+          leftY += 5;
+      }
+
+      const renderAddress = (address: any, startY: number, x: number = 20) => {
           let currY = startY;
           if (typeof address === 'string') {
               const lines = address.split(',').map(part => part.trim()).filter(Boolean);
               lines.forEach((line: string) => {
-                  doc.text(line, 20, currY);
+                  doc.text(line, x, currY);
                   currY += 5;
               });
           } else if (typeof address === 'object' && address !== null) {
-              const lines = [address.street, address.suburb, address.city, address.province, address.zip]
+              const unitComplex = (address.unit && address.complex) 
+                  ? `${address.unit}, ${address.complex}` 
+                  : (address.unit ? `Unit ${address.unit}` : address.complex);
+              const lines = [unitComplex, address.street, address.suburb, address.city, address.province, address.zip]
                   .filter(Boolean);
               lines.forEach(line => {
-                  doc.text(String(line), 20, currY);
+                  doc.text(String(line), x, currY);
                   currY += 5;
               });
           }
           return currY;
       };
 
-      currentY = renderAddress(client.address, currentY);
+      leftY = renderAddress(client.address, leftY, 20);
       if (client.isVatRegistered && client.vatNumber) {
-          doc.text(`VAT Reg: ${client.vatNumber}`, 20, currentY);
-          currentY += 5;
+          doc.text(`VAT Reg: ${client.vatNumber}`, 20, leftY);
+          leftY += 5;
       }
 
       // 3. Invoice Header Details (Right)
@@ -90,23 +98,26 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
       doc.text(format(new Date(invoice.invoiceDate), 'dd/MM/yyyy'), 190, 40, { align: 'right' });
       doc.text(format(new Date(invoice.dueDate), 'dd/MM/yyyy'), 190, 45, { align: 'right' });
 
-      // 4. Bill To (Left) - Dynamically positioned after company info
-      currentY = Math.max(currentY + 15, 75);
+      // 4. Bill To (Right) - Positioned below the due date details on the right
+      let rightY = 55;
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(100);
-      doc.text('BILL TO:', 20, currentY);
-      currentY += 6;
+      doc.text('BILL TO:', 140, rightY);
+      rightY += 5;
       doc.setFontSize(11);
       doc.setTextColor(0);
-      doc.text(customer.name, 20, currentY);
-      currentY += 6;
+      doc.text(customer.name, 140, rightY);
+      rightY += 6;
       doc.setFontSize(9);
       doc.setTextColor(100);
-      currentY = renderAddress(customer.address, currentY);
+      doc.setFont('helvetica', 'normal');
+      rightY = renderAddress(customer.address, rightY, 140);
       if (customer.vatNumber) {
-          doc.text(`VAT Reg: ${customer.vatNumber}`, 20, currentY);
-          currentY += 5;
+          doc.text(`VAT Reg: ${customer.vatNumber}`, 140, rightY);
+          rightY += 5;
       }
+
+      const currentY = Math.max(leftY, rightY) + 5;
 
       // 5. Line Items Table
       const tableRows = invoice.lineItems.map(item => {
@@ -199,7 +210,8 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
       }
 
       // 8. Notes
-      if (invoice.notes) {
+      const notesToPrint = invoice.notes || client.defaultInvoiceMessage;
+      if (notesToPrint) {
           if (finalY > 260) { doc.addPage(); finalY = 20; }
           doc.setFontSize(8);
           doc.setTextColor(150);
@@ -208,7 +220,7 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
           finalY += 5;
           doc.setFont('helvetica', 'italic');
           doc.setTextColor(100);
-          const splitNotes = doc.splitTextToSize(invoice.notes, 170);
+          const splitNotes = doc.splitTextToSize(notesToPrint, 170);
           doc.text(splitNotes, 20, finalY);
       }
 

@@ -324,10 +324,10 @@ export default function SarsDisputesPageClient() {
                     ))}
                 </div>
               </div>
-              <div className="bg-slate-900 text-white p-8 rounded-3xl shadow-xl">
+              <div className="bg-slate-50 border border-slate-200/60 text-slate-900 p-8 rounded-3xl shadow-lg">
                   <h3 className="text-xl font-bold mb-4 text-primary">Penalty & Interest Remissions</h3>
-                  <p className="text-sm text-slate-300 mb-6 leading-relaxed">SARS imposes administrative and understatement penalties (up to 200%). We request remission based on "Reasonable Grounds" or exceptional circumstances.</p>
-                  <Button asChild variant="secondary" className="w-full font-bold">
+                  <p className="text-sm text-slate-600 mb-6 leading-relaxed">SARS imposes administrative and understatement penalties (up to 200%). We request remission based on "Reasonable Grounds" or exceptional circumstances.</p>
+                  <Button asChild className="w-full font-bold">
                       <Link href="/remission-of-fines">Learn About Remissions</Link>
                   </Button>
               </div>
@@ -417,10 +417,10 @@ export default function SarsDisputesPageClient() {
 
       {/* FINAL CTA */}
       <section className="container mx-auto px-4 text-center">
-        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-900 text-white shadow-2xl relative overflow-hidden">
+        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-50 border border-slate-200/60 text-slate-900 shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-8">
-                <h2 className="text-4xl font-black">Speak to a SARS Dispute Specialist</h2>
-                <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+                <h2 className="text-4xl font-black text-slate-900">Speak to a SARS Dispute Specialist</h2>
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
                     If you are facing a SARS audit, disputed assessment, tax penalties, or collection pressure, we can assist with professional dispute resolution services.
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -429,7 +429,7 @@ export default function SarsDisputesPageClient() {
                     </Button>
                 </div>
             </div>
-            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none"><ShieldCheck size={400} /></div>
+            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none text-slate-900/5"><ShieldCheck size={400} /></div>
         </div>
       </section>
     </div>

@@ -45,7 +45,11 @@ service cloud.firestore {
         request.resource.data.status == 'Pending Payment' ||
         (request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
-      allow update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow update: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (resource != null && resource.data.resellerId == request.auth.uid)
+      );
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     match /blogPosts/{postId} {
       allow read: if true;

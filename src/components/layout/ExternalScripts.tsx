@@ -96,14 +96,6 @@ export default function ExternalScripts() {
           })(10);
         `}
       </Script>
-      {/* Only show the respond.io widget if we are NOT on a partner landing page */}
-      {!isPartnerPage && (
-        <Script
-          id="respondio__growth_tool"
-          src="https://cdn.respond.io/widget/widget.js?wId=85c13926-c3bd-40f9-9535-9f8e052e2bc4"
-          strategy="lazyOnload"
-        />
-      )}
     </>
   );
 }

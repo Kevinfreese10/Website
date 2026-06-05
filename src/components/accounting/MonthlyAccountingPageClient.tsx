@@ -550,19 +550,19 @@ export default function MonthlyAccountingPageClient() {
           </div>
 
           {/* CTA Section */}
-          <div className="mt-20 text-center max-w-4xl mx-auto p-10 md:p-16 rounded-[3rem] bg-slate-950 text-white relative overflow-hidden shadow-2xl">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.08),transparent_50%)]" />
+          <div className="mt-20 text-center max-w-4xl mx-auto p-10 md:p-16 rounded-[3rem] bg-slate-100 text-slate-900 border border-slate-200/80 relative overflow-hidden shadow-lg">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.04),transparent_50%)]" />
             <h3 className="text-2xl md:text-4xl font-extrabold tracking-tight relative z-10">
               Ready to simplify your accounting?
             </h3>
-            <p className="text-slate-400 mt-4 max-w-xl mx-auto text-sm md:text-base relative z-10 leading-relaxed">
+            <p className="text-muted-foreground mt-4 max-w-xl mx-auto text-sm md:text-base relative z-10 leading-relaxed">
               Get in touch with us today for a custom quote or schedule a free consultation with our team.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8 relative z-10">
               <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-13 px-8 shadow-lg active:scale-95 transition-all">
                 <Link href="/contact?action=quote">Get a Quote</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="bg-transparent border-slate-700 text-white hover:bg-white/10 font-bold h-13 px-8 active:scale-95 transition-all">
+              <Button asChild variant="outline" size="lg" className="bg-white border-slate-300 text-slate-800 hover:bg-slate-50 font-bold h-13 px-8 active:scale-95 transition-all">
                 <Link href="/contact?action=consultation">Book a Consultation</Link>
               </Button>
             </div>
@@ -571,27 +571,27 @@ export default function MonthlyAccountingPageClient() {
       </section>
 
       {/* WHY CHOOSE US */}
-      <section className="bg-slate-900 text-white py-24 overflow-hidden relative">
+      <section className="bg-slate-50 py-24 border-y overflow-hidden relative">
           <div className="container mx-auto px-4 relative z-10">
               <div className="text-center mb-16 space-y-4">
-                  <h2 className="text-3xl font-bold md:text-5xl tracking-tight">Why Businesses Choose <span className="text-primary">My Accountant</span></h2>
-                  <p className="text-slate-400 max-w-2xl mx-auto">Combining technology-driven convenience with experienced financial professionals.</p>
+                  <h2 className="text-3xl font-bold md:text-5xl tracking-tight text-slate-900">Why Businesses Choose <span className="text-primary">My Accountant</span></h2>
+                  <p className="text-muted-foreground max-w-2xl mx-auto">Combining technology-driven convenience with experienced financial professionals.</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {whyChooseUs.map(item => (
-                      <div key={item} className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
+                      <div key={item} className="flex items-center gap-3 p-4 bg-white border border-slate-200/80 rounded-xl shadow-sm hover:border-primary/20 hover:shadow-md transition-all text-slate-800 font-semibold">
                           <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                           <span className="text-sm font-medium">{item}</span>
                       </div>
                   ))}
               </div>
               <div className="mt-16 text-center">
-                  <p className="text-sm text-slate-400 italic">
+                  <p className="text-sm text-muted-foreground font-medium italic">
                       Our team is associated with respected professional bodies including the South African Institute of Chartered Accountants (SAICA), Chartered Institute for Business Accountants (CIBA), and South African Institute of Taxation (SAIT).
                   </p>
               </div>
           </div>
-          <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none"><ShieldCheck size={400} /></div>
+          <div className="absolute top-0 right-0 p-20 opacity-[0.03] text-slate-900 pointer-events-none"><ShieldCheck size={400} /></div>
       </section>
 
       {/* REGIONAL SECTION */}

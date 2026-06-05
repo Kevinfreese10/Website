@@ -38,6 +38,9 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
         // Handle object address
         return (
              <div className="text-sm text-gray-600">
+                {address.unit && address.complex && <p>{address.unit}, {address.complex}</p>}
+                {address.unit && !address.complex && <p>Unit {address.unit}</p>}
+                {!address.unit && address.complex && <p>{address.complex}</p>}
                 {address.street && <p>{address.street}</p>}
                 {address.suburb && <p>{address.suburb}</p>}
                 {address.city && <p>{address.city}</p>}
@@ -59,8 +62,24 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                             </div>
                         )}
                         <h1 className="text-3xl font-bold text-gray-900">{client.companyName || client.name}</h1>
+                        {client.registrationNumber && <p className="text-sm text-gray-600">Reg No: {client.registrationNumber}</p>}
                         {renderAddress(client.address)}
                         {client.isVatRegistered && client.vatNumber && <p className="text-sm text-gray-600">VAT Reg: {client.vatNumber}</p>}
+                    </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="w-1/2 text-right space-y-6">
+                    <div className="space-y-4">
+                        <h2 className="text-4xl font-extrabold uppercase text-gray-400">Tax Invoice</h2>
+                         <div className="grid grid-cols-[auto_1fr] gap-x-4 text-sm justify-end">
+                            <span className="font-semibold text-gray-600 text-right">Invoice Number:</span>
+                            <span className="text-left ml-2">{invoice.id}</span>
+                            <span className="font-semibold text-gray-600 text-right">Date:</span>
+                            <span className="text-left ml-2">{format(invoice.invoiceDate, 'dd/MM/yyyy')}</span>
+                            <span className="font-semibold text-gray-600 text-right">Due Date:</span>
+                            <span className="text-left ml-2">{format(invoice.dueDate, 'dd/MM/yyyy')}</span>
+                        </div>
                     </div>
 
                     <div className="space-y-1">
@@ -68,19 +87,6 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                         <p className="text-lg font-bold text-gray-800">{customer.name}</p>
                         {renderAddress(customer.address)}
                         {customer.vatNumber && <p className="text-sm text-gray-600">VAT Reg: {customer.vatNumber}</p>}
-                    </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="w-1/2 text-right space-y-4">
-                    <h2 className="text-4xl font-extrabold uppercase text-gray-400">Tax Invoice</h2>
-                     <div className="grid grid-cols-[auto_1fr] gap-x-4 text-sm justify-end">
-                        <span className="font-semibold text-gray-600 text-right">Invoice Number:</span>
-                        <span className="text-left ml-2">{invoice.id}</span>
-                        <span className="font-semibold text-gray-600 text-right">Date:</span>
-                        <span className="text-left ml-2">{format(invoice.invoiceDate, 'dd/MM/yyyy')}</span>
-                        <span className="font-semibold text-gray-600 text-right">Due Date:</span>
-                        <span className="text-left ml-2">{format(invoice.dueDate, 'dd/MM/yyyy')}</span>
                     </div>
 
                     {hasBankingDetails && (
@@ -147,10 +153,10 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                 </div>
             </section>
 
-            {invoice.notes && (
+            {(invoice.notes || client.defaultInvoiceMessage) && (
                 <section className="mb-10 p-4 bg-gray-50 rounded border border-dashed">
                     <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Internal Notes / Payment Instructions</h3>
-                    <p className="text-sm text-gray-600 italic whitespace-pre-wrap">{invoice.notes}</p>
+                    <p className="text-sm text-gray-600 italic whitespace-pre-wrap">{invoice.notes || client.defaultInvoiceMessage}</p>
                 </section>
             )}
 

@@ -100,6 +100,10 @@ export const OrderConfirmationEmail = ({ order, reseller, isNewUser, generatedPa
     const companyName = reseller?.companyName || 'My Accountant';
     const companyEmail = reseller?.email || 'info@myacc.co.za';
     
+    const primaryColor = reseller?.landingPage?.primaryColor || '#214392';
+    const dynamicAnchor = { ...anchor, color: primaryColor };
+    const dynamicButton = { ...button, backgroundColor: primaryColor };
+
     let companyAddress = 'Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195';
     if (reseller?.address) {
         const addr = reseller.address;
@@ -125,7 +129,7 @@ export const OrderConfirmationEmail = ({ order, reseller, isNewUser, generatedPa
 
                 {isNewUser && generatedPassword && (
                     <Section style={{ border: '1px solid #e6ebf1', borderRadius: '5px', padding: '20px', backgroundColor: '#f0f7ff', marginTop: '20px', marginBottom: '20px' }}>
-                        <Text style={{ ...paragraph, fontWeight: 'bold', color: '#214392', marginBottom: '10px' }}>Your Client Portal Access</Text>
+                        <Text style={{ ...paragraph, fontWeight: 'bold', color: primaryColor, marginBottom: '10px' }}>Your Client Portal Access</Text>
                         <Text style={paragraph}>An account has been created for you to track your order and upload required documents.</Text>
                         <Text style={{ ...paragraph, margin: '0 0 4px 0', fontSize: '14px' }}><strong>Login Email:</strong> {order.customerEmail}</Text>
                         <Text style={{ ...paragraph, margin: '0 0 4px 0', fontSize: '14px' }}><strong>Temporary Password:</strong> {generatedPassword}</Text>
@@ -134,7 +138,7 @@ export const OrderConfirmationEmail = ({ order, reseller, isNewUser, generatedPa
                 )}
 
                 <Text style={paragraph}>
-                    Thank you for your order with {companyName}. Your order <strong style={{color: '#214392'}}>{order.id}</strong> has been successfully placed.
+                    Thank you for your order with {companyName}. Your order <strong style={{color: primaryColor}}>{order.id}</strong> has been successfully placed.
                 </Text>
                 
                 {(!reseller || !reseller.bankingDetails?.bankName) ? (
@@ -145,7 +149,7 @@ export const OrderConfirmationEmail = ({ order, reseller, isNewUser, generatedPa
                                 : "Your order is currently awaiting payment confirmation."}
                         </Text>
 
-                        <Button style={button} href={`${siteUrl}/order-confirmation/${order.id}`}>
+                        <Button style={dynamicButton} href={`${siteUrl}/order-confirmation/${order.id}`}>
                             {showPaymentButton ? 'Pay Now' : 'View Order Details'}
                         </Button>
                     </>
@@ -187,26 +191,26 @@ export const OrderConfirmationEmail = ({ order, reseller, isNewUser, generatedPa
                     <tbody>
                         <tr>
                         <td><Text style={{ ...paragraph, fontWeight: 'bold', fontSize: '18px' }}>Total Due</Text></td>
-                        <td align="right"><Text style={{ ...paragraph, fontWeight: 'bold', fontSize: '18px', color: '#214392' }}>{formatPrice(order.clientTotal || order.total)}</Text></td>
+                        <td align="right"><Text style={{ ...paragraph, fontWeight: 'bold', fontSize: '18px', color: primaryColor }}>{formatPrice(order.clientTotal || order.total)}</Text></td>
                         </tr>
                     </tbody>
                 </table>
                 <Hr style={hr} />
                 
                 <Text style={{...paragraph, fontSize: '14px', marginTop: '20px'}}>
-                    By making payment, you accept our <Link href={refundPolicyUrl} style={anchor}>Refund Policy</Link>.
+                    By making payment, you accept our <Link href={refundPolicyUrl} style={dynamicAnchor}>Refund Policy</Link>.
                 </Text>
                 
                 <Hr style={hr} />
-
+ 
                 <Text style={paragraph}>
                     Regards,
                     <br />
                     The {companyName} Team
                 </Text>
-
+ 
                 <Text style={footer}>
-                    {companyName} | <a href={`mailto:${companyEmail}`} style={anchor}>{companyEmail}</a> | {companyAddress}
+                    {companyName} | <a href={`mailto:${companyEmail}`} style={dynamicAnchor}>{companyEmail}</a> | {companyAddress}
                 </Text>
                 <Text style={footer}>
                     © {new Date().getFullYear()} {companyName}. All rights reserved.

@@ -1,5 +1,4 @@
-import { collection, query, where, getDocs, doc, getDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getPartnerBySlug, getService, getPartnerOverride } from '@/lib/firebase-admin';
 import { User, Service } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
@@ -12,67 +11,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Metadata } from 'next';
 import Script from 'next/script';
 import { generateStructuredData } from '@/lib/schema/productSchema';
-
-async function getPartnerBySlug(slug: string): Promise<User | null> {
-  const q = query(
-    collection(db, "users"), 
-    where("landingPage.enabled", "==", true),
-    where("landingPage.slug", "==", slug)
-  );
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  const doc = snapshot.docs[0];
-  const data = doc.data();
-
-  const serializedPartner = {
-    ...data,
-    id: doc.id,
-    uid: doc.id,
-  } as any;
-
-  if (data.createdAt instanceof Timestamp) {
-    serializedPartner.createdAt = data.createdAt.toDate().toISOString();
-  }
-  if (data.yearEnd instanceof Timestamp) {
-    serializedPartner.yearEnd = data.yearEnd.toDate().toISOString();
-  }
-  if (data.subscription) {
-    serializedPartner.subscription = { ...data.subscription };
-    if (data.subscription.lastBillingDate instanceof Timestamp) {
-      serializedPartner.subscription.lastBillingDate = data.subscription.lastBillingDate.toDate().toISOString();
-    }
-    if (data.subscription.subscriptionEndDate instanceof Timestamp) {
-      serializedPartner.subscription.subscriptionEndDate = data.subscription.subscriptionEndDate.toDate().toISOString();
-    }
-  }
-
-  return serializedPartner as User;
-}
-
-async function getService(slug: string): Promise<Service | null> {
-    const q = query(collection(db, 'services'), where('slug', '==', slug));
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return null;
-    const doc = snapshot.docs[0];
-    const data = doc.data();
-    
-    const serviceData = {
-        id: doc.id,
-        ...data,
-    } as any;
-
-    if (data.createdAt && data.createdAt instanceof Timestamp) {
-        serviceData.createdAt = data.createdAt.toDate().toISOString();
-    }
-    
-    return serviceData as Service;
-}
-
-async function getPartnerOverride(partnerId: string, serviceId: string): Promise<any | null> {
-    const overrideRef = doc(db, 'users', partnerId, 'serviceOverrides', serviceId);
-    const snap = await getDoc(overrideRef);
-    return snap.exists() ? snap.data() : null;
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string, serviceSlug: string }> }): Promise<Metadata> {
   const { slug, serviceSlug } = await params;
