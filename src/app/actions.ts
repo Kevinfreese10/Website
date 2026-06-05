@@ -384,27 +384,70 @@ export async function proposeRegroups({ clientId, bankAccountId }: { clientId: s
         groups[t.merchantKey!].push(t.id);
     });
 
-    const proposals = [];
     const keys = Object.keys(groups);
+    const weights: Record<string, number> = {};
+    keys.forEach(k => {
+        weights[k] = groups[k].length;
+    });
+
+    class UnionFind {
+        parent: Record<string, string>;
+        constructor(keys: string[]) {
+            this.parent = {};
+            keys.forEach(k => {
+                this.parent[k] = k;
+            });
+        }
+        find(i: string): string {
+            if (this.parent[i] === i) return i;
+            this.parent[i] = this.find(this.parent[i]); // Path compression
+            return this.parent[i];
+        }
+        union(i: string, j: string, weights: Record<string, number>) {
+            const rootI = this.find(i);
+            const rootJ = this.find(j);
+            if (rootI !== rootJ) {
+                const weightI = weights[rootI] || 0;
+                const weightJ = weights[rootJ] || 0;
+                if (weightI >= weightJ) {
+                    this.parent[rootJ] = rootI;
+                } else {
+                    this.parent[rootI] = rootJ;
+                }
+            }
+        }
+    }
+
+    const dsu = new UnionFind(keys);
     for (let i = 0; i < keys.length; i++) {
         for (let j = i + 1; j < keys.length; j++) {
             const sim = BankCleaner.getSimilarity(keys[i], keys[j]);
             if (sim.score > 0.85) {
-                proposals.push({
-                    fromKey: keys[j],
-                    toKey: keys[i],
-                    fromImpact: groups[keys[j]].length,
-                    toImpact: groups[keys[i]].length,
-                    score: Math.round(sim.score * 100),
-                    confidence: 'High',
-                    reason: sim.reason,
-                    fromTxIds: groups[keys[j]],
-                    fromExamples: [txs.find(t => t.merchantKey === keys[j])?.description],
-                    toExamples: [txs.find(t => t.merchantKey === keys[i])?.description]
-                });
+                dsu.union(keys[i], keys[j], weights);
             }
         }
     }
+
+    const proposals = [];
+    for (const key of keys) {
+        const root = dsu.find(key);
+        if (root !== key) {
+            const sim = BankCleaner.getSimilarity(key, root);
+            proposals.push({
+                fromKey: key,
+                toKey: root,
+                fromImpact: groups[key].length,
+                toImpact: groups[root].length,
+                score: Math.round(sim.score * 100),
+                confidence: 'High',
+                reason: sim.reason,
+                fromTxIds: groups[key],
+                fromExamples: [txs.find(t => t.merchantKey === key)?.description],
+                toExamples: [txs.find(t => t.merchantKey === root)?.description]
+            });
+        }
+    }
+
     return proposals;
 }
 

@@ -57,7 +57,7 @@ const formatPrice = (price: number) => {
 
 // #region Helper Components
 
-function RuleViewDialog({ open, onOpenChange, rule, matchedKeyword }: { open: boolean, onOpenChange: (open: boolean) => void, rule: AllocationRule | null, matchedKeyword?: string | null }) {
+function RuleViewDialog({ open, onOpenChange, rule, matchedKeyword, isVatRegistered }: { open: boolean, onOpenChange: (open: boolean) => void, rule: AllocationRule | null, matchedKeyword?: string | null, isVatRegistered?: boolean }) {
     if (!rule) return null;
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -78,15 +78,17 @@ function RuleViewDialog({ open, onOpenChange, rule, matchedKeyword }: { open: bo
                             </Badge>
                         </div>
                     )}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className={cn("grid gap-4", isVatRegistered ? "grid-cols-2" : "grid-cols-1")}>
                         <div className="space-y-1">
                             <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Allocate To</p>
                             <p className="text-sm font-semibold">{rule.accountId}</p>
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">VAT Treatment</p>
-                            <p className="text-sm font-semibold capitalize">{rule.vatType.replace(/_/g, ' ')}</p>
-                        </div>
+                        {isVatRegistered && (
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">VAT Treatment</p>
+                                <p className="text-sm font-semibold capitalize">{rule.vatType.replace(/_/g, ' ')}</p>
+                            </div>
+                        )}
                     </div>
                     <div className="space-y-2">
                         <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">All Rule Keywords</p>
@@ -111,12 +113,13 @@ function RuleViewDialog({ open, onOpenChange, rule, matchedKeyword }: { open: bo
     );
 }
 
-function AIAllocationReviewDialog({ open, onOpenChange, suggestion, transaction, onAction }: { 
+function AIAllocationReviewDialog({ open, onOpenChange, suggestion, transaction, onAction, isVatRegistered }: { 
     open: boolean, 
     onOpenChange: (open: boolean) => void, 
     suggestion: SmartAllocationResult | null, 
     transaction: ImportedTransaction | null,
-    onAction: (mode: 'new' | 'append' | 'allocate') => void 
+    onAction: (mode: 'new' | 'append' | 'allocate') => void,
+    isVatRegistered?: boolean
 }) {
     if (!suggestion || !transaction) return null;
 
@@ -145,16 +148,18 @@ function AIAllocationReviewDialog({ open, onOpenChange, suggestion, transaction,
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className={cn("grid gap-4", isVatRegistered ? "grid-cols-2" : "grid-cols-1")}>
                         <div className="space-y-1">
                             <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Suggested Account</p>
                             <p className="text-sm font-semibold">{suggestion.accountId}</p>
                             <p className="text-[9px] text-muted-foreground uppercase font-bold">{suggestion.accountType || 'account'}</p>
                         </div>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Suggested VAT</p>
-                            <p className="text-sm font-semibold capitalize">{suggestion.vatType.replace(/_/g, ' ')}</p>
-                        </div>
+                        {isVatRegistered && (
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Suggested VAT</p>
+                                <p className="text-sm font-semibold capitalize">{suggestion.vatType.replace(/_/g, ' ')}</p>
+                            </div>
+                        )}
                     </div>
 
                     {suggestion.suggestedKeyword && (
@@ -476,19 +481,21 @@ function CreateRuleDialog({ client, onRuleCreated, open, onOpenChange, defaultVa
                                 <FormMessage />
                             </FormItem>
                         )} />
-                        <FormField control={form.control} name="vatType" render={({ field }) => (
-                            <FormItem><FormLabel>VAT Treatment</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value || ""}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select VAT type" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        {allVatTypes.map(vt => (
-                                            <SelectItem key={vt.name} value={vt.name}>{vt.label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
+                        {client?.isVatRegistered && (
+                            <FormField control={form.control} name="vatType" render={({ field }) => (
+                                <FormItem><FormLabel>VAT Treatment</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Select VAT type" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            {allVatTypes.map(vt => (
+                                                <SelectItem key={vt.name} value={vt.name}>{vt.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        )}
                         <DialogFooter><Button type="submit" className="w-full">Save Rule</Button></DialogFooter>
                     </form>
                 </Form>
@@ -1417,7 +1424,7 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
             <CreateManualTransactionDialog client={client} bankAccountId={bankAccountId} open={isManualTxOpen} onOpenChange={setIsManualTxOpen} />
             <CreateRuleDialog client={client} onRuleCreated={() => {}} open={isCreateRuleOpen} onOpenChange={setIsCreateOpen} defaultValues={ruleDefaultValues} transactionDescription={transactionDescriptionForRule} existingRules={globalRules} customers={customers} suppliers={suppliers} />
             <CreateGeneralAccountDialog client={client} onAccountCreated={onAccountCreated} open={isCreateGeneralAccountOpen} onOpenChange={setIsCreateGeneralAccountOpen} />
-            <AIAllocationReviewDialog open={isAiReviewOpen} onOpenChange={setIsAiReviewOpen} suggestion={aiSuggestion} transaction={selectedTxForAi} onAction={handleAiReviewAction} />
+            <AIAllocationReviewDialog open={isAiReviewOpen} onOpenChange={setIsAiReviewOpen} suggestion={aiSuggestion} transaction={selectedTxForAi} onAction={handleAiReviewAction} isVatRegistered={!!client?.isVatRegistered} />
             <SplitTransactionDialog 
                 client={client} 
                 transaction={splitTransaction} 
@@ -1468,16 +1475,22 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                                             </CommandGroup>
                                             <CommandGroup heading="General Ledger Accounts">
                                                 {client?.chartOfAccounts?.map(acc => (
-                                                    <DropdownMenuSub key={acc.id}>
-                                                        <DropdownMenuSubTrigger className="flex items-center justify-between w-full p-2 cursor-pointer hover:bg-muted">
+                                                    client?.isVatRegistered ? (
+                                                        <DropdownMenuSub key={acc.id}>
+                                                            <DropdownMenuSubTrigger className="flex items-center justify-between w-full p-2 cursor-pointer hover:bg-muted">
+                                                                <span>{acc.description}</span>
+                                                            </DropdownMenuSubTrigger>
+                                                            <DropdownMenuSubContent className="w-56">
+                                                                <DropdownMenuLabel>VAT Treatment</DropdownMenuLabel>
+                                                                <DropdownMenuSeparator />
+                                                                {allVatTypes.map(v => <DropdownMenuItem key={v.name} onSelect={() => handleBulkAllocate({value: acc.id, type: 'account'}, v.name as VatType)}>{v.label}</DropdownMenuItem>)}
+                                                            </DropdownMenuSubContent>
+                                                        </DropdownMenuSub>
+                                                    ) : (
+                                                        <DropdownMenuItem key={acc.id} onSelect={() => handleBulkAllocate({value: acc.id, type: 'account'}, 'no_vat')} className="flex items-center justify-between w-full p-2 cursor-pointer hover:bg-muted">
                                                             <span>{acc.description}</span>
-                                                        </DropdownMenuSubTrigger>
-                                                        <DropdownMenuSubContent className="w-56">
-                                                            <DropdownMenuLabel>VAT Treatment</DropdownMenuLabel>
-                                                            <DropdownMenuSeparator />
-                                                            {allVatTypes.map(v => <DropdownMenuItem key={v.name} onSelect={() => handleBulkAllocate({value: acc.id, type: 'account'}, v.name as VatType)}>{v.label}</DropdownMenuItem>)}
-                                                        </DropdownMenuSubContent>
-                                                    </DropdownMenuSub>
+                                                        </DropdownMenuItem>
+                                                    )
                                                 ))}
                                             </CommandGroup>
                                         </CommandList>
@@ -1719,8 +1732,20 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
     const [isApplyingMerges, setIsApplyingMerges] = useState(false);
     const [selectedMerges, setSelectedMerges] = useState<string[]>([]);
 
+    const [sortBy, setSortBy] = useState<'alpha' | 'count'>('alpha');
+
     // REAL-TIME PROGRESS CALCULATION
     const [workflowTransactions, setWorkflowTransactions] = useState<ImportedTransaction[]>([]);
+
+    const sortedGroups = useMemo(() => {
+        const sorted = [...groups];
+        if (sortBy === 'count') {
+            sorted.sort((a, b) => b.transactions.length - a.transactions.length);
+        } else {
+            sorted.sort((a, b) => a.merchantKey.localeCompare(b.merchantKey));
+        }
+        return sorted;
+    }, [groups, sortBy]);
     
     useEffect(() => {
         if (!client?.uid || !bankAccountId) return;
@@ -2269,7 +2294,12 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
 
             <div className="flex justify-between items-center bg-muted/20 p-4 rounded-lg border border-dashed gap-4 flex-wrap">
                 <div className="space-y-1">
-                    <h3 className="font-bold text-sm">Review Identifiable Merchants</h3>
+                    <h3 className="font-bold text-sm flex items-center gap-2">
+                        Review Identifiable Merchants
+                        <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0.5">
+                            {groups.length} {groups.length === 1 ? 'group' : 'groups'}
+                        </Badge>
+                    </h3>
                     <p className="text-xs text-muted-foreground">Approve matched transactions or research unknown ones with AI.</p>
                 </div>
                 <div className="flex gap-2 flex-wrap items-center">
@@ -2280,6 +2310,26 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                             onCheckedChange={(v) => setOnlySelectedGroups(!!v)} 
                         />
                         <Label htmlFor="only-selected" className="text-xs font-medium cursor-pointer">Analyze selected only</Label>
+                    </div>
+
+                    <div className="flex items-center gap-1 mr-4 border-r pr-4 border-muted text-xs font-semibold">
+                        <span className="text-muted-foreground mr-1.5">Sort:</span>
+                        <Button
+                            variant={sortBy === 'alpha' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setSortBy('alpha')}
+                            className="h-8 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider"
+                        >
+                            A-Z
+                        </Button>
+                        <Button
+                            variant={sortBy === 'count' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setSortBy('count')}
+                            className="h-8 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider"
+                        >
+                            Most Transactions
+                        </Button>
                     </div>
                     
                     <Button variant="outline" onClick={handleDownloadExcel} disabled={groups.length === 0}>
@@ -2314,7 +2364,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-                {groups.map((group) => {
+                {sortedGroups.map((group) => {
                     const firstTx = group.transactions[0];
                     const sourceLabel = firstTx.allocationSource === 'history' ? 'HISTORY MATCH' : 
                                       firstTx.allocationSource === 'rule' ? 'RULE MATCH' :
@@ -2365,7 +2415,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                             </div>
                             
                             <div className="md:col-span-4 p-4 border-r space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className={cn("grid gap-4", client?.isVatRegistered ? "grid-cols-2" : "grid-cols-1")}>
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">ALLOCATE TO</Label>
                                         <Select value={approvalSettings[group.merchantKey]?.accountId || ''} onValueChange={(v) => setApprovalSettings((p: any) => ({...p, [group.merchantKey]: {...p[group.merchantKey], accountId: v}}))}>
@@ -2373,13 +2423,15 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                                             <SelectContent>{client?.chartOfAccounts?.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">VAT</Label>
-                                        <Select value={approvalSettings[group.merchantKey]?.vatType || 'no_vat'} onValueChange={(v) => setApprovalSettings((p: any) => ({...p, [group.merchantKey]: {...p[group.merchantKey], vatType: v}}))}>
-                                            <SelectTrigger className="h-10 text-[11px] font-bold"><SelectValue /></SelectTrigger>
-                                            <SelectContent>{allVatTypes.map(vt => <SelectItem key={vt.name} value={vt.name}>{vt.label}</SelectItem>)}</SelectContent>
-                                        </Select>
-                                    </div>
+                                    {client?.isVatRegistered && (
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">VAT</Label>
+                                            <Select value={approvalSettings[group.merchantKey]?.vatType || 'no_vat'} onValueChange={(v) => setApprovalSettings((p: any) => ({...p, [group.merchantKey]: {...p[group.merchantKey], vatType: v}}))}>
+                                                <SelectTrigger className="h-10 text-[11px] font-bold"><SelectValue /></SelectTrigger>
+                                                <SelectContent>{allVatTypes.map(vt => <SelectItem key={vt.name} value={vt.name}>{vt.label}</SelectItem>)}</SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest flex items-center gap-1">
@@ -2732,6 +2784,7 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                 onOpenChange={(open) => !open && setViewingRuleData(null)}
                 rule={viewingRuleData?.rule || null}
                 matchedKeyword={viewingRuleData?.keyword}
+                isVatRegistered={!!client?.isVatRegistered}
             />
             <SplitTransactionDialog 
                 client={client} 
@@ -2813,23 +2866,33 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                                                 <CommandEmpty>No results found.</CommandEmpty>
                                                 <CommandGroup heading="General Ledger Accounts">
                                                     {uniqueChartOfAccounts.map(acc => (
-                                                        <DropdownMenuSub key={acc.id}>
-                                                            <DropdownMenuSubTrigger className="flex items-center justify-between w-full p-2 cursor-pointer hover:bg-muted">
+                                                        client?.isVatRegistered ? (
+                                                            <DropdownMenuSub key={acc.id}>
+                                                                <DropdownMenuSubTrigger className="flex items-center justify-between w-full p-2 cursor-pointer hover:bg-muted">
+                                                                    <span>{acc.description}</span>
+                                                                </DropdownMenuSubTrigger>
+                                                                <DropdownMenuSubContent className="w-56">
+                                                                    <DropdownMenuLabel>VAT Treatment</DropdownMenuLabel>
+                                                                    <DropdownMenuSeparator />
+                                                                    {allVatTypes.map(v => (
+                                                                        <DropdownMenuItem 
+                                                                            key={v.name} 
+                                                                            onSelect={() => handleBulkReallocate({value: acc.id, type: 'account'}, v.name as VatType)}
+                                                                        >
+                                                                            {v.label}
+                                                                        </DropdownMenuItem>
+                                                                    ))}
+                                                                </DropdownMenuSubContent>
+                                                            </DropdownMenuSub>
+                                                        ) : (
+                                                            <DropdownMenuItem 
+                                                                key={acc.id} 
+                                                                onSelect={() => handleBulkReallocate({value: acc.id, type: 'account'}, 'no_vat')}
+                                                                className="flex items-center justify-between w-full p-2 cursor-pointer hover:bg-muted"
+                                                            >
                                                                 <span>{acc.description}</span>
-                                                            </DropdownMenuSubTrigger>
-                                                            <DropdownMenuSubContent className="w-56">
-                                                                <DropdownMenuLabel>VAT Treatment</DropdownMenuLabel>
-                                                                <DropdownMenuSeparator />
-                                                                {allVatTypes.map(v => (
-                                                                    <DropdownMenuItem 
-                                                                        key={v.name} 
-                                                                        onSelect={() => handleBulkReallocate({value: acc.id, type: 'account'}, v.name as VatType)}
-                                                                    >
-                                                                        {v.label}
-                                                                    </DropdownMenuItem>
-                                                                ))}
-                                                            </DropdownMenuSubContent>
-                                                        </DropdownMenuSub>
+                                                            </DropdownMenuItem>
+                                                        )
                                                     ))}
                                                 </CommandGroup>
                                                 <CommandGroup heading="Suppliers">

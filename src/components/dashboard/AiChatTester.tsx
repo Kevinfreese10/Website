@@ -13,6 +13,11 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { firebaseApp } from '@/lib/firebase';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 type TestMessage = {
   role: 'user' | 'bot';
@@ -43,6 +48,63 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [expandedDiagnostics, setExpandedDiagnostics] = useState<{ [key: number]: boolean }>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Training comment feature state
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false);
+  const [selectedBotMessage, setSelectedBotMessage] = useState<TestMessage | null>(null);
+  const [precedingQuestion, setPrecedingQuestion] = useState<string>('');
+  const [commentText, setCommentText] = useState('');
+  const [isSavingComment, setIsSavingComment] = useState(false);
+  const { toast } = useToast();
+  const db = getFirestore(firebaseApp);
+
+  const getPrecedingUserMessage = (idx: number): string | null => {
+    for (let i = idx - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        return messages[i].content;
+      }
+    }
+    return null;
+  };
+
+  const handleOpenCommentDialog = (message: TestMessage, idx: number) => {
+    const question = getPrecedingUserMessage(idx);
+    if (!question) return; // Skip if no preceding question
+
+    setSelectedBotMessage(message);
+    setPrecedingQuestion(question);
+    setCommentText('');
+    setCommentDialogOpen(true);
+  };
+
+  const handleSaveComment = async () => {
+    if (!commentText.trim() || !precedingQuestion || !selectedBotMessage) return;
+
+    setIsSavingComment(true);
+    try {
+      await addDoc(collection(db, 'unansweredQuestions'), {
+        question: precedingQuestion,
+        aiResponse: selectedBotMessage.content,
+        comment: commentText.trim(),
+        timestamp: new Date()
+      });
+
+      toast({
+        title: "Comment Saved",
+        description: "Your comment has been logged to train the AI.",
+      });
+      setCommentDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error saving training comment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save training comment: " + (error.message || error),
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingComment(false);
+    }
+  };
 
   // Initialize with welcome message if empty
   useEffect(() => {
@@ -215,21 +277,36 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
                 )}
                 
                 <div className="flex flex-col space-y-1.5 max-w-[85%]">
-                  <div
-                    className={cn(
-                      "rounded-2xl p-3.5 text-xs font-medium leading-relaxed shadow-sm",
-                      message.role === 'user'
-                        ? "bg-violet-600 text-white rounded-tr-none"
-                        : "bg-white text-slate-800 border border-slate-200/80 rounded-tl-none"
-                    )}
-                  >
-                    <div className={cn(
-                      "prose prose-sm max-w-none text-xs",
-                      message.role === 'user' ? "prose-invert text-white" : "prose-slate text-slate-800"
-                    )}>
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
-                    </div>
-                  </div>
+                  {(() => {
+                    const precedingQuestionText = getPrecedingUserMessage(idx);
+                    const hasPrecedingQuestion = message.role === 'bot' && !!precedingQuestionText;
+                    return (
+                      <div
+                        onClick={() => hasPrecedingQuestion && handleOpenCommentDialog(message, idx)}
+                        className={cn(
+                          "rounded-2xl p-3.5 text-xs font-medium leading-relaxed shadow-sm transition-all duration-200 relative group",
+                          message.role === 'user'
+                            ? "bg-violet-600 text-white rounded-tr-none"
+                            : "bg-white text-slate-800 border border-slate-200/80 rounded-tl-none",
+                          hasPrecedingQuestion && "hover:border-violet-300 hover:shadow-md cursor-pointer hover:bg-violet-50/10"
+                        )}
+                        title={hasPrecedingQuestion ? "Click to add a training comment" : undefined}
+                      >
+                        {hasPrecedingQuestion && (
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 shadow-sm">
+                            <MessageSquare className="h-2.5 w-2.5" />
+                            Comment
+                          </div>
+                        )}
+                        <div className={cn(
+                          "prose prose-sm max-w-none text-xs",
+                          message.role === 'user' ? "prose-invert text-white" : "prose-slate text-slate-800"
+                        )}>
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Diagnostic Panel for AI Responses */}
                   {message.role === 'bot' && typeof message.confidence === 'number' && (
@@ -361,6 +438,69 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
         </div>
 
       </SheetContent>
+
+      <Dialog open={commentDialogOpen} onOpenChange={setCommentDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-violet-900 dark:text-violet-200">
+              <MessageSquare className="h-5 w-5 text-violet-600" />
+              Add Training Comment
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Provide correct information or corrections for this AI response. This will be used to train the AI.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">User Question</span>
+              <p className="text-xs font-semibold bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-slate-800">
+                {precedingQuestion}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AI Response</span>
+              <div className="text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-slate-600 max-h-32 overflow-y-auto font-mono">
+                {selectedBotMessage?.content}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-violet-600 uppercase tracking-wider">Correct Answer / Comment</span>
+              <Textarea
+                placeholder="Type the correct response or comments to update the knowledge base..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                rows={4}
+                className="text-xs font-semibold focus-visible:ring-violet-600"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setCommentDialogOpen(false)}
+              disabled={isSavingComment}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveComment}
+              disabled={isSavingComment || !commentText.trim()}
+              className="bg-violet-600 hover:bg-violet-700 text-white"
+            >
+              {isSavingComment ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Comment"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }

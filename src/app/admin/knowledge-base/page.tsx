@@ -29,6 +29,8 @@ type UnansweredQuestion = {
   id: string;
   question: string;
   timestamp: Date;
+  comment?: string;
+  aiResponse?: string;
 };
 
 type KBItem = KnowledgeBaseItem;
@@ -415,11 +417,16 @@ export default function AdminKnowledgeBasePage() {
         setItems(fetchedKbItems);
 
         const unansweredSnapshot = await getDocs(query(collection(db, 'unansweredQuestions'), orderBy('timestamp', 'desc')));
-        const fetchedUnanswered = unansweredSnapshot.docs.map(doc => ({
-          id: doc.id,
-          question: doc.data().question,
-          timestamp: doc.data().timestamp.toDate(),
-        }));
+        const fetchedUnanswered = unansweredSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            question: data.question,
+            timestamp: data.timestamp.toDate(),
+            comment: data.comment || '',
+            aiResponse: data.aiResponse || '',
+          };
+        });
         setQuestions(fetchedUnanswered);
 
       } catch (error) {
@@ -439,7 +446,12 @@ export default function AdminKnowledgeBasePage() {
   }, [toast]);
 
   const handleAddToKnowledgeBase = (question: UnansweredQuestion) => {
-    setSelectedItem({ id: question.id, question: question.question, answer: '' });
+    setSelectedItem({ 
+      id: question.id, 
+      question: question.question, 
+      answer: question.comment || '',
+      sourceType: 'qa'
+    });
     setIsFormOpen(true);
   };
 
@@ -593,7 +605,24 @@ export default function AdminKnowledgeBasePage() {
                     <TableBody>
                     {questions.map((q) => (
                         <TableRow key={q.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleAddToKnowledgeBase(q)}>
-                            <TableCell className="font-medium max-w-2xl">{q.question}</TableCell>
+                            <TableCell className="font-medium max-w-2xl">
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span>{q.question}</span>
+                                        {q.comment && (
+                                            <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 text-[10px] py-0 px-1.5 font-bold">
+                                                Feedback Comment
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    {q.comment && (
+                                        <div className="text-xs text-violet-600 bg-violet-50/50 dark:bg-violet-950/10 border border-violet-100 dark:border-violet-900/50 p-2 rounded mt-1.5 font-medium italic">
+                                            <strong className="not-italic text-violet-700 dark:text-violet-400 font-bold block mb-0.5 text-[10px] uppercase tracking-wider">Comment:</strong>
+                                            "{q.comment}"
+                                        </div>
+                                    )}
+                                </div>
+                            </TableCell>
                             <TableCell>{formatDistanceToNow(q.timestamp, { addSuffix: true })}</TableCell>
                             <TableCell className="text-right">
                                 <AlertDialog>
