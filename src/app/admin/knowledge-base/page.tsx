@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, PlusCircle, Trash, Loader2, Sparkles, BrainCircuit, CheckCircle2, HelpCircle, AlertTriangle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Trash, Loader2, Sparkles, BrainCircuit, CheckCircle2, HelpCircle, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { analyzeKbContent, integrateKbClarifications, AnalyzeKbContentOutput } from '@/ai/flows/analyze-kb-content';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,7 @@ import { collection, getDocs, deleteDoc, doc, query, orderBy, getFirestore, addD
 import { firebaseApp } from '@/lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
+import AiChatTester from '@/components/dashboard/AiChatTester';
 
 type UnansweredQuestion = {
   id: string;
@@ -400,6 +401,7 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
 export default function AdminKnowledgeBasePage() {
   const [items, setItems] = useState<KBItem[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isChatTesterOpen, setIsChatTesterOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Partial<KBItem> | null>(null);
   const [questions, setQuestions] = useState<UnansweredQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -523,6 +525,11 @@ export default function AdminKnowledgeBasePage() {
 
   return (
     <div className="space-y-8">
+        <AiChatTester 
+            isOpen={isChatTesterOpen} 
+            onClose={() => setIsChatTesterOpen(false)} 
+        />
+
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
                 <span/>
@@ -544,10 +551,20 @@ export default function AdminKnowledgeBasePage() {
 
         <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold tracking-tight">Knowledge Base &amp; AI Training</h1>
-            <Button onClick={handleAddKB}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add to Knowledge Base
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button 
+                    variant="outline"
+                    onClick={() => setIsChatTesterOpen(true)}
+                    className="border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100 dark:border-violet-800 dark:text-violet-300 dark:bg-violet-950/20 dark:hover:bg-violet-900/50"
+                >
+                    <MessageSquare className="mr-2 h-4 w-4 text-violet-500" />
+                    Test AI Chat
+                </Button>
+                <Button onClick={handleAddKB}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add to Knowledge Base
+                </Button>
+            </div>
         </div>
 
         <Card>
