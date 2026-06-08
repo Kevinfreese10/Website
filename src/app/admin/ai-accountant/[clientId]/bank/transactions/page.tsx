@@ -2810,7 +2810,6 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                                     className="w-52"
                                     size="default"
                                     onChange={(sel, vat) => handleBulkReallocate(sel, vat || 'no_vat')}
-                                    onCreateAccountClick={() => setIsCreateGeneralAccountOpen(true)}
                                 />
 
                                 <AlertDialog>
