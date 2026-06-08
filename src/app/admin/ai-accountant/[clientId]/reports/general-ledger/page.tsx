@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import React, { useState, useEffect, useMemo, ReactNode } from "react";
 import { User, ChartOfAccount, AllocatedTransaction, ImportedTransaction, VatType, Supplier, ClientCustomer } from "@/lib/types";
-import { getFirestore, doc, getDoc, collection, query, onSnapshot, updateDoc, writeBatch, deleteDoc, where, getDocs, deleteField, orderBy } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, query, onSnapshot, updateDoc, writeBatch, deleteDoc, where, getDocs, deleteField, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Loader2, Download, Eye, Trash2, Search, Scale, ChevronsUpDown, CheckCheck } from "lucide-react";
 import { useParams, useSearchParams } from 'next/navigation';
@@ -125,12 +125,14 @@ function ReallocateDialog({ transaction, client, onSave, onOpenChange, open }: {
     );
 }
 
-function GeneralLedgerReport({ client, transactions, dateRange, fromAccount, toAccount, suppliers, customers, onReallocate, onDelete, onClear }: { 
+function GeneralLedgerReport({ client, transactions, dateRange, fromAccount, toAccount, filterMode, selectedAccountIds, suppliers, customers, onReallocate, onDelete, onClear }: { 
     client: User, 
     transactions: (ImportedTransaction | AllocatedTransaction)[], 
     dateRange?: DateRange, 
     fromAccount?: string, 
     toAccount?: string,
+    filterMode?: 'range' | 'specific',
+    selectedAccountIds?: string[],
     suppliers: Supplier[],
     customers: ClientCustomer[],
     onReallocate: (tx: any) => void, 
@@ -158,17 +160,25 @@ function GeneralLedgerReport({ client, transactions, dateRange, fromAccount, toA
     const accountsToDisplay = useMemo(() => {
         let accounts = client.chartOfAccounts || [];
 
-        if (fromAccount) {
-            const from = accounts.find(a => a.id === fromAccount);
-            if(from) accounts = accounts.filter(acc => acc.accountNumber >= from.accountNumber);
-        }
-        if (toAccount) {
-            const to = accounts.find(a => a.id === toAccount);
-            if(to) accounts = accounts.filter(acc => acc.accountNumber <= to.accountNumber);
+        if (filterMode === 'specific') {
+            if (selectedAccountIds && selectedAccountIds.length > 0) {
+                accounts = accounts.filter(acc => selectedAccountIds.includes(acc.id));
+            } else {
+                return [];
+            }
+        } else {
+            if (fromAccount) {
+                const from = accounts.find(a => a.id === fromAccount);
+                if(from) accounts = accounts.filter(acc => acc.accountNumber >= from.accountNumber);
+            }
+            if (toAccount) {
+                const to = accounts.find(a => a.id === toAccount);
+                if(to) accounts = accounts.filter(acc => acc.accountNumber <= to.accountNumber);
+            }
         }
 
         return accounts.sort((a,b) => a.accountNumber.localeCompare(b.accountNumber));
-    }, [client.chartOfAccounts, fromAccount, toAccount]);
+    }, [client.chartOfAccounts, fromAccount, toAccount, filterMode, selectedAccountIds]);
 
     const cleanDisplayDescription = (description: string, allocatedTo?: { value: string, type: 'account' | 'customer' | 'supplier' }): string => {
         if (!description) return '';
@@ -436,6 +446,14 @@ function GeneralLedgerReport({ client, transactions, dateRange, fromAccount, toA
         XLSX.writeFile(workbook, fileName);
     };
 
+    if (accountsToDisplay.length === 0) {
+        return (
+            <div className="py-12 text-center text-muted-foreground text-sm font-semibold">
+                No accounts selected. Please select specific accounts or configure a range.
+            </div>
+        );
+    }
+
     return (
         <>
             <div className="max-h-[70vh] overflow-y-auto space-y-6">
@@ -555,6 +573,20 @@ function GeneralLedgerReport({ client, transactions, dateRange, fromAccount, toA
     );
 }
 
+interface SavedReport {
+    id: string;
+    name: string;
+    accountIds: string[];
+    filterMode: 'range' | 'specific';
+    fromAccount?: string;
+    toAccount?: string;
+    dateRange?: {
+        from: string | null;
+        to: string | null;
+    };
+    createdAt: any;
+}
+
 export default function GeneralLedgerPage() {
     const params = useParams();
     const searchParams = useSearchParams();
@@ -573,6 +605,41 @@ export default function GeneralLedgerPage() {
     const [isReallocateOpen, setIsReallocateOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
     const { toast } = useToast();
+
+    const [filterMode, setFilterMode] = useState<'range' | 'specific'>('range');
+    const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+    const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
+    const [selectedReportId, setSelectedReportId] = useState<string>('');
+    const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+    const [newReportName, setNewReportName] = useState('');
+    const [isSavingReport, setIsSavingReport] = useState(false);
+
+    useEffect(() => {
+        if (!clientId) return;
+        const q = query(
+            collection(db, 'aiAccountantClients', clientId, 'savedReports'),
+            orderBy('createdAt', 'desc')
+        );
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const fetched = snapshot.docs.map(d => {
+                const data = d.data();
+                return {
+                    id: d.id,
+                    name: data.name,
+                    filterMode: data.filterMode || 'specific',
+                    accountIds: data.accountIds || [],
+                    fromAccount: data.fromAccount || undefined,
+                    toAccount: data.toAccount || undefined,
+                    dateRange: data.dateRange || undefined,
+                    createdAt: data.createdAt
+                } as SavedReport;
+            });
+            setSavedReports(fetched);
+        }, (error) => {
+            console.error("Error fetching saved reports:", error);
+        });
+        return () => unsubscribe();
+    }, [clientId]);
 
     useEffect(() => {
         if (accountIdFromQuery) {
@@ -689,6 +756,67 @@ export default function GeneralLedgerPage() {
       }
     };
 
+    const handleSaveReport = async () => {
+        if (!clientId || !newReportName.trim()) return;
+        setIsSavingReport(true);
+        try {
+            const reportRef = doc(collection(db, 'aiAccountantClients', clientId, 'savedReports'));
+            await setDoc(reportRef, {
+                name: newReportName.trim(),
+                filterMode,
+                accountIds: filterMode === 'specific' ? selectedAccountIds : [],
+                fromAccount: filterMode === 'range' ? (fromAccount || null) : null,
+                toAccount: filterMode === 'range' ? (toAccount || null) : null,
+                dateRange: dateRange ? {
+                    from: dateRange.from ? dateRange.from.toISOString() : null,
+                    to: dateRange.to ? dateRange.to.toISOString() : null
+                } : null,
+                createdAt: serverTimestamp()
+            });
+            toast({ title: "Report Saved", description: `"${newReportName}" has been saved.` });
+            setNewReportName('');
+            setIsSaveDialogOpen(false);
+        } catch (error) {
+            console.error("Error saving report:", error);
+            toast({ title: "Error", description: "Failed to save report configuration.", variant: "destructive" });
+        } finally {
+            setIsSavingReport(false);
+        }
+    };
+
+    const handleDeleteReport = async (reportId: string) => {
+        if (!clientId) return;
+        try {
+            await deleteDoc(doc(db, 'aiAccountantClients', clientId, 'savedReports', reportId));
+            toast({ title: "Report Deleted", description: "Custom report removed successfully." });
+            if (selectedReportId === reportId) {
+                setSelectedReportId('');
+            }
+        } catch (error) {
+            console.error("Error deleting report:", error);
+            toast({ title: "Error", description: "Failed to delete report.", variant: "destructive" });
+        }
+    };
+
+    const handleLoadReport = (reportId: string) => {
+        const report = savedReports.find(r => r.id === reportId);
+        if (!report) return;
+
+        setFilterMode(report.filterMode || 'specific');
+        setSelectedAccountIds(report.accountIds || []);
+        setFromAccount(report.fromAccount || '');
+        setToAccount(report.toAccount || '');
+
+        if (report.dateRange) {
+            setDateRange({
+                from: report.dateRange.from ? new Date(report.dateRange.from) : undefined,
+                to: report.dateRange.to ? new Date(report.dateRange.to) : undefined
+            });
+        } else {
+            setDateRange(undefined);
+        }
+    };
+
     const getReportDateString = () => {
         if (!dateRange || (!dateRange.from && !dateRange.to)) {
             return `as at ${format(new Date(), "dd MMMM yyyy")}`;
@@ -706,85 +834,296 @@ export default function GeneralLedgerPage() {
     }
 
     return (
-        <div>
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <CardTitle>General Ledger Report</CardTitle>
-                            <CardDescription>
-                                Filter and view the general ledger for a specific period.
-                            </CardDescription>
-                        </div>
-                        <Button asChild variant="outline">
-                            <Link href={`/admin/ai-accountant/${clientId}/reports/gl-recon`}>
-                                <Scale className="mr-2 h-4 w-4"/>
-                                Go to GL Recon Tool
-                            </Link>
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="space-y-6 max-w-4xl">
-                        <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] items-center gap-4">
-                            <Label>Date Range</Label>
-                            <DateRangePicker onDateChange={setDateRange} financialYearEnd={client?.yearEnd} />
-                        </div>
-                         <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] items-center gap-4">
-                            <Label>Account</Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Select value={fromAccount} onValueChange={setFromAccount}>
-                                    <SelectTrigger><SelectValue placeholder="(From Account)" /></SelectTrigger>
-                                    <SelectContent>
-                                        {isLoading ? <Loader2 className="animate-spin" /> : accounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <Select value={toAccount} onValueChange={setToAccount}>
-                                    <SelectTrigger><SelectValue placeholder="(To Account)" /></SelectTrigger>
-                                    <SelectContent>
-                                          {isLoading ? <Loader2 className="animate-spin" /> : accounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left Panel: Filters (Col-span 8) */}
+                <div className="lg:col-span-8">
+                    <Card className="h-full">
+                        <CardHeader>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle>General Ledger Report</CardTitle>
+                                    <CardDescription>
+                                        Filter and view the general ledger for a specific period.
+                                    </CardDescription>
+                                </div>
+                                <Button asChild variant="outline">
+                                    <Link href={`/admin/ai-accountant/${clientId}/reports/gl-recon`}>
+                                        <Scale className="mr-2 h-4 w-4"/>
+                                        Go to GL Recon Tool
+                                    </Link>
+                                </Button>
                             </div>
-                        </div>
-                        
-                        <div className="flex justify-start pt-4">
-                             {isLoading ? (
-                                <Loader2 className="animate-spin" />
-                            ) : client ? (
-                                <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button>View Report</Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="sm:max-w-6xl">
-                                        <DialogHeader className="text-center mb-4">
-                                            <DialogTitle className="text-lg">{client.companyName || client.name}</DialogTitle>
-                                            <DialogDescription>
-                                                General Ledger {getReportDateString()}
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <GeneralLedgerReport 
-                                            client={client} 
-                                            transactions={transactions} 
-                                            dateRange={dateRange} 
-                                            fromAccount={fromAccount} 
-                                            toAccount={toAccount}
-                                            suppliers={suppliers}
-                                            customers={customers}
-                                            onReallocate={handleReallocateClick}
-                                            onDelete={handleDeleteJournal}
-                                            onClear={handleClearAllocations}
-                                        />
-                                    </DialogContent>
-                                </Dialog>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] items-center gap-4">
+                                    <Label>Date Range</Label>
+                                    <DateRangePicker value={dateRange} onDateChange={setDateRange} financialYearEnd={client?.yearEnd} />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] items-center gap-4">
+                                    <Label>Filter Mode</Label>
+                                    <div className="flex items-center space-x-2">
+                                        <Button 
+                                            variant={filterMode === 'range' ? 'default' : 'outline'} 
+                                            size="sm" 
+                                            className="text-xs font-bold"
+                                            onClick={() => setFilterMode('range')}
+                                        >
+                                            Account Range
+                                        </Button>
+                                        <Button 
+                                            variant={filterMode === 'specific' ? 'default' : 'outline'} 
+                                            size="sm" 
+                                            className="text-xs font-bold"
+                                            onClick={() => setFilterMode('specific')}
+                                        >
+                                            Select Specific Accounts
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {filterMode === 'range' ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] items-center gap-4">
+                                        <Label>Account Range</Label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <Select value={fromAccount} onValueChange={setFromAccount}>
+                                                <SelectTrigger><SelectValue placeholder="(From Account)" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {isLoading ? <Loader2 className="animate-spin" /> : accounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <Select value={toAccount} onValueChange={setToAccount}>
+                                                <SelectTrigger><SelectValue placeholder="(To Account)" /></SelectTrigger>
+                                                <SelectContent>
+                                                      {isLoading ? <Loader2 className="animate-spin" /> : accounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] items-center gap-4">
+                                        <Label>Specific Accounts</Label>
+                                        <div className="flex items-center gap-2">
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button variant="outline" className="w-full sm:w-[300px] justify-between font-bold text-xs h-10 border border-muted-foreground/20">
+                                                        <span className="truncate">
+                                                            {selectedAccountIds.length === 0 
+                                                                ? "Select specific accounts..." 
+                                                                : `${selectedAccountIds.length} account(s) selected`}
+                                                        </span>
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[300px] p-0" align="start">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search account..." className="h-9" />
+                                                        <CommandList className="max-h-[300px]">
+                                                            <CommandEmpty>No account found.</CommandEmpty>
+                                                            <CommandGroup>
+                                                                <CommandItem
+                                                                    onSelect={() => {
+                                                                        if (selectedAccountIds.length === accounts.length) {
+                                                                            setSelectedAccountIds([]);
+                                                                        } else {
+                                                                            setSelectedAccountIds(accounts.map(a => a.id));
+                                                                        }
+                                                                    }}
+                                                                    className="font-bold text-xs cursor-pointer flex items-center justify-between"
+                                                                >
+                                                                    <span>Select All</span>
+                                                                    <Checkbox 
+                                                                        checked={selectedAccountIds.length === accounts.length}
+                                                                        className="pointer-events-none"
+                                                                    />
+                                                                </CommandItem>
+                                                                {accounts.map((acc) => {
+                                                                    const isSelected = selectedAccountIds.includes(acc.id);
+                                                                    return (
+                                                                        <CommandItem
+                                                                            key={acc.id}
+                                                                            onSelect={() => {
+                                                                                if (isSelected) {
+                                                                                    setSelectedAccountIds(prev => prev.filter(id => id !== acc.id));
+                                                                                } else {
+                                                                                    setSelectedAccountIds(prev => [...prev, acc.id]);
+                                                                                }
+                                                                            }}
+                                                                            className="text-xs cursor-pointer flex items-center justify-between"
+                                                                        >
+                                                                            <span className="font-semibold">{acc.accountNumber} - {acc.description}</span>
+                                                                            <Checkbox 
+                                                                                checked={isSelected}
+                                                                                className="pointer-events-none"
+                                                                            />
+                                                                        </CommandItem>
+                                                                    );
+                                                                })}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            {selectedAccountIds.length > 0 && (
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => setSelectedAccountIds([])}
+                                                    className="text-xs text-muted-foreground hover:text-foreground font-bold"
+                                                >
+                                                    Clear
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                <div className="flex justify-start pt-4">
+                                     {isLoading ? (
+                                        <Loader2 className="animate-spin" />
+                                    ) : client ? (
+                                        <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button disabled={filterMode === 'specific' && selectedAccountIds.length === 0}>
+                                                    View Report
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-6xl">
+                                                <DialogHeader className="text-center mb-4">
+                                                    <DialogTitle className="text-lg">{client.companyName || client.name}</DialogTitle>
+                                                    <DialogDescription>
+                                                        General Ledger {getReportDateString()}
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <GeneralLedgerReport 
+                                                    client={client} 
+                                                    transactions={transactions} 
+                                                    dateRange={dateRange} 
+                                                    fromAccount={fromAccount} 
+                                                    toAccount={toAccount}
+                                                    filterMode={filterMode}
+                                                    selectedAccountIds={selectedAccountIds}
+                                                    suppliers={suppliers}
+                                                    customers={customers}
+                                                    onReallocate={handleReallocateClick}
+                                                    onDelete={handleDeleteJournal}
+                                                    onClear={handleClearAllocations}
+                                                />
+                                            </DialogContent>
+                                        </Dialog>
+                                    ) : (
+                                        <p>Client data could not be loaded.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Right Panel: Saved Custom Reports (Col-span 4) */}
+                <div className="lg:col-span-4">
+                    <Card className="border border-primary/10 bg-primary/5 shadow-sm backdrop-blur-sm h-full flex flex-col justify-between">
+                        <CardHeader>
+                            <CardTitle className="text-md flex items-center gap-2">
+                                <Scale className="h-5 w-5 text-primary" />
+                                Saved Custom Reports
+                            </CardTitle>
+                            <CardDescription className="text-xs">
+                                Save and reload specific account and date configurations.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4 flex-grow">
+                            {savedReports.length === 0 ? (
+                                <div className="py-12 text-center text-xs text-muted-foreground italic">
+                                    No custom reports saved yet.
+                                </div>
                             ) : (
-                                <p>Client data could not be loaded.</p>
+                                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                                    {savedReports.map(report => (
+                                        <div 
+                                            key={report.id} 
+                                            className={cn(
+                                                "flex items-center justify-between p-3 rounded-lg border text-xs transition-all duration-200 group hover:bg-background/85 cursor-pointer",
+                                                selectedReportId === report.id ? "border-primary bg-background shadow-sm" : "border-transparent bg-background/40"
+                                            )}
+                                            onClick={() => {
+                                                setSelectedReportId(report.id);
+                                                handleLoadReport(report.id);
+                                            }}
+                                        >
+                                            <div className="space-y-1">
+                                                <p className="font-bold text-foreground">{report.name}</p>
+                                                <p className="text-[10px] text-muted-foreground">
+                                                    {report.filterMode === 'specific' 
+                                                        ? `${report.accountIds?.length || 0} account(s)` 
+                                                        : `Range: ${client?.chartOfAccounts?.find(a => a.id === report.fromAccount)?.accountNumber || 'Start'} to ${client?.chartOfAccounts?.find(a => a.id === report.toAccount)?.accountNumber || 'End'}`}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button 
+                                                    size="icon" 
+                                                    variant="ghost" 
+                                                    type="button"
+                                                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteReport(report.id);
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
+                        </CardContent>
+                        <div className="p-6 pt-0 border-t border-primary/10 mt-auto flex gap-2">
+                            <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button 
+                                        className="w-full text-xs font-bold" 
+                                        size="sm" 
+                                        disabled={(filterMode === 'specific' && selectedAccountIds.length === 0) || (filterMode === 'range' && !fromAccount && !toAccount)}
+                                    >
+                                        Save Current Filters
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle>Save Custom Report</DialogTitle>
+                                        <DialogDescription>
+                                            Enter a name to save these specific account and date selections.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="reportName">Report Name</Label>
+                                            <Input 
+                                                id="reportName" 
+                                                placeholder="e.g. Sales & VAT Audit" 
+                                                value={newReportName}
+                                                onChange={(e) => setNewReportName(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button variant="ghost" type="button" onClick={() => setIsSaveDialogOpen(false)}>Cancel</Button>
+                                        <Button type="button" onClick={handleSaveReport} disabled={!newReportName.trim() || isSavingReport}>
+                                            {isSavingReport && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Save Report
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
-             {selectedTransaction && client && (
+                    </Card>
+                </div>
+            </div>
+
+            {selectedTransaction && client && (
                 <ReallocateDialog
                     transaction={selectedTransaction}
                     client={client}

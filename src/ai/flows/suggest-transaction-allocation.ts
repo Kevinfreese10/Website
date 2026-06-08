@@ -51,6 +51,12 @@ Analyze the transaction description and choose the most appropriate account from
 
 **CRITICAL INSTRUCTION**: If the client is NOT registered for VAT, you MUST set the 'vatType' to 'no_vat' for all transactions.
 
+**CRITICAL INSTRUCTION ON LOW/NO INFORMATION**:
+If the transaction description is generic (e.g., "CASH", "TRANSFER", "DEBIT ORDER", "PAYMENT", "MONTHLY FEE", "INTEREST"), obfuscated, or if you have absolutely no information or context about the merchant:
+- Set 'confidence' to 0 (or a value less than 15).
+- Set 'summary' to exactly: "Could not find any information for this merchant description."
+- Set 'suggestedKeyword' to the clean/original uppercase description.
+
 **Transaction Description**: ${input.description}
 
 **Chart of Accounts**:
@@ -85,6 +91,12 @@ Analyze the transaction description and choose the most appropriate account from
 **Client VAT Status**: The client is {{#if isVatRegistered}}REGISTERED{{else}}NOT REGISTERED{{/if}} for VAT.
 
 **CRITICAL INSTRUCTION**: If the client is NOT registered for VAT, you MUST set the 'vatType' to 'no_vat' for all transactions.
+
+**CRITICAL INSTRUCTION ON LOW/NO INFORMATION**:
+If the transaction description is generic (e.g., "CASH", "TRANSFER", "DEBIT ORDER", "PAYMENT", "MONTHLY FEE", "INTEREST"), obfuscated, or if you have absolutely no information or context about the merchant:
+- Set 'confidence' to 0 (or a value less than 15).
+- Set 'summary' to exactly: "Could not find any information for this merchant description."
+- Set 'suggestedKeyword' to the clean/original uppercase description.
 
 **Transaction Description**: {{{description}}}
 

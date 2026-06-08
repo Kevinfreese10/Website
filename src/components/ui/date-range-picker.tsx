@@ -23,17 +23,31 @@ import {
 } from "@/components/ui/select"
 
 interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
+  value?: DateRange;
   onDateChange: (date: DateRange | undefined) => void;
   financialYearEnd?: string; // e.g., "February"
 }
 
 export function DateRangePicker({
   className,
+  value,
   onDateChange,
   financialYearEnd,
 }: DateRangePickerProps) {
-  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+  const [date, setDate] = React.useState<DateRange | undefined>(value);
   const [preset, setPreset] = React.useState<string>("all");
+
+  React.useEffect(() => {
+    const isDifferent = (value?.from?.getTime() !== date?.from?.getTime()) || (value?.to?.getTime() !== date?.to?.getTime());
+    if (isDifferent) {
+      setDate(value);
+      if (!value) {
+        setPreset("all");
+      } else {
+        setPreset("custom");
+      }
+    }
+  }, [value]);
 
   React.useEffect(() => {
     onDateChange(date);

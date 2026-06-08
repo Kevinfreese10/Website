@@ -138,8 +138,14 @@ function AIAllocationReviewDialog({ open, onOpenChange, suggestion, transaction,
                 <div className="space-y-6 py-4">
                     <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-3">
                         <div className="flex justify-between items-center">
-                            <Badge className={cn(suggestion.confidence > 80 ? "bg-green-600" : "bg-yellow-500")}>
-                                {suggestion.confidence}% Confidence
+                            <Badge className={cn(
+                                suggestion.confidence > 80 
+                                ? "bg-green-600 hover:bg-green-600 text-white" 
+                                : suggestion.confidence < 20 
+                                ? "bg-destructive hover:bg-destructive text-white animate-pulse" 
+                                : "bg-yellow-500 hover:bg-yellow-500 text-white"
+                            )}>
+                                {suggestion.confidence < 20 ? "No Match Found" : `${suggestion.confidence}% Confidence`}
                             </Badge>
                             <span className="text-[10px] font-bold uppercase text-muted-foreground">AI Intelligence Layer</span>
                         </div>
@@ -148,21 +154,29 @@ function AIAllocationReviewDialog({ open, onOpenChange, suggestion, transaction,
                         </p>
                     </div>
 
-                    <div className={cn("grid gap-4", isVatRegistered ? "grid-cols-2" : "grid-cols-1")}>
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Suggested Account</p>
-                            <p className="text-sm font-semibold">{suggestion.accountId}</p>
-                            <p className="text-[9px] text-muted-foreground uppercase font-bold">{suggestion.accountType || 'account'}</p>
-                        </div>
-                        {isVatRegistered && (
+                    {suggestion.confidence >= 20 ? (
+                        <div className={cn("grid gap-4", isVatRegistered ? "grid-cols-2" : "grid-cols-1")}>
                             <div className="space-y-1">
-                                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Suggested VAT</p>
-                                <p className="text-sm font-semibold capitalize">{suggestion.vatType.replace(/_/g, ' ')}</p>
+                                <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Suggested Account</p>
+                                <p className="text-sm font-semibold">{suggestion.accountId}</p>
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold">{suggestion.accountType || 'account'}</p>
                             </div>
-                        )}
-                    </div>
+                            {isVatRegistered && (
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Suggested VAT</p>
+                                    <p className="text-sm font-semibold capitalize">{suggestion.vatType.replace(/_/g, ' ')}</p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="bg-destructive/5 p-4 rounded-xl border border-destructive/10">
+                            <p className="text-xs font-semibold text-destructive leading-relaxed">
+                                Gemini could not identify a reliable category for this transaction. You will need to allocate it manually.
+                            </p>
+                        </div>
+                    )}
 
-                    {suggestion.suggestedKeyword && (
+                    {suggestion.suggestedKeyword && suggestion.confidence >= 20 && (
                         <div className="space-y-2">
                             <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Suggested Rule Keyword</p>
                             <Badge variant="outline" className="text-sm font-bold border-primary/30 text-primary uppercase">
@@ -180,7 +194,11 @@ function AIAllocationReviewDialog({ open, onOpenChange, suggestion, transaction,
                             Add to Existing
                         </Button>
                     </div>
-                    <Button onClick={() => onAction('allocate')} className="w-full bg-green-600 hover:bg-green-700 text-white">
+                    <Button 
+                        onClick={() => onAction('allocate')} 
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                        disabled={suggestion.confidence < 20}
+                    >
                         <CheckCircle2 className="mr-2 h-4 w-4" />
                         Apply Allocation Only
                     </Button>
@@ -1321,6 +1339,7 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
         try {
             const res = await researchMerchantWithAi({
                 clientId: client.uid,
+                transactionIds: [tx.id],
                 description: tx.description,
                 chartOfAccounts: JSON.stringify(client.chartOfAccounts || []),
                 isVatRegistered: !!client.isVatRegistered,
@@ -1778,10 +1797,11 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                 const newSettings = { ...prev };
                 initialGroups.forEach(g => { 
                     if (!newSettings[g.merchantKey]) {
+                        const hasLowConfidence = g.suggestion && g.suggestion.confidence < 20;
                         newSettings[g.merchantKey] = { 
-                            accountId: g.suggestion?.accountId || '', 
+                            accountId: (g.suggestion && !hasLowConfidence) ? g.suggestion.accountId : '', 
                             vatType: g.suggestion?.vatType || 'no_vat', 
-                            createRule: !g.suggestion // Default to true if manual identified
+                            createRule: !g.suggestion || hasLowConfidence // Default to true if manual identified or low confidence
                         }; 
                     }
                 });
@@ -2081,11 +2101,22 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         try {
             const res = await researchMerchantWithAi({
                 clientId: client.uid,
+                transactionIds: group.transactions.map(t => t.id),
                 description: group.transactions[0].description,
                 chartOfAccounts: JSON.stringify(client.chartOfAccounts || []),
                 isVatRegistered: !!client.isVatRegistered,
                 isExpense: true // AI Workflow is exclusively expenses
             });
+            const hasLowConfidence = res.confidence < 20;
+            setApprovalSettings((prev: any) => ({
+                ...prev,
+                [group.merchantKey]: {
+                    ...prev[group.merchantKey],
+                    accountId: hasLowConfidence ? '' : res.accountId,
+                    vatType: res.vatType,
+                    createRule: true // Default to true if manual allocation required
+                }
+            }));
             toast({ title: "Research Complete" });
         } catch (error) {
             console.error("Research Failed", error);
@@ -2474,16 +2505,18 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                                                 "text-[10px] font-bold py-1 px-3 rounded-full",
                                                 group.suggestion.confidence > 80 
                                                 ? "bg-green-600 hover:bg-green-600 text-white" 
+                                                : group.suggestion.confidence < 20
+                                                ? "bg-destructive hover:bg-destructive text-white animate-pulse"
                                                 : "bg-yellow-500 hover:bg-yellow-500 text-white"
                                             )}>
-                                                {sourceLabel || `${group.suggestion.confidence}% Match Confidence`}
+                                                {sourceLabel || (group.suggestion.confidence < 20 ? "No Match Found" : `${group.suggestion.confidence}% Match Confidence`)}
                                             </Badge>
                                         ) : (
                                             <Badge variant="secondary" className="text-[10px] font-bold py-1 px-3 rounded-full">
                                                 No Match Found
                                             </Badge>
                                         )}
-                                        {!group.suggestion && (
+                                        {(!group.suggestion || group.suggestion.confidence < 20) && (
                                             <Button variant="ghost" size="sm" className="h-7 text-xs text-primary font-bold" onClick={() => handleResearchWithAi(group)} disabled={isResearchingId === group.merchantKey}>
                                                 {isResearchingId === group.merchantKey ? <Loader2 className="mr-1 h-3 w-3 animate-spin"/> : <Sparkles className="mr-1 h-3 w-3"/>}
                                                 Research with AI
