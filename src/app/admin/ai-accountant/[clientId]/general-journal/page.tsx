@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { allVatTypes } from '@/lib/vat-types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Papa from 'papaparse';
+import { AccountSelector } from '@/components/accounting/AccountSelector';
 
 const db = getFirestore(firebaseApp);
 
@@ -204,12 +205,18 @@ function EditJournalDialog({ isOpen, onOpenChange, journalEntries, client, onSav
                                         <TableRow key={field.id}>
                                             <TableCell className="p-2">
                                                 <FormField control={form.control} name={`lines.${index}.accountId`} render={({ field }) => (
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl><SelectTrigger className="h-8 text-11px]"><SelectValue /></SelectTrigger></FormControl>
-                                                        <SelectContent>
-                                                            {client?.chartOfAccounts?.map(a => <SelectItem key={a.id} value={a.id}>{a.description}</SelectItem>)}
-                                                        </SelectContent>
-                                                    </Select>
+                                                    <AccountSelector
+                                                        client={client}
+                                                        showAccounts={true}
+                                                        showCustomers={false}
+                                                        showSuppliers={false}
+                                                        value={field.value ? { value: field.value, type: 'account' } : null}
+                                                        onChange={(selection) => {
+                                                            field.onChange(selection.value);
+                                                        }}
+                                                        size="sm"
+                                                        placeholder="Select account..."
+                                                    />
                                                 )} />
                                             </TableCell>
                                             <TableCell className="p-2">
@@ -752,14 +759,14 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                                                         <TableRow key={field.id} className="hover:bg-muted/5">
                                                             <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.date`} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full pl-3 text-left font-normal h-8 text-[11px]", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "dd/MM/yyyy") : <span>Date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover> )} /></TableCell>
                                                             <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.effect`} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8 text-[11px] font-bold"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Debit">Debit</SelectItem><SelectItem value="Credit">Credit</SelectItem></SelectContent></Select> )} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.accountId`} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8 text-[11px]"><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{allAccounts.map(a => <SelectItem key={a.id} value={a.id}>{a.description}</SelectItem>)}</SelectContent></Select> )} /></TableCell>
+                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.accountId`} render={({ field }) => ( <AccountSelector client={client} showAccounts={true} showCustomers={false} showSuppliers={false} value={field.value ? { value: field.value, type: "account" } : null} onChange={(selection) => field.onChange(selection.value)} size="sm" placeholder="Select account..." /> )} /></TableCell>
                                                             <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.reference`} render={({ field }) => <Input className="h-8 text-[11px] font-mono" {...field} />} /></TableCell>
                                                             <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.description`} render={({ field }) => <Input className="h-8 text-[11px]" {...field} />} /></TableCell>
                                                             <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.vatType`} render={({ field }) => ( <Select onValueChange={(v) => { field.onChange(v); updateQuickAmounts(index); }} value={field.value}><FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent>{allVatTypes.map(vt => <SelectItem key={vt.name} value={vt.name} className="text-xs">{vt.label}</SelectItem>)}</SelectContent></Select> )} /></TableCell>
                                                             <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.inclusiveAmount`} render={({ field }) => ( <Input type="number" step="0.01" className="h-8 text-right font-mono font-bold text-[11px]" {...field} onChange={(e) => { field.onChange(parseFloat(e.target.value) || 0); updateQuickAmounts(index); }} /> )} /></TableCell>
                                                             <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.exclusiveAmount`} render={({ field }) => ( <Input readOnly className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" value={formatPrice(field.value)} /> )} /></TableCell>
                                                             <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.vatAmount`} render={({ field }) => ( <Input readOnly className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" value={formatPrice(field.value)} /> )} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.affectingAccountId`} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8 text-[11px]"><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{allAccounts.map(a => <SelectItem key={a.id} value={a.id}>{a.description}</SelectItem>)}</SelectContent></Select> )} /></TableCell>
+                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.affectingAccountId`} render={({ field }) => ( <AccountSelector client={client} showAccounts={true} showCustomers={false} showSuppliers={false} value={field.value ? { value: field.value, type: "account" } : null} onChange={(selection) => field.onChange(selection.value)} size="sm" placeholder="Select account..." /> )} /></TableCell>
                                                             <TableCell className="p-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeQuick(index)} disabled={quickFields.length === 1} className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5"/></Button></TableCell>
                                                         </TableRow>
                                                     ))}

@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { runAiAccountantAnalysis, prepareAiAccountantAnalysis, moveTransactionToNew, researchMerchantWithAi, updateGlobalMerchantDb, resetAiAccountantAnalysis, proposeRegroups, applyRegroups, proposeAiRegroups, analyzeClientCommentAndSuggest, bulkMoveTransactionsToNew, matchTransactionsToSuppliers } from '@/app/actions';
+import { runAiAccountantAnalysis, prepareAiAccountantAnalysis, moveTransactionToNew, researchMerchantWithAi, updateGlobalMerchantDb, resetAiAccountantAnalysis, proposeRegroups, applyRegroups, proposeAiRegroups, analyzeClientCommentAndSuggest, bulkMoveTransactionsToNew, matchTransactionsToSuppliers, matchTransactionsToHistory } from '@/app/actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -44,6 +44,7 @@ import { Progress } from "@/components/ui/progress";
 import * as XLSX from 'xlsx';
 import AIStatementImportDialog from '@/components/admin/AIStatementImportDialog';
 import { Calendar } from '@/components/ui/calendar';
+import { AccountSelector } from '@/components/accounting/AccountSelector';
 
 const db = getFirestore(firebaseApp);
 const PAGE_SIZE = 50;
@@ -488,14 +489,19 @@ function CreateRuleDialog({ client, onRuleCreated, open, onOpenChange, defaultVa
 
                         <FormField control={form.control} name="accountId" render={({ field }) => (
                             <FormItem><FormLabel>Select {watchAccountType === 'account' ? 'Account' : watchAccountType === 'customer' ? 'Customer' : 'Supplier'}</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value || ""}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select target..." /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        {watchAccountType === 'account' && client?.chartOfAccounts?.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}
-                                        {watchAccountType === 'customer' && customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                        {watchAccountType === 'supplier' && suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
+                                <AccountSelector
+                                    client={client}
+                                    customers={customers}
+                                    suppliers={suppliers}
+                                    showAccounts={watchAccountType === 'account'}
+                                    showCustomers={watchAccountType === 'customer'}
+                                    showSuppliers={watchAccountType === 'supplier'}
+                                    value={field.value ? { value: field.value, type: watchAccountType as "account" | "customer" | "supplier" } : null}
+                                    onChange={(selection) => {
+                                        field.onChange(selection.value);
+                                    }}
+                                    placeholder="Select target..."
+                                />
                                 <FormMessage />
                             </FormItem>
                         )} />
@@ -905,59 +911,18 @@ function SplitTransactionDialog({
                                         />
                                     </TableCell>
                                     <TableCell className="align-middle">
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className="h-9 text-[11px] w-full justify-start text-left font-normal border-muted-foreground/30">
-                                                    <span className="truncate">
-                                                        {row.allocatedTo ? getAllocationName(row.allocatedTo) : 'Select account, supplier, customer...'}
-                                                    </span>
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[300px] p-0" align="start">
-                                                <Command className="w-full">
-                                                    <CommandInput placeholder="Search allocations..." />
-                                                    <CommandList className="max-h-60 overflow-y-auto">
-                                                        <CommandEmpty>No results found.</CommandEmpty>
-                                                        <CommandGroup heading="GL Accounts">
-                                                            {uniqueChartOfAccounts.map(a => (
-                                                                <CommandItem
-                                                                    key={a.id}
-                                                                    value={a.description}
-                                                                    onSelect={() => handleRowChange(index, 'allocatedTo', { value: a.id, type: 'account' })}
-                                                                    className="p-2 cursor-pointer hover:bg-muted"
-                                                                >
-                                                                    {a.description}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                        <CommandGroup heading="Suppliers">
-                                                            {suppliers.map(s => (
-                                                                <CommandItem
-                                                                    key={s.id}
-                                                                    value={s.name}
-                                                                    onSelect={() => handleRowChange(index, 'allocatedTo', { value: s.id, type: 'supplier' })}
-                                                                    className="p-2 cursor-pointer hover:bg-muted"
-                                                                >
-                                                                    {s.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                        <CommandGroup heading="Customers">
-                                                            {customers.map(c => (
-                                                                <CommandItem
-                                                                    key={c.id}
-                                                                    value={c.name}
-                                                                    onSelect={() => handleRowChange(index, 'allocatedTo', { value: c.id, type: 'customer' })}
-                                                                    className="p-2 cursor-pointer hover:bg-muted"
-                                                                >
-                                                                    {c.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
+                                        <AccountSelector
+                                            client={client}
+                                            customers={customers}
+                                            suppliers={suppliers}
+                                            showAccounts={true}
+                                            showCustomers={true}
+                                            showSuppliers={true}
+                                            value={row.allocatedTo}
+                                            size="sm"
+                                            placeholder="Select account, supplier, customer..."
+                                            onChange={(sel) => handleRowChange(index, 'allocatedTo', sel)}
+                                        />
                                     </TableCell>
                                     {client?.isVatRegistered && (
                                         <TableCell className="align-middle">
@@ -1471,51 +1436,22 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                                 <FileSpreadsheet className="mr-2 h-4 w-4"/> Download Excel
                             </Button>
 
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" disabled={selectedTransactions.length === 0}>
-                                        Manual Allocate <ChevronsUpDown className="ml-2 h-4 w-4"/>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-64 p-0">
-                                    <Command className="w-full">
-                                        <CommandInput placeholder="Search accounts..." />
-                                        <CommandList className="max-h-72 overflow-y-auto">
-                                            <CommandEmpty>No results found.</CommandEmpty>
-                                            <CommandGroup>
-                                                <CommandItem onSelect={() => setIsCreateGeneralAccountOpen(true)} className="text-primary font-medium cursor-pointer p-2 flex items-center"><PlusCircle className="mr-2 h-4 w-4" />Create new account...</CommandItem>
-                                            </CommandGroup>
-                                            <CommandSeparator />
-                                            <CommandGroup heading="Customers">
-                                                {customers.map(c => <CommandItem key={c.id} value={c.name} onSelect={() => handleBulkAllocate({value: c.id, type: 'customer'}, 'no_vat')} className="p-2 cursor-pointer hover:bg-muted">{c.name}</CommandItem>)}
-                                            </CommandGroup>
-                                            <CommandGroup heading="Suppliers">
-                                                {suppliers.map(s => <CommandItem key={s.id} value={s.name} onSelect={() => handleBulkAllocate({value: s.id, type: 'supplier'}, 'no_vat')} className="p-2 cursor-pointer hover:bg-muted">{s.name}</CommandItem>)}
-                                            </CommandGroup>
-                                            <CommandGroup heading="General Ledger Accounts">
-                                                {client?.chartOfAccounts?.map(acc => (
-                                                    client?.isVatRegistered ? (
-                                                        <DropdownMenuSub key={acc.id}>
-                                                            <DropdownMenuSubTrigger className="flex items-center justify-between w-full p-2 cursor-pointer hover:bg-muted">
-                                                                <span>{acc.description}</span>
-                                                            </DropdownMenuSubTrigger>
-                                                            <DropdownMenuSubContent className="w-56">
-                                                                <DropdownMenuLabel>VAT Treatment</DropdownMenuLabel>
-                                                                <DropdownMenuSeparator />
-                                                                {allVatTypes.map(v => <DropdownMenuItem key={v.name} onSelect={() => handleBulkAllocate({value: acc.id, type: 'account'}, v.name as VatType)}>{v.label}</DropdownMenuItem>)}
-                                                            </DropdownMenuSubContent>
-                                                        </DropdownMenuSub>
-                                                    ) : (
-                                                        <DropdownMenuItem key={acc.id} onSelect={() => handleBulkAllocate({value: acc.id, type: 'account'}, 'no_vat')} className="flex items-center justify-between w-full p-2 cursor-pointer hover:bg-muted">
-                                                            <span>{acc.description}</span>
-                                                        </DropdownMenuItem>
-                                                    )
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <AccountSelector
+                                client={client}
+                                customers={customers}
+                                suppliers={suppliers}
+                                showAccounts={true}
+                                showCustomers={true}
+                                showSuppliers={true}
+                                isVatRegistered={!!client?.isVatRegistered}
+                                requireVatSelection={true}
+                                disabled={selectedTransactions.length === 0}
+                                placeholder="Manual Allocate..."
+                                className="w-52"
+                                size="default"
+                                onChange={(sel, vat) => handleBulkAllocate(sel, vat || 'no_vat')}
+                                onCreateAccountClick={() => setIsCreateGeneralAccountOpen(true)}
+                            />
 
                             <Button variant="outline" onClick={handleAllocateByRules} disabled={isRuleAllocating || activeSubTab === 'income'}>
                                 {isRuleAllocating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <BookOpen className="mr-2 h-4 w-4" />} Apply Rules
@@ -1574,79 +1510,25 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                                     </TableCell>
                                     <TableCell className="font-mono text-xs opacity-70">{tx.reference}</TableCell>
                                     <TableCell>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className="h-8 text-[11px] w-full justify-start overflow-hidden">
-                                                    <span className="truncate">
-                                                        {getAllocationName(allocations[tx.id])}
-                                                    </span>
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[300px] p-0" align="start">
-                                                <Command className="w-full">
-                                                    <CommandInput placeholder="Search accounts..." />
-                                                    <CommandList>
-                                                        <CommandEmpty>No results found.</CommandEmpty>
-                                                        <CommandGroup heading="GL Accounts">
-                                                            {client?.chartOfAccounts?.map(a => (
-                                                                <CommandItem 
-                                                                    key={a.id} 
-                                                                    value={a.description}
-                                                                    onSelect={() => setAllocations((p: any) => ({
-                                                                        ...p, 
-                                                                        [tx.id]: { 
-                                                                            value: a.id, 
-                                                                            type: 'account' 
-                                                                        }
-                                                                    }))}
-                                                                    className="p-2 cursor-pointer hover:bg-muted"
-                                                                >
-                                                                    {a.description}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                        <CommandGroup heading="Suppliers">
-                                                            {suppliers.map(s => (
-                                                                <CommandItem 
-                                                                    key={s.id} 
-                                                                    value={s.name}
-                                                                    onSelect={() => setAllocations((p: any) => ({
-                                                                        ...p, 
-                                                                        [tx.id]: { 
-                                                                            value: s.id, 
-                                                                            type: 'supplier', 
-                                                                            vatType: 'no_vat' 
-                                                                        }
-                                                                    }))}
-                                                                    className="p-2 cursor-pointer hover:bg-muted"
-                                                                >
-                                                                    {s.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                        <CommandGroup heading="Customers">
-                                                            {customers.map(c => (
-                                                                <CommandItem 
-                                                                    key={c.id} 
-                                                                    value={c.name}
-                                                                    onSelect={() => setAllocations((p: any) => ({
-                                                                        ...p, 
-                                                                        [tx.id]: { 
-                                                                            value: c.id, 
-                                                                            type: 'customer', 
-                                                                            vatType: 'no_vat' 
-                                                                        }
-                                                                    }))}
-                                                                    className="p-2 cursor-pointer hover:bg-muted"
-                                                                >
-                                                                    {c.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
+                                        <AccountSelector
+                                            client={client}
+                                            customers={customers}
+                                            suppliers={suppliers}
+                                            showAccounts={true}
+                                            showCustomers={true}
+                                            showSuppliers={true}
+                                            value={allocations[tx.id]}
+                                            size="sm"
+                                            placeholder="Select account..."
+                                            onChange={(sel) => setAllocations((p: any) => ({
+                                                ...p,
+                                                [tx.id]: {
+                                                    value: sel.value,
+                                                    type: sel.type,
+                                                    vatType: sel.type === 'account' ? (p[tx.id]?.vatType || tx.vatType || 'no_vat') : 'no_vat'
+                                                }
+                                            }))}
+                                        />
                                     </TableCell>
                                     {client?.isVatRegistered && (
                                         <TableCell>
@@ -1742,6 +1624,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
     const [selectedGroupKeys, setSelectedGroupKeys] = useState<string[]>([]);
     const [onlySelectedGroups, setOnlySelectedGroups] = useState(false);
     const [isSavingDrafts, setIsSavingDrafts] = useState(false);
+    const [isHistoryMatching, setIsHistoryMatching] = useState(false);
     
     // Regroup states
     const [isRegrouping, setIsRegrouping] = useState(false);
@@ -1958,6 +1841,23 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
             toast({ title: "Reset Failed", variant: "destructive" });
         } finally {
             setIsReseting(false);
+        }
+    };
+
+    const handleMatchHistory = async () => {
+        if (!client?.uid || !bankAccountId) return;
+        setIsHistoryMatching(true);
+        try {
+            const res = await matchTransactionsToHistory({ clientId: client.uid, bankAccountId });
+            toast({ 
+                title: "History Matching Complete", 
+                description: `${res.count} transactions matched using your past allocation history.` 
+            });
+        } catch (e) {
+            console.error(e);
+            toast({ title: "Matching Failed", variant: "destructive" });
+        } finally {
+            setIsHistoryMatching(false);
         }
     };
 
@@ -2374,6 +2274,10 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                         {isAiRegrouping ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4" />}
                         AI Smart Group
                     </Button>
+                    <Button variant="outline" onClick={handleMatchHistory} disabled={isHistoryMatching || groups.length === 0} className="border-primary/30 text-primary hover:bg-primary/5">
+                        {isHistoryMatching ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <History className="mr-2 h-4 w-4" />}
+                        Match from History
+                    </Button>
                     <Button variant="outline" onClick={handleRecheckRules} disabled={isRechecking}>
                         {isRechecking ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RotateCcw className="mr-2 h-4 w-4" />}
                         Recheck Rules
@@ -2581,6 +2485,7 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
     const [splitTransaction, setSplitTransaction] = useState<ImportedTransaction | null>(null);
     const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false);
     const [unsplitConfirmTx, setUnsplitConfirmTx] = useState<ImportedTransaction | null>(null);
+    const [isCreateGeneralAccountOpen, setIsCreateGeneralAccountOpen] = useState(false);
 
     const uniqueChartOfAccounts = useMemo(() => {
         const coa = [...(client?.chartOfAccounts || [])];
@@ -2828,6 +2733,12 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                 customers={customers} 
                 suppliers={suppliers} 
             />
+            <CreateGeneralAccountDialog 
+                client={client} 
+                onAccountCreated={onAccountCreated} 
+                open={isCreateGeneralAccountOpen} 
+                onOpenChange={setIsCreateGeneralAccountOpen} 
+            />
             {unsplitConfirmTx && (
                 <AlertDialog open={!!unsplitConfirmTx} onOpenChange={(open) => !open && setUnsplitConfirmTx(null)}>
                     <AlertDialogContent>
@@ -2885,75 +2796,22 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
 
                             {selectedTransactions.length > 0 && (
                                 <>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" className="gap-2 border-primary/20 text-primary font-bold">
-                                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : <RefreshCw className="h-4 w-4"/>}
-                                            Bulk Reallocate <ChevronsUpDown className="ml-1 h-4 w-4"/>
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-64 p-0" align="start">
-                                        <Command className="w-full">
-                                            <CommandInput placeholder="Search accounts..." />
-                                            <CommandList className="max-h-72 overflow-y-auto">
-                                                <CommandEmpty>No results found.</CommandEmpty>
-                                                <CommandGroup heading="General Ledger Accounts">
-                                                    {uniqueChartOfAccounts.map(acc => (
-                                                        client?.isVatRegistered ? (
-                                                            <DropdownMenuSub key={acc.id}>
-                                                                <DropdownMenuSubTrigger className="flex items-center justify-between w-full p-2 cursor-pointer hover:bg-muted">
-                                                                    <span>{acc.description}</span>
-                                                                </DropdownMenuSubTrigger>
-                                                                <DropdownMenuSubContent className="w-56">
-                                                                    <DropdownMenuLabel>VAT Treatment</DropdownMenuLabel>
-                                                                    <DropdownMenuSeparator />
-                                                                    {allVatTypes.map(v => (
-                                                                        <DropdownMenuItem 
-                                                                            key={v.name} 
-                                                                            onSelect={() => handleBulkReallocate({value: acc.id, type: 'account'}, v.name as VatType)}
-                                                                        >
-                                                                            {v.label}
-                                                                        </DropdownMenuItem>
-                                                                    ))}
-                                                                </DropdownMenuSubContent>
-                                                            </DropdownMenuSub>
-                                                        ) : (
-                                                            <DropdownMenuItem 
-                                                                key={acc.id} 
-                                                                onSelect={() => handleBulkReallocate({value: acc.id, type: 'account'}, 'no_vat')}
-                                                                className="flex items-center justify-between w-full p-2 cursor-pointer hover:bg-muted"
-                                                            >
-                                                                <span>{acc.description}</span>
-                                                            </DropdownMenuItem>
-                                                        )
-                                                    ))}
-                                                </CommandGroup>
-                                                <CommandGroup heading="Suppliers">
-                                                    {suppliers.map(s => (
-                                                        <DropdownMenuItem 
-                                                            key={s.id} 
-                                                            onSelect={() => handleBulkReallocate({value: s.id, type: 'supplier'}, 'no_vat')}
-                                                            className="p-2 cursor-pointer hover:bg-muted"
-                                                        >
-                                                            {s.name}
-                                                        </DropdownMenuItem>
-                                                    ))}
-                                                </CommandGroup>
-                                                <CommandGroup heading="Customers">
-                                                    {customers.map(c => (
-                                                        <DropdownMenuItem 
-                                                            key={c.id} 
-                                                            onSelect={() => handleBulkReallocate({value: c.id, type: 'customer'}, 'no_vat')}
-                                                            className="p-2 cursor-pointer hover:bg-muted"
-                                                        >
-                                                            {c.name}
-                                                        </DropdownMenuItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <AccountSelector
+                                    client={client}
+                                    customers={customers}
+                                    suppliers={suppliers}
+                                    showAccounts={true}
+                                    showCustomers={true}
+                                    showSuppliers={true}
+                                    isVatRegistered={!!client?.isVatRegistered}
+                                    requireVatSelection={true}
+                                    disabled={isSaving}
+                                    placeholder="Bulk Reallocate..."
+                                    className="w-52"
+                                    size="default"
+                                    onChange={(sel, vat) => handleBulkReallocate(sel, vat || 'no_vat')}
+                                    onCreateAccountClick={() => setIsCreateGeneralAccountOpen(true)}
+                                />
 
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -3029,77 +2887,26 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className={cn("h-8 text-[11px] w-full justify-start overflow-hidden", edited?.allocatedTo && "border-primary")}>
-                                                    <span className="truncate">
-                                                        {getAllocationName(currentAlloc)}
-                                                    </span>
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[300px] p-0" align="start">
-                                                <Command className="w-full">
-                                                    <CommandInput placeholder="Search accounts..." />
-                                                    <CommandList>
-                                                        <CommandEmpty>No results found.</CommandEmpty>
-                                                        <CommandGroup heading="GL Accounts">
-                                                            {client?.chartOfAccounts?.map(a => (
-                                                                <CommandItem 
-                                                                    key={a.id} 
-                                                                    value={a.description}
-                                                                    onSelect={() => setEditedAllocations((p: any) => ({
-                                                                        ...p, 
-                                                                        [tx.id]: { 
-                                                                            ...(p[tx.id] || { vatType: tx.vatType }), 
-                                                                            allocatedTo: { value: a.id, type: 'account' }
-                                                                        }
-                                                                    }))}
-                                                                    className="p-2 cursor-pointer hover:bg-muted"
-                                                                >
-                                                                    {a.description}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                        <CommandGroup heading="Suppliers">
-                                                            {suppliers.map(s => (
-                                                                <CommandItem 
-                                                                    key={s.id} 
-                                                                    value={s.name}
-                                                                    onSelect={() => setEditedAllocations((p: any) => ({
-                                                                        ...p, 
-                                                                        [tx.id]: { 
-                                                                            allocatedTo: { value: s.id, type: 'supplier' },
-                                                                            vatType: 'no_vat' 
-                                                                        }
-                                                                    }))}
-                                                                    className="p-2 cursor-pointer hover:bg-muted"
-                                                                >
-                                                                    {s.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                        <CommandGroup heading="Customers">
-                                                            {customers.map(c => (
-                                                                <CommandItem 
-                                                                    key={c.id} 
-                                                                    value={c.name}
-                                                                    onSelect={() => setEditedAllocations((p: any) => ({
-                                                                        ...p, 
-                                                                        [tx.id]: { 
-                                                                            allocatedTo: { value: c.id, type: 'customer' },
-                                                                            vatType: 'no_vat' 
-                                                                        }
-                                                                    }))}
-                                                                    className="p-2 cursor-pointer hover:bg-muted"
-                                                                >
-                                                                    {c.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
+                                        <AccountSelector
+                                            client={client}
+                                            customers={customers}
+                                            suppliers={suppliers}
+                                            showAccounts={true}
+                                            showCustomers={true}
+                                            showSuppliers={true}
+                                            value={currentAlloc}
+                                            size="sm"
+                                            placeholder="Select account..."
+                                            className={cn(edited?.allocatedTo && "border-primary")}
+                                            onChange={(sel) => setEditedAllocations((p: any) => ({
+                                                ...p,
+                                                [tx.id]: {
+                                                    ...(p[tx.id] || { vatType: tx.vatType }),
+                                                    allocatedTo: { value: sel.value, type: sel.type },
+                                                    vatType: sel.type === 'account' ? (p[tx.id]?.vatType || tx.vatType || 'no_vat') : 'no_vat'
+                                                }
+                                            }))}
+                                        />
                                     </TableCell>
                                     <TableCell>
                                         {tx.allocationSource === 'rule' ? (

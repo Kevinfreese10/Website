@@ -28,6 +28,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import InvoicePreview from '@/components/admin/InvoicePreview';
 import InvoiceDownloadButton from '@/components/pdf/InvoiceDownloadButton';
+import { AccountSelector } from '@/components/accounting/AccountSelector';
 
 const db = getFirestore(firebaseApp);
 
@@ -303,29 +304,17 @@ export default function InvoicesPage() {
                                         render={({ field }) => (
                                         <FormItem className="flex flex-col">
                                             <FormLabel className="mb-1">Customer</FormLabel>
-                                            <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                <Button variant="outline" role="combobox" className={cn("w-full justify-between h-10", !field.value && "text-muted-foreground")}>
-                                                    {field.value ? customers.find((c) => c.id === field.value)?.name : "Select customer..."}
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="p-0">
-                                                <Command>
-                                                <CommandInput placeholder="Search customer..." />
-                                                <CommandList>
-                                                    <CommandEmpty>No customer found.</CommandEmpty>
-                                                    {customers.map((c) => (
-                                                    <CommandItem value={c.name} key={c.id} onSelect={() => form.setValue("customerId", c.id)}>
-                                                        {c.name}
-                                                    </CommandItem>
-                                                    ))}
-                                                </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                            </Popover>
+                                            <AccountSelector
+                                                client={client}
+                                                customers={customers}
+                                                showAccounts={false}
+                                                showCustomers={true}
+                                                value={field.value ? { value: field.value, type: 'customer' } : null}
+                                                onChange={(selection) => {
+                                                    form.setValue("customerId", selection.value);
+                                                }}
+                                                placeholder="Select customer..."
+                                            />
                                             <FormMessage />
                                         </FormItem>
                                         )}
@@ -346,32 +335,18 @@ export default function InvoicesPage() {
                                                         render={({ field }) => (
                                                             <FormItem>
                                                                 <FormLabel>Account</FormLabel>
-                                                                <Popover>
-                                                                    <PopoverTrigger asChild>
-                                                                        <FormControl>
-                                                                            <Button variant="outline" role="combobox" className={cn("w-full justify-between h-10", !field.value && "text-muted-foreground")}>
-                                                                                {field.value ? accounts.find((acc) => acc.id === field.value)?.description : "Select account"}
-                                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                                            </Button>
-                                                                        </FormControl>
-                                                                    </PopoverTrigger>
-                                                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                                        <Command>
-                                                                            <CommandInput placeholder="Search account..." />
-                                                                            <CommandList>
-                                                                                <CommandEmpty>No account found.</CommandEmpty>
-                                                                                <CommandGroup>
-                                                                                    {accounts.map((acc) => (
-                                                                                        <CommandItem value={acc.description} key={acc.id} onSelect={() => handleAccountChange(acc.id, index)}>
-                                                                                            <CheckCheck className={cn("mr-2 h-4 w-4", acc.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                                            {acc.description}
-                                                                                        </CommandItem>
-                                                                                    ))}
-                                                                                </CommandGroup>
-                                                                            </CommandList>
-                                                                        </Command>
-                                                                    </PopoverContent>
-                                                                </Popover>
+                                                                <AccountSelector
+                                                                    client={client}
+                                                                    showAccounts={true}
+                                                                    showCustomers={false}
+                                                                    showSuppliers={false}
+                                                                    value={field.value ? { value: field.value, type: 'account' } : null}
+                                                                    onChange={(selection) => {
+                                                                        handleAccountChange(selection.value, index);
+                                                                    }}
+                                                                    filterAccounts={(acc) => acc.accountNumber?.startsWith('1000-')}
+                                                                    placeholder="Select account"
+                                                                />
                                                                 <FormMessage />
                                                             </FormItem>
                                                         )}

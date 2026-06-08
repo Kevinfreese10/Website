@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { allVatTypes } from "@/lib/vat-types";
-
+import { AccountSelector } from '@/components/accounting/AccountSelector';
 
 const db = getFirestore(firebaseApp);
 
@@ -221,37 +221,21 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
                  {selectedTransactions.length > 0 && (
                     <div className="flex items-center gap-2 mb-4 p-2 bg-muted rounded-lg">
                         <p className="text-sm font-semibold">{selectedTransactions.length} selected</p>
-                         <Popover open={open} onOpenChange={setOpen}>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" role="combobox" aria-expanded={open} className="w-[200px] justify-between h-8 text-xs font-bold">
-                                    {reallocateTo ? client.chartOfAccounts?.find(acc => acc.id === reallocateTo.accountId)?.description : "Reallocate to..."}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[300px] p-0" align="start">
-                                <Command>
-                                    <CommandInput placeholder="Search account..." />
-                                    <CommandList>
-                                    <CommandEmpty>No account found.</CommandEmpty>
-                                        <CommandGroup>
-                                            {client.chartOfAccounts?.map((account) => (
-                                            <CommandItem
-                                                key={account.id}
-                                                value={account.description}
-                                                onSelect={() => {
-                                                    setReallocateTo({accountId: account.id, vatType: 'no_vat'})
-                                                    setOpen(false)
-                                                }}
-                                            >
-                                                <CheckCheck className={cn("mr-2 h-4 w-4", account.id === reallocateTo?.accountId ? "opacity-100" : "opacity-0")} />
-                                                {account.description}
-                                            </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
+                         <AccountSelector
+                             client={client}
+                             showAccounts={true}
+                             showCustomers={false}
+                             showSuppliers={false}
+                             value={reallocateTo ? { value: reallocateTo.accountId, type: 'account' } : null}
+                             onChange={(selection, vatType) => {
+                                 setReallocateTo({ accountId: selection.value, vatType: vatType || 'no_vat' });
+                             }}
+                             requireVatSelection={client.isVatRegistered}
+                             isVatRegistered={client.isVatRegistered}
+                             size="sm"
+                             className="w-[200px]"
+                             placeholder="Reallocate to..."
+                         />
                          <Select
                             value={reallocateTo?.vatType || 'no_vat'}
                             onValueChange={(value) => reallocateTo && setReallocateTo({...reallocateTo, vatType: value as VatType})}
@@ -437,44 +421,17 @@ export default function GeneralLedgerReconPage() {
                      <div className="flex flex-col sm:flex-row items-end gap-4">
                          <div className="grid gap-1.5 flex-grow">
                              <Label>Account to Reconcile</Label>
-                                 <Popover open={open} onOpenChange={setOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={open}
-                                            className="w-full justify-between"
-                                        >
-                                            {selectedAccountId
-                                                ? accounts.find((acc) => acc.id === selectedAccountId)?.description
-                                                : "Select an account..."}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                        <Command>
-                                            <CommandInput placeholder="Search account..." />
-                                            <CommandList>
-                                                <CommandEmpty>No account found.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {accounts.map(acc => (
-                                                        <CommandItem
-                                                            key={acc.id}
-                                                            value={`${acc.accountNumber} - ${acc.description}`}
-                                                            onSelect={() => {
-                                                                setSelectedAccountId(acc.id)
-                                                                setOpen(false)
-                                                            }}
-                                                        >
-                                                            <CheckCheck className={cn("mr-2 h-4 w-4", acc.id === selectedAccountId ? "opacity-100" : "opacity-0")} />
-                                                            {acc.description}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
+                             <AccountSelector
+                                 client={client}
+                                 showAccounts={true}
+                                 showCustomers={false}
+                                 showSuppliers={false}
+                                 value={selectedAccountId ? { value: selectedAccountId, type: 'account' } : null}
+                                 onChange={(selection) => {
+                                     setSelectedAccountId(selection.value);
+                                 }}
+                                 placeholder="Select an account..."
+                             />
                         </div>
                         <Button onClick={handleViewReport} disabled={isFetchingTransactions || !selectedAccountId} className="font-bold gap-2">
                             {isFetchingTransactions ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Eye className="mr-2 h-4 w-4"/>}

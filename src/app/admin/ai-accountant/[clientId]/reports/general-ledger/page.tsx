@@ -28,7 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList, CommandGroup } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-
+import { AccountSelector } from '@/components/accounting/AccountSelector';
 
 const db = getFirestore(firebaseApp);
 
@@ -888,18 +888,26 @@ export default function GeneralLedgerPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] items-center gap-4">
                                         <Label>Account Range</Label>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <Select value={fromAccount} onValueChange={setFromAccount}>
-                                                <SelectTrigger><SelectValue placeholder="(From Account)" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {isLoading ? <Loader2 className="animate-spin" /> : accounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                            <Select value={toAccount} onValueChange={setToAccount}>
-                                                <SelectTrigger><SelectValue placeholder="(To Account)" /></SelectTrigger>
-                                                <SelectContent>
-                                                      {isLoading ? <Loader2 className="animate-spin" /> : accounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
+                                            <AccountSelector
+                                                client={client}
+                                                showAccounts={true}
+                                                showCustomers={false}
+                                                showSuppliers={false}
+                                                value={fromAccount}
+                                                onChange={(selection) => setFromAccount(selection.value)}
+                                                placeholder="(From Account)"
+                                                disabled={isLoading}
+                                            />
+                                            <AccountSelector
+                                                client={client}
+                                                showAccounts={true}
+                                                showCustomers={false}
+                                                showSuppliers={false}
+                                                value={toAccount}
+                                                onChange={(selection) => setToAccount(selection.value)}
+                                                placeholder="(To Account)"
+                                                disabled={isLoading}
+                                            />
                                         </div>
                                     </div>
                                 ) : (

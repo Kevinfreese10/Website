@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableFooterComponent } from "@/components/ui/table";
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
+import { AccountSelector } from '@/components/accounting/AccountSelector';
 
 const db = getFirestore(firebaseApp);
 
@@ -263,12 +264,17 @@ export default function CustomerLedgerPage() {
                             </div>
                             <div className="grid gap-1.5">
                                 <Label>Customer</Label>
-                                <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                                    <SelectTrigger><SelectValue placeholder="Select a customer" /></SelectTrigger>
-                                    <SelectContent>
-                                        {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
+                                 <AccountSelector
+                                     client={client}
+                                     customers={customers}
+                                     showAccounts={false}
+                                     showCustomers={true}
+                                     value={selectedCustomerId ? { value: selectedCustomerId, type: 'customer' } : null}
+                                     onChange={(selection) => {
+                                         setSelectedCustomerId(selection.value);
+                                     }}
+                                     placeholder="Select a customer..."
+                                 />
                             </div>
                         </div>
                         <div className="flex justify-start pt-4">

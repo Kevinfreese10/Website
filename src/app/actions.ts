@@ -274,6 +274,46 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
         allRules = [...allRules, ...globalSnap.docs.map(d => ({ ...d.data(), id: d.id } as AllocationRule))];
     }
 
+    // Load historical allocations
+    const historySnap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('status', 'in', ['allocated', 'reviewed'])
+        .get();
+
+    const historyCounts = new Map<string, Map<string, number>>();
+    historySnap.docs.forEach(doc => {
+        const tx = doc.data() as ImportedTransaction;
+        if (!tx.allocatedTo || !tx.allocatedTo.value) return;
+        const key = tx.merchantKey || BankCleaner.process(tx.description).merchantKey;
+        if (!key) return;
+
+        if (!historyCounts.has(key)) {
+            historyCounts.set(key, new Map());
+        }
+        const allocations = historyCounts.get(key)!;
+        const allocKey = `${tx.allocatedTo.type || 'account'}:${tx.allocatedTo.value}|${tx.vatType || 'no_vat'}`;
+        allocations.set(allocKey, (allocations.get(allocKey) || 0) + 1);
+    });
+
+    const bestHistoryMap = new Map<string, { allocatedTo: { value: string, type: 'account' | 'supplier' | 'customer' }, vatType: string }>();
+    historyCounts.forEach((allocations, merchantKey) => {
+        let bestKey = '';
+        let maxCount = -1;
+        allocations.forEach((count, key) => {
+            if (count > maxCount) {
+                maxCount = count;
+                bestKey = key;
+            }
+        });
+        if (bestKey) {
+            const [typeVal, vatType] = bestKey.split('|');
+            const [type, value] = typeVal.split(':');
+            bestHistoryMap.set(merchantKey, {
+                allocatedTo: { value, type: type as any },
+                vatType
+            });
+        }
+    });
+
     const batch = adminDb.batch();
     for (const d of snap.docs) {
         const tx = d.data() as ImportedTransaction;
@@ -297,11 +337,27 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
                 allocationSource: 'rule'
             });
         } else {
-            batch.update(d.ref, {
-                ...result,
-                status: 'ai_review',
-                allocationSource: 'none'
-            });
+            const historyMatch = bestHistoryMap.get(result.merchantKey);
+            if (historyMatch) {
+                batch.update(d.ref, {
+                    ...result,
+                    status: 'ai_review',
+                    smartAllocationResult: {
+                        accountId: historyMatch.allocatedTo.value,
+                        accountType: historyMatch.allocatedTo.type || 'account',
+                        vatType: historyMatch.vatType || 'no_vat',
+                        confidence: 95,
+                        summary: `Matched with past transaction allocation history.`
+                    },
+                    allocationSource: 'history'
+                });
+            } else {
+                batch.update(d.ref, {
+                    ...result,
+                    status: 'ai_review',
+                    allocationSource: 'none'
+                });
+            }
         }
     }
 
@@ -824,4 +880,86 @@ export async function sendOrderConfirmationEmailAction({
     html: emailHtml,
     resellerId: orderData.resellerId || undefined,
   });
+}
+
+export async function matchTransactionsToHistory({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
+    const adminDb = getAdminDb();
+    
+    const activeSnap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('bankAccountId', '==', bankAccountId)
+        .where('status', '==', 'ai_review')
+        .get();
+        
+    if (activeSnap.empty) return { count: 0 };
+    
+    const historySnap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('status', 'in', ['allocated', 'reviewed'])
+        .get();
+        
+    if (historySnap.empty) return { count: 0 };
+    
+    const historyCounts = new Map<string, Map<string, number>>();
+    historySnap.docs.forEach(doc => {
+        const tx = doc.data() as ImportedTransaction;
+        if (!tx.allocatedTo || !tx.allocatedTo.value) return;
+        const key = tx.merchantKey || BankCleaner.process(tx.description).merchantKey;
+        if (!key) return;
+
+        if (!historyCounts.has(key)) {
+            historyCounts.set(key, new Map());
+        }
+        const allocations = historyCounts.get(key)!;
+        const allocKey = `${tx.allocatedTo.type || 'account'}:${tx.allocatedTo.value}|${tx.vatType || 'no_vat'}`;
+        allocations.set(allocKey, (allocations.get(allocKey) || 0) + 1);
+    });
+
+    const bestHistoryMap = new Map<string, { allocatedTo: { value: string, type: 'account' | 'supplier' | 'customer' }, vatType: string }>();
+    historyCounts.forEach((allocations, merchantKey) => {
+        let bestKey = '';
+        let maxCount = -1;
+        allocations.forEach((count, key) => {
+            if (count > maxCount) {
+                maxCount = count;
+                bestKey = key;
+            }
+        });
+        if (bestKey) {
+            const [typeVal, vatType] = bestKey.split('|');
+            const [type, value] = typeVal.split(':');
+            bestHistoryMap.set(merchantKey, {
+                allocatedTo: { value, type: type as any },
+                vatType
+            });
+        }
+    });
+
+    const batch = adminDb.batch();
+    let count = 0;
+    
+    activeSnap.docs.forEach(doc => {
+        const tx = doc.data() as ImportedTransaction;
+        if (tx.allocationSource === 'rule') return;
+        
+        const key = tx.merchantKey || BankCleaner.process(tx.description).merchantKey;
+        const match = bestHistoryMap.get(key);
+        if (match) {
+            batch.update(doc.ref, {
+                smartAllocationResult: {
+                    accountId: match.allocatedTo.value,
+                    accountType: match.allocatedTo.type || 'account',
+                    vatType: match.vatType || 'no_vat',
+                    confidence: 95,
+                    summary: `Matched with past transaction allocation history.`
+                },
+                allocationSource: 'history'
+            });
+            count++;
+        }
+    });
+    
+    if (count > 0) {
+        await batch.commit();
+    }
+    
+    return { count };
 }

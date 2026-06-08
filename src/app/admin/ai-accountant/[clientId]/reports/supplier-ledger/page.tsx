@@ -28,6 +28,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { allVatTypes } from '@/lib/vat-types';
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { AccountSelector } from '@/components/accounting/AccountSelector';
 
 const db = getFirestore(firebaseApp);
 
@@ -195,55 +196,22 @@ function EditJournalDialog({ isOpen, onOpenChange, journalEntries, client, actor
                                             <TableRow key={field.id}>
                                                 <TableCell className="p-2 min-w-[200px]">
                                                     <FormField control={form.control} name={`lines.${index}.accountId`} render={({ field: accField }) => (
-                                                        <Popover>
-                                                            <PopoverTrigger asChild>
-                                                                <FormControl>
-                                                                    <Button variant="outline" size="sm" className="w-full justify-between h-8 text-[11px] font-medium">
-                                                                        <span className="truncate">{getAccountName(watchedLines[index])}</span>
-                                                                        <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0 ml-2" />
-                                                                    </Button>
-                                                                </FormControl>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent className="p-0 w-[300px]" align="start">
-                                                                <Command>
-                                                                    <CommandInput placeholder="Search accounts or actors..." />
-                                                                    <CommandList>
-                                                                        <CommandEmpty>No results found.</CommandEmpty>
-                                                                        <CommandGroup heading="Suppliers">
-                                                                            {actors.map(a => (
-                                                                                <CommandItem 
-                                                                                    key={a.id} 
-                                                                                    onSelect={() => {
-                                                                                        form.setValue(`lines.${index}.accountId`, a.id);
-                                                                                        form.setValue(`lines.${index}.accountType`, 'supplier');
-                                                                                    }}
-                                                                                    className="text-xs"
-                                                                                >
-                                                                                    <Check className={cn("mr-2 h-3 w-3", watchedLines[index].accountId === a.id ? "opacity-100" : "opacity-0")} />
-                                                                                    {a.name}
-                                                                                </CommandItem>
-                                                                            ))}
-                                                                        </CommandGroup>
-                                                                        <CommandSeparator />
-                                                                        <CommandGroup heading="GL Accounts">
-                                                                            {client?.chartOfAccounts?.map(a => (
-                                                                                <CommandItem 
-                                                                                    key={a.id} 
-                                                                                    onSelect={() => {
-                                                                                        form.setValue(`lines.${index}.accountId`, a.id);
-                                                                                        form.setValue(`lines.${index}.accountType`, 'account');
-                                                                                    }}
-                                                                                    className="text-xs"
-                                                                                >
-                                                                                    <Check className={cn("mr-2 h-3 w-3", watchedLines[index].accountId === a.id ? "opacity-100" : "opacity-0")} />
-                                                                                    {a.description}
-                                                                                </CommandItem>
-                                                                            ))}
-                                                                        </CommandGroup>
-                                                                    </CommandList>
-                                                                </Command>
-                                                            </PopoverContent>
-                                                        </Popover>
+                                                         <AccountSelector
+                                                             client={client}
+                                                             suppliers={actors}
+                                                             showAccounts={true}
+                                                             showSuppliers={true}
+                                                             value={{
+                                                                 value: watchedLines[index].accountId,
+                                                                 type: watchedLines[index].accountType
+                                                             }}
+                                                             onChange={(selection) => {
+                                                                 form.setValue(`lines.${index}.accountId`, selection.value);
+                                                                 form.setValue(`lines.${index}.accountType`, selection.type);
+                                                             }}
+                                                             size="sm"
+                                                             placeholder="Select account..."
+                                                         />
                                                     )} />
                                                 </TableCell>
                                                 <TableCell className="p-2">
@@ -651,12 +619,17 @@ export default function SupplierLedgerPage() {
                             </div>
                             <div className="grid gap-1.5">
                                 <Label>Supplier</Label>
-                                <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
-                                    <SelectTrigger><SelectValue placeholder="Select a supplier" /></SelectTrigger>
-                                    <SelectContent>
-                                        {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
+                                 <AccountSelector
+                                     client={client}
+                                     suppliers={suppliers}
+                                     showAccounts={false}
+                                     showSuppliers={true}
+                                     value={selectedSupplierId ? { value: selectedSupplierId, type: 'supplier' } : null}
+                                     onChange={(selection) => {
+                                         setSelectedSupplierId(selection.value);
+                                     }}
+                                     placeholder="Select a supplier..."
+                                 />
                             </div>
                         </div>
                         <div className="flex justify-start pt-4">

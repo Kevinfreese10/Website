@@ -29,6 +29,7 @@ import { allVatTypes } from '@/lib/vat-types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList, CommandGroup, CommandSeparator } from '@/components/ui/command';
 import Papa from 'papaparse';
+import { AccountSelector } from '@/components/accounting/AccountSelector';
 
 const db = getFirestore(firebaseApp);
 
@@ -206,55 +207,24 @@ function EditJournalDialog({ isOpen, onOpenChange, journalEntries, client, actor
                                         <TableRow key={field.id}>
                                             <TableCell className="p-2 min-w-[200px]">
                                                 <FormField control={form.control} name={`lines.${index}.accountId`} render={({ field: accField }) => (
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button variant="outline" size="sm" className="w-full justify-between h-8 text-[11px] font-medium">
-                                                                    <span className="truncate">{getAccountName(watchedLines[index])}</span>
-                                                                    <ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0 ml-2" />
-                                                                </Button>
-                                                            </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="p-0 w-[300px]" align="start">
-                                                            <Command>
-                                                                <CommandInput placeholder="Search accounts or actors..." />
-                                                                <CommandList>
-                                                                    <CommandEmpty>No results found.</CommandEmpty>
-                                                                    <CommandGroup heading={journalType === 'customer' ? 'Customers' : 'Suppliers'}>
-                                                                        {actors.map(a => (
-                                                                            <CommandItem 
-                                                                                key={a.id} 
-                                                                                onSelect={() => {
-                                                                                    form.setValue(`lines.${index}.accountId`, a.id);
-                                                                                    form.setValue(`lines.${index}.accountType`, journalType as any);
-                                                                                }}
-                                                                                className="text-xs"
-                                                                            >
-                                                                                <Check className={cn("mr-2 h-3 w-3", watchedLines[index].accountId === a.id ? "opacity-100" : "opacity-0")} />
-                                                                                {a.name}
-                                                                            </CommandItem>
-                                                                        ))}
-                                                                    </CommandGroup>
-                                                                    <CommandSeparator />
-                                                                    <CommandGroup heading="GL Accounts">
-                                                                        {client?.chartOfAccounts?.map(a => (
-                                                                            <CommandItem 
-                                                                                key={a.id} 
-                                                                                onSelect={() => {
-                                                                                    form.setValue(`lines.${index}.accountId`, a.id);
-                                                                                    form.setValue(`lines.${index}.accountType`, 'account');
-                                                                                }}
-                                                                                className="text-xs"
-                                                                            >
-                                                                                <Check className={cn("mr-2 h-3 w-3", watchedLines[index].accountId === a.id ? "opacity-100" : "opacity-0")} />
-                                                                                {a.description}
-                                                                            </CommandItem>
-                                                                        ))}
-                                                                    </CommandGroup>
-                                                                </CommandList>
-                                                            </Command>
-                                                        </PopoverContent>
-                                                    </Popover>
+                                                    <AccountSelector
+                                                        client={client}
+                                                        customers={journalType === 'customer' ? actors : []}
+                                                        suppliers={journalType === 'supplier' ? actors : []}
+                                                        showAccounts={true}
+                                                        showCustomers={journalType === 'customer'}
+                                                        showSuppliers={journalType === 'supplier'}
+                                                        value={{
+                                                            value: watchedLines[index].accountId,
+                                                            type: watchedLines[index].accountType
+                                                        }}
+                                                        onChange={(selection) => {
+                                                            form.setValue(`lines.${index}.accountId`, selection.value);
+                                                            form.setValue(`lines.${index}.accountType`, selection.type);
+                                                        }}
+                                                        size="sm"
+                                                        placeholder="Select account..."
+                                                    />
                                                 )} />
                                             </TableCell>
                                             <TableCell className="p-2">
@@ -763,14 +733,14 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
                                                     <TableRow key={field.id} className="hover:bg-muted/5">
                                                         <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.date`} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full pl-3 text-left font-normal h-8 text-[11px]", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "dd/MM/yyyy") : <span>Date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover> )} /></TableCell>
                                                         <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.effect`} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8 text-[11px] font-bold"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Debit">Debit</SelectItem><SelectItem value="Credit">Credit</SelectItem></SelectContent></Select> )} /></TableCell>
-                                                        <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.actorId`} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8 text-[11px]"><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{actors.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select> )} /></TableCell>
+                                                        <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.actorId`} render={({ field }) => ( <AccountSelector client={client} customers={journalType === 'customer' ? actors : []} suppliers={journalType === 'supplier' ? actors : []} showAccounts={false} showCustomers={journalType === 'customer'} showSuppliers={journalType === 'supplier'} value={field.value ? { value: field.value, type: journalType as "customer" | "supplier" } : null} onChange={(selection) => field.onChange(selection.value)} size="sm" placeholder="Select recipient..." /> )} /></TableCell>
                                                         <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.reference`} render={({ field }) => <Input className="h-8 text-[11px] font-mono" {...field} />} /></TableCell>
                                                         <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.description`} render={({ field }) => <Input className="h-8 text-[11px]" {...field} />} /></TableCell>
                                                         <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.vatType`} render={({ field }) => ( <Select onValueChange={(v) => { field.onChange(v); updateQuickAmounts(index); }} value={field.value}><FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent>{allVatTypes.map(vt => <SelectItem key={vt.name} value={vt.name} className="text-xs">{vt.label}</SelectItem>)}</SelectContent></Select> )} /></TableCell>
                                                         <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.inclusiveAmount`} render={({ field }) => ( <Input type="number" step="0.01" className="h-8 text-right font-mono font-bold text-[11px]" {...field} onChange={(e) => { field.onChange(parseFloat(e.target.value) || 0); updateQuickAmounts(index); }} /> )} /></TableCell>
                                                         <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.exclusiveAmount`} render={({ field }) => ( <Input readOnly className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" value={formatPrice(field.value)} /> )} /></TableCell>
                                                         <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.vatAmount`} render={({ field }) => ( <Input readOnly className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" value={formatPrice(field.value)} /> )} /></TableCell>
-                                                        <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.affectingAccountId`} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8 text-[11px]"><SelectValue placeholder="Select..." /></SelectTrigger></FormControl><SelectContent>{allGLAccounts.map(a => <SelectItem key={a.id} value={a.id}>{a.description}</SelectItem>)}</SelectContent></Select> )} /></TableCell>
+                                                        <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.affectingAccountId`} render={({ field }) => ( <AccountSelector client={client} showAccounts={true} showCustomers={false} showSuppliers={false} value={field.value ? { value: field.value, type: "account" } : null} onChange={(selection) => field.onChange(selection.value)} size="sm" placeholder="Select account..." /> )} /></TableCell>
                                                         <TableCell className="p-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeQuick(index)} disabled={quickFields.length === 1} className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5"/></Button></TableCell>
                                                     </TableRow>
                                                 ))}
