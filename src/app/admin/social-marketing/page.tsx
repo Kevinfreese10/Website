@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { testFacebookConnectionAction, saveFacebookSettingsAction, postToFacebookPageAction } from './actions';
+import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 const db = getFirestore(firebaseApp);
 
@@ -33,6 +34,7 @@ interface AdSource {
     category: string;
     slug: string;
     type: 'service' | 'page' | 'blog';
+    imageUrl?: string;
 }
 
 export default function SocialMarketingPage() {
@@ -45,6 +47,27 @@ export default function SocialMarketingPage() {
     const [generatedAds, setGeneratedAds] = useState<SocialAdOutput | null>(null);
     const [tone, setTone] = useState<'professional' | 'friendly' | 'urgent' | 'educational'>('professional');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [postFormat, setPostFormat] = useState<'link' | 'photo'>('link');
+
+    const getSourceUrls = (service: AdSource | undefined) => {
+        if (!service) return { linkUrl: undefined, imageUrl: undefined };
+        
+        const linkUrl = service.type === 'service'
+            ? `${process.env.NEXT_PUBLIC_APP_URL || SITE_URL}/products/${service.slug}`
+            : service.type === 'blog'
+                ? `${process.env.NEXT_PUBLIC_APP_URL || SITE_URL}/blog/${service.slug}`
+                : `${process.env.NEXT_PUBLIC_APP_URL || SITE_URL}/${service.slug}`;
+
+        let imageUrl = service.imageUrl || '';
+        if (imageUrl && imageUrl.startsWith('/')) {
+            imageUrl = `${SITE_URL}${imageUrl}`;
+        }
+        if (!imageUrl) {
+            imageUrl = GLOBAL_OG_IMAGE;
+        }
+
+        return { linkUrl, imageUrl };
+    };
 
     const categories = useMemo(() => {
         return Array.from(new Set(sources.map(s => s.category))).filter(Boolean).sort();
@@ -101,7 +124,8 @@ export default function SocialMarketingPage() {
                         turnaroundTime: data.turnaroundTime,
                         category: data.category || 'Service',
                         slug: data.slug,
-                        type: 'service' as const
+                        type: 'service' as const,
+                        imageUrl: data.imageUrl || data.seoImageUrl || ''
                     };
                 });
 
@@ -116,21 +140,22 @@ export default function SocialMarketingPage() {
                         description: data.excerpt || data.content.substring(0, 150),
                         category: 'Blog Post',
                         slug: data.slug,
-                        type: 'blog' as const
+                        type: 'blog' as const,
+                        imageUrl: data.imageUrl || data.seoImageUrl || ''
                     };
                 });
 
                 // 3. Define Static Pages
                 const staticPagesConfig = [
-                    { id: 'home', slug: '', title: 'Home Page', description: 'Professional Accounting & Tax Services for South Africa. We handle SARS, CIPC, and all your compliance needs.', category: 'Static Page', type: 'page' as const },
-                    { id: 'about', slug: 'about', title: 'About Us', description: 'Learn about My Accountant, our vision, mission, and the expertise that drives us to provide top-tier financial services.', category: 'Static Page', type: 'page' as const },
-                    { id: 'compliance', slug: 'compliance', title: 'Compliance Check', description: 'Ensure your South African business is compliant. Get a free, no-obligation compliance assessment for CIPC and SARS.', category: 'Static Page', type: 'page' as const },
-                    { id: 'sars-compromise', slug: 'sars-compromise', title: 'SARS Compromise of Debt', description: 'Negotiate a settlement with SARS to resolve outstanding tax debt.', category: 'Static Page', type: 'page' as const },
-                    { id: 'sars-disputes', slug: 'sars-disputes', title: 'SARS Disputes & Objections', description: 'Professional assistance with SARS disputes, objections (Section 104), and appeals.', category: 'Static Page', type: 'page' as const },
-                    { id: 'remission-of-fines', slug: 'remission-of-fines', title: 'Remission of Fines & Penalties', description: 'Apply for a SARS Request for Remission (RFR) to remove or reduce administrative and understatement penalties.', category: 'Static Page', type: 'page' as const },
-                    { id: 'liquidations', slug: 'liquidations', title: 'Company Liquidations', description: 'Professional assistance with voluntary company liquidations in South Africa.', category: 'Static Page', type: 'page' as const },
-                    { id: 'become-a-partner', slug: 'become-a-partner', title: 'Become a Partner', description: 'Partner with My Accountant to grow your practice and scale with our technology.', category: 'Static Page', type: 'page' as const },
-                    { id: 'franchise', slug: 'franchise', title: 'Own a Franchise', description: 'Explore exclusive territory opportunities with the My Accountant Franchise model.', category: 'Static Page', type: 'page' as const }
+                    { id: 'home', slug: '', title: 'Home Page', description: 'Professional Accounting & Tax Services for South Africa. We handle SARS, CIPC, and all your compliance needs.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
+                    { id: 'about', slug: 'about', title: 'About Us', description: 'Learn about My Accountant, our vision, mission, and the expertise that drives us to provide top-tier financial services.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
+                    { id: 'compliance', slug: 'compliance', title: 'Compliance Check', description: 'Ensure your South African business is compliant. Get a free, no-obligation compliance assessment for CIPC and SARS.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
+                    { id: 'sars-compromise', slug: 'sars-compromise', title: 'SARS Compromise of Debt', description: 'Negotiate a settlement with SARS to resolve outstanding tax debt.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
+                    { id: 'sars-disputes', slug: 'sars-disputes', title: 'SARS Disputes & Objections', description: 'Professional assistance with SARS disputes, objections (Section 104), and appeals.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
+                    { id: 'remission-of-fines', slug: 'remission-of-fines', title: 'Remission of Fines & Penalties', description: 'Apply for a SARS Request for Remission (RFR) to remove or reduce administrative and understatement penalties.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
+                    { id: 'liquidations', slug: 'liquidations', title: 'Company Liquidations', description: 'Professional assistance with voluntary company liquidations in South Africa.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
+                    { id: 'become-a-partner', slug: 'become-a-partner', title: 'Become a Partner', description: 'Partner with My Accountant to grow your practice and scale with our technology.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
+                    { id: 'franchise', slug: 'franchise', title: 'Own a Franchise', description: 'Explore exclusive territory opportunities with the My Accountant Franchise model.', category: 'Static Page', type: 'page' as const, imageUrl: '' }
                 ];
 
                 setSources([...fetchedServices, ...staticPagesConfig, ...fetchedBlogs]);
@@ -253,7 +278,7 @@ export default function SocialMarketingPage() {
         }
     };
 
-    const handlePostToFacebook = async (index: number, adText: string) => {
+    const handlePostToFacebook = async (index: number, adText: string, service?: AdSource) => {
         if (!user?.facebookSettings?.pageId) {
             setIsSettingsOpen(true);
             toast({
@@ -265,7 +290,12 @@ export default function SocialMarketingPage() {
 
         setPostingStatus(prev => ({ ...prev, [index]: 'posting' }));
         try {
-            const res = await postToFacebookPageAction(user.uid, adText);
+            const { linkUrl, imageUrl } = getSourceUrls(service);
+            const res = await postToFacebookPageAction(user.uid, adText, {
+                link: linkUrl,
+                imageUrl: imageUrl,
+                postMode: postFormat
+            });
             if (res.success && res.postId) {
                 setPostingStatus(prev => ({ ...prev, [index]: 'success' }));
                 toast({
@@ -326,11 +356,17 @@ export default function SocialMarketingPage() {
         for (let idx = 0; idx < generatedAds.ads.length; idx++) {
             const ad = generatedAds.ads[idx];
             const adContent = `${ad.hook}\n\n${ad.body}\n\n${ad.cta}\n\n${ad.hashtags}`;
+            const service = sources.find(s => s.id === ad.productId);
             
             setPostingStatus(prev => ({ ...prev, [idx]: 'posting' }));
             
             try {
-                const res = await postToFacebookPageAction(user.uid, adContent);
+                const { linkUrl, imageUrl } = getSourceUrls(service);
+                const res = await postToFacebookPageAction(user.uid, adContent, {
+                    link: linkUrl,
+                    imageUrl: imageUrl,
+                    postMode: postFormat
+                });
                 if (res.success) {
                     setPostingStatus(prev => ({ ...prev, [idx]: 'success' }));
                     successCount++;
@@ -438,6 +474,15 @@ export default function SocialMarketingPage() {
                             <SelectItem value="friendly">Friendly & Approachable</SelectItem>
                             <SelectItem value="urgent">Urgent (Limited Time)</SelectItem>
                             <SelectItem value="educational">Educational / Info-heavy</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select value={postFormat} onValueChange={(v: any) => setPostFormat(v)}>
+                        <SelectTrigger className="w-[210px] bg-white h-10 font-bold border-primary/20">
+                            <SelectValue placeholder="Post Format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="link">🔗 Link Card (Clickable Preview)</SelectItem>
+                            <SelectItem value="photo">🖼️ Photo Post (Direct Image)</SelectItem>
                         </SelectContent>
                     </Select>
                     <Button 
@@ -651,7 +696,7 @@ export default function SocialMarketingPage() {
                                                     size="sm" 
                                                     variant="secondary" 
                                                     className="font-bold h-8 text-[10px] uppercase gap-2 min-w-[100px]"
-                                                    onClick={() => handlePostToFacebook(idx, adContent)}
+                                                    onClick={() => handlePostToFacebook(idx, adContent, service)}
                                                     disabled={postingStatus[idx] === 'posting'}
                                                 >
                                                     {postingStatus[idx] === 'posting' ? (

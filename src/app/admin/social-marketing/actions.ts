@@ -98,7 +98,11 @@ export async function saveFacebookSettingsAction(
 /**
  * Posts ad content directly to the user's connected Facebook page.
  */
-export async function postToFacebookPageAction(userId: string, message: string) {
+export async function postToFacebookPageAction(
+    userId: string, 
+    message: string, 
+    options?: { link?: string; imageUrl?: string; postMode?: 'link' | 'photo' }
+) {
     if (!userId) {
         return { success: false, error: "User authentication ID is required." };
     }
@@ -125,33 +129,72 @@ export async function postToFacebookPageAction(userId: string, message: string) 
         }
 
         const { pageId, pageAccessToken } = facebookSettings;
-        const postUrl = `https://graph.facebook.com/v20.0/${pageId}/feed`;
+        const postMode = options?.postMode || 'link';
 
-        const res = await fetch(postUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
+        if (postMode === 'photo' && options?.imageUrl) {
+            // Post as a photo post with the image URL
+            const postUrl = `https://graph.facebook.com/v20.0/${pageId}/photos`;
+            const res = await fetch(postUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    url: options.imageUrl,
+                    caption: message,
+                    access_token: pageAccessToken
+                }),
+                cache: 'no-store'
+            });
+
+            const responseData = await res.json();
+
+            if (responseData.error) {
+                return { 
+                    success: false, 
+                    error: responseData.error.message || "Facebook Graph API returned an error." 
+                };
+            }
+
+            return { 
+                success: true, 
+                postId: responseData.post_id || responseData.id 
+            };
+        } else {
+            // Post as a feed status update (with optional link preview)
+            const postUrl = `https://graph.facebook.com/v20.0/${pageId}/feed`;
+            const body: Record<string, any> = {
                 message: message,
                 access_token: pageAccessToken
-            }),
-            cache: 'no-store'
-        });
+            };
 
-        const responseData = await res.json();
+            if (options?.link) {
+                body.link = options.link;
+            }
 
-        if (responseData.error) {
+            const res = await fetch(postUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body),
+                cache: 'no-store'
+            });
+
+            const responseData = await res.json();
+
+            if (responseData.error) {
+                return { 
+                    success: false, 
+                    error: responseData.error.message || "Facebook Graph API returned an error." 
+                };
+            }
+
             return { 
-                success: false, 
-                error: responseData.error.message || "Facebook Graph API returned an error." 
+                success: true, 
+                postId: responseData.id 
             };
         }
-
-        return { 
-            success: true, 
-            postId: responseData.id 
-        };
     } catch (e: any) {
         console.error("Facebook post error:", e);
         return { success: false, error: e.message || "Failed to post content to Facebook Page." };
