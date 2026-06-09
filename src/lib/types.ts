@@ -391,6 +391,12 @@ export type User = {
   chartOfAccounts?: ChartOfAccount[];
   subscription?: SubscriptionData;
   defaultInvoiceMessage?: string;
+  facebookSettings?: {
+    pageId?: string;
+    pageAccessToken?: string;
+    pageName?: string;
+    pagePictureUrl?: string;
+  };
 };
 
 export type DiscountCode = {

@@ -9,23 +9,23 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const AdInputSchema = z.object({
-  id: z.string().describe('The unique ID of the product.'),
+  id: z.string().describe('The unique ID of the item.'),
   productName: z.string(),
-  price: z.number(),
-  turnaroundTime: z.string(),
+  price: z.number().optional(),
+  turnaroundTime: z.string().optional(),
   description: z.string(),
   category: z.string(),
   url: z.string(),
 });
 
 const SocialAdInputSchema = z.object({
-  products: z.array(AdInputSchema).describe('List of products to generate ads for.'),
+  products: z.array(AdInputSchema).describe('List of items to generate ads for.'),
   tone: z.enum(['professional', 'friendly', 'urgent', 'educational']).default('professional'),
 });
 export type SocialAdInput = z.infer<typeof SocialAdInputSchema>;
 
 const AdVariantSchema = z.object({
-  productId: z.string().describe('Must match the input ID of the product.'),
+  productId: z.string().describe('Must match the input ID of the item.'),
   hook: z.string().describe('A catchy opening line to stop the scroll.'),
   body: z.string().describe('The main ad copy, highlighting benefits and pain points.'),
   cta: z.string().describe('A clear call to action.'),
@@ -44,25 +44,33 @@ const prompt = ai.definePrompt({
   output: { schema: SocialAdOutputSchema },
   prompt: `You are an expert social media copywriter specializing in Facebook ads for the South African accounting and tax industry.
   
-  Your goal is to generate high-converting ad copy for the following products. 
+  Your goal is to generate high-converting, highly professional ad copy for the following items (services, static pages, or blog posts). 
+  Always refer to the advertising company as "My Accountant" (never refer to it as "MyAcc" or "MyAcc.co.za").
   The tone should be: {{{tone}}}.
   
   **INSTRUCTIONS**:
-  1. **Mapping**: For each ad, the 'productId' field MUST exactly match the 'id' field from the input product.
-  2. **Hook**: Start with a relatable pain point or a bold statement (e.g., "Tired of SARS deadlines?" or "Did you know 70% of SMEs pay too much tax?").
-  3. **Body**: Briefly explain how the service solves the problem. Focus on benefits like "Peace of Mind," "Saving Time," and "Compliance." Use emojis effectively.
-  4. **Mandatory Info**: You MUST explicitly mention the price and the turnaround time immediately after the hook (at the very start of the body text). You must also include the direct product link within the ad copy text.
-  5. **CTA**: Provide a clear call to action that directs users to the provided URL.
-  6. **Context**: Use South African terminology (SARS, CIPC, Pty Ltd, etc.).
+  1. **Mapping**: For each ad, the 'productId' field MUST exactly match the 'id' field from the input item.
+  2. **Hook**: Start with a relatable pain point, a bold statement, or an engaging question aligned with the page/blog topic (e.g., "Tired of SARS deadlines?" or "Did you know how CIPC deregistration works?").
+  3. **Body Structure**:
+     - Format the body into **2-3 short, clean paragraphs** separated by double line breaks (\\n\\n). Do NOT produce a single wall of text.
+     - Include a separate list (using professional emojis like ✅ or 🔹) highlighting 2-3 concrete value points, benefits, or key takeaways.
+     - **Conditional Info**: If the item has a 'price' and 'turnaroundTime' provided in the list below, you MUST output a dedicated, clean line formatted exactly like:
+       💰 **Price**: R[price] | ⏱️ **Turnaround**: [turnaroundTime]
+       If the item is a Blog Post or Page (no price provided), do NOT output this line, and instead focus on educational highlights or informative summaries to capture interest.
+     - Mention the direct link within the body text naturally.
+  4. **CTA**: Provide a clear, professional call to action that directs users to the provided URL (e.g., "Read the full guide online: {{{url}}}" or "Get started online today: {{{url}}}").
+  5. **Context**: Use South African business and tax terminology correctly (SARS, CIPC, Pty Ltd, VAT, etc.).
+  6. **Emojis**: Use emojis selectively and professionally to structure readability. Avoid excessive or random icons.
   
-  **PRODUCTS TO ADVERTISE**:
+  **ITEMS TO ADVERTISE**:
   {{#each products}}
   - ID: "{{this.id}}"
-  - Product: "{{this.productName}}"
-  - Price: R{{this.price}}
-  - Turnaround: {{this.turnaroundTime}}
+  - Name/Title: "{{this.productName}}"
+  {{#if this.price}}- Price: R{{this.price}}{{/if}}
+  {{#if this.turnaroundTime}}- Turnaround: {{this.turnaroundTime}}{{/if}}
   - Link: {{{this.url}}}
   - Description: "{{this.description}}"
+  - Category/Type: "{{this.category}}"
   ---
   {{/each}}
   

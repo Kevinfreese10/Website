@@ -329,7 +329,12 @@ export default function ClientOrderDetailsPage() {
   if (!order) return notFound();
 
    const orderedItemsWithServices = order.items.map(item => {
-        const serviceDetails = allServices.find(s => s.id === item.id);
+        const serviceDetails = allServices.find(s => 
+          s.id === item.id || 
+          s.title.toLowerCase() === item.id.toLowerCase() || 
+          s.title.toLowerCase() === item.title.toLowerCase() ||
+          s.slug === item.id
+        );
         return { ...item, service: serviceDetails };
     });
 
