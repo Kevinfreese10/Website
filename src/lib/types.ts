@@ -158,6 +158,26 @@ export type Invoice = {
   createdAt: any;
 };
 
+export type CreditNote = {
+  id: string;
+  customerId: string;
+  invoiceId?: string;
+  creditNoteDate: any; // Firestore Timestamp
+  lineItems: {
+    accountId: string;
+    description: string;
+    quantity: number;
+    rate: number;
+    vatType: string;
+  }[];
+  notes?: string;
+  subtotal: number;
+  vat: number;
+  total: number;
+  status: 'final';
+  createdAt: any;
+};
+
 export type SubscriptionData = {
     serviceLevel: 'free' | 'ai_addon' | 'monthly_non_vat' | 'monthly_vat';
     extraUsers: number;
@@ -373,6 +393,7 @@ export type User = {
   enableInvoicing?: boolean;
   logoUrl?: string;
   nextInvoiceNumber?: number;
+  nextCreditNoteNumber?: number;
   archivedNotifications?: string[];
   emailSignature?: string;
   savedReports?: SavedReport[];

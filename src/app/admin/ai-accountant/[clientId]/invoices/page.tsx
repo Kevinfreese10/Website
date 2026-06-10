@@ -12,7 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Plus, Trash2, CalendarIcon, PlusCircle, MoreHorizontal, Eye, Copy, FileText, Mail, Download, CheckCircle, ChevronsUpDown, CheckCheck } from 'lucide-react';
 import { getFirestore, doc, addDoc, getDoc, collection, query, orderBy, getDocs, updateDoc, writeBatch, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { User, Invoice, ClientCustomer, ChartOfAccount } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -84,6 +84,7 @@ function InvoiceTotals({ control, isVatRegistered }: { control: any, isVatRegist
 
 export default function InvoicesPage() {
     const params = useParams();
+    const router = useRouter();
     const clientId = params.clientId as string;
     const [client, setClient] = useState<User | null>(null);
     const [customers, setCustomers] = useState<ClientCustomer[]>([]);
@@ -447,7 +448,9 @@ export default function InvoicesPage() {
                                                                     </DropdownMenuItem>
                                                                 </DialogTrigger>
                                                                 <DropdownMenuItem><Copy className="mr-2 h-4 w-4" />Duplicate</DropdownMenuItem>
-                                                                <DropdownMenuItem><FileText className="mr-2 h-4 w-4" />Issue Credit Note</DropdownMenuItem>
+                                                                <DropdownMenuItem onSelect={() => router.push(`/admin/ai-accountant/${clientId}/credit-notes?invoiceId=${invoice.id}`)}>
+                                                                    <FileText className="mr-2 h-4 w-4" />Issue Credit Note
+                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem><Mail className="mr-2 h-4 w-4" />Email to Client</DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
