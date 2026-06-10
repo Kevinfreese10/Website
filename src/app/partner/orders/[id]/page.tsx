@@ -696,7 +696,7 @@ export default function PartnerOrderDetailsPage() {
                                     {item.service.informationToProvide.length > 0 ? (
                                         <ul className="mt-2 space-y-3 pl-4 border-l">
                                             {item.service.informationToProvide.map((req, index) => {
-                                                const upload = order.documentUploads?.find(d => d.serviceId === item.id && d.requirementLabel === req.label);
+                                                const upload = order.documentUploads?.find(d => (d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === req.label);
                                                 const identifier = upload ? (upload.type === 'file' ? upload.fileUrl! : upload.textValue!) : '';
                                                 const uploadKey = `${item.id}-${req.label}`;
                                                 return (

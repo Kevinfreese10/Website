@@ -445,7 +445,7 @@ export default function AdminOrderDetailsPage() {
           const outstandingRequirements: string[] = [];
           orderItemsWithServices.forEach(item => {
               item.service?.informationToProvide?.forEach(req => {
-                  const upload = order.documentUploads?.find(d => d.serviceId === item.id && d.requirementLabel === req.label);
+                  const upload = order.documentUploads?.find(d => (d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === req.label);
                   if (!upload || upload.status === 'pending' || upload.status === 'rejected') {
                       const statusLabel = upload ? `(${upload.status})` : '(missing)';
                       outstandingRequirements.push(`- ${req.label} ${statusLabel}`);
@@ -537,7 +537,7 @@ export default function AdminOrderDetailsPage() {
                                     {item.service.informationToProvide.length > 0 ? (
                                         <ul className="mt-2 space-y-3 pl-4 border-l">
                                             {item.service.informationToProvide.map((req, index) => {
-                                                const upload = order.documentUploads?.find(d => d.serviceId === item.id && d.requirementLabel === req.label);
+                                                const upload = order.documentUploads?.find(d => (d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === req.label);
                                                 const identifier = upload ? (upload.type === 'file' ? upload.fileUrl! : upload.textValue!) : '';
                                                 return (
                                                     <li key={index} className="pt-3"><div className="flex items-center justify-between"><p className="font-medium text-sm">{req.label}</p>{upload ? ( <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'}>{upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}{upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}{upload.status}</Badge> ) : <Badge variant="secondary">Pending</Badge>}</div>
