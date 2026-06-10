@@ -91,6 +91,7 @@ function BulkPriceAdjustmentDialog({
 
 export default function AdminServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -120,8 +121,20 @@ export default function AdminServicesPage() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+        const q = query(collection(db, "categories"), orderBy("order"));
+        const querySnapshot = await getDocs(q);
+        const fetchedCategories = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name as string }));
+        setCategories(fetchedCategories);
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+    }
+  };
+
   useEffect(() => {
     fetchServices();
+    fetchCategories();
   }, []);
 
   const filteredServices = useMemo(() => {
@@ -498,17 +511,15 @@ export default function AdminServicesPage() {
                     onChange={(e) => setTitleFilter(e.target.value)}
                     className="max-w-sm"
                 />
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                     <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue placeholder="Filter by category..." />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Categories</SelectItem>
-                        {/* Categories will be populated from service data if not static */}
-                        <SelectItem value="SARS Services">SARS Services</SelectItem>
-                        <SelectItem value="Entity Registrations">Entity Registrations</SelectItem>
-                        <SelectItem value="CIPC Services">CIPC Services</SelectItem>
-                        <SelectItem value="Accounting Services">Accounting Services</SelectItem>
+                        {categories.map(cat => (
+                            <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
                  <Select value={departmentFilter} onValueChange={setDepartmentFilter}>

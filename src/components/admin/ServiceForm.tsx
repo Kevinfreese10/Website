@@ -8,21 +8,26 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck } from 'lucide-react';
+import { Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload } from 'lucide-react';
 import { generateServiceDetails } from '@/ai/flows/generate-service-details';
+import { generateBlogPostSeo } from '@/ai/flows/generate-blog-post-seo';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Separator } from '../ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import MediaLibrary from './MediaLibrary';
 import Image from 'next/image';
-import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { firebaseApp } from '@/lib/firebase';
 import { Checkbox } from '../ui/checkbox';
 import { Switch } from '../ui/switch';
+import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
 
 const db = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
 const departments = ['Accounting and Tax', 'Administration', 'CAP'] as const;
 
 type Category = { 
@@ -57,8 +62,8 @@ const formSchema = z.object({
     label: z.string().min(1, 'Label cannot be empty.'),
     type: z.enum(['text', 'pdf']).optional(),
   })),
-  metaTitle: z.string().max(60, "Title must be 60 characters or less.").optional(),
-  metaDescription: z.string().max(160, "Description must be 160 characters or less.").optional(),
+  metaTitle: z.string().min(1, 'Meta Title is required.').max(59, 'Meta Title must be under 60 characters.'),
+  metaDescription: z.string().max(160, 'Meta Description must be 160 characters or less.').optional().or(z.literal('')),
   metaKeywords: z.array(z.object({ value: z.string() })).optional(),
   brand: z.string().optional(),
   availability: z.enum(['in_stock', 'out_of_stock', 'preorder']).default('in_stock'),
@@ -83,10 +88,14 @@ type ServiceFormProps = {
 
 export default function ServiceForm({ service, allServices, onSubmit }: ServiceFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isAiUpdating, setIsAiUpdating] = useState(false);
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [mediaLibraryTarget, setMediaLibraryTarget] = useState<'image' | 'attachment'>('image');
   const [serviceCategories, setServiceCategories] = useState<Category[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isOptimizingSeo, setIsOptimizingSeo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   useEffect(() => {
@@ -141,6 +150,8 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
   });
   
   const isPriceTbc = form.watch('isPriceTbc');
+  const metaTitleLength = form.watch('metaTitle')?.length || 0;
+  const metaDescriptionLength = form.watch('metaDescription')?.length || 0;
 
   const { fields: includedFields, append: appendIncluded, remove: removeIncluded } = useFieldArray({
     control: form.control,
@@ -157,7 +168,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
     name: 'informationToProvide',
   });
   
-  const { fields: keywordFields, append: appendKeyword, remove: removeKeyword } = useFieldArray({
+  const { fields: keywordFields, append: appendKeyword, remove: removeKeyword, replace: replaceKeywords } = useFieldArray({
     control: form.control,
     name: 'metaKeywords',
   });
@@ -203,6 +214,102 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
         });
     } finally {
         setIsAiUpdating(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!user?.uid) {
+      toast({
+        title: 'Authentication Required',
+        description: 'You must be logged in to upload files.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploadingImage(true);
+    toast({
+      title: 'Uploading Image...',
+      description: `Uploading "${file.name}" to storage.`,
+    });
+
+    try {
+      const storageRef = ref(storage, `uploads/${user.uid}/${Date.now()}-${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      // Save to media collection so it shows up in media library
+      await addDoc(collection(db, 'media'), {
+        name: file.name,
+        url: downloadURL,
+        uploadedBy: user.uid,
+        createdAt: serverTimestamp(),
+      });
+
+      form.setValue('imageUrl', downloadURL, { shouldDirty: true, shouldValidate: true });
+      toast({
+        title: 'Upload Successful',
+        description: `"${file.name}" uploaded and set as display image.`,
+      });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        title: 'Upload Failed',
+        description: error?.message || 'There was an error uploading your image.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleOptimizeSeo = async () => {
+    const title = form.getValues('title');
+    const content = form.getValues('longDescription') || form.getValues('description');
+
+    if (!title) {
+        toast({
+            title: 'Title is missing',
+            description: 'Please enter a product title before optimizing SEO.',
+            variant: 'destructive',
+        });
+        return;
+    }
+    
+    setIsOptimizingSeo(true);
+    toast({
+        title: 'Optimizing SEO...',
+        description: 'Generating optimized SEO title, description, and keywords.',
+    });
+
+    try {
+        const result = await generateBlogPostSeo({ title, content });
+        if (!result.success) {
+            throw new Error(result.error.message);
+        }
+        const data = result.data;
+        form.setValue('metaTitle', data.metaTitle, { shouldDirty: true, shouldValidate: true });
+        form.setValue('metaDescription', data.metaDescription, { shouldDirty: true, shouldValidate: true });
+        if (data.metaKeywords && data.metaKeywords.length > 0) {
+            replaceKeywords(data.metaKeywords);
+        }
+        toast({
+            title: 'SEO Optimized',
+            description: 'SEO title, description, and keywords have been generated.',
+        });
+    } catch (error: any) {
+        console.error("SEO Optimization Error: ", error);
+        toast({
+            title: 'SEO Optimization Failed',
+            description: error?.message || 'There was an error generating SEO content. Please try again.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsOptimizingSeo(false);
     }
   };
 
@@ -472,7 +579,20 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                     />
                 </DialogContent>
             </Dialog>
-            <h3 className="text-lg font-medium">Marketing & SEO</h3>
+            <div className="flex items-center justify-between gap-4">
+                <h3 className="text-lg font-medium">Marketing & SEO</h3>
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleOptimizeSeo} 
+                    disabled={isOptimizingSeo}
+                    className="gap-1 font-bold text-primary border-primary/30 hover:bg-primary/5"
+                >
+                    {isOptimizingSeo ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4" />}
+                    <span>Optimize SEO</span>
+                </Button>
+            </div>
              <FormField
                 control={form.control}
                 name="imageUrl"
@@ -485,10 +605,29 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                             </div>
                             <div className="flex-grow space-y-2">
                                 <FormControl><Input {...field} placeholder="https://example.com/image.jpg" /></FormControl>
-                                <Button type="button" variant="outline" size="sm" onClick={() => { setMediaLibraryTarget('image'); setIsMediaLibraryOpen(true); }}>
-                                    <Images className="mr-2 h-4 w-4"/>
-                                    Select from Media Library
-                                </Button>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button type="button" variant="outline" size="sm" onClick={() => { setMediaLibraryTarget('image'); setIsMediaLibraryOpen(true); }}>
+                                        <Images className="mr-2 h-4 w-4"/>
+                                        Select from Media Library
+                                    </Button>
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        onChange={handleImageUpload} 
+                                        accept="image/*" 
+                                        className="hidden" 
+                                    />
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isUploadingImage}
+                                    >
+                                        {isUploadingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4"/>}
+                                        Upload from Computer
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                         <FormMessage />
@@ -561,7 +700,12 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                 name="metaTitle"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Meta Title</FormLabel>
+                    <div className="flex justify-between items-end mb-1">
+                        <FormLabel>Meta Title</FormLabel>
+                        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded", metaTitleLength >= 60 ? 'bg-red-100 text-red-800' : metaTitleLength === 0 ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800')}>
+                            {metaTitleLength}/59 chars
+                        </span>
+                    </div>
                     <FormControl><Input {...field} /></FormControl>
                     <FormMessage />
                     </FormItem>
@@ -572,7 +716,12 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                 name="metaDescription"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Meta Description</FormLabel>
+                    <div className="flex justify-between items-end mb-1">
+                        <FormLabel>Meta Description</FormLabel>
+                        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded", metaDescriptionLength > 160 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800')}>
+                            {metaDescriptionLength}/160 chars
+                        </span>
+                    </div>
                     <FormControl><Textarea {...field} rows={2} /></FormControl>
                     <FormMessage />
                     </FormItem>
