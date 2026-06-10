@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FileUp, Loader2, PlusCircle, Search, Settings, Trash2, Edit, ArrowRightLeft, BookOpen, Sparkles, ArrowUpDown, ChevronLeft, ChevronRight, CheckCheck, ChevronsUpDown, MoreHorizontal, RotateCcw, AlertTriangle, Download, BrainCircuit, Play, CheckCircle2, Clock, Undo2, RotateCw, History, Info, X, ArrowRight, MessageSquareQuote, Send, AlertCircle, StopCircle, GripVertical, Layers, FileSpreadsheet, Save, MessageSquare, RefreshCw, Calendar as CalendarIcon, Users } from 'lucide-react';
+import { FileUp, Loader2, PlusCircle, Search, Settings, Trash2, Edit, ArrowRightLeft, BookOpen, Sparkles, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, CheckCheck, ChevronsUpDown, MoreHorizontal, RotateCcw, AlertTriangle, Download, BrainCircuit, Play, CheckCircle2, Clock, Undo2, RotateCw, History, Info, X, ArrowRight, MessageSquareQuote, Send, AlertCircle, StopCircle, GripVertical, Layers, FileSpreadsheet, Save, MessageSquare, RefreshCw, Calendar as CalendarIcon, Users } from 'lucide-react';
 import Papa from 'papaparse';
 import { ImportedTransaction, ChartOfAccount, User, VatType, AllocatedTransaction, AllocationRule, ClientCustomer, Invoice, SmartAllocationResult, Supplier } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -2475,6 +2475,7 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
     const [activeSubTab, setActiveSubTab] = useState<'expenses' | 'income'>('expenses');
     const [selectedGlAccountId, setSelectedGlAccountId] = useState<string>("all");
     const [searchAmount, setSearchAmount] = useState("");
+    const [searchDescription, setSearchDescription] = useState("");
     const [usedAccountIds, setUsedAccountIds] = useState<Set<string>>(new Set());
     const [isMovingBack, setIsMovingBack] = useState<string | null>(null);
     const [isBulkMoving, setIsBulkMoving] = useState(false);
@@ -2486,6 +2487,23 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
     const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false);
     const [unsplitConfirmTx, setUnsplitConfirmTx] = useState<ImportedTransaction | null>(null);
     const [isCreateGeneralAccountOpen, setIsCreateGeneralAccountOpen] = useState(false);
+
+    const [allTransactions, setAllTransactions] = useState<ImportedTransaction[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    type SortField = 'date' | 'description' | 'allocatedTo' | 'amount';
+    const [sortField, setSortField] = useState<SortField>('date');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const handleSort = (field: SortField) => {
+        if (sortField === field) {
+            setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortDirection('asc');
+        }
+    };
 
     const uniqueChartOfAccounts = useMemo(() => {
         const coa = [...(client?.chartOfAccounts || [])];
@@ -2500,59 +2518,6 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
         return [...base, ...globalRules];
     }, [client?.allocationRules, globalRules, client?.disableGlobalRules]);
 
-    useEffect(() => {
-        if (!client?.uid || !bankAccountId) return;
-        const transRef = collection(db, 'aiAccountantClients', client.uid, 'transactions');
-        const q = query(transRef, 
-            where('bankAccountId', '==', bankAccountId), 
-            where('status', 'in', ['reviewed', 'allocated']),
-            where('isExpense', '==', activeSubTab === 'expenses')
-        );
-        
-        const unsubscribe = onSnapshot(q, (snap) => {
-            const ids = new Set<string>();
-            snap.docs.forEach(doc => {
-                const data = doc.data() as ImportedTransaction;
-                if (data.allocatedTo?.value) ids.add(data.allocatedTo.value);
-            });
-            setUsedAccountIds(ids);
-        });
-        return () => unsubscribe();
-    }, [client?.uid, bankAccountId, activeSubTab]);
-
-    const baseQuery = useMemo(() => {
-        if (!client?.uid || !bankAccountId) return null;
-        let constraints: any[] = [
-            where('bankAccountId', '==', bankAccountId), 
-            where('status', 'in', ['reviewed', 'allocated']), 
-            where('isExpense', '==', activeSubTab === 'expenses'), 
-            orderBy('date', 'desc')
-        ];
-        
-        if (selectedGlAccountId !== "all") {
-            constraints.push(where('allocatedTo.value', '==', selectedGlAccountId));
-        }
-
-        if (searchAmount.trim()) {
-            const amount = parseFloat(searchAmount);
-            if (!isNaN(amount)) {
-                constraints.push(where('amount', '==', activeSubTab === 'expenses' ? -Math.abs(amount) : Math.abs(amount)));
-            }
-        }
-
-        if (dateRange?.from) constraints.push(where('date', '>=', dateRange.from.toISOString()));
-        if (dateRange?.to) constraints.push(where('date', '<=', dateRange.to.toISOString()));
-        
-        return query(collection(db, 'aiAccountantClients', client.uid, 'transactions'), ...constraints);
-    }, [client?.uid, bankAccountId, activeSubTab, dateRange, selectedGlAccountId, searchAmount]);
-
-    const { documents: transactions, isLoading, goToNextPage, goToPreviousPage, canGoNext, canGoPrev, currentPage, refetch } = usePaginatedFirestore<ImportedTransaction>({ baseQuery, pageSize: PAGE_SIZE });
-
-    // Reset page when changing filters or page
-    useEffect(() => {
-        setSelectedTransactions([]);
-    }, [activeSubTab, selectedGlAccountId, currentPage]);
-
     const getAllocationName = useCallback((allocatedTo: any) => {
         if (!allocatedTo) return 'Unallocated';
         if (allocatedTo.type === 'customer') {
@@ -2563,6 +2528,132 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
         }
         return uniqueChartOfAccounts.find(a => a.id === allocatedTo.value)?.description || 'Selected Account';
     }, [uniqueChartOfAccounts, customers, suppliers]);
+
+    useEffect(() => {
+        if (!client?.uid || !bankAccountId) return;
+        setIsLoading(true);
+        const transRef = collection(db, 'aiAccountantClients', client.uid, 'transactions');
+        const q = query(transRef, 
+            where('bankAccountId', '==', bankAccountId), 
+            where('status', 'in', ['reviewed', 'allocated']),
+            where('isExpense', '==', activeSubTab === 'expenses')
+        );
+        
+        const unsubscribe = onSnapshot(q, (snap) => {
+            const txs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ImportedTransaction));
+            setAllTransactions(txs);
+            
+            const ids = new Set<string>();
+            txs.forEach(tx => {
+                if (tx.allocatedTo?.value) ids.add(tx.allocatedTo.value);
+            });
+            setUsedAccountIds(ids);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("ReviewedTab listener error:", error);
+            setIsLoading(false);
+        });
+        return () => unsubscribe();
+    }, [client?.uid, bankAccountId, activeSubTab]);
+
+    const { filteredTransactions, pagedTransactions, totalPages } = useMemo(() => {
+        let filtered = [...allTransactions];
+
+        // 1. Filter by GL Account if selected
+        if (selectedGlAccountId !== "all") {
+            filtered = filtered.filter(tx => tx.allocatedTo?.value === selectedGlAccountId);
+        }
+
+        // 2. Filter by searchAmount (absolute value match)
+        if (searchAmount.trim()) {
+            const amount = parseFloat(searchAmount);
+            if (!isNaN(amount)) {
+                filtered = filtered.filter(tx => Math.abs(tx.amount) === Math.abs(amount));
+            }
+        }
+
+        // 3. Filter by searchDescription (substring match case-insensitive description, cleanDescription, merchantKey, reference)
+        if (searchDescription.trim()) {
+            const term = searchDescription.toUpperCase();
+            filtered = filtered.filter(tx => 
+                (tx.description || '').toUpperCase().includes(term) || 
+                (tx.cleanDescription || '').toUpperCase().includes(term) ||
+                (tx.merchantKey || '').toUpperCase().includes(term) ||
+                (tx.reference || '').toUpperCase().includes(term)
+            );
+        }
+
+        // 4. Filter by Date Range (dateRange.from and dateRange.to)
+        if (dateRange?.from) {
+            const fromTime = new Date(dateRange.from).getTime();
+            filtered = filtered.filter(tx => new Date(tx.date).getTime() >= fromTime);
+        }
+        if (dateRange?.to) {
+            const toDate = new Date(dateRange.to);
+            toDate.setHours(23, 59, 59, 999);
+            const toTime = toDate.getTime();
+            filtered = filtered.filter(tx => new Date(tx.date).getTime() <= toTime);
+        }
+
+        // 5. Sorting
+        filtered.sort((a, b) => {
+            let valA: any, valB: any;
+            if (sortField === 'date') {
+                valA = new Date(a.date).getTime();
+                valB = new Date(b.date).getTime();
+            } else if (sortField === 'description') {
+                valA = a.cleanDescription || a.description || '';
+                valB = b.cleanDescription || b.description || '';
+            } else if (sortField === 'allocatedTo') {
+                valA = getAllocationName(a.allocatedTo);
+                valB = getAllocationName(b.allocatedTo);
+            } else {
+                valA = Math.abs(a.amount);
+                valB = Math.abs(b.amount);
+            }
+
+            if (typeof valA === 'string' && typeof valB === 'string') {
+                return sortDirection === 'asc' 
+                    ? valA.localeCompare(valB, undefined, { sensitivity: 'base' })
+                    : valB.localeCompare(valA, undefined, { sensitivity: 'base' });
+            }
+
+            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        // 6. Pagination
+        const total = Math.ceil(filtered.length / PAGE_SIZE);
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const paged = filtered.slice(start, start + PAGE_SIZE);
+
+        return {
+            filteredTransactions: filtered,
+            pagedTransactions: paged,
+            totalPages: total || 1
+        };
+    }, [allTransactions, selectedGlAccountId, searchAmount, searchDescription, dateRange, sortField, sortDirection, currentPage, getAllocationName]);
+
+    const transactions = pagedTransactions;
+    const canGoPrev = currentPage > 1;
+    const canGoNext = currentPage < totalPages;
+    const goToNextPage = () => {
+        if (canGoNext) setCurrentPage(prev => prev + 1);
+    };
+    const goToPreviousPage = () => {
+        if (canGoPrev) setCurrentPage(prev => prev - 1);
+    };
+    const refetch = () => {};
+
+    // Reset page and selection when filters or active subtab changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeSubTab, selectedGlAccountId, searchAmount, searchDescription, dateRange]);
+
+    useEffect(() => {
+        setSelectedTransactions([]);
+    }, [activeSubTab, selectedGlAccountId, currentPage, searchAmount, searchDescription, dateRange]);
 
     const handleBulkReallocate = async (allocation: { value: string, type: 'account' | 'customer' | 'supplier' }, vatType: VatType) => {
         if (!client?.uid || selectedTransactions.length === 0) return;
@@ -2794,6 +2885,17 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                                 />
                             </div>
 
+                            <div className="relative w-full md:w-56">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    type="text" 
+                                    placeholder="Search Description..." 
+                                    value={searchDescription} 
+                                    onChange={(e) => setSearchDescription(e.target.value)} 
+                                    className="pl-8 h-10"
+                                />
+                            </div>
+
                             {selectedTransactions.length > 0 && (
                                 <>
                                 <AccountSelector
@@ -2854,12 +2956,48 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                                         onCheckedChange={(v) => setSelectedTransactions(v ? transactions.map(tx => tx.id) : [])} 
                                     />
                                 </TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead>Allocated To</TableHead>
+                                <TableHead>
+                                    <Button variant="ghost" onClick={() => handleSort('date')} className="hover:bg-transparent p-0 font-semibold flex items-center">
+                                        Date
+                                        {sortField === 'date' ? (
+                                            sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3.5 w-3.5" /> : <ArrowDown className="ml-1 h-3.5 w-3.5" />
+                                        ) : (
+                                            <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button variant="ghost" onClick={() => handleSort('description')} className="hover:bg-transparent p-0 font-semibold flex items-center">
+                                        Description
+                                        {sortField === 'description' ? (
+                                            sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3.5 w-3.5" /> : <ArrowDown className="ml-1 h-3.5 w-3.5" />
+                                        ) : (
+                                            <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button variant="ghost" onClick={() => handleSort('allocatedTo')} className="hover:bg-transparent p-0 font-semibold flex items-center">
+                                        Allocated To
+                                        {sortField === 'allocatedTo' ? (
+                                            sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3.5 w-3.5" /> : <ArrowDown className="ml-1 h-3.5 w-3.5" />
+                                        ) : (
+                                            <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
                                 <TableHead>Source</TableHead>
                                 {client?.isVatRegistered && <TableHead>VAT Type</TableHead>}
-                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead className="text-right">
+                                    <Button variant="ghost" onClick={() => handleSort('amount')} className="hover:bg-transparent p-0 font-semibold flex items-center justify-end w-full">
+                                        Amount
+                                        {sortField === 'amount' ? (
+                                            sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3.5 w-3.5" /> : <ArrowDown className="ml-1 h-3.5 w-3.5" />
+                                        ) : (
+                                            <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
