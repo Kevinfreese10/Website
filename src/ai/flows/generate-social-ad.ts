@@ -50,7 +50,10 @@ const prompt = ai.definePrompt({
   
   **INSTRUCTIONS**:
   1. **Mapping**: For each ad, the 'productId' field MUST exactly match the 'id' field from the input item.
-  2. **Hook**: Start with a relatable pain point, a bold statement, or an engaging question aligned with the page/blog topic (e.g., "Tired of SARS deadlines?" or "Did you know how CIPC deregistration works?").
+  2. **Hook**: 
+     - Start with an attention-grabbing opening line to stop the scroll.
+     - CRITICAL: If the item is a service (meaning it has a 'price' and 'turnaroundTime' provided), you MUST explicitly include the Service name (productName), the price, and the completion (turnaround) time directly within the Hook text in a natural, high-converting way (e.g., "Need to register your business? Get your Private Company Registration sorted in 5-7 working days for just R650!").
+     - If the item is a blog post or static page (no price/turnaroundTime provided), start the Hook with a relatable pain point, a bold statement, or an engaging question aligned with the page/blog topic instead.
   3. **Body Structure**:
      - Format the body into **2-3 short, clean paragraphs** separated by double line breaks (\\n\\n). Do NOT produce a single wall of text.
      - Include a separate list (using professional emojis like ✅ or 🔹) highlighting 2-3 concrete value points, benefits, or key takeaways.
