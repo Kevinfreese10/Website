@@ -149,6 +149,68 @@ export default async function BlogPostPage({ params }: Props) {
     }))
   };
 
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `${SITE_URL}/blog/${post.slug}`
+    },
+    "headline": post.title,
+    "description": post.metaDescription || post.excerpt,
+    "image": [
+      post.seoImageUrl || post.imageUrl || GLOBAL_OG_IMAGE
+    ],
+    "datePublished": post.date,
+    "dateModified": post.date,
+    "author": {
+      "@type": "Person",
+      "name": "Kevin Freese",
+      "jobTitle": "Managing Director & Senior Accountant",
+      "url": `${SITE_URL}`,
+      "hasCredential": [
+        {
+          "@type": "EducationalOccupationalCredential",
+          "name": "Chartered Business Accountant in Practice",
+          "credentialCategory": "Professional Designation",
+          "recognizedBy": {
+            "@type": "Organization",
+            "name": "Chartered Institute for Business Accountants (CIBA)"
+          },
+          "identifier": "CIBA201509-5372"
+        },
+        {
+          "@type": "EducationalOccupationalCredential",
+          "name": "General Tax Practitioner (SA)™",
+          "credentialCategory": "Professional Tax Designation",
+          "recognizedBy": {
+            "@type": "Organization",
+            "name": "South African Institute of Taxation (SAIT)"
+          },
+          "identifier": "47011519"
+        },
+        {
+          "@type": "EducationalOccupationalCredential",
+          "name": "Registered SARS Tax Practitioner",
+          "credentialCategory": "Tax Authority Registration",
+          "recognizedBy": {
+            "@type": "GovernmentOrganization",
+            "name": "South African Revenue Service (SARS)"
+          },
+          "identifier": "PR-0098553"
+        }
+      ]
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "My Accountant",
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${SITE_URL}/logo.png`
+      }
+    }
+  };
+
   const isKevin = true; // Globally override to Kevin Freese as requested by the user
 
   // Split title to dynamically add a gorgeous homepage-style text gradient
@@ -168,6 +230,11 @@ export default async function BlogPostPage({ params }: Props) {
         id="faq-schema"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <Script
+        id="article-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
       />
       
       {/* DYNAMIC PREMIUM HERO SECTION */}

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
+import Script from 'next/script';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -25,12 +27,50 @@ export default function AnnualFinancialStatementsPage() {
     { title: 'Stakeholder Confidence', description: 'Present professional financials to banks, investors, and CIPC.', icon: PieChart },
   ];
 
+  const afsFaqs = [
+    {
+      q: "What are Annual Financial Statements (AFS)?",
+      a: "Annual Financial Statements are a formal record of a business's financial activities over a 12-month period, prepared in accordance with IFRS or IFRS for SMEs. They include a Balance Sheet, Income Statement, Cash Flow Statement, and notes to the financial statements."
+    },
+    {
+      q: "Is it compulsory to prepare Annual Financial Statements in South Africa?",
+      a: "Yes. Under Section 30 of the South African Companies Act, all registered companies must prepare Annual Financial Statements within 6 months after the end of their financial year."
+    },
+    {
+      q: "What is a Public Interest Score (PIS) and why does it matter?",
+      a: "The Public Interest Score determines whether your company requires its financial statements to be audited, independently reviewed, or simply compiled. It is calculated annually based on turnover, number of employees, third-party liabilities, and number of shareholders."
+    },
+    {
+      q: "How long does it take to prepare Annual Financial Statements?",
+      a: "Our typical turnaround time for preparing standard, IFRS-compliant Annual Financial Statements is 7 to 10 working days, provided all financial records and bank statements are complete."
+    }
+  ];
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": afsFaqs.map(item => ({
+      "@type": "Question",
+      "name": item.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": item.a
+      }
+    }))
+  };
+
   return (
     <div className="space-y-16 pb-16 bg-white">
+      <Script
+        id="afs-faq-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
       <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
         <div className="container relative z-10 mx-auto px-4">
           <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl text-center">
-            <span className="text-gradient">Annual Financial #Statements</span>
+            <span className="text-gradient">Annual Financial Statements</span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto">
             Accurate, compliant, and ready for review. We help South African companies and trusts finalize their year-end financial reporting with precision.
@@ -44,6 +84,27 @@ export default function AnnualFinancialStatementsPage() {
       </section>
 
       <TrustIndexWidget />
+
+      {/* Key AFS Statistics */}
+      <section className="container mx-auto px-4 bg-white">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-10 bg-slate-50 rounded-3xl border border-slate-100 p-8 shadow-sm text-center max-w-4xl mx-auto">
+          <div className="space-y-2">
+            <p className="text-4xl md:text-5xl font-black text-primary">1,500+</p>
+            <p className="text-sm font-bold text-slate-700">AFS Compiled</p>
+            <p className="text-xs text-muted-foreground leading-normal">Compiled for South African close corporations, private companies, and trusts.</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-4xl md:text-5xl font-black text-primary">100%</p>
+            <p className="text-sm font-bold text-slate-700">SARS & CIPC Acceptance</p>
+            <p className="text-xs text-muted-foreground leading-normal">Perfect submission record without compliance flags or rejections.</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-4xl md:text-5xl font-black text-primary">R50M+</p>
+            <p className="text-sm font-bold text-slate-700">Business Funding Enabled</p>
+            <p className="text-xs text-muted-foreground leading-normal">Compliant financials utilized by clients to secure bank loans and investor funding.</p>
+          </div>
+        </div>
+      </section>
 
       <section className="container mx-auto px-4 bg-white">
         <div className="text-center mb-12">
@@ -67,7 +128,98 @@ export default function AnnualFinancialStatementsPage() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 text-center bg-white py-12">
+      {/* Public Interest Score & Reporting Table */}
+      <section className="container mx-auto px-4 bg-white">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">South African Company Reporting Requirements</h2>
+            <p className="text-sm text-muted-foreground font-semibold">Determine the statutory reporting standard required for your entity based on its Public Interest Score (PIS).</p>
+          </div>
+          
+          <div className="overflow-x-auto rounded-2xl border shadow-sm">
+            <table className="w-full border-collapse bg-white text-left text-sm text-slate-700">
+              <thead className="bg-slate-50 text-slate-900">
+                <tr className="border-b">
+                  <th className="px-6 py-4 font-bold">Public Interest Score (PIS)</th>
+                  <th className="px-6 py-4 font-bold">Audit vs. Review Requirement</th>
+                  <th className="px-6 py-4 font-bold">Applicable Financial Framework</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                <tr className="hover:bg-slate-50/50">
+                  <td className="px-6 py-4 font-semibold text-slate-950">Under 100 points</td>
+                  <td className="px-6 py-4">No audit or review required (Compilation report only).</td>
+                  <td className="px-6 py-4">IFRS for SMEs or Entity-Specific Framework</td>
+                </tr>
+                <tr className="hover:bg-slate-50/50">
+                  <td className="px-6 py-4 font-semibold text-slate-950">100 - 349 points (independently prepared)</td>
+                  <td className="px-6 py-4">Independent Review by a qualified external practitioner.</td>
+                  <td className="px-6 py-4">IFRS for SMEs</td>
+                </tr>
+                <tr className="hover:bg-slate-50/50">
+                  <td className="px-6 py-4 font-semibold text-slate-950">100 - 349 points (internally prepared)</td>
+                  <td className="px-6 py-4">Compulsory Statutory Audit.</td>
+                  <td className="px-6 py-4">IFRS or IFRS for SMEs</td>
+                </tr>
+                <tr className="hover:bg-slate-50/50">
+                  <td className="px-6 py-4 font-semibold text-slate-950">350 points and above</td>
+                  <td className="px-6 py-4">Compulsory Statutory Audit.</td>
+                  <td className="px-6 py-4">Full IFRS</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Expert AFS Quote */}
+      <section className="container mx-auto px-4 bg-white">
+        <div className="max-w-3xl mx-auto p-8 border-l-4 border-primary bg-primary/5 rounded-r-2xl text-left">
+          <span className="text-5xl text-primary/30 font-serif leading-none block -mt-4 -ml-2">“</span>
+          <p className="text-lg font-medium text-slate-800 italic leading-relaxed">
+            "Accurate annual financial statements are more than just a CIPC or SARS compliance requirement. They are the ultimate health check for your business, and the first document that banks, lenders, and investors demand. A clean, professionally compiled set of financials is the key to unlocking corporate finance in South Africa."
+          </p>
+          <div className="mt-6 flex items-center gap-4">
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-lg border-2 border-primary/20 shadow-sm shrink-0">
+              KF
+            </div>
+            <div>
+              <h4 className="text-base font-black text-slate-900 leading-tight">Kevin Freese</h4>
+              <p className="text-xs text-muted-foreground font-semibold">
+                Managing Director, Registered Tax Practitioner (SARS ID: PR-0098553)
+              </p>
+              <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                CIBA SBA Practitioner (CIBA201509-5372) | SAIT General Tax Practitioner (SAIT47011519)
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Accordion Section */}
+      <section className="container mx-auto px-4 max-w-4xl bg-white">
+        <div className="space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-3xl font-black tracking-tight text-slate-900 text-center">Frequently Asked Questions</h2>
+            <p className="text-sm text-muted-foreground font-semibold text-center">Important details on annual financial statement compliance.</p>
+          </div>
+          
+          <Accordion type="single" collapsible className="w-full mt-4">
+            {afsFaqs.map((faq, index) => (
+              <AccordionItem key={index} value={`faq-${index}`} className="border-b">
+                <AccordionTrigger className="text-base font-bold text-slate-900 text-left py-4">
+                  {faq.q}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground leading-relaxed text-sm pb-4">
+                  {faq.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 text-center bg-white">
         <div className="max-w-3xl mx-auto p-12 rounded-3xl bg-slate-50 border border-slate-100 shadow-sm">
             <h2 className="text-3xl font-bold">Close Your Year with Peace of Mind</h2>
             <p className="text-lg text-muted-foreground mt-4 leading-relaxed">

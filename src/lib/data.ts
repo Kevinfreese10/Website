@@ -277,7 +277,7 @@ export const blogPosts: BlogPost[] = [
     imageUrl: 'https://picsum.photos/seed/201/800/400',
     imageHint: 'financial advice',
     author: 'Jane Doe',
-    date: '2024-07-15',
+    date: '2026-05-10',
   },
   {
     id: '2',
@@ -297,7 +297,7 @@ export const blogPosts: BlogPost[] = [
     imageUrl: 'https://picsum.photos/seed/202/800/400',
     imageHint: 'shopping receipt',
     author: 'John Smith',
-    date: '2024-06-28',
+    date: '2026-06-01',
   },
 ];
 

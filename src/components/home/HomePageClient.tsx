@@ -181,9 +181,57 @@ export default function HomePageClient() {
               <p>
                 Our platform allows clients to purchase services online, upload documents securely, and receive professional accounting and compliance assistance from anywhere in South Africa without needing to visit a physical office. Whether you require bookkeeping, annual financial statements, VAT registration, payroll services, tax compliance, company registration, or ongoing CIPC support, our team provides practical solutions tailored to the South African business environment.
               </p>
+
+              {/* Key Statistics Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-10 my-8 bg-slate-50 rounded-3xl border border-slate-100 p-8 shadow-sm text-center">
+                <div className="space-y-2">
+                  <p className="text-4xl md:text-5xl font-black text-primary">10,000+</p>
+                  <p className="text-sm font-bold text-slate-700">Company Registrations</p>
+                  <p className="text-xs text-muted-foreground leading-normal">Successfully registered and compliant businesses nationwide.</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-4xl md:text-5xl font-black text-primary">R120M+</p>
+                  <p className="text-sm font-bold text-slate-700">Tax Savings & Debt Relief</p>
+                  <p className="text-xs text-muted-foreground leading-normal">Legally negotiated debt compromise & tax structures for SA SMEs.</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-4xl md:text-5xl font-black text-primary">99.7%</p>
+                  <p className="text-sm font-bold text-slate-700">SARS Acceptance Rate</p>
+                  <p className="text-xs text-muted-foreground leading-normal">Accurate submissions resulting in immediate system approvals.</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-4xl md:text-5xl font-black text-primary">200+</p>
+                  <p className="text-sm font-bold text-slate-700">5-Star Google Reviews</p>
+                  <p className="text-xs text-muted-foreground leading-normal">Highest rated online business accountant in South Africa.</p>
+                </div>
+              </div>
+
               <p>
                 My Accountant is backed by strong client satisfaction and has earned over 200+ 5-star Google reviews from businesses across South Africa. View our Google Reviews & Client Feedback to see what our clients have to say about our accounting, tax, payroll, SARS, and compliance services.
               </p>
+
+              {/* Expert Quotation Section */}
+              <div className="max-w-4xl mx-auto my-12 p-8 border-l-4 border-primary bg-primary/5 rounded-r-2xl text-left">
+                <span className="text-5xl text-primary/30 font-serif leading-none block -mt-4 -ml-2">“</span>
+                <p className="text-lg font-medium text-slate-800 italic leading-relaxed">
+                  "Small and medium enterprises are the engine of South Africa's growth, but navigating the ever-shifting SARS and CIPC compliance landscapes can be a major roadblock. Our goal is to leverage technology to remove the accounting and compliance burden, allowing business owners to focus 100% on their core operations, scaling, and job creation."
+                </p>
+                <div className="mt-6 flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-lg border-2 border-primary/20 shadow-sm shrink-0">
+                    KF
+                  </div>
+                  <div>
+                    <h4 className="text-base font-black text-slate-900 leading-tight">Kevin Freese</h4>
+                    <p className="text-xs text-muted-foreground font-semibold">
+                      Managing Director & Founder, Registered Tax Practitioner (SARS ID: PR-0098553)
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                      CIBA SBA Practitioner (CIBA201509-5372) | SAIT General Tax Practitioner (SAIT47011519)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <p>
                 Our team includes professionals affiliated with recognised professional bodies including South African Institute of Chartered Accountants (SAICA), Chartered Institute for Business Accountants (CIBA), and South African Institute of Taxation (SAIT), with expertise spanning chartered accounting, management accounting, bookkeeping, taxation, and registered tax practitioner services. This provides clients with confidence that their accounting, tax, SARS, and compliance matters are handled professionally, ethically, and in accordance with recognised industry standards.
               </p>

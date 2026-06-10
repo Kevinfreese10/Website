@@ -154,7 +154,7 @@ export function generateOrganizationSchema() {
   const baseUrl = 'https://www.myacc.co.za';
   return {
     "@context": "https://schema.org",
-    "@type": "AccountingService",
+    "@type": ["Organization", "AccountingService"],
     "name": "My Accountant",
     "url": baseUrl,
     "telephone": "+27-10-109-1625",
@@ -226,6 +226,28 @@ export function generateOrganizationSchema() {
     ]
   };
 }
+
+/**
+ * Global WebSite schema for My Accountant.
+ */
+export function generateWebSiteSchema() {
+  const baseUrl = 'https://www.myacc.co.za';
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "My Accountant",
+    "url": baseUrl,
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": `${baseUrl}/search?q={search_term_string}`
+      },
+      "query-input": "required name=search_term_string"
+    }
+  };
+}
+
 
 /**
  * Dynamic branch-specific AccountingService schema helper.
