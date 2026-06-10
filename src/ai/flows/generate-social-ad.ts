@@ -54,14 +54,16 @@ const prompt = ai.definePrompt({
      - Start with an attention-grabbing opening line to stop the scroll.
      - CRITICAL: If the item is a service (meaning it has a 'price' and 'turnaroundTime' provided), you MUST explicitly include the Service name (productName), the price, and the completion (turnaround) time directly within the Hook text in a natural, high-converting way (e.g., "Need to register your business? Get your Private Company Registration sorted in 5-7 working days for just R650!").
      - If the item is a blog post or static page (no price/turnaroundTime provided), start the Hook with a relatable pain point, a bold statement, or an engaging question aligned with the page/blog topic instead.
+     - CRITICAL: Do NOT use markdown bold formatting (like **key**) anywhere in the Hook.
   3. **Body Structure**:
      - Format the body into **2-3 short, clean paragraphs** separated by double line breaks (\\n\\n). Do NOT produce a single wall of text.
-     - Include a separate list (using professional emojis like ✅ or 🔹) highlighting 2-3 concrete value points, benefits, or key takeaways.
-     - **Conditional Info**: If the item has a 'price' and 'turnaroundTime' provided in the list below, you MUST output a dedicated, clean line formatted exactly like:
-       💰 **Price**: R[price] | ⏱️ **Turnaround**: [turnaroundTime]
+     - Include a separate list (using professional emojis like ✅ or 🔹) highlighting 2-3 concrete value points, benefits, or key takeaways. CRITICAL: Each item in this list MUST be on its own line, separated by a newline character (\\n).
+     - **Conditional Info**: If the item has a 'price' and 'turnaroundTime' provided in the list below, you MUST output a dedicated, clean line formatted exactly like (without any asterisks or markdown bold):
+       💰 PRICE: R[price] | ⏱️ TURNAROUND: [turnaroundTime]
        If the item is a Blog Post or Page (no price provided), do NOT output this line, and instead focus on educational highlights or informative summaries to capture interest.
      - Mention the direct link within the body text naturally.
-  4. **CTA**: Provide a clear, professional call to action that directs users to the provided URL (e.g., "Read the full guide online: {{{url}}}" or "Get started online today: {{{url}}}").
+     - CRITICAL: Do NOT use markdown bold formatting (like **key**) anywhere in the Body.
+  4. **CTA**: Provide a clear, professional call to action that directs users to the provided URL (e.g., "Read the full guide online: {{{url}}}" or "Get started online today: {{{url}}}"). Do NOT use markdown bold formatting (like **key**) in the CTA.
   5. **Context**: Use South African business and tax terminology correctly (SARS, CIPC, Pty Ltd, VAT, etc.).
   6. **Emojis**: Use emojis selectively and professionally to structure readability. Avoid excessive or random icons.
   
