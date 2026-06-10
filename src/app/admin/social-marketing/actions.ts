@@ -170,6 +170,20 @@ export async function postToFacebookPageAction(
 
             if (options?.link) {
                 body.link = options.link;
+                
+                // Force Facebook to re-scrape the URL to clear cache and update latest title/image
+                try {
+                    const scrapeUrl = `https://graph.facebook.com/v20.0/?id=${encodeURIComponent(options.link)}&scrape=true&access_token=${pageAccessToken}`;
+                    const scrapeRes = await fetch(scrapeUrl, { method: 'POST', cache: 'no-store' });
+                    const scrapeData = await scrapeRes.json();
+                    if (scrapeData.error) {
+                        console.warn("Facebook scrape warning:", scrapeData.error.message);
+                    } else {
+                        console.log(`Successfully forced Facebook re-scrape for: ${options.link}`);
+                    }
+                } catch (scrapeErr) {
+                    console.warn("Failed to trigger Facebook scrape:", scrapeErr);
+                }
             }
 
             const res = await fetch(postUrl, {

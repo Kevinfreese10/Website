@@ -52,7 +52,13 @@ export async function generateMetadata(
   }
 
   const canonicalUrl = `${SITE_URL}/products/${service.slug}`;
-  const title = service.metaTitle || `${service.title} | My Accountant`;
+  const rawTitle = service.metaTitle || `${service.title} | My Accountant`;
+  
+  // Strip " | My Accountant" suffix if present to prevent duplication by the layout's title.template
+  const title = rawTitle.endsWith(' | My Accountant')
+    ? rawTitle.slice(0, -' | My Accountant'.length)
+    : rawTitle;
+    
   const description = service.metaDescription || service.description;
   
   let ogImage = service.seoImageUrl || service.imageUrl || GLOBAL_OG_IMAGE;
@@ -67,7 +73,7 @@ export async function generateMetadata(
         canonical: canonicalUrl,
     },
     openGraph: {
-      title: title,
+      title: rawTitle,
       description: description,
       url: canonicalUrl,
       siteName: 'My Accountant',
@@ -82,7 +88,7 @@ export async function generateMetadata(
     },
     twitter: {
       card: 'summary_large_image',
-      title: title,
+      title: rawTitle,
       description: description,
       images: [ogImage],
     },

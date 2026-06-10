@@ -26,6 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/sars-disputes',
     '/remission-of-fines',
     '/liquidations',
+    '/bookkeeping-services',
+    '/tax-consultant',
   ].map((route) => ({
     url: `${BASE_URL}${route}`,
     lastModified: new Date(),
