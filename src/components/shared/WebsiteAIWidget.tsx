@@ -9,12 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { Loader2, MessageCircle, Send, X, Bot, User, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Loader2, MessageCircle, Send, X, Bot, User, ArrowRight, ShieldCheck, Info, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp, getDocs, collection, query, orderBy } from 'firebase/firestore';
+import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 const formSchema = z.object({
   question: z.string().min(1, 'Cannot send an empty message.'),
@@ -38,6 +41,32 @@ export default function WebsiteAIWidget() {
   const [emailInput, setEmailInput] = useState('');
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const [services, setServices] = useState<any[]>([]);
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+
+  const userMessagesCount = chatHistory.filter(m => m.role === 'user').length;
+  const isEmailRequired = (!chatEmail || chatEmail === 'Anonymous' || chatEmail === '') && userMessagesCount >= 2;
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const snap = await getDocs(query(collection(db, "services"), orderBy("title")));
+        setServices(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (err) {
+        console.error("Error fetching services in Widget:", err);
+      }
+    };
+    fetchServices();
+  }, []);
+
+  const getMatchedService = (url: string | undefined) => {
+    if (!url) return null;
+    const parts = url.split('/');
+    const slug = parts[parts.length - 1];
+    return services.find(s => s.slug === slug);
+  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -293,8 +322,8 @@ export default function WebsiteAIWidget() {
             )}
           >
             {message.role === 'bot' && (
-              <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0 shadow-sm">
-                <Bot className="h-4.5 w-4.5 text-blue-600" />
+              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-50 to-indigo-50 flex items-center justify-center border border-blue-200 shrink-0 shadow-sm">
+                <Bot className="h-4 w-4 text-blue-600 animate-pulse" />
               </div>
             )}
             {message.role === 'agent' && (
@@ -324,23 +353,80 @@ export default function WebsiteAIWidget() {
                  <ReactMarkdown>{message.text}</ReactMarkdown>
               </div>
               
-              {message.serviceUrl && (
-                <div className="mt-3">
-                  <Link 
-                    href={message.serviceUrl} 
-                    onClick={() => setIsOpen(false)}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all",
-                      message.role === 'user' || message.role === 'agent'
-                        ? "bg-white/20 hover:bg-white/35 text-white" 
-                        : "bg-blue-50 hover:bg-blue-100 text-blue-600"
-                    )}
-                  >
-                    View Service Details
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              )}
+              {message.serviceUrl && (() => {
+                const matchedService = getMatchedService(message.serviceUrl);
+                if (matchedService) {
+                  return (
+                    <div className="mt-3 p-3 border rounded-xl bg-slate-50 dark:bg-slate-900 flex flex-col gap-2 shadow-sm animate-in fade-in duration-300 max-w-sm">
+                      <div className="flex items-start gap-2.5">
+                        {matchedService.imageUrl && (
+                          <img 
+                            src={matchedService.imageUrl} 
+                            alt={matchedService.title} 
+                            className="w-12 h-12 rounded-lg object-cover border"
+                          />
+                        )}
+                        <div className="flex-grow min-w-0">
+                          <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
+                            {matchedService.title}
+                          </p>
+                          <Badge variant="outline" className="text-[9px] uppercase font-bold tracking-tight px-1 py-0 h-4 border-blue-200 text-blue-700 bg-blue-50/50 mt-0.5">
+                            {matchedService.category || 'Accounting'}
+                          </Badge>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xs font-mono font-black text-blue-700 dark:text-blue-400">
+                            {matchedService.price ? `R${matchedService.price}` : 'TBC'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mt-1">
+                        <Button
+                          size="sm"
+                          type="button"
+                          className="h-8 font-black text-[10px] uppercase bg-blue-600 hover:bg-blue-700 text-white flex-grow flex items-center justify-center gap-1"
+                          onClick={() => {
+                            addToCart(matchedService);
+                            toast({
+                              title: "Added to Cart!",
+                              description: `${matchedService.title} has been added to your cart.`,
+                            });
+                          }}
+                        >
+                          Add to Cart
+                        </Button>
+                        <Link 
+                          href={message.serviceUrl} 
+                          onClick={() => setIsOpen(false)}
+                          className="h-8 font-bold text-[10px] uppercase border px-3 rounded-lg flex items-center justify-center bg-white hover:bg-slate-50 text-slate-600 dark:text-slate-300 dark:bg-slate-950"
+                        >
+                          Details
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Fallback to text link if no database match
+                return (
+                  <div className="mt-3">
+                    <Link 
+                      href={message.serviceUrl} 
+                      onClick={() => setIsOpen(false)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all",
+                        message.role === 'user' || message.role === 'agent'
+                          ? "bg-white/20 hover:bg-white/35 text-white" 
+                          : "bg-blue-50 hover:bg-blue-100 text-blue-600"
+                      )}
+                    >
+                      View Service Details
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </div>
+                );
+              })()}
 
               {message.orderId && (
                 <div className="mt-3 border-t border-slate-100 pt-3">
@@ -362,22 +448,51 @@ export default function WebsiteAIWidget() {
           </div>
         ))}
         
+        {chatHistory.length <= 1 && (
+          <div className="grid grid-cols-2 gap-2 mt-4 px-2 select-none animate-in fade-in duration-500">
+            {[
+              { label: "🏢 Company Registration", text: "How do I register a new company?" },
+              { label: "💰 Accounting Packages", text: "What are your accounting package prices?" },
+              { label: "📦 Track My Order Status", text: "How do I track my order status?" },
+              { label: "📑 SARS Compliance Check", text: "How can I request a free tax compliance check?" }
+            ].map((chip, idx) => (
+              <Button
+                key={idx}
+                variant="outline"
+                type="button"
+                className="h-auto text-left justify-start p-2.5 rounded-xl border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 bg-white text-[11px] font-bold leading-snug flex flex-col gap-1 shadow-sm transition-all"
+                onClick={() => {
+                  form.setValue('question', chip.text);
+                  form.handleSubmit(onSubmit)();
+                }}
+              >
+                <span className="text-blue-600 dark:text-blue-400 font-extrabold">{chip.label}</span>
+                <span className="text-[10px] text-slate-500 font-medium truncate w-full">{chip.text}</span>
+              </Button>
+            ))}
+          </div>
+        )}
+
         {isLoading && (
           <div className="flex items-end gap-2 justify-start animate-pulse">
-              <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 shrink-0 shadow-sm">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-50 to-indigo-50 flex items-center justify-center border border-blue-200 shrink-0 shadow-sm">
                  <Bot className="h-4.5 w-4.5 text-blue-600" />
               </div>
               <div className="p-3.5 rounded-2xl rounded-bl-none bg-white border border-slate-100 shadow-sm flex items-center justify-center">
-                 <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                 <div className="flex items-center gap-1 py-1 px-1">
+                   <span className="h-2 w-2 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                   <span className="h-2 w-2 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                   <span className="h-2 w-2 bg-blue-600 rounded-full animate-bounce" />
+                 </div>
               </div>
           </div>
         )}
       </CardContent>
 
       {/* Input Form Footer or Email Capture */}
-      {(!chatEmail || chatEmail === 'Anonymous' || chatEmail === '') ? (
+      {isEmailRequired ? (
         chatMode === 'agent' ? (
-          <CardFooter className="p-4 border-t bg-indigo-50/30 flex flex-col items-stretch gap-3">
+          <CardFooter className="p-4 border-t bg-indigo-50/30 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
             <div className="space-y-1">
               <h4 className="text-xs font-bold text-indigo-950 flex items-center gap-1 select-none">
                 <ShieldCheck className="h-3.5 w-3.5 text-indigo-600 animate-pulse" />
@@ -408,14 +523,14 @@ export default function WebsiteAIWidget() {
             </form>
           </CardFooter>
         ) : (
-          <CardFooter className="p-4 border-t bg-blue-50/30 flex flex-col items-stretch gap-3">
+          <CardFooter className="p-4 border-t bg-blue-50/30 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
             <div className="space-y-1">
               <h4 className="text-xs font-bold text-blue-950 flex items-center gap-1 select-none">
                 <ShieldCheck className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
-                Welcome to My Accountant Support
+                Enter Email to Continue
               </h4>
               <p className="text-[10px] text-slate-600 leading-relaxed select-none">
-                Please enter your email address to start chatting.
+                You have reached the limit of anonymous questions. Please enter your email address to continue chatting.
               </p>
             </div>
             <form onSubmit={handleRegisterEmail} className="flex gap-2 w-full">
@@ -434,13 +549,19 @@ export default function WebsiteAIWidget() {
                 disabled={isSubmittingEmail}
                 className="bg-blue-600 hover:bg-blue-700 text-xs font-bold shrink-0 text-white"
               >
-                {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : "Start Chat"}
+                {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : "Submit"}
               </Button>
             </form>
           </CardFooter>
         )
       ) : (
-        <CardFooter className="p-3 border-t bg-white">
+        <CardFooter className="p-3 border-t bg-white flex flex-col items-stretch gap-2 animate-in fade-in duration-300">
+          {(!chatEmail || chatEmail === 'Anonymous' || chatEmail === '') && (
+            <div className="text-[10px] text-muted-foreground text-center font-semibold mb-1 flex items-center justify-center gap-1 select-none">
+              <Info className="h-3 w-3 text-blue-500 shrink-0" />
+              Guest Session: {userMessagesCount}/2 anonymous messages used.
+            </div>
+          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="w-full flex items-center gap-2">
               <FormField
@@ -506,14 +627,14 @@ export default function WebsiteAIWidget() {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-lg animate-in zoom-in-95 duration-200"
             >
-              <Card className="flex flex-col h-[80vh] max-h-[700px] shadow-2xl bg-white border border-slate-200 rounded-2xl overflow-hidden">
+              <Card className="flex flex-col h-[80vh] max-h-[700px] shadow-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-200/50 rounded-2xl overflow-hidden">
                 {cardInner}
               </Card>
             </div>
           </div>
         ) : (
           <div className="fixed bottom-20 left-4 right-4 z-50 sm:left-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-5 duration-300">
-            <Card className="flex flex-col h-[65vh] sm:h-[600px] shadow-2xl bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <Card className="flex flex-col h-[65vh] sm:h-[600px] shadow-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-200/50 rounded-2xl overflow-hidden">
               {cardInner}
             </Card>
           </div>
