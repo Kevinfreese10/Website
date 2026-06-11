@@ -3,7 +3,6 @@ import Link from 'next/link';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -18,7 +17,9 @@ import {
   FileUp, 
   RefreshCw,
   Search,
-  X
+  X,
+  Star,
+  ShoppingBag,
 } from 'lucide-react';
 import { collection, getFirestore, orderBy, query, onSnapshot, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -26,6 +27,8 @@ import { Service } from '@/lib/types';
 import { useEffect, useState, useMemo } from 'react';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Badge } from '@/components/ui/badge';
+import { useCart } from '@/contexts/CartContext';
+import { cn } from '@/lib/utils';
 
 const db = getFirestore(firebaseApp);
 
@@ -40,8 +43,8 @@ const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-ZA', {
       style: 'currency',
       currency: 'ZAR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(price);
 };
 
@@ -56,9 +59,10 @@ export default function ProductsPageClient({
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [isLoading, setIsLoading] = useState(initialServices.length === 0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const { addToCart } = useCart();
 
   useEffect(() => {
-    // Setup real-time listener to keep prices and details in sync
     const servicesUnsubscribe = onSnapshot(query(collection(db, 'services'), orderBy('title')), (snapshot) => {
         const fetchedServices = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -84,16 +88,17 @@ export default function ProductsPageClient({
   }, []);
   
   const categorizedServices = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
+    const q = searchQuery.toLowerCase().trim();
     return categories
       .map(category => {
         const filteredData = services.filter(s => {
-          const categoryMatches = s.category === category.name;
-          const searchMatches = !query || 
-            s.title.toLowerCase().includes(query) || 
-            s.description.toLowerCase().includes(query) ||
-            s.category.toLowerCase().includes(query);
-          return categoryMatches && searchMatches;
+          const categoryMatches = activeCategory === 'all' || s.category === category.name;
+          const thisCategoryMatch = s.category === category.name;
+          const searchMatches = !q || 
+            s.title.toLowerCase().includes(q) || 
+            s.description.toLowerCase().includes(q) ||
+            s.category.toLowerCase().includes(q);
+          return thisCategoryMatch && categoryMatches && searchMatches;
         });
         return {
           ...category,
@@ -101,7 +106,7 @@ export default function ProductsPageClient({
         };
       })
       .filter(c => c.data.length > 0);
-  }, [categories, services, searchQuery]);
+  }, [categories, services, searchQuery, activeCategory]);
 
 
   return (
@@ -111,7 +116,7 @@ export default function ProductsPageClient({
         <div className="container mx-auto px-4 max-w-4xl">
           <Badge variant="secondary" className="mb-4 uppercase tracking-wider">Service Catalog</Badge>
           <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
-            Our Professional <span className="text-gradient">Services & Solutions</span>
+            Our Professional <span className="text-gradient">Services &amp; Solutions</span>
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
             Explore our comprehensive range of accounting, taxation, company registration, and compliance solutions tailored for South African businesses, entrepreneurs, and individuals.
@@ -154,31 +159,65 @@ export default function ProductsPageClient({
         </div>
       </section>
 
-      {/* SEARCH BAR SECTION */}
-      <div className="max-w-md mx-auto mb-12">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-slate-400" />
+      {/* SEARCH + CATEGORY FILTER */}
+      <div className="flex flex-col gap-4 mb-10">
+        {/* Search Bar */}
+        <div className="max-w-md mx-auto w-full">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search for tax clearance, VAT, registration..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setActiveCategory('all'); }}
+              className="block w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl bg-slate-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-sm font-medium text-slate-800 shadow-sm transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
-          <input
-            type="text"
-            placeholder="Search for tax clearance, VAT, registration..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-11 pr-10 py-3 border border-slate-200 rounded-2xl bg-slate-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-sm font-medium text-slate-800 shadow-sm transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
         </div>
+
+        {/* Category Filter Tabs */}
+        {!searchQuery && (
+          <div className="flex flex-wrap gap-2 justify-center animate-in fade-in duration-300">
+            <button
+              onClick={() => setActiveCategory('all')}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-sm font-bold border transition-all duration-200",
+                activeCategory === 'all'
+                  ? "bg-primary text-white border-primary shadow-md"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-primary/50 hover:text-primary"
+              )}
+            >
+              All Services
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.name)}
+                className={cn(
+                  "px-4 py-1.5 rounded-full text-sm font-bold border transition-all duration-200",
+                  activeCategory === cat.name
+                    ? "bg-primary text-white border-primary shadow-md"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-primary/50 hover:text-primary"
+                )}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
  
-      <div className="space-y-12">
+      <div className="space-y-14">
         {isLoading && services.length === 0 ? (
             <div className="flex justify-center items-center h-40">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -186,7 +225,7 @@ export default function ProductsPageClient({
         ) : (
             categorizedServices.length === 0 ? (
                 <div className="text-center py-16 space-y-4">
-                    <p className="text-slate-500 font-medium text-lg">No services found matching "{searchQuery}"</p>
+                    <p className="text-slate-500 font-medium text-lg">No services found matching &ldquo;{searchQuery}&rdquo;</p>
                     <Button variant="outline" size="sm" onClick={() => setSearchQuery("")} className="rounded-xl font-semibold">
                         Clear Search
                     </Button>
@@ -194,32 +233,85 @@ export default function ProductsPageClient({
             ) : (
                 categorizedServices.map(category => (
                 <section key={category.id} id={category.name.toLowerCase().replace(/ /g, '-')} className="scroll-m-20">
-                    <h2 className="text-2xl font-bold mb-6">{category.name}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="flex items-center gap-3 mb-6">
+                      <h2 className="text-2xl font-black text-slate-900">{category.name}</h2>
+                      <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
+                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{category.data.length} service{category.data.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {category.data.map(service => (
                     <Card
                     key={service.id}
-                    className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-slate-50"
+                    className={cn(
+                      "flex flex-col overflow-hidden transition-all duration-300 bg-slate-50 border border-slate-200 group",
+                      "hover:shadow-xl hover:-translate-y-1 hover:border-primary/40",
+                      service.isFeatured && "ring-2 ring-primary/30 border-primary/20"
+                    )}
                     >
-                    <CardHeader>
-                        <CardTitle className="leading-tight">{service.title}</CardTitle>
-                        {service.isPriceTbc ? (
-                            <p className="text-xl font-bold text-muted-foreground pt-2">Price on request</p>
-                        ) : (
-                            <p className="text-2xl font-bold text-primary pt-2">{formatPrice(service.price)}</p>
+                    <CardHeader className="pb-3 relative">
+                        {/* Featured / Popular badge */}
+                        {service.isFeatured && (
+                          <div className="absolute top-3 right-3">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-extrabold uppercase tracking-wider border border-amber-200">
+                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" /> Popular
+                            </span>
+                          </div>
                         )}
-                        <div className="flex items-center text-muted-foreground pt-1">
-                            <Clock className="h-4 w-4 mr-1.5" />
-                            <span className="text-sm font-medium">{service.turnaroundTime}</span>
+
+                        {/* Category chip */}
+                        <Badge variant="secondary" className="w-fit text-[10px] uppercase tracking-wider mb-2 font-bold">
+                          {service.category}
+                        </Badge>
+
+                        <CardTitle className="leading-snug text-slate-900 text-base font-extrabold pr-14">
+                          {service.title}
+                        </CardTitle>
+
+                        {/* Price + Turnaround row */}
+                        <div className="flex items-center justify-between mt-2">
+                          {service.isPriceTbc ? (
+                            <p className="text-base font-bold text-muted-foreground">Price on Request</p>
+                          ) : (
+                            <p className="text-2xl font-black text-primary leading-none">{formatPrice(service.price)}</p>
+                          )}
+                          <div className="flex items-center text-muted-foreground gap-1">
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
+                            <span className="text-xs font-semibold">{service.turnaroundTime}</span>
+                          </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="flex-grow">
-                        <CardDescription>{service.description}</CardDescription>
-                        <p className="text-xs text-muted-foreground mt-2">Brand: {service.brand || 'My Accountant'}</p>
+
+                    <CardContent className="flex-grow pt-0 pb-3">
+                        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{service.description}</p>
                     </CardContent>
-                    <CardFooter>
-                        <Button asChild className="w-full font-bold shadow-sm">
-                        <Link href={`/products/${service.slug}`}>Learn More</Link>
+
+                    <CardFooter className="pt-0 pb-4 flex gap-2">
+                        {/* Add to Cart */}
+                        {!service.isPriceTbc && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="flex-1 font-bold gap-1.5 shadow-sm h-9 text-xs"
+                            onClick={() => addToCart(service)}
+                          >
+                            <ShoppingBag className="h-3.5 w-3.5" />
+                            Add to Cart
+                          </Button>
+                        )}
+                        {/* View Details */}
+                        <Button
+                          asChild
+                          size="sm"
+                          variant={service.isPriceTbc ? "default" : "outline"}
+                          className={cn(
+                            "font-bold h-9 text-xs gap-1 transition-all",
+                            service.isPriceTbc ? "flex-1" : "flex-none px-3"
+                          )}
+                        >
+                          <Link href={`/products/${service.slug}`}>
+                            {service.isPriceTbc ? "Get a Quote" : "Details"}
+                            <ArrowRight className="h-3 w-3" />
+                          </Link>
                         </Button>
                     </CardFooter>
                     </Card>

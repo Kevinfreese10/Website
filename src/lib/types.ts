@@ -51,6 +51,7 @@ export type Service = {
   reviewCount?: number;
   priceValidUntilOverride?: string;
   faqs?: { q: string; a: string }[];
+  isFeatured?: boolean;
 };
 
 export type BlogPost = {

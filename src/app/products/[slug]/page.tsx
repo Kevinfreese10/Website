@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
-import { BadgeCheck, Clock, ClipboardCheck } from 'lucide-react';
+import { BadgeCheck, Clock, ClipboardCheck, ChevronRight, Home } from 'lucide-react';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { Service } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
@@ -11,6 +11,7 @@ import Script from 'next/script';
 import { generateStructuredData } from '@/lib/schema/productSchema';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -211,8 +212,21 @@ export default async function ProductDetailPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
+      {/* BREADCRUMB */}
+      <nav className="container mx-auto px-4 pt-6 pb-2 animate-in fade-in">
+        <ol className="flex items-center gap-1 text-xs font-semibold text-muted-foreground flex-wrap">
+          <li><Link href="/" className="hover:text-primary transition-colors flex items-center gap-1"><Home className="h-3 w-3" />Home</Link></li>
+          <ChevronRight className="h-3 w-3 text-slate-300 shrink-0" />
+          <li><Link href="/products" className="hover:text-primary transition-colors">Products</Link></li>
+          <ChevronRight className="h-3 w-3 text-slate-300 shrink-0" />
+          <li><Link href={`/products#${service.category.toLowerCase().replace(/ /g, '-')}`} className="hover:text-primary transition-colors">{service.category}</Link></li>
+          <ChevronRight className="h-3 w-3 text-slate-300 shrink-0" />
+          <li className="text-slate-700 font-bold truncate max-w-[180px]">{service.title}</li>
+        </ol>
+      </nav>
+
       {/* DYNAMIC PREMIUM HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-slate-50 border-b pt-12 pb-16 text-center mb-12 animate-in fade-in">
+      <section className="relative w-full overflow-hidden bg-slate-50 border-b pt-8 pb-16 text-center mb-12 animate-in fade-in">
         <div className="container mx-auto px-4 max-w-4xl">
           <Badge variant="secondary" className="mb-4 uppercase tracking-wider">{service.category}</Badge>
           <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
@@ -235,7 +249,7 @@ export default async function ProductDetailPage({ params }: Props) {
       </div>
 
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
           <div className="space-y-8 md:col-span-2">
               
             <div>
@@ -276,8 +290,24 @@ export default async function ProductDetailPage({ params }: Props) {
 
           </div>
 
+          {/* STICKY CHECKOUT SIDEBAR */}
           <div className="md:col-span-1">
+            <div className="sticky top-24 space-y-4">
+              {/* Service summary recap */}
+              <div className="rounded-2xl border bg-gradient-to-b from-slate-50 to-white p-4 shadow-sm">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">{service.category}</p>
+                <h3 className="text-base font-black text-slate-900 leading-snug mb-3">{service.title}</h3>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center text-xs text-muted-foreground font-semibold gap-1">
+                    <Clock className="h-3.5 w-3.5" />{service.turnaroundTime}
+                  </span>
+                  <span className="text-xl font-black text-primary">
+                    {service.isPriceTbc ? 'Quote' : formatPrice(service.price)}
+                  </span>
+                </div>
+              </div>
               <ServiceCheckoutForm service={service} />
+            </div>
           </div>
         </div>
 
@@ -306,6 +336,22 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
         )}
       </div>
+
+      {/* MOBILE STICKY BUY BAR */}
+      {!service.isPriceTbc && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t shadow-2xl px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-4">
+          <div>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider truncate max-w-[180px]">{service.title}</p>
+            <p className="text-lg font-black text-primary leading-none">{formatPrice(service.price)}</p>
+          </div>
+          <a
+            href="#checkout"
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-extrabold text-sm px-6 py-3 rounded-xl shadow-md active:scale-95 transition-all"
+          >
+            Order Now
+          </a>
+        </div>
+      )}
     </>
   );
 }

@@ -337,7 +337,7 @@ export default function ClientAllocationChatPage() {
                                                             ul: ({node, ...props}) => <ul className="list-disc pl-4 my-2 font-bold text-slate-950" {...props} />,
                                                             li: ({node, ...props}) => <li className="my-1 font-bold text-slate-950" {...props} />,
                                                         }}
-                                                    >{m.content}</ReactMarkdown>
+                                                    >{makeLinksClickable(m.content)}</ReactMarkdown>
                                                 </div>
                                                 <p className={cn("text-[10px] mt-1 font-bold", m.role === 'user' ? "text-right opacity-70" : "text-left text-slate-950 opacity-70")}>
                                                     {format(m.timestamp, 'HH:mm')}
@@ -378,3 +378,20 @@ export default function ClientAllocationChatPage() {
         </div>
     );
 }
+
+const makeLinksClickable = (text: string): string => {
+  if (!text) return "";
+  // Match standard URLs (http:// or https://) not preceded by ](
+  const urlPattern = /(?<!\]\()(https?:\/\/[^\s)]+)/g;
+  
+  return text.replace(urlPattern, (url) => {
+    let cleanUrl = url;
+    let trailing = "";
+    const match = url.match(/([.,;:?!]+)$/);
+    if (match) {
+      trailing = match[1];
+      cleanUrl = url.substring(0, url.length - trailing.length);
+    }
+    return `[${cleanUrl}](${cleanUrl})${trailing}`;
+  });
+};

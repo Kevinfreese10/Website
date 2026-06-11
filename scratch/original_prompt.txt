@@ -1,0 +1,70 @@
+<USER_REQUEST>
+/browser  Please open https://www.myacc.co.za/admin/ai-accountant/lliuj5l4SKYPsU9OYVhu/bank/transactions
+
+Use the information below to allocate the expense transactions based on the information below
+
+The goal is to allocate the expense transactions accurately based on the general ledger below
+
+Do you have any questions?
+
+1000-000 - Sales	
+Date	Description
+04/03/2025	FNB OB Pmt Merseta Cred Kop004 (Bank: FNB Current Account)
+19/03/2025	FNB OB Pmt Merseta Cred Kop004 (Bank: FNB Current Account)
+15/04/2025	FNB OB Pmt Merseta Cred Kop004 (Bank: FNB Current Account)
+07/05/2025	FNB OB Pmt Merseta Cred Kop004 (Bank: FNB Current Account)
+02/06/2025	FNB OB Pmt Merseta Cred Kop004 (Bank: FNB Current Account)
+01/10/2025	Payment Cr 42131 Acsa (Bank: FNB Current Account)
+31/10/2025	Payment Cr 42667 Acsa (Bank: FNB Current Account)
+Totals	
+	
+1000-002 - Other Operating Income	
+Date	Description
+01/03/2025	Magtape Credit Yoco 3196S 010325 (Bank: FNB Current Account)
+03/03/2025	Magtape Credit Yoco 3196S 030325 (Bank: FNB Current Account)
+03/03/2025	Magtape Credit Yoco 3196S 020325 (Bank: FNB Current Account)
+05/03/2025	Magtape Credit Yoco 3196S 050325 (Bank: FNB Current Account)
+06/03/2025	Magtape Credit Yoco 3196S 060325 (Bank: FNB Current Account)
+07/03/2025	Magtape Credit Yoco 3196S 070325 (Bank: FNB Current Account)
+08/03/2025	Magtape Credit Yoco 3196S 080325 (Bank: FNB Current Account)
+10/03/2025	Magtape Credit Yoco 3196S 100325 (Bank: FNB Current Account)
+10/03/2025	Magtape Credit Yoco 3196S 090325 (Bank: FNB Current Account)
+12/03/2025	Magtape Credit Yoco 3196S 120325 (Bank: FNB Current Account)
+13/03/2025	Magtape Credit Yoco 3196S 130325 (Bank: FNB Current Account)
+14/03/2025	Magtape Credit Yoco 3196S 140325 (Bank: FNB Current Account)
+15/03/2025	Magtape Credit Yoco 3196S 150325 (Bank: FNB Current Account)
+17/03/2025	Magtape Credit Yoco 3196S 170325 (Bank: FNB Current Account)
+17/03/2025	Magtape Credit Yoco 3196S 160325 (Bank: FNB Current Account)
+19/03/2025	Magtape Credit Yoco 3196S 190325 (Bank: FNB Curre
+<truncated 45215 bytes>
+ App Transfer To Supplies (Bank: FNB Current Account)
+02/06/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+02/06/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+02/06/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+05/06/2025	FNB App Transfer To Consumables (Bank: FNB Current Account)
+06/06/2025	FNB App Transfer To Groceries (Bank: FNB Current Account)
+06/06/2025	FNB App Transfer To Groceries (Bank: FNB Current Account)
+07/06/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+09/06/2025	FNB App Transfer To Hair Products (Bank: FNB Current Account)
+10/06/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+11/06/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+14/06/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+19/06/2025	FNB App Transfer To Groceries (Bank: FNB Current Account)
+20/06/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+23/06/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+30/06/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+01/07/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+01/07/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+04/07/2025	FNB App Transfer To Groceries (Bank: FNB Current Account)
+07/07/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+07/07/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+07/07/2025	FNB App Transfer To Groceries (Bank: FNB Current Account)
+07/07/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+07/07/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+07/07/2025	FNB App Transfer To Groceries (Bank: FNB Current Account)
+08/07/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+08/07/2025	FNB App Transfer To Supplies (Bank: FNB Current Account)
+09/07/2025	FNB App Transfer To Supplies (Bank: FNB Cu
+<truncated 19259 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.

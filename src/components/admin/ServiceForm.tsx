@@ -49,6 +49,7 @@ const formSchema = z.object({
   longDescription: z.string().min(20, 'Long description is required.'),
   price: z.preprocess(val => Number(val), z.number().min(0, 'Price must be a positive number.')),
   isPriceTbc: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
   resellerPrice: z.preprocess(val => Number(val), z.number().min(0, 'Reseller price must be a positive number.').optional()),
   imageUrl: z.string().url('Must be a valid URL.'),
   imageHint: z.string().min(1, 'Image hint is required.'),
@@ -121,6 +122,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
       longDescription: service?.longDescription || '',
       price: service?.price || 0,
       isPriceTbc: service?.isPriceTbc || false,
+      isFeatured: service?.isFeatured || false,
       resellerPrice: service?.resellerPrice || 0,
       imageUrl: service?.imageUrl || 'https://picsum.photos/seed/new/600/400',
       imageHint: service?.imageHint || 'abstract',
@@ -413,6 +415,21 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                     <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
                 <FormLabel className="!mt-0">Price to be confirmed (Quote Based)</FormLabel>
+                </FormItem>
+            )}
+        />
+        <FormField
+            control={form.control}
+            name="isFeatured"
+            render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-2">
+                <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+                <div>
+                  <FormLabel className="!mt-0">Mark as &ldquo;Popular&rdquo;</FormLabel>
+                  <p className="text-[10px] text-muted-foreground">Shows a ⭐ Popular badge on the public product listing page.</p>
+                </div>
                 </FormItem>
             )}
         />

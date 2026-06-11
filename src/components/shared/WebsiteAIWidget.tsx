@@ -350,7 +350,25 @@ export default function WebsiteAIWidget() {
                 "prose prose-sm max-w-none",
                 message.role === 'user' || message.role === 'agent' ? "prose-invert text-white" : "prose-slate text-slate-800"
               )}>
-                 <ReactMarkdown>{message.text}</ReactMarkdown>
+                 <ReactMarkdown
+                   components={{
+                     a: ({ href, children }) => (
+                       <a
+                         href={href}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className={cn(
+                           "underline underline-offset-2 font-semibold break-all hover:opacity-80 transition-opacity",
+                           message.role === 'user' || message.role === 'agent'
+                             ? "text-white/90 hover:text-white"
+                             : "text-blue-600 hover:text-blue-800"
+                         )}
+                       >
+                         {children}
+                       </a>
+                     )
+                   }}
+                 >{makeLinksClickable(message.text)}</ReactMarkdown>
               </div>
               
               {message.serviceUrl && (() => {
@@ -643,3 +661,20 @@ export default function WebsiteAIWidget() {
     </>
   );
 }
+
+const makeLinksClickable = (text: string): string => {
+  if (!text) return "";
+  // Match standard URLs (http:// or https://) not preceded by ](
+  const urlPattern = /(?<!\]\()(https?:\/\/[^\s)]+)/g;
+  
+  return text.replace(urlPattern, (url) => {
+    let cleanUrl = url;
+    let trailing = "";
+    const match = url.match(/([.,;:?!]+)$/);
+    if (match) {
+      trailing = match[1];
+      cleanUrl = url.substring(0, url.length - trailing.length);
+    }
+    return `[${cleanUrl}](${cleanUrl})${trailing}`;
+  });
+};

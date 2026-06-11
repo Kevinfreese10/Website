@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Service, Order, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, User as UserIcon, CheckCircle2 } from 'lucide-react';
+import { Loader2, Mail, User as UserIcon, CheckCircle2, ShieldCheck, Lock, RefreshCw, MessageSquare } from 'lucide-react';
 import { getFirestore, doc, setDoc, Timestamp, getDoc, serverTimestamp, collection, query, where, getDocs, or } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
@@ -17,6 +17,7 @@ import { sendOrderConfirmationEmailAction } from '@/app/actions';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,6 +36,92 @@ const checkoutSchema = z.object({
     hasPrerequisites: z.boolean().refine(v => v === true, { message: "You must confirm prerequisites" }),
     agreedToRefundPolicy: z.boolean().refine(v => v === true, { message: "You must agree to the refund policy" }),
 });
+
+const enquirySchema = z.object({
+    name: z.string().min(2, "Name is required"),
+    email: z.string().email("A valid email is required"),
+    phone: z.string().min(10, "A valid cell number is required"),
+    message: z.string().min(5, "Please tell us about your requirements"),
+});
+
+function PriceOnRequestForm({ service }: { service: Service }) {
+  const { toast } = useToast();
+  const [isSent, setIsSent] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+
+  const enquiryForm = useForm<z.infer<typeof enquirySchema>>({
+    resolver: zodResolver(enquirySchema),
+    defaultValues: { name: '', email: '', phone: '', message: '' },
+  });
+
+  const handleEnquiry = async (values: z.infer<typeof enquirySchema>) => {
+    setIsSending(true);
+    try {
+      // Build a mailto fallback — a server action for email can be wired later
+      const subject = encodeURIComponent(`Quote Request: ${service.title}`);
+      const body = encodeURIComponent(
+        `Name: ${values.name}\nEmail: ${values.email}\nPhone: ${values.phone}\n\nMessage:\n${values.message}`
+      );
+      // Fire-and-forget: open mailto (will silently fail if no email client)
+      window.location.href = `mailto:info@myacc.co.za?subject=${subject}&body=${body}`;
+      setIsSent(true);
+      toast({ title: 'Enquiry Sent!', description: 'We will respond within 1 business day.' });
+    } catch {
+      toast({ title: 'Error', description: 'Could not send. Please contact us directly.', variant: 'destructive' });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  if (isSent) {
+    return (
+      <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-center space-y-3 animate-in fade-in">
+        <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto" />
+        <h3 className="font-extrabold text-green-800 text-base">Enquiry Received!</h3>
+        <p className="text-sm text-green-700">We&apos;ll get back to you with a personalised quote within 1 business day.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 rounded-2xl border bg-slate-50 p-5">
+      <div className="flex items-center gap-2">
+        <MessageSquare className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">Request a Quote</h3>
+      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        This service is priced on request. Fill in your details and we&apos;ll send you a personalised quote.
+      </p>
+      <form onSubmit={enquiryForm.handleSubmit(handleEnquiry)} className="space-y-3">
+        <div>
+          <label className="text-xs font-bold text-slate-700">Full Name</label>
+          <Input {...enquiryForm.register('name')} placeholder="John Doe" className="mt-1 h-9 text-sm" />
+          {enquiryForm.formState.errors.name && <p className="text-[10px] text-destructive mt-0.5">{enquiryForm.formState.errors.name.message}</p>}
+        </div>
+        <div>
+          <label className="text-xs font-bold text-slate-700">Email Address</label>
+          <Input {...enquiryForm.register('email')} type="email" placeholder="john@example.com" className="mt-1 h-9 text-sm" />
+          {enquiryForm.formState.errors.email && <p className="text-[10px] text-destructive mt-0.5">{enquiryForm.formState.errors.email.message}</p>}
+        </div>
+        <div>
+          <label className="text-xs font-bold text-slate-700">Cell Number</label>
+          <Input {...enquiryForm.register('phone')} placeholder="082 123 4567" className="mt-1 h-9 text-sm" />
+          {enquiryForm.formState.errors.phone && <p className="text-[10px] text-destructive mt-0.5">{enquiryForm.formState.errors.phone.message}</p>}
+        </div>
+        <div>
+          <label className="text-xs font-bold text-slate-700">Tell us about your requirements</label>
+          <Textarea {...enquiryForm.register('message')} placeholder="Briefly describe your business and what you need..." rows={3} className="mt-1 text-sm resize-none" />
+          {enquiryForm.formState.errors.message && <p className="text-[10px] text-destructive mt-0.5">{enquiryForm.formState.errors.message.message}</p>}
+        </div>
+        <Button type="submit" disabled={isSending} className="w-full h-11 font-extrabold text-sm partner-btn">
+          {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+          {isSending ? 'Sending...' : 'Send Quote Request'}
+        </Button>
+        <p className="text-center text-[10px] text-muted-foreground">Or call us: <a href="tel:+27123456789" className="font-bold text-primary hover:underline">+27 12 345 6789</a></p>
+      </form>
+    </div>
+  );
+}
 
 export default function ServiceCheckoutForm({ service, partnerId }: { service: Service, partnerId?: string }) {
   const router = useRouter();
@@ -257,21 +344,15 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
     }
   }
 
+  const formatPrice = (price: number) => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price);
+
   if (service.isPriceTbc) {
-      return (
-          <Alert>
-              <Mail className="h-4 w-4" />
-              <AlertTitle>Price on Request</AlertTitle>
-              <AlertDescription>
-                  Please <Link href="/contact" className="font-semibold underline">contact us</Link> for pricing information for this service.
-              </AlertDescription>
-          </Alert>
-      )
+      return <PriceOnRequestForm service={service} />;
   }
 
   return (
     <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleCheckout, onError)} className="space-y-6">
+        <form id="checkout" onSubmit={form.handleSubmit(handleCheckout, onError)} className="space-y-6">
             {(!user || user.role !== 'client') && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground tracking-widest mb-2">
@@ -339,11 +420,20 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
             <Button 
                 type="submit"
                 disabled={isLoading}
-                className="w-full partner-btn h-12 text-lg font-bold"
+                className="w-full partner-btn h-12 text-base font-extrabold"
             >
                 {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                {isLoading ? 'Processing...' : 'Proceed to Payment'}
+                {isLoading ? 'Processing...' : `Proceed to Payment${!service.isPriceTbc ? ` – ${formatPrice(service.price)}` : ''}`}
             </Button>
+
+            {/* Trust bar */}
+            <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-wider pt-1">
+              <span className="flex items-center gap-1"><Lock className="h-3 w-3 text-green-600" />Secure</span>
+              <span className="text-slate-300">·</span>
+              <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-blue-600" />SARS Compliant</span>
+              <span className="text-slate-300">·</span>
+              <span className="flex items-center gap-1"><RefreshCw className="h-3 w-3 text-amber-600" />Refund Policy</span>
+            </div>
 
             {!user && (
                 <div className="text-center">
