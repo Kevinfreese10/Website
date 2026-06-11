@@ -62,6 +62,22 @@ export default function ProductsPageClient({
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const { addToCart } = useCart();
 
+  const scrollToSection = (categoryName: string) => {
+    if (categoryName === 'all') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setActiveCategory('all');
+      return;
+    }
+    const id = categoryName.toLowerCase().replace(/ /g, '-');
+    const el = document.getElementById(id);
+    if (el) {
+      const offset = 100; // account for sticky header
+      const top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+    setActiveCategory(categoryName);
+  };
+
   useEffect(() => {
     const servicesUnsubscribe = onSnapshot(query(collection(db, 'services'), orderBy('title')), (snapshot) => {
         const fetchedServices = snapshot.docs.map(doc => {
@@ -92,13 +108,12 @@ export default function ProductsPageClient({
     return categories
       .map(category => {
         const filteredData = services.filter(s => {
-          const categoryMatches = activeCategory === 'all' || s.category === category.name;
           const thisCategoryMatch = s.category === category.name;
           const searchMatches = !q || 
             s.title.toLowerCase().includes(q) || 
             s.description.toLowerCase().includes(q) ||
             s.category.toLowerCase().includes(q);
-          return thisCategoryMatch && categoryMatches && searchMatches;
+          return thisCategoryMatch && searchMatches;
         });
         return {
           ...category,
@@ -106,7 +121,7 @@ export default function ProductsPageClient({
         };
       })
       .filter(c => c.data.length > 0);
-  }, [categories, services, searchQuery, activeCategory]);
+  }, [categories, services, searchQuery]);
 
 
   return (
@@ -185,11 +200,11 @@ export default function ProductsPageClient({
           </div>
         </div>
 
-        {/* Category Filter Tabs */}
+        {/* Category Filter Tabs — scroll to section */}
         {!searchQuery && (
           <div className="flex flex-wrap gap-2 justify-center animate-in fade-in duration-300">
             <button
-              onClick={() => setActiveCategory('all')}
+              onClick={() => scrollToSection('all')}
               className={cn(
                 "px-4 py-1.5 rounded-full text-sm font-bold border transition-all duration-200",
                 activeCategory === 'all'
@@ -202,7 +217,7 @@ export default function ProductsPageClient({
             {categories.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.name)}
+                onClick={() => scrollToSection(cat.name)}
                 className={cn(
                   "px-4 py-1.5 rounded-full text-sm font-bold border transition-all duration-200",
                   activeCategory === cat.name
