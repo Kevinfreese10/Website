@@ -648,6 +648,113 @@ export async function finalizeChatAllocation({ clientId, transactionId, accountI
     });
 }
 
+export async function analyzeSpreadsheetAllocationsAction({
+    clientId,
+    spreadsheetData,
+}: {
+    clientId: string;
+    spreadsheetData: string;
+}) {
+    try {
+        const adminDb = getAdminDb();
+
+        // 1. Fetch Client Details (to get chartOfAccounts and isVatRegistered)
+        const clientDoc = await adminDb.collection('aiAccountantClients').doc(clientId).get();
+        if (!clientDoc.exists) {
+            return { success: false, error: "Client not found" };
+        }
+        const clientData = clientDoc.data() as any;
+        const chartOfAccounts = clientData.chartOfAccounts || [];
+        const isVatRegistered = !!clientData.isVatRegistered;
+
+        // 2. Fetch Unallocated Transactions
+        const txsSnap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+            .where('status', 'in', ['new', 'ai_review', 'ai_processing'])
+            .get();
+        
+        const unallocatedTransactions = txsSnap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        if (unallocatedTransactions.length === 0) {
+            return { success: true, matches: [], summary: "No unallocated transactions found to match." };
+        }
+
+        // 3. Fetch Customers
+        const custSnap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('customers').get();
+        const customers = custSnap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        // 4. Fetch Suppliers
+        const supSnap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('suppliers').get();
+        const suppliers = supSnap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        // 5. Invoke Genkit Flow
+        const { allocateFromSpreadsheet } = await import('@/ai/flows/allocate-from-spreadsheet');
+        const result = await allocateFromSpreadsheet({
+            spreadsheetData,
+            unallocatedTransactions,
+            chartOfAccounts: JSON.stringify(chartOfAccounts),
+            customers,
+            suppliers,
+            isVatRegistered
+        });
+
+        return { success: true, ...result };
+    } catch (e: any) {
+        console.error("Spreadsheet analysis action failed:", e);
+        return { success: false, error: e.message || "Failed to analyze spreadsheet" };
+    }
+}
+
+export async function applySpreadsheetAllocationsAction({
+    clientId,
+    allocations,
+}: {
+    clientId: string;
+    allocations: {
+        transactionId: string;
+        accountId: string;
+        accountType: 'account' | 'supplier' | 'customer';
+        vatType: string;
+        explanation: string;
+    }[];
+}) {
+    try {
+        const adminDb = getAdminDb();
+        const batch = adminDb.batch();
+        const txCollection = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions');
+
+        allocations.forEach(alloc => {
+            const ref = txCollection.doc(alloc.transactionId);
+            batch.update(ref, {
+                status: 'reviewed',
+                allocatedTo: {
+                    value: alloc.accountId,
+                    type: alloc.accountType
+                },
+                vatType: alloc.vatType,
+                clientExplanation: alloc.explanation,
+                allocatedAt: FieldValue.serverTimestamp(),
+                allocationSource: 'chat'
+            });
+        });
+
+        await batch.commit();
+        return { success: true, count: allocations.length };
+    } catch (e: any) {
+        console.error("Apply spreadsheet allocations action failed:", e);
+        return { success: false, error: e.message || "Failed to apply allocations" };
+    }
+}
+
+
 // AI PAYROLL ACTIONS
 
 export async function saveEmployeeAction({ clientId, employeeId, data }: { clientId: string, employeeId?: string, data: any }) {
@@ -713,7 +820,15 @@ export async function updateDraftPayslipHoursAction({ clientId, employeeId, hour
 
     const earnings = PayrollService.calculateEarningsList(employee, baseValue, ps.period, freq, hours);
     const gross = earnings.reduce((s, i) => s + i.amount, 0);
-    const deductions = PayrollService.getInitialDeductions(gross, ps.period, freq, employee.joinDate);
+    const deductions = PayrollService.getInitialDeductions(
+        gross, 
+        ps.period, 
+        freq, 
+        employee.joinDate,
+        employee.idNumber,
+        employee.medicalAidMembers || 0,
+        employee.medicalAidDependents || 0
+    );
     const totalDeductions = deductions.reduce((s, i) => s + i.amount, 0);
 
     await snap.docs[0].ref.update({
@@ -747,7 +862,15 @@ export async function syncEmployeeSalaryToActivePayslipAction({ clientId, employ
 
     const earnings = PayrollService.calculateEarningsList(employee, newSalary, ps.period, freq);
     const gross = earnings.reduce((s, i) => s + i.amount, 0);
-    const deductions = PayrollService.getInitialDeductions(gross, ps.period, freq, employee.joinDate);
+    const deductions = PayrollService.getInitialDeductions(
+        gross, 
+        ps.period, 
+        freq, 
+        employee.joinDate,
+        employee.idNumber,
+        employee.medicalAidMembers || 0,
+        employee.medicalAidDependents || 0
+    );
     
     await snap.docs[0].ref.update({
         earnings,
@@ -1063,4 +1186,43 @@ export async function matchTransactionsToHistory({ clientId, bankAccountId }: { 
     }
     
     return { count };
+}
+
+export async function adminDeleteUserAction({ uid }: { uid: string }) {
+  try {
+    const adminAuth = getAdminAuth();
+    const adminDb = getAdminDb();
+
+    // 1. Delete from Firebase Authentication
+    try {
+      await adminAuth.deleteUser(uid);
+    } catch (e: any) {
+      if (e.code !== 'auth/user-not-found') {
+        throw e;
+      }
+      console.warn(`User ${uid} not found in Firebase Auth during deletion.`);
+    }
+
+    // 2. Delete from Firestore users collection
+    await adminDb.collection('users').doc(uid).delete();
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error in adminDeleteUserAction:", error);
+    return { success: false, error: error.message || 'Failed to delete user' };
+  }
+}
+
+export async function adminUpdateUserPasswordAction({ uid, password }: { uid: string; password?: string }) {
+  try {
+    if (!password || password.length < 6) {
+      return { success: false, error: 'invalid-password', message: 'Password must be at least 6 characters.' };
+    }
+    const adminAuth = getAdminAuth();
+    await adminAuth.updateUser(uid, { password });
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error in adminUpdateUserPasswordAction:", error);
+    return { success: false, error: error.code || 'error', message: error.message || 'Failed to update user password.' };
+  }
 }

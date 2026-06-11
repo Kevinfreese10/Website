@@ -3,10 +3,10 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, PlusCircle, Loader2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { MoreHorizontal, PlusCircle, Loader2, Calendar, ClipboardList, Edit, Check, Trash2 } from 'lucide-react';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Task, User, TaskComment } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, arrayUnion, Timestamp, where, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -26,14 +25,12 @@ const db = getFirestore(firebaseApp);
 const departments = ['Accounting and Tax', 'Administration', 'CAP'] as const;
 
 const userColors = [
-  'bg-red-200 text-red-800',
-  'bg-blue-200 text-blue-800',
-  'bg-green-200 text-green-800',
-  'bg-yellow-200 text-yellow-800',
-  'bg-purple-200 text-purple-800',
-  'bg-pink-200 text-pink-800',
-  'bg-indigo-200 text-indigo-800',
-  'bg-teal-200 text-teal-800',
+  'bg-red-100 text-red-700 border-red-200',
+  'bg-blue-100 text-blue-700 border-blue-200',
+  'bg-green-100 text-green-700 border-green-200',
+  'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'bg-purple-100 text-purple-700 border-purple-200',
+  'bg-pink-100 text-pink-700 border-pink-200',
 ];
 
 const getUserColor = (userId: string) => {
@@ -109,7 +106,6 @@ export default function AdminTasksPage() {
     return tasksToFilter;
   }, [tasks, user, taskTypeFilter]);
 
-
   const handleAdd = () => {
     setSelectedTask(null);
     setIsFormOpen(true);
@@ -124,6 +120,7 @@ export default function AdminTasksPage() {
     try {
         await deleteDoc(doc(db, 'tasks', taskId));
         fetchTasks();
+        setIsFormOpen(false);
         toast({
             title: 'Task Deleted',
             description: 'The task has been successfully removed.',
@@ -207,7 +204,7 @@ export default function AdminTasksPage() {
     const newComment: TaskComment = {
         text: commentText,
         date: Timestamp.now(),
-        authorId: user.id,
+        authorId: user.uid,
     };
 
     try {
@@ -238,45 +235,27 @@ export default function AdminTasksPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Manage Tasks</h1>
-        <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setSelectedTask(null);}}>
-           <DialogTrigger asChild>
-                <Button onClick={handleAdd}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create Task
-                </Button>
-           </DialogTrigger>
-           <DialogContent className="sm:max-w-[700px]">
-                <DialogHeader>
-                    <DialogTitle>{selectedTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
-                    <DialogDescription>
-                        {selectedTask ? 'Update the details of this task.' : 'Fill out the form to add a new task.'}
-                    </DialogDescription>
-                </DialogHeader>
-                <TaskForm 
-                    task={selectedTask} 
-                    onSubmit={handleFormSubmit}
-                    onCancel={() => setIsFormOpen(false)}
-                    onCommentSubmit={handleCommentSubmit}
-                    allStaff={allStaff}
-                    staffByDept={staffByDept}
-                />
-           </DialogContent>
-        </Dialog>
+      <div className="flex items-center justify-between border-b pb-5">
+        <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">Manage Practice Tasks</h1>
+            <p className="text-sm font-semibold text-slate-400">Add, reassign, or monitor task compliance roadmap objectives.</p>
+        </div>
+        <Button className="shadow-md font-bold px-4" onClick={handleAdd}>
+            <PlusCircle className="mr-2 h-4.5 w-4.5" />
+            Create Task
+        </Button>
       </div>
-      <Card>
-        <CardHeader>
+
+      <Card className="border shadow-md rounded-2xl bg-white overflow-hidden">
+        <CardHeader className="bg-slate-50/50 p-6 border-b">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div>
-              <CardTitle>All Tasks</CardTitle>
-              <CardDescription>
-                View, edit, and delete all tasks in the system.
-              </CardDescription>
+              <CardTitle className="text-md font-bold text-slate-800">Practice Log</CardTitle>
+              <CardDescription className="text-xs font-semibold text-slate-400">View, edit, and complete tasks currently active.</CardDescription>
             </div>
             <div className="w-full sm:w-auto">
                 <Select onValueChange={setTaskTypeFilter} defaultValue="all">
-                    <SelectTrigger className="w-full sm:w-[240px]">
+                    <SelectTrigger className="w-full sm:w-[240px] h-9 text-xs font-semibold bg-white border-slate-200">
                         <SelectValue placeholder="Filter by task type..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -290,100 +269,159 @@ export default function AdminTasksPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Task</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+            <TableHeader className="bg-slate-50/20">
+              <TableRow className="border-b">
+                <TableHead className="font-bold text-slate-500 py-4 pl-6">Task Description</TableHead>
+                <TableHead className="font-bold text-slate-500 py-4">Assigned Staff</TableHead>
+                <TableHead className="font-bold text-slate-500 py-4">Due Date</TableHead>
+                <TableHead className="font-bold text-slate-500 py-4">Status</TableHead>
+                <TableHead className="text-right font-bold text-slate-500 py-4 pr-6">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredTasks.length === 0 ? (
                 <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">No tasks to display.</TableCell>
+                    <TableCell colSpan={5} className="text-center text-slate-400 py-16 font-medium">No tasks to display.</TableCell>
                 </TableRow>
               ) : (
                 filteredTasks.map(task => {
                     const assignees = Array.isArray(task.assignedTo) ? task.assignedTo : [task.assignedTo];
+                    const dueDate = task.dueDate?.toDate ? task.dueDate.toDate() : (task.dueDate ? new Date(task.dueDate) : null);
+                    
+                    const forIndex = task.title.lastIndexOf(' for ');
+                    const displayTitle = forIndex > -1 ? task.title.substring(0, forIndex) : task.title;
+                    const clientName = forIndex > -1 ? task.title.substring(forIndex + 5) : '';
+
                     return (
-                    <TableRow key={task.id}>
-                    <TableCell className="font-medium max-w-xs align-top">
-                        <p className="font-semibold truncate">{task.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{task.description}</p>
-                    </TableCell>
-                    <TableCell className="align-top">
-                         <div className="flex items-center -space-x-2">
-                            {assignees.slice(0, 3).map(userId => {
-                                const assignee = getAssignee(userId);
-                                if (!assignee) return null;
-                                return (
+                      <TableRow key={task.id} className="hover:bg-slate-50/30 transition-colors border-b cursor-pointer" onClick={() => handleEdit(task)}>
+                        <TableCell className="font-semibold text-slate-900 py-4 pl-6 max-w-xs">
+                            <p className="line-clamp-1">{displayTitle}</p>
+                            {clientName && (
+                                <p className="text-[10px] font-bold text-slate-500 mt-0.5 truncate flex items-center gap-1">
+                                    <span className="text-[8px] text-slate-400 font-normal uppercase tracking-wider bg-slate-100 border border-slate-200/50 px-1 rounded">Client</span>
+                                    <span>{clientName}</span>
+                                </p>
+                            )}
+                            <p className="text-xs text-slate-400 font-medium line-clamp-1 mt-1">{task.description}</p>
+                        </TableCell>
+                        <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
+                             <div className="flex items-center -space-x-1.5">
+                                {assignees.slice(0, 3).map(userId => {
+                                    const assignee = getAssignee(userId);
+                                    if (!assignee) return null;
+                                    return (
                                         <TooltipProvider key={userId}>
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <span className={cn("h-6 w-6 border-2 border-background rounded-full flex items-center justify-center text-xs font-semibold", getUserColor(assignee.id))}>{assignee.name.charAt(0)}</span>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>{assignee.name}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                );
-                            })}
-                        </div>
-                    </TableCell>
-                    <TableCell className="align-top text-xs">
-                        <div className="flex flex-col">
-                            <span className="font-semibold">Due: {task.dueDate?.toDate ? format(task.dueDate.toDate(), 'dd/MM/yyyy') : 'N/A'}</span>
-                        </div>
-                    </TableCell>
-                    <TableCell className="align-top">
-                        <Badge variant="secondary">{task.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right align-top">
-                        <AlertDialog>
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEdit(task)}>Edit</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
-                                </AlertDialogTrigger>
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                    Permanently delete task: <span className="font-semibold"> {task.title}</span>?
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(task.id)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </TableCell>
-                    </TableRow>
-                )})
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <span className={cn("h-6 w-6 border border-white rounded-full flex items-center justify-center text-[10px] font-black shadow-sm", getUserColor(assignee.id))}>
+                                                        {assignee.name.charAt(0)}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p className="text-xs font-semibold">{assignee.name}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    );
+                                })}
+                                {assignees.length === 0 && (
+                                    <span className="text-[10px] font-bold text-slate-400 italic">Unassigned</span>
+                                )}
+                            </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                            <div className="flex items-center gap-1 text-xs text-slate-600 font-semibold">
+                                <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                                <span>{dueDate ? format(dueDate, 'dd/MM/yyyy') : 'N/A'}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                            <Badge 
+                              variant="outline" 
+                              className={cn("text-[9px] font-black uppercase tracking-tight", 
+                                task.status === 'Done' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                task.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600'
+                              )}
+                            >
+                                {task.status}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-6 py-4" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1.5">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-800" onClick={() => handleEdit(task)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => handleUpdateStatus(task.id, 'Done')}>
+                                    <Check className="h-4.5 w-4.5" />
+                                </Button>
+                            </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                })
               )}
             </TableBody>
           </Table>
           )}
         </CardContent>
       </Card>
+
+      {/* Task Drawer Sheet */}
+      <Sheet open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setSelectedTask(null);}}>
+         <SheetContent className="sm:max-w-xl w-full flex flex-col h-full bg-white p-0 overflow-hidden">
+              <div className="p-6 border-b bg-gradient-to-r from-slate-900 to-slate-800 text-white relative">
+                  <SheetHeader className="text-left">
+                      <div className="flex justify-between items-center">
+                          <Badge className="bg-primary hover:bg-primary text-[10px] uppercase font-black tracking-wide w-fit">Task Details</Badge>
+                          {selectedTask && (
+                              <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:bg-white/10 hover:text-white">
+                                          <Trash2 className="h-4.5 w-4.5" />
+                                      </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                          <AlertDialogTitle className="text-lg font-bold">Delete Task?</AlertDialogTitle>
+                                          <AlertDialogDescription className="text-sm text-slate-500">
+                                              Are you sure you want to permanently delete task: <span className="font-bold text-slate-900">{selectedTask.title}</span>? This cannot be undone.
+                                          </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                          <AlertDialogCancel className="font-semibold">Cancel</AlertDialogCancel>
+                                          <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-white font-bold" onClick={() => handleDelete(selectedTask.id)}>Delete</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                  </AlertDialogContent>
+                              </AlertDialog>
+                          )}
+                      </div>
+                      <SheetTitle className="text-2xl font-black text-white mt-2 leading-tight">
+                          {selectedTask ? 'Update Task' : 'Create Task'}
+                      </SheetTitle>
+                      <SheetDescription className="text-slate-300 text-xs font-medium mt-1">
+                          {selectedTask ? 'Update fields or add logs to this compliance object.' : 'Fill out the form to add a new task.'}
+                      </SheetDescription>
+                  </SheetHeader>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                  <TaskForm 
+                      task={selectedTask} 
+                      onSubmit={handleFormSubmit}
+                      onCancel={() => setIsFormOpen(false)}
+                      onCommentSubmit={handleCommentSubmit}
+                      allStaff={allStaff}
+                      staffByDept={staffByDept}
+                  />
+              </div>
+         </SheetContent>
+      </Sheet>
     </div>
   );
 }

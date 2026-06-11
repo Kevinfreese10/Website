@@ -8,9 +8,14 @@ const db = getFirestore(firebaseApp);
 /**
  * South African Tax Year Configurations
  */
-const TAX_YEAR_CONFIGS: Record<string, { rebate: number; uifLimit: number; brackets: { threshold: number; base: number; rate: number }[] }> = {
+const TAX_YEAR_CONFIGS: Record<string, { rebate: number; rebateSecondary: number; rebateTertiary: number; medCreditMember: number; medCreditFirstDependent: number; medCreditAdditionalDependent: number; uifLimit: number; brackets: { threshold: number; base: number; rate: number }[] }> = {
   '2026': {
     rebate: 17235,
+    rebateSecondary: 9444,
+    rebateTertiary: 3145,
+    medCreditMember: 364,
+    medCreditFirstDependent: 364,
+    medCreditAdditionalDependent: 246,
     uifLimit: 177.12, // Monthly cap (1% of R17,712)
     brackets: [
       { threshold: 0, base: 0, rate: 0.18 },
@@ -24,6 +29,11 @@ const TAX_YEAR_CONFIGS: Record<string, { rebate: number; uifLimit: number; brack
   },
   '2027': {
     rebate: 18010,
+    rebateSecondary: 9800,
+    rebateTertiary: 3200,
+    medCreditMember: 380,
+    medCreditFirstDependent: 380,
+    medCreditAdditionalDependent: 256,
     uifLimit: 177.12, 
     brackets: [
       { threshold: 0, base: 0, rate: 0.18 },
@@ -40,6 +50,40 @@ const TAX_YEAR_CONFIGS: Record<string, { rebate: number; uifLimit: number; brack
 const MONTHS = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
 
 export class PayrollService {
+  /**
+   * Parses a South African ID number (YYMMDDSSSSCAZ) and calculates the employee's age
+   * as of a reference date.
+   */
+  static getAgeFromIdNumber(idNumber?: string, referenceDate: Date = new Date()): number {
+    if (!idNumber || idNumber.length !== 13) return 0;
+    
+    const yyStr = idNumber.substring(0, 2);
+    const mmStr = idNumber.substring(2, 4);
+    const ddStr = idNumber.substring(4, 6);
+    
+    const yy = parseInt(yyStr);
+    const mm = parseInt(mmStr) - 1;
+    const dd = parseInt(ddStr);
+    
+    if (isNaN(yy) || isNaN(mm) || isNaN(dd)) return 0;
+    
+    const currentYear = referenceDate.getFullYear();
+    const currentTwoDigitYear = currentYear % 100;
+    
+    // Assume year threshold: if YY is >= current two digit year, they were born in 1900s
+    let birthYear = yy >= currentTwoDigitYear ? 1900 + yy : 2000 + yy;
+    const birthDate = new Date(birthYear, mm, dd);
+    
+    if (isNaN(birthDate.getTime())) return 0;
+    
+    let age = currentYear - birthDate.getFullYear();
+    const m = referenceDate.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && referenceDate.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
+
   /**
    * Helper to convert frequency string to numeric multiplier.
    */
@@ -140,9 +184,17 @@ export class PayrollService {
   }
 
   /**
-   * Calculates PAYE based on earnings.
+   * Calculates PAYE based on earnings, age (rebates) and medical aid.
    */
-  static calculatePaye(periodEarnings: number, period?: string, frequency: number = 12, joinDate?: any): number {
+  static calculatePaye(
+    periodEarnings: number, 
+    period?: string, 
+    frequency: number = 12, 
+    joinDate?: any, 
+    idNumber?: string, 
+    medicalAidMembers: number = 0, 
+    medicalAidDependents: number = 0
+  ): number {
     const config = this.getTaxConfig(period);
     const effectivePeriods = this.getRemainingPeriods(period, joinDate, frequency);
     const annualGross = periodEarnings * effectivePeriods;
@@ -156,8 +208,39 @@ export class PayrollService {
       annualTax = annualGross * config.brackets[0].rate;
     }
 
-    const netAnnualTax = Math.max(0, annualTax - config.rebate);
-    return parseFloat((netAnnualTax / effectivePeriods).toFixed(2));
+    // Determine age-based rebates
+    let rebate = config.rebate;
+    if (idNumber) {
+      const age = this.getAgeFromIdNumber(idNumber, this.getPeriodDate(period));
+      if (age >= 65) {
+        rebate += config.rebateSecondary;
+      }
+      if (age >= 75) {
+        rebate += config.rebateTertiary;
+      }
+    }
+
+    const netAnnualTax = Math.max(0, annualTax - rebate);
+    const monthlyPaye = netAnnualTax / effectivePeriods;
+
+    // Monthly Medical Aid Credit
+    let medicalCredit = 0;
+    if (medicalAidMembers > 0) {
+      const mCredit = config.medCreditMember;
+      const d1Credit = config.medCreditFirstDependent;
+      const addCredit = config.medCreditAdditionalDependent;
+
+      medicalCredit = mCredit;
+      const deps = medicalAidDependents;
+      if (deps > 0) {
+        medicalCredit += d1Credit;
+        if (deps > 1) {
+          medicalCredit += (deps - 1) * addCredit;
+        }
+      }
+    }
+
+    return parseFloat(Math.max(0, monthlyPaye - medicalCredit).toFixed(2));
   }
 
   /**
@@ -173,7 +256,15 @@ export class PayrollService {
   /**
    * Calculates Gross from a desired Net amount using iterative approximation.
    */
-  static calculateGrossFromNet(targetNet: number, period?: string, frequency: number = 12, joinDate?: any): number {
+  static calculateGrossFromNet(
+    targetNet: number, 
+    period?: string, 
+    frequency: number = 12, 
+    joinDate?: any, 
+    idNumber?: string, 
+    medicalAidMembers: number = 0, 
+    medicalAidDependents: number = 0
+  ): number {
     if (targetNet <= 0) return 0;
     
     let low = targetNet;
@@ -182,7 +273,7 @@ export class PayrollService {
     let iterations = 0;
     
     while (iterations < 50) {
-      const currentPaye = this.calculatePaye(mid, period, frequency, joinDate);
+      const currentPaye = this.calculatePaye(mid, period, frequency, joinDate, idNumber, medicalAidMembers, medicalAidDependents);
       const currentUif = this.calculateUif(mid, period, frequency);
       const currentNet = mid - currentPaye - currentUif;
       
@@ -224,7 +315,15 @@ export class PayrollService {
           }
 
           if (employee.isNetSalary) {
-              periodAmount = this.calculateGrossFromNet(periodAmount, basePeriod, frequency, employee.joinDate);
+              periodAmount = this.calculateGrossFromNet(
+                  periodAmount, 
+                  basePeriod, 
+                  frequency, 
+                  employee.joinDate,
+                  employee.idNumber,
+                  employee.medicalAidMembers || 0,
+                  employee.medicalAidDependents || 0
+              );
           }
           
           earnings.push({ label: frequency === 26 ? 'Fortnightly salary' : 'Basic salary', amount: parseFloat(periodAmount.toFixed(2)) });
@@ -248,9 +347,17 @@ export class PayrollService {
       return earnings;
   }
 
-  static getInitialDeductions(gross: number, period: string, frequency: number, joinDate?: any): PayslipItem[] {
+  static getInitialDeductions(
+    gross: number, 
+    period: string, 
+    frequency: number, 
+    joinDate?: any, 
+    idNumber?: string, 
+    medicalAidMembers: number = 0, 
+    medicalAidDependents: number = 0
+  ): PayslipItem[] {
       return [
-          { label: 'Tax', amount: this.calculatePaye(gross, period, frequency, joinDate), isStatutory: true },
+          { label: 'Tax', amount: this.calculatePaye(gross, period, frequency, joinDate, idNumber, medicalAidMembers, medicalAidDependents), isStatutory: true },
           { label: 'Unemployment insurance fund', amount: this.calculateUif(gross, period, frequency), isStatutory: true }
       ];
   }
@@ -294,7 +401,15 @@ export class PayrollService {
       const earnings = this.calculateEarningsList(employee, baseValue, periodLabel, frequency, hours);
       const gross = earnings.reduce((sum, i) => sum + i.amount, 0);
 
-      const deductions = this.getInitialDeductions(gross, periodLabel, frequency, employee.joinDate);
+      const deductions = this.getInitialDeductions(
+          gross, 
+          periodLabel, 
+          frequency, 
+          employee.joinDate, 
+          employee.idNumber, 
+          employee.medicalAidMembers || 0, 
+          employee.medicalAidDependents || 0
+      );
       const contributions = this.getInitialContributions(gross, periodLabel, frequency, !!clientData.excludeSdl);
 
       const totalDeductions = deductions.reduce((sum, item) => sum + item.amount, 0);

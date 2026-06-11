@@ -19,7 +19,7 @@ import { User } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, addDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { adminCreateUserAction } from '@/app/actions';
+import { adminCreateUserAction, adminUpdateUserPasswordAction, adminDeleteUserAction } from '@/app/actions';
 import { useAuth } from '@/contexts/AuthContext';
 
 const db = getFirestore(firebaseApp);
@@ -114,6 +114,18 @@ export default function AdminStaffPage() {
   const { toast } = useToast();
   const { user: adminUser } = useAuth();
   
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [selectedRole, setSelectedRole] = useState('all');
+
+  const filteredStaff = staff.filter(member => {
+    const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          member.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesDepartment = selectedDepartment === 'all' || member.department === selectedDepartment;
+    const matchesRole = selectedRole === 'all' || member.role === selectedRole;
+    return matchesSearch && matchesDepartment && matchesRole;
+  });
+
   const fetchStaff = async () => {
     setIsLoading(true);
     try {
@@ -145,11 +157,15 @@ export default function AdminStaffPage() {
   
   const handleDelete = async (staffId: string) => {
     try {
-        await deleteDoc(doc(db, "users", staffId));
+        const deleteRes = await adminDeleteUserAction({ uid: staffId });
+        if (!deleteRes.success) {
+            toast({ title: 'Error', description: deleteRes.error || 'Could not delete staff member.', variant: 'destructive' });
+            return;
+        }
         fetchStaff();
         toast({
             title: 'Staff Member Deleted',
-            description: 'The staff member has been removed from Firestore.',
+            description: 'The staff member has been removed from Firestore and Authentication.',
             variant: 'destructive',
         });
     } catch (error) {
@@ -165,6 +181,14 @@ export default function AdminStaffPage() {
         if (uid) { // Editing existing user
              const docRef = doc(db, "users", uid);
              await setDoc(docRef, staffData, { merge: true });
+             
+             if (password) {
+                  const pwdRes = await adminUpdateUserPasswordAction({ uid, password });
+                  if (!pwdRes.success) {
+                      toast({ title: 'Error Updating Password', description: pwdRes.message || 'Could not update password.', variant: 'destructive'});
+                      return;
+                  }
+             }
              toast({ title: 'Staff Member Updated', description: 'The staff details have been saved.' });
         } else { // Creating new user
             if (!adminUser) {
@@ -205,6 +229,25 @@ export default function AdminStaffPage() {
     }
   };
 
+  if (!adminUser) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (adminUser.role !== 'admin') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+        <h2 className="text-2xl font-bold text-destructive text-center">Access Denied</h2>
+        <p className="text-muted-foreground text-center max-w-md">
+          You do not have permission to access this page. This page is restricted to administrators only.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -237,6 +280,46 @@ export default function AdminStaffPage() {
           <CardDescription>View, edit, and delete staff accounts.</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <Input
+                placeholder="Search by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="max-w-md"
+              />
+            </div>
+            <div className="w-full sm:w-[200px]">
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Department: All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full sm:w-[150px]">
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Role: All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {roles.map((role) => (
+                    <SelectItem key={role} value={role} className="capitalize">
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           {isLoading ? (
              <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -253,59 +336,67 @@ export default function AdminStaffPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {staff.map(staffMember => (
-                <TableRow key={staffMember.id}>
-                  <TableCell className="font-medium">
-                    {staffMember.name}
-                  </TableCell>
-                  <TableCell>{staffMember.email}</TableCell>
-                  <TableCell>{staffMember.department}</TableCell>
-                  <TableCell className="capitalize">
-                    <span className="bg-secondary text-secondary-foreground px-2 py-1 text-xs rounded-full">
-                        {staffMember.role}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <AlertDialog>
-                        <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEdit(staffMember)}>
-                                Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                             <AlertDialogTrigger asChild>
-                                <DropdownMenuItem className="text-destructive" disabled={staffMember.role === 'admin'}>
-                                    Delete
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                        </DropdownMenuContent>
-                        </DropdownMenu>
-                         <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the staff account for:
-                                <span className="font-semibold"> {staffMember.name}</span>. This only removes them from Firestore.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(staffMember.id)}>
-                                    Continue
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+              {filteredStaff.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No staff members found matching filters.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredStaff.map(staffMember => (
+                  <TableRow key={staffMember.id}>
+                    <TableCell className="font-medium">
+                      {staffMember.name}
+                    </TableCell>
+                    <TableCell>{staffMember.email}</TableCell>
+                    <TableCell>{staffMember.department}</TableCell>
+                    <TableCell className="capitalize">
+                      <span className="bg-secondary text-secondary-foreground px-2 py-1 text-xs rounded-full">
+                          {staffMember.role}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <AlertDialog>
+                          <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleEdit(staffMember)}>
+                                  Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                               <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem className="text-destructive" disabled={staffMember.role === 'admin'}>
+                                      Delete
+                                  </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                          </DropdownMenuContent>
+                          </DropdownMenu>
+                           <AlertDialogContent>
+                              <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the staff account for:
+                                  <span className="font-semibold"> {staffMember.name}</span>. This removes them from Firestore and Authentication.
+                                  </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(staffMember.id)}>
+                                      Continue
+                                  </AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
           )}

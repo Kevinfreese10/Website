@@ -410,8 +410,8 @@ export default function PayslipsPage() {
                             const period = client?.firstProcessingMonth;
                             const baseValue = employee.payType === 'Hourly' ? (employee.hourlyRate || 0) * 160 : (employee.basicSalary || 0);
                             
-                            displayGross = employee.isNetSalary ? PayrollService.calculateGrossFromNet(baseValue, period, frequency, employee.joinDate) : baseValue;
-                            displayTax = PayrollService.calculatePaye(displayGross, period, frequency, employee.joinDate);
+                            displayGross = employee.isNetSalary ? PayrollService.calculateGrossFromNet(baseValue, period, frequency, employee.joinDate, employee.idNumber, employee.medicalAidMembers || 0, employee.medicalAidDependents || 0) : baseValue;
+                            displayTax = PayrollService.calculatePaye(displayGross, period, frequency, employee.joinDate, employee.idNumber, employee.medicalAidMembers || 0, employee.medicalAidDependents || 0);
                             displayNet = displayGross - displayTax - PayrollService.calculateUif(displayGross, period, frequency);
                         }
 

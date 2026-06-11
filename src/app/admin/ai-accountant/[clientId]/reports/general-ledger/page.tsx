@@ -8,7 +8,7 @@ import { User, ChartOfAccount, AllocatedTransaction, ImportedTransaction, VatTyp
 import { getFirestore, doc, getDoc, collection, query, onSnapshot, updateDoc, writeBatch, deleteDoc, where, getDocs, deleteField, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Loader2, Download, Eye, Trash2, Search, Scale, ChevronsUpDown, CheckCheck } from "lucide-react";
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, usePathname } from 'next/navigation';
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -590,6 +590,8 @@ interface SavedReport {
 export default function GeneralLedgerPage() {
     const params = useParams();
     const searchParams = useSearchParams();
+    const pathname = usePathname();
+    const isDashboard = pathname.startsWith('/dashboard');
     const clientId = params.clientId as string;
     const accountIdFromQuery = searchParams.get('accountId');
 
@@ -847,12 +849,14 @@ export default function GeneralLedgerPage() {
                                         Filter and view the general ledger for a specific period.
                                     </CardDescription>
                                 </div>
-                                <Button asChild variant="outline">
-                                    <Link href={`/admin/ai-accountant/${clientId}/reports/gl-recon`}>
-                                        <Scale className="mr-2 h-4 w-4"/>
-                                        Go to GL Recon Tool
-                                    </Link>
-                                </Button>
+                                {!isDashboard && (
+                                    <Button asChild variant="outline">
+                                        <Link href={`/admin/ai-accountant/${clientId}/reports/gl-recon`}>
+                                            <Scale className="mr-2 h-4 w-4"/>
+                                            Go to GL Recon Tool
+                                        </Link>
+                                    </Button>
+                                )}
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4">

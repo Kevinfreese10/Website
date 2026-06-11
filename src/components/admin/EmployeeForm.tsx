@@ -53,6 +53,8 @@ const formSchema = z.object({
   }),
   jobTitle: z.string().optional(),
   department: z.string().optional(),
+  medicalAidMembers: z.preprocess(val => Number(val), z.number().min(0, 'Must be 0 or more.').default(0)),
+  medicalAidDependents: z.preprocess(val => Number(val), z.number().min(0, 'Must be 0 or more.').default(0)),
 });
 
 type EmployeeFormValues = z.infer<typeof formSchema>;
@@ -105,6 +107,8 @@ export default function EmployeeForm({
         accountType: employee?.bankingDetails?.accountType || 'Savings',
         branchCode: employee?.bankingDetails?.branchCode || '',
       },
+      medicalAidMembers: employee?.medicalAidMembers || 0,
+      medicalAidDependents: employee?.medicalAidDependents || 0,
     },
   });
 
@@ -241,6 +245,33 @@ export default function EmployeeForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField control={form.control} name="jobTitle" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Job Title (Optional)</FormLabel><FormControl><Input placeholder="e.g. Senior Assistant" {...field} /></FormControl></FormItem> )} />
             <FormField control={form.control} name="department" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Department (Optional)</FormLabel><FormControl><Input placeholder="e.g. Compliance" {...field} /></FormControl></FormItem> )} />
+          </div>
+        </section>
+        
+        <Separator />
+
+        {/* Medical Aid Scheme */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-widest">
+            <Landmark className="h-4 w-4" /> Medical Aid Scheme (Section 6B Tax Credits)
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField control={form.control} name="medicalAidMembers" render={({ field }) => ( 
+              <FormItem>
+                <FormLabel>Medical Scheme Members (Self / Main Member)</FormLabel>
+                <FormControl><Input type="number" min="0" {...field} /></FormControl>
+                <FormDescription className="text-[10px]">Enter 1 if the employee is the main member of a registered medical scheme.</FormDescription>
+                <FormMessage />
+              </FormItem> 
+            )} />
+            <FormField control={form.control} name="medicalAidDependents" render={({ field }) => ( 
+              <FormItem>
+                <FormLabel>Medical Scheme Dependents</FormLabel>
+                <FormControl><Input type="number" min="0" {...field} /></FormControl>
+                <FormDescription className="text-[10px]">Number of registered dependents (spouse, children, etc.).</FormDescription>
+                <FormMessage />
+              </FormItem> 
+            )} />
           </div>
         </section>
 

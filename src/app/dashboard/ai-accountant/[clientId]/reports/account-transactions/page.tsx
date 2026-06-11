@@ -1,10 +1,3 @@
-
 'use client';
-import { redirect, useParams } from 'next/navigation';
-
-export default function NumeraAccountTransactionsRedirectPage() {
-  const params = useParams();
-  const clientId = params.clientId as string;
-  redirect(`/admin/ai-accountant/${clientId}/reports/account-transactions`);
-  return null;
-}
+import AccountTransactionsPage from '@/app/admin/ai-accountant/[clientId]/reports/account-transactions/page';
+export default AccountTransactionsPage;

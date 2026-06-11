@@ -109,12 +109,24 @@ export default function AIStatementImportDialog({
     if (open) fetchAccountStats();
   }, [client.id, watchBankAccountId, open]);
 
-  const isDuplicate = (tx: Transaction) => {
-    return existingTransactions.some(e => 
-        format(new Date(e.date), 'yyyy-MM-dd') === tx.date && 
-        e.description.toLowerCase().trim() === tx.description.toLowerCase().trim() && 
-        Math.abs(e.amount - tx.amount) < 0.01
-    );
+  const isDuplicateAt = (tx: Transaction, indexInList: number, list: Transaction[]) => {
+    const key = `${tx.date}_${tx.description.toLowerCase().trim()}_${tx.amount.toFixed(2)}`;
+    const dbCount = existingTransactions.filter(e => {
+        const eDate = format(new Date(e.date), 'yyyy-MM-dd');
+        return eDate === tx.date &&
+               e.description.toLowerCase().trim() === tx.description.toLowerCase().trim() &&
+               Math.abs(e.amount - tx.amount) < 0.01;
+    }).length;
+
+    let currentOccurrence = 0;
+    for (let i = 0; i <= indexInList; i++) {
+        const item = list[i];
+        const itemKey = `${item.date}_${item.description.toLowerCase().trim()}_${item.amount.toFixed(2)}`;
+        if (itemKey === key) {
+            currentOccurrence++;
+        }
+    }
+    return currentOccurrence <= dbCount;
   };
 
   const filteredTransactions = useMemo(() => {
@@ -127,7 +139,7 @@ export default function AIStatementImportDialog({
   }, [extractedTransactions, excludedIndices, filterStartDate, filterEndDate]);
 
   const duplicatesInCurrentList = useMemo(() => {
-      return filteredTransactions.filter(isDuplicate);
+      return filteredTransactions.filter((tx, idx) => isDuplicateAt(tx, idx, filteredTransactions));
   }, [filteredTransactions, existingTransactions]);
 
   const calculatedRecon = useMemo(() => {
@@ -212,7 +224,7 @@ export default function AIStatementImportDialog({
   const handleRemoveDuplicates = () => {
       const newExcluded = new Set(excludedIndices);
       extractedTransactions.forEach((tx, idx) => {
-          if (isDuplicate(tx)) newExcluded.add(idx);
+          if (isDuplicateAt(tx, idx, extractedTransactions)) newExcluded.add(idx);
       });
       setExcludedIndices(newExcluded);
       toast({ title: "Duplicates Excluded" });
@@ -512,7 +524,7 @@ export default function AIStatementImportDialog({
                                 {extractedTransactions.map((tx, idx) => {
                                     const isExcluded = excludedIndices.has(idx);
                                     const isOutOfDateRange = (filterStartDate && tx.date < filterStartDate) || (filterEndDate && tx.date > filterEndDate);
-                                    const isDup = isDuplicate(tx);
+                                    const isDup = isDuplicateAt(tx, idx, extractedTransactions);
                                     
                                     if (isOutOfDateRange) return null;
 

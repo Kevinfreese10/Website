@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, query, where, serverTimestamp, writeBatch, getDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminCreateUserAction } from '@/app/actions';
+import { adminCreateUserAction, adminDeleteUserAction } from '@/app/actions';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
@@ -209,17 +209,20 @@ export default function ManageUsersPage() {
         batch.update(taskDoc.ref, { assignedTo: Array.from(new Set(newAssignedTo)) });
       });
       
-      // Delete the user document from Firestore
-      const userRef = doc(db, 'users', userIdToDelete);
-      batch.delete(userRef);
+      if (tasksSnapshot.size > 0) {
+        await batch.commit();
+      }
 
-      // Note: Deleting from Firebase Auth is not handled here as it requires admin SDK.
-      
-      await batch.commit();
+      // Delete user from Firebase Auth and Firestore via Server Action
+      const deleteRes = await adminDeleteUserAction({ uid: userIdToDelete });
+      if (!deleteRes.success) {
+        toast({ title: 'Error', description: deleteRes.error || 'Could not delete the user account.', variant: 'destructive' });
+        return;
+      }
       
       toast({
         title: 'User Deleted',
-        description: `The user and their ${tasksSnapshot.size} tasks have been transferred and the user removed.`,
+        description: `The user has been deleted and their ${tasksSnapshot.size} tasks have been transferred.`,
         variant: 'destructive',
       });
 

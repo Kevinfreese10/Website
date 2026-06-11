@@ -1,12 +1,7 @@
-
 'use client';
 
-import * as React from "react"
 import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2, Download, Eye, Calculator } from "lucide-react";
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import { getFirestore, doc, getDoc, collection, onSnapshot, query, writeBatch, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User, AllocatedTransaction, ImportedTransaction, ChartOfAccount } from '@/lib/types';
@@ -35,6 +30,10 @@ import * as XLSX from 'xlsx';
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loader2, Download, Calculator } from "lucide-react";
 
 const db = getFirestore(firebaseApp);
 
@@ -64,6 +63,7 @@ function getFinancialYearStart(date: Date, endMonthName?: string) {
 function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }: { client: User, transactions: (ImportedTransaction | AllocatedTransaction)[], dateRange?: DateRange, onPostJournal: (taxAmount: number) => void }) {
     
     const [isTaxDialogOpen, setIsTaxDialogOpen] = useState(false);
+    const [taxMode, setTaxMode] = useState<'standard' | 'sbc'>('standard');
     
     const reportData = useMemo(() => {
         const balances = new Map<string, number>();
@@ -141,36 +141,61 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
     }, [client, dateRange, transactions]);
     
     const taxCalculation = useMemo(() => {
-        const taxRate = 0.27; // 27%
         const taxableIncome = reportData.netProfit > 0 ? reportData.netProfit : 0;
-        const taxAmount = taxableIncome * taxRate;
+        let taxAmount = 0;
+        let taxRateLabel = '27%';
+        
+        if (taxMode === 'standard') {
+            taxAmount = taxableIncome * 0.27;
+        } else {
+            // SARS FY 2024/2025 SBC Tax rates:
+            // 0 – 95 750: 0%
+            // 95 751 – 365 000: 7% of taxable income above 95 750
+            // 365 001 – 550 000: 18 848 + 21% of taxable income above 365 000
+            // 550 001 and above: 57 698 + 27% of taxable income above 550 000
+            if (taxableIncome <= 95750) {
+                taxAmount = 0;
+                taxRateLabel = '0% (SBC)';
+            } else if (taxableIncome <= 365000) {
+                taxAmount = (taxableIncome - 95750) * 0.07;
+                taxRateLabel = '7% (SBC)';
+            } else if (taxableIncome <= 550000) {
+                taxAmount = 18848 + (taxableIncome - 365000) * 0.21;
+                taxRateLabel = 'SBC Brackets';
+            } else {
+                taxAmount = 57698 + (taxableIncome - 550000) * 0.27;
+                taxRateLabel = 'SBC Brackets';
+            }
+        }
+        
         return {
-            taxRate,
+            taxMode,
+            taxRateLabel,
             taxableIncome,
             taxAmount,
             netProfitAfterTax: reportData.netProfit - taxAmount,
         };
-    }, [reportData.netProfit]);
+    }, [reportData.netProfit, taxMode]);
 
      const handleDownloadExcel = () => {
         let excelData: any[] = [
             { A: 'Income', B: '' },
-            ...reportData.income.map(item => ({ A: item.description, B: -item.balance })),
+            ...reportData.income.map((item: any) => ({ A: item.description, B: -item.balance })),
             { A: 'Total Income', B: reportData.totalIncome },
             {},
             { A: 'Cost of Sales', B: '' },
-            ...reportData.costOfSales.map(item => ({ A: item.description, B: item.balance })),
+            ...reportData.costOfSales.map((item: any) => ({ A: item.description, B: item.balance })),
             { A: 'Total Cost of Sales', B: reportData.totalCostOfSales },
             {},
             { A: 'Gross Profit', B: reportData.grossProfit },
             {},
             { A: 'Expenses', B: '' },
-            ...reportData.expenses.map(item => ({ A: item.description, B: item.balance })),
+            ...reportData.expenses.map((item: any) => ({ A: item.description, B: item.balance })),
             { A: 'Total Expenses', B: reportData.totalExpenses },
             {},
             { A: 'Net Profit / (Loss) Before Tax', B: reportData.netProfit },
              {},
-            { A: 'Income Tax Expense (27%)', B: -taxCalculation.taxAmount },
+            { A: `Income Tax Expense (${taxCalculation.taxMode === 'standard' ? '27%' : 'SBC'})`, B: -taxCalculation.taxAmount },
             { A: 'Net Profit / (Loss) After Tax', B: taxCalculation.netProfitAfterTax },
         ];
         
@@ -206,7 +231,7 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
                     </TableHeader>
                     <TableBody>
                         <TableRow className="font-bold bg-muted/50"><TableCell colSpan={2}>Income</TableCell></TableRow>
-                        {reportData.income.map(item => (
+                        {reportData.income.map((item: any) => (
                             <TableRow key={item.id}><TableCell className="pl-8">{item.description}</TableCell><TableCell className="text-right font-mono">{formatPrice(-item.balance)}</TableCell></TableRow>
                         ))}
                         <TableRow className="font-semibold border-t"><TableCell className="pl-8">Total Income</TableCell><TableCell className="text-right font-mono">{formatPrice(reportData.totalIncome)}</TableCell></TableRow>
@@ -214,7 +239,7 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
                         <TableRow><TableCell colSpan={2}>&nbsp;</TableCell></TableRow>
 
                         <TableRow className="font-bold bg-muted/50"><TableCell colSpan={2}>Cost of Sales</TableCell></TableRow>
-                        {reportData.costOfSales.map(item => (
+                        {reportData.costOfSales.map((item: any) => (
                              <TableRow key={item.id}><TableCell className="pl-8">{item.description}</TableCell><TableCell className="text-right font-mono">{formatPrice(item.balance)}</TableCell></TableRow>
                         ))}
                          <TableRow className="font-semibold border-t"><TableCell className="pl-8">Total Cost of Sales</TableCell><TableCell className="text-right font-mono">{formatPrice(reportData.totalCostOfSales)}</TableCell></TableRow>
@@ -224,7 +249,7 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
                         <TableRow><TableCell colSpan={2}>&nbsp;</TableCell></TableRow>
                         
                         <TableRow className="font-bold bg-muted/50"><TableCell colSpan={2}>Operating Expenses</TableCell></TableRow>
-                        {reportData.expenses.map(item => (
+                        {reportData.expenses.map((item: any) => (
                             <TableRow key={item.id}><TableCell className="pl-8">{item.description}</TableCell><TableCell className="text-right font-mono">{formatPrice(item.balance)}</TableCell></TableRow>
                         ))}
                          <TableRow className="font-semibold border-t"><TableCell className="pl-8">Total Expenses</TableCell><TableCell className="text-right font-mono">{formatPrice(reportData.totalExpenses)}</TableCell></TableRow>
@@ -247,11 +272,24 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Income Tax Calculation</DialogTitle>
-                            <DialogDescription>Based on a corporate income tax rate of {taxCalculation.taxRate * 100}%. This is an estimate for provisioning purposes only.</DialogDescription>
+                            <DialogDescription>Select the tax calculation scheme for provisioning purposes.</DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="text-sm font-semibold text-muted-foreground">Tax Scheme:</span>
+                                <Select value={taxMode} onValueChange={(v: 'standard' | 'sbc') => setTaxMode(v)}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="standard">Standard Corporate (27%)</SelectItem>
+                                        <SelectItem value="sbc">Small Business Corp (SBC)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Separator />
                             <div className="flex justify-between items-center"><span className="text-muted-foreground">Net Profit Before Tax:</span><span className="font-semibold">{formatPrice(taxCalculation.taxableIncome)}</span></div>
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">Tax Rate:</span><span className="font-semibold">{taxCalculation.taxRate * 100}%</span></div>
+                            <div className="flex justify-between items-center"><span className="text-muted-foreground">Effective Scheme:</span><span className="font-semibold">{taxCalculation.taxRateLabel}</span></div>
                             <Separator />
                             <div className="flex justify-between items-center text-lg"><span className="font-bold">Estimated Tax Expense:</span><span className="font-bold text-destructive">{formatPrice(taxCalculation.taxAmount)}</span></div>
                             <Separator />
@@ -271,7 +309,11 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
 export default function ProfitAndLossPage() {
     const params = useParams();
     const router = useRouter();
+    const pathname = usePathname();
     const clientId = params.clientId as string;
+
+    const isDashboard = pathname.startsWith('/dashboard');
+    const basePath = isDashboard ? `/dashboard/ai-accountant/${clientId}` : `/admin/ai-accountant/${clientId}`;
 
     const [client, setClient] = useState<User | null>(null);
     const [transactions, setTransactions] = useState<(ImportedTransaction | AllocatedTransaction)[]>([]);
@@ -309,8 +351,8 @@ export default function ProfitAndLossPage() {
     const handleGoToJournal = (taxAmount: number) => {
         if (!client || taxAmount <= 0) return;
 
-        const taxExpenseAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '3000-056');
-        const taxPayableAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '7000-015');
+        const taxExpenseAccount = client.chartOfAccounts?.find((acc: any) => acc.accountNumber === '3000-056');
+        const taxPayableAccount = client.chartOfAccounts?.find((acc: any) => acc.accountNumber === '7000-015');
 
         if (!taxExpenseAccount || !taxPayableAccount) {
             toast({ title: 'Error', description: 'Tax accounts not found in Chart of Accounts.', variant: 'destructive'});
@@ -331,7 +373,7 @@ export default function ProfitAndLossPage() {
             line2_acc: taxPayableAccount.id,
         });
 
-        router.push(`/admin/ai-accountant/${clientId}/general-journal?${params.toString()}`);
+        router.push(`${basePath}/general-journal?${params.toString()}`);
     };
 
 

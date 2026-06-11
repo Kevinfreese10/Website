@@ -72,7 +72,15 @@ export default function PayslipEditor({
         setEarnings(freshEarnings);
         
         const gross = freshEarnings.reduce((s, i) => s + i.amount, 0);
-        setDeductions(PayrollService.getInitialDeductions(gross, basePeriod, frequency, employee.joinDate));
+        setDeductions(PayrollService.getInitialDeductions(
+            gross, 
+            basePeriod, 
+            frequency, 
+            employee.joinDate,
+            employee.idNumber,
+            employee.medicalAidMembers || 0,
+            employee.medicalAidDependents || 0
+        ));
         setContributions(PayrollService.getInitialContributions(gross, basePeriod, frequency, !!client.excludeSdl));
         
         toast({ title: "Synced with Profile", description: "Basic salary and statutory items refreshed." });
@@ -91,7 +99,17 @@ export default function PayslipEditor({
         const uifContribIdx = updatedContributions.findIndex(c => c.label === 'Unemployment insurance fund' && c.isStatutory);
         const sdlIdx = updatedContributions.findIndex(c => c.label === 'Skills development levy' && c.isStatutory);
 
-        if (payeIdx > -1) updatedDeductions[payeIdx].amount = PayrollService.calculatePaye(gross, period, frequency, employee.joinDate);
+        if (payeIdx > -1) {
+            updatedDeductions[payeIdx].amount = PayrollService.calculatePaye(
+                gross, 
+                period, 
+                frequency, 
+                employee.joinDate,
+                employee.idNumber,
+                employee.medicalAidMembers || 0,
+                employee.medicalAidDependents || 0
+            );
+        }
         if (uifIdx > -1) updatedDeductions[uifIdx].amount = PayrollService.calculateUif(gross, period, frequency);
         if (uifContribIdx > -1) updatedContributions[uifContribIdx].amount = PayrollService.calculateUif(gross, period, frequency);
         if (sdlIdx > -1) updatedContributions[sdlIdx].amount = parseFloat((gross * 0.01).toFixed(2));
@@ -100,6 +118,36 @@ export default function PayslipEditor({
         const totalContrib = updatedContributions.reduce((sum, item) => sum + item.amount, 0);
         const totalFringe = fringeBenefits.reduce((sum, item) => sum + item.amount, 0);
 
+        // Tax details calculation
+        const age = employee.idNumber ? PayrollService.getAgeFromIdNumber(employee.idNumber, PayrollService.getPeriodDate(period)) : 0;
+        const config = PayrollService.getTaxConfig(period);
+        let rebateApplied = config.rebate;
+        let rebateDetails = 'Primary Rebate';
+        if (age >= 65) {
+            rebateApplied += config.rebateSecondary;
+            rebateDetails += ' + Secondary (65+)';
+        }
+        if (age >= 75) {
+            rebateApplied += config.rebateTertiary;
+            rebateDetails += ' + Tertiary (75+)';
+        }
+
+        let medicalCredit = 0;
+        if ((employee.medicalAidMembers || 0) > 0) {
+            const mCredit = config.medCreditMember;
+            const d1Credit = config.medCreditFirstDependent;
+            const addCredit = config.medCreditAdditionalDependent;
+
+            medicalCredit = mCredit;
+            const deps = employee.medicalAidDependents || 0;
+            if (deps > 0) {
+                medicalCredit += d1Credit;
+                if (deps > 1) {
+                    medicalCredit += (deps - 1) * addCredit;
+                }
+            }
+        }
+
         return {
             gross,
             totalDeductions,
@@ -107,7 +155,11 @@ export default function PayslipEditor({
             totalFringe,
             netPay: gross - totalDeductions,
             updatedDeductions,
-            updatedContributions
+            updatedContributions,
+            age,
+            rebateApplied,
+            rebateDetails,
+            medicalCredit
         };
     }, [earnings, deductions, contributions, fringeBenefits, client.firstProcessingMonth, frequency]);
 
@@ -324,6 +376,31 @@ export default function PayslipEditor({
                             <span className="font-bold text-[#666666]">Total</span>
                             <span className="font-bold font-mono">R {formatCurrency(totals.totalFringe)}</span>
                         </div>
+                    </div>
+                </div>
+
+                <div className="bg-slate-50 border-t border-[#CCCCCC] p-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold text-slate-600">
+                    <div>
+                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest block mb-0.5">SARS Age Rebates Applied</span>
+                        <span className="font-bold text-slate-800">{totals.rebateDetails} (R {formatCurrency(totals.rebateApplied)} / yr)</span>
+                        {totals.age > 0 && <span className="text-[10px] text-muted-foreground block">Employee Age: {totals.age} years</span>}
+                    </div>
+                    <div>
+                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest block mb-0.5">Medical Scheme Credit (Sec 6B)</span>
+                        <span className="font-bold text-slate-800">R {formatCurrency(totals.medicalCredit)} / mo</span>
+                        {employee.medicalAidMembers ? (
+                            <span className="text-[10px] text-muted-foreground block">
+                                {employee.medicalAidMembers} Member(s) & {employee.medicalAidDependents || 0} Dependent(s)
+                            </span>
+                        ) : (
+                            <span className="text-[10px] text-muted-foreground block">No active medical scheme registered</span>
+                        )}
+                    </div>
+                    <div className="text-right">
+                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest block mb-0.5">Statutory Deductions (PAYE + UIF)</span>
+                        <span className="font-bold text-destructive font-mono">
+                            R {formatCurrency(totals.updatedDeductions.filter(d => d.isStatutory).reduce((s, d) => s + d.amount, 0))}
+                        </span>
                     </div>
                 </div>
 

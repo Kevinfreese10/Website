@@ -288,6 +288,8 @@ export type Employee = {
   department?: string;
   status: 'Active' | 'Terminated' | 'Inactive';
   terminationDate?: any;
+  medicalAidMembers?: number;
+  medicalAidDependents?: number;
 };
 
 export type PayslipItem = {

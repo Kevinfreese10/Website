@@ -20,7 +20,7 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar";
 import { useAuth } from '@/contexts/AuthContext';
-
+import KhaiChatPopup from '@/components/admin/KhaiChatPopup';
 
 const db = getFirestore(firebaseApp);
 
@@ -132,6 +132,7 @@ export default function AIAccountantClientLayout({ children }: { children: React
                     <MenubarTrigger className="py-2">Reports <ChevronDown className="h-3 w-3 ml-1" /></MenubarTrigger>
                     <MenubarContent>
                         <MenubarItem asChild><Link href={`/admin/ai-accountant/${clientId}/reports/profit-and-loss`}>Profit & Loss</Link></MenubarItem>
+                        <MenubarItem asChild><Link href={`/admin/ai-accountant/${clientId}/reports/balance-sheet`}>Balance Sheet</Link></MenubarItem>
                         <MenubarItem asChild><Link href={`/admin/ai-accountant/${clientId}/reports/trial-balance`}>Trial Balance</Link></MenubarItem>
                         <MenubarItem asChild><Link href={`/admin/ai-accountant/${clientId}/reports/general-ledger`}>General Ledger</Link></MenubarItem>
                         <MenubarItem asChild><Link href={`/admin/ai-accountant/${clientId}/reports/transaction-search`}>Transaction Search</Link></MenubarItem>
@@ -150,6 +151,8 @@ export default function AIAccountantClientLayout({ children }: { children: React
             <main>
                 {children}
             </main>
+
+            <KhaiChatPopup clientId={clientId} client={client} />
         </div>
     );
 }

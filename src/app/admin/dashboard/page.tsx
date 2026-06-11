@@ -8,11 +8,11 @@ import { format, isPast, isSameDay } from 'date-fns';
 import { Task, User, Order } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, Edit, CheckSquare, X, Filter, AlertOctagon, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, Edit, CheckSquare, X, Filter, AlertOctagon, ArrowRight, CheckCircle2, LayoutGrid, List, ArrowRightLeft, MessageSquare, AlertTriangle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where, onSnapshot, serverTimestamp, Timestamp, writeBatch } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where, onSnapshot, serverTimestamp, Timestamp, writeBatch, arrayUnion } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateNextTaskOccurrence } from '@/app/actions';
@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 
 const db = getFirestore(firebaseApp);
 
@@ -31,12 +32,16 @@ const getTaskDate = (task: Task): Date => {
 };
 
 const userColors = [
-  'bg-red-200 text-red-800', 'bg-blue-200 text-blue-800', 'bg-green-200 text-green-800',
-  'bg-yellow-200 text-yellow-800', 'bg-purple-200 text-purple-800', 'bg-pink-200 text-pink-800',
+  'bg-red-100 text-red-700 border-red-200',
+  'bg-blue-100 text-blue-700 border-blue-200',
+  'bg-green-100 text-green-700 border-green-200',
+  'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'bg-purple-100 text-purple-700 border-purple-200',
+  'bg-pink-100 text-pink-700 border-pink-200',
 ];
 
 const getUserColor = (userId: string) => {
-  if (!userId) return 'bg-gray-200 text-gray-800';
+  if (!userId) return 'bg-gray-100 text-gray-700';
   const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return userColors[hash % userColors.length];
 };
@@ -61,6 +66,10 @@ export default function AdminDashboardPage() {
     const [selectedRoadmapIds, setSelectedRoadmapIds] = useState<string[]>([]);
     const [taskTypeFilter, setTaskTypeFilter] = useState('all');
     const [overdueTaskTypeFilter, setOverdueTaskTypeFilter] = useState('all');
+    
+    // View mode: 'list' or 'board' (Kanban)
+    const [viewMode, setViewMode] = useState<'list' | 'board'>('board');
+    
     const { toast } = useToast();
     
     useEffect(() => {
@@ -116,6 +125,19 @@ export default function AdminDashboardPage() {
 
         return filtered.sort((a,b) => getTaskDate(a).getTime() - getTaskDate(b).getTime());
     }, [tasks, taskTypeFilter]);
+
+    // Practice progress indicator calculations
+    const todayCompletedCount = useMemo(() => {
+        return tasks.filter(t => t.status === 'Done' && t.createdAt && isSameDay(t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt), new Date())).length;
+    }, [tasks]);
+
+    const practiceMetrics = useMemo(() => {
+        const active = tasks.filter(t => t.status !== 'Done');
+        const done = tasks.filter(t => t.status === 'Done');
+        const total = active.length + done.length;
+        const completionRate = total > 0 ? Math.round((done.length / total) * 100) : 100;
+        return { activeCount: active.length, doneCount: done.length, completionRate };
+    }, [tasks]);
 
     const availableTaskTypes = useMemo(() => {
         const types = new Set<string>();
@@ -197,6 +219,7 @@ export default function AdminDashboardPage() {
                     createdBy: user.uid, 
                     createdAt: serverTimestamp(),
                     comments: [],
+                    priority: 'Medium',
                 };
                 await addDoc(collection(db, 'tasks'), newTask);
                 toast({ title: 'Task Created', description: `Task assigned.` });
@@ -211,328 +234,588 @@ export default function AdminDashboardPage() {
         }
     };
 
-    if (isLoading && tasks.length === 0) return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin" /></div>;
+    const handleCommentSubmit = async (taskId: string, commentText: string) => {
+        if (!user) return;
+        const newComment = {
+            text: commentText,
+            date: Timestamp.now(),
+            authorId: user.uid,
+        };
+
+        try {
+            const taskRef = doc(db, 'tasks', taskId);
+            await updateDoc(taskRef, {
+                comments: arrayUnion(newComment),
+            });
+            
+            // Sync with local selected task to update comments UI live
+            if (selectedTask && selectedTask.id === taskId) {
+                setSelectedTask(prev => prev ? {
+                    ...prev,
+                    comments: [...(prev.comments || []), { ...newComment, date: new Date() }]
+                } : null);
+            }
+            
+            toast({ title: 'Comment Posted', description: 'Your comment has been added.' });
+        } catch (error) {
+            console.error("Error posting comment:", error);
+            toast({ title: 'Error', description: 'Could not post comment.', variant: 'destructive' });
+        }
+    };
+
+    const getServiceTypeColor = (type?: string) => {
+        if (!type) return 'bg-slate-100 text-slate-700 border-slate-200';
+        const upper = type.toUpperCase();
+        if (upper.includes('VAT')) return 'bg-blue-50 text-blue-700 border-blue-150';
+        if (upper.includes('PAYE') || upper.includes('EMP')) return 'bg-emerald-50 text-emerald-700 border-emerald-150';
+        if (upper.includes('PAYROLL')) return 'bg-teal-50 text-teal-700 border-teal-150';
+        if (upper.includes('MGMT') || upper.includes('MANAGEMENT')) return 'bg-purple-50 text-purple-700 border-purple-150';
+        if (upper.includes('AFS') || upper.includes('FINANCIAL')) return 'bg-indigo-50 text-indigo-700 border-indigo-150';
+        if (upper.includes('ITR') || upper.includes('INCOME')) return 'bg-rose-50 text-rose-700 border-rose-150';
+        if (upper.includes('IRP') || upper.includes('PROVISIONAL')) return 'bg-amber-50 text-amber-700 border-amber-150';
+        return 'bg-slate-50 text-slate-650 border-slate-200';
+    };
+
+    const parseTaskTitle = (title: string) => {
+        const forIndex = title.lastIndexOf(' for ');
+        const displayTitle = forIndex > -1 ? title.substring(0, forIndex) : title;
+        const clientName = forIndex > -1 ? title.substring(forIndex + 5) : '';
+        return { displayTitle, clientName };
+    };
+
+    // Helper to render task visual card
+    const renderTaskCard = (task: Task, options?: { showActions?: boolean }) => {
+        const dueDate = getTaskDate(task);
+        const isOverdue = isPast(dueDate) && !isSameDay(dueDate, new Date()) && task.status !== 'Done';
+        
+        const priorityColor = 
+            task.priority === 'High' ? 'bg-red-50 text-red-700 border-red-200/60' : 
+            task.priority === 'Medium' ? 'bg-amber-50 text-amber-700 border-amber-200/60' : 
+            'bg-slate-50 text-slate-650 border-slate-200/60';
+
+        const leftBorderColor = 
+            isOverdue ? 'border-l-red-550' : 
+            task.status === 'In Progress' ? 'border-l-indigo-500' : 
+            task.status === 'Review' ? 'border-l-purple-500' : 
+            'border-l-slate-400';
+            
+        const { displayTitle, clientName } = parseTaskTitle(task.title);
+
+        return (
+            <Card 
+                key={task.id} 
+                className={cn(
+                    "group relative border-y border-r border-slate-200/70 border-l-[6px] shadow-[0_2px_5px_rgba(0,0,0,0.03)] hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden bg-white hover:border-slate-350 hover:border-l-[6px]",
+                    task.status === 'Done' && 'opacity-60',
+                    leftBorderColor
+                )}
+                onClick={() => { setSelectedTask(task); setIsFormOpen(true); }}
+            >
+                <CardContent className="p-4.5 space-y-2.5">
+                    {/* Header: Service type tag + Priority tag */}
+                    <div className="flex items-center justify-between gap-2">
+                        <Badge variant="outline" className={cn("text-[9px] font-black uppercase px-2 py-0.5 tracking-wider border rounded-md h-5 shrink-0", getServiceTypeColor(task.type))}>
+                            {task.type || 'Manual'}
+                        </Badge>
+                        
+                        <div className="flex gap-1.5 items-center shrink-0">
+                            {isOverdue && (
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                            )}
+                            {task.priority && (
+                                <Badge variant="outline" className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full border h-5", priorityColor)}>
+                                    {task.priority}
+                                </Badge>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Title & Client Name */}
+                    <div className="space-y-1">
+                        <h4 className="text-sm font-extrabold text-slate-800 line-clamp-1 group-hover:text-primary transition-colors leading-tight">
+                            {displayTitle}
+                        </h4>
+                        {clientName && (
+                            <p className="text-[11px] font-bold text-slate-500 flex items-center gap-1 line-clamp-1">
+                                <span className="text-[9px] text-slate-400 font-normal uppercase tracking-wider bg-slate-50 border border-slate-200/50 px-1 rounded">Client</span>
+                                <span className="truncate">{clientName}</span>
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Description */}
+                    {task.description && (
+                        <p className="text-xs text-slate-450 font-medium line-clamp-2 leading-relaxed">
+                            {task.description}
+                        </p>
+                    )}
+
+                    {/* Footer: Date & Assignees */}
+                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-50 text-[11px]">
+                        <div className="flex items-center gap-1.5 font-bold">
+                            <CalendarIcon className={cn("h-3.5 w-3.5", isOverdue ? "text-red-500 animate-pulse" : "text-slate-400")} />
+                            <span className={cn(isOverdue ? "text-red-500" : "text-slate-500")}>
+                                {format(dueDate, 'dd MMM yyyy')}
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {/* Assigned Avatars */}
+                            <div className="flex -space-x-1.5">
+                                {task.assignedTo?.slice(0, 3).map(uid => {
+                                    const staff = allUsers.find(u => u.uid === uid);
+                                    if (!staff) return null;
+                                    return (
+                                        <div 
+                                            key={uid} 
+                                            className={cn(
+                                                "h-5.5 w-5.5 rounded-full border border-white flex items-center justify-center text-[9px] font-black shadow-sm shrink-0", 
+                                                getUserColor(staff.uid)
+                                            )}
+                                        >
+                                            {staff.name.charAt(0)}
+                                        </div>
+                                    );
+                                })}
+                                {(!task.assignedTo || task.assignedTo.length === 0) && (
+                                    <span className="text-[9px] font-bold text-slate-400 italic">Unassigned</span>
+                                )}
+                            </div>
+                            
+                            {options?.showActions !== false && (
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-1 border-slate-200"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleUpdate(task.id, { status: 'Done' });
+                                    }}
+                                >
+                                    <Check className="h-3 w-3 text-green-600" />
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
+
+    if (isLoading && tasks.length === 0) return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
 
     return (
         <div className="space-y-8">
-            <div className="flex justify-between items-center border-b pb-4">
-                <h1 className="text-3xl font-bold tracking-tight text-slate-950">Welcome, {user?.name}!</h1>
-                <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setSelectedTask(null); }}>
-                    <DialogTrigger asChild>
-                        <Button onClick={() => { setSelectedTask(null); setIsFormOpen(true); }}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Create Task
+            {/* Top Title & Quick Actions */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 bg-gradient-to-r from-slate-950 to-slate-700 bg-clip-text text-transparent">Welcome, {user?.name}!</h1>
+                    <p className="text-sm font-semibold text-slate-400">Here's your practice overview and compliance schedule for today.</p>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                    {/* View Switcher Toggle */}
+                    <div className="bg-slate-100 p-0.5 rounded-lg flex items-center border">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={cn("h-8 text-xs font-bold px-3", viewMode === 'list' ? "bg-white shadow-sm" : "text-slate-500 hover:text-slate-900")}
+                            onClick={() => setViewMode('list')}
+                        >
+                            <List className="mr-1.5 h-3.5 w-3.5" /> List
                         </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[700px]">
-                        <DialogHeader>
-                            <DialogTitle>{selectedTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
-                            <DialogDescription>
-                                {selectedTask ? 'Update the details of this task.' : 'Fill out the form to add a new task for a staff member.'}
-                            </DialogDescription>
-                        </DialogHeader>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={cn("h-8 text-xs font-bold px-3", viewMode === 'board' ? "bg-white shadow-sm" : "text-slate-500 hover:text-slate-900")}
+                            onClick={() => setViewMode('board')}
+                        >
+                            <LayoutGrid className="mr-1.5 h-3.5 w-3.5" /> Board
+                        </Button>
+                    </div>
+
+                    <Button className="shadow-md font-bold px-4" onClick={() => { setSelectedTask(null); setIsFormOpen(true); }}>
+                        <PlusCircle className="mr-2 h-4.5 w-4.5" />
+                        Create Task
+                    </Button>
+                </div>
+            </div>
+
+            {/* Practice Metrics & Performance Banner */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <Card className="lg:col-span-2 border-slate-100 bg-gradient-to-br from-white to-slate-50 shadow-sm">
+                    <CardContent className="p-6 flex flex-col sm:flex-row items-center gap-6">
+                        <div className="flex-1 space-y-2 w-full">
+                            <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider text-slate-400">
+                                <span>Practice Operations completion rate</span>
+                                <span className="text-primary font-black">{practiceMetrics.completionRate}%</span>
+                            </div>
+                            <Progress value={practiceMetrics.completionRate} className="h-3 bg-slate-100 bg-gradient-to-r from-primary to-emerald-500" />
+                            <p className="text-xs text-slate-500 font-medium">
+                                Total practice portfolio completion metrics. Real-time updates based on active vs completed system roadmaps.
+                            </p>
+                        </div>
+                        <div className="flex gap-4 shrink-0 justify-center">
+                            <div className="text-center bg-white p-3 rounded-xl border shadow-sm w-20">
+                                <span className="block text-2xl font-black text-slate-800">{practiceMetrics.activeCount}</span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Active</span>
+                            </div>
+                            <div className="text-center bg-white p-3 rounded-xl border shadow-sm w-20">
+                                <span className="block text-2xl font-black text-slate-850">{practiceMetrics.doneCount}</span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Done</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Overdue Alert banner/metrics */}
+                <Card className={cn(
+                    "border-destructive/10 bg-gradient-to-br from-destructive/5 to-white shadow-sm relative overflow-hidden transition-all duration-300",
+                    overdueTasks.length > 0 ? "border-l-4 border-l-destructive" : ""
+                )}>
+                    <CardContent className="p-6 flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                            <span className="text-xs font-black text-destructive uppercase tracking-wider flex items-center gap-1">
+                                <AlertTriangle className="h-4 w-4" /> Attention Required
+                            </span>
+                            <h4 className="text-2xl font-black text-slate-850">{overdueTasks.length} Overdue Tasks</h4>
+                            <p className="text-xs text-slate-500 font-medium">Action immediate compliance requirements.</p>
+                        </div>
+                        {overdueTasks.length > 0 && (
+                            <Badge variant="destructive" className="px-3 py-1 font-bold animate-pulse">LATE</Badge>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Overdue Tasks Alert Banner - Removes duplicates */}
+            {overdueTasks.length > 0 && (
+                <Card className="border-red-250 bg-gradient-to-r from-red-50/70 to-red-50/20 border-l-4 border-l-red-500 shadow-sm animate-in fade-in duration-300">
+                    <CardContent className="p-4.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-red-100 text-red-700 p-2.5 rounded-xl"><AlertOctagon className="h-5.5 w-5.5" /></div>
+                            <div>
+                                <h4 className="text-sm font-black text-slate-800">You have {overdueTasks.length} Overdue Compliance Tasks</h4>
+                                <p className="text-xs text-slate-500 font-medium mt-0.5">These tasks have missed their statutory due dates. Please review them in the To-Do column or view the task logs.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <Select value={overdueTaskTypeFilter} onValueChange={setOverdueTaskTypeFilter}>
+                                <SelectTrigger className="w-[180px] h-8.5 text-xs font-bold bg-white border-red-200 text-red-700 focus:ring-red-200">
+                                    <SelectValue placeholder="Filter overdue..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Overdue Types</SelectItem>
+                                    {availableTaskTypes.map(type => (
+                                        <SelectItem key={type} value={type}>{taskTypeLabels[type] || type}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button size="sm" variant="destructive" className="h-8.5 font-bold text-xs px-4" asChild>
+                                <Link href="/admin/tasks">View List</Link>
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Kanban Board View */}
+            {viewMode === 'board' ? (
+                <div className="space-y-6 bg-slate-50/70 p-6 rounded-3xl border border-slate-100 shadow-inner">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-500">Task Board</h3>
+                        <div className="flex items-center gap-2">
+                            <Filter className="h-4 w-4 text-slate-400" />
+                            <Select value={taskTypeFilter} onValueChange={setTaskTypeFilter}>
+                                <SelectTrigger className="w-[180px] h-8 text-xs font-semibold bg-white">
+                                    <SelectValue placeholder="Filter service..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Services</SelectItem>
+                                    {availableTaskTypes.map(type => (
+                                        <SelectItem key={type} value={type}>{taskTypeLabels[type] || type}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        {/* COLUMN 1: To-Do */}
+                        <div className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4.5 flex flex-col h-[680px] overflow-hidden shadow-sm">
+                            <div className="flex justify-between items-center border-b border-slate-200/60 pb-3.5 mb-4">
+                                <span className="text-xs font-black text-slate-650 uppercase tracking-widest">To-Do</span>
+                                <Badge variant="secondary" className="font-extrabold text-[10px] px-2.5 bg-slate-250/90 text-slate-700">{roadmapTasks.filter(t => t.status === 'To-Do').length}</Badge>
+                            </div>
+                            <ScrollArea className="flex-1">
+                                <div className="space-y-3.5 pr-2.5">
+                                    {roadmapTasks.filter(t => t.status === 'To-Do').map(task => renderTaskCard(task))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+
+                        {/* COLUMN 2: In Progress */}
+                        <div className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4.5 flex flex-col h-[680px] overflow-hidden shadow-sm">
+                            <div className="flex justify-between items-center border-b border-slate-200/60 pb-3.5 mb-4">
+                                <span className="text-xs font-black text-slate-650 uppercase tracking-widest text-indigo-755">In Progress</span>
+                                <Badge variant="secondary" className="font-extrabold text-[10px] px-2.5 bg-indigo-100 text-indigo-700 border-indigo-200/50">{roadmapTasks.filter(t => t.status === 'In Progress').length}</Badge>
+                            </div>
+                            <ScrollArea className="flex-1">
+                                <div className="space-y-3.5 pr-2.5">
+                                    {roadmapTasks.filter(t => t.status === 'In Progress').map(task => renderTaskCard(task))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+
+                        {/* COLUMN 3: Review */}
+                        <div className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4.5 flex flex-col h-[680px] overflow-hidden shadow-sm">
+                            <div className="flex justify-between items-center border-b border-slate-200/60 pb-3.5 mb-4">
+                                <span className="text-xs font-black text-slate-650 uppercase tracking-widest text-purple-755">Review</span>
+                                <Badge variant="secondary" className="font-extrabold text-[10px] px-2.5 bg-purple-100 text-purple-700 border-purple-200/50">{roadmapTasks.filter(t => t.status === 'Review').length}</Badge>
+                            </div>
+                            <ScrollArea className="flex-1">
+                                <div className="space-y-3.5 pr-2.5">
+                                    {roadmapTasks.filter(t => t.status === 'Review').map(task => renderTaskCard(task))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                /* Sleek List View */
+                <div className="space-y-8 animate-in fade-in duration-300">
+                    {/* My Upcoming Tasks */}
+                    <Card className="border rounded-2xl shadow-sm bg-white overflow-hidden">
+                        <CardHeader className="bg-slate-50/40 border-b pb-4">
+                            <CardTitle className="text-md flex items-center gap-2 text-slate-900 font-extrabold">
+                                <ClipboardList className="h-5 w-5 text-primary" />
+                                My Upcoming Assigned Tasks
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader className="bg-slate-50/10">
+                                    <TableRow className="border-b">
+                                        <TableHead className="font-bold text-slate-500">Task Details</TableHead>
+                                        <TableHead className="font-bold text-slate-500">Due Date</TableHead>
+                                        <TableHead className="font-bold text-slate-500">Status</TableHead>
+                                        <TableHead className="text-right font-bold text-slate-500 pr-6">Quick Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {myTasks.map(task => {
+                                        const date = getTaskDate(task);
+                                        return (
+                                            <TableRow key={task.id} className="hover:bg-slate-50/30 transition-colors border-b cursor-pointer" onClick={() => { setSelectedTask(task); setIsFormOpen(true); }}>
+                                                <TableCell className="font-semibold text-slate-900 py-3">
+                                                    <p className="line-clamp-1">{task.title}</p>
+                                                    <p className="text-xs text-slate-400 font-medium line-clamp-1 mt-0.5">{task.description}</p>
+                                                </TableCell>
+                                                <TableCell className="text-xs text-slate-600 font-medium py-3">
+                                                    {format(date, 'dd MMM yyyy')}
+                                                </TableCell>
+                                                <TableCell className="py-3">
+                                                    <Badge variant="outline" className="text-[9px] font-black uppercase bg-slate-50 text-slate-600 border-slate-200">
+                                                        {task.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right pr-6 py-3" onClick={(e) => e.stopPropagation()}>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => handleUpdate(task.id, { status: 'Done' })}>
+                                                        <Check className="h-4.5 w-4.5" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                    {myTasks.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center py-10 text-slate-400 font-medium">
+                                                No upcoming assigned tasks.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
+                    {/* Practice Compliance Roadmap List */}
+                    <Card className="border rounded-2xl shadow-sm bg-white overflow-hidden">
+                        <CardHeader className="bg-slate-50/40 border-b pb-4">
+                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                                <div>
+                                    <CardTitle className="text-md flex items-center gap-2 text-slate-900 font-extrabold">
+                                        <Repeat className="h-5 w-5 text-primary" />
+                                        Practice Compliance Roadmap
+                                    </CardTitle>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <Filter className="h-4 w-4 text-slate-400" />
+                                        <Select value={taskTypeFilter} onValueChange={(val) => { setTaskTypeFilter(val); setSelectedRoadmapIds([]); }}>
+                                            <SelectTrigger className="w-[180px] h-8 text-xs font-semibold">
+                                                <SelectValue placeholder="Filter service..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Services</SelectItem>
+                                                {availableTaskTypes.map(type => (
+                                                    <SelectItem key={type} value={type}>{taskTypeLabels[type] || type}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {selectedRoadmapIds.length > 0 && (
+                                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                                            <Badge variant="secondary" className="px-3 h-8 gap-2 font-bold text-xs">
+                                                {selectedRoadmapIds.length} Selected
+                                                <X 
+                                                    className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                                                    onClick={() => setSelectedRoadmapIds([])}
+                                                />
+                                            </Badge>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button size="sm" className="h-8 gap-1.5 font-bold text-xs">
+                                                        <CheckSquare className="h-3.5 w-3.5" />
+                                                        Bulk Assign...
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-56">
+                                                    <DropdownMenuLabel>Select Staff Member</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    <ScrollArea className="h-64">
+                                                        {assignableStaff.map(staff => (
+                                                            <DropdownMenuItem key={staff.id} onSelect={() => handleBulkAssign(staff.id)}>
+                                                                {staff.name}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </ScrollArea>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader className="bg-slate-50/10">
+                                    <TableRow className="border-b">
+                                        <TableHead className="w-12 py-3 pl-4">
+                                            <Checkbox 
+                                                checked={roadmapTasks.length > 0 && selectedRoadmapIds.length === roadmapTasks.length}
+                                                onCheckedChange={(checked) => setSelectedRoadmapIds(checked ? roadmapTasks.map(t => t.id) : [])}
+                                            />
+                                        </TableHead>
+                                        <TableHead className="font-bold text-slate-500 py-3">Service Task</TableHead>
+                                        <TableHead className="font-bold text-slate-500 py-3 text-center">Assigned To</TableHead>
+                                        <TableHead className="font-bold text-slate-500 py-3">Due Date</TableHead>
+                                        <TableHead className="text-right font-bold text-slate-500 pr-6 py-3">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {roadmapTasks.map(task => (
+                                        <TableRow key={task.id} className={cn("hover:bg-slate-50/30 transition-colors border-b cursor-pointer", selectedRoadmapIds.includes(task.id) && "bg-primary/5")} onClick={() => { setSelectedTask(task); setIsFormOpen(true); }}>
+                                            <TableCell className="py-3 pl-4" onClick={(e) => e.stopPropagation()}>
+                                                <Checkbox 
+                                                    checked={selectedRoadmapIds.includes(task.id)}
+                                                    onCheckedChange={(checked) => setSelectedRoadmapIds(prev => checked ? [...prev, task.id] : prev.filter(id => id !== task.id))}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="font-semibold text-slate-900 py-3">
+                                                <p className="line-clamp-1">{task.title}</p>
+                                                <div className="flex gap-1.5 mt-1">
+                                                    {task.recurrence && <Badge variant="outline" className="text-[8px] h-4.5 font-bold uppercase tracking-tight">{task.recurrence}</Badge>}
+                                                    {task.type && <Badge variant="secondary" className="text-[8px] h-4.5 font-bold uppercase tracking-tight">{task.type}</Badge>}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="py-3" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex justify-center items-center -space-x-1.5">
+                                                    {task.assignedTo?.map(uid => {
+                                                        const staff = allUsers.find(u => u.uid === uid);
+                                                        if (!staff) return null;
+                                                        return (
+                                                            <TooltipProvider key={uid}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger>
+                                                                        <div className={cn("h-6 w-6 rounded-full border border-white flex items-center justify-center text-[9px] font-black shadow-sm", getUserColor(staff.uid))}>
+                                                                            {staff.name.charAt(0)}
+                                                                        </div>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent><p>{staff.name}</p></TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        );
+                                                    })}
+                                                    {(!task.assignedTo || task.assignedTo.length === 0) && (
+                                                        <span className="text-[10px] text-slate-400 font-bold italic uppercase opacity-60">Unassigned</span>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-xs text-slate-600 font-semibold py-3">
+                                                {format(getTaskDate(task), 'dd/MM/yyyy')}
+                                            </TableCell>
+                                            <TableCell className="text-right pr-6 py-3" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        className="h-8 w-8 text-slate-400 hover:text-slate-900" 
+                                                        onClick={() => { setSelectedTask(task); setIsFormOpen(true); }}
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" 
+                                                        onClick={() => handleUpdate(task.id, { status: 'Done' })}
+                                                    >
+                                                        <Check className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {roadmapTasks.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-12 text-slate-400 font-medium">No tasks found for the selected filter.</TableCell></TableRow>}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Task Slide-over Sheet (Drawer) */}
+            <Sheet open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setSelectedTask(null); }}>
+                <SheetContent className="sm:max-w-xl w-full flex flex-col h-full bg-white p-0 overflow-hidden">
+                    <div className="p-6 border-b bg-gradient-to-r from-slate-900 to-slate-800 text-white relative">
+                        <SheetHeader className="text-left">
+                            <Badge className="bg-primary hover:bg-primary text-[10px] uppercase font-black tracking-wide w-fit">Task Workspace</Badge>
+                            <SheetTitle className="text-2xl font-black text-white mt-2 leading-tight">
+                                {selectedTask ? 'Update Task Details' : 'Create New Task'}
+                            </SheetTitle>
+                            <SheetDescription className="text-slate-300 text-xs font-medium mt-1">
+                                {selectedTask ? 'Edit task status, comment history, and assignments.' : 'Fill out the form to add a new task for a staff member.'}
+                            </SheetDescription>
+                        </SheetHeader>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6">
                         <TaskForm 
                             task={selectedTask || {}} 
                             onSubmit={handleFormSubmit}
                             onCancel={() => setIsFormOpen(false)}
-                            onCommentSubmit={() => {}}
+                            onCommentSubmit={handleCommentSubmit}
                             allStaff={assignableStaff}
                             staffByDept={staffByDept}
                         />
-                    </DialogContent>
-                </Dialog>
-            </div>
-
-            <div className="space-y-8">
-                <Card className="border-destructive/20 bg-destructive/5 shadow-md animate-in fade-in slide-in-from-top-4 duration-500">
-                    <CardHeader className="pb-3 border-b border-destructive/10">
-                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                            <div className="space-y-1">
-                                <CardTitle className="text-destructive flex items-center gap-2">
-                                    <AlertOctagon className="h-5 w-5" />
-                                    Overdue Tasks
-                                </CardTitle>
-                                <CardDescription className="text-destructive/80 font-medium">Items requiring immediate attention across the practice.</CardDescription>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2">
-                                    <Filter className="h-4 w-4 text-destructive/60" />
-                                    <Select value={overdueTaskTypeFilter} onValueChange={setOverdueTaskTypeFilter}>
-                                        <SelectTrigger className="w-[200px] h-9 text-xs font-bold bg-white border-destructive/20 text-destructive">
-                                            <SelectValue placeholder="Filter by type..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Types</SelectItem>
-                                            {availableTaskTypes.map(type => (
-                                                <SelectItem key={type} value={type}>{taskTypeLabels[type] || type}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <Badge variant="destructive" className="font-bold px-3 h-9">{overdueTasks.length} Overdue</Badge>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <Table>
-                            <TableHeader className="bg-destructive/5">
-                                <TableRow>
-                                    <TableHead className="text-destructive font-bold">Task</TableHead>
-                                    <TableHead className="text-destructive font-bold text-center">Assigned To</TableHead>
-                                    <TableHead className="text-destructive font-bold">Due Date</TableHead>
-                                    <TableHead className="text-destructive font-bold text-right">Action</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {overdueTasks.slice(0, 10).map(task => (
-                                    <TableRow key={task.id} className="hover:bg-destructive/10 border-destructive/5">
-                                        <TableCell className="font-bold text-slate-900">
-                                            <div className="flex flex-col">
-                                                <span>{task.title}</span>
-                                                <span className="text-[10px] text-muted-foreground uppercase tracking-tighter">
-                                                    {task.type || 'Manual Task'}
-                                                </span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex justify-center items-center -space-x-2">
-                                                {task.assignedTo?.map(uid => {
-                                                    const staff = allUsers.find(u => u.uid === uid);
-                                                    if (!staff) return null;
-                                                    return (
-                                                        <TooltipProvider key={uid}>
-                                                            <Tooltip>
-                                                                <TooltipTrigger>
-                                                                    <div className={cn("h-7 w-7 rounded-full border-2 border-background flex items-center justify-center text-[10px] font-black shadow-sm", getUserColor(staff.uid))}>
-                                                                        {staff.name.charAt(0)}
-                                                                    </div>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent><p>{staff.name}</p></TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    );
-                                                })}
-                                                {(!task.assignedTo || task.assignedTo.length === 0) && (
-                                                    <span className="text-[10px] text-destructive italic font-bold">UNASSIGNED</span>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-xs font-black text-destructive tabular-nums">
-                                            {format(getTaskDate(task), 'dd MMM yyyy')}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="h-8 w-8 text-destructive hover:bg-destructive/20" 
-                                                onClick={() => handleUpdate(task.id, { status: 'Done' })}
-                                            >
-                                                <Check className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        {overdueTasks.length > 10 && (
-                            <div className="p-3 text-center border-t border-destructive/10 bg-destructive/5">
-                                <Button variant="link" size="sm" asChild className="text-destructive font-bold text-xs uppercase tracking-widest">
-                                    <Link href="/admin/tasks">View all {overdueTasks.length} overdue tasks <ArrowRight className="ml-2 h-3 w-3" /></Link>
-                                </Button>
-                            </div>
-                        )}
-                        {overdueTasks.length === 0 && (
-                            <div className="py-12 text-center text-muted-foreground font-medium">
-                                <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-500/20" />
-                                <p>No overdue tasks matching the filter.</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-slate-950">
-                            <ClipboardList className="h-5 w-5 text-primary" />
-                            My Upcoming Tasks
-                        </CardTitle>
-                        <CardDescription>Directly assigned to you and due soon.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Task</TableHead>
-                                    <TableHead>Due Date</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {myTasks.map(task => (
-                                    <TableRow key={task.id}>
-                                        <TableCell className="font-medium">
-                                            <p className="line-clamp-1">{task.title}</p>
-                                            <p className="text-[10px] text-muted-foreground line-clamp-1">{task.description}</p>
-                                        </TableCell>
-                                        <TableCell className="text-xs">{format(getTaskDate(task), 'dd/MM/yyyy')}</TableCell>
-                                        <TableCell><Badge variant="secondary" className="text-[10px] font-bold">{task.status}</Badge></TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleUpdate(task.id, { status: 'Done' })}><Check className="h-4 w-4 text-green-600" /></Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {myTasks.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground text-xs font-medium">No upcoming assigned tasks.</TableCell></TableRow>}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                            <div>
-                                <CardTitle className="flex items-center gap-2 text-slate-950">
-                                    <Repeat className="h-5 w-5 text-primary" />
-                                    Practice Compliance Roadmap
-                                </CardTitle>
-                                <CardDescription>Practice-wide automated deadlines across all clients.</CardDescription>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-3">
-                                <div className="flex items-center gap-2">
-                                    <Filter className="h-4 w-4 text-muted-foreground" />
-                                    <Select value={taskTypeFilter} onValueChange={(val) => { setTaskTypeFilter(val); setSelectedRoadmapIds([]); }}>
-                                        <SelectTrigger className="w-[200px] h-9 text-xs font-bold">
-                                            <SelectValue placeholder="Filter by service..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Services</SelectItem>
-                                            {availableTaskTypes.map(type => (
-                                                <SelectItem key={type} value={type}>{taskTypeLabels[type] || type}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {selectedRoadmapIds.length > 0 && (
-                                    <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-                                        <Badge variant="secondary" className="px-3 h-9 gap-2 font-bold">
-                                            {selectedRoadmapIds.length} selected
-                                            <X 
-                                                className="h-3 w-3 cursor-pointer hover:text-destructive" 
-                                                onClick={() => setSelectedRoadmapIds([])}
-                                            />
-                                        </Badge>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button size="sm" className="h-9 gap-2 font-bold">
-                                                    <CheckSquare className="h-4 w-4" />
-                                                    Bulk Assign To...
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-56">
-                                                <DropdownMenuLabel>Select Staff Member</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                <ScrollArea className="h-64">
-                                                    {assignableStaff.map(staff => (
-                                                        <DropdownMenuItem key={staff.id} onSelect={() => handleBulkAssign(staff.id)}>
-                                                            {staff.name}
-                                                        </DropdownMenuItem>
-                                                    ))}
-                                                </ScrollArea>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-12">
-                                        <Checkbox 
-                                            checked={roadmapTasks.length > 0 && selectedRoadmapIds.length === roadmapTasks.length}
-                                            onCheckedChange={(checked) => setSelectedRoadmapIds(checked ? roadmapTasks.map(t => t.id) : [])}
-                                        />
-                                    </TableHead>
-                                    <TableHead>Service Task</TableHead>
-                                    <TableHead className="text-center">Assigned To</TableHead>
-                                    <TableHead>Due Date</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {roadmapTasks.map(task => (
-                                    <TableRow key={task.id} className={cn(selectedRoadmapIds.includes(task.id) && "bg-primary/5")}>
-                                        <TableCell>
-                                            <Checkbox 
-                                                checked={selectedRoadmapIds.includes(task.id)}
-                                                onCheckedChange={(checked) => setSelectedRoadmapIds(prev => checked ? [...prev, task.id] : prev.filter(id => id !== task.id))}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="font-medium align-top">
-                                            <p className="line-clamp-1">{task.title}</p>
-                                            <div className="flex gap-1.5 mt-1">
-                                                {task.recurrence && <Badge variant="outline" className="text-[9px] h-4 font-black uppercase tracking-tighter">{task.recurrence}</Badge>}
-                                                {task.type && <Badge variant="secondary" className="text-[9px] h-4 font-black uppercase tracking-tighter">{task.type}</Badge>}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="align-top">
-                                            <div className="flex justify-center items-center -space-x-2">
-                                                {task.assignedTo?.map(uid => {
-                                                    const staff = allUsers.find(u => u.uid === uid);
-                                                    if (!staff) return null;
-                                                    return (
-                                                        <TooltipProvider key={uid}>
-                                                            <Tooltip>
-                                                                <TooltipTrigger>
-                                                                    <div className={cn("h-6 w-6 rounded-full border-2 border-background flex items-center justify-center text-[10px] font-bold shadow-sm", getUserColor(staff.uid))}>
-                                                                        {staff.name.charAt(0)}
-                                                                    </div>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent><p>{staff.name}</p></TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    );
-                                                })}
-                                                {(!task.assignedTo || task.assignedTo.length === 0) && (
-                                                    <span className="text-[10px] text-muted-foreground italic font-medium uppercase opacity-50">Unassigned</span>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-xs font-bold tabular-nums align-top">
-                                            {format(getTaskDate(task), 'dd/MM/yyyy')}
-                                        </TableCell>
-                                        <TableCell className="text-right align-top">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    className="h-8 w-8" 
-                                                    onClick={() => { setSelectedTask(task); setIsFormOpen(true); }}
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    className="h-8 w-8" 
-                                                    onClick={() => handleUpdate(task.id, { status: 'Done' })}
-                                                >
-                                                    <Check className="h-4 w-4 text-green-600" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {roadmapTasks.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground font-medium">No tasks found for the selected filter.</TableCell></TableRow>}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

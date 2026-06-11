@@ -18,6 +18,7 @@ import {
   MenubarSeparator,
   MenubarTrigger,
 } from "@/components/ui/menubar";
+import { useToast } from '@/hooks/use-toast';
 
 const db = getFirestore(firebaseApp);
 
@@ -26,6 +27,7 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
   const clientId = params.clientId as string;
   const [client, setClient] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (clientId) {
@@ -37,6 +39,13 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
       return () => unsub();
     }
   }, [clientId]);
+
+  const showComingSoon = () => {
+    toast({
+        title: "Coming Soon",
+        description: "This administrative option is currently in development.",
+    });
+  };
 
   if (isLoading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
@@ -82,9 +91,9 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
           <MenubarTrigger>Employees <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
           <MenubarContent>
             <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/employees`}>Employee List</Link></MenubarItem>
-            <MenubarItem>Employee Contracts</MenubarItem>
+            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Employee Contracts</MenubarItem>
             <MenubarSeparator />
-            <MenubarItem>Bulk Upload</MenubarItem>
+            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Bulk Upload</MenubarItem>
           </MenubarContent>
         </MenubarMenu>
 
@@ -92,16 +101,18 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
           <MenubarTrigger>Payroll <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
           <MenubarContent>
             <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/payslips`}>Payslip Generation</Link></MenubarItem>
-            <MenubarItem>Batch Processing</MenubarItem>
-            <MenubarItem>Payment Files (ABA/EFT)</MenubarItem>
+            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Batch Processing</MenubarItem>
+            <MenubarItem asChild>
+              <Link href={`/admin/ai-payroll/${clientId}/payment-file`} className="cursor-pointer">Payment Files (EFT)</Link>
+            </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
 
         <MenubarMenu>
           <MenubarTrigger>Leave <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
           <MenubarContent>
-            <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/leave`}>Leave Tracker</Link></MenubarItem>
-            <MenubarItem>Annual Leave Cycle</MenubarItem>
+            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Leave Tracker</MenubarItem>
+            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Annual Leave Cycle</MenubarItem>
           </MenubarContent>
         </MenubarMenu>
 
@@ -109,8 +120,8 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
           <MenubarTrigger>Compliance <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
           <MenubarContent>
             <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/reports/emp201`}>EMP201 Return</Link></MenubarItem>
-            <MenubarItem>UIF Declaration</MenubarItem>
-            <MenubarItem>EMP501 Recon</MenubarItem>
+            <MenubarItem onClick={showComingSoon} className="cursor-pointer">UIF Declaration</MenubarItem>
+            <MenubarItem onClick={showComingSoon} className="cursor-pointer">EMP501 Recon</MenubarItem>
           </MenubarContent>
         </MenubarMenu>
 
@@ -126,10 +137,10 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
         <MenubarMenu>
           <MenubarTrigger>Settings <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
           <MenubarContent>
-            <MenubarItem>Payroll Cycles</MenubarItem>
-            <MenubarItem>Allowances & Deductions</MenubarItem>
+            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Payroll Cycles</MenubarItem>
+            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Allowances & Deductions</MenubarItem>
             <MenubarSeparator />
-            <MenubarItem>Company Details</MenubarItem>
+            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Company Details</MenubarItem>
           </MenubarContent>
         </MenubarMenu>
       </Menubar>

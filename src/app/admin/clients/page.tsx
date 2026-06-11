@@ -3,17 +3,19 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, PlusCircle, Loader2, RotateCw } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, RotateCw, Search, Users, DollarSign, TrendingUp, HeartPulse, CheckCircle2, AlertOctagon, SlidersHorizontal, Eye, X, Edit, Calendar } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { User, Task } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, writeBatch, Timestamp, query, orderBy, where, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, writeBatch, Timestamp, query, orderBy, where, updateDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, addMonths, setDate, setHours, setMinutes, setSeconds, startOfMonth, startOfToday, isSameDay, addYears, lastDayOfMonth } from 'date-fns';
+import { format, addMonths, setDate, setHours, setMinutes, setSeconds, startOfMonth, startOfToday, isSameDay, addYears, isPast } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,6 +33,12 @@ const vatCategories = [
     { value: 'B', label: 'Category B (Even Months)' },
     { value: 'C', label: 'Category C (Monthly)' },
 ];
+
+const getTaskDate = (task: Task): Date => {
+  if (task.dueDate instanceof Date) return task.dueDate;
+  if (task.dueDate && typeof (task.dueDate as any).toDate === 'function') return (task.dueDate as any).toDate();
+  return new Date(task.dueDate);
+};
 
 const clientFormSchema = z.object({
   id: z.string().optional(),
@@ -80,7 +88,7 @@ function ClientForm({ client, onSubmit, onCancel }: { client: User | null, onSub
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[80vh] overflow-y-auto p-1 pr-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[75vh] overflow-y-auto p-1 pr-4">
                 <div className="space-y-4">
                     <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="e.g. Acme Corp (Pty) Ltd" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <div className="grid grid-cols-2 gap-4">
@@ -203,9 +211,19 @@ function ClientForm({ client, onSubmit, onCancel }: { client: User | null, onSub
 
 export default function AdminClientsPage() {
   const [clients, setClients] = useState<User[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  
+  // Dialog (Add Client) & Sheet (Client Workspace Detail)
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<User | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Filters State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [serviceFilter, setServiceFilter] = useState('all');
+
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   
@@ -224,6 +242,13 @@ export default function AdminClientsPage() {
 
   useEffect(() => {
     fetchClients();
+
+    // Listen to tasks for real-time CRM health indicators
+    const unsubscribeTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+        setTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
+    });
+
+    return () => unsubscribeTasks();
   }, []);
 
   const formatYearEnd = (yearEnd: any): string => {
@@ -258,7 +283,7 @@ export default function AdminClientsPage() {
 
   const handleEdit = (client: User) => {
     setSelectedClient(client);
-    setIsFormOpen(true);
+    setIsDetailOpen(true);
   };
 
   const handleFormSubmit = async (values: ClientFormValues) => {
@@ -284,9 +309,10 @@ export default function AdminClientsPage() {
             batch.update(doc(db, "adminClients", clientId), clientData);
         }
 
+        // Fetch existing tasks to perform SMART upsert
         const oldTasksQuery = query(collection(db, 'tasks'), where('clientId', '==', clientId), where('createdBy', '==', 'system'));
         const oldTasksSnap = await getDocs(oldTasksQuery);
-        oldTasksSnap.forEach(d => batch.delete(d.ref));
+        const existingTasks = oldTasksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
 
         const tasksToCreate: any[] = [];
         const today = startOfToday();
@@ -295,143 +321,180 @@ export default function AdminClientsPage() {
             return Timestamp.fromDate(setSeconds(setMinutes(setHours(setDate(date, day), 9), 0), 0));
         };
 
+        const activeTasksByType = (type: string) => existingTasks.filter(t => t.type === type && t.status !== 'Done');
+
+        // 1. EMP201
         if (values.submitsEmp201) {
-            let found = false;
-            for (let i = -1; i < 12 && !found; i++) {
-                const periodDate = addMonths(today, i);
-                const dueDate = getDueDate(addMonths(periodDate, 1), 5);
-                if (dueDate.toDate() >= today) {
-                    tasksToCreate.push({
-                        title: `EMP201 Submission - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
-                        description: `Submit monthly EMP201 return to SARS for ${values.name}. Due on the 5th of the following month.`,
-                        dueDate: dueDate,
-                        type: 'EMP201',
-                        recurrence: 'Monthly'
-                    });
-                    found = true;
-                }
-            }
-        }
-
-        if (values.preparesPayroll && values.payrollDay) {
-            let found = false;
-            for (let i = -1; i < 12 && !found; i++) {
-                const periodDate = addMonths(today, i);
-                const dueDate = getDueDate(periodDate, values.payrollDay);
-                if (dueDate.toDate() >= today) {
-                    tasksToCreate.push({
-                        title: `Payroll Preparation - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
-                        description: `Prepare and issue payslips for ${values.name} for the period of ${format(periodDate, 'MMMM yyyy')}.`,
-                        dueDate: dueDate,
-                        type: 'PAYROLL',
-                        recurrence: 'Monthly'
-                    });
-                    found = true;
-                }
-            }
-        }
-
-        if (values.preparesManagementAccounts && values.managementAccountsDay) {
-            let found = false;
-            for (let i = -1; i < 12 && !found; i++) {
-                const periodDate = addMonths(today, i);
-                const dueDate = getDueDate(addMonths(periodDate, 1), values.managementAccountsDay);
-                if (dueDate.toDate() >= today) {
-                    tasksToCreate.push({
-                        title: `Management Accounts - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
-                        description: `Prepare and issue monthly management reports for ${values.name} for the ${format(periodDate, 'MMMM yyyy')} period.`,
-                        dueDate: dueDate,
-                        type: 'MGMT',
-                        recurrence: 'Monthly'
-                    });
-                    found = true;
-                }
-            }
-        }
-
-        if (values.isVatRegistered && values.vatCategory) {
-            let found = false;
-            for (let i = -1; i < 12 && !found; i++) {
-                const periodDate = addMonths(today, i);
-                const monthNum = periodDate.getMonth() + 1;
-                
-                let isDue = false;
-                if (values.vatCategory === 'C') isDue = true;
-                else if (values.vatCategory === 'A' && monthNum % 2 !== 0) isDue = true;
-                else if (values.vatCategory === 'B' && monthNum % 2 === 0) isDue = true;
-
-                if (isDue) {
-                    const dueDate = getDueDate(addMonths(periodDate, 1), 25);
+            if (activeTasksByType('EMP201').length === 0) {
+                let found = false;
+                for (let i = -1; i < 12 && !found; i++) {
+                    const periodDate = addMonths(today, i);
+                    const dueDate = getDueDate(addMonths(periodDate, 1), 5);
                     if (dueDate.toDate() >= today) {
                         tasksToCreate.push({
-                            title: `VAT201 Submission - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
-                            description: `Submit VAT201 return to SARS for ${values.name}. Due on the 25th of the following month.`,
+                            title: `EMP201 Submission - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
+                            description: `Submit monthly EMP201 return to SARS for ${values.name}. Due on the 5th of the following month.`,
                             dueDate: dueDate,
-                            type: 'VAT201',
-                            recurrence: values.vatCategory === 'C' ? 'Monthly' : 'Bi-Monthly'
+                            type: 'EMP201',
+                            recurrence: 'Monthly'
                         });
                         found = true;
                     }
                 }
             }
+        } else {
+            activeTasksByType('EMP201').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
         }
 
+        // 2. PAYROLL
+        if (values.preparesPayroll && values.payrollDay) {
+            if (activeTasksByType('PAYROLL').length === 0) {
+                let found = false;
+                for (let i = -1; i < 12 && !found; i++) {
+                    const periodDate = addMonths(today, i);
+                    const dueDate = getDueDate(periodDate, values.payrollDay);
+                    if (dueDate.toDate() >= today) {
+                        tasksToCreate.push({
+                            title: `Payroll Preparation - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
+                            description: `Prepare and issue payslips for ${values.name} for the period of ${format(periodDate, 'MMMM yyyy')}.`,
+                            dueDate: dueDate,
+                            type: 'PAYROLL',
+                            recurrence: 'Monthly'
+                        });
+                        found = true;
+                    }
+                }
+            }
+        } else {
+            activeTasksByType('PAYROLL').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+        }
+
+        // 3. MGMT
+        if (values.preparesManagementAccounts && values.managementAccountsDay) {
+            if (activeTasksByType('MGMT').length === 0) {
+                let found = false;
+                for (let i = -1; i < 12 && !found; i++) {
+                    const periodDate = addMonths(today, i);
+                    const dueDate = getDueDate(addMonths(periodDate, 1), values.managementAccountsDay);
+                    if (dueDate.toDate() >= today) {
+                        tasksToCreate.push({
+                            title: `Management Accounts - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
+                            description: `Prepare and issue monthly management reports for ${values.name} for the ${format(periodDate, 'MMMM yyyy')} period.`,
+                            dueDate: dueDate,
+                            type: 'MGMT',
+                            recurrence: 'Monthly'
+                        });
+                        found = true;
+                    }
+                }
+            }
+        } else {
+            activeTasksByType('MGMT').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+        }
+
+        // 4. VAT201
+        if (values.isVatRegistered && values.vatCategory) {
+            if (activeTasksByType('VAT201').length === 0) {
+                let found = false;
+                for (let i = -1; i < 12 && !found; i++) {
+                    const periodDate = addMonths(today, i);
+                    const monthNum = periodDate.getMonth() + 1;
+                    
+                    let isDue = false;
+                    if (values.vatCategory === 'C') isDue = true;
+                    else if (values.vatCategory === 'A' && monthNum % 2 !== 0) isDue = true;
+                    else if (values.vatCategory === 'B' && monthNum % 2 === 0) isDue = true;
+
+                    if (isDue) {
+                        const dueDate = getDueDate(addMonths(periodDate, 1), 25);
+                        if (dueDate.toDate() >= today) {
+                            tasksToCreate.push({
+                                title: `VAT201 Submission - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
+                                description: `Submit VAT201 return to SARS for ${values.name}. Due on the 25th of the following month.`,
+                                dueDate: dueDate,
+                                type: 'VAT201',
+                                recurrence: values.vatCategory === 'C' ? 'Monthly' : 'Bi-Monthly'
+                            });
+                            found = true;
+                        }
+                    }
+                }
+            }
+        } else {
+            activeTasksByType('VAT201').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+        }
+
+        // 5. AFS
         if (values.preparesFinancials) {
-            const yeMonthIndex = months.indexOf(values.yearEnd);
-            let yeDate = new Date(today.getFullYear(), yeMonthIndex, 28);
-            let dueDate = getDueDate(addMonths(yeDate, 3), 25);
-            
-            if (dueDate.toDate() < today) {
-                yeDate = addMonths(yeDate, 12);
-                dueDate = getDueDate(addMonths(yeDate, 3), 25);
-            }
+            if (activeTasksByType('AFS').length === 0) {
+                const yeMonthIndex = months.indexOf(values.yearEnd);
+                let yeDate = new Date(today.getFullYear(), yeMonthIndex, 28);
+                let dueDate = getDueDate(addMonths(yeDate, 3), 25);
+                
+                if (dueDate.toDate() < today) {
+                    yeDate = addMonths(yeDate, 12);
+                    dueDate = getDueDate(addMonths(yeDate, 3), 25);
+                }
 
-            tasksToCreate.push({
-                title: `Annual Financial Statements for ${values.name} (${values.yearEnd} YE)`,
-                description: `Prepare and finalize annual financial statements for the ${values.yearEnd} year end.`,
-                dueDate: dueDate,
-                type: 'AFS',
-                recurrence: 'Annually'
-            });
-        }
-
-        if (values.submitsIncomeTax) {
-            const yeMonthIndex = months.indexOf(values.yearEnd);
-            let yeDate = new Date(today.getFullYear(), yeMonthIndex, 28);
-            let dueDate = getDueDate(addYears(yeDate, 1), 28);
-            
-            if (dueDate.toDate() < today) {
-                yeDate = addMonths(yeDate, 12);
-                dueDate = getDueDate(addYears(yeDate, 1), 28);
-            }
-
-            tasksToCreate.push({
-                title: `Income Tax Return (ITR14) for ${values.name} (${values.yearEnd} YE)`,
-                description: `Submit annual income tax return for ${values.name}. Due 12 months after the financial year end.`,
-                dueDate: dueDate,
-                type: 'ITR',
-                recurrence: 'Annually'
-            });
-        }
-
-        if (values.submitsProvisionalTax) {
-            const yeMonthIndex = months.indexOf(values.yearEnd);
-            let firstPeriod = new Date(today.getFullYear(), yeMonthIndex - 6, 25);
-            let secondPeriod = new Date(today.getFullYear(), yeMonthIndex, 25);
-            
-            const dates = [firstPeriod, secondPeriod, addMonths(firstPeriod, 12), addMonths(secondPeriod, 12)];
-            const nextDate = dates.map(d => getDueDate(d, 25)).filter(d => d.toDate() >= today).sort((a,b) => a.toDate().getTime() - b.toDate().getTime())[0];
-
-            if (nextDate) {
-                const isFirst = isSameDay(nextDate.toDate(), getDueDate(firstPeriod, 25).toDate()) || isSameDay(nextDate.toDate(), getDueDate(addMonths(firstPeriod, 12), 25).toDate());
                 tasksToCreate.push({
-                    title: `Provisional Tax (IRP6) - Period ${isFirst ? 1 : 2} for ${values.name}`,
-                    description: `Submit ${isFirst ? 1 : 2}st period provisional tax return for ${values.name}.`,
-                    dueDate: nextDate,
-                    type: 'IRP6',
-                    recurrence: 'Semi-Annually'
+                    title: `Annual Financial Statements for ${values.name} (${values.yearEnd} YE)`,
+                    description: `Prepare and finalize annual financial statements for the ${values.yearEnd} year end.`,
+                    dueDate: dueDate,
+                    type: 'AFS',
+                    recurrence: 'Annually'
                 });
             }
+        } else {
+            activeTasksByType('AFS').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+        }
+
+        // 6. ITR
+        if (values.submitsIncomeTax) {
+            if (activeTasksByType('ITR').length === 0) {
+                const yeMonthIndex = months.indexOf(values.yearEnd);
+                let yeDate = new Date(today.getFullYear(), yeMonthIndex, 28);
+                let dueDate = getDueDate(addYears(yeDate, 1), 28);
+                
+                if (dueDate.toDate() < today) {
+                    yeDate = addMonths(yeDate, 12);
+                    dueDate = getDueDate(addYears(yeDate, 1), 28);
+                }
+
+                tasksToCreate.push({
+                    title: `Income Tax Return (ITR14) for ${values.name} (${values.yearEnd} YE)`,
+                    description: `Submit annual income tax return for ${values.name}. Due 12 months after the financial year end.`,
+                    dueDate: dueDate,
+                    type: 'ITR',
+                    recurrence: 'Annually'
+                });
+            }
+        } else {
+            activeTasksByType('ITR').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+        }
+
+        // 7. IRP6
+        if (values.submitsProvisionalTax) {
+            if (activeTasksByType('IRP6').length === 0) {
+                const yeMonthIndex = months.indexOf(values.yearEnd);
+                let firstPeriod = new Date(today.getFullYear(), yeMonthIndex - 6, 25);
+                let secondPeriod = new Date(today.getFullYear(), yeMonthIndex, 25);
+                
+                const dates = [firstPeriod, secondPeriod, addMonths(firstPeriod, 12), addMonths(secondPeriod, 12)];
+                const nextDate = dates.map(d => getDueDate(d, 25)).filter(d => d.toDate() >= today).sort((a,b) => a.toDate().getTime() - b.toDate().getTime())[0];
+
+                if (nextDate) {
+                    const isFirst = isSameDay(nextDate.toDate(), getDueDate(firstPeriod, 25).toDate()) || isSameDay(nextDate.toDate(), getDueDate(addMonths(firstPeriod, 12), 25).toDate());
+                    tasksToCreate.push({
+                        title: `Provisional Tax (IRP6) - Period ${isFirst ? 1 : 2} for ${values.name}`,
+                        description: `Submit ${isFirst ? 1 : 2}st period provisional tax return for ${values.name}.`,
+                        dueDate: nextDate,
+                        type: 'IRP6',
+                        recurrence: 'Semi-Annually'
+                    });
+                }
+            }
+        } else {
+            activeTasksByType('IRP6').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
         }
 
         tasksToCreate.forEach(t => {
@@ -452,7 +515,8 @@ export default function AdminClientsPage() {
         await batch.commit();
         toast({ title: 'Client Saved', description: `Roadmap updated with upcoming automated tasks.` });
         fetchClients();
-        setIsFormOpen(false);
+        setIsAddOpen(false);
+        setIsDetailOpen(false);
     } catch (error) {
         console.error(error);
         toast({ title: 'Error', description: 'Failed to update automation roadmap.', variant: 'destructive'});
@@ -469,131 +533,438 @@ export default function AdminClientsPage() {
         tasksSnap.forEach(d => batch.delete(d.ref));
         await batch.commit();
         fetchClients();
+        setIsDetailOpen(false);
         toast({ title: 'Client Removed', variant: 'destructive' });
     } catch (error) {
         toast({ title: 'Delete Failed', variant: 'destructive' });
     }
   };
 
+  // Calculations for Metrics CRM cards
+  const activeClients = useMemo(() => clients.filter(c => c.status === 'Active'), [clients]);
+  const inactiveClientsCount = useMemo(() => clients.filter(c => c.status === 'Inactive').length, [clients]);
+  const archivedClientsCount = useMemo(() => clients.filter(c => c.status === 'Archived').length, [clients]);
+  const totalMRR = useMemo(() => activeClients.reduce((sum, c) => sum + (c.monthlyRetainerFee || 0), 0), [activeClients]);
+  
+  const clientOverdueTasks = useMemo(() => {
+    const map: Record<string, Task[]> = {};
+    tasks.forEach(t => {
+        if (t.clientId && t.status !== 'Done') {
+            const date = getTaskDate(t);
+            if (isPast(date) && !isSameDay(date, new Date())) {
+                if (!map[t.clientId]) map[t.clientId] = [];
+                map[t.clientId].push(t);
+            }
+        }
+    });
+    return map;
+  }, [tasks]);
+
+  const roadmapHealth = useMemo(() => {
+    if (activeClients.length === 0) return 100;
+    const healthyCount = activeClients.filter(c => !clientOverdueTasks[c.id] || clientOverdueTasks[c.id].length === 0).length;
+    return Math.round((healthyCount / activeClients.length) * 100);
+  }, [activeClients, clientOverdueTasks]);
+
+  // Filters calculation
+  const filteredClients = useMemo(() => {
+    return clients.filter(client => {
+      const nameMatch = client.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const statusMatch = statusFilter === 'all' ? true : client.status === statusFilter;
+      
+      let serviceMatch = true;
+      if (serviceFilter !== 'all') {
+        if (serviceFilter === 'VAT') serviceMatch = !!client.isVatRegistered;
+        else if (serviceFilter === 'PAYE') serviceMatch = !!client.submitsEmp201;
+        else if (serviceFilter === 'Payroll') serviceMatch = !!client.preparesPayroll;
+        else if (serviceFilter === 'Mgmt') serviceMatch = !!client.preparesManagementAccounts;
+        else if (serviceFilter === 'Prov') serviceMatch = !!client.submitsProvisionalTax;
+        else if (serviceFilter === 'ITR') serviceMatch = !!client.submitsIncomeTax;
+        else if (serviceFilter === 'AFS') serviceMatch = !!client.preparesFinancials;
+      }
+
+      return nameMatch && statusMatch && serviceMatch;
+    });
+  }, [clients, searchTerm, statusFilter, serviceFilter]);
+
+  const selectedClientTasks = useMemo(() => {
+    if (!selectedClient) return [];
+    return tasks.filter(t => t.clientId === selectedClient.id).sort((a, b) => getTaskDate(a).getTime() - getTaskDate(b).getTime());
+  }, [selectedClient, tasks]);
+
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-950">Manage Clients</h1>
-            <p className="text-sm text-muted-foreground">Configure client compliance roadmap and automation settings.</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">Client Relationship Management</h1>
+            <p className="text-sm text-slate-500 font-medium">Manage practice portfolios, review compliance roadmaps, and monitor active retainers.</p>
         </div>
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
            <DialogTrigger asChild>
-                <Button onClick={() => { setSelectedClient(null); setIsFormOpen(true); }}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Client
+                <Button className="shadow-md font-bold px-4 py-2 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/95 hover:to-primary">
+                    <PlusCircle className="mr-2 h-5 w-5" />
+                    Create Client Profile
                 </Button>
            </DialogTrigger>
            <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
-                    <DialogTitle>{selectedClient?.id ? 'Update Client' : 'Setup New Client'}</DialogTitle>
-                    <DialogDescription>Setting service toggles will automatically generate the next upcoming compliance task.</DialogDescription>
+                    <DialogTitle className="text-xl font-bold">Create Client Profile</DialogTitle>
+                    <DialogDescription>Setup toggles to automate compliance returns for this new client.</DialogDescription>
                 </DialogHeader>
                 <ClientForm 
-                    client={selectedClient} 
+                    client={null} 
                     onSubmit={handleFormSubmit}
-                    onCancel={() => setIsFormOpen(false)}
+                    onCancel={() => setIsAddOpen(false)}
                 />
            </DialogContent>
         </Dialog>
       </div>
 
-      <Card className="border-2 shadow-sm">
-        <CardHeader className="bg-muted/30 pb-4 border-b">
-          <CardTitle className="text-lg">Accounting Clients</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      {/* Metric Cards Banner */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <Card className="border-slate-100 bg-gradient-to-br from-white to-slate-50 shadow-sm relative overflow-hidden transition-all hover:shadow-md">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Clients</span>
+              <div className="bg-primary/10 p-2.5 rounded-xl text-primary"><Users className="h-5 w-5" /></div>
+            </div>
+            <div className="mt-4">
+              <span className="text-3xl font-black text-slate-800">{clients.length}</span>
+              <div className="flex gap-2 items-center mt-2 text-xs font-bold text-slate-500">
+                <span className="text-emerald-500">{activeClients.length} Active</span>
+                <span>•</span>
+                <span>{inactiveClientsCount} Inactive</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-100 bg-gradient-to-br from-white to-slate-50 shadow-sm relative overflow-hidden transition-all hover:shadow-md">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Retainers (MRR)</span>
+              <div className="bg-emerald-50 p-2.5 rounded-xl text-emerald-600"><DollarSign className="h-5 w-5" /></div>
+            </div>
+            <div className="mt-4">
+              <span className="text-3xl font-black text-slate-800">R {totalMRR.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}</span>
+              <div className="mt-2 text-xs font-semibold text-slate-400">Monthly Recurring Revenue</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-100 bg-gradient-to-br from-white to-slate-50 shadow-sm relative overflow-hidden transition-all hover:shadow-md">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Practice Health</span>
+              <div className="bg-indigo-50 p-2.5 rounded-xl text-indigo-600"><HeartPulse className="h-5 w-5" /></div>
+            </div>
+            <div className="mt-4">
+              <span className="text-3xl font-black text-slate-800">{roadmapHealth}%</span>
+              <div className="mt-2 text-xs font-semibold text-slate-400">Active clients with no overdue tasks</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-100 bg-gradient-to-br from-white to-slate-50 shadow-sm relative overflow-hidden transition-all hover:shadow-md">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Archived Clients</span>
+              <div className="bg-slate-100 p-2.5 rounded-xl text-slate-600"><AlertOctagon className="h-5 w-5" /></div>
+            </div>
+            <div className="mt-4">
+              <span className="text-3xl font-black text-slate-800">{archivedClientsCount}</span>
+              <div className="mt-2 text-xs font-semibold text-slate-400">Archived client records</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main CRM Workspace Container */}
+      <Card className="border shadow-md rounded-2xl bg-white overflow-hidden">
+        {/* Table Filters & Control Header */}
+        <div className="p-6 border-b bg-slate-50/50 flex flex-col lg:flex-row justify-between lg:items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-2.5 h-4.5 w-4.5 text-slate-400" />
+            <Input 
+              placeholder="Search clients by company name..." 
+              className="pl-10 h-10 w-full bg-white border-slate-200 focus:ring-2 focus:ring-primary/25 rounded-lg text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-slate-400" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filters:</span>
+            </div>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px] h-9 text-xs font-semibold bg-white border-slate-200">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Active">Active Only</SelectItem>
+                <SelectItem value="Inactive">Inactive Only</SelectItem>
+                <SelectItem value="Archived">Archived Only</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={serviceFilter} onValueChange={serviceFilter => setServiceFilter(serviceFilter)}>
+              <SelectTrigger className="w-[180px] h-9 text-xs font-semibold bg-white border-slate-200">
+                <SelectValue placeholder="Filter by Service" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Services</SelectItem>
+                <SelectItem value="VAT">VAT Registered</SelectItem>
+                <SelectItem value="PAYE">Monthly PAYE (EMP201)</SelectItem>
+                <SelectItem value="Payroll">Payroll Prep</SelectItem>
+                <SelectItem value="Mgmt">Management Accounts</SelectItem>
+                <SelectItem value="Prov">Provisional Tax (IRP6)</SelectItem>
+                <SelectItem value="ITR">Income Tax (ITR14)</SelectItem>
+                <SelectItem value="AFS">Financial Statements</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {(searchTerm || statusFilter !== 'all' || serviceFilter !== 'all') && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-9 text-xs font-bold text-slate-500"
+                onClick={() => { setSearchTerm(''); setStatusFilter('all'); setServiceFilter('all'); }}
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Client List Table */}
+        <div className="overflow-x-auto">
           {isLoading && clients.length === 0 ? (
-            <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            <div className="flex justify-center items-center h-72"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : (
           <Table>
-            <TableHeader className="bg-muted/10">
-              <TableRow>
-                <TableHead className="font-semibold text-muted-foreground">Company</TableHead>
-                <TableHead className="font-semibold text-muted-foreground">Year End</TableHead>
-                <TableHead className="font-semibold text-muted-foreground">Services Enabled</TableHead>
-                <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
-                <TableHead className="text-right font-semibold text-muted-foreground">Actions</TableHead>
+            <TableHeader className="bg-slate-50/20">
+              <TableRow className="border-b">
+                <TableHead className="font-bold text-slate-500 py-4 pl-6">Company</TableHead>
+                <TableHead className="font-bold text-slate-500 py-4">Year End</TableHead>
+                <TableHead className="font-bold text-slate-500 py-4">Retainer</TableHead>
+                <TableHead className="font-bold text-slate-500 py-4">Services Automation Roadmap</TableHead>
+                <TableHead className="font-bold text-slate-500 py-4">Status</TableHead>
+                <TableHead className="text-right font-bold text-slate-500 py-4 pr-6">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map(client => (
-                <TableRow key={client.id} className="hover:bg-muted/5 transition-colors">
-                  <TableCell className="font-medium text-slate-900">{client.name}</TableCell>
-                  <TableCell className="text-sm text-slate-600">{formatYearEnd(client.yearEnd)}</TableCell>
-                  <TableCell>
-                      <div className="flex flex-wrap gap-1.5">
+              {filteredClients.map(client => {
+                const overdueTasks = clientOverdueTasks[client.id] || [];
+                return (
+                  <TableRow key={client.id} className="hover:bg-slate-50/40 transition-colors border-b">
+                    <TableCell className="font-semibold text-slate-900 pl-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors" onClick={() => handleEdit(client)}>
+                          {client.name}
+                          {overdueTasks.length > 0 && (
+                            <Badge variant="destructive" className="h-4.5 px-1.5 text-[9px] font-extrabold uppercase animate-pulse">
+                              {overdueTasks.length} LATE
+                            </Badge>
+                          )}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-slate-600 font-medium py-4">{formatYearEnd(client.yearEnd)}</TableCell>
+                    <TableCell className="text-sm text-slate-700 font-black py-4">
+                      R {(client.monthlyRetainerFee || 0).toLocaleString('en-ZA')}
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="flex flex-wrap gap-1.5 max-w-xl">
                           {client.isVatRegistered && (
-                              <Badge variant="outline" className="text-[9px] font-semibold bg-blue-50 text-blue-700 border-blue-200 uppercase tracking-tight">
+                              <Badge variant="outline" className="text-[9px] font-black bg-blue-50/80 text-blue-700 border-blue-200/50 uppercase tracking-tight">
                                   VAT ({client.vatCategory})
                               </Badge>
                           )}
                           {client.submitsEmp201 && (
-                              <Badge variant="outline" className="text-[9px] font-semibold bg-green-50 text-green-700 border-green-200 uppercase tracking-tight">
+                              <Badge variant="outline" className="text-[9px] font-black bg-green-50/80 text-green-700 border-green-200/50 uppercase tracking-tight">
                                   PAYE
                               </Badge>
                           )}
                           {client.preparesPayroll && (
-                              <Badge variant="outline" className="text-[9px] font-semibold bg-emerald-50 text-emerald-700 border-emerald-200 uppercase tracking-tight">
+                              <Badge variant="outline" className="text-[9px] font-black bg-emerald-50/80 text-emerald-700 border-emerald-200/50 uppercase tracking-tight">
                                   Payroll
                               </Badge>
                           )}
                           {client.preparesManagementAccounts && (
-                              <Badge variant="outline" className="text-[9px] font-semibold bg-amber-50 text-amber-700 border-amber-200 uppercase tracking-tight">
+                              <Badge variant="outline" className="text-[9px] font-black bg-amber-50/80 text-amber-700 border-amber-200/50 uppercase tracking-tight">
                                   Mgmt
                               </Badge>
                           )}
                           {client.submitsProvisionalTax && (
-                              <Badge variant="outline" className="text-[9px] font-semibold bg-purple-50 text-purple-700 border-purple-200 uppercase tracking-tight">
+                              <Badge variant="outline" className="text-[9px] font-black bg-purple-50/80 text-purple-700 border-purple-200/50 uppercase tracking-tight">
                                   Prov
                               </Badge>
                           )}
                           {client.submitsIncomeTax && (
-                              <Badge variant="outline" className="text-[9px] font-semibold bg-rose-50 text-rose-700 border-rose-200 uppercase tracking-tight">
+                              <Badge variant="outline" className="text-[9px] font-black bg-rose-50/80 text-rose-700 border-rose-200/50 uppercase tracking-tight">
                                   ITR
                               </Badge>
                           )}
                           {client.preparesFinancials && (
-                              <Badge variant="outline" className="text-[9px] font-semibold bg-slate-50 text-slate-700 border-slate-200 uppercase tracking-tight">
+                              <Badge variant="outline" className="text-[9px] font-black bg-slate-50/80 text-slate-700 border-slate-200/50 uppercase tracking-tight">
                                   AFS
                               </Badge>
                           )}
                       </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={client.status === 'Active' ? 'default' : 'secondary'} className="font-medium text-[11px] px-2 py-0.5">
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <Badge 
+                        variant={client.status === 'Active' ? 'default' : 'secondary'} 
+                        className={client.status === 'Active' ? "font-bold text-[10px] px-2 py-0.5 bg-emerald-500 hover:bg-emerald-600" : "font-bold text-[10px] px-2 py-0.5"}
+                      >
                         {client.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(client)}><RotateCw className="mr-2 h-4 w-4" /> Edit & Refresh Roadmap</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild><DropdownMenuItem className="text-destructive">Delete Client</DropdownMenuItem></AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader><AlertDialogTitle>Confirm Deletion</AlertDialogTitle><AlertDialogDescription>This will delete the client and all associated system-generated tasks. This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(client.id)}>Confirm Delete</AlertDialogAction></AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right pr-6 py-4">
+                      <Button variant="ghost" size="sm" className="h-8 gap-1 font-bold text-xs" onClick={() => handleEdit(client)}>
+                        <Eye className="h-4 w-4" /> View Client
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {filteredClients.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-16 text-slate-400 font-medium">
+                    <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-slate-200" />
+                    No clients matched the filter.
                   </TableCell>
                 </TableRow>
-              ))}
-              {clients.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground font-medium">No clients setup yet.</TableCell></TableRow>}
+              )}
             </TableBody>
           </Table>
           )}
-        </CardContent>
+        </div>
       </Card>
+
+      {/* Client Workspace slide-over Drawer */}
+      <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <SheetContent className="sm:max-w-xl w-full flex flex-col h-full bg-white p-0 overflow-hidden">
+          {selectedClient && (
+            <div className="flex flex-col h-full">
+              {/* Drawer Header */}
+              <div className="p-6 border-b bg-gradient-to-r from-slate-900 to-slate-800 text-white relative">
+                <SheetHeader className="text-left">
+                  <div className="flex items-center justify-between">
+                    <Badge className="bg-primary hover:bg-primary text-[10px] uppercase font-black tracking-wide">Client Profile</Badge>
+                    <Badge variant={selectedClient.status === 'Active' ? 'default' : 'secondary'} className={selectedClient.status === 'Active' ? 'bg-emerald-500 hover:bg-emerald-600 text-xs font-bold' : 'text-xs font-bold'}>{selectedClient.status}</Badge>
+                  </div>
+                  <SheetTitle className="text-2xl font-black text-white mt-2 leading-tight">{selectedClient.name}</SheetTitle>
+                  <SheetDescription className="text-slate-300 text-xs font-medium mt-1">
+                    Financial Year End: <span className="text-white font-bold">{formatYearEnd(selectedClient.yearEnd)}</span> | Monthly Retainer: <span className="text-white font-bold">R {selectedClient.monthlyRetainerFee || 0}</span>
+                  </SheetDescription>
+                </SheetHeader>
+              </div>
+
+              {/* Drawer Tabs */}
+              <Tabs defaultValue="roadmap" className="flex-1 flex flex-col overflow-hidden">
+                <div className="px-6 border-b bg-slate-50/50">
+                  <TabsList className="grid grid-cols-2 w-full my-3">
+                    <TabsTrigger value="roadmap" className="font-bold text-xs">Compliance Roadmap</TabsTrigger>
+                    <TabsTrigger value="profile" className="font-bold text-xs">Profile & Settings</TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6">
+                  {/* TAB 1: Tasks Compliance Roadmap */}
+                  <TabsContent value="roadmap" className="mt-0 space-y-4 focus-visible:outline-none">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Automated Returns</h3>
+                      <Badge variant="outline" className="text-[10px] font-black">{selectedClientTasks.length} System Tasks</Badge>
+                    </div>
+
+                    <div className="space-y-3">
+                      {selectedClientTasks.map(task => {
+                        const date = getTaskDate(task);
+                        const isLate = task.status !== 'Done' && isPast(date) && !isSameDay(date, new Date());
+                        return (
+                          <div 
+                            key={task.id} 
+                            className={`p-4 rounded-xl border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm bg-white hover:border-slate-200 transition-all ${
+                              isLate ? 'border-destructive/20 bg-destructive/5' : ''
+                            }`}
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-xs font-bold text-slate-800 line-clamp-1">{task.title}</p>
+                                {isLate && <Badge variant="destructive" className="h-4 px-1.5 text-[8px] font-black uppercase">LATE</Badge>}
+                              </div>
+                              <p className="text-[11px] text-slate-400 font-medium line-clamp-1">{task.description}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Due: {format(date, 'dd MMM yyyy')}</span>
+                                {task.recurrence && <Badge variant="secondary" className="text-[8px] h-4.5 font-bold uppercase">{task.recurrence}</Badge>}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 self-end md:self-auto">
+                              <Badge 
+                                variant="outline" 
+                                className={`text-[9px] font-black uppercase tracking-tight ${
+                                  task.status === 'Done' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                  task.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600'
+                                }`}
+                              >
+                                {task.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {selectedClientTasks.length === 0 && (
+                        <div className="text-center py-12 text-slate-400 font-medium">
+                          No system tasks scheduled.
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* TAB 2: Settings & Profile Edit Form */}
+                  <TabsContent value="profile" className="mt-0 focus-visible:outline-none">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500">Edit Client details</h3>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 text-destructive hover:bg-destructive/10 hover:text-destructive font-bold text-xs uppercase">
+                            Delete Client
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-lg font-bold">Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm text-slate-500">
+                              This will permanently delete the client <span className="font-bold text-slate-900">{selectedClient.name}</span> and all associated system-generated tasks. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="font-semibold">Cancel</AlertDialogCancel>
+                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-white font-bold" onClick={() => handleDelete(selectedClient.id)}>Confirm Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+
+                    <ClientForm 
+                      client={selectedClient} 
+                      onSubmit={handleFormSubmit}
+                      onCancel={() => setIsDetailOpen(false)}
+                    />
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

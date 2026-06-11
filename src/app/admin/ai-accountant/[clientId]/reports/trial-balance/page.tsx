@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Download, Eye, Calculator, Save, Trash2, FolderOpen } from "lucide-react";
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import { getFirestore, doc, getDoc, collection, onSnapshot, query, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User, AllocatedTransaction, ImportedTransaction, ChartOfAccount, SavedReport } from '@/lib/types';
@@ -151,6 +151,9 @@ function calculateBalances(client: User, transactions: (ImportedTransaction | Al
 }
 
 function TrialBalanceReport({ client, transactions, dateRange, comparativeDateRange }: { client: User, transactions: (ImportedTransaction | AllocatedTransaction)[], dateRange?: DateRange, comparativeDateRange?: DateRange }) {
+    const pathname = usePathname();
+    const isDashboard = pathname.startsWith('/dashboard');
+    const basePath = isDashboard ? `/dashboard/ai-accountant/${client.id}` : `/admin/ai-accountant/${client.id}`;
     
     const primaryBalances = useMemo(() => calculateBalances(client, transactions, dateRange), [client, transactions, dateRange]);
     const showComparison = !!comparativeDateRange;
@@ -267,12 +270,12 @@ function TrialBalanceReport({ client, transactions, dateRange, comparativeDateRa
                                         <p className="text-xs text-muted-foreground">{item.description}</p>
                                     </TableCell>
                                     <TableCell className="text-right font-mono">
-                                        <Link href={`/admin/ai-accountant/${client.id}/reports/general-ledger?accountId=${item.id}`} className="hover:underline text-blue-600">
+                                        <Link href={`${basePath}/reports/general-ledger?accountId=${item.id}`} className="hover:underline text-blue-600">
                                             {formatPrice(debitAmount)}
                                         </Link>
                                     </TableCell>
                                     <TableCell className="text-right font-mono">
-                                         <Link href={`/admin/ai-accountant/${client.id}/reports/general-ledger?accountId=${item.id}`} className="hover:underline text-blue-600">
+                                         <Link href={`${basePath}/reports/general-ledger?accountId=${item.id}`} className="hover:underline text-blue-600">
                                             {formatPrice(creditAmount)}
                                         </Link>
                                     </TableCell>
