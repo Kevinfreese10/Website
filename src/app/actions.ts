@@ -1,6 +1,6 @@
 'use server';
 
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { Order, Service, User, OrderNote, Task, DocumentUpload, DemoLead, ImportedTransaction, SmartAllocationResult, AllocationRule, ClientCustomer, Employee, Payslip } from '@/lib/types';
 import { sendEmail } from '@/lib/email';
@@ -857,12 +857,14 @@ export async function sendOrderConfirmationEmailAction({
   isNewUser,
   generatedPassword,
   showPaymentButton,
+  bcc,
 }: {
   orderData: Order;
   resellerData?: User;
   isNewUser?: boolean;
   generatedPassword?: string | null;
   showPaymentButton?: boolean;
+  bcc?: string | string[];
 }) {
   const emailHtml = render(
     React.createElement(OrderConfirmationEmail, {
@@ -874,12 +876,111 @@ export async function sendOrderConfirmationEmailAction({
     })
   );
 
+  const finalBcc = bcc || (orderData.resellerId ? undefined : 'kev@thinkestry.co.za');
+
   await sendEmail({
     to: orderData.customerEmail,
+    bcc: finalBcc,
     subject: `Order Confirmation #${orderData.id}`,
     html: emailHtml,
     resellerId: orderData.resellerId || undefined,
   });
+}
+
+export async function adminCreateUserAction({
+  email,
+  password,
+  name,
+  role = 'client',
+  source,
+  contactNumber,
+  department,
+}: {
+  email: string;
+  password?: string;
+  name: string;
+  role?: string;
+  source?: string;
+  contactNumber?: string;
+  department?: string;
+}) {
+  try {
+    const adminAuth = getAdminAuth();
+    const adminDb = getAdminDb();
+
+    const cleanEmail = email.toLowerCase().trim();
+    let uid: string;
+    let isNewUser = false;
+
+    try {
+      const userRecord = await adminAuth.getUserByEmail(cleanEmail);
+      uid = userRecord.uid;
+
+      // Check if user document already exists in Firestore 'users' collection
+      const userDocRef = adminDb.collection('users').doc(uid);
+      const userDocSnap = await userDocRef.get();
+      if (userDocSnap.exists) {
+        return {
+          success: false,
+          error: 'auth/email-already-in-use',
+          message: 'A user account already exists with this email address.',
+        };
+      }
+    } catch (e: any) {
+      if (e.code === 'auth/user-not-found') {
+        const userRecord = await adminAuth.createUser({
+          email: cleanEmail,
+          password: password || undefined,
+          displayName: name,
+        });
+        uid = userRecord.uid;
+        isNewUser = true;
+      } else {
+        throw e;
+      }
+    }
+
+    // Write/update Firestore 'users' document
+    const userDocRef = adminDb.collection('users').doc(uid);
+    const userDocSnap = await userDocRef.get();
+
+    const profileData: Record<string, any> = {
+      id: uid,
+      uid: uid,
+      name,
+      email: cleanEmail,
+      role,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (!userDocSnap.exists) {
+      profileData.createdAt = FieldValue.serverTimestamp();
+    }
+    if (source) {
+      profileData.source = source;
+    }
+    if (contactNumber) {
+      profileData.contactNumber = contactNumber;
+    }
+    if (department) {
+      profileData.department = department;
+    }
+
+    await userDocRef.set(profileData, { merge: true });
+
+    return {
+      success: true,
+      uid,
+      isNewUser,
+    };
+  } catch (error: any) {
+    console.error("Error in adminCreateUserAction:", error);
+    return {
+      success: false,
+      error: error.code || 'error',
+      message: error.message || 'Failed to create user account.',
+    };
+  }
 }
 
 export async function matchTransactionsToHistory({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {

@@ -19,11 +19,10 @@ import { User } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, addDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { getAuth, createUserWithEmailAndPassword, User as FirebaseUser } from 'firebase/auth';
+import { adminCreateUserAction } from '@/app/actions';
 import { useAuth } from '@/contexts/AuthContext';
 
 const db = getFirestore(firebaseApp);
-const auth = getAuth(firebaseApp);
 
 const departments = ['Accounting and Tax', 'Administration', 'CAP'] as const;
 const roles = ['staff', 'admin'] as const;
@@ -113,7 +112,7 @@ export default function AdminStaffPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<User | null>(null);
   const { toast } = useToast();
-  const { user: adminUser, login } = useAuth();
+  const { user: adminUser } = useAuth();
   
   const fetchStaff = async () => {
     setIsLoading(true);
@@ -173,36 +172,27 @@ export default function AdminStaffPage() {
                 return;
             }
              if (!password) {
-                 toast({ title: 'Error', description: 'Password is required for new users.', variant: 'destructive'});
-                 return;
-            }
+                  toast({ title: 'Error', description: 'Password is required for new users.', variant: 'destructive'});
+                  return;
+             }
             
-            const existingUserQuery = query(collection(db, "users"), where("email", "==", staffData.email));
-            const existingUserSnapshot = await getDocs(existingUserQuery);
-            if (!existingUserSnapshot.empty) {
-                toast({
-                    title: 'User Exists',
-                    description: 'A user with this email address already exists in the database.',
-                    variant: 'destructive',
-                });
-                return;
-            }
-
-            const userCredential = await createUserWithEmailAndPassword(auth, staffData.email, password);
-            const newFirebaseUser = userCredential.user;
-
-            const newUserDocRef = doc(db, "users", newFirebaseUser.uid);
-            await setDoc(newUserDocRef, {
-                ...staffData,
-                id: newFirebaseUser.uid,
-                uid: newFirebaseUser.uid,
-                createdAt: serverTimestamp(),
+            const createRes = await adminCreateUserAction({
+                email: staffData.email,
+                password: password,
+                name: staffData.name,
+                role: staffData.role,
+                department: staffData.department,
+                source: 'Admin Portal (Staff Manager)',
             });
 
-            if (adminUser.email && (adminUser as any).password) {
-               await login(adminUser.email, (adminUser as any).password);
+            if (!createRes.success) {
+                let description = createRes.message || 'Could not save the staff member. Please try again.';
+                if (createRes.error === 'auth/email-already-in-use') {
+                    description = 'A user with this email address already exists in Firebase Authentication.';
+                }
+                toast({ title: 'Error', description, variant: 'destructive'});
+                return;
             }
-
 
             toast({ title: 'Staff Member Created', description: 'The new staff member has been added.' });
         }
@@ -211,11 +201,7 @@ export default function AdminStaffPage() {
         setSelectedStaff(null);
     } catch (error: any) {
         console.error("Error saving staff member:", error);
-        let description = 'Could not save the staff member. Please try again.';
-        if (error.code === 'auth/email-already-in-use') {
-            description = 'A user with this email address already exists in Firebase Authentication.';
-        }
-        toast({ title: 'Error', description, variant: 'destructive'});
+        toast({ title: 'Error', description: 'Could not save the staff member. Please try again.', variant: 'destructive'});
     }
   };
 

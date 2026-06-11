@@ -18,15 +18,14 @@ import { User, Task } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, query, where, serverTimestamp, writeBatch, getDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { getAuth, createUserWithEmailAndPassword, User as FirebaseUser, signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/contexts/AuthContext';
+import { adminCreateUserAction } from '@/app/actions';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Label } from '@/components/ui/label';
 
 
 const db = getFirestore(firebaseApp);
-const auth = getAuth(firebaseApp);
 
 const roles = ['client', 'staff', 'admin', 'reseller', 'ai_accountant', 'cap_staff', 'cap_supervisor'] as const;
 
@@ -159,7 +158,7 @@ export default function ManageUsersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
-  const { user: adminUser, reauthenticate } = useAuth();
+  const { user: adminUser } = useAuth();
   
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -254,47 +253,21 @@ export default function ManageUsersPage() {
                  return;
             }
             
-            let firebaseUser: FirebaseUser;
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, userData.email, password);
-                firebaseUser = userCredential.user;
-            } catch (authError: any) {
-                if (authError.code === 'auth/email-already-in-use') {
-                    const q = query(collection(db, "users"), where("email", "==", userData.email));
-                    const existingDocs = await getDocs(q);
-                    if (!existingDocs.empty) {
-                        toast({ title: 'User Exists', description: 'A user profile with this email already exists.', variant: 'destructive'});
-                        return;
-                    }
-                    
-                    // If no Firestore doc, it's an orphaned auth user. Log them in to get UID.
-                    toast({ title: "Existing Auth User", description: "This email is already registered. Attempting to link to a new profile." });
-                    const userCredential = await signInWithEmailAndPassword(auth, userData.email, password);
-                    firebaseUser = userCredential.user;
-                } else {
-                    throw authError; // Re-throw other auth errors
-                }
-            }
-            
-            const authUid = firebaseUser.uid;
-            const newUserDocRef = doc(db, "users", authUid);
-            const userDocSnap = await getDoc(newUserDocRef);
-
-            if (userDocSnap.exists()) {
-                toast({ title: 'User Already Exists', description: 'A user with this email already has a profile.', variant: 'destructive'});
-                if (auth.currentUser) await reauthenticate(auth.currentUser);
-                return;
-            }
-
-            await setDoc(newUserDocRef, {
-                ...userData,
-                uid: authUid,
-                id: authUid,
-                createdAt: serverTimestamp(),
+            const createRes = await adminCreateUserAction({
+                email: userData.email,
+                password: password,
+                name: userData.name,
+                role: userData.role,
+                source: 'Admin Portal',
             });
-            
-            if (auth.currentUser) {
-                await reauthenticate(auth.currentUser);
+
+            if (!createRes.success) {
+                let description = createRes.message || 'Could not save the user. Please try again.';
+                if (createRes.error === 'auth/email-already-in-use') {
+                    description = 'A user profile with this email already exists.';
+                }
+                toast({ title: 'Error', description, variant: 'destructive'});
+                return;
             }
             
             toast({ title: 'User Created', description: 'The new user has been added.' });
@@ -304,11 +277,7 @@ export default function ManageUsersPage() {
         setSelectedUser(null);
     } catch (error: any) {
         console.error("Error saving user:", error);
-        let description = 'Could not save the user. Please try again.';
-        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-            description = 'An auth user exists with this email, but the password provided is incorrect.';
-        }
-        toast({ title: 'Error', description, variant: 'destructive'});
+        toast({ title: 'Error', description: 'Could not save the user. Please try again.', variant: 'destructive'});
     }
   };
 

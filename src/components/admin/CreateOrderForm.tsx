@@ -11,17 +11,15 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Loader2, Plus, Trash, RefreshCw, Clock, Search, CheckCircle2, Mail } from 'lucide-react';
 import { getFirestore, collection, doc, setDoc, Timestamp, query, orderBy, getDocs, where, serverTimestamp, or } from 'firebase/firestore';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { Order, Service, User } from '@/lib/types';
 import { Separator } from '../ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '../ui/checkbox';
-import { sendEmail } from '@/lib/email';
-import { render } from '@react-email/components';
-import OrderConfirmationEmail from '../emails/OrderConfirmationEmail';
 import { getNextOrderId } from '@/lib/sequence';
 import { useAuth } from '@/contexts/AuthContext';
+import { adminCreateUserAction, sendOrderConfirmationEmailAction } from '@/app/actions';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { customAlphabet } from 'nanoid';
 
@@ -63,7 +61,7 @@ export default function CreateOrderForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [total, setTotal] = useState(0);
-  const { user: currentUser, reauthenticate } = useAuth();
+  const { user: currentUser } = useAuth();
   const [allServices, setAllServices] = useState<Service[]>([]);
   const [isServicesLoading, setIsServicesLoading] = useState(true);
   
@@ -223,33 +221,19 @@ export default function CreateOrderForm() {
         let generatedPassword = null;
 
         if (!finalUserId) {
-            isNewUser = true;
             generatedPassword = nanoid();
             
-            // Create Firebase Auth Account
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, values.customerEmail, generatedPassword);
-                finalUserId = userCredential.user.uid;
+            const createRes = await adminCreateUserAction({
+                email: values.customerEmail,
+                password: generatedPassword,
+                name: `${values.customerFirstName} ${values.customerLastName}`,
+                role: 'client',
+                source: 'Staff Order',
+                contactNumber: values.customerPhone,
+            });
 
-                // Create Firestore Profile
-                const userDocRef = doc(db, 'users', finalUserId);
-                await setDoc(userDocRef, {
-                    id: finalUserId,
-                    uid: finalUserId,
-                    name: `${values.customerFirstName} ${values.customerLastName}`,
-                    email: values.customerEmail.toLowerCase().trim(),
-                    contactNumber: values.customerPhone,
-                    role: 'client',
-                    source: 'Staff Order',
-                    createdAt: serverTimestamp(),
-                });
-
-                // Re-authenticate admin to prevent auth state switch
-                if (auth.currentUser) {
-                    await reauthenticate(auth.currentUser);
-                }
-            } catch (authError: any) {
-                if (authError.code === 'auth/email-already-in-use') {
+            if (!createRes.success) {
+                if (createRes.error === 'auth/email-already-in-use') {
                     toast({
                         title: 'Account Exists',
                         description: 'A user account already exists with this email address. Please link the order to the existing user instead.',
@@ -258,16 +242,17 @@ export default function CreateOrderForm() {
                     setIsLoading(false);
                     return;
                 }
-                throw authError;
+                throw new Error(createRes.message || 'Failed to create user account');
             }
+
+            finalUserId = createRes.uid!;
+            isNewUser = createRes.isNewUser!;
         }
 
         const orderId = await getNextOrderId();
         const firstService = allServices.find(s => s.id === values.items[0]?.serviceId);
         const department = firstService?.department;
         const customerFullName = `${values.customerFirstName} ${values.customerLastName}`;
-
-        const confirmationEmailSubject = `My Accountant | Order Confirmation: #${orderId}`;
 
         const orderData: Order = {
             id: orderId,
@@ -294,20 +279,11 @@ export default function CreateOrderForm() {
 
         await setDoc(doc(db, 'orders', orderId), orderData);
         
-        const emailHtml = render(
-            <OrderConfirmationEmail 
-                order={orderData} 
-                isNewUser={isNewUser} 
-                generatedPassword={generatedPassword}
-                showPaymentButton={true} 
-            />
-        );
-
-        await sendEmail({
-            to: values.customerEmail,
-            bcc: 'kev@thinkestry.co.za',
-            subject: confirmationEmailSubject,
-            html: emailHtml,
+        await sendOrderConfirmationEmailAction({
+            orderData,
+            isNewUser,
+            generatedPassword,
+            showPaymentButton: true,
         });
 
         toast({ title: 'Order Created', description: `Client notified. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}` });
