@@ -149,7 +149,7 @@ export default function ProductsPageClient({
   }, [categories, services, searchQuery]);
 
   return (
-    <div className="w-full flex flex-col min-h-screen animate-in fade-in" style={{ background: 'linear-gradient(160deg, #f0f4ff 0%, #fafafa 40%, #fff7f0 100%)' }}>
+    <div className="w-full flex flex-col min-h-screen animate-in fade-in bg-white">
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="relative w-full overflow-hidden pt-16 pb-20 text-center">
