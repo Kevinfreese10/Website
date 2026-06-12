@@ -18,11 +18,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
-  
-  const isPartnerPage = pathname ? (
-    pathname.startsWith('/partner') ||
-    pathname.startsWith('/p/')
-  ) : false;
 
   const isDashboardPage = pathname ? (
     pathname.startsWith('/admin') ||
@@ -44,7 +39,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className={`flex min-h-screen flex-col ${isPartnerPage ? 'theme-light' : ''}`}>
+    <div className={`flex min-h-screen flex-col ${isDashboardPage ? 'theme-light' : ''}`}>
       {content}
     </div>
   );

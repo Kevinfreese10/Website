@@ -74,7 +74,7 @@ export default function AIAccountantClientLayout({ children }: { children: React
                 <p className="text-muted-foreground">AI Accountant Module</p>
             </div>
 
-            <Menubar className="w-full bg-card text-[12px] h-auto flex-wrap">
+            <Menubar className="w-full bg-card text-[12px] h-auto flex-wrap text-slate-700">
                  <MenubarMenu>
                     <MenubarTrigger className="py-2">Company <ChevronDown className="h-3 w-3 ml-1" /></MenubarTrigger>
                     <MenubarContent>

@@ -80,7 +80,7 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
         )}
       </div>
 
-      <Menubar className="w-full bg-card">
+      <Menubar className="w-full bg-card text-slate-700">
         <MenubarMenu>
           <MenubarTrigger asChild>
             <Link href={`/admin/ai-payroll/${clientId}/dashboard`} className="cursor-pointer">Overview</Link>
