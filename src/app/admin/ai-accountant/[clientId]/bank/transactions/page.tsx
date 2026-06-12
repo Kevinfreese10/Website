@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { runAiAccountantAnalysis, prepareAiAccountantAnalysis, moveTransactionToNew, researchMerchantWithAi, updateGlobalMerchantDb, resetAiAccountantAnalysis, proposeRegroups, applyRegroups, proposeAiRegroups, analyzeClientCommentAndSuggest, bulkMoveTransactionsToNew, matchTransactionsToSuppliers, matchTransactionsToHistory } from '@/app/actions';
+import { runAiAccountantAnalysis, prepareAiAccountantAnalysis, moveTransactionToNew, researchMerchantWithAi, updateGlobalMerchantDb, resetAiAccountantAnalysis, proposeRegroups, applyRegroups, proposeAiRegroups, analyzeClientCommentAndSuggest, bulkMoveTransactionsToNew, matchTransactionsToSuppliers, matchTransactionsToHistory, reanalyzeAndRegroupTransactions } from '@/app/actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -1770,6 +1770,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
     const [isLoading, setIsLoading] = useState(true);
     const [isRechecking, setIsRechecking] = useState(false);
     const [isReseting, setIsReseting] = useState(false);
+    const [isReanalyzing, setIsReanalyzing] = useState(false);
     const [isCreateGeneralAccountOpen, setIsCreateGeneralAccountOpen] = useState(false);
     const [approvalSettings, setApprovalSettings] = useState<any>({});
     const [groupComments, setGroupComments] = useState<any>({});
@@ -1997,6 +1998,26 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
             toast({ title: "Reset Failed", variant: "destructive" });
         } finally {
             setIsReseting(false);
+        }
+    };
+
+    const handleReanalyzeAndRegroup = async () => {
+        if (!client?.uid || !bankAccountId || !user?.email) return;
+        setIsReanalyzing(true);
+        try {
+            const res = await reanalyzeAndRegroupTransactions({ 
+                clientId: client.uid, 
+                bankAccountId, 
+                initiatorEmail: user.email 
+            });
+            toast({ 
+                title: "Reanalysis Started", 
+                description: `${res.count} transactions are being reanalyzed and regrouped.` 
+            });
+        } catch (e) {
+            toast({ title: "Reanalysis Failed", variant: "destructive" });
+        } finally {
+            setIsReanalyzing(false);
         }
     };
 
@@ -2437,6 +2458,10 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                     <Button variant="outline" onClick={handleRecheckRules} disabled={isRechecking}>
                         {isRechecking ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RotateCcw className="mr-2 h-4 w-4" />}
                         Recheck Rules
+                    </Button>
+                    <Button variant="outline" onClick={handleReanalyzeAndRegroup} disabled={isReanalyzing || groups.length === 0} className="border-primary/30 text-primary hover:bg-primary/5">
+                        {isReanalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RotateCw className="mr-2 h-4 w-4" />}
+                        Reanalyze & Regroup
                     </Button>
                     <Button variant="outline" onClick={handleSaveDrafts} disabled={isSavingDrafts || groups.length === 0} className="border-primary/30 text-primary hover:bg-primary/5">
                         {isSavingDrafts ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

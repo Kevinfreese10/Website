@@ -445,6 +445,32 @@ export async function resetAiAccountantAnalysis({ clientId, bankAccountId }: { c
     return { count: snap.size };
 }
 
+export async function reanalyzeAndRegroupTransactions({ clientId, bankAccountId, initiatorEmail }: { clientId: string, bankAccountId: string, initiatorEmail: string }) {
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('bankAccountId', '==', bankAccountId)
+        .where('status', 'in', ['ai_processing', 'ai_review'])
+        .get();
+    
+    if (snap.empty) return { count: 0 };
+
+    const batch = adminDb.batch();
+    snap.docs.forEach(d => {
+        batch.update(d.ref, { 
+            status: 'ai_processing',
+            smartAllocationResult: FieldValue.delete(),
+            merchantKey: FieldValue.delete(),
+            cleanDescription: FieldValue.delete(),
+            rawDescription: FieldValue.delete()
+        });
+    });
+    await batch.commit();
+
+    await runAiAccountantAnalysis({ clientId, bankAccountId, initiatorEmail });
+
+    return { count: snap.size };
+}
+
 export async function proposeRegroups({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
     const adminDb = getAdminDb();
     const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
