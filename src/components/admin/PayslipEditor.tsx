@@ -42,27 +42,101 @@ export default function PayslipEditor({
     const [contributions, setContributions] = useState<PayslipItem[]>(payslip.contributions || []);
     const [fringeBenefits, setFringeBenefits] = useState<PayslipItem[]>(payslip.fringeBenefits || []);
     const [hoursWorked, setHoursWorked] = useState<number>(payslip.hoursWorked || 0);
+    const [overtime10, setOvertime10] = useState<number>(() => {
+        const item = payslip.earnings?.find(e => e.label.toLowerCase().includes('overtime (1.0x)') || e.label.toLowerCase().includes('overtime @ 1.0') || e.label.toLowerCase().includes('overtime @ 1 '));
+        if (item) {
+            const match = item.label.match(/\((\d+(?:\.\d+)?)\s*h\)/i);
+            return match ? parseFloat(match[1]) : 0;
+        }
+        return 0;
+    });
+    const [overtime15, setOvertime15] = useState<number>(() => {
+        const item = payslip.earnings?.find(e => e.label.toLowerCase().includes('overtime (1.5x)') || e.label.toLowerCase().includes('overtime @ 1.5'));
+        if (item) {
+            const match = item.label.match(/\((\d+(?:\.\d+)?)\s*h\)/i);
+            return match ? parseFloat(match[1]) : 0;
+        }
+        return 0;
+    });
+    const [overtime20, setOvertime20] = useState<number>(() => {
+        const item = payslip.earnings?.find(e => e.label.toLowerCase().includes('overtime (2x)') || e.label.toLowerCase().includes('overtime @ 2') || e.label.toLowerCase().includes('overtime (2.0x)'));
+        if (item) {
+            const match = item.label.match(/\((\d+(?:\.\d+)?)\s*h\)/i);
+            return match ? parseFloat(match[1]) : 0;
+        }
+        return 0;
+    });
     const [isSaving, setIsSaving] = useState(false);
 
     const frequency = PayrollService.getFrequencyMultiplier(payslip.frequency);
 
-    // Synchronize basic pay if hourly rated
+    // Sync Hourly Normal & Overtime Earnings
     useEffect(() => {
-        if (employee.payType === 'Hourly') {
-            const calculatedBasic = (employee.hourlyRate || 0) * hoursWorked;
-            setEarnings(prev => {
-                const updated = [...prev];
+        const hourlyRate = employee.hourlyRate || (employee.payType === 'Salary' ? (employee.basicSalary || 0) / 160 : 0);
+        
+        setEarnings(prev => {
+            let updated = [...prev];
+
+            // 1. Normal Hours (only for Hourly employees)
+            if (employee.payType === 'Hourly') {
                 const basicIdx = updated.findIndex(item => 
-                    item.label.toLowerCase().includes('hourly rate') || 
-                    item.label.toLowerCase().includes('normal hours')
+                    item.label.toLowerCase().includes('normal hours') ||
+                    item.label.toLowerCase().includes('hourly rate')
                 );
                 if (basicIdx > -1) {
-                    updated[basicIdx].amount = calculatedBasic;
+                    updated[basicIdx].amount = parseFloat((hourlyRate * hoursWorked).toFixed(2));
+                    updated[basicIdx].label = `Normal Hours pay (${hoursWorked}h)`;
                 }
-                return updated;
-            });
-        }
-    }, [hoursWorked, employee.payType, employee.hourlyRate]);
+            }
+
+            // Helper to update or push overtime items
+            const updateOvertimeItem = (
+                keyRegex: RegExp,
+                hoursVal: number,
+                rateMultiplier: number,
+                labelTemplate: (h: number) => string
+            ) => {
+                let idx = updated.findIndex(item => keyRegex.test(item.label));
+                if (hoursVal > 0) {
+                    const amount = parseFloat((hourlyRate * rateMultiplier * hoursVal).toFixed(2));
+                    const label = labelTemplate(hoursVal);
+                    if (idx > -1) {
+                        updated[idx] = { ...updated[idx], label, amount };
+                    } else {
+                        updated.push({ label, amount });
+                    }
+                } else if (idx > -1) {
+                    updated = updated.filter((_, i) => i !== idx);
+                }
+            };
+
+            // 2. Overtime @ 1.0
+            updateOvertimeItem(
+                /overtime\s*\(1\.0x\)/i,
+                overtime10,
+                1.0,
+                (h) => `Overtime (1.0x) (${h}h)`
+            );
+
+            // 3. Overtime @ 1.5
+            updateOvertimeItem(
+                /overtime\s*\(1\.5x\)/i,
+                overtime15,
+                1.5,
+                (h) => `Overtime (1.5x) (${h}h)`
+            );
+
+            // 4. Overtime @ 2.0
+            updateOvertimeItem(
+                /overtime\s*\(2\.0x\)|overtime\s*\(2x\)/i,
+                overtime20,
+                2.0,
+                (h) => `Overtime (2.0x) (${h}h)`
+            );
+
+            return updated;
+        });
+    }, [hoursWorked, overtime10, overtime15, overtime20, employee.payType, employee.hourlyRate, employee.basicSalary]);
 
     const handleSyncFromProfile = () => {
         const basePeriod = client.firstProcessingMonth || 'Current Period';
@@ -270,32 +344,40 @@ export default function PayslipEditor({
         </div>
     );
 
-    const ItemRow = ({ item, index, type }: { item: PayslipItem, index: number, type: 'earning' | 'deduction' | 'contribution' | 'fringe' }) => (
-        <div className="flex items-center gap-2 group py-1 px-2 border-b border-gray-100 last:border-0 hover:bg-slate-50/50 transition-colors">
-            <Input 
-                value={item.label} 
-                onChange={(e) => handleUpdateItem(index, 'label', e.target.value, type)}
-                disabled={item.isStatutory || (type === 'earning' && employee.payType === 'Hourly' && (item.label.toLowerCase().includes('hourly rate') || item.label.toLowerCase().includes('normal hours')))}
-                className="h-7 text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 flex-grow font-medium"
-            />
-            <div className="flex items-center gap-1">
-                <span className="text-[10px] text-muted-foreground font-mono">R</span>
+    const ItemRow = ({ item, index, type }: { item: PayslipItem, index: number, type: 'earning' | 'deduction' | 'contribution' | 'fringe' }) => {
+        const isCalculatedItem = type === 'earning' && (
+            item.label.toLowerCase().includes('normal hours') ||
+            item.label.toLowerCase().includes('hourly rate') ||
+            item.label.toLowerCase().includes('overtime')
+        );
+
+        return (
+            <div className="flex items-center gap-2 group py-1 px-2 border-b border-gray-100 last:border-0 hover:bg-slate-50/50 transition-colors">
                 <Input 
-                    type="number"
-                    step="0.01"
-                    value={item.amount}
-                    onChange={(e) => handleUpdateItem(index, 'amount', e.target.value, type)}
-                    disabled={item.isStatutory || (type === 'earning' && employee.payType === 'Hourly' && (item.label.toLowerCase().includes('hourly rate') || item.label.toLowerCase().includes('normal hours')))}
-                    className="h-7 w-24 text-right text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 font-mono font-bold"
+                    value={item.label} 
+                    onChange={(e) => handleUpdateItem(index, 'label', e.target.value, type)}
+                    disabled={item.isStatutory || isCalculatedItem}
+                    className="h-7 text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 flex-grow font-medium"
                 />
-                {!item.isStatutory && (
-                    <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => handleRemoveItem(index, type)}>
-                        <Trash2 className="h-3 w-3" />
-                    </Button>
-                )}
+                <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground font-mono">R</span>
+                    <Input 
+                        type="number"
+                        step="0.01"
+                        value={item.amount}
+                        onChange={(e) => handleUpdateItem(index, 'amount', e.target.value, type)}
+                        disabled={item.isStatutory || isCalculatedItem}
+                        className="h-7 w-24 text-right text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 font-mono font-bold"
+                    />
+                    {!item.isStatutory && !isCalculatedItem && (
+                        <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => handleRemoveItem(index, type)}>
+                            <Trash2 className="h-3 w-3" />
+                        </Button>
+                    )}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto pb-8">
@@ -313,23 +395,66 @@ export default function PayslipEditor({
                     </div>
                 </div>
                 <div className="flex items-center gap-6">
-                    {employee.payType === 'Hourly' && (
-                        <div className="p-2 px-4 rounded-lg bg-primary/5 border border-primary/10 space-y-1">
-                            <Label className="text-[10px] font-black uppercase text-primary tracking-widest leading-none">Hours Worked</Label>
+                    <div className="p-2 px-4 rounded-lg bg-primary/5 border border-primary/10 flex items-center gap-4">
+                        {employee.payType === 'Hourly' && (
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-black uppercase text-primary tracking-widest leading-none">Normal Hours</Label>
+                                <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4 text-primary" />
+                                    <Input 
+                                        type="number" 
+                                        value={hoursWorked} 
+                                        onChange={(e) => setHoursWorked(parseFloat(e.target.value) || 0)}
+                                        className="h-8 w-16 font-bold text-sm bg-white text-center"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-black uppercase text-primary tracking-widest leading-none">OT @ 1.0x</Label>
                             <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-primary" />
                                 <Input 
                                     type="number" 
-                                    value={hoursWorked} 
-                                    onChange={(e) => setHoursWorked(parseFloat(e.target.value) || 0)}
-                                    className="h-8 w-20 font-bold text-sm bg-white"
+                                    value={overtime10} 
+                                    onChange={(e) => setOvertime10(parseFloat(e.target.value) || 0)}
+                                    className="h-8 w-16 font-bold text-sm bg-white text-center"
                                 />
                             </div>
                         </div>
-                    )}
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-black uppercase text-primary tracking-widest leading-none">OT @ 1.5x</Label>
+                            <div className="flex items-center gap-2">
+                                <Input 
+                                    type="number" 
+                                    value={overtime15} 
+                                    onChange={(e) => setOvertime15(parseFloat(e.target.value) || 0)}
+                                    className="h-8 w-16 font-bold text-sm bg-white text-center"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-black uppercase text-primary tracking-widest leading-none">OT @ 2.0x</Label>
+                            <div className="flex items-center gap-2">
+                                <Input 
+                                    type="number" 
+                                    value={overtime20} 
+                                    onChange={(e) => setOvertime20(parseFloat(e.target.value) || 0)}
+                                    className="h-8 w-16 font-bold text-sm bg-white text-center"
+                                />
+                            </div>
+                        </div>
+                    </div>
                     <div className="text-right">
                         <Badge variant="outline" className="mb-1 font-bold uppercase tracking-widest text-[9px]">{payslip.period}</Badge>
-                        <p className="text-sm font-black text-slate-900">Rate: {formatCurrency(employee.payType === 'Hourly' ? (employee.hourlyRate || 0) : (employee.basicSalary || 0))}{employee.payType === 'Hourly' ? '/hr' : '/mo'}</p>
+                        <p className="text-sm font-black text-slate-900">
+                            Rate: {formatCurrency(employee.payType === 'Hourly' ? (employee.hourlyRate || 0) : (employee.basicSalary || 0))}
+                            {employee.payType === 'Hourly' ? '/hr' : '/mo'}
+                        </p>
+                        {employee.payType === 'Salary' && (
+                            <span className="text-[10px] text-muted-foreground block font-medium mt-0.5">
+                                OT Rate: R {formatCurrency(employee.hourlyRate || (employee.basicSalary || 0) / 160)}/hr
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>

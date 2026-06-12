@@ -51,12 +51,20 @@ export async function extractStatementData(
     model: 'googleai/gemini-2.5-flash',
     output: { schema: ExtractStatementDataOutputSchema },
     prompt: [
-      { text: `You are an expert OCR and data extraction agent specializing in South African bank statements.
+      { text: `You are an expert OCR and financial data extraction agent specializing in South African bank statements.
 
-Your task is to analyze the provided bank statement (PDF or Image) and extract the following information for every single transaction with perfect accuracy:
-1.  **Date**: The date the transaction occurred, formatted as YYYY-MM-DD.
-2.  **Description**: The full, untruncated description of the transaction as it appears on the statement.
-3.  **Amount**: The transaction amount. It is CRITICAL to use negative numbers for any debits, payments, or withdrawals, and positive numbers for any credits, deposits, or receipts.
+Your task is to analyze the provided bank statement page(s) (PDF or Image) and extract every single transaction with 100% accuracy.
+
+Strictly follow these rules:
+1.  **Date**: Extract the transaction date, always formatted as YYYY-MM-DD. If the statement only contains day and month (e.g. 02/06 or 03 Jun), infer the correct year from the statement header or context.
+2.  **Description**: Extract the full, untruncated description of the transaction as it appears on the statement.
+3.  **Amount**: The transaction amount. It is CRITICAL to use negative numbers for any debits, payments, withdrawals, or money out, and positive numbers for any credits, deposits, receipts, or money in.
+4.  **Bank Fees / Service Charges**: If a transaction row contains a bank fee or charge (often in a dedicated 'Fee', 'Charge', 'Fee*', or 'Service Fee' column, or explicitly listed on the same row), you MUST generate a separate, additional transaction line in the output for this fee. Do NOT combine the fee with the main transaction amount.
+    - The fee transaction must have the same date as the parent transaction.
+    - The fee description should append ' (BANK FEE)' to the parent description, or be formatted as 'Bank Fee: [Parent Description]'.
+    - The fee amount must be a negative number (e.g. -10.00).
+5.  **Numeric Formats**: South African statements often use spaces or commas as thousands separators (e.g., '10 000.00' or '-1 200,50') and currency symbols (e.g., 'R'). Clean these formats and parse them as proper floating-point numbers (e.g., 10000.00 or -1200.50).
+6.  **Exclude Running Balances & Totals**: Never extract values from the 'Balance' column or any page sub-totals, totals, or overview summary boxes as transactions.
 
 If the document is a scanned image, use advanced OCR to ensure every character is read correctly.` },
       { media: { url: input.statementFile, contentType: mimeType } }

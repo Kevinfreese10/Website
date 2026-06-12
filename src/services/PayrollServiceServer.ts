@@ -27,6 +27,17 @@ export class PayrollServiceServer {
           periodLabel = clientData.firstProcessingMonth || format(new Date(), 'MMMM yyyy');
       }
 
+      const payslipsRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips');
+      const existingSnap = await payslipsRef
+          .where('employeeId', '==', employeeId)
+          .where('period', '==', periodLabel)
+          .limit(1)
+          .get();
+
+      if (!existingSnap.empty) {
+          return { success: true, id: existingSnap.docs[0].id };
+      }
+
       const employeeRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc(employeeId);
       const employeeSnap = await employeeRef.get();
       if (!employeeSnap.exists) throw new Error("Employee not found");
@@ -69,7 +80,6 @@ export class PayrollServiceServer {
           payslipData.hoursWorked = hours.normal;
       }
 
-      const payslipsRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips');
       const docRef = await payslipsRef.add(payslipData);
 
       return { success: true, id: docRef.id };

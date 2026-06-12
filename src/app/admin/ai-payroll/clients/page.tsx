@@ -36,6 +36,11 @@ export default function AIPayrollClientsPage() {
         }, (error) => {
             console.error("Error fetching AI Payroll clients:", error);
             setIsLoading(false);
+            toast({
+                title: "Error",
+                description: "Could not load payroll clients. Please check your database permissions.",
+                variant: "destructive"
+            });
         });
         return () => unsubscribe();
     }, []);

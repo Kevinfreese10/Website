@@ -25,8 +25,11 @@ service cloud.firestore {
     match /partnerClients/{clientId} {
       allow read, write: if request.auth != null; 
     }
-    match /aiPayrollClients/{clientId}/{document=**} {
+    match /aiPayrollClients/{clientId} {
       allow read, write: if request.auth != null;
+      match /{document=**} {
+        allow read, write: if request.auth != null;
+      }
     }
     match /clients/{clientId} {
       allow read, write: if request.auth != null; 
@@ -71,11 +74,17 @@ service cloud.firestore {
      match /complianceRequests/{requestId} {
       allow read, write: if request.auth != null;
     }
-    match /aiAccountantClients/{clientId}/{document=**} {
+    match /aiAccountantClients/{clientId} {
       allow read, write: if request.auth != null;
+      match /{document=**} {
+        allow read, write: if request.auth != null;
+      }
     }
-     match /numeraClients/{clientId}/{document=**} {
+     match /numeraClients/{clientId} {
       allow read, write: if request.auth != null;
+      match /{document=**} {
+        allow read, write: if request.auth != null;
+      }
     }
     match /extractedInvoices/{invoiceId} {
       allow read, write: if request.auth != null;

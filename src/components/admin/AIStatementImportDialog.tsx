@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles, FileText, Upload, AlertTriangle, CheckCircle2, Info, FileSpreadsheet, RotateCcw, Trash2, X, Download, Banknote } from 'lucide-react';
+import { Loader2, Sparkles, FileText, Upload, AlertTriangle, CheckCircle2, Info, FileSpreadsheet, RotateCcw, Trash2, X, Download, Banknote, CornerDownRight } from 'lucide-react';
 import { extractStatementPeriod, ExtractStatementPeriodOutput } from '@/ai/flows/extract-statement-period';
 import { getFirestore, collection, getDocs, doc, query, where, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -40,6 +40,8 @@ type Transaction = {
   date: string;
   description: string;
   amount: number;
+  isFee?: boolean;
+  parentDescription?: string;
 };
 
 const formatPrice = (price: number) => {
@@ -208,6 +210,54 @@ export default function AIStatementImportDialog({
             }
         }
 
+        // Post-processing to detect and group fees
+        const processedList: Transaction[] = [];
+        const feeItems: Transaction[] = [];
+        const mainItems: Transaction[] = [];
+
+        allTransactions.forEach(tx => {
+            const descUpper = tx.description.toUpperCase();
+            if (descUpper.includes('(BANK FEE)') || descUpper.startsWith('BANK FEE:')) {
+                tx.isFee = true;
+                feeItems.push(tx);
+            } else {
+                mainItems.push(tx);
+            }
+        });
+
+        mainItems.forEach(mainTx => {
+            processedList.push(mainTx);
+            
+            // Extract a key part of description to match fee with parent
+            const cleanMainDesc = mainTx.description.toUpperCase()
+                .replace(/^(?:CARD PURCHASE|EFT PAYMENT|EFT CREDIT|ELECTRONIC PAYMENT|ONLINE PAYMENT|DEBIT ORDER|NAEDO|CHEQUE CARD PURCHASE|POS PURCHASE|BANKING APP CASH SENT:|BANKING APP IMMEDIATE PAYMENT:|BANKING APP BILL PAYMENT)\s+/i, '')
+                .trim();
+            
+            if (cleanMainDesc.length > 2) {
+                const matchingFees = feeItems.filter(fee => {
+                    if (fee.date !== mainTx.date) return false;
+                    const cleanFeeDesc = fee.description.toUpperCase()
+                        .replace('(BANK FEE)', '')
+                        .replace('BANK FEE:', '')
+                        .trim();
+                    return cleanFeeDesc.includes(cleanMainDesc) || cleanMainDesc.includes(cleanFeeDesc);
+                });
+
+                matchingFees.forEach(fee => {
+                    fee.parentDescription = mainTx.description;
+                    processedList.push(fee);
+                    const idx = feeItems.indexOf(fee);
+                    if (idx > -1) feeItems.splice(idx, 1);
+                });
+            }
+        });
+
+        // Add remaining orphaned fees
+        feeItems.forEach(fee => {
+            processedList.push(fee);
+        });
+
+        setExtractedTransactions(processedList);
         setExtractionProgress(100);
         setStatusMessage('Complete!');
         toast({ title: 'Extraction Complete' });
@@ -311,6 +361,19 @@ export default function AIStatementImportDialog({
                 txData.allocationSource = 'rule';
                 txData.matchedRuleId = match.id;
                 txData.matchedKeyword = keyword;
+            } else if (tx.isFee) {
+                const bankChargesAcc = client.chartOfAccounts?.find(acc => acc.accountNumber === '3000-004' || acc.description.toLowerCase() === 'bank charges');
+                if (bankChargesAcc) {
+                    txData.allocatedTo = { value: bankChargesAcc.id, type: 'account' };
+                    txData.vatType = client.isVatRegistered ? 'standard_rated_purchases' : 'no_vat';
+                    txData.status = 'reviewed';
+                    txData.allocatedAt = serverTimestamp();
+                    txData.allocationSource = 'auto_fee';
+                }
+                txData.isBankFee = true;
+                if (tx.parentDescription) {
+                    txData.parentTxDescription = tx.parentDescription.toUpperCase();
+                }
             }
 
             const newRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
@@ -538,17 +601,24 @@ export default function AIStatementImportDialog({
                                                     type="date" 
                                                     value={tx.date} 
                                                     onChange={(e) => handleUpdateTransaction(idx, 'date', e.target.value)}
-                                                    className="h-7 text-[10px] border-none bg-transparent"
+                                                    className={cn("h-7 text-[10px] border-none bg-transparent", tx.isFee && "opacity-70")}
                                                 />
                                             </TableCell>
                                             <TableCell className="p-1">
-                                                <div className="flex flex-col">
-                                                    <Input 
-                                                        value={tx.description} 
-                                                        onChange={(e) => handleUpdateTransaction(idx, 'description', e.target.value)}
-                                                        className="h-7 text-[10px] border-none bg-transparent font-medium"
-                                                    />
-                                                    {isDup && !isExcluded && <span className="text-[8px] text-destructive font-bold uppercase px-3">Possible Duplicate</span>}
+                                                <div className={cn("flex flex-col", tx.isFee && "pl-6")}>
+                                                    <div className="flex items-center gap-1 w-full">
+                                                        {tx.isFee && <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                                                        <Input 
+                                                            value={tx.description} 
+                                                            onChange={(e) => handleUpdateTransaction(idx, 'description', e.target.value)}
+                                                            className="h-7 text-[10px] border-none bg-transparent font-medium"
+                                                        />
+                                                    </div>
+                                                    {isDup && !isExcluded && (
+                                                        <div className={cn("mt-0.5", tx.isFee ? "pl-5" : "pl-3")}>
+                                                            <Badge variant="destructive" className="text-[8px] py-0 px-1 font-bold h-4">Duplicate in DB</Badge>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="p-1">

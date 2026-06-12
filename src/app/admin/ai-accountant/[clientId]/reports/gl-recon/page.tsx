@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { allVatTypes } from "@/lib/vat-types";
+import { Badge } from "@/components/ui/badge";
 import { AccountSelector } from '@/components/accounting/AccountSelector';
 
 const db = getFirestore(firebaseApp);
@@ -38,6 +39,12 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
     customers: ClientCustomer[],
     onReallocate: (txIds: string[], values: { accountId: string, vatType: VatType }) => void,
 }) {
+    const getBankAccountName = (bankAccountId: string) => {
+        if (!bankAccountId) return '-';
+        if (bankAccountId === 'JOURNAL') return 'General Journal';
+        const acc = client.chartOfAccounts?.find(a => a.id === bankAccountId);
+        return acc ? acc.description : bankAccountId;
+    };
     
     const [hideMatched, setHideMatched] = useState(true);
     const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
@@ -176,7 +183,8 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
     const handleDownloadExcel = () => {
         const dataToExport = visibleEntries.map(tx => ({
             'Date': format(new Date(tx.date), 'dd/MM/yyyy'),
-            'Reference': tx.reference,
+            'Bank Account': getBankAccountName(tx.bankAccountId),
+            'Type': tx.amount < 0 ? 'Payment' : 'Income',
             'Description': tx.displayDescription,
             'Debit': tx.displayAmount > 0 ? tx.displayAmount : '',
             'Credit': tx.displayAmount < 0 ? -tx.displayAmount : '',
@@ -186,10 +194,9 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
         const totalDebit = visibleEntries.reduce((sum, tx) => sum + (tx.displayAmount > 0 ? tx.displayAmount : 0), 0);
         const totalCredit = visibleEntries.reduce((sum, tx) => sum + (tx.displayAmount < 0 ? -tx.displayAmount : 0), 0);
 
-        XLSX.utils.sheet_add_aoa(dataToExport, [['', '', 'Totals', totalDebit, totalCredit, '']], { origin: -1 });
-
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        worksheet['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+        XLSX.utils.sheet_add_aoa(worksheet, [['', '', '', 'Totals', totalDebit, totalCredit, '']], { origin: -1 });
+        worksheet['!cols'] = [{ wch: 12 }, { wch: 22 }, { wch: 10 }, { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
         
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, account.description);
@@ -269,7 +276,8 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
                                 onCheckedChange={(checked) => setSelectedTransactions(checked ? visibleEntries.map(e => e.id) : [])}
                             /></TableHead>
                             <TableHead>Date</TableHead>
-                            <TableHead>Reference</TableHead>
+                            <TableHead>Bank Account</TableHead>
+                            <TableHead>Type</TableHead>
                             <TableHead>Description</TableHead>
                             <TableHead className="text-right">Debit</TableHead>
                             <TableHead className="text-right">Credit</TableHead>
@@ -286,7 +294,14 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
                                         {format(new Date(tx.date), 'dd/MM/yyyy')}
                                     </div>
                                 </TableCell>
-                                <TableCell>{tx.reference}</TableCell>
+                                <TableCell>{getBankAccountName(tx.bankAccountId)}</TableCell>
+                                <TableCell>
+                                    {tx.amount < 0 ? (
+                                        <Badge variant="outline" className="border-red-500/30 text-red-600 bg-red-500/5 dark:bg-red-500/10">Payment</Badge>
+                                    ) : (
+                                        <Badge variant="outline" className="border-green-500/30 text-green-600 bg-green-500/5 dark:bg-green-500/10">Income</Badge>
+                                    )}
+                                </TableCell>
                                 <TableCell>{tx.displayDescription}</TableCell>
                                 <TableCell className="text-right font-mono">{tx.displayAmount > 0 ? formatPrice(tx.displayAmount) : ''}</TableCell>
                                 <TableCell className="text-right font-mono">{tx.displayAmount < 0 ? formatPrice(-tx.displayAmount) : ''}</TableCell>
@@ -296,7 +311,7 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
                     </TableBody>
                     <TableFooter>
                         <TableRow>
-                            <TableCell colSpan={6} className="font-bold">Closing Balance</TableCell>
+                            <TableCell colSpan={7} className="font-bold">Closing Balance</TableCell>
                             <TableCell className="text-right font-bold font-mono">{formatPrice(ledgerEntries[ledgerEntries.length-1]?.balance || 0)}</TableCell>
                         </TableRow>
                     </TableFooter>

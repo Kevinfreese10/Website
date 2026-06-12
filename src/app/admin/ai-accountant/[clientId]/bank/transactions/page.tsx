@@ -664,6 +664,154 @@ function CreateManualTransactionDialog({ client, bankAccountId, open, onOpenChan
     );
 }
 
+function EditTransactionDialog({ client, transaction, open, onOpenChange }: { 
+    client: User | null, 
+    transaction: ImportedTransaction | null, 
+    open: boolean, 
+    onOpenChange: (open: boolean) => void 
+}) {
+    const { toast } = useToast();
+    const [isSaving, setIsSaving] = useState(false);
+    const form = useForm<z.infer<typeof manualTransactionSchema>>({
+        resolver: zodResolver(manualTransactionSchema),
+        defaultValues: {
+            date: new Date(),
+            description: '',
+            amount: 0,
+            reference: '',
+        },
+    });
+
+    useEffect(() => {
+        if (transaction) {
+            form.reset({
+                date: new Date(transaction.date),
+                description: transaction.description || '',
+                amount: transaction.amount || 0,
+                reference: transaction.reference || '',
+            });
+        }
+    }, [transaction, form, open]);
+
+    const handleSave = async (values: z.infer<typeof manualTransactionSchema>) => {
+        if (!client?.uid || !transaction?.id) return;
+        setIsSaving(true);
+        try {
+            const isExpense = values.amount < 0;
+            const description = values.description.toUpperCase();
+            
+            let allRules = [...(client.allocationRules || [])];
+            if (!client.disableGlobalRules) {
+                const rulesRef = collection(db, "allocationRules");
+                const rulesSnap = await getDocs(rulesRef);
+                const globalRules = rulesSnap.docs.map(d => ({ ...d.data(), id: d.id } as AllocationRule));
+                allRules = [...allRules, ...globalRules];
+            }
+            allRules.sort((a, b) => (a.priority || 99) - (b.priority || 99));
+            
+            const match = isExpense ? allRules.find(r => r.keywords.some(kw => description.includes(kw.toUpperCase()))) : null;
+
+            const txRef = doc(db, 'aiAccountantClients', client.uid, 'transactions', transaction.id);
+            const txData: any = {
+                date: values.date.toISOString(),
+                reference: values.reference || '',
+                description: description,
+                rawDescription: description,
+                cleanDescription: description,
+                amount: values.amount,
+                isExpense: isExpense,
+            };
+
+            if (isExpense && match) {
+                const keyword = match.keywords.find(kw => description.includes(kw.toUpperCase()));
+                txData.status = 'reviewed';
+                txData.allocatedTo = { value: match.accountId, type: 'account' };
+                txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
+                txData.allocatedAt = serverTimestamp();
+                txData.allocationSource = 'rule';
+                txData.matchedRuleId = match.id;
+                txData.matchedRuleDescription = match.description;
+                txData.matchedKeyword = keyword;
+            } else {
+                if (transaction.allocationSource === 'rule') {
+                    txData.status = 'new';
+                    txData.allocatedTo = deleteField();
+                    txData.vatType = deleteField();
+                    txData.allocatedAt = deleteField();
+                    txData.allocationSource = deleteField();
+                    txData.matchedRuleId = deleteField();
+                    txData.matchedRuleDescription = deleteField();
+                    txData.matchedKeyword = deleteField();
+                }
+            }
+
+            await updateDoc(txRef, txData);
+            
+            toast({ title: 'Transaction Updated', description: 'The transaction has been successfully updated.' });
+            onOpenChange(false);
+        } catch (error) {
+            console.error(error);
+            toast({ title: 'Error', description: 'Failed to update transaction.', variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Edit Transaction</DialogTitle>
+                    <DialogDescription>Update the details of this bank entry.</DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
+                        <FormField control={form.control} name="date" render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel>Date</FormLabel>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="description" render={({ field }) => (
+                            <FormItem><FormLabel>Description</FormLabel><FormControl><Input placeholder="e.g. OFFICE RENT" {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="amount" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Amount (Negative for Expense)</FormLabel>
+                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                                <FormDescription>Use a negative sign (-) for payments/expenses.</FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="reference" render={({ field }) => (
+                            <FormItem><FormLabel>Reference (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <DialogFooter>
+                            <Button type="submit" disabled={isSaving}>
+                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Update Transaction
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function CreateGeneralAccountDialog({ client, onAccountCreated, open, onOpenChange }: { client: User | null; onAccountCreated: () => void; open: boolean; onOpenChange: (open: boolean) => void }) {
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
@@ -1015,6 +1163,8 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateRuleOpen, setIsCreateOpen] = useState(false);
     const [isManualTxOpen, setIsManualTxOpen] = useState(false);
+    const [isEditTxOpen, setIsEditTxOpen] = useState(false);
+    const [transactionToEdit, setTransactionToEdit] = useState<ImportedTransaction | null>(null);
     const [isCreateGeneralAccountOpen, setIsCreateGeneralAccountOpen] = useState(false);
     const [splitTransaction, setSplitTransaction] = useState<ImportedTransaction | null>(null);
     const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false);
@@ -1406,6 +1556,7 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
     return (
         <div className="space-y-4">
             <CreateManualTransactionDialog client={client} bankAccountId={bankAccountId} open={isManualTxOpen} onOpenChange={setIsManualTxOpen} />
+            <EditTransactionDialog client={client} transaction={transactionToEdit} open={isEditTxOpen} onOpenChange={setIsEditTxOpen} />
             <CreateRuleDialog client={client} onRuleCreated={() => {}} open={isCreateRuleOpen} onOpenChange={setIsCreateOpen} defaultValues={ruleDefaultValues} transactionDescription={transactionDescriptionForRule} existingRules={globalRules} customers={customers} suppliers={suppliers} />
             <CreateGeneralAccountDialog client={client} onAccountCreated={onAccountCreated} open={isCreateGeneralAccountOpen} onOpenChange={setIsCreateGeneralAccountOpen} />
             <AIAllocationReviewDialog open={isAiReviewOpen} onOpenChange={setIsAiReviewOpen} suggestion={aiSuggestion} transaction={selectedTxForAi} onAction={handleAiReviewAction} isVatRegistered={!!client?.isVatRegistered} />
@@ -1558,6 +1709,11 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button></DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => {
+                                                        setTransactionToEdit(tx);
+                                                        setIsEditTxOpen(true);
+                                                    }}>Edit Transaction</DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
                                                     <DropdownMenuItem onClick={() => {
                                                         setSplitTransaction(tx);
                                                         setIsSplitDialogOpen(true);

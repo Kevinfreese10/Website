@@ -3,19 +3,27 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import fs from 'fs';
 
+function logInit(msg: string) {
+  console.log(`[Firebase Admin] ${msg}`);
+}
+
 export function getAdminApp() {
+  logInit(`getAdminApp called. Existing apps count: ${getApps().length}`);
   if (getApps().length === 0) {
     // 1. Check if a service account JSON string is provided in env
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (serviceAccountJson) {
       try {
+        logInit("Initializing using FIREBASE_SERVICE_ACCOUNT env var...");
         const credentials = JSON.parse(serviceAccountJson);
-        return initializeApp({
+        const app = initializeApp({
           credential: cert(credentials),
           projectId: credentials.project_id || "studio-2604127518-57889"
         });
-      } catch (e) {
-        console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT environment variable:", e);
+        logInit("Succeeded initializing using FIREBASE_SERVICE_ACCOUNT env var.");
+        return app;
+      } catch (e: any) {
+        logInit(`Failed to parse FIREBASE_SERVICE_ACCOUNT environment variable: ${e.message}`);
       }
     }
 
@@ -23,13 +31,16 @@ export function getAdminApp() {
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
     if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
       try {
+        logInit(`Initializing using FIREBASE_SERVICE_ACCOUNT_KEY path: ${serviceAccountPath}`);
         const credentials = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-        return initializeApp({
+        const app = initializeApp({
           credential: cert(credentials),
           projectId: credentials.project_id || "studio-2604127518-57889"
         });
-      } catch (e) {
-        console.error("Failed to load service account key from file path:", e);
+        logInit("Succeeded initializing using FIREBASE_SERVICE_ACCOUNT_KEY.");
+        return app;
+      } catch (e: any) {
+        logInit(`Failed to load service account key from file path: ${e.message}`);
       }
     }
 
@@ -37,19 +48,27 @@ export function getAdminApp() {
     const downloadsPath = 'C:/Users/kev/Downloads';
     if (fs.existsSync(downloadsPath)) {
       try {
+        logInit("Searching Downloads folder for service account key...");
         const files = fs.readdirSync(downloadsPath);
         const keyFile = files.find(f => f.toLowerCase().includes('studio-2604127518-57889') && f.endsWith('.json'));
         if (keyFile) {
           const fullPath = `${downloadsPath}/${keyFile}`;
+          logInit(`Initializing using Downloads key file: ${fullPath}`);
           const credentials = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-          return initializeApp({
+          const app = initializeApp({
             credential: cert(credentials),
             projectId: credentials.project_id || "studio-2604127518-57889"
           });
+          logInit("Succeeded initializing using Downloads key file.");
+          return app;
+        } else {
+          logInit("No matching service account key JSON file found in Downloads.");
         }
-      } catch (e) {
-        console.error("Failed to search Downloads folder for service account key:", e);
+      } catch (e: any) {
+        logInit(`Failed to search Downloads folder for service account key: ${e.message}`);
       }
+    } else {
+      logInit("Downloads path does not exist.");
     }
 
     // 4. Fallback to hardcoded path as last resort
@@ -59,21 +78,29 @@ export function getAdminApp() {
     for (const p of hardcodedPaths) {
       if (fs.existsSync(p)) {
         try {
+          logInit(`Initializing using hardcoded fallback path: ${p}`);
           const credentials = JSON.parse(fs.readFileSync(p, 'utf8'));
-          return initializeApp({
+          const app = initializeApp({
             credential: cert(credentials),
             projectId: credentials.project_id || "studio-2604127518-57889"
           });
-        } catch (e) {
-          console.error(`Failed to load service account key from fallback path ${p}:`, e);
+          logInit("Succeeded initializing using hardcoded fallback path.");
+          return app;
+        } catch (e: any) {
+          logInit(`Failed to load service account key from fallback path ${p}: ${e.message}`);
         }
       }
     }
 
     // 5. Default initialization (works on GCP/App Hosting)
-    initializeApp({
+    logInit("Falling back to default initialization (Application Default Credentials)...");
+    const app = initializeApp({
       projectId: "studio-2604127518-57889"
     });
+    logInit("Succeeded using default initialization.");
+    return app;
+  } else {
+    logInit(`Already initialized. Active app name: ${getApps()[0].name}`);
   }
 }
 

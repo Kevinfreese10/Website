@@ -886,7 +886,7 @@ export async function updatePayslipAction({ clientId, payslipId, data }: { clien
     try {
         const adminDb = getAdminDb();
         const psRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc(payslipId);
-        await psRef.update({ ...data, status: 'finalized', updatedAt: FieldValue.serverTimestamp() });
+        await psRef.update({ ...data, status: 'finalized', updatedAt: new Date() });
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
