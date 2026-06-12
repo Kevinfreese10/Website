@@ -11,7 +11,7 @@ import { DocumentReviewEmail } from '@/components/emails/DocumentReviewEmail';
 import { NewNoteNotificationEmail } from '@/components/emails/NewNoteNotificationEmail';
 import { OutstandingDocumentsEmail } from '@/components/emails/OutstandingDocumentsEmail';
 import { OrderConfirmationEmail } from '@/components/emails/OrderConfirmationEmail';
-import { format, addDays, addMonths, addYears } from 'date-fns';
+import { format, addDays, addMonths, addYears, parse as parseDate } from 'date-fns';
 import { BankCleaner } from '@/lib/bank-cleaner';
 
 /**
@@ -900,7 +900,18 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
     const client = clientSnap.data() as User;
 
     const currentPeriod = client.firstProcessingMonth!;
-    const nextPeriod = format(addMonths(parse(currentPeriod, 'MMMM yyyy', new Date()), 1), 'MMMM yyyy');
+    const isFortnightly = client.payrollFrequency === 'Fortnightly';
+    let nextPeriod: string;
+    if (isFortnightly) {
+        try {
+            const parsed = parseDate(currentPeriod, 'dd/MM/yyyy', new Date());
+            nextPeriod = format(addDays(parsed, 14), 'dd/MM/yyyy');
+        } catch (e) {
+            nextPeriod = format(addDays(new Date(), 14), 'dd/MM/yyyy');
+        }
+    } else {
+        nextPeriod = format(addMonths(parse(currentPeriod, 'MMMM yyyy', new Date()), 1), 'MMMM yyyy');
+    }
 
     const empsSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('employees')
         .where('status', '==', 'Active')
@@ -925,7 +936,7 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
             grossPay: 0,
             totalDeductions: 0,
             netPay: 0,
-            frequency: 'Monthly'
+            frequency: client.payrollFrequency || 'Monthly'
         });
         created++;
     }
@@ -943,7 +954,18 @@ export async function rollBackPayrollAction({ clientId }: { clientId: string }) 
     const client = clientSnap.data() as User;
 
     const currentPeriod = client.firstProcessingMonth!;
-    const prevPeriod = format(addMonths(parse(currentPeriod, 'MMMM yyyy', new Date()), -1), 'MMMM yyyy');
+    const isFortnightly = client.payrollFrequency === 'Fortnightly';
+    let prevPeriod: string;
+    if (isFortnightly) {
+        try {
+            const parsed = parseDate(currentPeriod, 'dd/MM/yyyy', new Date());
+            prevPeriod = format(addDays(parsed, -14), 'dd/MM/yyyy');
+        } catch (e) {
+            prevPeriod = format(addDays(new Date(), -14), 'dd/MM/yyyy');
+        }
+    } else {
+        prevPeriod = format(addMonths(parse(currentPeriod, 'MMMM yyyy', new Date()), -1), 'MMMM yyyy');
+    }
 
     const psSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips')
         .where('period', '==', currentPeriod)

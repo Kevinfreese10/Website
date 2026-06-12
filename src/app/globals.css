@@ -231,3 +231,36 @@
   50% { transform: translate(-20px, 15px) scale(0.95); }
   75% { transform: translate(15px, 25px) scale(1.02); }
 }
+
+/* ── Global Dark Theme Overrides for Public/Admin/User pages (all except partner pages) ── */
+div:not(.theme-light) .bg-white {
+  background-color: var(--background) !important;
+}
+div:not(.theme-light) .bg-slate-50,
+div:not(.theme-light) .bg-slate-100\/50,
+div:not(.theme-light) .bg-slate-50\/50,
+div:not(.theme-light) .bg-slate-100 {
+  background-color: var(--card) !important;
+}
+div:not(.theme-light) .card,
+div:not(.theme-light) [class*="card"],
+div:not(.theme-light) .bg-slate-50.border,
+div:not(.theme-light) div[class*="bg-slate-50"].border,
+div:not(.theme-light) div[class*="bg-slate-50"].rounded-2xl {
+  background-color: var(--card) !important;
+}
+div:not(.theme-light) .text-slate-900,
+div:not(.theme-light) .text-slate-800,
+div:not(.theme-light) .text-slate-700,
+div:not(.theme-light) .text-slate-600 {
+  color: var(--foreground) !important;
+}
+div:not(.theme-light) .text-muted-foreground {
+  color: var(--muted-foreground) !important;
+}
+div:not(.theme-light) .border-slate-100,
+div:not(.theme-light) .border-slate-200,
+div:not(.theme-light) .border-slate-300,
+div:not(.theme-light) .border-slate-400 {
+  border-color: var(--border) !important;
+}
