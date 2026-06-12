@@ -11,7 +11,7 @@ const STOPWORDS = new Set([
     'ONLINE', 'PAYMENT', 'TRANSFER', 'ACCOUNT', 'EFT', 'MOBILE', 'APP',
     'BANKING', 'PURCHASE', 'CREDIT', 'DEBIT', 'CARD', 'PURCH',
     'TRADING', 'SERVICES', 'ENTERPRISE', 'PROPERTIES', 'HOLDINGS', 'GROUP', 'STORE', 'SHOP', 'N',
-    'LC', 'SPOR', 'SPORT'
+    'LC', 'SPOR', 'SPORT', 'IMMEDIATE', 'EXTERNAL'
 ]);
 
 const SIMILARITY_STOPWORDS = new Set([
@@ -22,7 +22,7 @@ const SIMILARITY_STOPWORDS = new Set([
     'REF', 'REFERENCE', 'INV', 'INVOICE', 'DOC', 'AUTH', 'AUTHCD', 'TRACE', 'TRN', 'TXN',
     'MAGTAPE', 'MAGSTRIPE', 'MAG-STRIPE', 'CHIP', 'CONTACTLESS', 'TAP',
     'ATM', 'AUTOBANK', 'CASH', 'WITHDRAW', 'WDL', 'DEP', 'DEPOSIT',
-    'PTY', 'LTD', 'INC', 'CC', 'LLC', 'SOC', 'SA', 'SOUTHAFRICA',
+    'PTY', 'LTD', 'INC', 'CC', 'LLC', 'SOC', 'SA', 'SOUTHAFRICA', 'IMMEDIATE', 'EXTERNAL',
     'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
     'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
 ]);
@@ -45,7 +45,7 @@ export class BankCleaner {
         str = str.replace(/\([^)]*\d+[^)]*\)/g, ' ');
 
         // Remove generic SA digital/app payment headers at the start
-        const genericDigitalPrefixes = /^(?:DIGITAL PAYMENTS BANKING APP (?:EXTERNAL )?IMMEDIATE PAYMENT|DIGITAL PAYMENTS BANKING APP IMMEDIATE|DIGITAL PAYMENTS BANKING APP|DIGITAL PAYMENTS BANKING|ONLINE STORE IMMEDIATE CAPITEC PAY PAYMENT|ONLINE STORE IMMEDIATE CAPITEC PAY|CAPITEC PAY PAYMENT|CAPITEC PAY)\b\s*[:\-]?\s*/;
+        const genericDigitalPrefixes = /^(?:DIGITAL PAYMENTS BANKING APP (?:EXTERNAL )?(?:IMMEDIATE|PAYSHAP) PAYMENT|DIGITAL PAYMENTS BANKING APP IMMEDIATE|DIGITAL PAYMENTS BANKING APP EXTERNAL PAYSHAP|DIGITAL PAYMENTS BANKING APP|DIGITAL PAYMENTS BANKING|ONLINE STORE IMMEDIATE CAPITEC PAY PAYMENT|ONLINE STORE IMMEDIATE CAPITEC PAY|CAPITEC PAY PAYMENT|CAPITEC PAY)\b\s*[:\-]?\s*/;
         str = str.replace(genericDigitalPrefixes, '').trim();
 
         // Insert space between letters and numbers when glued together
@@ -53,14 +53,13 @@ export class BankCleaner {
         str = str.replace(/([0-9])([A-Z])/g, '$1 $2');
 
         // Channel identification
-        if (/\b(INTERNET|IB|ONLINE|APP|EFT|ELECTRONIC)\b/.test(str)) channel = 'EFT';
+        if (/\b(INTERNET|IB|ONLINE|APP|EFT|ELECTRONIC|PAYSHAP|PAY\s*SHAP)\b/.test(str)) channel = 'EFT';
         if (/\b(POS|CARD\s*PURCHASE|VISA|MASTERCARD)\b/.test(str)) channel = 'CARD';
 
         // Check SA Specific Standardizations
         if (/\bINSTANT\s*MONEY\b/i.test(str)) return { clean: 'INSTANT MONEY', channel: 'EFT' };
         if (/\bE\s*WALLET\b/i.test(str)) return { clean: 'EWALLET', channel: 'EFT' };
         if (/\bCASH\s*SEND\b/i.test(str)) return { clean: 'CASH SEND', channel: 'EFT' };
-        if (/\bPAY\s*SHAP\b|\bPAYSHAP\b/i.test(str)) return { clean: 'PAYSHAP', channel: 'EFT' };
 
         if (/\b(FEE(S)?|BANK\s*CHARGES?|SERVICE\s*FEE|MONTHLY\s*FEE|ACCOUNT\s*FEE|ADMIN\s*FEE|TRANSACTION\s*FEE)\b/i.test(str)) {
             return { clean: 'BANK FEES', channel: 'FEE' };
@@ -71,7 +70,7 @@ export class BankCleaner {
 
         // 1. Clean common banking prefixes iteratively from the start (supporting optional amount prefix)
         let prevStr = '';
-        const prefixRegex = /^(?:SETTLEMENT ASJ\s*>\s*|POS PURCHASE SETTLEMENT|SETTLEMENT|CHEQUE CARD PURCHASE|CARD PURCHASE|DEBIT CARD PURCHASE|POS PURCHASE|EFT PAYMENT|EFT CREDIT|ELECTRONIC PAYMENT|ONLINE PAYMENT|INTERNET PAYMENT|INSTANT PAYMENT|CASH DEPOSIT|ATM WITHDRAWAL|STOP ORDER|DEBIT ORDER|NAEDO|ACB DEBIT|BANK CHARGES?|PURCHASE|PURCH)\s*(?:\d+(?:\.\d{2})?)?\s+/;
+        const prefixRegex = /^(?:SETTLEMENT ASJ\s*>\s*|POS PURCHASE SETTLEMENT|SETTLEMENT|CHEQUE CARD PURCHASE|CARD PURCHASE|DEBIT CARD PURCHASE|POS PURCHASE|EFT PAYMENT|EFT CREDIT|ELECTRONIC PAYMENT|ONLINE PAYMENT|INTERNET PAYMENT|INSTANT PAYMENT|CASH DEPOSIT|ATM WITHDRAWAL|STOP ORDER|DEBIT ORDER|NAEDO|ACB DEBIT|BANK CHARGES?|PURCHASE|PURCH|PAYSHAP PAYMENT TO|PAYSHAP PAYMENT FROM|PAYSHAP PAYMENT|PAYSHAP CREDIT|PAYSHAP DEBIT|PAYSHAP ACCOUNT OFF-US|PAYSHAP ACCOUNT|PAYSHAP)\s*(?:\d+(?:\.\d{2})?)?\s+/;
         while (str !== prevStr) {
             prevStr = str;
             str = str.replace(prefixRegex, ' ').trim();
@@ -93,8 +92,8 @@ export class BankCleaner {
         // 6. Remove long numeric IDs and alphanumeric references containing 4+ consecutive digits
         str = str.replace(/\b[A-Z]*\d{4,}[A-Z0-9]*\b/g, ' ');
 
-        // 7. Remove South African bank/channel noise (including PAYFAST, LC, SPOR, SPORT)
-        str = str.replace(/\b(PAYFAST|FNB|ABSA|NEDBANK|STANDARD BANK|CAPITEC|DISCOVERY BANK|TYMEBANK|SBSA|NED|ZA|ZAF|ECOM|POS|ATM|INT|IBANK|MOBILE|APP|LC|SPOR|SPORT)\b/g, ' ');
+        // 7. Remove South African bank/channel noise (including PAYFAST, LC, SPOR, SPORT, PAYSHAP, IMMEDIATE, EXTERNAL)
+        str = str.replace(/\b(PAYFAST|FNB|ABSA|NEDBANK|STANDARD BANK|CAPITEC|DISCOVERY BANK|TYMEBANK|SBSA|NED|ZA|ZAF|ECOM|POS|ATM|INT|IBANK|MOBILE|APP|LC|SPOR|SPORT|PAYSHAP|PAY\s*SHAP|IMMEDIATE|EXTERNAL)\b/g, ' ');
 
         // 8. Remove legal suffixes
         str = str.replace(/\b(PTY|PTY LTD|PROPRIETARY LIMITED|LIMITED|LTD|CC|INC|NPC|NPO|TRUST)\b\.?/g, ' ');
