@@ -41,6 +41,13 @@ export class BankCleaner {
         let str = description.toUpperCase();
         let channel = 'UNKNOWN';
 
+        // Remove parenthesized text containing digits (e.g. references like (GN260221107247517698) or (12345))
+        str = str.replace(/\([^)]*\d+[^)]*\)/g, ' ');
+
+        // Remove generic SA digital/app payment headers at the start
+        const genericDigitalPrefixes = /^(?:DIGITAL PAYMENTS BANKING APP (?:EXTERNAL )?IMMEDIATE PAYMENT|DIGITAL PAYMENTS BANKING APP IMMEDIATE|DIGITAL PAYMENTS BANKING APP|DIGITAL PAYMENTS BANKING|ONLINE STORE IMMEDIATE CAPITEC PAY PAYMENT|ONLINE STORE IMMEDIATE CAPITEC PAY|CAPITEC PAY PAYMENT|CAPITEC PAY)\b\s*[:\-]?\s*/;
+        str = str.replace(genericDigitalPrefixes, '').trim();
+
         // Insert space between letters and numbers when glued together
         str = str.replace(/([A-Z])([0-9])/g, '$1 $2');
         str = str.replace(/([0-9])([A-Z])/g, '$1 $2');
@@ -83,8 +90,8 @@ export class BankCleaner {
         // 5. Remove account/payment references (strictly bounded)
         str = str.replace(/\b(ACC|ACCOUNT|INV|INVOICE|PMT|PAYMENT|CLIENT|CUSTOMER|POLICY|CONTRACT)\b\s*[:\-]?\s*[A-Z0-9\-\/]+\b/g, ' ');
 
-        // 6. Remove long numeric IDs (and 4+ digit numeric references)
-        str = str.replace(/\b\d{4,}\b/g, ' ');
+        // 6. Remove long numeric IDs and alphanumeric references containing 4+ consecutive digits
+        str = str.replace(/\b[A-Z]*\d{4,}[A-Z0-9]*\b/g, ' ');
 
         // 7. Remove South African bank/channel noise (including PAYFAST, LC, SPOR, SPORT)
         str = str.replace(/\b(PAYFAST|FNB|ABSA|NEDBANK|STANDARD BANK|CAPITEC|DISCOVERY BANK|TYMEBANK|SBSA|NED|ZA|ZAF|ECOM|POS|ATM|INT|IBANK|MOBILE|APP|LC|SPOR|SPORT)\b/g, ' ');
@@ -97,6 +104,9 @@ export class BankCleaner {
 
         // 10. Remove special characters, keep useful text (replace with a space)
         str = str.replace(/[^A-Z0-9& ]+/g, ' ');
+
+        // Strip SA honorific prefixes at start of cleaned string
+        str = str.trim().replace(/^(?:MR|MRS|MS|DR|PROF)\b\s*/i, '');
 
         // 11. Collapse whitespace (replace with one space)
         str = str.replace(/\s{2,}/g, ' ');
