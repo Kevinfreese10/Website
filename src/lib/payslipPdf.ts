@@ -1,0 +1,319 @@
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format, parse, isValid } from 'date-fns';
+import { Payslip, Employee, User, PayslipItem } from '@/lib/types';
+
+function getPayDate(period?: string): Date {
+  if (!period) return new Date();
+  
+  const parts = period.split(' - ');
+  const dateStr = parts[parts.length - 1].trim();
+  
+  if (dateStr.includes('/')) {
+      const parsed = parse(dateStr, 'dd/MM/yyyy', new Date());
+      return isValid(parsed) ? parsed : new Date();
+  }
+
+  const wordParts = dateStr.split(' ');
+  if (wordParts.length < 2) return new Date();
+  const monthName = wordParts[0];
+  const year = parseInt(wordParts[1]);
+  
+  const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+  ];
+  const monthIdx = months.indexOf(monthName);
+  if (monthIdx !== -1 && !isNaN(year)) {
+      return new Date(year, monthIdx + 1, 0);
+  }
+  
+  return new Date();
+}
+
+export function generatePayslipPdfPage(
+  doc: jsPDF,
+  payslip: Payslip,
+  employee: Employee,
+  client: User,
+  currentData?: {
+      earnings: PayslipItem[];
+      deductions: PayslipItem[];
+      contributions: PayslipItem[];
+      fringeBenefits: PayslipItem[];
+      netPay: number;
+      grossPay: number;
+  },
+  ytdTotals?: {
+      gross: number;
+      tax: number;
+      contributions: number;
+      fringe: number;
+  }
+) {
+  const p = currentData || payslip;
+  
+  const formatCurr = (num: number) => {
+      if (num === 0) return '0.00';
+      // Use en-GB to ensure dot decimal separator (e.g., 1,234.56)
+      return num.toLocaleString('en-GB', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 2 
+      });
+  };
+
+  // --- 1. Company Header (Top Left) ---
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(String(client.companyName || client.name).toUpperCase(), 15, 15);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  let currentY = 20;
+  
+  if (client.address) {
+      const addr = client.address as any;
+      const unitComplex = [addr.unit, addr.complex].filter(Boolean).join(', ');
+      const addrLines = [unitComplex, addr.street, addr.suburb, addr.city, addr.zip].filter(Boolean);
+      addrLines.forEach(line => {
+          const wrapped = doc.splitTextToSize(String(line), 100);
+          wrapped.forEach((subLine: string) => {
+              doc.text(subLine, 15, currentY);
+              currentY += 5;
+          });
+      });
+  }
+
+  if (client.registrationNumber && client.registrationNumber !== 'N/A') {
+      doc.text(`Reg No: ${client.registrationNumber}`, 15, currentY);
+      currentY += 5;
+  }
+
+  if (client.payeReference && client.payeReference !== 'N/A') {
+      doc.text(`PAYE Ref: ${client.payeReference}`, 15, currentY);
+      currentY += 5;
+  }
+
+  const dividerY = Math.max(currentY + 5, 48);
+
+  // --- 2. Pay Date (Far Right) ---
+  const payDate = getPayDate(payslip.period);
+  const payDateStr = format(payDate, 'yyyy/MM/dd');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Pay Date:', 140, dividerY - 9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(payDateStr, 195, dividerY - 9, { align: 'right' });
+
+  // --- Pay Period (Far Right) ---
+  doc.setFont('helvetica', 'bold');
+  doc.text('Pay Period:', 140, dividerY - 4);
+  doc.setFont('helvetica', 'normal');
+  doc.text(payslip.period || 'Current', 195, dividerY - 4, { align: 'right' });
+
+  // --- 3. Logo (Top Right) ---
+  if (client.logoUrl) {
+      try {
+          doc.addImage(client.logoUrl, 'PNG', 160, 10, 35, 15);
+      } catch (e) {
+          console.warn("Logo failed to load for PDF");
+      }
+  }
+
+  currentY = dividerY;
+  doc.setDrawColor(200);
+  doc.line(15, currentY, 195, currentY);
+  currentY += 7;
+
+  // --- 4. Employee Info Grid (3 Columns) ---
+  const col1X = 15;
+  const col2X = 80;
+  const col3X = 140;
+
+  const drawLabelValue = (label: string, value: string | undefined | null, x: number, y: number) => {
+      if (!value || value === 'N/A') return;
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, x, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(value, x + 30, y);
+  };
+
+  // Row 1
+  drawLabelValue('Employee', `${employee.name} ${employee.surname}`, col1X, currentY);
+  drawLabelValue('Employee Code', employee.employeeCode, col2X, currentY);
+  drawLabelValue('Pay Method', 'EFT', col3X, currentY);
+  currentY += 6;
+
+  // Row 2
+  drawLabelValue('Job title', employee.jobTitle, col1X, currentY);
+  drawLabelValue('Identity Number', employee.idNumber, col2X, currentY);
+  drawLabelValue('Bank Name', employee.bankingDetails?.bankName, col3X, currentY);
+  currentY += 6;
+
+  // Row 3
+  const cleanAddressField = (val: any) => {
+      if (!val) return '';
+      const s = String(val).trim();
+      if (s.toLowerCase() === 'n/a' || s === '') return '';
+      return s;
+  };
+
+  const addrUnit = cleanAddressField(employee.address?.unit);
+  const addrComplex = cleanAddressField(employee.address?.complex);
+  const addrStreet = cleanAddressField(employee.address?.street);
+  const addrSuburb = cleanAddressField(employee.address?.suburb);
+  const addrCity = cleanAddressField(employee.address?.city);
+  const addrZip = cleanAddressField(employee.address?.zip);
+
+  const unitComplex = [addrUnit, addrComplex].filter(Boolean).join(', ');
+  const lines = [unitComplex, addrStreet, addrSuburb, addrCity, addrZip].filter(Boolean);
+  const hasAddress = lines.length > 0;
+
+  if (hasAddress) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Address', col1X, currentY);
+  }
+
+  const joinDateStr = employee.joinDate?.toDate ? format(employee.joinDate.toDate(), 'yyyy/MM/dd') : (employee.joinDate ? format(new Date(employee.joinDate), 'yyyy/MM/dd') : '');
+  drawLabelValue('Employed from', joinDateStr, col2X, currentY);
+  drawLabelValue('Branch Code', employee.bankingDetails?.branchCode, col3X, currentY);
+  
+  let addrY = currentY;
+  if (hasAddress) {
+      lines.forEach(line => {
+          const wrapped = doc.splitTextToSize(String(line), 30);
+          wrapped.forEach((subLine: string) => {
+              doc.text(subLine, col1X + 30, addrY);
+              addrY += 5;
+          });
+      });
+  }
+  
+  const hourlyRate = p.grossPay / 160;
+  drawLabelValue('Rate per hour', formatCurr(hourlyRate), col2X, currentY + 6);
+  drawLabelValue('Account Number', employee.bankingDetails?.accountNumber, col3X, currentY + 6);
+  drawLabelValue('Account Holder', employee.bankingDetails?.accountHolder, col3X, currentY + 12);
+
+  currentY = Math.max(addrY, currentY + 20);
+  doc.line(15, currentY, 195, currentY);
+  currentY += 2;
+
+  // --- 5. Main Financial Tables ---
+  const tableStartY = currentY;
+
+  // Table 1: Earnings (Left)
+  autoTable(doc, {
+      startY: tableStartY,
+      margin: { left: 15, right: 105 },
+      head: [['Earnings', 'Amount']],
+      body: p.earnings.map(i => [i.label, formatCurr(i.amount)]),
+      theme: 'plain',
+      headStyles: { fontStyle: 'bold', fontSize: 9, textColor: 0, lineWidth: { bottom: 0.1 } },
+      columnStyles: { 
+          0: { cellWidth: 65, halign: 'left' }, 
+          1: { cellWidth: 25, halign: 'right' } 
+      },
+      didParseCell: (data) => {
+          if (data.section === 'head' && data.column.index === 1) {
+              data.cell.styles.halign = 'right';
+          }
+      }
+  });
+
+  const earningsY = (doc as any).lastAutoTable.finalY;
+
+  doc.setFillColor(240, 240, 240);
+  doc.rect(15, earningsY, 90, 7, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Total earnings', 17, earningsY + 5);
+  doc.text(formatCurr(p.grossPay), 103, earningsY + 5, { align: 'right' });
+
+  // Table 2: Deductions (Right)
+  autoTable(doc, {
+      startY: tableStartY,
+      margin: { left: 105, right: 15 },
+      head: [['Deductions', 'Amount']],
+      body: p.deductions.map(i => [i.label, formatCurr(i.amount)]),
+      theme: 'plain',
+      headStyles: { fontStyle: 'bold', fontSize: 9, textColor: 0, lineWidth: { bottom: 0.1 } },
+      columnStyles: { 
+          0: { cellWidth: 65, halign: 'left' }, 
+          1: { cellWidth: 25, halign: 'right' } 
+      },
+      didParseCell: (data) => {
+          if (data.section === 'head' && data.column.index === 1) {
+              data.cell.styles.halign = 'right';
+          }
+      }
+  });
+
+  const deductionsY = (doc as any).lastAutoTable.finalY;
+
+  doc.setFillColor(240, 240, 240);
+  doc.rect(105, deductionsY, 90, 7, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.text('Total deductions', 107, deductionsY + 5);
+  doc.text(formatCurr(p.grossPay - p.netPay), 193, deductionsY + 5, { align: 'right' });
+
+  doc.setFillColor(220, 220, 220);
+  doc.rect(105, deductionsY + 7, 90, 7, 'F');
+  doc.text('Nett pay', 107, deductionsY + 12);
+  doc.text(formatCurr(p.netPay), 193, deductionsY + 12, { align: 'right' });
+
+  currentY = Math.max(earningsY + 20, deductionsY + 25);
+
+  // --- 6. Secondary Financial Tables (YTD) ---
+  
+  // Table 3: Company Contributions (Left)
+  autoTable(doc, {
+      startY: currentY,
+      margin: { left: 15, right: 105 },
+      head: [['Company Contributions', 'Amount']],
+      body: p.contributions.map(i => [i.label, formatCurr(i.amount)]),
+      theme: 'plain',
+      headStyles: { fontStyle: 'bold', fontSize: 9, textColor: 0, lineWidth: { bottom: 0.1 } },
+      columnStyles: { 
+          0: { cellWidth: 65, halign: 'left' }, 
+          1: { cellWidth: 25, halign: 'right' } 
+      },
+      didParseCell: (data) => {
+          if (data.section === 'head' && data.column.index === 1) {
+              data.cell.styles.halign = 'right';
+          }
+      }
+  });
+
+  // Table 4: YTD Totals (Right)
+  const taxPaidYtd = ytdTotals?.tax || p.deductions.find(d => d.label === 'Tax')?.amount || 0;
+  const grossYtd = ytdTotals?.gross || p.grossPay;
+  const contribYtd = ytdTotals?.contributions || p.contributions.reduce((s: number, i: any) => s + i.amount, 0);
+  const fringeYtd = ytdTotals?.fringe || p.fringeBenefits.reduce((s: number, i: any) => s + i.amount, 0);
+
+  autoTable(doc, {
+      startY: currentY,
+      margin: { left: 105, right: 15 },
+      head: [['YTD Totals', 'Amount']],
+      body: [
+          ['Taxable earnings', formatCurr(grossYtd)],
+          ['Taxable company contributions', formatCurr(contribYtd)],
+          ['Taxable fringe benefits', formatCurr(fringeYtd)],
+          ['Provision for tax on annual bonus', formatCurr(0)],
+          ['Tax paid', formatCurr(taxPaidYtd)],
+      ],
+      theme: 'plain',
+      headStyles: { fontStyle: 'bold', fontSize: 9, textColor: 0, lineWidth: { bottom: 0.1 } },
+      columnStyles: { 
+          0: { cellWidth: 65, halign: 'left' }, 
+          1: { cellWidth: 25, halign: 'right' } 
+      },
+      didParseCell: (data) => {
+          if (data.section === 'head' && data.column.index === 1) {
+              data.cell.styles.halign = 'right';
+          }
+      }
+  });
+
+  // Footer
+  doc.setFontSize(7);
+  doc.setTextColor(150);
+  doc.text('Generated by My Accountant AI Payroll', 105, 285, { align: 'center' });
+}

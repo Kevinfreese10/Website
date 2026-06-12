@@ -131,6 +131,7 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
             <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/reports/summary`}>Payroll Summary</Link></MenubarItem>
             <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/reports/changes`}>Payroll Changes</Link></MenubarItem>
             <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/reports/emp201`}>EMP201 Return</Link></MenubarItem>
+            <MenubarItem asChild><Link href={`/admin/ai-payroll/${clientId}/reports/payslips`}>Payslip Batch Download</Link></MenubarItem>
           </MenubarContent>
         </MenubarMenu>
 

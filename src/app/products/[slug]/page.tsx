@@ -226,10 +226,10 @@ export default async function ProductDetailPage({ params }: Props) {
       </nav>
 
       {/* DYNAMIC PREMIUM HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-slate-50 border-b pt-8 pb-16 text-center mb-12 animate-in fade-in">
+      <section className="relative w-full overflow-hidden bg-card/40 border-b border-border/40 pt-8 pb-16 text-center mb-12 animate-in fade-in">
         <div className="container mx-auto px-4 max-w-4xl">
           <Badge variant="secondary" className="mb-4 uppercase tracking-wider">{service.category}</Badge>
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
             {firstPart} {secondPart && <span className="text-gradient">{secondPart}</span>}
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
@@ -294,9 +294,9 @@ export default async function ProductDetailPage({ params }: Props) {
           <div className="md:col-span-1">
             <div className="sticky top-24 space-y-4">
               {/* Service summary recap */}
-              <div className="rounded-2xl border bg-gradient-to-b from-slate-50 to-white p-4 shadow-sm">
+              <div className="rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
                 <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">{service.category}</p>
-                <h3 className="text-base font-black text-slate-900 leading-snug mb-3">{service.title}</h3>
+                <h3 className="text-base font-black text-foreground leading-snug mb-3">{service.title}</h3>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center text-xs text-muted-foreground font-semibold gap-1">
                     <Clock className="h-3.5 w-3.5" />{service.turnaroundTime}
@@ -313,17 +313,17 @@ export default async function ProductDetailPage({ params }: Props) {
 
         {/* DYNAMIC FAQ ACCORDION SECTION (Strictly aligned with Google Search Engine requirements) */}
         {serviceFaqs && serviceFaqs.length > 0 && (
-          <div className="mt-16 bg-slate-50 rounded-2xl p-8 border shadow-sm max-w-4xl mx-auto">
+          <div className="mt-16 bg-card/40 rounded-2xl p-8 border border-border/40 shadow-sm max-w-4xl mx-auto">
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="text-center space-y-2">
-                <h2 className="text-3xl font-black tracking-tight text-slate-900">Frequently Asked Questions</h2>
+                <h2 className="text-3xl font-black tracking-tight text-foreground">Frequently Asked Questions</h2>
                 <p className="text-sm text-muted-foreground font-semibold">Everything you need to know about our {service.title} solutions.</p>
               </div>
               
               <Accordion type="single" collapsible className="w-full mt-4">
                 {serviceFaqs.map((faq, index) => (
                   <AccordionItem key={index} value={`faq-${index}`} className="border-b">
-                    <AccordionTrigger className="text-base font-bold text-slate-900 text-left py-4">
+                    <AccordionTrigger className="text-base font-bold text-foreground text-left py-4">
                       {faq.q}
                     </AccordionTrigger>
                     <AccordionContent className="text-muted-foreground leading-relaxed text-sm pb-4">
@@ -339,7 +339,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
       {/* MOBILE STICKY BUY BAR */}
       {!service.isPriceTbc && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t shadow-2xl px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-4">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-t border-border/40 shadow-2xl px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-4">
           <div>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider truncate max-w-[180px]">{service.title}</p>
             <p className="text-lg font-black text-primary leading-none">{formatPrice(service.price)}</p>

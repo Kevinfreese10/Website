@@ -28,13 +28,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (isDashboardPage) {
-      document.body.classList.add('theme-light');
+    if (!isDashboardPage) {
+      document.body.classList.add('dark');
     } else {
-      document.body.classList.remove('theme-light');
+      document.body.classList.remove('dark');
     }
     return () => {
-      document.body.classList.remove('theme-light');
+      document.body.classList.remove('dark');
     };
   }, [isDashboardPage]);
 
@@ -51,7 +51,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className={`flex min-h-screen flex-col ${isDashboardPage ? 'theme-light' : ''}`}>
+    <div className={`flex min-h-screen flex-col ${!isDashboardPage ? 'dark' : ''}`}>
       {content}
     </div>
   );
