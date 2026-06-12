@@ -29,12 +29,18 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const shouldShowHeader = mounted && (!isDashboardPage || isAuthPage);
   const shouldShowFooter = mounted && !isDashboardPage && !isAuthPage;
 
-  return (
-    <div className="flex min-h-screen flex-col">
+  const content = (
+    <>
       {shouldShowHeader && <Header />}
       <main className="flex-grow bg-background relative">{children}</main>
       {shouldShowFooter && <Footer />}
       {mounted && !isDashboardPage && <WebsiteAIWidget />}
+    </>
+  );
+
+  return (
+    <div className={`flex min-h-screen flex-col ${isDashboardPage ? 'theme-light' : ''}`}>
+      {content}
     </div>
   );
 }

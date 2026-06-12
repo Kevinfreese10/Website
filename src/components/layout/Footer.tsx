@@ -5,12 +5,12 @@ const Footer = () => {
   const buildId = process.env.NEXT_PUBLIC_BUILD_TIMESTAMP;
 
   return (
-    <footer className="border-t bg-background">
+    <footer className="border-t border-white/[0.06] bg-background relative overflow-hidden">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
             <div className="space-y-3">
-                <h3 className="font-semibold">Contact Details</h3>
+                <h3 className="font-semibold text-foreground">Contact Details</h3>
                 <div className="text-sm text-muted-foreground space-y-3">
                     <div className="flex items-start gap-3">
                         <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
@@ -34,7 +34,7 @@ const Footer = () => {
             </div>
 
             <div className="space-y-3">
-                <h3 className="font-semibold">Quick Links</h3>
+                <h3 className="font-semibold text-foreground">Quick Links</h3>
                  <ul className="space-y-2 text-sm">
                     <li><Link href="/#about" className="text-muted-foreground hover:text-primary">About</Link></li>
                     <li><Link href="/blog" className="text-muted-foreground hover:text-primary">Blog</Link></li>
@@ -50,7 +50,7 @@ const Footer = () => {
                 </ul>
             </div>
 
-            <div>
+            <div className="rounded-xl overflow-hidden border border-white/10">
                 <iframe
                     src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
                     width="100%"
@@ -63,22 +63,22 @@ const Footer = () => {
             </div>
 
         </div>
-        <div className="mt-8 border-t pt-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center border-b pb-8 mb-6">
+        <div className="mt-8 border-t border-white/[0.06] pt-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center border-b border-white/[0.06] pb-8 mb-6">
             <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-2">
               <span className="text-xs font-black uppercase tracking-[0.15em] text-primary">CIBA Practice Designation</span>
-              <p className="text-sm font-bold text-slate-900">Chartered Business Accountant in Practice</p>
-              <span className="text-xs text-muted-foreground font-mono bg-slate-50 border px-2 py-0.5 rounded">CIBA201509-5372</span>
+              <p className="text-sm font-bold text-foreground">Chartered Business Accountant in Practice</p>
+              <span className="text-xs text-muted-foreground font-mono bg-white/[0.05] border-white/10 border px-2 py-0.5 rounded">CIBA201509-5372</span>
             </div>
             <div className="flex flex-col items-center text-center space-y-2">
               <span className="text-xs font-black uppercase tracking-[0.15em] text-primary">SAIT Member Credentials</span>
-              <p className="text-sm font-bold text-slate-900">General Tax Practitioner (SA)™</p>
-              <span className="text-xs text-muted-foreground font-mono bg-slate-50 border px-2 py-0.5 rounded">Member ID: 47011519</span>
+              <p className="text-sm font-bold text-foreground">General Tax Practitioner (SA)™</p>
+              <span className="text-xs text-muted-foreground font-mono bg-white/[0.05] border-white/10 border px-2 py-0.5 rounded">Member ID: 47011519</span>
             </div>
             <div className="flex flex-col items-center md:items-end text-center md:text-right space-y-2">
               <span className="text-xs font-black uppercase tracking-[0.15em] text-primary">SARS Reference Number</span>
-              <p className="text-sm font-bold text-slate-900">Registered Tax Practitioner</p>
-              <span className="text-xs text-muted-foreground font-mono bg-slate-50 border px-2 py-0.5 rounded">PR-0098553</span>
+              <p className="text-sm font-bold text-foreground">Registered Tax Practitioner</p>
+              <span className="text-xs text-muted-foreground font-mono bg-white/[0.05] border-white/10 border px-2 py-0.5 rounded">PR-0098553</span>
             </div>
           </div>
         </div>

@@ -33,40 +33,55 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
   }));
   
-  const servicesSnapshot = await getDocs(query(collection(db, "services"), orderBy("title")));
-  const services = servicesSnapshot.docs.map(doc => doc.data() as Service);
-  const serviceRoutes = services.map((service) => ({
-    url: `${BASE_URL}/products/${service.slug}`,
-    lastModified: new Date(),
-  }));
-
-  const franchiseesSnapshot = await getDocs(query(collection(db, "users"), where("role", "==", "franchisee")));
-  const franchiseeRoutes = franchiseesSnapshot.docs
-    .map(doc => doc.data())
-    .filter(u => u.franchise?.areaSlug)
-    .map(u => ({
-      url: `${BASE_URL}/locations/${u.franchise.areaSlug}`,
+  let serviceRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const servicesSnapshot = await getDocs(query(collection(db, "services"), orderBy("title")));
+    const services = servicesSnapshot.docs.map(doc => doc.data() as Service);
+    serviceRoutes = services.map((service) => ({
+      url: `${BASE_URL}/products/${service.slug}`,
       lastModified: new Date(),
     }));
+  } catch (error) {
+    console.error("Error fetching services for sitemap:", error);
+  }
 
-  const blogPostsSnapshot = await getDocs(query(collection(db, "blogPosts"), orderBy("date", "desc")));
-  const blogPosts = blogPostsSnapshot.docs.map(doc => doc.data() as BlogPost);
-  
-  const blogPostRoutes = blogPosts.map((post) => {
-    let lastModifiedDate;
-    if (post.date && typeof post.date === 'object' && 'toDate' in post.date) {
-        lastModifiedDate = (post.date as unknown as Timestamp).toDate();
-    } else if (typeof post.date === 'string') {
-        lastModifiedDate = new Date(post.date);
-    } else {
-        lastModifiedDate = new Date();
-    }
+  let franchiseeRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const franchiseesSnapshot = await getDocs(query(collection(db, "users"), where("role", "==", "franchisee")));
+    franchiseeRoutes = franchiseesSnapshot.docs
+      .map(doc => doc.data())
+      .filter(u => u.franchise?.areaSlug)
+      .map(u => ({
+        url: `${BASE_URL}/locations/${u.franchise.areaSlug}`,
+        lastModified: new Date(),
+      }));
+  } catch (error) {
+    console.error("Error fetching franchisees for sitemap:", error);
+  }
+
+  let blogPostRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const blogPostsSnapshot = await getDocs(query(collection(db, "blogPosts"), orderBy("date", "desc")));
+    const blogPosts = blogPostsSnapshot.docs.map(doc => doc.data() as BlogPost);
     
-    return {
-        url: `${BASE_URL}/blog/${post.slug}`,
-        lastModified: lastModifiedDate,
-    }
-  });
+    blogPostRoutes = blogPosts.map((post) => {
+      let lastModifiedDate;
+      if (post.date && typeof post.date === 'object' && 'toDate' in post.date) {
+          lastModifiedDate = (post.date as unknown as Timestamp).toDate();
+      } else if (typeof post.date === 'string') {
+          lastModifiedDate = new Date(post.date);
+      } else {
+          lastModifiedDate = new Date();
+      }
+      
+      return {
+          url: `${BASE_URL}/blog/${post.slug}`,
+          lastModified: lastModifiedDate,
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching blog posts for sitemap:", error);
+  }
 
   return [
     ...staticRoutes,
