@@ -1,9 +1,5 @@
-import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
 import { User, Employee, Payslip, PayslipItem } from '@/lib/types';
 import { format, addDays, isValid, parse } from 'date-fns';
-
-const db = getFirestore(firebaseApp);
 
 /**
  * South African Tax Year Configurations
@@ -373,77 +369,4 @@ export class PayrollService {
       return contribs;
   }
 
-  /**
-   * Generates and saves a payslip for an employee.
-   */
-  static async generateInitialPayslip(clientId: string, employeeId: string, baseValue: number, hours?: any) {
-    try {
-      const clientRef = doc(db, 'aiPayrollClients', clientId);
-      const clientSnap = await getDoc(clientRef);
-      if (!clientSnap.exists()) throw new Error("Client not found");
-      const clientData = clientSnap.data() as User;
-      
-      const frequency = clientData.payrollFrequency === 'Fortnightly' ? 26 : 12;
-      
-      let periodLabel = '';
-      if (frequency === 26) {
-          const startDate = clientData.firstRunStartDate ? (clientData.firstRunStartDate.toDate ? clientData.firstRunStartDate.toDate() : new Date(clientData.firstRunStartDate)) : new Date();
-          periodLabel = format(startDate, 'dd/MM/yyyy');
-      } else {
-          periodLabel = clientData.firstProcessingMonth || format(new Date(), 'MMMM yyyy');
-      }
-
-      const employeeRef = doc(db, 'aiPayrollClients', clientId, 'employees', employeeId);
-      const employeeSnap = await getDoc(employeeRef);
-      if (!employeeSnap.exists()) throw new Error("Employee not found");
-      const employee = employeeSnap.data() as Employee;
-
-      const earnings = this.calculateEarningsList(employee, baseValue, periodLabel, frequency, hours);
-      const gross = earnings.reduce((sum, i) => sum + i.amount, 0);
-
-      const deductions = this.getInitialDeductions(
-          gross, 
-          periodLabel, 
-          frequency, 
-          employee.joinDate, 
-          employee.idNumber, 
-          employee.medicalAidMembers || 0, 
-          employee.medicalAidDependents || 0
-      );
-      const contributions = this.getInitialContributions(gross, periodLabel, frequency, !!clientData.excludeSdl);
-
-      const totalDeductions = deductions.reduce((sum, item) => sum + item.amount, 0);
-
-      const payslipData: any = {
-        employeeId,
-        employeeName: `${employee.name} ${employee.surname}`,
-        period: periodLabel,
-        date: Timestamp.now(),
-        earnings,
-        deductions,
-        contributions,
-        fringeBenefits: [],
-        grossPay: gross,
-        totalDeductions,
-        netPay: parseFloat((gross - totalDeductions).toFixed(2)),
-        frequency: clientData.payrollFrequency || 'Monthly',
-        status: 'draft'
-      };
-
-      if (hours?.normal !== undefined) {
-          payslipData.hoursWorked = hours.normal;
-      }
-
-      const payslipsRef = collection(db, 'aiPayrollClients', clientId, 'payslips');
-      const docRef = await addDoc(payslipsRef, {
-        ...payslipData,
-        createdAt: serverTimestamp(),
-      });
-
-      return { success: true, id: docRef.id };
-    } catch (error) {
-      console.error("Payslip generation failed:", error);
-      throw error;
-    }
-  }
 }

@@ -108,6 +108,15 @@ const nextConfig: NextConfig = {
         net: false,
         tls: false,
         child_process: false,
+        http2: false,
+        crypto: false,
+        buffer: false,
+        events: false,
+        "node:buffer": false,
+        "node:crypto": false,
+        "node:events": false,
+        "node:fs": false,
+        "node:http2": false,
       };
     }
     return config;

@@ -13,10 +13,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
   const isDashboardPage = pathname ? (
@@ -25,6 +21,22 @@ export default function AppShell({ children }: { children: ReactNode }) {
     pathname.startsWith('/partner') ||
     pathname.startsWith('/p/')
   ) : false;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isDashboardPage) {
+      document.body.classList.add('theme-light');
+    } else {
+      document.body.classList.remove('theme-light');
+    }
+    return () => {
+      document.body.classList.remove('theme-light');
+    };
+  }, [isDashboardPage]);
 
   const shouldShowHeader = mounted && (!isDashboardPage || isAuthPage);
   const shouldShowFooter = mounted && !isDashboardPage && !isAuthPage;

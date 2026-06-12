@@ -780,9 +780,9 @@ export async function saveEmployeeAction({ clientId, employeeId, data }: { clien
         await targetRef.set({ ...data, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
         
         if (!employeeId) {
-            const { PayrollService } = await import('@/services/PayrollService');
+            const { PayrollServiceServer } = await import('@/services/PayrollServiceServer');
             const baseValue = data.payType === 'Hourly' ? data.hourlyRate : data.basicSalary;
-            await PayrollService.generateInitialPayslip(clientId, targetRef.id, baseValue);
+            await PayrollServiceServer.generateInitialPayslip(clientId, targetRef.id, baseValue);
         }
 
         return { success: true, id: targetRef.id };
@@ -793,8 +793,8 @@ export async function saveEmployeeAction({ clientId, employeeId, data }: { clien
 
 export async function generateEmployeePayslipAction({ clientId, employeeId, basicSalary, hours }: any) {
     try {
-        const { PayrollService } = await import('@/services/PayrollService');
-        return await PayrollService.generateInitialPayslip(clientId, employeeId, basicSalary, hours);
+        const { PayrollServiceServer } = await import('@/services/PayrollServiceServer');
+        return await PayrollServiceServer.generateInitialPayslip(clientId, employeeId, basicSalary, hours);
     } catch (e: any) {
         return { success: false, error: e.message };
     }
