@@ -179,6 +179,10 @@ export default function TransactionSearchPage() {
     const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
     const { toast } = useToast();
 
+    const term = searchTerm.trim();
+    const cleanTerm = term.replace(/R\s*/i, '').replace(/,/g, '').replace(/\s/g, '');
+    const isNumeric = cleanTerm !== '' && /^-?\d+(?:\.\d+)?$/.test(cleanTerm);
+
     const fetchClientAndTransactions = async () => {
         if (!clientId) return;
         setIsLoading(true);
@@ -205,9 +209,21 @@ export default function TransactionSearchPage() {
     }, [clientId]);
     
     useEffect(() => {
-        if (searchTerm.length > 2) {
+        const cleanTerm = searchTerm.trim().replace(/R\s*/i, '').replace(/,/g, '').replace(/\s/g, '');
+        const isNumeric = cleanTerm !== '' && /^-?\d+(?:\.\d+)?$/.test(cleanTerm);
+        const parsedAmount = isNumeric ? parseFloat(cleanTerm) : NaN;
+
+        if (searchTerm.length > 2 || (isNumeric && searchTerm.length > 0)) {
             setIsSearching(true);
-            const results = transactions.filter(tx => tx.description.toLowerCase().includes(searchTerm.toLowerCase()));
+            const results = transactions.filter(tx => {
+                const matchesDescription = tx.description.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesAmount = isNumeric && !isNaN(parsedAmount) && Math.abs(Math.abs(tx.amount) - Math.abs(parsedAmount)) < 0.01;
+                return matchesDescription || matchesAmount;
+            });
+            
+            // Always sort by date descending (newest first)
+            results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            
             setSearchResults(results);
             setIsSearching(false);
         } else {
@@ -266,9 +282,9 @@ export default function TransactionSearchPage() {
             </CardHeader>
             <CardContent>
                  <div className="flex w-full max-w-sm items-center space-x-2">
-                    <Input 
+                     <Input 
                         type="text" 
-                        placeholder="Enter search term (e.g., 'Telkom')" 
+                        placeholder="Search by description or amount (e.g., 'Telkom' or '5000')" 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -285,10 +301,10 @@ export default function TransactionSearchPage() {
                             selectedTransactions={selectedTransactions}
                             onSelectionChange={handleSelectionChange}
                         />
-                    ) : searchTerm.length > 2 ? (
+                    ) : (searchTerm.length > 2 || (isNumeric && searchTerm.length > 0)) ? (
                         <p className="text-center text-muted-foreground py-8">No transactions found matching your search.</p>
-                    ): (
-                         <p className="text-center text-muted-foreground py-8">Enter at least 3 characters to start searching.</p>
+                    ) : (
+                         <p className="text-center text-muted-foreground py-8">Enter at least 3 characters (or any amount) to start searching.</p>
                     )}
                 </div>
             </CardContent>
