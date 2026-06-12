@@ -51,7 +51,14 @@ export default function Emp201ReportPage() {
                 setClient({ ...data, id: snap.id } as User);
                 // Default to active processing month if set, otherwise current month
                 if (!selectedMonth) {
-                    setSelectedMonth(data.firstProcessingMonth || format(new Date(), 'MMMM yyyy'));
+                    let defaultMonth = data.firstProcessingMonth || format(new Date(), 'MMMM yyyy');
+                    if (defaultMonth.includes('/')) {
+                        const parsed = parse(defaultMonth.split(' - ').pop()?.trim() || '', 'dd/MM/yyyy', new Date());
+                        if (isValid(parsed)) {
+                            defaultMonth = format(parsed, 'MMMM yyyy');
+                        }
+                    }
+                    setSelectedMonth(defaultMonth);
                 }
             }
         });
@@ -86,7 +93,14 @@ export default function Emp201ReportPage() {
         
         // Add current active processing month if set
         if (client?.firstProcessingMonth) {
-            months.add(client.firstProcessingMonth);
+            let mStr = client.firstProcessingMonth;
+            if (mStr.includes('/')) {
+                const parsed = parse(mStr.split(' - ').pop()?.trim() || '', 'dd/MM/yyyy', new Date());
+                if (isValid(parsed)) {
+                    mStr = format(parsed, 'MMMM yyyy');
+                }
+            }
+            months.add(mStr);
         }
 
         // Add current and past 12 months as options

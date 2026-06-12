@@ -64,9 +64,16 @@ export default function ClientOrderDetailsPage() {
       if (!id) return;
       setIsLoading(true);
       try {
-        const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant']));
-        const staffSnapshot = await getDocs(staffQuery);
-        const fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User));
+        let fetchedStaff: User[] = [];
+        if (currentUser?.role === 'admin') {
+            try {
+                const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant']));
+                const staffSnapshot = await getDocs(staffQuery);
+                fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User));
+            } catch (err) {
+                console.error("Error fetching staff:", err);
+            }
+        }
         setAllStaff(fetchedStaff);
 
         const servicesQuery = query(collection(db, 'services'));
@@ -319,7 +326,7 @@ export default function ClientOrderDetailsPage() {
     if (order && authorId === order.userId) return { name: order.customerName };
     const staff = allStaff.find(u => u.uid === authorId || u.id === authorId);
     if (staff) return staff;
-    return undefined;
+    return { name: 'Consultant' };
   }
   
   if (isLoading) {

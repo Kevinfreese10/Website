@@ -243,16 +243,23 @@ export default function PartnerDashboardPage() {
           setIsLoading(false);
       });
 
-      const staffRef = collection(db, "users");
-      const staffUnsubscribe = onSnapshot(query(staffRef, where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant'])), (snapshot) => {
-          setAllStaff(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, uid: doc.id } as User)));
-      }, async (error) => {
-          const permissionError = new FirestorePermissionError({
-              path: 'users',
-              operation: 'list',
-          } satisfies SecurityRuleContext);
-          errorEmitter.emit('permission-error', permissionError);
-      });
+      let staffUnsubscribe = () => {};
+      if (user?.role === 'admin') {
+          const staffRef = collection(db, "users");
+          staffUnsubscribe = onSnapshot(query(staffRef, where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant'])), (snapshot) => {
+              setAllStaff(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, uid: doc.id } as User)));
+          }, (error) => {
+              console.error("Error fetching staff:", error);
+          });
+      } else if (partnerId) {
+          const staffRef = collection(db, "users");
+          const q = query(staffRef, where('partnerId', '==', partnerId));
+          staffUnsubscribe = onSnapshot(q, (snapshot) => {
+              setAllStaff(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, uid: doc.id } as User)));
+          }, (error) => {
+              console.error("Error fetching practice staff:", error);
+          });
+      }
 
       const ordersRef = collection(db, 'orders');
       

@@ -38,9 +38,24 @@ export default function PartnerOutsourcedOrderDetailsPage() {
       if (!id || !currentUser) return;
       setIsLoading(true);
       try {
-        const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin']));
-        const staffSnapshot = await getDocs(staffQuery);
-        const fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
+        let fetchedStaff: User[] = [];
+        try {
+            let staffPromise;
+            if (currentUser?.role === 'admin') {
+                const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin']));
+                staffPromise = getDocs(staffQuery);
+            } else if (currentUser?.role === 'partner' || currentUser?.partnerId) {
+                const partnerId = currentUser.role === 'partner' ? currentUser.uid : currentUser.partnerId;
+                const staffQuery = query(collection(db, "users"), where('partnerId', '==', partnerId));
+                staffPromise = getDocs(staffQuery);
+            } else {
+                staffPromise = Promise.resolve({ docs: [] } as any);
+            }
+            const staffSnapshot = await staffPromise;
+            fetchedStaff = staffSnapshot.docs.map((doc: any) => ({ ...doc.data(), id: doc.id } as User));
+        } catch (err) {
+            console.error("Error loading staff:", err);
+        }
         setAllStaff(fetchedStaff);
 
         const docRef = doc(db, 'orders', id);

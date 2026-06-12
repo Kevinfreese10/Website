@@ -38,8 +38,26 @@ export default function PayslipEditor({
 }) {
     const { toast } = useToast();
     const [earnings, setEarnings] = useState<PayslipItem[]>(payslip.earnings || []);
-    const [deductions, setDeductions] = useState<PayslipItem[]>(payslip.deductions || []);
-    const [contributions, setContributions] = useState<PayslipItem[]>(payslip.contributions || []);
+    const [deductions, setDeductions] = useState<PayslipItem[]>(() => {
+        const list = [...(payslip.deductions || [])];
+        if (!list.some(d => d.label === 'Tax' && d.isStatutory)) {
+            list.push({ label: 'Tax', amount: 0, isStatutory: true });
+        }
+        if (!list.some(d => d.label === 'Unemployment insurance fund' && d.isStatutory)) {
+            list.push({ label: 'Unemployment insurance fund', amount: 0, isStatutory: true });
+        }
+        return list;
+    });
+    const [contributions, setContributions] = useState<PayslipItem[]>(() => {
+        const list = [...(payslip.contributions || [])];
+        if (!list.some(c => c.label === 'Unemployment insurance fund' && c.isStatutory)) {
+            list.push({ label: 'Unemployment insurance fund', amount: 0, isStatutory: true });
+        }
+        if (!client.excludeSdl && !list.some(c => c.label === 'Skills development levy' && c.isStatutory)) {
+            list.push({ label: 'Skills development levy', amount: 0, isStatutory: true });
+        }
+        return list;
+    });
     const [fringeBenefits, setFringeBenefits] = useState<PayslipItem[]>(payslip.fringeBenefits || []);
     const [hoursWorked, setHoursWorked] = useState<number>(payslip.hoursWorked || 0);
     const [overtime10, setOvertime10] = useState<number>(() => {

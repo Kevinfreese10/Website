@@ -50,16 +50,15 @@ export default function DashboardPage() {
     useEffect(() => {
         setIsLoading(true);
 
-        const staffRef = collection(db, "users");
-        const staffUnsubscribe = onSnapshot(query(staffRef, where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant'])), (snapshot) => {
-            setAllStaff(snapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User)));
-        }, async (error) => {
-            const permissionError = new FirestorePermissionError({
-                path: 'users',
-                operation: 'list',
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-        });
+        let staffUnsubscribe = () => {};
+        if (user && user.role === 'admin') {
+            const staffRef = collection(db, "users");
+            staffUnsubscribe = onSnapshot(query(staffRef, where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant'])), (snapshot) => {
+                setAllStaff(snapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User)));
+            }, (error) => {
+                console.error("Error fetching staff:", error);
+            });
+        }
 
         let ordersUnsubscribe = () => {};
 

@@ -52,7 +52,14 @@ export default function PayrollChangesReportPage() {
                 const data = snap.data();
                 setClient({ ...data, id: snap.id } as User);
                 if (!selectedMonth) {
-                    setSelectedMonth(data.firstProcessingMonth || format(new Date(), 'MMMM yyyy'));
+                    let defaultMonth = data.firstProcessingMonth || format(new Date(), 'MMMM yyyy');
+                    if (defaultMonth.includes('/')) {
+                        const parsed = parse(defaultMonth.split(' - ').pop()?.trim() || '', 'dd/MM/yyyy', new Date());
+                        if (isValid(parsed)) {
+                            defaultMonth = format(parsed, 'MMMM yyyy');
+                        }
+                    }
+                    setSelectedMonth(defaultMonth);
                 }
             }
         });
@@ -84,7 +91,14 @@ export default function PayrollChangesReportPage() {
     const availableMonths = useMemo(() => {
         const months = new Set<string>();
         if (client?.firstProcessingMonth) {
-            months.add(client.firstProcessingMonth);
+            let mStr = client.firstProcessingMonth;
+            if (mStr.includes('/')) {
+                const parsed = parse(mStr.split(' - ').pop()?.trim() || '', 'dd/MM/yyyy', new Date());
+                if (isValid(parsed)) {
+                    mStr = format(parsed, 'MMMM yyyy');
+                }
+            }
+            months.add(mStr);
         }
         const now = new Date();
         for (let i = 0; i < 13; i++) {
