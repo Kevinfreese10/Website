@@ -19,6 +19,22 @@ service firebase.storage {
       );
     }
 
+    // Partners path (PartnerProfile logo/hero): Accessible by owner or admin
+    match /partners/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && (
+        request.auth.uid == userId ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // Reseller applications path: Accessible by owner or admin
+    match /reseller-applications/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && (
+        request.auth.uid == userId ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
     // Orders path: Accessible if the user is associated with the order or is admin/staff
     match /orders/{orderId}/{allPaths=**} {
       allow read, write: if request.auth != null && (
@@ -35,6 +51,19 @@ service firebase.storage {
         request.auth.uid == clientId ||
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'staff'
+      );
+    }
+
+    // Supporting documents: Accessible by any authenticated user (used in CAP)
+    match /supporting-documents/{invoiceId}/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Invoices supplier uploads: Accessible by the owner or admin (used in CAP)
+    match /invoices/supplier-uploads/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && (
+        request.auth.uid == userId ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin'
       );
     }
   }

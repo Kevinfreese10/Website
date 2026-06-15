@@ -1047,7 +1047,10 @@ export async function sendOrderConfirmationEmailAction({
     })
   );
 
-  const finalBcc = bcc || (orderData.resellerId ? undefined : 'kev@thinkestry.co.za');
+  const defaultBcc = ['kev@thinkestry.co.za', 'winifred@myacc.co.za'];
+  const finalBcc = bcc
+    ? (Array.isArray(bcc) ? [...bcc, ...defaultBcc] : [bcc, ...defaultBcc])
+    : defaultBcc;
 
   await sendEmail({
     to: orderData.customerEmail,

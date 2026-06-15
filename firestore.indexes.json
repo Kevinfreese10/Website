@@ -1,4 +1,3 @@
-
 {
   "indexes": [
     {
@@ -117,14 +116,6 @@
       ]
     },
     {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "clients",
       "queryScope": "COLLECTION",
       "fields": [
@@ -187,6 +178,14 @@
       "fields": [
         { "fieldPath": "employeeId", "order": "ASCENDING" },
         { "fieldPath": "period", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "extractedInvoices",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uploadedBy", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }
   ]
