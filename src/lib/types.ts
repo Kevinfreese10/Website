@@ -52,6 +52,7 @@ export type Service = {
   priceValidUntilOverride?: string;
   faqs?: { q: string; a: string }[];
   isFeatured?: boolean;
+  subcontractorFee?: number;
 };
 
 export type BlogPost = {
@@ -137,6 +138,14 @@ export type Order = {
   source?: 'Client' | 'Staff' | 'Partner' | 'AI Accountant Signup' | 'Partner Landing Page' | 'Franchise';
   renewalForClientId?: string;
   documentContact?: 'partner' | 'client';
+  overflowStatus?: 'none' | 'available' | 'claimed' | 'review' | 'completed' | 'cancelled';
+  overflowPartnerId?: string | null;
+  overflowPayout?: number;
+  overflowDeadline?: any;
+  overflowClaimedAt?: any;
+  overflowSubmittedAt?: any;
+  overflowCompletedAt?: any;
+  overflowPayoutStatus?: 'none' | 'pending' | 'can_request' | 'requested' | 'paid';
 };
 
 export type Invoice = {
@@ -253,6 +262,66 @@ export type FranchiseConfig = {
     setupFeePaid: boolean;
 };
 
+// --- Partner Subscription & Staff Types ---
+
+export type PartnerTier = 'free' | 'growth';
+
+export type StaffPermissions = {
+  orders: 'none' | 'view' | 'full';
+  clients: 'none' | 'view' | 'full';
+  tasks: 'none' | 'view' | 'full';
+  services: 'none' | 'view' | 'full';
+  /** Financials: only 'none' or 'view' — staff can never top up the wallet */
+  financials: 'none' | 'view';
+};
+
+export const DEFAULT_STAFF_PERMISSIONS: StaffPermissions = {
+  orders: 'view',
+  clients: 'view',
+  tasks: 'view',
+  services: 'none',
+  financials: 'none',
+};
+
+export const ADMIN_STAFF_PERMISSIONS: StaffPermissions = {
+  orders: 'full',
+  clients: 'full',
+  tasks: 'full',
+  services: 'full',
+  financials: 'view',
+};
+
+export type PartnerSubscription = {
+  status: 'active' | 'lapsed' | 'cancelled' | 'pending';
+  /** PayFast subscription token — used to cancel via PayFast API */
+  payfastToken?: string;
+  currentPeriodStart?: any;   // Firestore Timestamp
+  currentPeriodEnd?: any;     // Firestore Timestamp — primary access gate
+  /** Limits derived from tier at subscription time */
+  aiCompanyLimit: number;     // 5 for growth, 0 for free
+  aiPayrollLimit: number;     // 5 for growth, 0 for free
+  staffSeatLimit: number;     // 3 for growth, 0 for free
+  /** Set when partner signs up during transition — 3 months free grandfather */
+  grandfatheredUntil?: any;   // Firestore Timestamp
+  cancelledAt?: any;          // Firestore Timestamp
+};
+
+export type PartnerInvite = {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  partnerCompanyName: string;
+  invitedEmail: string;
+  invitedByName: string;
+  staffRole: 'partner_admin' | 'partner_staff';
+  permissions: StaffPermissions;
+  /** crypto.randomUUID() — used as the Firestore doc ID and in the invite URL */
+  token: string;
+  status: 'pending' | 'accepted' | 'expired';
+  createdAt: any;   // Firestore Timestamp
+  expiresAt: any;   // Firestore Timestamp — 72 hours from creation
+};
+
 export type Employee = {
   id: string;
   employeeCode: string;
@@ -323,7 +392,7 @@ export type User = {
   name: string;
   surname?: string;
   email: string;
-  role: 'client' | 'admin' | 'staff' | 'partner' | 'ai_accountant' | 'cap_staff' | 'cap_supervisor' | 'partner_staff' | 'franchisee';
+  role: 'client' | 'admin' | 'staff' | 'partner' | 'ai_accountant' | 'cap_staff' | 'cap_supervisor' | 'partner_staff' | 'franchisee' | 'partner_admin';
   createdAt?: any;
   source?: 'AI Accountant' | 'Client Management' | 'Partner Management' | 'AI Payroll' | 'Franchise';
   clientSource?: 'admin' | 'partner' | 'ai_accountant' | 'ai_payroll';
@@ -413,6 +482,7 @@ export type User = {
   allocationRules?: AllocationRule[];
   disableGlobalRules?: boolean;
   chartOfAccounts?: ChartOfAccount[];
+  /** AI Accountant subscription (existing — do not repurpose) */
   subscription?: SubscriptionData;
   defaultInvoiceMessage?: string;
   facebookSettings?: {
@@ -421,6 +491,19 @@ export type User = {
     pageName?: string;
     pagePictureUrl?: string;
   };
+  // --- Partner Portal Subscription ---
+  /** Tier this partner is on. Undefined = legacy R4,950 one-time partner (treated as growth) */
+  partnerTier?: PartnerTier;
+  partnerSubscription?: PartnerSubscription;
+  // --- Staff fields (present on partner_staff role users) ---
+  /** false = deactivated by owner. Account preserved for audit trail. */
+  isActive?: boolean;
+  permissions?: StaffPermissions;
+  // --- Gamification / Reputation Fields ---
+  communityPoints?: number;
+  questionsCount?: number;
+  answersCount?: number;
+  solutionsCount?: number;
 };
 
 export type DiscountCode = {
@@ -612,4 +695,34 @@ export interface ExtractedInvoice {
   date: string;
   invoiceTotal: number;
 }
+
+export type CommunityQuestion = {
+  id: string;
+  title: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorRole: string;
+  createdAt: any; // Firestore Timestamp
+  updatedAt: any; // Firestore Timestamp
+  tags: string[];
+  likesCount: number;
+  likedBy: string[];
+  answersCount: number;
+  isSolved: boolean;
+  solvedAnswerId?: string;
+};
+
+export type CommunityAnswer = {
+  id: string;
+  questionId: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorRole: string;
+  createdAt: any; // Firestore Timestamp
+  likesCount: number;
+  likedBy: string[];
+  isCorrect: boolean;
+};
 

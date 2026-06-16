@@ -21,6 +21,7 @@ import {
   Megaphone,
   Calculator,
   MessageSquare,
+  UserPlus,
 } from 'lucide-react';
 
 import {
@@ -104,12 +105,23 @@ export default function DashboardNav({ user }: { user: UserType }) {
     { href: '/admin/media', label: 'Media', icon: Images, roles: ['admin'] },
   ];
 
+  const isFreePartner = user.partnerTier === 'free';
+
   const partnerNavItems = [
     { href: '/partner/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['partner', 'partner_staff', 'franchisee'] },
+    ...(!isFreePartner ? [
+      { href: '/partner/clients', label: 'Manage Clients', icon: Briefcase, roles: ['partner', 'partner_staff', 'franchisee'] },
+      { href: '/dashboard/ai-accountant/clients', label: 'AI Accountant', icon: Calculator, roles: ['partner', 'partner_staff', 'franchisee'] },
+      { href: '/dashboard/ai-payroll/clients', label: 'AI Payroll', icon: Users, roles: ['partner', 'partner_staff', 'franchisee'] },
+      { href: '/partner/staff', label: 'Staff Management', icon: UserPlus, roles: ['partner', 'partner_staff', 'franchisee'] },
+      { href: '/partner/tasks', label: 'Task Manager', icon: ClipboardCheck, roles: ['partner', 'partner_staff', 'franchisee'] },
+    ] : []),
     { href: '/partner/services', label: 'View Products', icon: Briefcase, roles: ['partner', 'partner_staff', 'franchisee'] },
-    { href: '/partner/orders', label: 'Client Orders', icon: ShieldCheck, roles: ['partner', 'partner_staff', 'franchisee'] },
-    { href: '/partner/outsourced-orders', label: 'Outsourced Orders', icon: FileText, roles: ['partner', 'partner_staff', 'franchisee'] },
+    { href: '/partner/orders', label: isFreePartner ? 'My Orders' : 'Client Orders', icon: ShieldCheck, roles: ['partner', 'partner_staff', 'franchisee'] },
+    ...(!isFreePartner ? [{ href: '/partner/outsourced-orders', label: 'Outsourced Orders', icon: FileText, roles: ['partner', 'partner_staff', 'franchisee'] }] : []),
+    { href: '/partner/overflow-board', label: 'Overflow Board', icon: Briefcase, roles: ['partner', 'partner_staff', 'franchisee'] },
     { href: '/partner/profile', label: 'My Profile', icon: User, roles: ['partner', 'partner_staff', 'franchisee'] },
+    { href: '/partner/community', label: 'Community Q&A', icon: MessageSquare, roles: ['partner', 'partner_staff', 'franchisee'] },
   ];
 
   const visibleNavItems = navItems.filter(item => item.roles.includes(user.role));
@@ -162,7 +174,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
         {(user.role === 'partner' || user.role === 'partner_staff' || user.role === 'franchisee') && (
             visiblePartnerNavItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
-                <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
+                <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)} tooltip={item.label}>
                     <Link href={item.href}>
                     <item.icon />
                     <span>{item.label}</span>

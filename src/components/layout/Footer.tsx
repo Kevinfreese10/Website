@@ -53,8 +53,7 @@ const Footer = () => {
             <div className="rounded-xl overflow-hidden border border-white/10">
                 <iframe
                     src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
-                    width="100%"
-                    height="200"
+                    className="w-full h-[200px]"
                     style={{ border: 0 }}
                     allowFullScreen={false}
                     loading="lazy"

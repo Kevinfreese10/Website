@@ -158,6 +158,7 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
   
   // Use the provided partner prop if available, otherwise fallback to the logged-in user
   const targetUser = propPartner || authUser;
+  const isTargetGrowth = !targetUser?.partnerTier || targetUser?.partnerTier === 'growth';
   
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
@@ -412,31 +413,33 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
 
   return (
     <div className="max-w-4xl mx-auto space-y-10">
-        <Card className="border-2 border-primary/20 shadow-lg overflow-hidden">
-            <CardHeader className="bg-primary/5 pb-4">
-                <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-primary" /> Practice Setup Progress</CardTitle>
-                    <Badge variant={progressPercentage === 100 ? "success" : "secondary"} className="font-bold">
-                        {progressPercentage === 100 && <PartyPopper className="h-3 w-3 mr-1" />}
-                        {progressPercentage}% Complete
-                    </Badge>
-                </div>
-                <Progress value={progressPercentage} className="h-2.5 mt-4" />
-            </CardHeader>
-            <CardContent className="pt-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {checklist.map((item, idx) => (
-                        <div key={idx} className={cn("p-3 rounded-lg border flex flex-col gap-1 transition-all", item.done ? "bg-green-50/50 border-green-200" : "bg-muted/30 border-muted opacity-70")}>
-                            <div className="flex items-center gap-2">
-                                {item.done ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground shrink-0" />}
-                                <span className={cn("text-xs font-bold truncate", item.done ? "text-green-800" : "text-slate-600")}>{item.label}</span>
+        {isTargetGrowth && (
+            <Card className="border-2 border-primary/20 shadow-lg overflow-hidden animate-in fade-in duration-300">
+                <CardHeader className="bg-primary/5 pb-4">
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="text-lg flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-primary" /> Practice Setup Progress</CardTitle>
+                        <Badge variant={progressPercentage === 100 ? "success" : "secondary"} className="font-bold">
+                            {progressPercentage === 100 && <PartyPopper className="h-3 w-3 mr-1" />}
+                            {progressPercentage}% Complete
+                        </Badge>
+                    </div>
+                    <Progress value={progressPercentage} className="h-2.5 mt-4" />
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {checklist.map((item, idx) => (
+                            <div key={idx} className={cn("p-3 rounded-lg border flex flex-col gap-1 transition-all", item.done ? "bg-green-50/50 border-green-200" : "bg-muted/30 border-muted opacity-70")}>
+                                <div className="flex items-center gap-2">
+                                    {item.done ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                    <span className={cn("text-xs font-bold truncate", item.done ? "text-green-800" : "text-slate-600")}>{item.label}</span>
+                                </div>
+                                <p className="text-[9px] text-muted-foreground leading-tight italic ml-6">{item.description}</p>
                             </div>
-                            <p className="text-[9px] text-muted-foreground leading-tight italic ml-6">{item.description}</p>
-                        </div>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+        )}
 
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
@@ -476,9 +479,11 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                 </div>
             </div>
 
-            <Separator />
+            {isTargetGrowth && (
+                <>
+                    <Separator />
 
-            <div className="space-y-6">
+                    <div className="space-y-6">
                 <h3 className="text-xl font-bold flex items-center gap-2">
                     <ImageIcon className="h-5 w-5 text-primary" />
                     Banking Details (For Client EFTs)
@@ -490,10 +495,14 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                      <FormField control={form.control} name="bankingDetails.branchCode" render={({ field }) => ( <FormItem><FormLabel>Branch Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 </div>
             </div>
+                </>
+            )}
 
-            <Separator />
+            {isTargetGrowth && (
+                <>
+                    <Separator />
 
-            <div className="space-y-4">
+                    <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-xl font-bold flex items-center gap-2"><Globe className="h-5 w-5 text-primary" /> White-Label Landing Page</h3>
                     <FormField control={form.control} name="landingPage.enabled" render={({ field }) => ( <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="text-xs uppercase font-bold text-muted-foreground">Enabled</FormLabel></FormItem> )} />
@@ -767,6 +776,8 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                     </div>
                 )}
             </div>
+                </>
+            )}
 
             <Separator />
             <Button type="submit" disabled={isSaving} className="w-full h-14 text-lg font-black shadow-xl">

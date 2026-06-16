@@ -51,6 +51,7 @@ const formSchema = z.object({
   isPriceTbc: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   resellerPrice: z.preprocess(val => Number(val), z.number().min(0, 'Reseller price must be a positive number.').optional()),
+  subcontractorFee: z.preprocess(val => Number(val), z.number().min(0, 'Subcontractor fee must be a positive number.').optional()),
   imageUrl: z.string().url('Must be a valid URL.'),
   imageHint: z.string().min(1, 'Image hint is required.'),
   attachmentUrl: z.string().url('Must be a valid URL.').optional().or(z.literal('')),
@@ -124,6 +125,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
       isPriceTbc: service?.isPriceTbc || false,
       isFeatured: service?.isFeatured || false,
       resellerPrice: service?.resellerPrice || 0,
+      subcontractorFee: service?.subcontractorFee || 0,
       imageUrl: service?.imageUrl || 'https://picsum.photos/seed/new/600/400',
       imageHint: service?.imageHint || 'abstract',
       attachmentUrl: service?.attachmentUrl || '',
@@ -387,6 +389,19 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                 </FormItem>
             )}
             />
+             <FormField
+            control={form.control}
+            name="subcontractorFee"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Subcontractor Fee (R)</FormLabel>
+                <FormControl><Input type="number" step="0.01" {...field} disabled={isPriceTbc} /></FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
             control={form.control}
             name="category"
@@ -399,6 +414,24 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                     </FormControl>
                     <SelectContent>
                         {serviceCategories.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Responsible Department</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Select a department" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {departments.map(dep => <SelectItem key={dep} value={dep}>{dep}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <FormMessage />
@@ -433,24 +466,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                 </FormItem>
             )}
         />
-         <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Responsible Department</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
-                    <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select a department" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        {departments.map(dep => <SelectItem key={dep} value={dep}>{dep}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-        />
+
         <FormField
           control={form.control}
           name="description"

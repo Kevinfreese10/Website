@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { getFirestore, collection, addDoc, getDocs, doc, setDoc, deleteDoc, writeBatch, Timestamp, query, orderBy, where, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePartner } from '@/contexts/PartnerContext';
 import ClientForm from '@/components/admin/ClientForm';
 import { chartOfAccounts as initialChartOfAccounts } from '@/lib/chart-of-accounts';
 import { allocationRules as initialAllocationRules } from '@/lib/allocation-rules';
@@ -80,9 +81,11 @@ export default function AIAccountantClientsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isPartnerLimitModalOpen, setIsPartnerLimitModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<User | null>(null);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
+  const partner = usePartner();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const router = useRouter();
   
@@ -139,11 +142,21 @@ export default function AIAccountantClientsPage() {
   }, [tasks, currentUser]);
 
   const handleAddClick = () => {
-    if (myClients.length > 0 && currentUser?.role !== 'admin') {
-      setIsSubscriptionModalOpen(true);
+    const isReseller = currentUser?.role === 'partner' || currentUser?.role === 'partner_staff' || currentUser?.role === 'partner_admin' || currentUser?.role === 'franchisee';
+    if (isReseller) {
+      if (myClients.length >= partner.limits.aiCompanies) {
+        setIsPartnerLimitModalOpen(true);
+      } else {
+        setSelectedClient(null);
+        setIsFormOpen(true);
+      }
     } else {
-      setSelectedClient(null);
-      setIsFormOpen(true);
+      if (myClients.length > 0 && currentUser?.role !== 'admin') {
+        setIsSubscriptionModalOpen(true);
+      } else {
+        setSelectedClient(null);
+        setIsFormOpen(true);
+      }
     }
   };
 
@@ -381,10 +394,25 @@ export default function AIAccountantClientsPage() {
       </Card>
   )
 
+  const isReseller = currentUser?.role === 'partner' || currentUser?.role === 'partner_staff' || currentUser?.role === 'partner_admin' || currentUser?.role === 'franchisee';
+
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">AI Accountant Clients</h1>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">AI Accountant Clients</h1>
+          {isReseller ? (
+            <Badge variant="secondary" className="font-bold">
+              {myClients.length} / {partner.limits.aiCompanies} Companies Used
+            </Badge>
+          ) : (
+            currentUser?.role !== 'admin' && (
+              <Badge variant="secondary" className="font-bold">
+                {myClients.length} / 1 Free Company Used
+              </Badge>
+            )
+          )}
+        </div>
         {currentUser && (
             <>
                 <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -423,6 +451,32 @@ export default function AIAccountantClientsPage() {
                                 {isProcessingPayment ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
                                 Proceed to Payment (R140.00)
                             </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+                <Dialog open={isPartnerLimitModalOpen} onOpenChange={setIsPartnerLimitModalOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>
+                                {partner.tier === 'free' ? 'Upgrade to Growth Tier' : 'Company Limit Reached'}
+                            </DialogTitle>
+                            <DialogDescription>
+                                {partner.tier === 'free' 
+                                    ? 'Your current Free partner tier does not include AI Accountant companies. Please upgrade to the Growth tier (R950/month) to manage up to 5 companies.' 
+                                    : 'Your Growth subscription supports a maximum of 5 AI Accountant companies. Please contact support or upgrade your plan to add more.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4 flex flex-col gap-3">
+                            {partner.tier === 'free' ? (
+                                <Button asChild className="w-full font-bold">
+                                    <Link href="/partner/profile">Upgrade to Growth Tier</Link>
+                                </Button>
+                            ) : (
+                                <Button asChild className="w-full font-bold" variant="outline">
+                                    <a href="mailto:support@myacc.co.za?subject=Request Additional AI Accountant Companies">Contact Support</a>
+                                </Button>
+                            )}
+                            <Button variant="ghost" onClick={() => setIsPartnerLimitModalOpen(false)}>Cancel</Button>
                         </div>
                     </DialogContent>
                 </Dialog>

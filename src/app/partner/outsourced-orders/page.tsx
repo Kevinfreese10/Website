@@ -27,6 +27,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { usePartner } from '@/contexts/PartnerContext';
+import { useRouter } from 'next/navigation';
 
 
 const db = getFirestore(firebaseApp);
@@ -48,6 +50,14 @@ export default function OutsourcedOrdersPage() {
   const { user } = useAuth();
   const [allStaff, setAllStaff] = useState<User[]>([]);
   const partnerId = user?.role === 'partner' ? user.uid : user?.partnerId;
+  const { isGrowthActive } = usePartner();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && !isGrowthActive) {
+      router.replace('/partner/orders');
+    }
+  }, [user, isGrowthActive, router]);
 
   useEffect(() => {
     if (!user || !partnerId) {

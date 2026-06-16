@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Rocket, ShieldCheck, Wallet, Bot, Cpu, Briefcase, Users, FileText, GraduationCap, CheckCircle2, ArrowRight, LayoutDashboard, LifeBuoy, Percent, TrendingUp, ShieldAlert, ClipboardList, ShoppingBag, CheckCircle, Globe, Scale, Loader2, ExternalLink, BadgeDollarSign } from 'lucide-react';
+import { Rocket, ShieldCheck, Wallet, Bot, Cpu, Briefcase, Users, FileText, GraduationCap, CheckCircle2, ArrowRight, LayoutDashboard, LifeBuoy, Percent, TrendingUp, ShieldAlert, ClipboardList, ShoppingBag, CheckCircle, Globe, Scale, Loader2, ExternalLink, BadgeDollarSign, XCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import dynamicImport from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -73,7 +73,7 @@ function PartnerPricingDialog() {
                         Wholesale Partner Pricing
                     </DialogTitle>
                     <DialogDescription>
-                        Practice members receive a standard 25% discount on all service fees.
+                        Practice members receive wholesale discounts: 5% off on Community Free, and 25% off on Growth.
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -89,9 +89,10 @@ function PartnerPricingDialog() {
                                 <Table>
                                     <TableHeader className="bg-muted/50 sticky top-0 z-10">
                                         <TableRow>
-                                            <TableHead className="w-1/2">Service Description</TableHead>
+                                            <TableHead className="w-[40%]">Service Description</TableHead>
                                             <TableHead className="text-right">Retail Price</TableHead>
-                                            <TableHead className="text-right text-primary">Partner Cost (25% Off)</TableHead>
+                                            <TableHead className="text-right text-slate-700">Free Partner (5% Off)</TableHead>
+                                            <TableHead className="text-right text-primary">Growth Partner (25% Off)</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -99,6 +100,7 @@ function PartnerPricingDialog() {
                                             <TableRow key={service.id}>
                                                 <TableCell className="font-medium text-xs sm:text-sm">{service.title}</TableCell>
                                                 <TableCell className="text-right text-xs opacity-50 line-through">{formatPrice(service.price)}</TableCell>
+                                                <TableCell className="text-right font-medium text-slate-700 text-xs sm:text-sm">{formatPrice(service.price * 0.95)}</TableCell>
                                                 <TableCell className="text-right font-bold text-primary text-xs sm:text-sm">{formatPrice(service.resellerPrice || service.price * 0.75)}</TableCell>
                                             </TableRow>
                                         ))}
@@ -191,8 +193,8 @@ function BookDemoDialog() {
 const featureBenefits = [
     {
         icon: Percent,
-        feature: '25% Wholesale Discount',
-        benefit: 'Increase your profit margins instantly. You buy services at wholesale rates and sell at retail prices, keeping 100% of the markup.',
+        feature: 'Wholesale Partner Discount',
+        benefit: 'Increase your profit margins instantly. Buy services at wholesale rates (5% discount on Free tier, 25% discount on Growth tier) and sell at retail prices.',
         showPricing: true,
     },
     {
@@ -268,15 +270,19 @@ const challenges = [
 const faqs = [
     {
         question: "How does the outsourcing work?",
-        answer: "You can decide to complete the order yourself or outsource to us. The process is completely white-labeled, so your client doesn't know the work is being outsourced. We charge you a fixed wholesale price (25% discount), and you keep the markup."
+        answer: "You can decide to complete the order yourself or outsource to us. The process is completely white-labeled, so your client doesn't know the work is being outsourced. We charge you a fixed wholesale price (5% discount for Free partners, 25% discount for Growth partners), and you keep the markup."
     },
     {
-        question: "What is the setup fee?",
-        answer: "Joining the Bookkeeper Empowerment Initiative requires a once-off setup and activation fee of R4,950. This covers your platform configuration, re-branding toolkit, and initial CA-led training."
+        question: "Is there a setup fee?",
+        answer: "No, joining the Bookkeeper Empowerment Initiative is completely free on our base tier. If you choose the Growth tier, there are no upfront setup fees either — only the R950/month subscription."
     },
     {
-        question: "Are there monthly hosting fees?",
-        answer: "No. The R4,950 activation fee now replaces all recurring hosting subscriptions. Once paid, you have lifetime access to the dashboard and your landing page without monthly overheads."
+        question: "How much does the Growth tier cost?",
+        answer: "The Growth tier costs R950/month. This unlocks your custom practice landing page, chatbot, task manager, and up to 3 staff seats with granular permissions."
+    },
+    {
+        question: "What happens to existing R4,950 partners?",
+        answer: "Existing partners who previously paid the R4,950 once-off fee are grandfathered onto the Growth tier free of charge for 3 months. After that, they can transition to the partner-only subscription of R950/month."
     },
     {
         question: "Do I need to be a registered accountant?",
@@ -305,62 +311,220 @@ export default function BecomeAPartnerPageClient() {
 
       <section className="bg-slate-50 py-24 border-y">
         <div className="container mx-auto px-4">
-            <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div className="space-y-6">
-                    <Badge className="bg-primary hover:bg-primary text-white border-none px-3 py-1 text-[10px] font-black uppercase tracking-widest">Pricing Plan</Badge>
-                    <h2 className="text-4xl md:text-5xl font-black leading-tight text-slate-900">One-Time Practice <br/><span className="text-primary">Investment</span></h2>
-                    <p className="text-lg text-muted-foreground leading-relaxed">
-                        Scale your firm with a turn-key solution. The BEI setup fee replaces all monthly hosting costs, giving you a lifetime platform for growth.
-                    </p>
-                    <ul className="space-y-4">
-                        {[
-                            'Fully Branded Practice Landing Page',
-                            '65+ Pre-configured Accounting Products',
-                            'Secure Client Onboarding Dashboard',
-                            'Initial Setup & Professional Training',
-                            'Direct CA Technical Support Access'
-                        ].map((item, i) => (
-                            <li key={i} className="flex items-center gap-3 text-sm font-semibold text-slate-800">
-                                <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                                {item}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-                <Card className="border border-slate-200/80 shadow-2xl bg-white overflow-hidden transform lg:scale-110">
-                    <CardHeader className="bg-slate-50 border-b p-8 text-center">
-                        <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500">Setup & Activation</CardTitle>
-                        <div className="mt-4 flex items-baseline justify-center gap-1">
-                            <span className="text-2xl font-bold text-slate-900">R</span>
-                            <span className="text-7xl font-black text-slate-900">4,950</span>
-                        </div>
-                        <p className="mt-2 text-xs font-bold text-primary uppercase tracking-tighter">Once-off payment • No monthly hosting fees</p>
-                    </CardHeader>
-                    <CardContent className="p-8 space-y-6">
-                        <div className="space-y-4">
-                            <div className="flex items-start gap-3">
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0"><ShieldCheck className="h-5 w-5" /></div>
-                                <div>
-                                    <p className="font-bold text-sm">Full Brand Ownership</p>
-                                    <p className="text-xs text-muted-foreground">Keep 100% of your client relationships and brand identity.</p>
-                                </div>
+            <div className="text-center mb-16 space-y-4">
+                <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Pricing Plans</Badge>
+                <h2 className="text-4xl md:text-5xl font-black leading-tight text-slate-900">Choose the Plan for Your Practice</h2>
+                <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+                    Get started for free to access our community and jobs, or upgrade to Growth for a complete, white-labeled practice backend.
+                </p>
+            </div>
+            
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                {/* Free Tier */}
+                <Card className="border border-slate-200 shadow-lg bg-white overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <CardHeader className="bg-slate-50/50 border-b p-8 text-center">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500 font-bold">Community Free</CardTitle>
+                            <div className="mt-4 flex items-baseline justify-center gap-1">
+                                <span className="text-2xl font-bold text-slate-900">R</span>
+                                <span className="text-7xl font-black text-slate-900">0</span>
+                                <span className="text-lg text-muted-foreground">/mo</span>
                             </div>
-                            <div className="flex items-start gap-3">
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0"><Rocket className="h-5 w-5" /></div>
-                                <div>
-                                    <p className="font-bold text-sm">Instant Market Presence</p>
-                                    <p className="text-xs text-muted-foreground">Go from solo bookkeeper to full-service firm in 48 hours.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <Button asChild size="lg" className="w-full h-14 text-lg font-black shadow-lg">
-                            <Link href="/partner-signup">Register My Practice</Link>
+                            <p className="mt-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">Perfect for getting started</p>
+                        </CardHeader>
+                        <CardContent className="p-8 space-y-4">
+                            <ul className="space-y-3">
+                                {[
+                                    'Access the Partner Community',
+                                    'Access Outsourced Overflow Jobs',
+                                    '5% Wholesale outsourcing discount',
+                                    'Direct client billing dashboard'
+                                ].map((item, i) => (
+                                    <li key={i} className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                        <CheckCircle2 className="h-4.5 w-4.5 text-primary shrink-0" />
+                                        {item}
+                                    </li>
+                                ))}
+                                {[
+                                    'Practice Landing Page',
+                                    'AI Accountant & Payroll Companies',
+                                    'Interactive Chatbot',
+                                    'Staff Management & seats',
+                                    'Task & Kanban Manager'
+                                ].map((item, i) => (
+                                    <li key={i} className="flex items-center gap-2 text-sm font-medium text-slate-400 line-through opacity-70">
+                                        <CheckCircle2 className="h-4.5 w-4.5 text-slate-300 shrink-0" />
+                                        {item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </CardContent>
+                    </div>
+                    <CardFooter className="p-8 bg-slate-50/50 border-t flex flex-col gap-3">
+                        <Button asChild variant="outline" size="lg" className="w-full h-12 text-md font-bold">
+                            <Link href="/partner-signup?tier=free">Join Free</Link>
                         </Button>
-                    </CardContent>
-                    <CardFooter className="bg-slate-50 p-4 border-t text-center justify-center">
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Secure checkout via PayFast</p>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest text-center">No credit card required</p>
                     </CardFooter>
                 </Card>
+
+                {/* Growth Tier */}
+                <Card className="border-2 border-primary shadow-2xl bg-white overflow-hidden flex flex-col justify-between relative transform md:scale-105">
+                    <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-lg">
+                        Most Popular
+                    </div>
+                    <div>
+                        <CardHeader className="bg-primary/5 border-b p-8 text-center">
+                            <CardTitle className="text-sm font-black uppercase tracking-widest text-primary font-bold">Growth Partner</CardTitle>
+                            <div className="mt-4 flex items-baseline justify-center gap-1">
+                                <span className="text-2xl font-bold text-slate-900">R</span>
+                                <span className="text-7xl font-black text-slate-900">950</span>
+                                <span className="text-lg text-muted-foreground">/mo</span>
+                            </div>
+                            <p className="mt-2 text-xs font-bold text-primary uppercase tracking-wider">All-in-one practice backend</p>
+                        </CardHeader>
+                        <CardContent className="p-8 space-y-4">
+                            <ul className="space-y-3">
+                                {[
+                                    'Everything in Community Free',
+                                    'Custom Practice Landing Page (Domain linked)',
+                                    '1 to 5 AI Accountant Companies',
+                                    '1 to 5 AI Payroll Companies',
+                                    'Interactive Client Chatbot',
+                                    'Task & Workflow Manager',
+                                    '3 Staff Seats (Owner + 2 staff)',
+                                    'Granular staff permission controls',
+                                    '25% Wholesale outsourcing discount'
+                                ].map((item, i) => (
+                                    <li key={i} className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                        <CheckCircle2 className="h-4.5 w-4.5 text-primary shrink-0" />
+                                        {item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </CardContent>
+                    </div>
+                    <CardFooter className="p-8 bg-slate-50/50 border-t flex flex-col gap-3">
+                        <Button asChild size="lg" className="w-full h-12 text-md font-bold shadow-md">
+                            <Link href="/partner-signup?tier=growth">Start 14-Day Free Trial</Link>
+                        </Button>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest text-center">Cancel anytime • Secure PayFast checkout</p>
+                    </CardFooter>
+                </Card>
+            </div>
+
+            {/* Detailed Feature Comparison */}
+            <div className="max-w-5xl mx-auto mt-20 animate-in fade-in duration-500">
+                <div className="text-center mb-10">
+                    <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Detailed Plan Comparison</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Compare the specific features and workflows of each tier</p>
+                </div>
+                <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xl">
+                    <Table>
+                        <TableHeader className="bg-slate-50/70 border-b">
+                            <TableRow>
+                                <TableHead className="w-[40%] font-black text-slate-800 uppercase tracking-wider text-xs">Feature / Capability</TableHead>
+                                <TableHead className="font-black text-slate-600 text-center uppercase tracking-wider text-xs">Community Free</TableHead>
+                                <TableHead className="font-black text-primary text-center uppercase tracking-wider text-xs">Growth Partner</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y">
+                            <TableRow>
+                                <TableCell className="font-semibold text-slate-900 py-4">Monthly Subscription</TableCell>
+                                <TableCell className="text-center font-bold text-slate-700 py-4">R0 / month</TableCell>
+                                <TableCell className="text-center font-black text-primary py-4">R950 / month</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">Wholesale Discount</div>
+                                    <div className="text-[10px] text-muted-foreground">Discount on all outsourced client services</div>
+                                </TableCell>
+                                <TableCell className="text-center font-semibold text-slate-600 py-4">5% Discount</TableCell>
+                                <TableCell className="text-center font-bold text-primary py-4">25% Discount</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">Service Pricing & Markup</div>
+                                    <div className="text-[10px] text-muted-foreground">Ability to set your own retail prices for clients</div>
+                                </TableCell>
+                                <TableCell className="text-center text-xs text-slate-500 py-4">Fixed Wholesale Rates Only</TableCell>
+                                <TableCell className="text-center text-xs font-semibold text-slate-800 py-4">Fully Customizable Markup</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">Order Billing Workflow</div>
+                                    <div className="text-[10px] text-muted-foreground">How orders are processed and paid for</div>
+                                </TableCell>
+                                <TableCell className="text-center text-xs text-slate-500 py-4">Pay-As-You-Order (Direct to PayFast)</TableCell>
+                                <TableCell className="text-center text-xs font-semibold text-slate-800 py-4">Generate Client Invoices & EFT Links</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">Order Fulfillment</div>
+                                    <div className="text-[10px] text-muted-foreground">Who completes the professional services</div>
+                                </TableCell>
+                                <TableCell className="text-center text-xs text-slate-500 py-4">Auto-Outsourced to My Accountant</TableCell>
+                                <TableCell className="text-center text-xs font-semibold text-slate-800 py-4">Choose to Do Internally or Outsource</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">White-Label Landing Page</div>
+                                    <div className="text-[10px] text-muted-foreground">Your own public practice website linked to a custom slug/domain</div>
+                                </TableCell>
+                                <TableCell className="py-4"><XCircle className="h-5 w-5 text-slate-300 mx-auto" /></TableCell>
+                                <TableCell className="py-4"><CheckCircle className="h-5 w-5 text-green-500 mx-auto" /></TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">Custom Branding (Logo & Themes)</div>
+                                    <div className="text-[10px] text-muted-foreground">Upload your logo and apply custom color palettes</div>
+                                </TableCell>
+                                <TableCell className="py-4"><XCircle className="h-5 w-5 text-slate-300 mx-auto" /></TableCell>
+                                <TableCell className="py-4"><CheckCircle className="h-5 w-5 text-green-500 mx-auto" /></TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">Staff Seats Included</div>
+                                    <div className="text-[10px] text-muted-foreground">Additional logins for your team or partners</div>
+                                </TableCell>
+                                <TableCell className="text-center font-medium text-slate-600 py-4">0 Staff Seats (Owner Only)</TableCell>
+                                <TableCell className="text-center font-bold text-primary py-4">3 Seats (Owner + 2 Staff)</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">Granular Staff Permissions</div>
+                                    <div className="text-[10px] text-muted-foreground">Restrict team access to specific modules (e.g. financials)</div>
+                                </TableCell>
+                                <TableCell className="py-4"><XCircle className="h-5 w-5 text-slate-300 mx-auto" /></TableCell>
+                                <TableCell className="py-4"><CheckCircle className="h-5 w-5 text-green-500 mx-auto" /></TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">AI Accountant & Payroll Companies</div>
+                                    <div className="text-[10px] text-muted-foreground">Automate compliance & calculations using AI tools</div>
+                                </TableCell>
+                                <TableCell className="text-center text-xs text-slate-500 py-4">Not Included</TableCell>
+                                <TableCell className="text-center text-xs font-semibold text-slate-800 py-4">5 Companies of Each Included</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">Practice Workflow & Kanban</div>
+                                    <div className="text-[10px] text-muted-foreground">Manage client tasks, deadlines, and internal projects</div>
+                                </TableCell>
+                                <TableCell className="py-4"><XCircle className="h-5 w-5 text-slate-300 mx-auto" /></TableCell>
+                                <TableCell className="py-4"><CheckCircle className="h-5 w-5 text-green-500 mx-auto" /></TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="py-4">
+                                    <div className="font-semibold text-slate-900">Community & Overflow Job Pool</div>
+                                    <div className="text-[10px] text-muted-foreground">Receive client requests and overflow work from the network</div>
+                                </TableCell>
+                                <TableCell className="py-4"><CheckCircle className="h-5 w-5 text-primary mx-auto" /></TableCell>
+                                <TableCell className="py-4"><CheckCircle className="h-5 w-5 text-green-500 mx-auto" /></TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         </div>
       </section>
@@ -487,11 +651,11 @@ export default function BecomeAPartnerPageClient() {
         <div className="max-w-2xl mx-auto space-y-8">
             <h2 className="text-4xl font-bold tracking-tight text-slate-900">Ready to Empower Your Practice?</h2>
             <p className="text-xl text-muted-foreground">
-                Register now and complete your R4,950 onboarding to unlock your branded dashboard and re-branding toolkit.
+                Choose the plan that fits your practice size and start onboarding today.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-lg">
-                    <Link href="/partner-signup">Register Now</Link>
+                    <Link href="/partner-signup?tier=growth">Register Growth Plan</Link>
                 </Button>
                 <BookDemoDialog />
             </div>

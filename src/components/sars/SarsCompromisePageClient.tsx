@@ -831,11 +831,10 @@ export default function SarsCompromisePageClient() {
                     </p>
                   </div>
               </div>
-              <div className="h-[400px] rounded-3xl overflow-hidden shadow-xl border-8 border-slate-50">
+              <div className="relative h-[400px] rounded-3xl overflow-hidden shadow-xl border-8 border-slate-50">
                   <iframe
                       src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
-                      width="100%"
-                      height="100%"
+                      className="absolute inset-0 w-full h-full"
                       style={{ border: 0 }}
                       allowFullScreen={false}
                       loading="lazy"

@@ -1,0 +1,551 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { useParams } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calculator, Loader2, FileText, ReceiptText, CheckCircle2, AlertCircle, ArrowRightLeft, CalendarClock, ChevronRight, RotateCcw, History, Filter, Eye, Download, Search } from 'lucide-react';
+import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, getDocs, where, limit } from 'firebase/firestore';
+import { firebaseApp } from '@/lib/firebase';
+import { Payslip, Employee, User } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
+import { rollForwardPayrollAction, rollBackPayrollAction, generateEmployeePayslipAction } from '@/app/actions';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import PayslipEditor from '@/components/admin/PayslipEditor';
+import PayslipPreview from '@/components/admin/PayslipPreview';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PayrollService } from '@/services/PayrollService';
+import PayslipDownloadButton from '@/components/pdf/PayslipDownloadButton';
+import { Input } from '@/components/ui/input';
+
+const db = getFirestore(firebaseApp);
+
+export default function PayslipsPage() {
+  const params = useParams();
+  const clientId = params.clientId as string;
+  const { toast } = useToast();
+  
+  const [payslips, setPayslips] = useState<Payslip[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [client, setClient] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRolling, setIsRolling] = useState(false);
+  const [isRollingBack, setIsRollingBack] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<string>('all');
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState<string>('');
+
+  // Editor states
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingPayslip, setEditingPayslip] = useState<Payslip | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [isFetchingPayslip, setIsFetchingPayslip] = useState(false);
+
+  // History Preview states
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewPayslip, setPreviewPayslip] = useState<Payslip | null>(null);
+  const [previewEmployee, setPreviewEmployee] = useState<Employee | null>(null);
+
+  useEffect(() => {
+    if (!clientId) return;
+
+    // Fetch client
+    const unsubClient = onSnapshot(doc(db, 'aiPayrollClients', clientId), (snap) => {
+        if (snap.exists()) setClient({ id: snap.id, ...snap.data() } as User);
+    });
+
+    // Fetch employees
+    const empRef = collection(db, 'aiPayrollClients', clientId, 'employees');
+    const unsubEmp = onSnapshot(empRef, (snap) => {
+        setAllEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() } as Employee)));
+    });
+
+    const setAllEmployees = (emps: Employee[]) => setEmployees(emps);
+
+    // Fetch payslips
+    const payslipsRef = collection(db, 'aiPayrollClients', clientId, 'payslips');
+    const q = query(payslipsRef, orderBy('createdAt', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Payslip));
+      setPayslips(fetched);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching payslips:", error);
+      setIsLoading(false);
+    });
+
+    return () => {
+        unsubscribe();
+        unsubClient();
+        unsubEmp();
+    };
+  }, [clientId]);
+
+  // Derived data: Map active employees to their current period payslip
+  const activeEmployeesWithPayslips = useMemo(() => {
+      const active = employees.filter(e => e.status === 'Active');
+      const basePeriod = client?.firstProcessingMonth || '';
+      
+      return active.map(emp => {
+          const ps = payslips.find(p => 
+            p.employeeId === emp.id && 
+            (p.period === basePeriod || (p.period && p.period.startsWith(`${basePeriod} -`)))
+          );
+          
+          return {
+              employee: emp,
+              payslip: ps || null
+          };
+      });
+  }, [employees, payslips, client?.firstProcessingMonth]);
+
+  const filteredActiveEmployees = useMemo(() => {
+      return activeEmployeesWithPayslips.filter(row => {
+          const fullName = `${row.employee.name} ${row.employee.surname}`.toLowerCase();
+          const code = (row.employee.employeeCode || '').toLowerCase();
+          const term = employeeSearchTerm.toLowerCase();
+          return fullName.includes(term) || code.includes(term);
+      });
+  }, [activeEmployeesWithPayslips, employeeSearchTerm]);
+
+  const filteredHistory = useMemo(() => {
+      const currentPeriod = client?.firstProcessingMonth;
+      return payslips
+        .filter(p => 
+            p.status === 'finalized' && 
+            p.period !== currentPeriod && 
+            (historyFilter === 'all' || p.employeeId === historyFilter)
+        )
+        .sort((a, b) => {
+            const dateA = a.date?.toDate ? a.date.toDate().getTime() : new Date(a.date || 0).getTime();
+            const dateB = b.date?.toDate ? b.date.toDate().getTime() : new Date(b.date || 0).getTime();
+            return dateB - dateA;
+        })
+        .slice(0, 10);
+  }, [payslips, client?.firstProcessingMonth, historyFilter]);
+
+  const handleRollForward = async () => {
+    if (!client) return;
+    setIsRolling(true);
+    
+    try {
+        const res = (await rollForwardPayrollAction({ clientId })) as any;
+        if (res.success) {
+            toast({ 
+                title: "Month Rolled Forward", 
+                description: `Successfully moved to ${res.nextPeriod}. Generated ${res.created} draft payslips.` 
+            });
+        } else {
+            toast({ title: "Roll Forward Failed", description: res.error, variant: "destructive" });
+        }
+    } catch (e) {
+        toast({ title: "Error", description: "Internal server error.", variant: "destructive" });
+    } finally {
+        setIsRolling(false);
+    }
+  };
+
+  const handleRollBack = async () => {
+    if (!client) return;
+    setIsRollingBack(true);
+    
+    try {
+        const res = (await rollBackPayrollAction({ clientId })) as any;
+        if (res.success) {
+            toast({ 
+                title: "Month Rolled Back", 
+                description: `Successfully moved back to ${res.prevPeriod}. Deleted ${res.deletedCount} draft records.` 
+            });
+        } else {
+            toast({ title: "Roll Back Failed", description: res.error, variant: "destructive" });
+        }
+    } catch (e) {
+        toast({ title: "Error", description: "Internal server error.", variant: "destructive" });
+    } finally {
+        setIsRollingBack(false);
+    }
+  };
+
+  const handleEditDetails = async (employee: Employee, existingPayslip: Payslip | null) => {
+      setIsFetchingPayslip(true);
+      setEditingEmployee(employee);
+      
+      const periodLabel = client?.firstProcessingMonth || format(new Date(), 'MMMM yyyy');
+
+      try {
+          if (existingPayslip) {
+              setEditingPayslip(existingPayslip);
+          } else {
+              const baseValue = employee.payType === 'Hourly' ? (employee.hourlyRate || 0) : (employee.basicSalary || 0);
+              const res = await generateEmployeePayslipAction({
+                  clientId,
+                  employeeId: employee.id,
+                  basicSalary: baseValue
+              }) as any;
+              
+              if (res.success && res.id) {
+                  const newSnap = await getDoc(doc(db, 'aiPayrollClients', clientId, 'payslips', res.id));
+                  if (newSnap.exists()) {
+                      setEditingPayslip({ id: newSnap.id, ...newSnap.data() } as Payslip);
+                  }
+              } else {
+                  const frequencyLabel = 'Monthly';
+                  const freqNum = 12;
+                  
+                  const initialEarnings = PayrollService.calculateEarningsList(employee, baseValue, periodLabel, freqNum);
+                  const initialGross = initialEarnings.reduce((s, i) => s + i.amount, 0);
+
+                  const stub: Payslip = {
+                      id: 'new',
+                      employeeId: employee.id,
+                      employeeName: `${employee.name} ${employee.surname}`,
+                      period: periodLabel,
+                      date: new Date().toISOString() as any,
+                      earnings: initialEarnings,
+                      deductions: PayrollService.getInitialDeductions(initialGross, periodLabel, freqNum, employee.joinDate),
+                      contributions: PayrollService.getInitialContributions(initialGross, periodLabel, freqNum, !!client?.excludeSdl),
+                      fringeBenefits: [],
+                      grossPay: initialGross,
+                      totalDeductions: 0,
+                      netPay: 0,
+                      frequency: 'Monthly',
+                      status: 'draft'
+                  };
+                  setEditingPayslip(stub);
+              }
+          }
+          setIsEditorOpen(true);
+      } catch (error: any) {
+          console.error("Error fetching payslip:", error);
+          toast({ title: "Error", description: `Failed to load payslip: ${error?.message || error}`, variant: "destructive" });
+      } finally {
+          setIsFetchingPayslip(false);
+      }
+  };
+
+  const handlePreviewHistory = (ps: Payslip) => {
+      const emp = employees.find(e => e.id === ps.employeeId);
+      if (!emp) {
+          toast({ title: "Employee Not Found", description: "Could not locate the employee record for this payslip.", variant: "destructive" });
+          return;
+      }
+      setPreviewPayslip(ps);
+      setPreviewEmployee(emp);
+      setIsPreviewOpen(true);
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: 'ZAR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price);
+  };
+
+  const safeFormatDate = (date: any): string => {
+    if (!date) return 'N/A';
+    try {
+        const d = date?.toDate ? date.toDate() : new Date(date);
+        return isNaN(d.getTime()) ? 'N/A' : format(d, 'dd MMM yy');
+    } catch (e) {
+        return 'N/A';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Payroll Processing</h2>
+          <p className="text-sm text-muted-foreground font-medium">Review and adjust staff payments for the active cycle.</p>
+        </div>
+        <div className="flex gap-2">
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button 
+                        variant="outline"
+                        className="font-bold border-destructive/20 text-destructive hover:bg-destructive/5"
+                        disabled={isRollingBack || isLoading}
+                    >
+                        {isRollingBack ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                        Roll Back Period
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will return the system to the previous month and **PERMANENTLY DELETE** all payslips and changes made in the current period ({client?.firstProcessingMonth}). This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleRollBack} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Confirm Roll Back
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <Button 
+                variant="outline"
+                className="font-bold border-primary/20 text-primary hover:bg-primary/5"
+                onClick={handleRollForward}
+                disabled={isRolling || isLoading}
+            >
+                {isRolling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CalendarClock className="mr-2 h-4 w-4" />}
+                Roll Forward to Next Month
+            </Button>
+        </div>
+      </div>
+
+      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+          <DialogContent className="sm:max-w-6xl p-0 overflow-hidden bg-[#F5F5F5]">
+              <DialogHeader className="p-6 bg-white border-b">
+                  <div className="flex justify-between items-center">
+                      <div>
+                        <DialogTitle className="flex items-center gap-2"><Calculator className="h-5 w-5 text-primary" /> Interactive Payslip Editor</DialogTitle>
+                        <DialogDescription>Adjust earnings and deductions for the current period.</DialogDescription>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest bg-muted border-none px-3 py-1">Confidential Payroll Data</Badge>
+                  </div>
+              </DialogHeader>
+              <div className="p-8 overflow-y-auto max-h-[80vh]">
+                {editingPayslip && editingEmployee && client && (
+                    <PayslipEditor 
+                        payslip={editingPayslip} 
+                        employee={editingEmployee} 
+                        client={client} 
+                        allPayslips={payslips}
+                        onSave={() => setIsEditorOpen(false)}
+                    />
+                )}
+              </div>
+          </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+          <DialogContent className="sm:max-w-4xl p-0 overflow-hidden">
+              <DialogHeader className="p-6 bg-white border-b">
+                  <DialogTitle>Historical Payslip Review</DialogTitle>
+                  <DialogDescription>Viewing finalized record for {previewPayslip?.period}.</DialogDescription>
+              </DialogHeader>
+              <div className="p-8 bg-[#F5F5F5] max-h-[70vh] overflow-y-auto">
+                  {previewPayslip && previewEmployee && client && (
+                      <PayslipPreview 
+                          payslip={previewPayslip}
+                          employee={previewEmployee}
+                          client={client}
+                      />
+                  )}
+              </div>
+              <DialogFooter className="p-4 border-t bg-white">
+                  <Button variant="ghost" onClick={() => setIsPreviewOpen(false)}>Close</Button>
+                  {previewPayslip && previewEmployee && client && (
+                      <PayslipDownloadButton 
+                          payslip={previewPayslip}
+                          employee={previewEmployee}
+                          client={client}
+                      />
+                  )}
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 gap-6">
+        <Card>
+            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <CardTitle>Draft Payslips - {client?.firstProcessingMonth}</CardTitle>
+                    <CardDescription>Review and finalize staff payments for all active employees.</CardDescription>
+                </div>
+                {activeEmployeesWithPayslips.length > 0 && (
+                    <div className="relative w-full md:w-64">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search employee..." 
+                            className="pl-8 h-9" 
+                            value={employeeSearchTerm}
+                            onChange={(e) => setEmployeeSearchTerm(e.target.value)}
+                        />
+                    </div>
+                )}
+            </CardHeader>
+            <CardContent className="p-0">
+            {isLoading ? (
+                <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary" /></div>
+            ) : activeEmployeesWithPayslips.length === 0 ? (
+                <div className="h-40 flex flex-col items-center justify-center border-2 border-dashed rounded-lg text-muted-foreground m-6 mt-0 p-8">
+                    <ReceiptText className="h-10 w-10 opacity-20 mb-2" />
+                    <p className="font-semibold text-sm">No active employees found.</p>
+                    <p className="text-xs">Add active employees to begin processing the current cycle.</p>
+                </div>
+            ) : (
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead className="text-right">Gross Earnings</TableHead>
+                    <TableHead className="text-right">Tax (PAYE)</TableHead>
+                    <TableHead className="text-right">Net Pay</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredActiveEmployees.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={6} className="text-center py-12 text-muted-foreground italic text-xs">
+                                No matching employees found for "{employeeSearchTerm}".
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        filteredActiveEmployees.map((row) => {
+                            const { employee, payslip } = row;
+                            
+                            let displayGross = 0;
+                            let displayTax = 0;
+                            let displayNet = 0;
+
+                            if (payslip) {
+                                displayGross = payslip.grossPay;
+                                displayTax = payslip.deductions.find(d => d.label === 'Tax')?.amount || 0;
+                                displayNet = payslip.netPay;
+                            } else {
+                                const frequency = 12;
+                                const period = client?.firstProcessingMonth;
+                                const baseValue = employee.payType === 'Hourly' ? (employee.hourlyRate || 0) * 160 : (employee.basicSalary || 0);
+                                
+                                displayGross = employee.isNetSalary ? PayrollService.calculateGrossFromNet(baseValue, period, frequency, employee.joinDate, employee.idNumber, employee.medicalAidMembers || 0, employee.medicalAidDependents || 0) : baseValue;
+                                displayTax = PayrollService.calculatePaye(displayGross, period, frequency, employee.joinDate, employee.idNumber, employee.medicalAidMembers || 0, employee.medicalAidDependents || 0);
+                                displayNet = displayGross - displayTax - PayrollService.calculateUif(displayGross, period, frequency);
+                            }
+
+                            const isProcessing = isFetchingPayslip && editingEmployee?.id === employee.id;
+
+                            return (
+                            <TableRow key={employee.id}>
+                                <TableCell className="font-bold text-slate-900">
+                                    <div className="flex flex-col">
+                                        <span>{employee.name} {employee.surname}</span>
+                                        <span className="text-[10px] text-muted-foreground font-mono uppercase">{employee.employeeCode}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs">
+                                    {formatPrice(displayGross)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-xs text-destructive">
+                                    {formatPrice(displayTax)}
+                                </TableCell>
+                                <TableCell className="text-right font-black text-primary font-mono">
+                                    {formatPrice(displayNet)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    {payslip?.status === 'finalized' ? (
+                                        <Badge variant="success" className="text-[9px] uppercase font-bold px-2 py-0.5">Finalized</Badge>
+                                    ) : (
+                                        <Badge variant="secondary" className="text-[9px] uppercase font-bold px-2 py-0.5 opacity-50">Pending</Badge>
+                                    )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <Button 
+                                        variant="secondary" 
+                                        size="sm" 
+                                        className="font-bold" 
+                                        onClick={() => handleEditDetails(employee, payslip)}
+                                        disabled={isProcessing}
+                                    >
+                                        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                                        Edit Details <ChevronRight className="h-4 w-4 ml-1" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        )})
+                    )}
+                </TableBody>
+                </Table>
+            )}
+            </CardContent>
+        </Card>
+
+        <Card className="bg-muted/20">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <div>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                        <History className="h-4 w-4 text-primary" />
+                        Historical Records
+                    </CardTitle>
+                    <CardDescription className="text-[10px]">Previously finalized runs for the practice.</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Filter className="h-3 w-3 text-muted-foreground" />
+                    <Select value={historyFilter} onValueChange={setHistoryFilter}>
+                        <SelectTrigger className="h-8 text-[10px] w-[180px] bg-white">
+                            <SelectValue placeholder="Filter by Employee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Employees</SelectItem>
+                            {employees.map(emp => (
+                                <SelectItem key={emp.id} value={emp.id}>{emp.name} {emp.surname}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardHeader>
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader className="text-[10px] uppercase font-bold text-muted-foreground bg-muted/30">
+                        <TableRow>
+                            <TableHead>Period</TableHead>
+                            <TableHead>Employee</TableHead>
+                            <TableHead className="text-right">Net Paid</TableHead>
+                            <TableHead className="text-right">Date</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredHistory.map((ps) => (
+                            <TableRow key={ps.id} className="transition-all">
+                                <TableCell className="text-xs font-bold">{ps.period || 'N/A'}</TableCell>
+                                <TableCell className="text-xs font-medium">{ps.employeeName || 'Unknown Employee'}</TableCell>
+                                <TableCell className="text-right text-xs font-black text-primary font-mono">{formatPrice(ps.netPay)}</TableCell>
+                                <TableCell className="text-right text-[10px] font-medium">{safeFormatDate(ps.date)}</TableCell>
+                                <TableCell className="text-right">
+                                    <div className="flex justify-end gap-1">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePreviewHistory(ps)}>
+                                            <Eye className="h-3.5 w-3.5" />
+                                        </Button>
+                                        {client && employees.find(e => e.id === ps.employeeId) && (
+                                            <PayslipDownloadButton 
+                                                client={client}
+                                                employee={employees.find(e => e.id === ps.employeeId)!}
+                                                payslip={ps}
+                                            />
+                                        )}
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        {filteredHistory.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic text-xs">
+                                    No finalized historical records found for the selected criteria.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

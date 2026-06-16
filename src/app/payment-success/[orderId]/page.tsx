@@ -34,6 +34,13 @@ export default function PaymentSuccessPage() {
     const [assignee, setAssignee] = useState<User | null>(null);
     const { user: currentUser } = useAuth();
     const { toast } = useToast();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (order && currentUser && (currentUser.role === 'partner' || currentUser.role === 'partner_staff')) {
+            router.push('/partner/orders');
+        }
+    }, [order, currentUser, router]);
 
     useEffect(() => {
         if (orderId) {

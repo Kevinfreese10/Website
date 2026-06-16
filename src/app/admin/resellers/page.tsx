@@ -8,10 +8,11 @@ import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { User, Service } from '@/lib/types';
-import { getFirestore, collection, getDocs, doc, deleteDoc, query, where, updateDoc, increment, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, deleteDoc, query, where, updateDoc, increment, orderBy, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -274,6 +275,16 @@ function ManualCreditDialog({ partner, onUpdate, open, onOpenChange }: { partner
                 creditBalance: increment(finalAmount)
             });
 
+            // Write to walletLogs subcollection
+            const logsRef = collection(db, 'users', partner.uid, 'walletLogs');
+            const newLogRef = doc(logsRef);
+            await setDoc(newLogRef, {
+                amount: finalAmount,
+                type: 'manual_adjustment',
+                description: type === 'add' ? 'Manual credit allocation by Admin' : 'Manual credit deduction by Admin',
+                date: serverTimestamp()
+            });
+
             toast({ title: 'Balance Updated', description: `Successfully ${type === 'add' ? 'added' : 'deducted'} ${new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(numericAmount)}.` });
             onUpdate();
             onOpenChange(false);
@@ -320,6 +331,98 @@ function ManualCreditDialog({ partner, onUpdate, open, onOpenChange }: { partner
     );
 }
 
+function WalletHistoryDialog({ partner, open, onOpenChange }: { partner: User | null, open: boolean, onOpenChange: (open: boolean) => void }) {
+    const [logs, setLogs] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!partner || !open) return;
+        
+        setIsLoading(true);
+        const logsRef = collection(db, 'users', partner.uid, 'walletLogs');
+        const q = query(logsRef, orderBy('date', 'desc'));
+        
+        const unsubscribe = onSnapshot(q, (snap) => {
+            setLogs(snap.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                date: doc.data().date?.toDate ? doc.data().date.toDate() : new Date(doc.data().date),
+            })));
+            setIsLoading(false);
+        }, (err) => {
+            console.error("Error loading wallet logs:", err);
+            setIsLoading(false);
+        });
+        
+        return () => unsubscribe();
+    }, [partner, open]);
+
+    if (!partner) return null;
+
+    const formatPrice = (price: number) => {
+        return new Intl.NumberFormat('en-ZA', {
+          style: 'currency',
+          currency: 'ZAR',
+        }).format(price);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-6 border-b bg-muted/20 shrink-0">
+                    <DialogTitle>Wallet History: {partner.companyName || partner.name}</DialogTitle>
+                    <DialogDescription>
+                        Audit trail of credits and adjustments for this practice.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex-grow p-6 overflow-y-auto">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                    ) : logs.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">No wallet transaction history found.</p>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead className="text-right">Amount</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {logs.map((log) => (
+                                    <TableRow key={log.id}>
+                                        <TableCell className="text-xs text-muted-foreground">
+                                            {format(log.date, 'dd/MM/yyyy HH:mm')}
+                                        </TableCell>
+                                        <TableCell className="text-xs font-medium">
+                                            <p>{log.description || 'Adjustment'}</p>
+                                            <Badge variant="secondary" className="text-[8px] uppercase tracking-wider scale-90 -ml-1 mt-0.5 w-fit">
+                                                {log.type?.replace('_', ' ') || 'Adjustment'}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className={cn(
+                                            "text-right font-mono font-bold text-xs",
+                                            log.amount >= 0 ? "text-green-600" : "text-destructive"
+                                        )}>
+                                            {log.amount >= 0 ? '+' : ''}{formatPrice(log.amount)}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </div>
+                <DialogFooter className="p-4 border-t bg-muted/10 shrink-0">
+                    <Button variant="ghost" onClick={() => onOpenChange(false)}>Close</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function AdminPartnersPage() {
   const [partners, setPartners] = useState<User[]>([]);
   const [allServices, setAllServices] = useState<Service[]>([]);
@@ -327,16 +430,62 @@ export default function AdminPartnersPage() {
   const [selectedPartnerIdForCredits, setSelectedPartnerIdForCredits] = useState<string | null>(null);
   const [selectedPartnerIdForProfile, setSelectedPartnerIdForProfile] = useState<string | null>(null);
   const [selectedPartnerIdForConfiguration, setSelectedPartnerIdForConfiguration] = useState<string | null>(null);
+  const [selectedPartnerIdForHistory, setSelectedPartnerIdForHistory] = useState<string | null>(null);
 
   const selectedPartnerForCredits = useMemo(() => partners.find(p => p.id === selectedPartnerIdForCredits) || null, [partners, selectedPartnerIdForCredits]);
   const selectedPartnerForProfile = useMemo(() => partners.find(p => p.id === selectedPartnerIdForProfile) || null, [partners, selectedPartnerIdForProfile]);
   const selectedPartnerForConfiguration = useMemo(() => partners.find(p => p.id === selectedPartnerIdForConfiguration) || null, [partners, selectedPartnerIdForConfiguration]);
+  const selectedPartnerForHistory = useMemo(() => partners.find(p => p.id === selectedPartnerIdForHistory) || null, [partners, selectedPartnerIdForHistory]);
 
   const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
+
+  const handleToggleTier = async (partner: User) => {
+    const newTier = partner.partnerTier === 'free' ? 'growth' : 'free';
+    const isUpgrading = newTier === 'growth';
+    
+    setIsLoading(true);
+    try {
+        const userRef = doc(db, 'users', partner.id);
+        const updates: any = {
+            partnerTier: newTier,
+        };
+        
+        if (isUpgrading) {
+            updates.partnerSubscription = {
+                status: 'active',
+                aiCompanyLimit: 5,
+                aiPayrollLimit: 5,
+                staffSeatLimit: 3,
+                currentPeriodStart: new Date(),
+                currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            };
+        } else {
+            updates.partnerSubscription = {
+                status: 'cancelled',
+                aiCompanyLimit: 0,
+                aiPayrollLimit: 0,
+                staffSeatLimit: 0,
+                cancelledAt: new Date(),
+            };
+        }
+        
+        await updateDoc(userRef, updates);
+        toast({
+            title: isUpgrading ? 'Upgraded to Growth' : 'Downgraded to Free',
+            description: `Successfully updated plan tier for ${partner.companyName || partner.name}.`
+        });
+    } catch (err) {
+        console.error("Error toggling partner tier:", err);
+        toast({ title: 'Operation Failed', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   const fetchInitialData = async () => {
     setIsLoading(true);
@@ -440,6 +589,15 @@ export default function AdminPartnersPage() {
         onUpdate={fetchInitialData}
       />
 
+      <WalletHistoryDialog
+        partner={selectedPartnerForHistory}
+        open={isHistoryDialogOpen}
+        onOpenChange={(open) => {
+            setIsHistoryDialogOpen(open);
+            if (!open) setSelectedPartnerIdForHistory(null);
+        }}
+      />
+
       <PartnerProfileDialog 
         partner={selectedPartnerForProfile}
         allServices={allServices}
@@ -518,6 +676,9 @@ export default function AdminPartnersPage() {
                           <Badge variant={partner.status === 'Active' ? 'success' : 'secondary'} className="text-[10px] uppercase font-bold w-fit">
                               {partner.status}
                           </Badge>
+                          <Badge variant={partner.partnerTier === 'growth' || !partner.partnerTier ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold w-fit bg-primary/10 text-primary border-primary/20">
+                              {partner.partnerTier === 'growth' || !partner.partnerTier ? 'Premium' : 'Freemium'}
+                          </Badge>
                           {partner.wantsOutsourcedWork && (
                               partner.overflowApproved ? (
                                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] w-fit font-bold">
@@ -557,6 +718,18 @@ export default function AdminPartnersPage() {
                             <DropdownMenuItem onClick={() => { setSelectedPartnerIdForCredits(partner.id); setIsCreditDialogOpen(true); }}>
                                 <Wallet2 className="mr-2 h-4 w-4" /> Manage Credits
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setSelectedPartnerIdForHistory(partner.id); setIsHistoryDialogOpen(true); }}>
+                                <FileText className="mr-2 h-4 w-4" /> Wallet History
+                            </DropdownMenuItem>
+                            {partner.partnerTier === 'free' ? (
+                                <DropdownMenuItem onClick={() => handleToggleTier(partner)}>
+                                    <GraduationCap className="mr-2 h-4 w-4 text-primary" /> Upgrade to Premium
+                                </DropdownMenuItem>
+                            ) : (
+                                <DropdownMenuItem onClick={() => handleToggleTier(partner)}>
+                                    <Circle className="mr-2 h-4 w-4 text-muted-foreground" /> Downgrade to Freemium
+                                </DropdownMenuItem>
+                            )}
                              {partner.wantsOutsourcedWork && (
                                  partner.overflowApproved ? (
                                      <DropdownMenuItem onClick={async () => {

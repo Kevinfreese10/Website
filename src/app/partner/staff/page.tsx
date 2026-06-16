@@ -1,7 +1,5 @@
-'use client';
-import { redirect } from 'next/navigation';
+import StaffManager from '@/components/partner/staff/StaffManager';
 
-export default function PartnerStaffRedirectPage() {
-  redirect('/partner/dashboard');
-  return null;
+export default function PartnerStaffPage() {
+  return <StaffManager />;
 }

@@ -6,10 +6,12 @@ import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from '@/compon
 import DashboardNav from '@/components/dashboard/DashboardNav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, usePathname } from 'next/navigation';
-import { getFirestore, doc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { LapsedSubscriptionScreen } from '@/components/partner/LapsedSubscriptionScreen';
 import { PendingSetupScreen } from '@/components/partner/PendingSetupScreen';
+import { PartnerProvider } from '@/contexts/PartnerContext';
+import { WorkingAsBanner } from '@/components/partner/staff/WorkingAsBanner';
 
 const db = getFirestore(firebaseApp);
 
@@ -17,20 +19,14 @@ export default function PartnerLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isBillingChecking, setIsBillingCheck] = useState(true);
   
   useEffect(() => {
-    if (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff') {
+    if (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff' && user?.role !== 'franchisee') {
       router.push('/login');
     }
   }, [isAuthenticated, user, router]);
 
-  // Automated billing check removed - BEI is now free-to-join with zero monthly subscription.
-  useEffect(() => {
-    setIsBillingCheck(false);
-  }, [user]);
-
-  if (isAuthenticated === undefined || (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff')) {
+  if (isAuthenticated === undefined || (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff' && user?.role !== 'franchisee')) {
      return (
         <div className="flex min-h-screen">
             <Skeleton className="hidden md:block w-16 lg:w-64" />
@@ -42,40 +38,43 @@ export default function PartnerLayout({ children }: { children: ReactNode }) {
      );
   }
 
-  // Pending setup and lapsed statuses are deprecated in the free model
-  const isLapsed = user?.subscription?.subscriptionStatus === 'lapsed';
+  const isLapsed = user?.partnerTier === 'growth' && user?.partnerSubscription?.status === 'lapsed';
   const isPendingSetup = user?.status === 'Pending Setup Payment';
 
   return (
     <ProtectedRoute>
-      <SidebarProvider>
-        <div className="flex min-h-screen bg-background text-foreground">
-          {user && (
-            <Sidebar collapsible="icon" className="border-r">
-              <DashboardNav user={user} />
-            </Sidebar>
-          )}
-          <SidebarInset>
-              <div className="p-4 sm:p-6 lg:p-8">
-                  <div className="flex items-center gap-4 mb-6">
-                      <SidebarTrigger className="md:hidden" />
-                  </div>
+      <PartnerProvider>
+        <SidebarProvider>
+          <div className="flex min-h-screen bg-background text-foreground">
+            {user && (
+              <Sidebar collapsible="icon" className="border-r">
+                <DashboardNav user={user} />
+              </Sidebar>
+            )}
+            <SidebarInset>
+                <div className="p-4 sm:p-6 lg:p-8">
+                    <div className="flex items-center gap-4 mb-6">
+                        <SidebarTrigger className="md:hidden" />
+                    </div>
 
-                  {isPendingSetup ? (
-                      <div className="flex items-center justify-center min-h-[70vh]">
-                        <PendingSetupScreen user={user} />
-                      </div>
-                  ) : isLapsed ? (
-                      <div className="flex items-center justify-center min-h-[70vh]">
-                        <LapsedSubscriptionScreen user={user} />
-                      </div>
-                  ) : (
-                      children
-                  )}
-              </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
+                    {user?.role === 'partner_staff' && <WorkingAsBanner />}
+
+                    {isPendingSetup ? (
+                        <div className="flex items-center justify-center min-h-[70vh]">
+                          <PendingSetupScreen user={user} />
+                        </div>
+                    ) : isLapsed ? (
+                        <div className="flex items-center justify-center min-h-[70vh]">
+                          <LapsedSubscriptionScreen user={user} />
+                        </div>
+                    ) : (
+                        children
+                    )}
+                </div>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      </PartnerProvider>
     </ProtectedRoute>
   );
 }

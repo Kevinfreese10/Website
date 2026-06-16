@@ -1,7 +1,5 @@
-'use client';
-import { redirect } from 'next/navigation';
+import TaskBoard from '@/components/partner/tasks/TaskBoard';
 
-export default function PartnerTasksRedirectPage() {
-  redirect('/partner/dashboard');
-  return null;
+export default function PartnerTasksPage() {
+  return <TaskBoard />;
 }

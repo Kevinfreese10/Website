@@ -6,26 +6,40 @@ import { ProtectedRoute, useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import DashboardNav from '@/components/dashboard/DashboardNav';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+
+import { PartnerProvider } from '@/contexts/PartnerContext';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   
+  const isPartner = user?.role === 'partner' || user?.role === 'partner_staff';
+  const isAllowedPartnerRoute = isPartner && (
+    pathname.startsWith('/dashboard/ai-accountant') ||
+    pathname.startsWith('/dashboard/ai-payroll')
+  );
+
+  const shouldRedirect = isAuthenticated && 
+    user?.role !== 'client' && 
+    user?.role !== 'ai_accountant' && 
+    !isAllowedPartnerRoute;
+
   useEffect(() => {
-    if (isAuthenticated && user?.role !== 'client' && user?.role !== 'ai_accountant') {
+    if (shouldRedirect) {
       // Redirect non-clients away from this dashboard
       if (user?.role === 'admin' || user?.role === 'staff') {
         router.push('/admin/dashboard');
-      } else if (user?.role === 'partner' || user?.role === 'partner_staff') {
+      } else if (isPartner) {
         router.push('/partner/dashboard');
       } else {
         router.push('/login');
       }
     }
-  }, [isAuthenticated, user, router]);
+  }, [shouldRedirect, user, router, isPartner]);
 
-  if (isAuthenticated === undefined || (isAuthenticated && user?.role !== 'client' && user?.role !== 'ai_accountant')) {
+  if (isAuthenticated === undefined || shouldRedirect) {
      return (
         <div className="flex min-h-screen">
             <Skeleton className="hidden md:block w-16 lg:w-64" />
@@ -39,21 +53,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <ProtectedRoute>
-      <SidebarProvider>
-        <div className="flex min-h-screen bg-background">
-          {user && (
-            <Sidebar collapsible="icon" className="border-r">
-              <DashboardNav user={user} />
-            </Sidebar>
-          )}
-          <SidebarInset>
-              <div className="p-4 sm:p-6 lg:p-8">
-                  <SidebarTrigger className="md:hidden mb-4" />
-                  {children}
-              </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
+      <PartnerProvider>
+        <SidebarProvider>
+          <div className="flex min-h-screen bg-background">
+            {user && (
+              <Sidebar collapsible="icon" className="border-r">
+                <DashboardNav user={user} />
+              </Sidebar>
+            )}
+            <SidebarInset>
+                <div className="p-4 sm:p-6 lg:p-8">
+                    <SidebarTrigger className="md:hidden mb-4" />
+                    {children}
+                </div>
+            </SidebarInset>
+          </div>
+        </SidebarProvider>
+      </PartnerProvider>
     </ProtectedRoute>
   );
 }

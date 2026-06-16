@@ -4,13 +4,14 @@ import { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Search, Edit3, RotateCcw, Save, Plus, Trash2, RefreshCw, Calculator, Link as LinkIcon } from 'lucide-react';
+import { Loader2, Search, Edit3, RotateCcw, Save, Plus, Trash2, RefreshCw, Calculator, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { getFirestore, collection, query, orderBy, getDocs, doc, setDoc, onSnapshot, deleteDoc, writeBatch } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePartner } from '@/contexts/PartnerContext';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -280,8 +281,99 @@ function EditServiceDialog({
     );
 }
 
+function ViewProductDialog({ 
+    service,
+    isGrowthActive
+}: { 
+    service: Service,
+    isGrowthActive: boolean
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const formatPrice = (price: number) => {
+        return new Intl.NumberFormat('en-ZA', {
+          style: 'currency',
+          currency: 'ZAR',
+        }).format(price);
+    };
+
+    const cost = isGrowthActive 
+        ? (service.resellerPrice || service.price * 0.75)
+        : (service.price * 0.95);
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-2 font-bold border-primary/20 text-primary hover:bg-primary/5">
+                    <Search className="h-3.5 w-3.5" /> View Product
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-6 bg-slate-50 border-b shrink-0">
+                    <DialogTitle className="text-xl font-bold text-slate-900">{service.title}</DialogTitle>
+                    <DialogDescription>
+                        Wholesale Price: <strong className="text-primary">{formatPrice(cost)}</strong>
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex-grow overflow-y-auto p-6 space-y-6">
+                    <div className="space-y-2">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Description</h4>
+                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{service.description}</p>
+                        {service.longDescription && (
+                            <p className="text-xs text-muted-foreground leading-relaxed pt-2">{service.longDescription}</p>
+                        )}
+                    </div>
+
+                    {service.whatsIncluded && service.whatsIncluded.length > 0 && (
+                        <>
+                            <Separator />
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">What's Included</h4>
+                                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-700 font-medium">
+                                    {service.whatsIncluded.map((item, idx) => (
+                                        <li key={idx} className="flex items-start gap-2">
+                                            <CheckCircle2 className="h-4.5 w-4.5 text-primary shrink-0 mt-0.5" />
+                                            <span>{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </>
+                    )}
+
+                    {service.clientRequirements && service.clientRequirements.length > 0 && (
+                        <>
+                            <Separator />
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Client Prerequisites</h4>
+                                <ul className="space-y-2 text-sm text-slate-600 font-medium">
+                                    {service.clientRequirements.map((req, idx) => (
+                                        <li key={idx} className="flex items-start gap-2">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0 mt-2" />
+                                            <span>{req}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </>
+                    )}
+
+                    <div className="rounded-lg bg-slate-50 border p-4 text-[11px] text-muted-foreground flex gap-2">
+                        <span className="font-bold text-slate-700">Turnaround Time:</span>
+                        <span>{service.turnaroundTime || 'General turnaround applies'}</span>
+                    </div>
+                </div>
+                <DialogFooter className="p-4 bg-slate-50 border-t shrink-0">
+                    <Button onClick={() => setIsOpen(false)}>Close</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function PartnerServicesPage() {
   const { user } = useAuth();
+  const { isGrowthActive } = usePartner();
   const [services, setServices] = useState<Service[]>([]);
   const [overrides, setOverrides] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -439,30 +531,36 @@ export default function PartnerServicesPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Our Services</h1>
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-            <Button 
-                variant="outline" 
-                onClick={handleBulkSearchReplace} 
-                disabled={isApplyingBranding}
-                className="font-bold border-primary/20 hover:bg-primary/5 text-primary w-full md:w-auto shadow-sm"
-            >
-                {isApplyingBranding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
-                Apply Practice Branding
-            </Button>
-            <BulkPriceIncreaseDialog 
-                servicesCount={services.length}
-                onUpdate={handleBulkPriceIncrease}
-                isLoading={isApplyingBranding}
-            />
-        </div>
+        {isGrowthActive && (
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
+              <Button 
+                  variant="outline" 
+                  onClick={handleBulkSearchReplace} 
+                  disabled={isApplyingBranding}
+                  className="font-bold border-primary/20 hover:bg-primary/5 text-primary w-full md:w-auto shadow-sm"
+              >
+                  {isApplyingBranding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  Apply Practice Branding
+              </Button>
+              <BulkPriceIncreaseDialog 
+                  servicesCount={services.length}
+                  onUpdate={handleBulkPriceIncrease}
+                  isLoading={isApplyingBranding}
+              />
+          </div>
+        )}
       </div>
-
+ 
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <CardTitle>Service & Price List</CardTitle>
-              <CardDescription>View global products and customize branding/pricing for your public landing page.</CardDescription>
+              <CardDescription>
+                {isGrowthActive 
+                  ? "View global products and customize branding/pricing for your public landing page." 
+                  : "View the catalog of available wholesale services and pricing."}
+              </CardDescription>
             </div>
             <div className="relative w-full sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -485,9 +583,9 @@ export default function PartnerServicesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
-                <TableHead>Branding Status</TableHead>
+                {isGrowthActive && <TableHead>Branding Status</TableHead>}
                 <TableHead>Cost to You</TableHead>
-                <TableHead>Public Price</TableHead>
+                {isGrowthActive && <TableHead>Public Price</TableHead>}
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -498,7 +596,7 @@ export default function PartnerServicesPage() {
                   const displayPrice = override?.price ?? service.price;
                   const displayTitle = override?.title ?? service.title;
                   const isBranded = !!overrides[service.id];
-
+ 
                   return (
                   <TableRow key={service.id}>
                     <TableCell className="font-medium">
@@ -507,37 +605,52 @@ export default function PartnerServicesPage() {
                             <span className="text-[10px] text-muted-foreground line-clamp-1">{override?.description || service.description}</span>
                         </div>
                     </TableCell>
-                    <TableCell>
-                        {isBranded ? (
-                            <Badge variant="success" className="bg-green-100 text-green-800 border-green-200 h-5 text-[10px]">Branded</Badge>
-                        ) : (
-                            <Badge variant="secondary" className="opacity-50 h-5 text-[10px]">Default</Badge>
-                        )}
+                    {isGrowthActive && (
+                      <TableCell>
+                          {isBranded ? (
+                              <Badge variant="success" className="bg-green-100 text-green-800 border-green-200 h-5 text-[10px]">Branded</Badge>
+                          ) : (
+                              <Badge variant="secondary" className="opacity-50 h-5 text-[10px]">Default</Badge>
+                          )}
+                      </TableCell>
+                    )}
+                    <TableCell className="opacity-70 text-xs">
+                      {formatPrice(isGrowthActive ? (service.resellerPrice || service.price * 0.75) : (service.price * 0.95))}
                     </TableCell>
-                    <TableCell className="opacity-70 text-xs">{formatPrice(service.resellerPrice || service.price)}</TableCell>
-                    <TableCell>
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold text-primary">{formatPrice(displayPrice)}</span>
-                            {override?.price !== undefined && override?.price !== service.price && <Badge variant="outline" className="text-[9px] h-4">Markup</Badge>}
-                        </div>
-                    </TableCell>
+                    {isGrowthActive && (
+                      <TableCell>
+                          <div className="flex items-center gap-2">
+                              <span className="font-bold text-primary">{formatPrice(displayPrice)}</span>
+                              {override?.price !== undefined && override?.price !== service.price && <Badge variant="outline" className="text-[9px] h-4">Markup</Badge>}
+                          </div>
+                      </TableCell>
+                    )}
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-8 gap-2 text-xs font-bold border-primary/20 text-primary"
-                            onClick={() => handleCopyServiceLink(service.slug)}
-                        >
-                            <LinkIcon className="h-3 w-3" /> Copy Link
-                        </Button>
-                        {partnerId && (
-                            <EditServiceDialog 
-                                service={service} 
-                                override={override} 
-                                partnerId={partnerId} 
-                                onSuccess={() => {}} 
-                            />
+                        {isGrowthActive ? (
+                          <>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 gap-2 text-xs font-bold border-primary/20 text-primary"
+                                onClick={() => handleCopyServiceLink(service.slug)}
+                            >
+                                <LinkIcon className="h-3 w-3" /> Copy Link
+                            </Button>
+                            {partnerId && (
+                                <EditServiceDialog 
+                                    service={service} 
+                                    override={override} 
+                                    partnerId={partnerId} 
+                                    onSuccess={() => {}} 
+                                />
+                            )}
+                          </>
+                        ) : (
+                          <ViewProductDialog 
+                              service={service} 
+                              isGrowthActive={isGrowthActive} 
+                          />
                         )}
                       </div>
                     </TableCell>
@@ -545,7 +658,7 @@ export default function PartnerServicesPage() {
                 )})
               ) : (
                  <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                    <TableCell colSpan={isGrowthActive ? 5 : 3} className="text-center h-24 text-muted-foreground">
                         No services found.
                     </TableCell>
                 </TableRow>

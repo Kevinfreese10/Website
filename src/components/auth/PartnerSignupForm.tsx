@@ -2,7 +2,7 @@
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirestore, doc, setDoc, collection, getDocs, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Briefcase, CheckCircle2, UserPlus, Wallet2, CreditCard } from 'lucide-react';
+import { Loader2, Briefcase, CheckCircle2, UserPlus, Wallet2, CreditCard, Sparkles, Globe } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Service, Order } from '@/lib/types';
 import { sendEmail } from '@/lib/email';
@@ -37,6 +37,12 @@ const formSchema = z.object({
   email: z.string().email('Please enter a valid email.'),
   password: z.string().min(6, 'Password must be at least 6 characters.'),
   contactNumber: z.string().min(10, 'A valid contact number is required.'),
+  slug: z.string()
+    .min(3, 'Slug must be at least 3 characters.')
+    .max(30, 'Slug must be at most 30 characters.')
+    .regex(/^[a-z0-9\-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens.'),
+  tier: z.enum(['free', 'growth']).default('growth'),
+  setupAddon: z.boolean().default(false),
   wantsOutsourcedWork: z.boolean().default(false),
   cv: z.any().optional(),
   certificate: z.any().optional(),
@@ -63,6 +69,7 @@ type Category = {
 
 export default function PartnerSignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -70,6 +77,13 @@ export default function PartnerSignupForm() {
   const [allServices, setAllServices] = useState<Service[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [isServicesLoading, setIsServicesLoading] = useState(true);
+
+  // Slug states
+  const [checkingSlug, setCheckingSlug] = useState(false);
+  const [isSlugAvailable, setIsSlugAvailable] = useState<boolean | null>(null);
+  const [isSlugManual, setIsSlugManual] = useState(false);
+
+  const initialTier = searchParams.get('tier') === 'free' ? 'free' : 'growth';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,12 +94,56 @@ export default function PartnerSignupForm() {
       email: '',
       password: '',
       contactNumber: '',
+      slug: '',
+      tier: initialTier,
+      setupAddon: false,
       wantsOutsourcedWork: false,
       agreeTerms: false,
       capableServices: [],
     },
   });
+
+  const selectedTier = form.watch('tier');
+  const companyName = form.watch('companyName');
+  const currentSlug = form.watch('slug');
   
+  // Auto-slugify company name
+  useEffect(() => {
+    if (!isSlugManual && companyName) {
+      const slugified = companyName
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-');
+      form.setValue('slug', slugified, { shouldValidate: true });
+    }
+  }, [companyName, isSlugManual, form]);
+
+  // Check slug availability (debounced)
+  useEffect(() => {
+    if (!currentSlug || currentSlug.length < 3) {
+      setIsSlugAvailable(null);
+      return;
+    }
+
+    const checkSlug = async () => {
+      setCheckingSlug(true);
+      try {
+        const q = query(collection(db, "users"), where("landingPage.slug", "==", currentSlug));
+        const snap = await getDocs(q);
+        setIsSlugAvailable(snap.empty);
+      } catch (err) {
+        console.error("Error checking slug:", err);
+      } finally {
+        setCheckingSlug(false);
+      }
+    };
+
+    const timer = setTimeout(checkSlug, 500);
+    return () => clearTimeout(timer);
+  }, [currentSlug]);
+
   useEffect(() => {
     const fetchServicesAndCategories = async () => {
         setIsServicesLoading(true);
@@ -120,6 +178,7 @@ export default function PartnerSignupForm() {
   }, [allCategories, allServices]);
 
   const wantsOutsourcedWork = form.watch('wantsOutsourcedWork');
+  const setupAddon = form.watch('setupAddon');
 
   const uploadFile = async (file: File, path: string): Promise<string> => {
     const fileRef = ref(storage, path);
@@ -128,10 +187,16 @@ export default function PartnerSignupForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (values.tier === 'growth' && isSlugAvailable === false) {
+      toast({ title: 'Slug Unavailable', description: 'Please choose a different practice URL slug.', variant: 'destructive' });
+      return;
+    }
+
     setIsLoading(true);
     try {
         const { password, cv, certificate, ...partnerData } = values;
 
+        // 1. Create firebase auth user
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         const newFirebaseUser = userCredential.user;
         const authUid = newFirebaseUser.uid;
@@ -147,62 +212,42 @@ export default function PartnerSignupForm() {
         
         const contactPersonFullName = `${values.name} ${values.surname}`;
 
-        // Create the setup fee order
-        const setupOrderId = await getNextOrderId();
-        const setupFeePrice = 4950;
-        const setupOrder: Order = {
-            id: setupOrderId,
-            userId: authUid,
-            customerName: values.companyName || contactPersonFullName,
-            customerEmail: values.email,
-            items: [{
-                id: 'partner_setup_fee',
-                title: 'BEI Practice Setup & Onboarding Fee',
-                price: setupFeePrice,
-                quantity: 1,
-            }],
-            total: setupFeePrice,
-            discountCode: null,
-            discountAmount: null,
-            status: 'Pending Payment',
-            date: Timestamp.now(),
-            source: 'Partner',
-            resellerId: authUid,
-        };
-
-        await setDoc(doc(db, 'orders', setupOrderId), setupOrder);
-
-        // Create the User Document - Status is Pending until setup fee is paid
+        // 2. Create the User Document
         const newUserDocRef = doc(db, "users", authUid);
         await setDoc(newUserDocRef, {
             ...partnerData,
-            partnerTier: 'full',
             contactPerson: contactPersonFullName,
             name: contactPersonFullName,
             id: authUid,
             uid: authUid,
             role: 'partner',
-            status: 'Pending Setup Payment', 
+            partnerTier: values.tier,
+            status: values.tier === 'free' ? 'Active' : 'Pending Setup Payment', 
             creditBalance: 0,
             createdAt: serverTimestamp(),
             cvUrl: cvUrl,
             certificateUrl: certificateUrl,
-            subscription: {
-                monthlyTotal: 0,
-                subscriptionStatus: 'active',
-                lastBillingDate: serverTimestamp(),
+            landingPage: {
+                enabled: values.tier === 'growth',
+                slug: values.slug.toLowerCase().trim(),
+                companyName: values.companyName,
+            },
+            partnerSubscription: {
+                status: values.tier === 'free' ? 'active' : 'pending',
+                aiCompanyLimit: values.tier === 'growth' ? 5 : 0,
+                aiPayrollLimit: values.tier === 'growth' ? 5 : 0,
+                staffSeatLimit: values.tier === 'growth' ? 3 : 0,
             }
         });
 
-        // Trigger manual re-auth logic
+        // 3. Trigger manual re-auth logic
         await reauthenticate(newFirebaseUser);
 
-        // Send welcome email (credentials)
+        // 4. Send welcome email (credentials, plaintext password REMOVED)
         try {
             const emailHtml = render(<PartnerWelcomeEmail 
                 partnerName={values.name} 
                 email={values.email}
-                password={values.password}
                 loginUrl={`${process.env.NEXT_PUBLIC_APP_URL}/login`} 
             />);
 
@@ -215,14 +260,60 @@ export default function PartnerSignupForm() {
         } catch (e) {
             console.error("Welcome email failed", e);
         }
-        
-        toast({
-            title: 'Account Registered',
-            description: `Redirecting to payment for setup activation...`,
-        });
-        
-        // Redirect to order confirmation page for the setup fee
-        router.push(`/order-confirmation/${setupOrderId}`);
+
+        // 5. Subscription Checkout vs Direct Redirect
+        if (values.tier === 'free') {
+            toast({
+                title: 'Account Registered',
+                description: `Welcome to the community! Redirecting to dashboard...`,
+            });
+            router.push('/partner/dashboard');
+        } else {
+            // Growth Tier subscription payment checkout via form submission
+            toast({
+                title: 'Account Registered',
+                description: `Redirecting to PayFast to set up your subscription...`,
+            });
+
+            const amountVal = values.setupAddon ? 2900 : 950;
+            const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
+            
+            const formElement = document.createElement('form');
+            formElement.method = 'POST';
+            formElement.action = payfastUrl;
+
+            const payfastData: { [key: string]: string } = {
+                merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
+                merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
+                return_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/dashboard`,
+                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/dashboard`,
+                notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
+                name_first: values.name,
+                name_last: values.surname,
+                email_address: values.email,
+                m_payment_id: authUid, // partnerId
+                amount: amountVal.toFixed(2),
+                item_name: values.setupAddon ? 'BEI Growth Subscription + Onboarding Setup' : 'BEI Growth Subscription',
+                
+                // Subscription fields
+                subscription_type: '1',
+                recurring_amount: '950.00',
+                frequency: '3', // monthly
+                cycles: '0', // indefinite
+                custom_str1: 'partner_subscription',
+            };
+
+            for (const key in payfastData) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = payfastData[key];
+                formElement.appendChild(input);
+            }
+            
+            document.body.appendChild(formElement);
+            formElement.submit();
+        }
 
     } catch (error: any) {
         console.error("Partner signup error:", error);
@@ -236,8 +327,14 @@ export default function PartnerSignupForm() {
   }
 
   const handleNext = async () => {
-      const isValid = await form.trigger(['companyName', 'name', 'surname', 'email', 'password', 'contactNumber']);
-      if (isValid) setStep(2);
+      const isValid = await form.trigger(['companyName', 'name', 'surname', 'email', 'password', 'contactNumber', 'slug']);
+      if (isValid) {
+          if (selectedTier === 'growth' && isSlugAvailable === false) {
+              toast({ title: 'Slug Unavailable', description: 'Please select an available practice URL slug.', variant: 'destructive' });
+              return;
+          }
+          setStep(2);
+      }
   };
 
   return (
@@ -260,19 +357,134 @@ export default function PartnerSignupForm() {
                         <FormField control={form.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Create Password</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
                 </div>
-                <Button type="button" onClick={handleNext} className="w-full h-12 font-bold">Next: Capabilities & Documents</Button>
+
+                <Separator />
+
+                <div className="space-y-4">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <Globe className="h-5 w-5 text-primary" />
+                        Step 2: Practice URL
+                    </h3>
+                    <FormField 
+                        control={form.control} 
+                        name="slug" 
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Practice Landing Page Address</FormLabel>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-sm font-semibold text-muted-foreground bg-muted h-10 px-3 flex items-center border rounded-l-md border-r-0 select-none">
+                                        myacc.co.za/p/
+                                    </span>
+                                    <FormControl>
+                                        <Input 
+                                            placeholder="acme" 
+                                            className="rounded-l-none" 
+                                            {...field} 
+                                            onChange={(e) => {
+                                                setIsSlugManual(true);
+                                                field.onChange(e.target.value.toLowerCase().trim().replace(/[^a-z0-9\-]/g, ''));
+                                            }}
+                                        />
+                                    </FormControl>
+                                </div>
+                                <div className="text-xs mt-1">
+                                    {checkingSlug && <p className="text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Checking availability...</p>}
+                                    {isSlugAvailable === true && <p className="text-green-600 font-semibold">✓ Custom URL is available!</p>}
+                                    {isSlugAvailable === false && <p className="text-red-500 font-semibold">✗ This URL address is already in use.</p>}
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )} 
+                    />
+                </div>
+                
+                <Button type="button" onClick={handleNext} className="w-full h-12 font-bold mt-4">Next: Pricing & Capabilities</Button>
             </div>
         )}
 
         {step === 2 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+                {/* Pricing Tier Selector */}
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold flex items-center gap-2">
-                            <Briefcase className="h-5 w-5 text-primary" />
-                            Step 2: Overflow Work & Capabilities (Optional)
-                        </h3>
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        Step 3: Select Pricing Tier
+                    </h3>
+                    <FormField
+                        control={form.control}
+                        name="tier"
+                        render={({ field }) => (
+                            <FormItem className="space-y-3">
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <label className={`flex items-start gap-3 border p-4 rounded-xl flex-1 cursor-pointer hover:bg-muted/10 transition-colors ${field.value === 'growth' ? 'border-primary bg-primary/5' : ''}`}>
+                                        <input
+                                            type="radio"
+                                            name="pricing-tier"
+                                            value="growth"
+                                            checked={field.value === 'growth'}
+                                            onChange={() => field.onChange('growth')}
+                                            className="h-4 w-4 accent-primary mt-1"
+                                        />
+                                        <div>
+                                            <div className="text-sm font-bold text-foreground">Growth Plan (R950/mo)</div>
+                                            <div className="text-xs text-muted-foreground leading-relaxed mt-1">
+                                                Branded landing page, 5 AI accounting companies, 3 staff seats, task board, and chatbot.
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <label className={`flex items-start gap-3 border p-4 rounded-xl flex-1 cursor-pointer hover:bg-muted/10 transition-colors ${field.value === 'free' ? 'border-primary bg-primary/5' : ''}`}>
+                                        <input
+                                            type="radio"
+                                            name="pricing-tier"
+                                            value="free"
+                                            checked={field.value === 'free'}
+                                            onChange={() => field.onChange('free')}
+                                            className="h-4 w-4 accent-primary mt-1"
+                                        />
+                                        <div>
+                                            <div className="text-sm font-bold text-foreground">Community Free (R0)</div>
+                                            <div className="text-xs text-muted-foreground leading-relaxed mt-1">
+                                                Access community forums, view potential overflow jobs, and outsource manually.
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
+                {selectedTier === 'growth' && (
+                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="setupAddon"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl>
+                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel className="font-bold cursor-pointer text-primary">
+                                            Add "Done-For-You Onboarding" Setup? (R1,950 once-off)
+                                        </FormLabel>
+                                        <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                                            We will setup your re-branded landing page, link your custom domain, load your service pricing markups, and schedule a 1-on-1 CA training session.
+                                        </p>
+                                    </div>
+                                </FormItem>
+                            )}
+                        />
                     </div>
+                )}
+
+                <Separator />
+
+                <div className="space-y-4">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                        <Briefcase className="h-5 w-5 text-primary" />
+                        Step 4: Overflow Work & Capabilities (Optional)
+                    </h3>
                     <FormField
                         control={form.control}
                         name="wantsOutsourcedWork"
@@ -381,16 +593,32 @@ export default function PartnerSignupForm() {
                 <div className="space-y-4">
                     <h3 className="text-lg font-bold flex items-center gap-2 text-slate-900">
                         <CreditCard className="h-5 w-5 text-primary" />
-                        Activation & Fees
+                        Plan Summary
                     </h3>
                     <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="font-bold text-sm">Once-off Setup & Onboarding</span>
-                            <span className="font-black text-lg text-primary">R4,950.00</span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">
-                            This activation fee covers your white-labeled dashboard configuration, re-branded landing page, and professional CA-led training. <strong>Monthly hosting fees are waived.</strong>
-                        </p>
+                        {selectedTier === 'free' ? (
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-sm">Community Free Membership</span>
+                                <span className="font-black text-lg text-primary">R0.00</span>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <span className="font-bold text-sm">Growth Tier Monthly Subscription</span>
+                                    <span className="font-black text-md text-primary">R950.00 /mo</span>
+                                </div>
+                                {setupAddon && (
+                                    <div className="flex justify-between items-center border-t pt-2 mt-2">
+                                        <span className="font-medium text-xs">Done-For-You Setup (Once-off Add-on)</span>
+                                        <span className="font-bold text-xs text-primary">+ R1,950.00</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center border-t border-primary/20 pt-2 font-bold text-sm">
+                                    <span>Total Due Today</span>
+                                    <span>R{(setupAddon ? 2900 : 950).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -404,8 +632,8 @@ export default function PartnerSignupForm() {
                                     <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                 </FormControl>
                                 <div className="space-y-1 leading-none">
-                                    <FormLabel className="cursor-pointer font-medium">
-                                        I agree to the <Link href="/terms" className="underline font-bold" target="_blank">terms and conditions</Link> and the R4,950 setup fee.
+                                    <FormLabel className="cursor-pointer font-medium text-xs">
+                                        I agree to the <Link href="/terms" className="underline font-bold" target="_blank">terms and conditions</Link> and approve the plan pricing.
                                     </FormLabel>
                                 </div>
                             </div>
@@ -418,7 +646,7 @@ export default function PartnerSignupForm() {
                     <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-1/3 h-12 font-bold" disabled={isLoading}>Back</Button>
                     <Button type="submit" className="w-2/3 h-12 text-lg font-black shadow-xl" disabled={isLoading}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isLoading ? 'Creating Account...' : 'Continue to Payment'}
+                        {isLoading ? 'Creating Account...' : (selectedTier === 'free' ? 'Create Free Account' : 'Proceed to Checkout')}
                     </Button>
                 </div>
             </div>

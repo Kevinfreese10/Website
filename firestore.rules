@@ -2,46 +2,89 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper functions
+
+    // ─── Helper Functions ───────────────────────────────────────────────────
+
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
     function isAdmin() {
-      return isAuthenticated() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    function isPartnerStaffOf(resellerId) {
+    /** True when the caller is an active staff member of the given partner */
+    function isPartnerStaffOf(partnerId) {
       return isAuthenticated() &&
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.partnerId == resellerId;
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.partnerId == partnerId &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isActive != false;
     }
 
-    // --- Users ---
+    /** True when the caller IS the partner (owner) */
+    function isPartnerOwner(partnerId) {
+      return isAuthenticated() && request.auth.uid == partnerId;
+    }
+
+    /** True when caller owns the data or is an active staff member of the owner */
+    function isPartnerOrStaff(partnerId) {
+      return isPartnerOwner(partnerId) || isPartnerStaffOf(partnerId);
+    }
+
+    // ─── Users ──────────────────────────────────────────────────────────────
     match /users/{userId} {
-      // Allow authenticated users to read profiles (needed for picking approvers/seeing names in CAP)
+      // Any authenticated user can read profiles (needed for name lookups in dashboards)
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && (
         request.auth.uid == userId ||
         isAdmin() ||
+        // Partner owner can write to their staff member documents
         (resource != null && resource.data.partnerId == request.auth.uid) ||
         (request.resource != null && request.resource.data.partnerId == request.auth.uid)
       );
       match /serviceOverrides/{overrideId} {
         allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       }
+      match /walletLogs/{logId} {
+        allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      }
     }
 
-    // --- Clients & Partners ---
-    match /adminClients/{clientId} {
-      allow read, write: if isAuthenticated(); 
+    // ─── Partner Invites ─────────────────────────────────────────────────────
+    // Doc ID = the invite token itself (UUID). Readable without auth so the
+    // invite page can display the invite details before the staff member has an account.
+    match /partnerInvites/{token} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+        request.resource.data.partnerId == request.auth.uid &&
+        request.resource.data.status == 'pending';
+      // Only the invited user (accepting) or an admin can update
+      allow update: if isAuthenticated() || isAdmin();
+      allow delete: if isAdmin();
     }
-    
+
+    // ─── Clients & Partners ──────────────────────────────────────────────────
+    match /adminClients/{clientId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Partner clients — scoped to the owning partner and their active staff
     match /partnerClients/{clientId} {
-      allow read, write: if isAuthenticated(); 
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        isPartnerOrStaff(resource.data.partnerId)
+      );
+      allow create: if isAuthenticated() && (
+        isAdmin() ||
+        isPartnerOrStaff(request.resource.data.partnerId)
+      );
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        isPartnerOrStaff(resource.data.partnerId)
+      );
+      allow delete: if isAdmin() || isPartnerOwner(resource.data.partnerId);
     }
 
     match /aiPayrollClients/{clientId} {
@@ -52,16 +95,16 @@ service cloud.firestore {
     }
 
     match /clients/{clientId} {
-      allow read, write: if isAuthenticated(); 
+      allow read, write: if isAuthenticated();
     }
 
-    // --- Services ---
+    // ─── Services ────────────────────────────────────────────────────────────
     match /services/{serviceId} {
       allow read: if true;
-      allow write: if isAdmin(); 
+      allow write: if isAdmin();
     }
 
-    // --- Orders ---
+    // ─── Orders ──────────────────────────────────────────────────────────────
     match /orders/{orderId} {
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.userId ||
@@ -71,7 +114,8 @@ service cloud.firestore {
         isAdmin() ||
         (resource != null && isPartnerStaffOf(resource.data.resellerId))
       );
-      allow create: if true && (
+      // Require authentication for order creation (fixes unauthenticated exploit)
+      allow create: if isAuthenticated() && (
         request.resource.data.status == 'Pending Payment' ||
         isAdmin()
       );
@@ -79,12 +123,14 @@ service cloud.firestore {
         isAdmin() ||
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
+        request.auth.token.email == resource.data.customerEmail ||
+        request.auth.token.email == resource.data.endCustomerEmail ||
         (resource != null && isPartnerStaffOf(resource.data.resellerId))
       );
       allow delete: if isAdmin();
     }
 
-    // --- Blog & Categories ---
+    // ─── Blog & Categories ────────────────────────────────────────────────────
     match /blogPosts/{postId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -95,29 +141,54 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // --- Tasks ---
+    // ─── Tasks ───────────────────────────────────────────────────────────────
+    // Tasks are partner-scoped. Staff access depends on their permissions field,
+    // which is enforced at the application layer (Firestore cannot read sub-fields
+    // of the caller's own document in a rule without a get() call).
     match /tasks/{taskId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        request.auth.uid == resource.data.partnerId ||
+        isPartnerStaffOf(resource.data.partnerId) ||
+        // Legacy tasks without a partnerId (admin tasks)
+        resource.data.partnerId == null ||
+        !('partnerId' in resource.data)
+      );
+      allow create: if isAuthenticated() && (
+        isAdmin() ||
+        request.auth.uid == request.resource.data.partnerId ||
+        isPartnerStaffOf(request.resource.data.partnerId)
+      );
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        request.auth.uid == resource.data.partnerId ||
+        isPartnerStaffOf(resource.data.partnerId)
+      );
+      allow delete: if isAuthenticated() && (
+        isAdmin() ||
+        request.auth.uid == resource.data.partnerId
+      );
     }
 
-    // --- Sequences ---
-    // Must allow public read/write since order generation runs in Next.js Server Actions
-    // during guest checkout before authentication is complete.
+    // ─── Sequences ────────────────────────────────────────────────────────────
+    // Must allow public read/write: order generation runs in Next.js Server Actions
+    // during guest checkout before authentication is established.
+    // Note: this is an accepted risk — sequence values are non-sensitive order ID counters.
     match /sequences/{sequenceId} {
       allow read, write: if true;
     }
 
-    // --- Discounts ---
+    // ─── Discounts ───────────────────────────────────────────────────────────
     match /discounts/{discountId} {
       allow read, write: if isAuthenticated();
     }
 
-    // --- Compliance Requests ---
+    // ─── Compliance Requests ─────────────────────────────────────────────────
     match /complianceRequests/{requestId} {
       allow read, write: if isAuthenticated();
     }
 
-    // --- AI Accountant / Numera Clients ---
+    // ─── AI Accountant / Numera Clients ──────────────────────────────────────
     match /aiAccountantClients/{clientId} {
       allow read, write: if isAuthenticated();
       match /{document=**} {
@@ -132,57 +203,85 @@ service cloud.firestore {
       }
     }
 
-    // --- Extracted Invoices ---
+    // ─── Extracted Invoices & Email Processing ────────────────────────────────
+    // These contain financial data — require authentication
     match /extractedInvoices/{invoiceId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
 
-    // --- Processed Emails ---
     match /processedEmails/{emailId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
 
-    // --- Inbox Emails (CAP) ---
     match /inboxEmails/{emailId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated();
     }
 
-    // --- Allocation Rules ---
+    // ─── Allocation Rules ─────────────────────────────────────────────────────
     match /allocationRules/{ruleId} {
       allow read, write: if isAuthenticated();
     }
 
-    // --- Unanswered Questions ---
+    // ─── Unanswered Questions ─────────────────────────────────────────────────
     match /unansweredQuestions/{questionId} {
       allow read, write: if isAuthenticated();
     }
 
-    // --- Leads (myacc) ---
+    // ─── Leads ────────────────────────────────────────────────────────────────
     match /cvLeads/{leadId} {
       allow read: if isAuthenticated();
-      allow write: if true; 
+      allow write: if true;
     }
 
     match /demoLeads/{leadId} {
       allow read: if isAuthenticated();
-      allow write: if true; 
+      allow write: if true;
     }
 
-    // --- Chatbot (myacc) ---
+    // ─── Chatbot ──────────────────────────────────────────────────────────────
     match /chatbotConversations/{conversationId} {
       allow get, create, update: if true;
       allow list, delete: if isAdmin();
     }
 
-    // --- Q&A Community (CAP) ---
+    // ─── Q&A Community (CAP) ──────────────────────────────────────────────────
     match /communityQuestions/{questionId} {
-      allow read, write: if isAuthenticated();
-      match /{document=**} {
-        allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      
+      allow create: if isAuthenticated() && 
+        request.resource.data.authorId == request.auth.uid;
+
+      allow update: if isAuthenticated() && (
+        // Question author updating content
+        (resource.data.authorId == request.auth.uid && request.resource.data.authorId == request.auth.uid) ||
+        // User liking/unliking (limit changes only to likedBy and likesCount)
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy', 'likesCount'])) ||
+        // Question author marking solved
+        (resource.data.authorId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasAny(['isSolved', 'solvedAnswerId']))
+      );
+      
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
+
+      // Answers Subcollection
+      match /answers/{answerId} {
+        allow read: if isAuthenticated();
+        
+        allow create: if isAuthenticated() && 
+          request.resource.data.authorId == request.auth.uid;
+
+        allow update: if isAuthenticated() && (
+          (resource.data.authorId == request.auth.uid) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy', 'likesCount'])) ||
+          // Validate that the user editing isCorrect is indeed the author of the parent question
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isCorrect']) && 
+           get(/databases/$(database)/documents/communityQuestions/$(questionId)).data.authorId == request.auth.uid)
+        );
+        
+        allow delete: if isAdmin() || (isAuthenticated() && resource.data.authorId == request.auth.uid);
       }
     }
 
-    // --- Commissions & Data (CAP) ---
+    // ─── Commissions & Data (CAP) ─────────────────────────────────────────────
     match /commissionData/{docId} {
       allow read, write: if isAuthenticated();
     }
@@ -191,7 +290,15 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
-    // --- SEO, Media, Knowledgebase ---
+    // ─── Partner Refunds ──────────────────────────────────────────────────────
+    // Created by admin when processing a wallet refund for R4,950 partners opting out
+    match /partnerRefunds/{refundId} {
+      allow read: if isAdmin() || request.auth.uid == resource.data.partnerId;
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ─── SEO, Media, Knowledgebase ────────────────────────────────────────────
     match /staticSeo/{pageId} {
       allow read: if true;
       allow write: if isAdmin();

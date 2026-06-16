@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { usePartner } from '@/contexts/PartnerContext';
 import { useBlog } from '@/contexts/BlogContext';
 import { 
   Loader2, 
@@ -195,6 +196,7 @@ function TopUpDialog({ partner }: { partner: User }) {
 
 export default function PartnerDashboardPage() {
   const { user, updateUser } = useAuth();
+  const { isGrowthActive } = usePartner();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [outsourcedOrders, setOutsourcedOrders] = useState<Order[]>([]);
@@ -386,66 +388,56 @@ export default function PartnerDashboardPage() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-950">Welcome, {user?.contactPerson || user?.name}!</h1>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-950">Welcome, {user?.contactPerson || user?.name}!</h1>
+                        <Badge variant={isGrowthActive ? "default" : "secondary"} className="font-bold">
+                            {isGrowthActive ? "Premium Partner" : "Free Partner"}
+                        </Badge>
+                    </div>
                     <p className="text-lg text-muted-foreground">{user?.companyName || 'Practice Member'}</p>
                 </div>
-                {user && partnerId && (
-                    <Card className="bg-primary/5 border-primary/20 min-w-[260px] overflow-hidden">
-                        <CardHeader className="py-2.5 px-4 flex flex-row items-center justify-between space-y-0 border-b border-primary/10">
-                            <div className="flex items-center gap-2">
-                                <Wallet2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Practice Wallet</span>
-                            </div>
-                            {user.role === 'partner' && <TopUpDialog partner={user} />}
-                        </CardHeader>
-                        <CardContent className="pt-4 px-4 pb-4">
-                            <p className="text-3xl font-bold text-primary tabular-nums">
-                                {formatPrice(walletBalance)}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground mt-1 font-medium">Available Credits</p>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className="lg:col-span-8 space-y-8">
-                    <Card className="border-2 border-primary/20 bg-primary/5 shadow-md overflow-hidden animate-in fade-in slide-in-from-top-4">
-                        <CardHeader className="pb-2">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white">
-                                        <Settings className="h-4 w-4" />
-                                    </div>
-                                    <CardTitle className="text-lg">Practice Setup Progress</CardTitle>
-                                </div>
-                                <Badge variant={progressPercentage === 100 ? "success" : "secondary"} className="font-bold">
-                                    {progressPercentage === 100 && <PartyPopper className="h-3 w-3 mr-1" />}
-                                    {progressPercentage}% Complete
-                                </Badge>
-                            </div>
-                            <Progress value={progressPercentage} className="h-2 mt-4" />
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {setupChecklist.map((item, idx) => (
-                                    <div key={idx} className={cn("p-3 rounded-lg border flex flex-col gap-1 transition-all", item.done ? "bg-green-50/50 border-green-200" : "bg-muted/30 border-muted opacity-70")}>
-                                        <div className="flex items-center gap-2">
-                                            {item.done ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground shrink-0" />}
-                                            <span className={cn("text-xs font-bold truncate", item.done ? "text-green-800" : "text-slate-600")}>{item.label}</span>
+                    {isGrowthActive && (
+                        <Card className="border-2 border-primary/20 bg-primary/5 shadow-md overflow-hidden animate-in fade-in slide-in-from-top-4">
+                            <CardHeader className="pb-2">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white">
+                                            <Settings className="h-4 w-4" />
                                         </div>
-                                        <p className="text-[9px] text-muted-foreground leading-tight italic ml-6">{item.description}</p>
+                                        <CardTitle className="text-lg">Practice Setup Progress</CardTitle>
                                     </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                        <CardFooter className="bg-primary/10 border-t border-primary/5 py-3 flex justify-between items-center">
-                            <p className="text-[10px] text-primary font-bold uppercase tracking-widest italic">Complete your setup to scale faster.</p>
-                            <Button size="sm" asChild variant="link" className="text-primary font-black h-auto p-0">
-                                <Link href="/partner/profile">Configure Settings <ArrowRight className="ml-1 h-3 w-3" /></Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
+                                    <Badge variant={progressPercentage === 100 ? "success" : "secondary"} className="font-bold">
+                                        {progressPercentage === 100 && <PartyPopper className="h-3 w-3 mr-1" />}
+                                        {progressPercentage}% Complete
+                                    </Badge>
+                                </div>
+                                <Progress value={progressPercentage} className="h-2 mt-4" />
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {setupChecklist.map((item, idx) => (
+                                        <div key={idx} className={cn("p-3 rounded-lg border flex flex-col gap-1 transition-all", item.done ? "bg-green-50/50 border-green-200" : "bg-muted/30 border-muted opacity-70")}>
+                                            <div className="flex items-center gap-2">
+                                                {item.done ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Circle className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                                <span className={cn("text-xs font-bold truncate", item.done ? "text-green-800" : "text-slate-600")}>{item.label}</span>
+                                            </div>
+                                            <p className="text-[9px] text-muted-foreground leading-tight italic ml-6">{item.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                            <CardFooter className="bg-primary/10 border-t border-primary/5 py-3 flex justify-between items-center">
+                                <p className="text-[10px] text-primary font-bold uppercase tracking-widest italic">Complete your setup to scale faster.</p>
+                                <Button size="sm" asChild variant="link" className="text-primary font-black h-auto p-0">
+                                    <Link href="/partner/onboarding">Start Onboarding Wizard <ArrowRight className="ml-1 h-3 w-3" /></Link>
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    )}
 
                     {pendingCount > 0 && partnerId && (
                         <Alert className="bg-primary/10 border-primary/20 shadow-sm animate-in fade-in slide-in-from-top-4 border-2">
@@ -518,13 +510,73 @@ export default function PartnerDashboardPage() {
                 </div>
 
                 <div className="lg:col-span-4 space-y-8">
+                    {!isGrowthActive && (
+                      <Card className="border-2 border-dashed border-primary/45 bg-primary/5 shadow-md animate-in fade-in">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-900">
+                                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                                Upgrade to Growth Plan
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pb-4">
+                            <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                                Get your custom practice landing page, 5 AI accountant companies, client chatbot, tasks, and 3 staff seats.
+                            </p>
+                            <Button asChild size="sm" className="w-full font-bold shadow-sm">
+                                <Link href="/become-a-partner">Upgrade Plan for R950/mo</Link>
+                            </Button>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg">Quick Actions</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
+                            {isGrowthActive && (
+                                <>
+                                    <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/onboarding"><Sparkles className="mr-3 h-4 w-4 text-primary"/>Onboarding Wizard</Link></Button>
+                                    <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/clients"><Briefcase className="mr-3 h-4 w-4 text-primary"/>Manage Clients</Link></Button>
+                                    <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/staff"><Users className="mr-3 h-4 w-4 text-primary"/>Staff Management</Link></Button>
+                                </>
+                            )}
                             <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/services"><Briefcase className="mr-3 h-4 w-4"/>Services & Pricing</Link></Button>
                             <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/profile"><Users className="mr-3 h-4 w-4"/>Manage Profile</Link></Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4 text-primary" />
+                                Partner Community Chat
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                Connect with bookkeepers and accountants across South Africa.
+                            </p>
+                            <Badge variant="secondary" className="font-bold w-fit bg-slate-100 text-slate-600">
+                                Coming Soon
+                            </Badge>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                                <Briefcase className="h-4 w-4 text-primary" />
+                                Outsourced Job Board
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                View practice overflow jobs outsourced from the My Accountant network.
+                            </p>
+                            <Badge variant="outline" className="font-bold w-fit text-muted-foreground border-slate-200">
+                                No active jobs
+                            </Badge>
                         </CardContent>
                     </Card>
 

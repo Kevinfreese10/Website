@@ -18,6 +18,7 @@ import { Separator } from '../ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePartner } from '@/contexts/PartnerContext';
 import { getNextOrderId } from '@/lib/sequence';
 import { adminCreateUserAction, sendOrderConfirmationEmailAction } from '@/app/actions';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -76,6 +77,7 @@ const formatPrice = (price: number) => {
 export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCreated: () => void }) {
   const router = useRouter();
   const { user: partner } = useAuth();
+  const { isGrowthActive } = usePartner();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -128,6 +130,18 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
     },
     mode: 'onChange',
   });
+
+  useEffect(() => {
+    if (partner && !isGrowthActive) {
+        const nameParts = (partner.name || '').split(' ');
+        const fName = nameParts[0] || 'Partner';
+        const lName = nameParts.slice(1).join(' ') || 'Owner';
+        form.setValue('customerFirstName', partner.contactPerson || fName);
+        form.setValue('customerLastName', partner.companyName || lName);
+        form.setValue('customerEmail', partner.email || '');
+        form.setValue('customerPhone', partner.contactNumber || '0820000000');
+    }
+  }, [partner, isGrowthActive, form]);
 
   const watchedEmail = form.watch('customerEmail');
 
@@ -224,9 +238,15 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
     const override = serviceOverrides[serviceId];
     
     if (selectedService) {
+        const basePrice = override?.price ?? selectedService.price;
+        const resellerPrice = isGrowthActive
+            ? (selectedService.resellerPrice || basePrice * 0.75)
+            : (basePrice * 0.95);
         form.setValue(`items.${index}.description`, override?.title || selectedService.title);
-        form.setValue(`items.${index}.price`, override?.price ?? selectedService.price);
-        form.setValue(`items.${index}.resellerPrice`, selectedService.resellerPrice || selectedService.price);
+        form.setValue(`items.${index}.price`, isGrowthActive ? basePrice : resellerPrice);
+        form.setValue(`items.${index}.resellerPrice`, resellerPrice);
+        form.setValue(`items.${index}.discountType`, 'fixed');
+        form.setValue(`items.${index}.discountValue`, 0);
         form.trigger(`items.${index}`);
     }
   };
@@ -249,7 +269,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
   async function onSubmit(values: CreatePartnerOrderFormValues) {
     if (!partner || !partnerId) return;
 
-    if (!hasBankingDetails) {
+    if (isGrowthActive && !hasBankingDetails) {
         toast({ title: 'Banking Details Missing', description: 'Please complete your practice banking details in your profile.', variant: 'destructive'});
         return;
     }
@@ -258,52 +278,55 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
     toast({ title: 'Processing Order...', description: 'Checking user profile and creating order.' });
 
     try {
-        let finalUserId = linkedUser?.id || null;
-        const email = values.customerEmail.toLowerCase().trim();
-
-        // Final verification check in case debounce didn't catch it
-        if (!finalUserId) {
-            const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
-            for (const colName of collectionsToTry) {
-                const q = query(collection(db, colName), or(where("email", "==", email), where("email", "==", values.customerEmail.trim())));
-                const snap = await getDocs(q);
-                if (!snap.empty) {
-                    finalUserId = snap.docs[0].id;
-                    break;
-                }
-            }
-        }
-
+        let finalUserId: string | null = partnerId;
         let isNewUser = false;
         let generatedPassword = null;
 
-        if (!finalUserId) {
-            generatedPassword = nanoid();
-            
-            const createRes = await adminCreateUserAction({
-                email: values.customerEmail,
-                password: generatedPassword,
-                name: `${values.customerFirstName} ${values.customerLastName}`,
-                role: 'client',
-                source: `Partner Order (${partner.companyName || partner.name})`,
-                contactNumber: values.customerPhone,
-            });
+        if (isGrowthActive) {
+            finalUserId = linkedUser?.id || null;
+            const email = values.customerEmail.toLowerCase().trim();
 
-            if (!createRes.success) {
-                if (createRes.error === 'auth/email-already-in-use') {
-                    toast({
-                        title: 'Account Exists',
-                        description: 'A user account already exists with this email address. Please link the order to the existing user instead.',
-                        variant: 'destructive',
-                    });
-                    setIsLoading(false);
-                    return;
+            // Final verification check in case debounce didn't catch it
+            if (!finalUserId) {
+                const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
+                for (const colName of collectionsToTry) {
+                    const q = query(collection(db, colName), or(where("email", "==", email), where("email", "==", values.customerEmail.trim())));
+                    const snap = await getDocs(q);
+                    if (!snap.empty) {
+                        finalUserId = snap.docs[0].id;
+                        break;
+                    }
                 }
-                throw new Error(createRes.message || 'Failed to create user account');
             }
 
-            finalUserId = createRes.uid!;
-            isNewUser = createRes.isNewUser!;
+            if (!finalUserId) {
+                generatedPassword = nanoid();
+                
+                const createRes = await adminCreateUserAction({
+                    email: values.customerEmail,
+                    password: generatedPassword,
+                    name: `${values.customerFirstName} ${values.customerLastName}`,
+                    role: 'client',
+                    source: `Partner Order (${partner.companyName || partner.name})`,
+                    contactNumber: values.customerPhone,
+                });
+
+                if (!createRes.success) {
+                    if (createRes.error === 'auth/email-already-in-use') {
+                        toast({
+                            title: 'Account Exists',
+                            description: 'A user account already exists with this email address. Please link the order to the existing user instead.',
+                            variant: 'destructive',
+                        });
+                        setIsLoading(false);
+                        return;
+                    }
+                    throw new Error(createRes.message || 'Failed to create user account');
+                }
+
+                finalUserId = createRes.uid!;
+                isNewUser = createRes.isNewUser!;
+            }
         }
 
         const orderId = await getNextOrderId();
@@ -338,7 +361,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
             clientTotal: total,
             status: 'Pending Payment',
             originalOrderId: null,
-            isOutsourced: false,
+            isOutsourced: !isGrowthActive,
             discountAmount: null,
             discountCode: null,
             source: 'Partner',
@@ -346,15 +369,50 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
 
         await setDoc(doc(db, 'orders', orderId), orderData);
 
-        await sendOrderConfirmationEmailAction({
-            orderData,
-            resellerData: partner,
-            isNewUser,
-            generatedPassword,
-        });
+        if (isGrowthActive) {
+            await sendOrderConfirmationEmailAction({
+                orderData,
+                resellerData: partner,
+                isNewUser,
+                generatedPassword,
+            });
 
-        toast({ title: 'Order Created', description: `Client notified. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}` });
-        onOrderCreated();
+            toast({ title: 'Order Created', description: `Client notified. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}` });
+            onOrderCreated();
+        } else {
+            // For Free Tier: Redirect immediately to PayFast!
+            const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
+            const payfastForm = document.createElement('form');
+            payfastForm.method = 'POST';
+            payfastForm.action = payfastUrl;
+
+            const nameParts = (partner.companyName || partner.name || 'Partner User').split(' ');
+            const payfastData: { [key: string]: string } = {
+                merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
+                merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
+                return_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success/${orderId}`,
+                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/orders`,
+                notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
+                name_first: nameParts[0],
+                name_last: nameParts.slice(1).join(' ') || 'Partner',
+                email_address: partner.email,
+                m_payment_id: orderId,
+                amount: resellerTotal.toFixed(2),
+                item_name: `Order #${orderId}`,
+                item_description: orderData.items.map(i => i.title).join(', '),
+            };
+
+            for (const key in payfastData) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = payfastData[key];
+                payfastForm.appendChild(input);
+            }
+
+            document.body.appendChild(payfastForm);
+            payfastForm.submit();
+        }
 
     } catch (error: any) {
         console.error("Error creating order: ", error);
@@ -368,7 +426,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
     }
   }
 
-  if (!hasBankingDetails) {
+  if (isGrowthActive && !hasBankingDetails) {
       return (
           <div className="py-8 text-center space-y-4">
               <Alert variant="destructive" className="text-left">
@@ -386,37 +444,48 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-1 pr-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2 space-y-2">
-                <FormField control={form.control} name="customerEmail" render={({ field }) => ( 
-                    <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-primary" />
-                            Client's Email Address
-                        </FormLabel>
-                        <FormControl>
-                            <div className="relative">
-                                <Input placeholder="Start here to lookup client..." {...field} className="h-12 border-primary/20 focus-visible:ring-primary font-medium" />
-                                {isCheckingUser && <Loader2 className="absolute right-3 top-4 h-4 w-4 animate-spin text-muted-foreground" />}
-                            </div>
-                        </FormControl>
-                        <FormDescription>Entering the email first will automatically fill in existing client details.</FormDescription>
-                        <FormMessage />
-                    </FormItem> 
-                )} />
-                {linkedUser && (
-                    <div className="flex items-center gap-2 text-xs text-green-600 font-bold bg-green-50 p-3 rounded-md border border-green-100 animate-in fade-in slide-in-from-top-1">
-                        <CheckCircle2 className="h-4 w-4" />
-                        Matched: {linkedUser.name}
-                    </div>
-                )}
-            </div>
+        {isGrowthActive ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2 space-y-2">
+                    <FormField control={form.control} name="customerEmail" render={({ field }) => ( 
+                        <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                                <Mail className="h-4 w-4 text-primary" />
+                                Client's Email Address
+                            </FormLabel>
+                            <FormControl>
+                                <div className="relative">
+                                    <Input placeholder="Start here to lookup client..." {...field} className="h-12 border-primary/20 focus-visible:ring-primary font-medium" />
+                                    {isCheckingUser && <Loader2 className="absolute right-3 top-4 h-4 w-4 animate-spin text-muted-foreground" />}
+                                </div>
+                            </FormControl>
+                            <FormDescription>Entering the email first will automatically fill in existing client details.</FormDescription>
+                            <FormMessage />
+                        </FormItem> 
+                    )} />
+                    {linkedUser && (
+                        <div className="flex items-center gap-2 text-xs text-green-600 font-bold bg-green-50 p-3 rounded-md border border-green-100 animate-in fade-in slide-in-from-top-1">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Matched: {linkedUser.name}
+                        </div>
+                    )}
+                </div>
 
-            <FormField control={form.control} name="customerFirstName" render={({ field }) => ( <FormItem><FormLabel>Client's First Name</FormLabel><FormControl><Input placeholder="John" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            <FormField control={form.control} name="customerLastName" render={({ field }) => ( <FormItem><FormLabel>Client's Last Name</FormLabel><FormControl><Input placeholder="Doe" {...field} /></FormControl><FormMessage /></FormItem> )} />
-            
-            <FormField control={form.control} name="customerPhone" render={({ field }) => ( <FormItem><FormLabel>Client's Phone</FormLabel><FormControl><Input placeholder="0821234567" {...field} /></FormControl><FormMessage /></FormItem> )} />
-        </div>
+                <FormField control={form.control} name="customerFirstName" render={({ field }) => ( <FormItem><FormLabel>Client's First Name</FormLabel><FormControl><Input placeholder="John" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="customerLastName" render={({ field }) => ( <FormItem><FormLabel>Client's Last Name</FormLabel><FormControl><Input placeholder="Doe" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                
+                <FormField control={form.control} name="customerPhone" render={({ field }) => ( <FormItem><FormLabel>Client's Phone</FormLabel><FormControl><Input placeholder="0821234567" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            </div>
+        ) : (
+            <div className="p-4 bg-muted/40 rounded-lg border text-sm text-slate-700 space-y-1">
+                <p className="font-bold flex items-center gap-2 text-primary">
+                    <CheckCircle2 className="h-4 w-4 text-primary" /> Ordering for Practice Account
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                    As a Free Partner, your orders are placed directly under your practice details: <strong>{partner?.companyName || partner?.name} ({partner?.email})</strong>.
+                </p>
+            </div>
+        )}
         
         <Separator />
 
@@ -429,7 +498,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                     
                     return (
                     <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-x-3 gap-y-2 p-3 border rounded-md relative items-start">
-                         <div className="md:col-span-4 space-y-2">
+                         <div className={isGrowthActive ? "md:col-span-4 space-y-2" : "md:col-span-8 space-y-2"}>
                             <FormField
                                 control={form.control}
                                 name={`items.${index}.serviceId`}
@@ -447,43 +516,47 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                                 )}
                             />
                          </div>
-                        <div className="md:col-span-1">
+                        <div className={isGrowthActive ? "md:col-span-1" : "md:col-span-2"}>
                              <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => ( <FormItem><FormLabel>Qty</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
                          </div>
-                        <div className="md:col-span-2">
-                             <FormField control={form.control} name={`items.${index}.price`} render={({ field }) => ( 
-                                 <FormItem>
-                                     <FormLabel>Selling Price (R)</FormLabel>
-                                     <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                                     <FormDescription className="text-[10px]">
-                                         Cost: {formatPrice(resellerCost)}
-                                     </FormDescription>
-                                     <FormMessage />
-                                 </FormItem> 
-                             )} />
-                         </div>
-                         <div className="md:col-span-2">
-                             <FormField
-                                control={form.control}
-                                name={`items.${index}.discountType`}
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Discount</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="fixed">Fixed (R)</SelectItem>
-                                                <SelectItem value="percentage">Percent (%)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )}
-                                />
-                         </div>
-                         <div className="md:col-span-1">
-                             <FormField control={form.control} name={`items.${index}.discountValue`} render={({ field }) => ( <FormItem><FormLabel>Value</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                         </div>
-                         <div className="md:col-span-1 flex flex-col items-end justify-center h-full pt-8">
+                        {isGrowthActive && (
+                            <>
+                                <div className="md:col-span-2">
+                                     <FormField control={form.control} name={`items.${index}.price`} render={({ field }) => ( 
+                                         <FormItem>
+                                             <FormLabel>Selling Price (R)</FormLabel>
+                                             <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                                             <FormDescription className="text-[10px]">
+                                                 Cost: {formatPrice(resellerCost)}
+                                             </FormDescription>
+                                             <FormMessage />
+                                         </FormItem> 
+                                     )} />
+                                 </div>
+                                 <div className="md:col-span-2">
+                                     <FormField
+                                        control={form.control}
+                                        name={`items.${index}.discountType`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Discount</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="fixed">Fixed (R)</SelectItem>
+                                                        <SelectItem value="percentage">Percent (%)</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                        />
+                                 </div>
+                                 <div className="md:col-span-1">
+                                     <FormField control={form.control} name={`items.${index}.discountValue`} render={({ field }) => ( <FormItem><FormLabel>Value</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                 </div>
+                            </>
+                        )}
+                         <div className={isGrowthActive ? "md:col-span-1 flex flex-col items-end justify-center h-full pt-8" : "md:col-span-2 flex flex-col items-end justify-center h-full pt-8"}>
                             <p className="text-right w-full font-semibold text-sm">{formatPrice(getLineItemTotal(lineItem))}</p>
                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive" disabled={fields.length === 1}><Trash className="h-4 w-4" /></Button>
                          </div>
@@ -502,14 +575,14 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
         
         <div className="flex justify-end items-start gap-8">
             <div className="text-right">
-                <p className="text-sm text-muted-foreground">Practice Total (Client Facing)</p>
+                <p className="text-sm text-muted-foreground">{isGrowthActive ? "Practice Total (Client Facing)" : "Total Price"}</p>
                 <p className="text-2xl font-bold text-primary">{formatPrice(total)}</p>
             </div>
         </div>
 
         <Button type="submit" className="w-full" size="lg" disabled={isLoading || !form.formState.isValid || total === 0}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? 'Creating Order...' : 'Create Order & Send for Payment'}
+            {isLoading ? 'Creating Order...' : (isGrowthActive ? 'Create Order & Send for Payment' : 'Create Order & Pay Now')}
         </Button>
       </form>
     </Form>

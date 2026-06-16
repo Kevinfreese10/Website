@@ -132,29 +132,11 @@ export async function POST(req: NextRequest) {
         // Initialize Admin Firestore
         const adminDb = getAdminDb();
 
-        // Find the order
-        const querySnapshot = await adminDb.collection('orders').where('id', '==', orderId).get();
-
-        if (querySnapshot.empty) {
-            console.error(`Order ${orderId} not found.`);
-            return new NextResponse('OK', { status: 200 });
-        }
-        
-        const orderDoc = querySnapshot.docs[0];
-        const orderRef = orderDoc.ref;
-        const currentOrderData = orderDoc.data() as Order;
-
-        // Idempotency: Ignore if already processed
-        if (currentOrderData.status !== 'Pending Payment') {
-            console.log(`ITN Info: Order ${orderId} already processed (Status: ${currentOrderData.status}).`);
-            return new NextResponse('OK', { status: 200 });
-        }
-
-        // 2. Signature Validation using the RAW body
+        // 1. Signature Validation using the RAW body (moved up so it validates all requests)
         let isValid = verifyPayFastSignature(rawBody, data.signature, process.env.PAYFAST_PASSPHRASE);
         
         if (!isValid) {
-            console.warn(`ITN Warning: Local signature mismatch for order ${orderId}. Attempting server confirmation fallback.`);
+            console.warn(`ITN Warning: Local signature mismatch for order/partner ${orderId}. Attempting server confirmation fallback.`);
             try {
                 const isSandbox = data.merchant_id === '10042278' || 
                                   data.merchant_id === '10049800' || 
@@ -174,27 +156,86 @@ export async function POST(req: NextRequest) {
                 });
                 
                 const validationText = (await validationRes.text()).trim();
-                console.log(`ITN Validation response from PayFast for order ${orderId}: "${validationText}"`);
+                console.log(`ITN Validation response from PayFast for order/partner ${orderId}: "${validationText}"`);
                 
                 if (validationText === 'VALID') {
                     isValid = true;
                 }
             } catch (fallbackError) {
-                console.error(`ITN Error: Server confirmation fallback failed for order ${orderId}:`, fallbackError);
+                console.error(`ITN Error: Server confirmation fallback failed for order/partner ${orderId}:`, fallbackError);
             }
         }
 
         if (!isValid) {
-            console.error('Signature mismatch for order:', orderId);
-            await orderRef.update({ 
-                itnHistory: FieldValue.arrayUnion({ 
-                    status: 'Failed', 
-                    message: 'Signature verification failed. Check passphrase.', 
-                    receivedAt: new Date(),
-                    payload: data
-                }) 
-            });
+            console.error('Signature mismatch for order/partner:', orderId);
             return new NextResponse('Signature mismatch', { status: 400 });
+        }
+
+        // 2. Handle Partner Subscription ITN Events
+        if (data.custom_str1 === 'partner_subscription') {
+            const partnerId = data.m_payment_id;
+            const payfastToken = data.token;
+            const paymentStatus = data.payment_status;
+            
+            console.log(`ITN Partner Subscription Event for partner ${partnerId}. Status: ${paymentStatus}`);
+            
+            const userRef = adminDb.collection('users').doc(partnerId);
+            const userSnap = await userRef.get();
+            if (!userSnap.exists) {
+                console.error(`User (Partner) ${partnerId} not found for subscription update.`);
+                return new NextResponse('OK', { status: 200 });
+            }
+            
+            const now = new Date();
+            const currentPeriodEnd = new Date();
+            currentPeriodEnd.setDate(now.getDate() + 30); // 30 days period
+            
+            if (paymentStatus === 'COMPLETE') {
+                await userRef.update({
+                    partnerTier: 'growth',
+                    partnerSubscription: {
+                        status: 'active',
+                        payfastToken: payfastToken || null,
+                        currentPeriodStart: now,
+                        currentPeriodEnd: currentPeriodEnd,
+                        aiCompanyLimit: 5,
+                        aiPayrollLimit: 5,
+                        staffSeatLimit: 3,
+                    }
+                });
+                console.log(`Successfully activated/renewed Growth subscription for partner ${partnerId}`);
+            } else if (paymentStatus === 'FAILED') {
+                await userRef.update({
+                    'partnerSubscription.status': 'lapsed',
+                });
+                console.log(`Payment failed: Growth subscription set to lapsed for partner ${partnerId}`);
+            } else if (paymentStatus === 'CANCELLED') {
+                await userRef.update({
+                    'partnerSubscription.status': 'cancelled',
+                    'partnerSubscription.cancelledAt': now,
+                });
+                console.log(`Growth subscription cancelled for partner ${partnerId}`);
+            }
+            
+            return new NextResponse('OK', { status: 200 });
+        }
+
+        // 3. Find the normal checkout order (if not a subscription)
+        const querySnapshot = await adminDb.collection('orders').where('id', '==', orderId).get();
+
+        if (querySnapshot.empty) {
+            console.error(`Order ${orderId} not found.`);
+            return new NextResponse('OK', { status: 200 });
+        }
+        
+        const orderDoc = querySnapshot.docs[0];
+        const orderRef = orderDoc.ref;
+        const currentOrderData = orderDoc.data() as Order;
+
+        // Idempotency: Ignore if already processed
+        if (currentOrderData.status !== 'Pending Payment') {
+            console.log(`ITN Info: Order ${orderId} already processed (Status: ${currentOrderData.status}).`);
+            return new NextResponse('OK', { status: 200 });
         }
         
         // 3. Amount Validation
@@ -213,9 +254,34 @@ export async function POST(req: NextRequest) {
             return new NextResponse('Amount mismatch', { status: 400 });
         }
 
-        // 4. Update Order Status
         if (data.payment_status === 'COMPLETE') {
           await orderRef.update({ status: 'Processing' });
+
+          if (currentOrderData.userId && currentOrderData.items && currentOrderData.items.some(item => item.id === 'partner_dfy_setup')) {
+              await adminDb.collection('users').doc(currentOrderData.userId).update({ setupAddon: true });
+              console.log(`Paid Done-For-You Setup Add-on. Marked partner ${currentOrderData.userId} setupAddon as true.`);
+          }
+          
+          if (currentOrderData.originalOrderId) {
+              const originalOrderRef = adminDb.collection('orders').doc(currentOrderData.originalOrderId);
+              await originalOrderRef.update({
+                  isOutsourced: true,
+                  status: 'Processing',
+                  documentContact: currentOrderData.documentContact || 'partner',
+              });
+              
+              const note = {
+                  text: `Order outsourced to My Accountant. Paid via PayFast. Document request sent to ${currentOrderData.documentContact === 'client' ? currentOrderData.endCustomerEmail : currentOrderData.customerEmail}.`,
+                  date: new Date(),
+                  authorId: 'system',
+                  type: 'note',
+                  subject: null,
+                  attachments: null,
+              };
+              await originalOrderRef.update({
+                  notes: FieldValue.arrayUnion(note)
+              });
+          }
           
           // Staff Workload Querying & Load-Balanced Allocation
           try {
@@ -398,6 +464,14 @@ export async function POST(req: NextRequest) {
                   await partnerRef.update({
                       creditBalance: FieldValue.increment(creditAmount),
                       status: 'Active'
+                  });
+
+                  const walletLogRef = partnerRef.collection('walletLogs').doc();
+                  await walletLogRef.set({
+                      amount: creditAmount,
+                      type: isSetup ? 'setup_bonus' : 'deposit',
+                      description: isSetup ? 'Setup fee credit allocation (50%)' : 'Wallet top-up via PayFast',
+                      date: new Date()
                   });
 
                   if (isSetup) {
