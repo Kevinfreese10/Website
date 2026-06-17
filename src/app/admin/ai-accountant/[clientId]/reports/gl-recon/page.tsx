@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo } from "react";
 import { User, ChartOfAccount, AllocatedTransaction, ImportedTransaction, VatType, Supplier, ClientCustomer } from "@/lib/types";
 import { getFirestore, doc, getDoc, collection, query, onSnapshot, where, orderBy, getDocs, writeBatch } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { Loader2, Download, Eye, Scale, CheckCircle, ChevronsUpDown, CheckCheck } from "lucide-react";
+import { Loader2, Download, Eye, Scale, CheckCircle, ChevronsUpDown, CheckCheck, Search } from "lucide-react";
 import { useParams } from 'next/navigation';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { format } from 'date-fns';
@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { allVatTypes } from "@/lib/vat-types";
 import { Badge } from "@/components/ui/badge";
 import { AccountSelector } from '@/components/accounting/AccountSelector';
+import { Input } from "@/components/ui/input";
 
 const db = getFirestore(firebaseApp);
 
@@ -50,6 +51,7 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
     const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
     const [reallocateTo, setReallocateTo] = useState<{accountId: string, vatType: VatType} | null>(null);
     const [open, setOpen] = useState(false)
+    const [searchQuery, setSearchQuery] = useState('');
 
     const cleanDisplayDescription = (description: string, allocatedTo?: { value: string, type: 'account' | 'customer' | 'supplier' }): string => {
         if (!description) return '';
@@ -160,11 +162,19 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
     }, [transactions, account, suppliers, customers]);
     
     const visibleEntries = useMemo(() => {
+        let entries = ledgerEntries;
         if (hideMatched) {
-            return ledgerEntries.filter(e => !e.matched);
+            entries = entries.filter(e => !e.matched);
         }
-        return ledgerEntries;
-    }, [ledgerEntries, hideMatched]);
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            entries = entries.filter(e => 
+                e.displayDescription.toLowerCase().includes(query) ||
+                e.description.toLowerCase().includes(query)
+            );
+        }
+        return entries;
+    }, [ledgerEntries, hideMatched, searchQuery]);
     
     useEffect(() => {
         setSelectedTransactions([]);
@@ -216,11 +226,24 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
     return (
         <Card>
             <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle>Ledger for: {account.description}</CardTitle>
-                    <div className="flex items-center space-x-2">
-                        <Checkbox id="hide-matched" checked={hideMatched} onCheckedChange={(checked) => setHideMatched(checked as boolean)} />
-                        <Label htmlFor="hide-matched" className="text-sm font-medium">Hide Matched Transactions</Label>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <CardTitle>Ledger for: {account.description}</CardTitle>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="relative w-[240px]">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search description..."
+                                className="pl-8 h-9 text-sm"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox id="hide-matched" checked={hideMatched} onCheckedChange={(checked) => setHideMatched(checked as boolean)} />
+                            <Label htmlFor="hide-matched" className="text-sm font-medium">Hide Matched Transactions</Label>
+                        </div>
                     </div>
                 </div>
             </CardHeader>
