@@ -280,7 +280,7 @@ export default function WebsiteAIWidget() {
             <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center border border-white/25">
               <Bot className="h-5 w-5 text-white" />
             </div>
-            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-white animate-pulse" />
+            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-slate-950 animate-pulse" />
           </div>
           <div>
             <CardTitle className="text-sm font-bold text-white leading-tight">Khai</CardTitle>
@@ -299,19 +299,19 @@ export default function WebsiteAIWidget() {
 
       {/* Agent Takeover Banner */}
       {chatMode === 'agent' && (
-        <div className="bg-indigo-50 border-b border-indigo-100 px-4 py-2 flex items-center justify-between text-[11px] font-bold text-indigo-700 select-none animate-in slide-in-from-top duration-200">
+        <div className="bg-indigo-950/45 border-b border-indigo-500/20 px-4 py-2 flex items-center justify-between text-[11px] font-bold text-indigo-300 select-none animate-in slide-in-from-top duration-200">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
             Human Advisor connected
           </span>
-          <span className="text-[10px] text-indigo-500 uppercase font-black tracking-wider">Live Support</span>
+          <span className="text-[10px] text-indigo-400 uppercase font-black tracking-wider">Live Support</span>
         </div>
       )}
 
       {/* Messages Body */}
       <CardContent 
         ref={chatContainerRef} 
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950/40 border-t border-b border-white/[0.06]"
       >
         {chatHistory.map((message, index) => (
           <div 
@@ -322,23 +322,23 @@ export default function WebsiteAIWidget() {
             )}
           >
             {message.role === 'bot' && (
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-50 to-indigo-50 flex items-center justify-center border border-blue-200 shrink-0 shadow-sm">
-                <Bot className="h-4 w-4 text-blue-600 animate-pulse" />
+              <div className="h-8 w-8 rounded-full bg-white/[0.04] flex items-center justify-center border border-white/10 shrink-0 shadow-sm">
+                <Bot className="h-4.5 w-4.5 text-primary animate-pulse" />
               </div>
             )}
             {message.role === 'agent' && (
-              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center border border-indigo-200 shrink-0 overflow-hidden shadow-sm">
-                <User className="h-4.5 w-4.5 text-indigo-600" />
+              <div className="h-8 w-8 rounded-full bg-indigo-950/80 flex items-center justify-center border border-indigo-500/35 shrink-0 overflow-hidden shadow-sm">
+                <User className="h-4.5 w-4.5 text-indigo-400" />
               </div>
             )}
             <div 
               className={cn(
                 "max-w-[85%] rounded-2xl p-3.5 text-sm font-medium leading-relaxed shadow-sm",
                 message.role === 'user' 
-                  ? "bg-blue-600 text-white rounded-br-none" 
+                  ? "bg-gradient text-white rounded-br-none" 
                   : message.role === 'agent'
                     ? "bg-indigo-600 text-white rounded-bl-none border border-indigo-700"
-                    : "bg-white text-slate-800 border border-slate-100 rounded-bl-none"
+                    : "bg-white/[0.05] text-foreground border border-white/10 rounded-bl-none backdrop-blur-sm"
               )}
             >
               {message.role === 'agent' && (
@@ -348,7 +348,7 @@ export default function WebsiteAIWidget() {
               )}
               <div className={cn(
                 "prose prose-sm max-w-none",
-                message.role === 'user' || message.role === 'agent' ? "prose-invert text-white" : "prose-slate text-slate-800"
+                message.role === 'user' || message.role === 'agent' ? "prose-invert text-white" : "prose-invert text-foreground"
               )}>
                  <ReactMarkdown
                    components={{
@@ -361,7 +361,7 @@ export default function WebsiteAIWidget() {
                            "underline underline-offset-2 font-semibold break-all hover:opacity-80 transition-opacity",
                            message.role === 'user' || message.role === 'agent'
                              ? "text-white/90 hover:text-white"
-                             : "text-blue-600 hover:text-blue-800"
+                             : "text-primary hover:opacity-90"
                          )}
                        >
                          {children}
@@ -375,25 +375,25 @@ export default function WebsiteAIWidget() {
                 const matchedService = getMatchedService(message.serviceUrl);
                 if (matchedService) {
                   return (
-                    <div className="mt-3 p-3 border rounded-xl bg-slate-50 dark:bg-slate-900 flex flex-col gap-2 shadow-sm animate-in fade-in duration-300 max-w-sm">
+                    <div className="mt-3 p-3 border border-white/10 rounded-xl bg-white/[0.02] backdrop-blur-md flex flex-col gap-2 shadow-sm animate-in fade-in duration-300 max-w-sm">
                       <div className="flex items-start gap-2.5">
                         {matchedService.imageUrl && (
                           <img 
                             src={matchedService.imageUrl} 
                             alt={matchedService.title} 
-                            className="w-12 h-12 rounded-lg object-cover border"
+                            className="w-12 h-12 rounded-lg object-cover border border-white/10"
                           />
                         )}
                         <div className="flex-grow min-w-0">
-                          <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100 truncate">
+                          <p className="text-xs font-extrabold text-foreground truncate">
                             {matchedService.title}
                           </p>
-                          <Badge variant="outline" className="text-[9px] uppercase font-bold tracking-tight px-1 py-0 h-4 border-blue-200 text-blue-700 bg-blue-50/50 mt-0.5">
+                          <Badge variant="outline" className="text-[9px] uppercase font-bold tracking-tight px-1 py-0 h-4 border-white/10 text-foreground bg-white/[0.04] mt-0.5">
                             {matchedService.category || 'Accounting'}
                           </Badge>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-xs font-mono font-black text-blue-700 dark:text-blue-400">
+                          <p className="text-xs font-mono font-black text-primary">
                             {matchedService.price ? `R${matchedService.price}` : 'TBC'}
                           </p>
                         </div>
@@ -403,7 +403,7 @@ export default function WebsiteAIWidget() {
                         <Button
                           size="sm"
                           type="button"
-                          className="h-8 font-black text-[10px] uppercase bg-blue-600 hover:bg-blue-700 text-white flex-grow flex items-center justify-center gap-1"
+                          className="h-8 font-black text-[10px] uppercase bg-gradient text-white flex-grow flex items-center justify-center gap-1 hover:opacity-90"
                           onClick={() => {
                             addToCart(matchedService);
                             toast({
@@ -417,7 +417,7 @@ export default function WebsiteAIWidget() {
                         <Link 
                           href={message.serviceUrl} 
                           onClick={() => setIsOpen(false)}
-                          className="h-8 font-bold text-[10px] uppercase border px-3 rounded-lg flex items-center justify-center bg-white hover:bg-slate-50 text-slate-600 dark:text-slate-300 dark:bg-slate-950"
+                          className="h-8 font-bold text-[10px] uppercase border px-3 rounded-lg flex items-center justify-center bg-white/[0.04] hover:bg-white/[0.08] text-foreground border-white/10 transition-colors"
                         >
                           Details
                         </Link>
@@ -436,7 +436,7 @@ export default function WebsiteAIWidget() {
                         "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all",
                         message.role === 'user' || message.role === 'agent'
                           ? "bg-white/20 hover:bg-white/35 text-white" 
-                          : "bg-blue-50 hover:bg-blue-100 text-blue-600"
+                          : "bg-white/[0.05] border border-white/10 hover:bg-white/[0.1] text-primary"
                       )}
                     >
                       View Service Details
@@ -447,7 +447,7 @@ export default function WebsiteAIWidget() {
               })()}
 
               {message.orderId && (
-                <div className="mt-3 border-t border-slate-100 pt-3">
+                <div className="mt-3 border-t border-white/10 pt-3">
                   <Link 
                     href={`/order-confirmation/${message.orderId}`} 
                     onClick={() => setIsOpen(false)}
@@ -459,8 +459,8 @@ export default function WebsiteAIWidget() {
               )}
             </div>
             {message.role === 'user' && (
-              <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
-                <User className="h-5 w-5 text-slate-600" />
+              <div className="h-8 w-8 rounded-full bg-white/[0.04] flex items-center justify-center border border-white/10 shrink-0">
+                <User className="h-5 w-5 text-foreground/80" />
               </div>
             )}
           </div>
@@ -478,14 +478,14 @@ export default function WebsiteAIWidget() {
                 key={idx}
                 variant="outline"
                 type="button"
-                className="h-auto text-left justify-start p-2.5 rounded-xl border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 bg-white text-[11px] font-bold leading-snug flex flex-col gap-1 shadow-sm transition-all"
+                className="h-auto text-left justify-start p-2.5 rounded-xl border-white/10 hover:border-primary/40 hover:bg-white/[0.08] bg-white/[0.03] text-[11px] font-bold leading-snug flex flex-col gap-1 shadow-sm transition-all text-foreground"
                 onClick={() => {
                   form.setValue('question', chip.text);
                   form.handleSubmit(onSubmit)();
                 }}
               >
-                <span className="text-blue-600 dark:text-blue-400 font-extrabold">{chip.label}</span>
-                <span className="text-[10px] text-slate-500 font-medium truncate w-full">{chip.text}</span>
+                <span className="text-primary font-extrabold">{chip.label}</span>
+                <span className="text-[10px] text-muted-foreground font-medium truncate w-full">{chip.text}</span>
               </Button>
             ))}
           </div>
@@ -493,14 +493,14 @@ export default function WebsiteAIWidget() {
 
         {isLoading && (
           <div className="flex items-end gap-2 justify-start animate-pulse">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-50 to-indigo-50 flex items-center justify-center border border-blue-200 shrink-0 shadow-sm">
-                 <Bot className="h-4.5 w-4.5 text-blue-600" />
+              <div className="h-8 w-8 rounded-full bg-white/[0.04] flex items-center justify-center border border-white/10 shrink-0 shadow-sm">
+                 <Bot className="h-4.5 w-4.5 text-primary" />
               </div>
-              <div className="p-3.5 rounded-2xl rounded-bl-none bg-white border border-slate-100 shadow-sm flex items-center justify-center">
+              <div className="p-3.5 rounded-2xl rounded-bl-none bg-white/[0.04] border border-white/10 shadow-sm flex items-center justify-center">
                  <div className="flex items-center gap-1 py-1 px-1">
-                   <span className="h-2 w-2 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                   <span className="h-2 w-2 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                   <span className="h-2 w-2 bg-blue-600 rounded-full animate-bounce" />
+                   <span className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                   <span className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                   <span className="h-2 w-2 bg-primary rounded-full animate-bounce" />
                  </div>
               </div>
           </div>
@@ -510,13 +510,13 @@ export default function WebsiteAIWidget() {
       {/* Input Form Footer or Email Capture */}
       {isEmailRequired ? (
         chatMode === 'agent' ? (
-          <CardFooter className="p-4 border-t bg-indigo-50/30 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
+          <CardFooter className="p-4 border-t border-white/10 bg-indigo-950/25 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
             <div className="space-y-1">
-              <h4 className="text-xs font-bold text-indigo-950 flex items-center gap-1 select-none">
-                <ShieldCheck className="h-3.5 w-3.5 text-indigo-600 animate-pulse" />
+              <h4 className="text-xs font-bold text-white flex items-center gap-1 select-none">
+                <ShieldCheck className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
                 Advisor Connecting...
               </h4>
-              <p className="text-[10px] text-indigo-900 leading-relaxed select-none">
+              <p className="text-[10px] text-indigo-200 leading-relaxed select-none">
                 Please enter your email so we can notify you when the advisor replies.
               </p>
             </div>
@@ -526,7 +526,7 @@ export default function WebsiteAIWidget() {
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 disabled={isSubmittingEmail}
-                className="flex-grow h-9 text-xs border-indigo-200 focus-visible:ring-indigo-600 bg-white"
+                className="flex-grow h-9 text-xs border-white/10 focus-visible:ring-indigo-500 bg-white/[0.04] text-foreground"
                 required
                 type="email"
               />
@@ -541,13 +541,13 @@ export default function WebsiteAIWidget() {
             </form>
           </CardFooter>
         ) : (
-          <CardFooter className="p-4 border-t bg-blue-50/30 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
+          <CardFooter className="p-4 border-t border-white/10 bg-blue-950/25 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
             <div className="space-y-1">
-              <h4 className="text-xs font-bold text-blue-950 flex items-center gap-1 select-none">
-                <ShieldCheck className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
+              <h4 className="text-xs font-bold text-white flex items-center gap-1 select-none">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary animate-pulse" />
                 Enter Email to Continue
               </h4>
-              <p className="text-[10px] text-slate-600 leading-relaxed select-none">
+              <p className="text-[10px] text-blue-200 leading-relaxed select-none">
                 You have reached the limit of anonymous questions. Please enter your email address to continue chatting.
               </p>
             </div>
@@ -557,7 +557,7 @@ export default function WebsiteAIWidget() {
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 disabled={isSubmittingEmail}
-                className="flex-grow h-9 text-xs border-blue-200 focus-visible:ring-blue-600 bg-white"
+                className="flex-grow h-9 text-xs border-white/10 focus-visible:ring-primary bg-white/[0.04] text-foreground"
                 required
                 type="email"
               />
@@ -565,7 +565,7 @@ export default function WebsiteAIWidget() {
                 type="submit" 
                 size="sm" 
                 disabled={isSubmittingEmail}
-                className="bg-blue-600 hover:bg-blue-700 text-xs font-bold shrink-0 text-white"
+                className="bg-gradient hover:opacity-90 text-xs font-bold shrink-0 text-white"
               >
                 {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : "Submit"}
               </Button>
@@ -573,10 +573,10 @@ export default function WebsiteAIWidget() {
           </CardFooter>
         )
       ) : (
-        <CardFooter className="p-3 border-t bg-white flex flex-col items-stretch gap-2 animate-in fade-in duration-300">
+        <CardFooter className="p-3 border-t border-white/10 bg-slate-950/90 flex flex-col items-stretch gap-2 animate-in fade-in duration-300">
           {(!chatEmail || chatEmail === 'Anonymous' || chatEmail === '') && (
             <div className="text-[10px] text-muted-foreground text-center font-semibold mb-1 flex items-center justify-center gap-1 select-none">
-              <Info className="h-3 w-3 text-blue-500 shrink-0" />
+              <Info className="h-3 w-3 text-primary shrink-0" />
               Guest Session: {userMessagesCount}/2 anonymous messages used.
             </div>
           )}
@@ -594,8 +594,8 @@ export default function WebsiteAIWidget() {
                         autoComplete="off" 
                         disabled={isLoading}
                         className={cn(
-                          "bg-slate-50 border-slate-200 focus-visible:bg-white text-sm font-medium text-slate-800 placeholder-slate-400 rounded-xl h-10 shadow-inner",
-                          chatMode === 'agent' ? "focus-visible:ring-indigo-600" : "focus-visible:ring-blue-600"
+                          "bg-white/[0.04] border-white/10 focus-visible:bg-white/[0.07] text-sm font-medium text-foreground placeholder-slate-400 rounded-xl h-10 shadow-inner focus-visible:ring-primary",
+                          chatMode === 'agent' ? "focus-visible:ring-indigo-600" : "focus-visible:ring-primary"
                         )}
                       />
                     </FormControl>
@@ -609,7 +609,7 @@ export default function WebsiteAIWidget() {
                 disabled={isLoading} 
                 className={cn(
                   "rounded-xl h-10 w-10 active:scale-95 transition-all flex items-center justify-center shrink-0 shadow-md",
-                  chatMode === 'agent' ? "bg-indigo-600 hover:bg-indigo-700" : "bg-blue-600 hover:bg-blue-700"
+                  chatMode === 'agent' ? "bg-indigo-600 hover:bg-indigo-700" : "bg-gradient hover:opacity-90"
                 )}
               >
                 <Send className="h-4.5 w-4.5 text-white" />
@@ -628,7 +628,7 @@ export default function WebsiteAIWidget() {
         <Button 
           onClick={toggleChat} 
           size="icon" 
-          className="w-14 h-14 rounded-full shadow-2xl bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 duration-200 group flex items-center justify-center"
+          className="w-14 h-14 rounded-full shadow-2xl bg-gradient hover:scale-105 active:scale-95 duration-200 group flex items-center justify-center neon-glow"
         >
            {isOpen ? <X className="h-6 w-6 text-white" /> : <MessageCircle className="h-6 w-6 text-white group-hover:rotate-12 transition-transform duration-200" />}
         </Button>
@@ -639,20 +639,20 @@ export default function WebsiteAIWidget() {
         isModal ? (
           <div 
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
           >
             <div 
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-lg animate-in zoom-in-95 duration-200"
             >
-              <Card className="flex flex-col h-[80vh] max-h-[700px] shadow-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-200/50 rounded-2xl overflow-hidden">
+              <Card className="flex flex-col h-[80vh] max-h-[700px] shadow-2xl bg-slate-950/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden neon-glow">
                 {cardInner}
               </Card>
             </div>
           </div>
         ) : (
           <div className="fixed bottom-20 left-4 right-4 z-50 sm:left-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-5 duration-300">
-            <Card className="flex flex-col h-[65vh] sm:h-[600px] shadow-2xl bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-200/50 rounded-2xl overflow-hidden">
+            <Card className="flex flex-col h-[65vh] sm:h-[600px] shadow-2xl bg-slate-950/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden neon-glow">
               {cardInner}
             </Card>
           </div>
