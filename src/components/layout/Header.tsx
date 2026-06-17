@@ -88,7 +88,7 @@ const Header = () => {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full glass-nav shadow-none">
+    <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-4 lg:gap-8">
           {!isAuthPage && (
@@ -150,7 +150,7 @@ const Header = () => {
                     <span className="sr-only">Open menu</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="flex flex-col h-full bg-background/95 backdrop-blur-xl">
+                <SheetContent side="left" className="flex flex-col h-full">
                   <div className="py-4 border-b">
                     <Link href="/" className="text-2xl font-bold text-primary" onClick={() => setMobileMenuOpen(false)}>
                       Home
@@ -164,7 +164,7 @@ const Header = () => {
                                     {group.label}
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-4">
-                                    <div className="flex flex-col gap-3 pl-4 border-l-2 border-primary/15 ml-1">
+                                    <div className="flex flex-col gap-3 pl-4 border-l-2 border-primary/20 ml-1">
                                         {group.items.map(item => (
                                             <Link 
                                                 key={item.label} 
