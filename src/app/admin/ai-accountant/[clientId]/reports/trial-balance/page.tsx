@@ -330,6 +330,62 @@ export default function TrialBalancePage() {
     const [reportName, setReportName] = useState('');
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
     
+    const augmentedClient = useMemo(() => {
+        if (!client) return null;
+        const coa = [...(client.chartOfAccounts || [])];
+        const coaIds = new Set(coa.map(a => a.id));
+        
+        const vatControlAccount = coa.find(acc => acc.accountNumber === '7000-008');
+        const supplierControlAccount = coa.find(acc => acc.accountNumber === '7000-000');
+        const customerControlAccount = coa.find(acc => acc.accountNumber === '8000-001');
+
+        transactions.forEach(tx => {
+            const checkAndAdd = (id: string) => {
+                if (id && !coaIds.has(id)) {
+                    coaIds.add(id);
+                    const isIncomeStatement = /^[1-4]/.test(id);
+                    coa.push({
+                        id,
+                        accountNumber: id,
+                        description: `Unmapped Account (${id})`,
+                        section: isIncomeStatement ? 'Income Statement' : 'Balance Sheet'
+                    });
+                }
+            };
+
+            if (tx.bankAccountId === 'JOURNAL') {
+                if (tx.allocatedTo?.value) {
+                    checkAndAdd(tx.allocatedTo.value);
+                }
+            } else {
+                checkAndAdd(tx.bankAccountId);
+                
+                let contraAccountId = '9500-001';
+                let contraType = 'account';
+                if (((tx.status as string) === 'allocated' || tx.status === 'reviewed') && tx.allocatedTo) {
+                    contraAccountId = tx.allocatedTo.value;
+                    contraType = tx.allocatedTo.type || 'account';
+                }
+                
+                let targetId = contraAccountId;
+                if (contraType === 'supplier') targetId = supplierControlAccount?.id || '7000-000';
+                else if (contraType === 'customer') targetId = customerControlAccount?.id || '8000-001';
+
+                checkAndAdd(targetId);
+
+                const isStandardVat = client.isVatRegistered && (tx.vatType === 'standard_rated_purchases' || tx.vatType === 'standard_rated_sales' || tx.vatType === 'capital_goods_purchases');
+                if (isStandardVat && vatControlAccount) {
+                    checkAndAdd(vatControlAccount.id);
+                }
+            }
+        });
+
+        return {
+            ...client,
+            chartOfAccounts: coa
+        };
+    }, [client, transactions]);
+    
     useEffect(() => {
         if (!clientId) return;
 
@@ -493,7 +549,7 @@ export default function TrialBalancePage() {
                                         </DialogDescription>
                                     </DialogHeader>
                                     <TrialBalanceReport 
-                                        client={client} 
+                                        client={augmentedClient || client} 
                                         transactions={transactions} 
                                         dateRange={dateRange} 
                                         comparativeDateRange={showComparison ? comparativeDateRange : undefined}
