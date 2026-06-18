@@ -60,23 +60,7 @@ export default function NcrRegistrationFeeCalculatorPage() {
     }
 
     const totalNcr = applicationFee + branchFee + initialFee;
-    
-    // Facilitation fee dynamically linked to the NCR initial registration fee (complexity scale)
-    let assistanceFee = 2500;
-    if (initialFee > 1000) {
-      if (initialFee <= 1500) {
-        assistanceFee = 3500;
-      } else if (initialFee <= 2000) {
-        assistanceFee = 4500;
-      } else if (initialFee <= 6500) {
-        assistanceFee = 7500;
-      } else if (initialFee <= 16500) {
-        assistanceFee = 15000;
-      } else {
-        assistanceFee = 25000;
-      }
-    }
-    
+    const assistanceFee = 1400; // Flat facilitation fee
     const totalWithAssistance = totalNcr + assistanceFee;
 
     return {
@@ -215,7 +199,9 @@ export default function NcrRegistrationFeeCalculatorPage() {
 
                 <div className="bg-slate-50 border border-border rounded-xl p-4 space-y-3">
                   <div className="flex justify-between text-xs text-slate-500">
-                    <span>Our Facilitation Fee:</span>
+                    <Link href="/products/ncr-registration" className="underline hover:text-primary transition-colors">
+                      Our Facilitation Fee:
+                    </Link>
                     <span className="font-semibold text-slate-700">{formatCurrency(results.assistanceFee)}</span>
                   </div>
                   <div className="flex justify-between font-black text-lg text-primary">
