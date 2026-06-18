@@ -4,9 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePathname } from 'next/navigation';
 import Footer from '@/components/layout/Footer';
 import { ReactNode, useState, useEffect } from 'react';
+import Header from '@/components/layout/Header';
 import dynamic from 'next/dynamic';
 
-const Header = dynamic(() => import('@/components/layout/Header'), { ssr: false });
 const WebsiteAIWidget = dynamic(() => import('@/components/shared/WebsiteAIWidget'), { ssr: false });
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -38,8 +38,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
     };
   }, [isDashboardPage]);
 
-  const shouldShowHeader = mounted && (!isDashboardPage || isAuthPage);
-  const shouldShowFooter = mounted && !isDashboardPage && !isAuthPage;
+  const shouldShowHeader = !isDashboardPage || isAuthPage;
+  const shouldShowFooter = !isDashboardPage && !isAuthPage;
 
   const content = (
     <>

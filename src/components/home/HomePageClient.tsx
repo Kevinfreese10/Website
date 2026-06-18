@@ -190,7 +190,6 @@ export default function HomePageClient() {
     { q: "Do you assist with annual financial statement preparation?", a: "Yes, we prepare IFRS-compliant annual financial statements for companies and trusts to ensure year-end compliance and audit readiness." }
   ];
 
-  if (!mounted) return null;
 
   const faqSchema = {
     "@context": "https://schema.org",

@@ -5,6 +5,11 @@ import { Metadata } from 'next';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
         title: 'SARS Disputes & Objections | My Accountant',

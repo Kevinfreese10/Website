@@ -18,7 +18,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 const navGroups = [
@@ -100,6 +100,11 @@ const Header = () => {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
@@ -141,7 +146,7 @@ const Header = () => {
           <Button variant="ghost" size="icon" asChild className="relative">
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
-              {itemCount > 0 && (
+              {mounted && itemCount > 0 && (
                 <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full p-0 text-xs">
                   {itemCount}
                 </Badge>
@@ -151,7 +156,7 @@ const Header = () => {
           </Button>
 
           <div className="hidden md:block">
-            {isAuthenticated && user ? (
+            {mounted && isAuthenticated && user ? (
               <UserMenu user={user} onLogout={handleLogout} />
             ) : (
               <Button asChild>
@@ -203,7 +208,7 @@ const Header = () => {
                     </Accordion>
                   </ScrollArea>
                   <div className="mt-auto pt-6 border-t space-y-4">
-                    {isAuthenticated && user ? (
+                    {mounted && isAuthenticated && user ? (
                         <div className="space-y-4">
                             <Link href={user.role === 'partner' ? '/partner/dashboard' : '/admin/dashboard'} className="block text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Go to Dashboard</Link>
                             <Button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="w-full">Logout</Button>

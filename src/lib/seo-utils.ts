@@ -60,8 +60,8 @@ export function getStaticPageMetadata(pageId: string, defaults: Metadata): Metad
 
   const buildMetadata = (data: any): Metadata => {
     if (data) {
-      title = String(data.metaTitle || data.title || title);
-      description = String(data.metaDescription || data.description || description);
+      title = String(data.metaTitle?.trim() || data.title?.trim() || title);
+      description = String(data.metaDescription?.trim() || data.description?.trim() || description);
       if (data.seoImageUrl) {
         imageUrl = data.seoImageUrl;
         // Ensure URL is absolute
@@ -110,9 +110,18 @@ export function getStaticPageMetadata(pageId: string, defaults: Metadata): Metad
     return buildMetadata(data);
   }
 
-  // Asynchronous path for first load: returns Promise<Metadata>
-  return ensureSeoCache().then(() => {
+  // Asynchronous path for first load: returns Promise<Metadata> with a timeout
+  const fetchPromise = ensureSeoCache().then(() => {
     const data = g.seoCache[pageId];
     return buildMetadata(data);
   });
+
+  const timeoutPromise = new Promise<Metadata>((resolve) =>
+    setTimeout(() => {
+      console.warn(`[SEO Metadata Timeout] Preloading cache timed out for page: ${pageId}. Using defaults.`);
+      resolve(buildMetadata(undefined));
+    }, 1000)
+  );
+
+  return Promise.race([fetchPromise, timeoutPromise]);
 }
