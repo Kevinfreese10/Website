@@ -27,6 +27,12 @@ const navGroups = [
     href: '/monthly-accounting',
     items: [
         { label: 'Monthly Accounting', href: '/monthly-accounting' },
+        { label: 'Joburg Bookkeeping', href: '/bookkeeping-services-johannesburg' },
+        { label: 'Fractional CFO Services', href: '/fractional-cfo-services-south-africa' },
+        { label: 'Xero Accountant', href: '/xero-accountant-south-africa' },
+        { label: 'Sage Accountant', href: '/sage-accountant-south-africa' },
+        { label: 'Zoho Accountant', href: '/zoho-accountant-south-africa' },
+        { label: 'Pastel Accountant', href: '/pastel-accountant-south-africa' },
     ]
   },
   {
@@ -34,6 +40,7 @@ const navGroups = [
     href: '/monthly-payroll',
     items: [
         { label: 'Monthly Payroll', href: '/monthly-payroll' },
+        { label: 'Outsourced Payroll Fees', href: '/outsourced-payroll-fees-sa' },
     ]
   },
   {
@@ -47,10 +54,22 @@ const navGroups = [
     ],
   },
   {
-    label: 'Liquidations',
-    href: '/liquidations',
+    label: 'Registrations',
+    href: '/cipc-company-registration-online',
     items: [
+        { label: 'Company Registration', href: '/cipc-company-registration-online' },
+        { label: 'Registration Pricing', href: '/register-company-south-africa-price' },
         { label: 'Voluntary Liquidations', href: '/liquidations' },
+    ]
+  },
+  {
+    label: 'Calculators',
+    href: '/calculators/salary-tax',
+    items: [
+        { label: 'Salary Tax Calculator', href: '/calculators/salary-tax' },
+        { label: 'CIPC Annual Return Fee', href: '/calculators/cipc-annual-return-fee' },
+        { label: 'SBC Tax Estimator', href: '/calculators/sbc-tax-estimator' },
+        { label: 'Cost to Employer (TCOE)', href: '/calculators/total-cost-to-employer' },
     ]
   },
   {
