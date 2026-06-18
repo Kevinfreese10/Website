@@ -60,7 +60,23 @@ export default function NcrRegistrationFeeCalculatorPage() {
     }
 
     const totalNcr = applicationFee + branchFee + initialFee;
-    const assistanceFee = 2500; // Our facilitation fee
+    
+    // Facilitation fee dynamically linked to the NCR initial registration fee (complexity scale)
+    let assistanceFee = 2500;
+    if (initialFee > 1000) {
+      if (initialFee <= 1500) {
+        assistanceFee = 3500;
+      } else if (initialFee <= 2000) {
+        assistanceFee = 4500;
+      } else if (initialFee <= 6500) {
+        assistanceFee = 7500;
+      } else if (initialFee <= 16500) {
+        assistanceFee = 15000;
+      } else {
+        assistanceFee = 25000;
+      }
+    }
+    
     const totalWithAssistance = totalNcr + assistanceFee;
 
     return {
