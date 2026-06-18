@@ -41,6 +41,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/calculators/salary-tax',
     '/calculators/sbc-tax-estimator',
     '/calculators/total-cost-to-employer',
+    '/calculators/ncr-registration-fee',
+    '/calculators/cidb-fee-and-grade',
   ].map((route) => ({
     url: `${BASE_URL}${route}`,
     lastModified: new Date(),

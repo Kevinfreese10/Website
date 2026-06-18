@@ -70,6 +70,8 @@ const navGroups = [
         { label: 'CIPC Annual Return Fee', href: '/calculators/cipc-annual-return-fee' },
         { label: 'SBC Tax Estimator', href: '/calculators/sbc-tax-estimator' },
         { label: 'Cost to Employer (TCOE)', href: '/calculators/total-cost-to-employer' },
+        { label: 'NCR Registration Fee', href: '/calculators/ncr-registration-fee' },
+        { label: 'CIDB Fee & Grade', href: '/calculators/cidb-fee-and-grade' },
     ]
   },
   {
