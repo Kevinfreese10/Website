@@ -50,10 +50,10 @@ const Footer = () => {
                 </ul>
             </div>
 
-            <div className="rounded-xl overflow-hidden border border-white/10">
+            <div className="rounded-xl overflow-hidden border border-white/10 relative h-[200px] md:h-full min-h-[200px]">
                 <iframe
                     src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
-                    className="w-full h-[200px]"
+                    className="absolute inset-0 w-full h-full"
                     style={{ border: 0 }}
                     allowFullScreen={false}
                     loading="lazy"

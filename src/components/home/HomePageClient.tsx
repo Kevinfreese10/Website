@@ -70,7 +70,7 @@ export default function HomePageClient() {
   // Pricing Calculator State
   const [turnover, setTurnover] = useState(500000); // Annual turnover in ZAR
   const [payrollEmployees, setPayrollEmployees] = useState(5);
-  const [needsVat, setNeedsVat] = useState(true);
+  const [needsVat, setNeedsVat] = useState(false);
   const [needsPayroll, setNeedsPayroll] = useState(true);
 
   useEffect(() => {
@@ -93,53 +93,29 @@ export default function HomePageClient() {
 
   const calculatedPackage = useMemo(() => {
     let basePrice = 0;
-    let name = "Freelancer Starter";
-    let desc = "Best for freelancers, sole proprietors, and small startups needing simple year-end tax submissions.";
-    let features = [
-      "Annual Financial Statements preparation",
-      "SARS Individual Tax Return submission",
-      "CIPC Annual Return filing (excl. CIPC fees)",
-      "Dedicated email support"
-    ];
+    let name = "Essential";
+    let desc = "Best for small startups & sole proprietors with turnover under R1M.";
+    let features: string[] = [];
 
-    if (turnover <= 1000000 && !needsVat && !needsPayroll && payrollEmployees === 0) {
-      basePrice = 450;
-      name = "Freelancer Starter";
-      desc = "Ideal for independent contractors and small startups with simple compliance requirements.";
-    } else if (turnover <= 3000000) {
-      basePrice = 1250;
-      name = "SME Compliance";
-      desc = "Perfect for growing businesses needing active bookkeeping, management accounts, and tax reporting.";
-      features = [
-        "Monthly Bookkeeping up to 100 transactions",
-        "Bi-monthly VAT Return submissions to SARS",
-        "Quarterly Management Accounts",
-        "Registered Tax Practitioner support",
-        "Secure digital document vault"
-      ];
-      if (needsVat) basePrice += 350;
-      if (needsPayroll && payrollEmployees > 0) {
-        basePrice += Math.min(payrollEmployees * 65, 800); // capped at 800 for SME
-        features.push(`Monthly Payroll processing for ${payrollEmployees} staff`);
+    // Tiers and pricing based on the Monthly Accounting packages:
+    // Essential: R3,500 (turnover under R1M)
+    // Growth: R7,000 (turnover up to R7M)
+    // Executive: R11,500 (turnover up to R25M)
+    
+    // If they require VAT, they must be on Growth or Executive (since Essential doesn't include VAT returns)
+    const requiresGrowthOrHigher = needsVat || turnover > 1000000;
+    const requiresExecutiveOrHigher = turnover > 7000000;
+
+    let payrollFee = 0;
+    if (needsPayroll && payrollEmployees > 0) {
+      if (payrollEmployees <= 10) {
+        payrollFee = 6400;
+      } else {
+        payrollFee = Math.min(6400 + (payrollEmployees - 10) * 190, 14000);
       }
-    } else if (turnover <= 8000000) {
-      basePrice = 2850;
-      name = "SME Growth & Scale";
-      desc = "For established South African businesses requiring comprehensive accounting, VAT, PAYE, and financial oversight.";
-      features = [
-        "Monthly Bookkeeping up to 250 transactions",
-        "Monthly Management Accounts & Balance Sheets",
-        "VAT Return submissions & SARS query resolution",
-        "EMP201 (PAYE/UIF/SDL) monthly filings",
-        "Dedicated Chartered Accountant review",
-        "Annual Financial Statements & Tax clearance"
-      ];
-      if (needsVat) basePrice += 450;
-      if (needsPayroll && payrollEmployees > 0) {
-        basePrice += Math.min(payrollEmployees * 55, 1500); // capped at 1500 for Growth
-        features.push(`Full Payroll administration for ${payrollEmployees} staff`);
-      }
-    } else {
+    }
+
+    if (turnover > 25000000) {
       return {
         name: "Outsourced CFO & Enterprise",
         desc: "Tailored for large SMEs and corporate groups seeking a complete outsourced accounting department.",
@@ -154,6 +130,52 @@ export default function HomePageClient() {
         ],
         isCustom: true
       };
+    }
+
+    if (requiresExecutiveOrHigher) {
+      basePrice = 11500 + payrollFee;
+      name = "Executive";
+      desc = "Comprehensive CFO & tax governance for turnover up to R25M.";
+      features = [
+        "Everything in Growth",
+        "Monthly Management Reports",
+        "Unlimited CFO Advisory Services",
+        "Unlimited Strategic Business Reviews",
+        "Priority Support Response"
+      ];
+      if (needsPayroll && payrollEmployees > 0) {
+        features.push(`Monthly Payroll processing for ${payrollEmployees} staff (+R${payrollFee.toLocaleString('en-ZA')}/mo)`);
+      }
+    } else if (requiresGrowthOrHigher) {
+      basePrice = 7000 + payrollFee;
+      name = "Growth";
+      desc = "Perfect for growing SME businesses with turnover up to R7M.";
+      features = [
+        "Everything in Essential",
+        "VAT Returns & Submissions",
+        "Bi-Monthly Management Reports",
+        "Financial Manager Support",
+        "Cash Flow & Budgeting Assistance",
+        "CFO Advisory & Monthly Reviews"
+      ];
+      if (needsPayroll && payrollEmployees > 0) {
+        features.push(`Monthly Payroll processing for ${payrollEmployees} staff (+R${payrollFee.toLocaleString('en-ZA')}/mo)`);
+      }
+    } else {
+      basePrice = 3500 + payrollFee;
+      name = "Essential";
+      desc = "Best for small startups & sole proprietors with turnover under R1M.";
+      features = [
+        "Monthly Bookkeeping & Reconciliations",
+        "Quarterly Management Reports",
+        "Annual Financial Statements",
+        "Income Tax & CIPC Annual Returns",
+        "Payroll Processing & PAYE / UIF",
+        "Dedicated Accountant support"
+      ];
+      if (needsPayroll && payrollEmployees > 0) {
+        features.push(`Monthly Payroll processing for ${payrollEmployees} staff (+R${payrollFee.toLocaleString('en-ZA')}/mo)`);
+      }
     }
 
     return {
@@ -725,23 +747,23 @@ export default function HomePageClient() {
                 <div className="flex justify-between items-baseline">
                   <label className="text-sm font-black text-foreground tracking-wide uppercase">Annual Turnover</label>
                   <span className="text-lg font-black text-gradient font-headline">
-                    {turnover >= 10000000 ? "R10M+" : new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(turnover)}
+                    {turnover >= 25000000 ? "R25M+" : new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(turnover)}
                   </span>
                 </div>
                 <input
                   type="range"
-                  min="100000"
-                  max="10000000"
-                  step="100000"
+                  min="500000"
+                  max="30000000"
+                  step="500000"
                   value={turnover}
                   onChange={(e) => setTurnover(Number(e.target.value))}
                   className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
                 />
                 <div className="flex justify-between text-[10px] text-muted-foreground font-bold">
-                  <span>R100k</span>
-                  <span>R3M</span>
-                  <span>R6M</span>
-                  <span>R10M+</span>
+                  <span>R500k</span>
+                  <span>R7M</span>
+                  <span>R15M</span>
+                  <span>R25M+</span>
                 </div>
               </div>
 
