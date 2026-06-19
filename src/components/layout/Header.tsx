@@ -29,6 +29,8 @@ const navGroups = [
         { label: 'Monthly Accounting', href: '/monthly-accounting' },
         { label: 'Joburg Bookkeeping', href: '/bookkeeping-services-johannesburg' },
         { label: 'Fractional CFO Services', href: '/fractional-cfo-services-south-africa' },
+        { label: 'Movie & Film Accounting', href: '/movie-film-production-accounting-south-africa' },
+        { label: 'Film Accountant Randburg', href: '/movie-film-production-accountant-randburg' },
         { label: 'Xero Accountant', href: '/xero-accountant-south-africa' },
         { label: 'Sage Accountant', href: '/sage-accountant-south-africa' },
         { label: 'Zoho Accountant', href: '/zoho-accountant-south-africa' },

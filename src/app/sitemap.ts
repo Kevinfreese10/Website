@@ -37,6 +37,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/pastel-accountant-south-africa',
     '/outsourced-payroll-fees-sa',
     '/fractional-cfo-services-south-africa',
+    '/movie-film-production-accounting-south-africa',
+    '/movie-film-production-accountant-randburg',
     '/calculators/cipc-annual-return-fee',
     '/calculators/salary-tax',
     '/calculators/sbc-tax-estimator',
