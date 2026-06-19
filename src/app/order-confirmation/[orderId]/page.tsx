@@ -32,60 +32,72 @@ export default function OrderConfirmationPage() {
     const [order, setOrder] = useState<Order | null>(null);
     const [reseller, setReseller] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (orderId) {
             const fetchOrder = async () => {
                 setIsLoading(true);
-                const orderRef = doc(db, 'orders', orderId);
-                const orderSnap = await getDoc(orderRef);
-                if (orderSnap.exists()) {
-                    const orderData = { 
-                        ...orderSnap.data(), 
-                        id: orderSnap.id,
-                        date: orderSnap.data().date.toDate().toISOString()
-                    } as Order;
-                    setOrder(orderData);
+                setError(null);
+                try {
+                    const orderRef = doc(db, 'orders', orderId);
+                    const orderSnap = await getDoc(orderRef);
+                    if (orderSnap.exists()) {
+                        const orderData = { 
+                            ...orderSnap.data(), 
+                            id: orderSnap.id,
+                            date: orderSnap.data().date.toDate().toISOString()
+                        } as Order;
+                        setOrder(orderData);
 
-                    // Trigger Google Customer Reviews Opt-in
-                    const deliveryDate = format(addDays(new Date(), 10), 'yyyy-MM-dd');
-                    const reviewProducts = orderData.items
-                        .map((item: any) => item.gtin ? { gtin: item.gtin } : null)
-                        .filter(Boolean);
+                        // Trigger Google Customer Reviews Opt-in
+                        const deliveryDate = format(addDays(new Date(), 10), 'yyyy-MM-dd');
+                        const reviewProducts = orderData.items
+                            .map((item: any) => item.gtin ? { gtin: item.gtin } : null)
+                            .filter(Boolean);
 
-                    if (typeof window !== 'undefined' && (window as any).renderOptIn) {
-                        (window as any).renderOptIn({
-                            id: orderData.id,
-                            customerEmail: orderData.customerEmail,
-                            estimated_delivery_date: deliveryDate,
-                            delivery_country: "ZA",
-                            products: reviewProducts.length > 0 ? reviewProducts : undefined
-                        });
-                    }
-
-                    // Fetch reseller details if it's a white-label order
-                    if (orderData.resellerId) {
-                        const resellerSnap = await getDoc(doc(db, 'users', orderData.resellerId));
-                        if (resellerSnap.exists()) {
-                            setReseller({ ...resellerSnap.data(), id: resellerSnap.id } as User);
+                        if (typeof window !== 'undefined' && (window as any).renderOptIn) {
+                            (window as any).renderOptIn({
+                                id: orderData.id,
+                                customerEmail: orderData.customerEmail,
+                                estimated_delivery_date: deliveryDate,
+                                delivery_country: "ZA",
+                                products: reviewProducts.length > 0 ? reviewProducts : undefined
+                            });
                         }
-                    }
 
-                    // If user is authenticated and lands here, redirect them to PayFast immediately.
-                    const isSetupOrTopup = orderData.items.some(i => i.id === 'partner_setup_fee' || i.id === 'partner_credit_topup');
-                    
-                    if (isAuthenticated && orderData.status === 'Pending Payment' && (!orderData.resellerId || isSetupOrTopup)) {
-                        handlePayNow(orderData);
+                        // Fetch reseller details if it's a white-label order
+                        if (orderData.resellerId) {
+                            const resellerSnap = await getDoc(doc(db, 'users', orderData.resellerId));
+                            if (resellerSnap.exists()) {
+                                setReseller({ ...resellerSnap.data(), id: resellerSnap.id } as User);
+                            }
+                        }
+
+                        // If user is authenticated and lands here, redirect them to PayFast immediately.
+                        const isSetupOrTopup = orderData.items.some(i => i.id === 'partner_setup_fee' || i.id === 'partner_credit_topup');
+                        
+                        if (isAuthenticated && orderData.status === 'Pending Payment' && (!orderData.resellerId || isSetupOrTopup)) {
+                            handlePayNow(orderData);
+                        }
+                    } else {
+                        notFound();
                     }
-                } else {
-                    notFound();
+                } catch (err: any) {
+                    console.error("Error fetching order:", err);
+                    if (err.code === 'permission-denied') {
+                        setError('permission-denied');
+                    } else {
+                        setError('error');
+                    }
+                } finally {
+                    setIsLoading(false);
                 }
-                setIsLoading(false);
             };
             fetchOrder();
         }
     }, [orderId, isAuthenticated]); 
-    
+
     const handlePayNow = (order: Order) => {
         if (!isAuthenticated) {
             router.push(`/login?redirect=/order-confirmation/${order.id}`);
@@ -130,6 +142,51 @@ export default function OrderConfirmationPage() {
             <div className="container mx-auto px-4 py-20 text-center">
                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
                 <h1 className="mt-4 text-2xl font-semibold">Loading Your Order...</h1>
+            </div>
+        );
+    }
+
+    if (error === 'permission-denied') {
+        return (
+            <div className="container mx-auto px-4 py-20 text-center max-w-md">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl">Authentication Required</CardTitle>
+                        <CardDescription>
+                            You must be logged in to view the details of this order.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Button asChild className="w-full">
+                            <Link href={`/login?redirect=/order-confirmation/${orderId}`}>
+                                Log In to Your Account
+                            </Link>
+                        </Button>
+                        <Button asChild variant="outline" className="w-full">
+                            <Link href="/">Go to Home</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="container mx-auto px-4 py-20 text-center max-w-md">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl text-destructive">Error Loading Order</CardTitle>
+                        <CardDescription>
+                            There was a problem loading your order details. Please try again.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button onClick={() => window.location.reload()} className="w-full">
+                            Retry
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }

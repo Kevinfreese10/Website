@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,16 +52,6 @@ export default function CartPage() {
                   key={item.service.id}
                   className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group"
                 >
-                  {/* Image */}
-                  <div className="relative h-16 w-16 flex-shrink-0 rounded-xl overflow-hidden border border-slate-100 bg-slate-50">
-                    <Image
-                      src={item.service.imageUrl}
-                      alt={item.service.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-
                   {/* Details */}
                   <div className="flex-grow min-w-0">
                     <Badge variant="secondary" className="text-[9px] uppercase tracking-wider font-bold mb-1">

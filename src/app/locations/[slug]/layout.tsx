@@ -1,27 +1,27 @@
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { User } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import PartnerHeader from '@/components/partner/PartnerHeader';
 import PartnerFooter from '@/components/partner/PartnerFooter';
 import { Metadata } from 'next';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
+import { getAdminDb, serializeDbData } from '@/lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 
 async function getFranchiseBySlug(slug: string): Promise<User | null> {
-  const q = query(
-    collection(db, "users"), 
-    where("role", "==", "franchisee"),
-    where("franchise.areaSlug", "==", slug)
-  );
-  const snapshot = await getDocs(q);
+  const db = getAdminDb();
+  const snapshot = await db.collection("users")
+    .where("role", "==", "franchisee")
+    .where("franchise.areaSlug", "==", slug)
+    .limit(1)
+    .get();
+
   if (snapshot.empty) return null;
   const doc = snapshot.docs[0];
   const data = doc.data();
 
   return {
-    ...data,
+    ...serializeDbData(data),
     id: doc.id,
     uid: doc.id,
   } as User;

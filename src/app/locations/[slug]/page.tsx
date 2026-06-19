@@ -1,5 +1,3 @@
-import { collection, getDocs, query, orderBy, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { User, Service } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import Script from 'next/script';
 import { generateBranchSchema } from '@/lib/schema/productSchema';
+import { getAdminDb, serializeDbData, getServices, getCategories } from '@/lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,33 +20,22 @@ type Category = {
 };
 
 async function getFranchiseBySlug(slug: string): Promise<User | null> {
-  const q = query(
-    collection(db, "users"), 
-    where("role", "==", "franchisee"),
-    where("franchise.areaSlug", "==", slug)
-  );
-  const snapshot = await getDocs(q);
+  const db = getAdminDb();
+  const snapshot = await db.collection("users")
+    .where("role", "==", "franchisee")
+    .where("franchise.areaSlug", "==", slug)
+    .limit(1)
+    .get();
+
   if (snapshot.empty) return null;
   const doc = snapshot.docs[0];
   const data = doc.data();
 
   return {
-    ...data,
+    ...serializeDbData(data),
     id: doc.id,
     uid: doc.id,
   } as User;
-}
-
-async function getServices(): Promise<Service[]> {
-  const q = query(collection(db, "services"), orderBy("title"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Service));
-}
-
-async function getCategories(): Promise<Category[]> {
-    const q = query(collection(db, "categories"), orderBy("order"));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
 }
 
 const formatPrice = (price: number) => {
@@ -65,8 +53,8 @@ export default async function FranchiseLandingPage({ params }: { params: Promise
   if (!franchisee) return null;
 
   const [services, categories] = await Promise.all([
-    getServices(),
-    getCategories()
+    getServices() as Promise<Service[]>,
+    getCategories() as Promise<Category[]>
   ]);
 
   const categorizedServices = categories

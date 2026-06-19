@@ -31,6 +31,7 @@ export default function PaymentSuccessPage() {
     const orderId = params.orderId as string;
     const [order, setOrder] = useState<Order | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [assignee, setAssignee] = useState<User | null>(null);
     const { user: currentUser } = useAuth();
     const { toast } = useToast();
@@ -46,104 +47,115 @@ export default function PaymentSuccessPage() {
         if (orderId) {
             const fetchOrderDetails = async () => {
                 setIsLoading(true);
-                const orderRef = doc(db, 'orders', orderId);
-                const orderSnap = await getDoc(orderRef);
+                setError(null);
+                try {
+                    const orderRef = doc(db, 'orders', orderId);
+                    const orderSnap = await getDoc(orderRef);
 
-                if (orderSnap.exists()) {
-                    const orderData = { ...orderSnap.data(), id: orderSnap.id } as Order;
-                    
-                    // Trigger Google Customer Reviews Opt-in
-                    const deliveryDate = format(addDays(new Date(), 10), 'yyyy-MM-dd');
-                    const reviewProducts = orderData.items
-                        .map((item: any) => item.gtin ? { gtin: item.gtin } : null)
-                        .filter(Boolean);
+                    if (orderSnap.exists()) {
+                        const orderData = { ...orderSnap.data(), id: orderSnap.id } as Order;
+                        
+                        // Trigger Google Customer Reviews Opt-in
+                        const deliveryDate = format(addDays(new Date(), 10), 'yyyy-MM-dd');
+                        const reviewProducts = orderData.items
+                            .map((item: any) => item.gtin ? { gtin: item.gtin } : null)
+                            .filter(Boolean);
 
-                    if (typeof window !== 'undefined' && (window as any).renderOptIn) {
-                        (window as any).renderOptIn({
-                            id: orderData.id,
-                            customerEmail: orderData.customerEmail,
-                            estimated_delivery_date: deliveryDate,
-                            delivery_country: "ZA",
-                            products: reviewProducts.length > 0 ? reviewProducts : undefined
-                        });
-                    }
-
-                    // Fetch reseller details if it's a white-label order
-                    let resellerData: User | undefined;
-                    if (orderData.resellerId) {
-                        const resellerSnap = await getDoc(doc(db, 'users', orderData.resellerId));
-                        if (resellerSnap.exists()) {
-                            resellerData = { ...resellerSnap.data(), id: resellerSnap.id } as User;
+                        if (typeof window !== 'undefined' && (window as any).renderOptIn) {
+                            (window as any).renderOptIn({
+                                id: orderData.id,
+                                customerEmail: orderData.customerEmail,
+                                estimated_delivery_date: deliveryDate,
+                                delivery_country: "ZA",
+                                products: reviewProducts.length > 0 ? reviewProducts : undefined
+                            });
                         }
-                    }
 
-                    // CHECK IF NOTIFICATION HAS BEEN SENT
-                    const alreadyNotified = orderData.notes?.some(n => n.subject === `Action Required for Your Order #${orderId}`);
-
-                    if (!alreadyNotified) {
-                        const itemsWithServices = orderData.items.map(item => {
-                            const service = allServices.find(s => s.id === item.id);
-                            return { ...item, service };
-                        }).filter(item => item.service) as { service: Service }[];
-
-                        const emailHtml = render(
-                            <DocumentRequestEmail 
-                                order={orderData} 
-                                items={itemsWithServices} 
-                                reseller={resellerData}
-                                replyTo={resellerData?.email || "info@myacc.co.za"} 
-                            />
-                        );
-                        
-                        const attachments = itemsWithServices
-                            .filter(item => item.service.attachmentUrl)
-                            .map(item => ({
-                                filename: `${item.service.title.replace(/\s/g, '_')}.pdf`,
-                                path: item.service.attachmentUrl!,
-                            }));
-                        
-                        const recipientEmail = orderData.resellerId && orderData.documentContact === 'client' 
-                            ? orderData.endCustomerEmail 
-                            : orderData.customerEmail;
-
-                        if (recipientEmail) {
-                            try {
-                                await sendEmail({
-                                    to: recipientEmail,
-                                    subject: `Action Required for Your Order #${orderId}`,
-                                    html: emailHtml,
-                                    attachments: attachments,
-                                    resellerId: orderData.resellerId || undefined,
-                                });
-                                 const emailNote: OrderNote = {
-                                    text: `Sent "Request Documents" email to ${recipientEmail} (Payment Successful).`,
-                                    date: Timestamp.now(),
-                                    authorId: 'system',
-                                    type: 'email',
-                                    subject: `Action Required for Your Order #${orderId}`,
-                                    attachments: null,
-                                };
-                                await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
-                            } catch(e) {
-                                 console.error("Failed to send document request email:", e);
-                                 toast({ title: 'Email Failed', description: 'Could not notify client. Please check your SMTP settings.', variant: 'destructive'});
+                        // Fetch reseller details if it's a white-label order
+                        let resellerData: User | undefined;
+                        if (orderData.resellerId) {
+                            const resellerSnap = await getDoc(doc(db, 'users', orderData.resellerId));
+                            if (resellerSnap.exists()) {
+                                resellerData = { ...resellerSnap.data(), id: resellerSnap.id } as User;
                             }
                         }
-                    }
-                    
-                    setOrder(orderData);
 
-                    if (orderData.assignedTo && orderData.assignedTo.length > 0) {
-                         const staffQuery = query(collection(db, "users"), where('uid', '==', orderData.assignedTo[0]));
-                         const staffSnapshot = await getDocs(staffQuery);
-                         if (!staffSnapshot.empty) {
-                             setAssignee(staffSnapshot.docs[0].data() as User);
-                         }
+                        // CHECK IF NOTIFICATION HAS BEEN SENT
+                        const alreadyNotified = orderData.notes?.some(n => n.subject === `Action Required for Your Order #${orderId}`);
+
+                        if (!alreadyNotified) {
+                            const itemsWithServices = orderData.items.map(item => {
+                                const service = allServices.find(s => s.id === item.id);
+                                return { ...item, service };
+                            }).filter(item => item.service) as { service: Service }[];
+
+                            const emailHtml = render(
+                                <DocumentRequestEmail 
+                                    order={orderData} 
+                                    items={itemsWithServices} 
+                                    reseller={resellerData}
+                                    replyTo={resellerData?.email || "info@myacc.co.za"} 
+                                />
+                            );
+                            
+                            const attachments = itemsWithServices
+                                .filter(item => item.service.attachmentUrl)
+                                .map(item => ({
+                                    filename: `${item.service.title.replace(/\s/g, '_')}.pdf`,
+                                    path: item.service.attachmentUrl!,
+                                }));
+                            
+                            const recipientEmail = orderData.resellerId && orderData.documentContact === 'client' 
+                                ? orderData.endCustomerEmail 
+                                : orderData.customerEmail;
+
+                            if (recipientEmail) {
+                                try {
+                                    await sendEmail({
+                                        to: recipientEmail,
+                                        subject: `Action Required for Your Order #${orderId}`,
+                                        html: emailHtml,
+                                        attachments: attachments,
+                                        resellerId: orderData.resellerId || undefined,
+                                    });
+                                     const emailNote: OrderNote = {
+                                        text: `Sent "Request Documents" email to ${recipientEmail} (Payment Successful).`,
+                                        date: Timestamp.now(),
+                                        authorId: 'system',
+                                        type: 'email',
+                                        subject: `Action Required for Your Order #${orderId}`,
+                                        attachments: null,
+                                    };
+                                    await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
+                                } catch(e) {
+                                     console.error("Failed to send document request email:", e);
+                                     toast({ title: 'Email Failed', description: 'Could not notify client. Please check your SMTP settings.', variant: 'destructive'});
+                                }
+                            }
+                        }
+                        
+                        setOrder(orderData);
+
+                        if (orderData.assignedTo && orderData.assignedTo.length > 0) {
+                             const staffQuery = query(collection(db, "users"), where('uid', '==', orderData.assignedTo[0]));
+                             const staffSnapshot = await getDocs(staffQuery);
+                             if (!staffSnapshot.empty) {
+                                 setAssignee(staffSnapshot.docs[0].data() as User);
+                             }
+                        }
+                    } else {
+                        notFound();
                     }
-                } else {
-                    notFound();
+                } catch (err: any) {
+                    console.error("Error fetching order details:", err);
+                    if (err.code === 'permission-denied') {
+                        setError('permission-denied');
+                    } else {
+                        setError('error');
+                    }
+                } finally {
+                    setIsLoading(false);
                 }
-                setIsLoading(false);
             };
 
             fetchOrderDetails();
@@ -163,6 +175,51 @@ export default function PaymentSuccessPage() {
                 <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
                 <h1 className="mt-4 text-2xl font-semibold">Finalizing your order...</h1>
                 <p className="text-muted-foreground">Please wait while we confirm your payment.</p>
+            </div>
+        );
+    }
+
+    if (error === 'permission-denied') {
+        return (
+            <div className="container mx-auto px-4 py-20 text-center max-w-md">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl">Authentication Required</CardTitle>
+                        <CardDescription>
+                            You must be logged in to view the details of this order.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Button asChild className="w-full">
+                            <Link href={`/login?redirect=/payment-success/${orderId}`}>
+                                Log In to Your Account
+                            </Link>
+                        </Button>
+                        <Button asChild variant="outline" className="w-full">
+                            <Link href="/">Go to Home</Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="container mx-auto px-4 py-20 text-center max-w-md">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl text-destructive">Error Loading Order</CardTitle>
+                        <CardDescription>
+                            There was a problem loading your order details. Please try again.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button onClick={() => window.location.reload()} className="w-full">
+                            Retry
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }

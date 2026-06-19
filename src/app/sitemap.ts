@@ -1,7 +1,6 @@
-import { collection, getDocs, query, orderBy, Timestamp, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { BlogPost, Service } from '@/lib/types';
 import { MetadataRoute } from 'next';
+import { getAdminDb, serializeDbData } from '@/lib/firebase-admin';
 
 const BASE_URL = 'https://www.myacc.co.za';
 
@@ -52,8 +51,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   
   let serviceRoutes: MetadataRoute.Sitemap = [];
   try {
-    const servicesSnapshot = await getDocs(query(collection(db, "services"), orderBy("title")));
-    const services = servicesSnapshot.docs.map(doc => doc.data() as Service);
+    const db = getAdminDb();
+    const servicesSnapshot = await db.collection("services").orderBy("title").get();
+    const services = servicesSnapshot.docs.map(doc => serializeDbData(doc.data()) as Service);
     serviceRoutes = services.map((service) => ({
       url: `${BASE_URL}/products/${service.slug}`,
       lastModified: new Date(),
@@ -64,9 +64,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let franchiseeRoutes: MetadataRoute.Sitemap = [];
   try {
-    const franchiseesSnapshot = await getDocs(query(collection(db, "users"), where("role", "==", "franchisee")));
+    const db = getAdminDb();
+    const franchiseesSnapshot = await db.collection("users").where("role", "==", "franchisee").get();
     franchiseeRoutes = franchiseesSnapshot.docs
-      .map(doc => doc.data())
+      .map(doc => serializeDbData(doc.data()))
       .filter(u => u.franchise?.areaSlug)
       .map(u => ({
         url: `${BASE_URL}/locations/${u.franchise.areaSlug}`,
@@ -78,13 +79,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let blogPostRoutes: MetadataRoute.Sitemap = [];
   try {
-    const blogPostsSnapshot = await getDocs(query(collection(db, "blogPosts"), orderBy("date", "desc")));
-    const blogPosts = blogPostsSnapshot.docs.map(doc => doc.data() as BlogPost);
+    const db = getAdminDb();
+    const blogPostsSnapshot = await db.collection("blogPosts").orderBy("date", "desc").get();
+    const blogPosts = blogPostsSnapshot.docs.map(doc => serializeDbData(doc.data()) as BlogPost);
     
     blogPostRoutes = blogPosts.map((post) => {
       let lastModifiedDate;
       if (post.date && typeof post.date === 'object' && 'toDate' in post.date) {
-          lastModifiedDate = (post.date as unknown as Timestamp).toDate();
+          lastModifiedDate = (post.date as any).toDate();
       } else if (typeof post.date === 'string') {
           lastModifiedDate = new Date(post.date);
       } else {
