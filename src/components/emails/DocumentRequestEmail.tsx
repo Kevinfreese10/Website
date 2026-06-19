@@ -108,7 +108,7 @@ export const DocumentRequestEmail = ({ order, items, reseller, replyTo }: Docume
                     We have received payment confirmation for your order <strong style={{color: '#214392'}}>#{order.id}</strong>.
                 </Text>
                 <Text style={paragraph}>
-                    To begin processing your request, please click the button below to log in to your dashboard and securely upload the required documents.
+                    To begin processing your request, please click the button below to log in to your dashboard and securely upload the required documents. We will contact you directly via the portal if there is any additional information we need.
                 </Text>
                 
                 <Button style={button} href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`}>
