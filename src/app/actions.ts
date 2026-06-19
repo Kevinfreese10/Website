@@ -1277,3 +1277,34 @@ export async function adminUpdateUserPasswordAction({ uid, password }: { uid: st
     return { success: false, error: error.code || 'error', message: error.message || 'Failed to update user password.' };
   }
 }
+
+export async function checkExistingUserByEmail(email: string) {
+  try {
+    const adminDb = getAdminDb();
+    const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
+    const cleanEmail = email.trim();
+    
+    for (const colName of collectionsToTry) {
+      const snap = await adminDb.collection(colName)
+        .where('email', 'in', [cleanEmail, cleanEmail.toLowerCase()])
+        .limit(1)
+        .get();
+        
+      if (!snap.empty) {
+        const userData = snap.docs[0].data();
+        const fullName = userData.name || userData.companyName || 'Existing Client';
+        return {
+          exists: true,
+          id: snap.docs[0].id,
+          name: fullName,
+          phone: userData.contactNumber || userData.cellNumber || userData.phone || ''
+        };
+      }
+    }
+    return { exists: false };
+  } catch (error: any) {
+    console.error("Error in checkExistingUserByEmail:", error);
+    return { exists: false, error: error.message || 'Failed to check existing user' };
+  }
+}
+

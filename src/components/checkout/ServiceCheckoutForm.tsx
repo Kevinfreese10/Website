@@ -13,7 +13,7 @@ import { firebaseApp } from '@/lib/firebase';
 import { getNextOrderId } from '@/lib/sequence';
 import { Checkbox } from '../ui/checkbox';
 import { Separator } from '../ui/separator';
-import { sendOrderConfirmationEmailAction } from '@/app/actions';
+import { sendOrderConfirmationEmailAction, checkExistingUserByEmail } from '@/app/actions';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Input } from '@/components/ui/input';
@@ -157,40 +157,21 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
         
         setIsCheckingUser(true);
         try {
-            const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
-            let found = false;
+            const result = await checkExistingUserByEmail(rawEmail);
+            
+            if (result.exists && result.id && result.name) {
+                setLinkedUser({ 
+                    name: result.name, 
+                    id: result.id 
+                });
 
-            for (const colName of collectionsToTry) {
-                const q = query(
-                    collection(db, colName), 
-                    or(
-                        where("email", "==", rawEmail),
-                        where("email", "==", rawEmail.toLowerCase())
-                    )
-                );
-                const snap = await getDocs(q);
-                
-                if (!snap.empty) {
-                    const userData = snap.docs[0].data();
-                    const fullName = userData.name || userData.companyName || 'Existing Client';
-                    
-                    setLinkedUser({ 
-                        name: fullName, 
-                        id: snap.docs[0].id 
-                    });
-
-                    // Auto-populate fields
-                    const nameParts = fullName.split(' ');
-                    form.setValue('firstName', nameParts[0] || '');
-                    form.setValue('lastName', nameParts.slice(1).join(' ') || '');
-                    form.setValue('phone', userData.contactNumber || userData.cellNumber || userData.phone || '');
-                    form.trigger();
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
+                // Auto-populate fields
+                const nameParts = result.name.split(' ');
+                form.setValue('firstName', nameParts[0] || '');
+                form.setValue('lastName', nameParts.slice(1).join(' ') || '');
+                form.setValue('phone', result.phone || '');
+                form.trigger();
+            } else {
                 setLinkedUser(null);
             }
         } catch (e) {
@@ -242,14 +223,15 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
 
         // Final verification check in case debounce didn't catch it
         if (!finalUserId) {
-            const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
-            for (const colName of collectionsToTry) {
-                const q = query(collection(db, colName), or(where("email", "==", email), where("email", "==", values.email.trim())));
-                const snap = await getDocs(q);
-                if (!snap.empty) {
-                    finalUserId = snap.docs[0].id;
-                    break;
-                }
+            const result = await checkExistingUserByEmail(values.email);
+            if (result.exists && result.id) {
+                toast({
+                    title: 'Account Exists',
+                    description: 'An account already exists with this email address. Please log in to your existing account to continue.',
+                    variant: 'destructive',
+                });
+                setIsLoading(false);
+                return;
             }
         }
 

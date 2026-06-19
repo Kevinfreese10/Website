@@ -8,6 +8,7 @@ import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWith
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import { isPast } from 'date-fns';
+import { checkExistingUserByEmail } from '@/app/actions';
 
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -132,9 +133,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!values.password) return 'Password is required.';
 
     try {
-        const q = query(collection(db, "users"), where("email", "==", values.email));
-        const existingUserSnapshot = await getDocs(q);
-        if (!existingUserSnapshot.empty) {
+        const checkResult = await checkExistingUserByEmail(values.email);
+        if (checkResult.exists) {
             return 'An account with this email already exists.';
         }
 
