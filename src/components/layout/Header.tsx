@@ -49,6 +49,7 @@ const navGroups = [
     label: 'Tax',
     href: '/products#sars-services',
     items: [
+      { label: 'Free Tax Refund Check', href: '/sars-tax-refund' },
       { label: 'Tax Compliance', href: '/compliance' },
       { label: 'SARS Compromises', href: '/sars-compromise' },
       { label: 'SARS Disputes', href: '/sars-disputes' },
