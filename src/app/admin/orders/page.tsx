@@ -330,7 +330,7 @@ export default function AdminOrdersPage() {
         
         await sendEmail({
             to: emailTo,
-            cc: 'kev@thinkestry.co.za',
+            cc: ['winifred@myacc.co.za', 'kev@thinkestry.co.za'],
             subject: subject,
             html: emailHtml,
             resellerId: orderToUpdate.resellerId,
