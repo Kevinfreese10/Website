@@ -3,10 +3,6 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  /* Generate a unique build ID based on timestamp to bust CDN and browser caches */
-  generateBuildId: async () => {
-    return `build-${new Date().getTime()}`;
-  },
   typescript: {
     ignoreBuildErrors: false,
   },

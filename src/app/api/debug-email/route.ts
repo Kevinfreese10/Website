@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         console.log("[debug-email] Sending test email...");
@@ -9,7 +11,7 @@ export async function GET() {
             subject: 'Debug test email from Cloud Run',
             html: '<p>If you see this, email sending works from Cloud Run!</p>'
         });
-        return NextResponse.json({ success: true, messageId: info.messageId });
+        return NextResponse.json({ success: true, messageId: info?.messageId });
     } catch (err: any) {
         console.error("[debug-email] Failed:", err);
         return NextResponse.json({ 
