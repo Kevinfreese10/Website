@@ -113,36 +113,42 @@ export async function notifyOfNewNote({
     isToClient: boolean,
     resellerId?: string 
     }) {
-    const safeRecipientName = recipientName || 'Client';
-    const safeSenderName = senderName || 'Admin';
-    let resellerName = 'My Accountant';
-    const adminDb = getAdminDb();
-    if (resellerId && isToClient) {
-        const resellerSnap = await adminDb.collection('users').doc(resellerId).get();
-        if (resellerSnap.exists) {
-            const resellerData = resellerSnap.data() as User;
-            resellerName = resellerData.companyName || resellerData.name;
+    // Wrapped entirely in try/catch — an email failure must never crash the calling action
+    try {
+        const safeRecipientName = recipientName || 'Client';
+        const safeSenderName = senderName || 'Admin';
+        let resellerName = 'My Accountant';
+        const adminDb = getAdminDb();
+        if (resellerId && isToClient) {
+            const resellerSnap = await adminDb.collection('users').doc(resellerId).get();
+            if (resellerSnap.exists) {
+                const resellerData = resellerSnap.data() as User;
+                resellerName = resellerData.companyName || resellerData.name;
+            }
         }
+
+        const emailHtml = await render(
+            React.createElement(NewNoteNotificationEmail, {
+                recipientName: safeRecipientName,
+                senderName: safeSenderName,
+                orderId,
+                notePreview,
+                actionUrl,
+                isToClient,
+                resellerName: isToClient ? `The ${resellerName} Team` : undefined
+            })
+        );
+
+        await sendEmail({
+            to: recipientEmail,
+            subject: `New Note on Order #${orderId}`,
+            html: emailHtml,
+            resellerId: resellerId,
+        });
+    } catch (err) {
+        console.error('[notifyOfNewNote] Failed to send note notification email:', err);
+        // Do not re-throw — the note save should still succeed
     }
-
-    const emailHtml = render(
-        React.createElement(NewNoteNotificationEmail, {
-            recipientName: safeRecipientName,
-            senderName: safeSenderName,
-            orderId,
-            notePreview,
-            actionUrl,
-            isToClient,
-            resellerName: isToClient ? `The ${resellerName} Team` : undefined
-        })
-    );
-
-    await sendEmail({
-        to: recipientEmail,
-        subject: `New Note on Order #${orderId}`,
-        html: emailHtml,
-        resellerId: resellerId,
-    });
 }
 
 export async function notifyStaffOfClientNote({
@@ -178,7 +184,7 @@ export async function notifyStaffOfClientNote({
             }
         }
 
-        const emailHtml = render(
+        const emailHtml = await render(
             React.createElement(NewNoteNotificationEmail, {
                 recipientName,
                 senderName: senderName || 'Client',
@@ -195,7 +201,8 @@ export async function notifyStaffOfClientNote({
             html: emailHtml,
         });
     } catch (err) {
-        console.error("[notifyStaffOfClientNote] Failed to send email:", err);
+        console.error('[notifyStaffOfClientNote] Failed to send email notification:', err);
+        // Do not re-throw — the note save should still succeed
     }
 }
 

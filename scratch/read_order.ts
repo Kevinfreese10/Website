@@ -11,12 +11,12 @@ async function readOrder() {
     const db = getAdminDb();
     console.log("Reading order 10009...");
     try {
-        const docSnap = await db.collection('orders').doc('10009').get();
+        const docSnap = await db.collection('debug').doc('env').get();
         if (docSnap.exists) {
-            console.log("Order found!");
+            console.log("Debug env found!");
             console.log(JSON.stringify(docSnap.data(), null, 2));
         } else {
-            console.log("Order 10009 NOT found in 'orders' collection!");
+            console.log("Debug doc NOT found!");
         }
     } catch (err) {
         console.error("Error reading order:", err);

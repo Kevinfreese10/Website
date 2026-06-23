@@ -8,100 +8,57 @@ function logInit(msg: string) {
 }
 
 export function getAdminApp() {
-  logInit(`getAdminApp called. Existing apps count: ${getApps().length}`);
-  if (getApps().length === 0) {
-    // 1. Check if a service account JSON string is provided in env
-    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-    if (serviceAccountJson) {
-      try {
-        logInit("Initializing using FIREBASE_SERVICE_ACCOUNT env var...");
-        const credentials = JSON.parse(serviceAccountJson);
-        const app = initializeApp({
-          credential: cert(credentials),
-          projectId: credentials.project_id || "studio-2604127518-57889"
-        });
-        logInit("Succeeded initializing using FIREBASE_SERVICE_ACCOUNT env var.");
-        return app;
-      } catch (e: any) {
-        logInit(`Failed to parse FIREBASE_SERVICE_ACCOUNT environment variable: ${e.message}`);
-      }
-    }
+  // If already initialized, return the existing app immediately
+  if (getApps().length > 0) {
+    return getApps()[0];
+  }
 
-    // 2. Check if a service account file path is provided in env
-    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-    if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
+  // 1. Prefer FIREBASE_SERVICE_ACCOUNT env var (JSON string)
+  //    Set this in Firebase App Hosting secrets for production.
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (serviceAccountJson) {
+    try {
+      logInit('Initializing using FIREBASE_SERVICE_ACCOUNT env var...');
+      const credentials = JSON.parse(serviceAccountJson);
+      const app = initializeApp({
+        credential: cert(credentials),
+        projectId: credentials.project_id || 'studio-2604127518-57889',
+      });
+      logInit('Succeeded initializing using FIREBASE_SERVICE_ACCOUNT env var.');
+      return app;
+    } catch (e: any) {
+      logInit(`Failed to parse FIREBASE_SERVICE_ACCOUNT: ${e.message}`);
+    }
+  }
+
+  // 2. Optionally accept a file path via env var (local dev — set in .env.local, never hardcoded)
+  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (serviceAccountPath) {
+    if (fs.existsSync(serviceAccountPath)) {
       try {
         logInit(`Initializing using FIREBASE_SERVICE_ACCOUNT_KEY path: ${serviceAccountPath}`);
         const credentials = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
         const app = initializeApp({
           credential: cert(credentials),
-          projectId: credentials.project_id || "studio-2604127518-57889"
+          projectId: credentials.project_id || 'studio-2604127518-57889',
         });
-        logInit("Succeeded initializing using FIREBASE_SERVICE_ACCOUNT_KEY.");
+        logInit('Succeeded initializing using FIREBASE_SERVICE_ACCOUNT_KEY.');
         return app;
       } catch (e: any) {
-        logInit(`Failed to load service account key from file path: ${e.message}`);
-      }
-    }
-
-    // 3. Fallback: search the Downloads folder for the correct service account key file
-    const downloadsPath = 'C:/Users/kev/Downloads';
-    if (fs.existsSync(downloadsPath)) {
-      try {
-        logInit("Searching Downloads folder for service account key...");
-        const files = fs.readdirSync(downloadsPath);
-        const keyFile = files.find(f => f.toLowerCase().includes('studio-2604127518-57889') && f.endsWith('.json'));
-        if (keyFile) {
-          const fullPath = `${downloadsPath}/${keyFile}`;
-          logInit(`Initializing using Downloads key file: ${fullPath}`);
-          const credentials = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-          const app = initializeApp({
-            credential: cert(credentials),
-            projectId: credentials.project_id || "studio-2604127518-57889"
-          });
-          logInit("Succeeded initializing using Downloads key file.");
-          return app;
-        } else {
-          logInit("No matching service account key JSON file found in Downloads.");
-        }
-      } catch (e: any) {
-        logInit(`Failed to search Downloads folder for service account key: ${e.message}`);
+        logInit(`Failed to load service account key from path: ${e.message}`);
       }
     } else {
-      logInit("Downloads path does not exist.");
+      logInit(`FIREBASE_SERVICE_ACCOUNT_KEY path does not exist: ${serviceAccountPath}`);
     }
-
-    // 4. Fallback to hardcoded path as last resort
-    const hardcodedPaths = [
-      'C:/Users/kev/Downloads/my-accountant-2-64964159-8c80f-firebase-adminsdk-fbsvc-bbe7506850.json'
-    ];
-    for (const p of hardcodedPaths) {
-      if (fs.existsSync(p)) {
-        try {
-          logInit(`Initializing using hardcoded fallback path: ${p}`);
-          const credentials = JSON.parse(fs.readFileSync(p, 'utf8'));
-          const app = initializeApp({
-            credential: cert(credentials),
-            projectId: credentials.project_id || "studio-2604127518-57889"
-          });
-          logInit("Succeeded initializing using hardcoded fallback path.");
-          return app;
-        } catch (e: any) {
-          logInit(`Failed to load service account key from fallback path ${p}: ${e.message}`);
-        }
-      }
-    }
-
-    // 5. Default initialization (works on GCP/App Hosting)
-    logInit("Falling back to default initialization (Application Default Credentials)...");
-    const app = initializeApp({
-      projectId: "studio-2604127518-57889"
-    });
-    logInit("Succeeded using default initialization.");
-    return app;
-  } else {
-    logInit(`Already initialized. Active app name: ${getApps()[0].name}`);
   }
+
+  // 3. Fall back to Application Default Credentials — automatically available on Firebase App Hosting / GCP
+  logInit('Falling back to Application Default Credentials (ADC)...');
+  const app = initializeApp({
+    projectId: 'studio-2604127518-57889',
+  });
+  logInit('Initialized with Application Default Credentials successfully.');
+  return app;
 }
 
 export function getAdminDb() {
@@ -142,9 +99,9 @@ export function serializeDbData(data: any): any {
 
 export async function getPartnerBySlug(slug: string) {
   const db = getAdminDb();
-  const snapshot = await db.collection("users")
-    .where("landingPage.enabled", "==", true)
-    .where("landingPage.slug", "==", slug)
+  const snapshot = await db.collection('users')
+    .where('landingPage.enabled', '==', true)
+    .where('landingPage.slug', '==', slug)
     .limit(1)
     .get();
 
@@ -161,7 +118,7 @@ export async function getPartnerBySlug(slug: string) {
 
 export async function getServices() {
   const db = getAdminDb();
-  const snapshot = await db.collection("services").orderBy("title").get();
+  const snapshot = await db.collection('services').orderBy('title').get();
   return snapshot.docs.map(doc => ({
     ...serializeDbData(doc.data()),
     id: doc.id
@@ -170,8 +127,8 @@ export async function getServices() {
 
 export async function getService(slug: string) {
   const db = getAdminDb();
-  const snapshot = await db.collection("services")
-    .where("slug", "==", slug)
+  const snapshot = await db.collection('services')
+    .where('slug', '==', slug)
     .limit(1)
     .get();
 
@@ -201,10 +158,9 @@ export async function getPartnerOverride(partnerId: string, serviceId: string) {
 
 export async function getCategories() {
   const db = getAdminDb();
-  const snapshot = await db.collection("categories").orderBy("order").get();
+  const snapshot = await db.collection('categories').orderBy('order').get();
   return snapshot.docs.map(doc => ({
     ...serializeDbData(doc.data()),
     id: doc.id
   } as any));
 }
-

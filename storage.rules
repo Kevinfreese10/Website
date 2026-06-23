@@ -50,10 +50,9 @@ service firebase.storage {
       allow read, write: if request.auth != null;
     }
 
-    // Invoices path: Accessible by any authenticated user for reading, and writeable by anyone (for server-side email/manual uploads)
+    // Invoices path: Accessible by authenticated users only
     match /invoices/{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }

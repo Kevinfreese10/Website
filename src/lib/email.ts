@@ -2,6 +2,7 @@
 
 import nodemailer from 'nodemailer';
 import { getAdminDb } from './firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { User } from './types';
 
 type EmailPayload = {
@@ -19,7 +20,25 @@ type EmailPayload = {
 }
 
 /**
- * Sends an email using global store credentials.
+ * Logs a failed email delivery to Firestore so admins can review it.
+ * Never throws — logging failures should not disrupt the caller.
+ */
+async function logEmailFailure(payload: { to: string | string[]; subject: string; error: string }) {
+    try {
+        const adminDb = getAdminDb();
+        await adminDb.collection('failedEmails').add({
+            to: Array.isArray(payload.to) ? payload.to.join(', ') : payload.to,
+            subject: payload.subject,
+            error: payload.error,
+            failedAt: FieldValue.serverTimestamp(),
+        });
+    } catch {
+        // Silently ignore — logging failures must never crash the caller
+    }
+}
+
+/**
+ * Sends an email with retry logic on transient failures.
  * Ensures white-labeling by adjusting 'From' name and 'Reply-To' based on resellerId.
  */
 export async function sendEmail({ 
@@ -48,12 +67,12 @@ export async function sendEmail({
     tls: {
       rejectUnauthorized: false
     },
-    connectionTimeout: 5000, // 5 seconds
-    greetingTimeout: 5000,   // 5 seconds
-    socketTimeout: 10000,    // 10 seconds
+    connectionTimeout: 15000, // 15 seconds — increased from 5s to handle slow SMTP servers
+    greetingTimeout: 15000,   // 15 seconds
+    socketTimeout: 30000,     // 30 seconds
   };
 
-  let fromName = fromNameOverride || "My Accountant";
+  let fromName = fromNameOverride || 'My Accountant';
   let fromEmail = process.env.SMTP_USER || 'no_reply@myacc.co.za';
   let finalBcc = Array.isArray(bcc) ? [...bcc] : (bcc ? [bcc] : []);
   let finalReplyTo = replyTo;
@@ -71,9 +90,9 @@ export async function sendEmail({
           tls: {
               rejectUnauthorized: false
           },
-          connectionTimeout: 5000,
-          greetingTimeout: 5000,
-          socketTimeout: 10000,
+          connectionTimeout: 15000,
+          greetingTimeout: 15000,
+          socketTimeout: 30000,
       };
       fromEmail = smtpOverride.user;
   }
@@ -117,27 +136,48 @@ export async function sendEmail({
   }
   
   if (!transportConfig.host || !transportConfig.auth.user || !transportConfig.auth.pass) {
-      console.error('Master SMTP configuration is missing.');
+      const errMsg = 'Master SMTP configuration is missing.';
+      console.error(errMsg);
+      await logEmailFailure({ to, subject, error: errMsg });
       throw new Error('Email server is not configured.');
   }
 
   const fromAddress = from || `"${fromName}" <${fromEmail}>`;
   const transporter = nodemailer.createTransport(transportConfig);
 
-  try {
-      const info = await transporter.sendMail({
-          from: fromAddress,
-          to: Array.isArray(to) ? to.join(', ') : to,
-          cc: Array.isArray(cc) ? cc.join(', ') : cc,
-          bcc: finalBcc.length > 0 ? finalBcc.join(', ') : undefined,
-          subject: subject,
-          html: html,
-          attachments: attachments,
-          replyTo: finalReplyTo,
-      });
-      return info;
-  } catch (error: any) {
-      console.error('Nodemailer Error:', error);
-      throw new Error(`SMTP Error: ${error.code || 'Unknown'} - ${error.message}`);
+  const mailOptions = {
+      from: fromAddress,
+      to: Array.isArray(to) ? to.join(', ') : to,
+      cc: Array.isArray(cc) ? cc.join(', ') : cc,
+      bcc: finalBcc.length > 0 ? finalBcc.join(', ') : undefined,
+      subject: subject,
+      html: html,
+      attachments: attachments,
+      replyTo: finalReplyTo,
+  };
+
+  // 4. Send with 1 retry on transient connection failures
+  const MAX_ATTEMPTS = 2;
+  let lastError: any;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+          const info = await transporter.sendMail(mailOptions);
+          return info;
+      } catch (error: any) {
+          lastError = error;
+          const isTransient = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ESOCKET'].includes(error.code);
+          console.error(`[Email] Attempt ${attempt}/${MAX_ATTEMPTS} failed (${error.code || 'unknown'}): ${error.message}`);
+          
+          if (!isTransient || attempt === MAX_ATTEMPTS) {
+              // Permanent failure or out of retries — log and throw
+              const errorMsg = `SMTP Error: ${error.code || 'Unknown'} - ${error.message}`;
+              await logEmailFailure({ to, subject, error: errorMsg });
+              throw new Error(errorMsg);
+          }
+
+          // Wait 2 seconds before retrying
+          await new Promise(resolve => setTimeout(resolve, 2000));
+      }
   }
 }

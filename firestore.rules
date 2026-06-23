@@ -83,7 +83,9 @@ service cloud.firestore {
     match /partnerClients/{clientId} {
       allow read: if isAuthenticated() && (
         isAdmin() ||
-        isPartnerOrStaff(resource.data.partnerId)
+        isPartnerOrStaff(resource.data.partnerId) ||
+        // Allow a client to read their own record from the client portal
+        request.auth.uid == clientId
       );
       allow create: if isAuthenticated() && (
         isAdmin() ||
@@ -118,8 +120,9 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
-        request.auth.token.email == resource.data.customerEmail ||
-        request.auth.token.email == resource.data.endCustomerEmail ||
+        request.auth.uid == resource.data.clientId ||
+        request.auth.token.email != null && request.auth.token.email.lower() == resource.data.customerEmail.lower() ||
+        request.auth.token.email != null && resource.data.endCustomerEmail != null && request.auth.token.email.lower() == resource.data.endCustomerEmail.lower() ||
         isAdmin() ||
         (resource != null && isPartnerStaffOf(resource.data.resellerId))
       );
@@ -132,8 +135,9 @@ service cloud.firestore {
         isAdmin() ||
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
-        request.auth.token.email == resource.data.customerEmail ||
-        request.auth.token.email == resource.data.endCustomerEmail ||
+        request.auth.uid == resource.data.clientId ||
+        request.auth.token.email != null && request.auth.token.email.lower() == resource.data.customerEmail.lower() ||
+        request.auth.token.email != null && resource.data.endCustomerEmail != null && request.auth.token.email.lower() == resource.data.endCustomerEmail.lower() ||
         (resource != null && isPartnerStaffOf(resource.data.resellerId))
       );
       allow delete: if isAdmin();
