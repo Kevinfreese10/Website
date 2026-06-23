@@ -180,11 +180,9 @@ service cloud.firestore {
     }
 
     // ─── Sequences ────────────────────────────────────────────────────────────
-    // Must allow public read/write: order generation runs in Next.js Server Actions
-    // during guest checkout before authentication is established.
-    // Note: this is an accepted risk — sequence values are non-sensitive order ID counters.
+    // Locked down: sequences are managed only on the server side using the Firebase Admin SDK.
     match /sequences/{sequenceId} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
 
     // ─── Discounts ───────────────────────────────────────────────────────────

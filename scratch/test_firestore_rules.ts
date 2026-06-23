@@ -126,9 +126,9 @@ async function runTests() {
 
   // --- Collection: sequences ---
   await assertRule(
-    "Guest can read and write sequences (order ID counter)",
+    "Guest cannot read or write sequences (order ID counter)",
     setDoc(doc(guestDb, 'sequences', 'orders'), { current: 9500 }),
-    true
+    false
   );
 
   // --- Collection: leads (demoLeads & cvLeads) ---

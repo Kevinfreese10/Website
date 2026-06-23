@@ -15,8 +15,7 @@ import { useState, useEffect } from 'react';
 import { getFirestore, doc, setDoc, Timestamp, collection, query, where, getDocs, serverTimestamp, or } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
-import { getNextOrderId } from '@/lib/sequence';
-import { checkExistingUserByEmail } from '@/app/actions';
+import { checkExistingUserByEmail, createCheckoutOrderAction } from '@/app/actions';
 import { Order } from '@/lib/types';
 import { customAlphabet } from 'nanoid';
 import { Separator } from '../ui/separator';
@@ -157,77 +156,57 @@ export default function CheckoutForm() {
     });
 
     try {
-        let finalUserId = (user?.role === 'client' ? user?.uid : null) || linkedUser?.id || null;
-        const email = values.email.toLowerCase().trim();
+        const finalUserId = (user?.role === 'client' ? user?.uid : null) || linkedUser?.id || null;
+        const items = cartItems.map(item => ({
+            id: item.service.id,
+            title: item.service.title,
+            price: item.service.price,
+            quantity: item.quantity
+        }));
 
-        // Final verification check in case debounce didn't catch it
-        if (!finalUserId) {
-            const result = await checkExistingUserByEmail(values.email);
-            if (result.exists && result.id) {
-                toast({
-                    title: 'Account Exists',
-                    description: 'An account already exists with this email address. Please log in to continue.',
-                    variant: 'destructive',
-                });
-                setIsLoading(false);
-                return;
-            }
+        const result = await createCheckoutOrderAction({
+            firstName: values.firstName,
+            lastName: values.lastName,
+            email: values.email,
+            phone: values.phone,
+            items,
+            total: cartTotal,
+            paymentMethod: 'PayFast',
+            userId: finalUserId,
+        });
+
+        if (!result.success) {
+            toast({
+                title: result.error === 'auth/email-already-in-use' ? 'Account Exists' : 'Order Failed',
+                description: result.message || 'There was a problem saving your order.',
+                variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
         }
 
-        let isNewUser = false;
-        let generatedPassword = null;
-
-        // Create account if truly new guest
-        if (!finalUserId) {
-            isNewUser = true;
-            generatedPassword = nanoid();
-            
+        // If it was a new user, log them in on the client side using the generated credentials
+        if (result.isNewUser && result.generatedPassword) {
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, values.email, generatedPassword);
-                finalUserId = userCredential.user.uid;
-
-                const userDocRef = doc(db, 'users', finalUserId);
-                await setDoc(userDocRef, {
-                    id: finalUserId,
-                    uid: finalUserId,
-                    name: `${values.firstName} ${values.lastName}`,
-                    email: values.email.toLowerCase().trim(),
-                    contactNumber: values.phone,
-                    role: 'client',
-                    source: 'Checkout',
-                    createdAt: serverTimestamp(),
-                });
-
+                const { signInWithEmailAndPassword } = await import('firebase/auth');
+                await signInWithEmailAndPassword(auth, values.email, result.generatedPassword);
                 if (auth.currentUser) {
                     await reauthenticate(auth.currentUser);
                 }
-            } catch (authError: any) {
-                if (authError.code === 'auth/email-already-in-use') {
-                    toast({
-                        title: 'Account Exists',
-                        description: 'An account already exists with this email address. Please log in to continue.',
-                        variant: 'destructive',
-                    });
-                    setIsLoading(false);
-                    return;
-                }
-                throw authError;
+            } catch (authError) {
+                console.error("Failed to sign in new user client-side:", authError);
             }
+        } else if (auth.currentUser) {
+            await reauthenticate(auth.currentUser);
         }
 
-        const orderId = await getNextOrderId();
         const orderData: Order = {
-            id: orderId,
-            userId: finalUserId,
+            id: result.orderId!,
+            userId: result.userId,
             customerName: `${values.firstName} ${values.lastName}`,
             customerEmail: values.email,
             customerPhone: values.phone,
-            items: cartItems.map(item => ({
-                id: item.service.id,
-                title: item.service.title,
-                price: item.service.price,
-                quantity: item.quantity
-            })),
+            items,
             total: cartTotal,
             discountCode: null,
             discountAmount: null,
@@ -236,8 +215,6 @@ export default function CheckoutForm() {
             source: 'Client',
         };
 
-        await setDoc(doc(db, 'orders', orderId), orderData);
-        
         clearCart();
         submitToPayFast(orderData);
 

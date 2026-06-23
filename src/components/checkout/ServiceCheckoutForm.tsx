@@ -10,10 +10,9 @@ import { Loader2, Mail, User as UserIcon, CheckCircle2, ShieldCheck, Lock, Refre
 import { getFirestore, doc, setDoc, Timestamp, getDoc, serverTimestamp, collection, query, where, getDocs, or } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
-import { getNextOrderId } from '@/lib/sequence';
 import { Checkbox } from '../ui/checkbox';
 import { Separator } from '../ui/separator';
-import { sendOrderConfirmationEmailAction, checkExistingUserByEmail } from '@/app/actions';
+import { sendOrderConfirmationEmailAction, checkExistingUserByEmail, createCheckoutOrderAction } from '@/app/actions';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Input } from '@/components/ui/input';
@@ -218,109 +217,45 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
     });
 
     try {
-        let finalUserId = (user?.role === 'client' ? user?.uid : null) || linkedUser?.id || null;
-        const email = values.email.toLowerCase().trim();
+        const finalUserId = (user?.role === 'client' ? user?.uid : null) || linkedUser?.id || null;
+        
+        const result = await createCheckoutOrderAction({
+            firstName: values.firstName,
+            lastName: values.lastName,
+            email: values.email,
+            phone: values.phone,
+            items: [{ id: service.id, title: service.title, price: service.price, quantity: 1 }],
+            total: service.price,
+            partnerId,
+            userId: finalUserId,
+        });
 
-        // Final verification check in case debounce didn't catch it
-        if (!finalUserId) {
-            const result = await checkExistingUserByEmail(values.email);
-            if (result.exists && result.id) {
-                toast({
-                    title: 'Account Exists',
-                    description: 'An account already exists with this email address. Please log in to your existing account to continue.',
-                    variant: 'destructive',
-                });
-                setIsLoading(false);
-                return;
-            }
+        if (!result.success) {
+            toast({
+                title: result.error === 'auth/email-already-in-use' ? 'Account Exists' : 'Order Failed',
+                description: result.message || 'There was a problem saving your order.',
+                variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
         }
 
-        let isNewUser = false;
-        let generatedPassword = null;
-
-        // 1. Create account if truly a new guest
-        if (!finalUserId) {
-            isNewUser = true;
-            generatedPassword = nanoid();
-            
+        // If it was a new user, log them in on the client side using the generated credentials
+        if (result.isNewUser && result.generatedPassword) {
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, values.email, generatedPassword);
-                finalUserId = userCredential.user.uid;
-
-                const userDocRef = doc(db, 'users', finalUserId);
-                await setDoc(userDocRef, {
-                    id: finalUserId,
-                    uid: finalUserId,
-                    name: `${values.firstName} ${values.lastName}`,
-                    email: values.email.toLowerCase().trim(),
-                    contactNumber: values.phone,
-                    role: 'client',
-                    source: partnerId ? 'Partner Landing Page' : 'Website',
-                    createdAt: serverTimestamp(),
-                });
-
+                const { signInWithEmailAndPassword } = await import('firebase/auth');
+                await signInWithEmailAndPassword(auth, values.email, result.generatedPassword);
                 if (auth.currentUser) {
                     await reauthenticate(auth.currentUser);
                 }
-            } catch (authError: any) {
-                if (authError.code === 'auth/email-already-in-use') {
-                    toast({
-                        title: 'Account Exists',
-                        description: 'An account already exists with this email address. Please log in to your existing account to continue.',
-                        variant: 'destructive',
-                    });
-                    setIsLoading(false);
-                    return;
-                }
-                throw authError;
+            } catch (authError) {
+                console.error("Failed to sign in new user client-side:", authError);
             }
+        } else if (auth.currentUser) {
+            await reauthenticate(auth.currentUser);
         }
 
-        let resellerData: User | undefined;
-        if (partnerId) {
-            const partnerSnap = await getDoc(doc(db, 'users', partnerId));
-            if (partnerSnap.exists()) {
-                resellerData = { ...partnerSnap.data(), id: partnerSnap.id } as User;
-            }
-        }
-
-        const orderId = await getNextOrderId();
-        const orderData: Order = {
-            id: orderId,
-            userId: finalUserId,
-            customerName: `${values.firstName} ${values.lastName}`,
-            customerEmail: values.email,
-            customerPhone: values.phone,
-            items: [{ id: service.id, title: service.title, price: service.price, quantity: 1 }],
-            total: service.price,
-            discountCode: null,
-            discountAmount: null,
-            paymentMethod: resellerData?.bankingDetails?.bankName ? 'EFT' : 'PayFast',
-            status: 'Pending Payment',
-            date: Timestamp.now(),
-            department: service.department || null,
-            source: partnerId ? 'Partner Landing Page' : 'Client',
-            ...(partnerId ? { resellerId: partnerId } : {}),
-        };
-
-        await setDoc(doc(db, 'orders', orderId), orderData);
-        
-        try {
-            const serializableOrder = JSON.parse(JSON.stringify(orderData));
-            const serializableReseller = resellerData ? JSON.parse(JSON.stringify(resellerData)) : undefined;
-
-            await sendOrderConfirmationEmailAction({
-                orderData: serializableOrder,
-                resellerData: serializableReseller,
-                isNewUser,
-                generatedPassword,
-                showPaymentButton: !resellerData?.bankingDetails?.bankName,
-            });
-        } catch (emailError) {
-            console.error("Non-blocking order email send error:", emailError);
-        }
-
-        router.push(`/order-confirmation/${orderId}`);
+        router.push(`/order-confirmation/${result.orderId}`);
 
     } catch (error: any) {
       console.error("Error creating order: ", error);
