@@ -267,17 +267,19 @@ export async function sendEmailReply(
       };
     }
 
+    const formattedReplyBody = replyBody.replace(/\r\n/g, '<br/>').replace(/\n/g, '<br/>');
+
     // Build reply HTML
     const replyHtml = `
-      <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
-        ${replyBody}
+      <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.5; white-space: pre-wrap;">
+        ${formattedReplyBody}
       </div>
       <br/>
       <hr style="border: none; border-top: 1px solid #ddd; margin: 16px 0;" />
       <div style="font-size: 12px; color: #888;">
         <p><strong>On ${email.date?.toDate?.()?.toLocaleString?.() || 'original date'}, ${email.from.name || email.from.email} wrote:</strong></p>
         <blockquote style="border-left: 2px solid #ddd; padding-left: 12px; margin-left: 0; color: #666;">
-          ${email.bodyHtml || email.bodyText?.replace(/\n/g, '<br/>') || ''}
+          ${email.bodyHtml || email.bodyText?.replace(/\r\n/g, '<br/>')?.replace(/\n/g, '<br/>') || ''}
         </blockquote>
       </div>
     `;
