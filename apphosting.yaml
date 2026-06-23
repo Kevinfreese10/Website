@@ -57,7 +57,12 @@ env:
       - BUILD
       - RUNTIME
   - variable: SMTP_PASS
-    value: "Thinkestry10$"
+    value: "_CJajo8NICcFY=9H"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_APP_URL
+    value: "https://www.myacc.co.za"
     availability:
       - BUILD
       - RUNTIME
