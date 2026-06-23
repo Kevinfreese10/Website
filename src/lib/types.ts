@@ -726,3 +726,63 @@ export type CommunityAnswer = {
   isCorrect: boolean;
 };
 
+// ─── Email Inbox Types ────────────────────────────────────────────────────
+
+export type EmailContact = {
+  name: string;
+  email: string;
+};
+
+export type EmailCategory =
+  | 'client_query'
+  | 'document_submission'
+  | 'payment_related'
+  | 'sars_correspondence'
+  | 'new_client_inquiry'
+  | 'complaint'
+  | 'partner_communication'
+  | 'spam_marketing'
+  | 'internal'
+  | 'urgent_deadline'
+  | 'other';
+
+export type EmailAttachment = {
+  filename: string;
+  contentType: string;
+  size: number;
+  storageUrl?: string;
+};
+
+export type Email = {
+  id: string;
+  messageId: string;
+  threadId?: string;
+  from: EmailContact;
+  to: EmailContact[];
+  cc?: EmailContact[];
+  subject: string;
+  bodyText: string;
+  bodyHtml?: string;
+  date: any; // Firestore Timestamp
+  receivedAt: any; // Firestore Timestamp
+  attachments: EmailAttachment[];
+  // AI-generated fields
+  aiSummary?: string;
+  aiCategory?: EmailCategory;
+  aiPriority?: 'urgent' | 'high' | 'medium' | 'low';
+  aiSentiment?: 'positive' | 'neutral' | 'negative' | 'angry';
+  aiActionItems?: string[];
+  aiDraftReply?: string;
+  aiDraftReplySubject?: string;
+  // Status fields
+  status: 'unread' | 'read' | 'replied' | 'archived' | 'snoozed';
+  isStarred: boolean;
+  assignedTo?: string;
+  linkedTaskId?: string;
+  linkedOrderId?: string;
+  linkedClientId?: string;
+  tags?: string[];
+  notes?: string;
+  snoozeUntil?: any; // Firestore Timestamp
+};
+

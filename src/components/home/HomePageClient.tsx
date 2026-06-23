@@ -1131,18 +1131,29 @@ export default function HomePageClient() {
             <p className="text-muted-foreground text-lg">Clear answers to common client queries.</p>
           </div>
           
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            {faqData.map((faq, idx) => (
-              <AccordionItem key={idx} value={`item-${idx}`} className="glass-card border border-white/[0.06] rounded-xl overflow-hidden px-6 hover:border-primary/15 transition-all duration-300">
-                <AccordionTrigger className="py-4 hover:no-underline hover:text-primary transition-colors text-left font-bold text-foreground">
-                  {faq.q}
-                </AccordionTrigger>
-                <AccordionContent className="pb-6 pt-2 text-muted-foreground leading-relaxed text-sm font-medium">
-                  {faq.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          {mounted ? (
+            <Accordion type="single" collapsible className="w-full space-y-4">
+              {faqData.map((faq, idx) => (
+                <AccordionItem key={idx} value={`item-${idx}`} className="glass-card border border-white/[0.06] rounded-xl overflow-hidden px-6 hover:border-primary/15 transition-all duration-300">
+                  <AccordionTrigger className="py-4 hover:no-underline hover:text-primary transition-colors text-left font-bold text-foreground">
+                    {faq.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-6 pt-2 text-muted-foreground leading-relaxed text-sm font-medium">
+                    {faq.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          ) : (
+            <div className="w-full space-y-4">
+              {faqData.map((faq, idx) => (
+                <div key={idx} className="glass-card border border-white/[0.06] rounded-xl overflow-hidden px-6 py-4">
+                  <div className="font-bold text-foreground">{faq.q}</div>
+                  <div className="mt-2 text-muted-foreground leading-relaxed text-sm font-medium">{faq.a}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

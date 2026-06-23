@@ -305,13 +305,20 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
 
         await setDoc(doc(db, 'orders', orderId), orderData);
         
-        await sendOrderConfirmationEmailAction({
-            orderData,
-            resellerData,
-            isNewUser,
-            generatedPassword,
-            showPaymentButton: !resellerData?.bankingDetails?.bankName,
-        });
+        try {
+            const serializableOrder = JSON.parse(JSON.stringify(orderData));
+            const serializableReseller = resellerData ? JSON.parse(JSON.stringify(resellerData)) : undefined;
+
+            await sendOrderConfirmationEmailAction({
+                orderData: serializableOrder,
+                resellerData: serializableReseller,
+                isNewUser,
+                generatedPassword,
+                showPaymentButton: !resellerData?.bankingDetails?.bankName,
+            });
+        } catch (emailError) {
+            console.error("Non-blocking order email send error:", emailError);
+        }
 
         router.push(`/order-confirmation/${orderId}`);
 

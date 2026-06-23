@@ -12,9 +12,7 @@ import Link from 'next/link';
 import { format, addDays } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { services as allServices } from '@/lib/data';
-import { render } from '@react-email/components';
-import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
-import { sendEmail } from '@/lib/email';
+import { sendDocumentRequestEmailAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 
 const db = getFirestore(firebaseApp);
@@ -84,49 +82,16 @@ export default function PaymentSuccessPage() {
                         const alreadyNotified = orderData.notes?.some(n => n.subject === `Action Required for Your Order #${orderId}`);
 
                         if (!alreadyNotified) {
-                            const itemsWithServices = orderData.items.map(item => {
-                                const service = allServices.find(s => s.id === item.id);
-                                return { ...item, service };
-                            }).filter(item => item.service) as { service: Service }[];
-
-                            const emailHtml = render(
-                                <DocumentRequestEmail 
-                                    order={orderData} 
-                                    items={itemsWithServices} 
-                                    reseller={resellerData}
-                                    replyTo={resellerData?.email || "info@myacc.co.za"} 
-                                />
-                            );
-                            
-                            const attachments = itemsWithServices
-                                .filter(item => item.service.attachmentUrl)
-                                .map(item => ({
-                                    filename: `${item.service.title.replace(/\s/g, '_')}.pdf`,
-                                    path: item.service.attachmentUrl!,
-                                }));
-                            
                             const recipientEmail = orderData.resellerId && orderData.documentContact === 'client' 
                                 ? orderData.endCustomerEmail 
                                 : orderData.customerEmail;
 
                             if (recipientEmail) {
                                 try {
-                                    await sendEmail({
-                                        to: recipientEmail,
-                                        subject: `Action Required for Your Order #${orderId}`,
-                                        html: emailHtml,
-                                        attachments: attachments,
-                                        resellerId: orderData.resellerId || undefined,
+                                    await sendDocumentRequestEmailAction({
+                                        orderId,
+                                        recipientEmail,
                                     });
-                                     const emailNote: OrderNote = {
-                                        text: `Sent "Request Documents" email to ${recipientEmail} (Payment Successful).`,
-                                        date: Timestamp.now(),
-                                        authorId: 'system',
-                                        type: 'email',
-                                        subject: `Action Required for Your Order #${orderId}`,
-                                        attachments: null,
-                                    };
-                                    await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
                                 } catch(e) {
                                      console.error("Failed to send document request email:", e);
                                      toast({ title: 'Email Failed', description: 'Could not notify client. Please check your SMTP settings.', variant: 'destructive'});

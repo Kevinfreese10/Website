@@ -47,7 +47,10 @@ export async function sendEmail({
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    connectionTimeout: 5000, // 5 seconds
+    greetingTimeout: 5000,   // 5 seconds
+    socketTimeout: 10000,    // 10 seconds
   };
 
   let fromName = fromNameOverride || "My Accountant";
@@ -67,7 +70,10 @@ export async function sendEmail({
           },
           tls: {
               rejectUnauthorized: false
-          }
+          },
+          connectionTimeout: 5000,
+          greetingTimeout: 5000,
+          socketTimeout: 10000,
       };
       fromEmail = smtpOverride.user;
   }

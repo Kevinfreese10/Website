@@ -22,6 +22,7 @@ import {
   Calculator,
   MessageSquare,
   UserPlus,
+  Mail,
 } from 'lucide-react';
 
 import {
@@ -89,6 +90,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
     { href: '/admin/clients', label: 'Manage Clients', icon: Briefcase, roles: ['admin'] },
     { href: '/admin/services', label: 'Manage Products', icon: Briefcase, roles: ['admin'] },
     { href: '/admin/social-marketing', label: 'Social Marketing', icon: Megaphone, roles: ['admin'] },
+    { href: '/admin/inbox', label: 'Email Inbox', icon: Mail, roles: ['admin'] },
   ];
   
   const settingsNavItems = [

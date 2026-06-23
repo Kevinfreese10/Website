@@ -11,6 +11,8 @@ import { DocumentReviewEmail } from '@/components/emails/DocumentReviewEmail';
 import { NewNoteNotificationEmail } from '@/components/emails/NewNoteNotificationEmail';
 import { OutstandingDocumentsEmail } from '@/components/emails/OutstandingDocumentsEmail';
 import { OrderConfirmationEmail } from '@/components/emails/OrderConfirmationEmail';
+import { DocumentRequestEmail } from '@/components/emails/DocumentRequestEmail';
+import { services as allServices } from '@/lib/data';
 import { format, addDays, addMonths, addYears, parse as parseDate } from 'date-fns';
 import { BankCleaner } from '@/lib/bank-cleaner';
 
@@ -1058,6 +1060,75 @@ export async function sendOrderConfirmationEmailAction({
     subject: `Order Confirmation #${orderData.id}`,
     html: emailHtml,
     resellerId: orderData.resellerId || undefined,
+  });
+}
+
+export async function sendDocumentRequestEmailAction({
+  orderId,
+  recipientEmail,
+}: {
+  orderId: string;
+  recipientEmail: string;
+}) {
+  const adminDb = getAdminDb();
+  const orderRef = adminDb.collection('orders').doc(orderId);
+  const orderSnap = await orderRef.get();
+  
+  if (!orderSnap.exists) {
+    throw new Error('Order not found');
+  }
+  
+  const orderData = { ...orderSnap.data(), id: orderSnap.id } as Order;
+  
+  // Fetch reseller details if it's a white-label order
+  let resellerData: User | undefined;
+  if (orderData.resellerId) {
+    const resellerSnap = await adminDb.collection('users').doc(orderData.resellerId).get();
+    if (resellerSnap.exists) {
+      resellerData = { ...resellerSnap.data(), id: resellerSnap.id } as User;
+    }
+  }
+
+  const itemsWithServices = orderData.items.map(item => {
+    const service = allServices.find(s => s.id === item.id);
+    return { ...item, service };
+  }).filter(item => item.service) as any[];
+
+  const emailHtml = render(
+    React.createElement(DocumentRequestEmail, {
+      order: orderData,
+      items: itemsWithServices,
+      reseller: resellerData,
+      replyTo: resellerData?.email || "info@myacc.co.za",
+    })
+  );
+
+  const attachments = itemsWithServices
+    .filter(item => item.service.attachmentUrl)
+    .map(item => ({
+      filename: `${item.service.title.replace(/\s/g, '_')}.pdf`,
+      path: item.service.attachmentUrl!,
+    }));
+
+  await sendEmail({
+    to: recipientEmail,
+    subject: `Action Required for Your Order #${orderId}`,
+    html: emailHtml,
+    attachments: attachments,
+    resellerId: orderData.resellerId || undefined,
+  });
+
+  const emailNote = {
+    text: `Sent "Request Documents" email to ${recipientEmail} (Payment Successful).`,
+    date: new Date(),
+    authorId: 'system',
+    type: 'email',
+    subject: `Action Required for Your Order #${orderId}`,
+    attachments: null,
+  };
+
+  await orderRef.update({
+    notes: FieldValue.arrayUnion(emailNote)
   });
 }
 

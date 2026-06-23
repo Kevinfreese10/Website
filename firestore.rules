@@ -15,6 +15,15 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function isAdminOrStaff() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'staff' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'cap_staff' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'cap_supervisor');
+    }
+
     /** True when the caller is an active staff member of the given partner */
     function isPartnerStaffOf(partnerId) {
       return isAuthenticated() &&
@@ -312,6 +321,15 @@ service cloud.firestore {
     match /knowledgeBase/{kbId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // ─── Email Inbox ──────────────────────────────────────────────────────
+    match /emails/{emailId} {
+      allow read, write: if isAdminOrStaff();
+    }
+
+    match /emailSettings/{settingId} {
+      allow read, write: if isAdminOrStaff();
     }
   }
 }

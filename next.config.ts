@@ -88,6 +88,11 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/about',
+        destination: '/',
+        permanent: true,
+      },
+      {
         source: '/og-image.jpg',
         destination: GLOBAL_OG_URL,
         permanent: true,

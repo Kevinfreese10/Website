@@ -370,14 +370,22 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
         await setDoc(doc(db, 'orders', orderId), orderData);
 
         if (isGrowthActive) {
-            await sendOrderConfirmationEmailAction({
-                orderData,
-                resellerData: partner,
-                isNewUser,
-                generatedPassword,
-            });
-
-            toast({ title: 'Order Created', description: `Client notified. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}` });
+            try {
+                await sendOrderConfirmationEmailAction({
+                    orderData: JSON.parse(JSON.stringify(orderData)),
+                    resellerData: partner ? JSON.parse(JSON.stringify(partner)) : undefined,
+                    isNewUser,
+                    generatedPassword,
+                });
+                toast({ title: 'Order Created', description: `Client notified. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}` });
+            } catch (emailError) {
+                console.error("Non-blocking order email send error:", emailError);
+                toast({
+                    title: 'Order Created (Email Failed)',
+                    description: `Order successfully saved, but confirmation email failed. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}`,
+                    variant: 'default'
+                });
+            }
             onOrderCreated();
         } else {
             // For Free Tier: Redirect immediately to PayFast!

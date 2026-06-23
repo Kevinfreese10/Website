@@ -279,14 +279,23 @@ export default function CreateOrderForm() {
 
         await setDoc(doc(db, 'orders', orderId), orderData);
         
-        await sendOrderConfirmationEmailAction({
-            orderData,
-            isNewUser,
-            generatedPassword,
-            showPaymentButton: true,
-        });
+        try {
+            await sendOrderConfirmationEmailAction({
+                orderData: JSON.parse(JSON.stringify(orderData)),
+                isNewUser,
+                generatedPassword,
+                showPaymentButton: true,
+            });
+            toast({ title: 'Order Created', description: `Client notified. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}` });
+        } catch (emailError) {
+            console.error("Non-blocking order email send error:", emailError);
+            toast({
+                title: 'Order Created (Email Failed)',
+                description: `Order successfully saved, but confirmation email failed. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}`,
+                variant: 'default'
+            });
+        }
 
-        toast({ title: 'Order Created', description: `Client notified. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}` });
         router.push('/admin/orders');
 
     } catch (error: any) {
