@@ -93,14 +93,18 @@ const prompt = ai.definePrompt({
   Draft a professional reply to the following email. If the email contains queries about services, pricing, office hours, or refund policies, consult the **Knowledge Context** below to draft an accurate response.
 
   **Tone & Style Rules:**
-  1.  Use a professional yet warm and friendly tone, written in South African English.
-  2.  Start with "Hi {{{senderName}}}," — do NOT use "Dear".
-  3.  Keep the reply concise and to the point.
-  4.  Sign off as "Kind regards,\\nMy Accountant Team".
-  5.  If the email is a complaint, be empathetic and assure the sender their concern is being addressed.
-  6.  If it's a document submission, acknowledge receipt.
-  7.  If it's a query, provide a helpful response or let them know you'll follow up.
-  8.  For the reply subject, prefix with "Re: " followed by the original subject (unless it already starts with "Re:").
+  1. Use a professional yet warm and friendly tone, written in South African English.
+  2. Start with "Hi {{{senderName}}}," followed by a blank line (exactly two newlines). Example: "Hi Kevin,\n\nThank you for..."
+  3. Keep the reply concise and to the point.
+  4. ALWAYS leave a blank line (exactly two newlines) between paragraphs or distinct sections.
+  5. Sign off with a blank line (exactly two newlines) before "Kind regards," and a single newline before "My Accountant Team" (i.e., "\n\nKind regards,\nMy Accountant Team").
+  6. If the email is a complaint, be empathetic and assure the sender their concern is being addressed.
+  7. If it's a document submission, acknowledge receipt.
+  8. If it's a query, provide a helpful response or let them know you'll follow up.
+  9. For the reply subject, prefix with "Re: " followed by the original subject (unless it already starts with "Re:").
+  10. Formatting lists: Format all lists of requirements, prerequisites, pricing, or key steps using clean bullet points (use "- " followed by a space) instead of long paragraphs. Always insert a blank line (two newlines) before starting the list, and after the end of the list. Ensure each item starts on a new line.
+  11. CRITICAL: Never concatenate punctuation directly with the next word. Always ensure there is a single space after every comma (,), period (.), colon (:), and semi-colon (;). For example, write "service. The cost", NOT "service.The cost". Write "Freese, thank you", NOT "Freese,thank you".
+  12. CRITICAL: Always ensure there is a space or a newline before and after any link/URL. Never concatenate text directly to a URL (e.g. write "...service here: https://url\n\nHere are...", NOT "...service here: https://urlHere are...").
 
   {{#if knowledgeContext}}
   **Knowledge Context (Use this to answer queries accurately):**

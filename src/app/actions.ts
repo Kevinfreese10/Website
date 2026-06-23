@@ -113,6 +113,8 @@ export async function notifyOfNewNote({
     isToClient: boolean,
     resellerId?: string 
     }) {
+    const safeRecipientName = recipientName || 'Client';
+    const safeSenderName = senderName || 'Admin';
     let resellerName = 'My Accountant';
     const adminDb = getAdminDb();
     if (resellerId && isToClient) {
@@ -125,8 +127,8 @@ export async function notifyOfNewNote({
 
     const emailHtml = render(
         React.createElement(NewNoteNotificationEmail, {
-            recipientName,
-            senderName,
+            recipientName: safeRecipientName,
+            senderName: safeSenderName,
             orderId,
             notePreview,
             actionUrl,
@@ -141,6 +143,60 @@ export async function notifyOfNewNote({
         html: emailHtml,
         resellerId: resellerId,
     });
+}
+
+export async function notifyStaffOfClientNote({
+    orderId,
+    senderName,
+    noteText,
+}: {
+    orderId: string,
+    senderName: string,
+    noteText: string,
+}) {
+    try {
+        const adminDb = getAdminDb();
+        const orderDoc = await adminDb.collection('orders').doc(orderId).get();
+        if (!orderDoc.exists) {
+            console.error(`[notifyStaffOfClientNote] Order not found: ${orderId}`);
+            return;
+        }
+        const order = orderDoc.data() as Order;
+
+        let recipientEmail = 'info@myacc.co.za';
+        let recipientName = 'Support Team';
+
+        if (order.assignedTo && order.assignedTo.length > 0) {
+            const assigneeId = order.assignedTo[0];
+            const staffSnap = await adminDb.collection('users').doc(assigneeId).get();
+            if (staffSnap.exists) {
+                const assignedStaffMember = staffSnap.data() as User;
+                if (assignedStaffMember && assignedStaffMember.email) {
+                    recipientEmail = assignedStaffMember.email;
+                    recipientName = assignedStaffMember.name || 'Staff Member';
+                }
+            }
+        }
+
+        const emailHtml = render(
+            React.createElement(NewNoteNotificationEmail, {
+                recipientName,
+                senderName: senderName || 'Client',
+                orderId: order.originalOrderId || orderId,
+                notePreview: noteText.substring(0, 150) + (noteText.length > 150 ? '...' : ''),
+                actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/admin/orders/${orderId}`,
+                isToClient: false
+            })
+        );
+
+        await sendEmail({
+            to: recipientEmail,
+            subject: `New Note on Order #${order.originalOrderId || orderId}`,
+            html: emailHtml,
+        });
+    } catch (err) {
+        console.error("[notifyStaffOfClientNote] Failed to send email:", err);
+    }
 }
 
 export async function sendOutstandingDocumentsReminder({ orderId, clientName, clientEmail, resellerId }: { orderId: string, clientName: string, clientEmail: string, resellerId?: string }) {

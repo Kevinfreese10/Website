@@ -168,10 +168,21 @@ function getInitials(name: string): string {
     .substring(0, 2);
 }
 
+function parseEmailDate(ts: any): Date {
+  if (!ts) return new Date();
+  if (typeof ts === 'string') return new Date(ts);
+  if (ts instanceof Date) return ts;
+  if (typeof ts.toDate === 'function') return ts.toDate();
+  if (typeof ts.seconds === 'number') return new Date(ts.seconds * 1000);
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return new Date();
+  return d;
+}
+
 function formatTimestamp(ts: any): string {
   if (!ts) return 'Just now';
   try {
-    const date = ts.toDate ? ts.toDate() : new Date(ts);
+    const date = parseEmailDate(ts);
     return formatDistanceToNow(date, { addSuffix: true });
   } catch {
     return 'Recently';
@@ -181,7 +192,7 @@ function formatTimestamp(ts: any): string {
 function formatDate(ts: any, fmt: string = 'dd MMM yyyy, HH:mm'): string {
   if (!ts) return '';
   try {
-    const date = ts.toDate ? ts.toDate() : new Date(ts);
+    const date = parseEmailDate(ts);
     return format(date, fmt);
   } catch {
     return '';
@@ -338,8 +349,8 @@ export default function AdminInboxPage() {
     return emails
       .filter((e) => e.threadId === selectedEmail.threadId)
       .sort((a, b) => {
-        const aDate = a.date ? new Date(a.date) : new Date(0);
-        const bDate = b.date ? new Date(b.date) : new Date(0);
+        const aDate = parseEmailDate(a.date);
+        const bDate = parseEmailDate(b.date);
         return aDate.getTime() - bDate.getTime(); // Oldest first
       });
   }, [emails, selectedEmail]);
@@ -535,9 +546,45 @@ export default function AdminInboxPage() {
     if (!selectedEmailId || !replyText.trim()) return;
     setIsSendingReply(true);
     try {
+      const selectedEmail = emails.find((e) => e.id === selectedEmailId);
       const result = await sendEmailReply(selectedEmailId, replyText, aiDraftSubject || undefined);
-      if (result.success) {
+      if (result.success && selectedEmail) {
         toast({ title: 'Reply Sent', description: 'Your reply has been sent successfully.' });
+        const threadId = selectedEmail.threadId || selectedEmail.id;
+        const newReplyObj = {
+          id: result.replyId || `temp-${Date.now()}`,
+          messageId: `<reply-${Date.now()}@myacc.co.za>`,
+          threadId,
+          from: {
+            name: 'My Accountant',
+            email: 'info@myacc.co.za',
+          },
+          to: [selectedEmail.from],
+          subject: aiDraftSubject || `Re: ${selectedEmail.subject}`,
+          bodyText: replyText,
+          bodyHtml: replyText.replace(/\n/g, '<br/>'),
+          date: new Date().toISOString(),
+          receivedAt: new Date().toISOString(),
+          attachments: [],
+          status: 'read' as const,
+          isStarred: false,
+        };
+
+        setEmails((prev) => {
+          const updated = prev.map((e) =>
+            e.id === selectedEmailId
+              ? { ...e, status: 'replied' as const, threadId, aiDraftReply: undefined, aiDraftReplySubject: undefined }
+              : e
+          );
+          return [newReplyObj, ...updated];
+        });
+
+        setDraftEdits((prev) => {
+          const next = { ...prev };
+          delete next[selectedEmailId];
+          return next;
+        });
+
         setReplyText('');
         setAiDraft('');
         setAiDraftSubject('');
@@ -550,7 +597,7 @@ export default function AdminInboxPage() {
     } finally {
       setIsSendingReply(false);
     }
-  }, [selectedEmailId, replyText, aiDraftSubject, toast]);
+  }, [selectedEmailId, replyText, aiDraftSubject, emails, toast]);
 
   const handleCopyDraft = useCallback(() => {
     if (replyText) {
@@ -795,19 +842,51 @@ export default function AdminInboxPage() {
       const result = await sendEmailReply(emailId, replyBody, replySubject);
       if (result.success) {
         toast({ title: 'Reply Sent', description: 'Your reply has been sent successfully.' });
-        // Update local state to show it was replied
-        setEmails((prev) =>
-          prev.map((email) =>
-            email.id === emailId ? { ...email, status: 'replied' as const } : email
-          )
-        );
+        
+        const originalEmail = emails.find((email) => email.id === emailId);
+        if (originalEmail) {
+          const threadId = originalEmail.threadId || originalEmail.id;
+          const newReplyObj = {
+            id: result.replyId || `temp-${Date.now()}`,
+            messageId: `<reply-${Date.now()}@myacc.co.za>`,
+            threadId,
+            from: {
+              name: 'My Accountant',
+              email: 'info@myacc.co.za',
+            },
+            to: [originalEmail.from],
+            subject: replySubject,
+            bodyText: replyBody,
+            bodyHtml: replyBody.replace(/\n/g, '<br/>'),
+            date: new Date().toISOString(),
+            receivedAt: new Date().toISOString(),
+            attachments: [],
+            status: 'read' as const,
+            isStarred: false,
+          };
+
+          setEmails((prev) => {
+            const updated = prev.map((email) =>
+              email.id === emailId
+                ? { ...email, status: 'replied' as const, threadId, aiDraftReply: undefined, aiDraftReplySubject: undefined }
+                : email
+            );
+            return [newReplyObj, ...updated];
+          });
+
+          setDraftEdits((prev) => {
+            const next = { ...prev };
+            delete next[emailId];
+            return next;
+          });
+        }
       } else {
         toast({ title: 'Send Failed', description: 'Could not send reply.', variant: 'destructive' });
       }
     } catch {
       toast({ title: 'Error', description: 'Failed to send reply.', variant: 'destructive' });
     }
-  }, [toast]);
+  }, [emails, toast]);
 
   // ─── Render ──────────────────────────────────────────────────────────
   if (!mounted) {

@@ -236,7 +236,7 @@ export async function sendEmailReply(
   emailId: string,
   replyBody: string,
   replySubject?: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; replyId?: string; error?: string }> {
   try {
     const adminDb = getAdminDb();
 
@@ -293,12 +293,46 @@ export async function sendEmailReply(
       smtpOverride,
     });
 
-    // Update status
-    await adminDb.collection('emails').doc(emailId).update({
-      status: 'replied',
-    });
+    const threadId = email.threadId || emailId;
 
-    return { success: true };
+    // Add new email doc for the sent reply
+    const replyDocData = {
+      messageId: `<reply-${Date.now()}@myacc.co.za>`,
+      threadId,
+      from: {
+        name: 'My Accountant',
+        email: smtpUser || process.env.SMTP_USER || 'info@myacc.co.za',
+      },
+      to: [email.from],
+      subject,
+      bodyText: replyBody,
+      bodyHtml: replyHtml,
+      date: FieldValue.serverTimestamp(),
+      receivedAt: FieldValue.serverTimestamp(),
+      attachments: [],
+      status: 'read' as const,
+      isStarred: false,
+    };
+
+    const replyRef = await adminDb.collection('emails').add(replyDocData);
+
+    // Update status and threadId of original email if not present, and clear AI draft fields
+    if (!email.threadId) {
+      await adminDb.collection('emails').doc(emailId).update({
+        status: 'replied',
+        threadId: emailId,
+        aiDraftReply: FieldValue.delete(),
+        aiDraftReplySubject: FieldValue.delete(),
+      });
+    } else {
+      await adminDb.collection('emails').doc(emailId).update({
+        status: 'replied',
+        aiDraftReply: FieldValue.delete(),
+        aiDraftReplySubject: FieldValue.delete(),
+      });
+    }
+
+    return { success: true, replyId: replyRef.id };
   } catch (error: any) {
     console.error('[sendEmailReply] Error:', error);
     return { success: false, error: error.message };

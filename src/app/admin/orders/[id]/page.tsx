@@ -216,19 +216,22 @@ export default function AdminOrderDetailsPage() {
       });
 
       const isOutsourced = !!order.resellerId;
+      const isToClient = !(isOutsourced && order.documentContact === 'partner');
       const emailTo = isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail;
-      const recipientName = isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName;
+      const recipientName = (isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName) || 'Client';
 
-      if (emailTo && recipientName) {
+      if (emailTo) {
           notifyOfNewNote({
               recipientEmail: emailTo,
               recipientName: recipientName,
-              senderName: currentUser.name,
+              senderName: currentUser.name || 'Admin',
               orderId: order.originalOrderId || order.id,
               notePreview: values.noteText.substring(0, 150) + (values.noteText.length > 150 ? '...' : ''),
-              actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`,
-              isToClient: true,
-              resellerId: order.resellerId
+              actionUrl: isToClient 
+                  ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`
+                  : `${process.env.NEXT_PUBLIC_APP_URL}/partner/orders/${order.id}`,
+              isToClient: isToClient,
+              resellerId: isToClient ? order.resellerId : undefined
           }).catch(err => console.error("Failed to send note notification:", err));
       }
 

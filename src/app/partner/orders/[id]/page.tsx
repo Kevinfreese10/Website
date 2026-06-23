@@ -197,14 +197,15 @@ export default function PartnerOrderDetailsPage() {
         notes: arrayUnion(newNote),
       });
 
-      const emailTo = order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail;
-      const recipientName = order.documentContact === 'client' ? order.endCustomerName : order.customerName;
+      const isToClient = order.documentContact === 'client';
+      const emailTo = isToClient ? order.endCustomerEmail : order.customerEmail;
+      const recipientName = (isToClient ? order.endCustomerName : order.customerName) || 'Client';
 
-      if (emailTo && recipientName) {
+      if (emailTo && emailTo !== currentUser.email) {
           notifyOfNewNote({
               recipientEmail: emailTo,
               recipientName: recipientName,
-              senderName: currentUser.name,
+              senderName: currentUser.name || 'Partner',
               orderId: order.originalOrderId || order.id,
               notePreview: values.noteText.substring(0, 150) + (values.noteText.length > 150 ? '...' : ''),
               actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`,
