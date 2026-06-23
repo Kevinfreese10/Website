@@ -6,27 +6,13 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { draftEmailReply } from '@/ai/flows/draft-email-reply';
 import { extractEmailActions } from '@/ai/flows/extract-email-actions';
 import type { Email } from '@/lib/types';
+import { syncEmailsInternal } from '@/lib/email-sync';
 
 // ─── 1. Sync Emails ──────────────────────────────────────────────────────────
 
 export async function syncEmails(): Promise<{ success: boolean; count?: number; error?: string }> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:9002';
-    const res = await fetch(`${baseUrl}/api/admin/email/sync`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-secret': process.env.ADMIN_SECRET || '',
-      },
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { success: false, error: data.error || 'Sync request failed' };
-    }
-
-    return { success: true, count: data.count };
+    return await syncEmailsInternal();
   } catch (error: any) {
     console.error('[syncEmails] Error:', error);
     return { success: false, error: error.message || 'Failed to sync emails' };
