@@ -19,6 +19,7 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar";
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const db = getFirestore(firebaseApp);
 
@@ -28,6 +29,9 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
   const [client, setClient] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const isClient = user?.role === 'client';
 
   useEffect(() => {
     if (clientId) {
@@ -53,12 +57,14 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap border-b pb-6">
         <div>
-          <Button variant="outline" size="sm" asChild className="mb-4">
-            <Link href="/dashboard/ai-payroll/clients">
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to Payroll Clients
-            </Link>
-          </Button>
+          {!isClient && (
+            <Button variant="outline" size="sm" asChild className="mb-4">
+              <Link href="/dashboard/ai-payroll/clients">
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Back to Payroll Clients
+              </Link>
+            </Button>
+          )}
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{client?.name || 'Loading...'}</h1>
           <p className="text-muted-foreground text-sm uppercase tracking-widest font-bold">AI Payroll Module</p>
         </div>
@@ -80,71 +86,105 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
         )}
       </div>
 
-      <Menubar className="w-full bg-card text-slate-700">
-        <MenubarMenu>
-          <MenubarTrigger asChild>
-            <Link href={`/dashboard/ai-payroll/${clientId}/dashboard`} className="cursor-pointer">Overview</Link>
-          </MenubarTrigger>
-        </MenubarMenu>
-        
-        <MenubarMenu>
-          <MenubarTrigger>Employees <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
-          <MenubarContent>
-            <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/employees`}>Employee List</Link></MenubarItem>
-            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Employee Contracts</MenubarItem>
-            <MenubarSeparator />
-            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Bulk Upload</MenubarItem>
-          </MenubarContent>
-        </MenubarMenu>
+      {isClient ? (
+        <Menubar className="w-full bg-card text-slate-700">
+          <MenubarMenu>
+            <MenubarTrigger asChild>
+              <Link href={`/dashboard/ai-payroll/${clientId}/dashboard`} className="cursor-pointer">Overview</Link>
+            </MenubarTrigger>
+          </MenubarMenu>
+          
+          <MenubarMenu>
+            <MenubarTrigger asChild>
+              <Link href={`/dashboard/ai-payroll/${clientId}/employees`} className="cursor-pointer">Employees</Link>
+            </MenubarTrigger>
+          </MenubarMenu>
 
-        <MenubarMenu>
-          <MenubarTrigger>Payroll <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
-          <MenubarContent>
-            <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/payslips`}>Payslip Generation</Link></MenubarItem>
-            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Batch Processing</MenubarItem>
-            <MenubarItem asChild>
-              <Link href={`/dashboard/ai-payroll/${clientId}/payment-file`} className="cursor-pointer">Payment Files (EFT)</Link>
-            </MenubarItem>
-          </MenubarContent>
-        </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger asChild>
+              <Link href={`/dashboard/ai-payroll/${clientId}/reports/emp201`} className="cursor-pointer">EMP201 Return</Link>
+            </MenubarTrigger>
+          </MenubarMenu>
 
-        <MenubarMenu>
-          <MenubarTrigger>Leave <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
-          <MenubarContent>
-            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Leave Tracker</MenubarItem>
-            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Annual Leave Cycle</MenubarItem>
-          </MenubarContent>
-        </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger asChild>
+              <Link href={`/dashboard/ai-payroll/${clientId}/reports/summary`} className="cursor-pointer">Payroll Summary</Link>
+            </MenubarTrigger>
+          </MenubarMenu>
 
-        <MenubarMenu>
-          <MenubarTrigger>Compliance <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
-          <MenubarContent>
-            <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/reports/emp201`}>EMP201 Return</Link></MenubarItem>
-            <MenubarItem onClick={showComingSoon} className="cursor-pointer">UIF Declaration</MenubarItem>
-            <MenubarItem onClick={showComingSoon} className="cursor-pointer">EMP501 Recon</MenubarItem>
-          </MenubarContent>
-        </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger asChild>
+              <Link href={`/dashboard/ai-payroll/${clientId}/reports/payslips`} className="cursor-pointer">Payslips Download</Link>
+            </MenubarTrigger>
+          </MenubarMenu>
+        </Menubar>
+      ) : (
+        <Menubar className="w-full bg-card text-slate-700">
+          <MenubarMenu>
+            <MenubarTrigger asChild>
+              <Link href={`/dashboard/ai-payroll/${clientId}/dashboard`} className="cursor-pointer">Overview</Link>
+            </MenubarTrigger>
+          </MenubarMenu>
+          
+          <MenubarMenu>
+            <MenubarTrigger>Employees <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/employees`}>Employee List</Link></MenubarItem>
+              <MenubarItem onClick={showComingSoon} className="cursor-pointer">Employee Contracts</MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem onClick={showComingSoon} className="cursor-pointer">Bulk Upload</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
 
-        <MenubarMenu>
-          <MenubarTrigger>Reports <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
-          <MenubarContent>
-            <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/reports/summary`}>Payroll Summary</Link></MenubarItem>
-            <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/reports/changes`}>Payroll Changes</Link></MenubarItem>
-            <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/reports/emp201`}>EMP201 Return</Link></MenubarItem>
-            <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/reports/payslips`}>Payslip Batch Download</Link></MenubarItem>
-          </MenubarContent>
-        </MenubarMenu>
+          <MenubarMenu>
+            <MenubarTrigger>Payroll <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/payslips`}>Payslip Generation</Link></MenubarItem>
+              <MenubarItem onClick={showComingSoon} className="cursor-pointer">Batch Processing</MenubarItem>
+              <MenubarItem asChild>
+                <Link href={`/dashboard/ai-payroll/${clientId}/payment-file`} className="cursor-pointer">Payment Files (EFT)</Link>
+              </MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
 
-        <MenubarMenu>
-          <MenubarTrigger>Settings <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
-          <MenubarContent>
-            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Payroll Cycles</MenubarItem>
-            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Allowances & Deductions</MenubarItem>
-            <MenubarSeparator />
-            <MenubarItem onClick={showComingSoon} className="cursor-pointer">Company Details</MenubarItem>
-          </MenubarContent>
-        </MenubarMenu>
-      </Menubar>
+          <MenubarMenu>
+            <MenubarTrigger>Leave <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem onClick={showComingSoon} className="cursor-pointer">Leave Tracker</MenubarItem>
+              <MenubarItem onClick={showComingSoon} className="cursor-pointer">Annual Leave Cycle</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+
+          <MenubarMenu>
+            <MenubarTrigger>Compliance <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/reports/emp201`}>EMP201 Return</Link></MenubarItem>
+              <MenubarItem onClick={showComingSoon} className="cursor-pointer">UIF Declaration</MenubarItem>
+              <MenubarItem onClick={showComingSoon} className="cursor-pointer">EMP501 Recon</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+
+          <MenubarMenu>
+            <MenubarTrigger>Reports <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/reports/summary`}>Payroll Summary</Link></MenubarItem>
+              <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/reports/changes`}>Payroll Changes</Link></MenubarItem>
+              <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/reports/emp201`}>EMP201 Return</Link></MenubarItem>
+              <MenubarItem asChild><Link href={`/dashboard/ai-payroll/${clientId}/reports/payslips`}>Payslip Batch Download</Link></MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+
+          <MenubarMenu>
+            <MenubarTrigger>Settings <ChevronDown className="h-4 w-4 ml-1" /></MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem onClick={showComingSoon} className="cursor-pointer">Payroll Cycles</MenubarItem>
+              <MenubarItem onClick={showComingSoon} className="cursor-pointer">Allowances & Deductions</MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem onClick={showComingSoon} className="cursor-pointer">Company Details</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+        </Menubar>
+      )}
 
       <main>{children}</main>
     </div>

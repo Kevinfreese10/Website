@@ -359,6 +359,19 @@ export default function ClientOrderDetailsPage() {
                         <div className="text-sm text-muted-foreground">
                         <span>Date: {format(new Date(order.date), 'dd MMMM yyyy')}</span> | <span>Status: </span><Badge variant={getStatusVariant(order.status)}>{(order.status as any) === 'Outsourced' ? 'Processing' : order.status}</Badge>
                         </div>
+                        {order.status === 'Pending Payment' && (
+                            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <p className="font-semibold text-amber-800">Awaiting Payment</p>
+                                    <p className="text-sm text-amber-700">This order will only be processed once payment is received.</p>
+                                </div>
+                                <Button asChild variant="default">
+                                    <Link href={`/order-confirmation/${order.id}`}>
+                                        Complete Payment
+                                    </Link>
+                                </Button>
+                            </div>
+                        )}
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {orderedItemsWithServices.map((item, index) => (

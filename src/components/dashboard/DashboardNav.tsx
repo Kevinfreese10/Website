@@ -75,6 +75,9 @@ export default function DashboardNav({ user }: { user: UserType }) {
   const navItems = [
      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['client'] },
      { href: '/dashboard/orders', label: 'My Orders', icon: ShieldCheck, roles: ['client'] },
+     ...(user.payrollClientId ? [
+       { href: `/dashboard/ai-payroll/${user.payrollClientId}/dashboard`, label: 'Payroll Portal', icon: Users, roles: ['client'] }
+     ] : []),
      { href: '/dashboard/profile', label: 'My Profile', icon: User, roles: ['client'] },
   ];
 

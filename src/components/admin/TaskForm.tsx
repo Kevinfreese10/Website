@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
@@ -20,7 +21,21 @@ import { Separator } from '@/components/ui/separator';
 
 const taskRecurrences = ['None', 'Daily', 'Weekly', 'Monthly', 'Bi-Monthly', 'Semi-Annually', 'Annually'] as const;
 
-const formSchema = z.object({
+export const taskTypes: Record<string, string> = {
+    'VAT201': 'VAT Submission (VAT201)',
+    'EMP201': 'Monthly PAYE (EMP201)',
+    'PAYROLL': 'Payroll Preparation',
+    'MGMT': 'Management Accounts',
+    'AFS': 'Annual Financial Statements',
+    'ITR': 'Income Tax Return (ITR14)',
+    'ITR12T': 'Trust Tax Return (ITR12T)',
+    'ITR12': 'Income Tax Return (ITR12)',
+    'IRP6': 'Provisional Tax (IRP6)',
+};
+
+const taskPriorities = ['Low', 'Medium', 'High'] as const;
+
+export const formSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(5, 'Title is required.'),
   description: z.string().min(10, 'Description is required.'),
@@ -28,11 +43,13 @@ const formSchema = z.object({
   tags: z.array(z.string()).optional(),
   dueDate: z.date({ required_error: 'A due date is required.'}),
   recurrence: z.enum(taskRecurrences).optional(),
+  type: z.string().optional(),
+  priority: z.enum(taskPriorities).optional(),
   orderId: z.string().optional(),
   newComment: z.string().optional(),
 });
 
-type TaskFormValues = z.infer<typeof formSchema>;
+export type TaskFormValues = z.infer<typeof formSchema>;
 
 export default function TaskForm({ 
     task, 
@@ -40,16 +57,19 @@ export default function TaskForm({
     onCancel, 
     onCommentSubmit, 
     allStaff, 
-    staffByDept 
+    staffByDept,
+    isSubmitting
 }: { 
     task: Partial<Task> | null, 
     onSubmit: (data: any) => void, 
     onCancel: () => void, 
     onCommentSubmit: (taskId: string, commentText: string) => void, 
     allStaff: User[], 
-    staffByDept: Record<string, User[]> 
+    staffByDept: Record<string, User[]>,
+    isSubmitting?: boolean
 }) {
     const { user } = useAuth();
+    const [isCommenting, setIsCommenting] = useState(false);
 
     const getTaskDate = (task: Partial<Task>): Date => {
       if (!task?.dueDate) return new Date();
@@ -72,6 +92,8 @@ export default function TaskForm({
             tags: task?.tags || [],
             dueDate: getTaskDate(task || {}),
             recurrence: task?.recurrence || 'None',
+            type: task?.type || '',
+            priority: (task?.priority as any) || 'Medium',
             orderId: task?.orderId || '',
             newComment: '',
         },
@@ -81,12 +103,17 @@ export default function TaskForm({
         onSubmit(values);
     };
     
-    const handleCommentSubmit = () => {
+    const handleCommentSubmit = async () => {
         if (!task || !task.id) return;
         const commentText = form.getValues('newComment');
         if (commentText) {
-            onCommentSubmit(task.id, commentText);
-            form.setValue('newComment', '');
+            setIsCommenting(true);
+            try {
+                await onCommentSubmit(task.id, commentText);
+                form.setValue('newComment', '');
+            } finally {
+                setIsCommenting(false);
+            }
         }
     };
     
@@ -99,6 +126,11 @@ export default function TaskForm({
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1 pr-4">
                 <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="type" render={({ field }) => (<FormItem><FormLabel>Task Type</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger></FormControl><SelectContent>{Object.entries(taskTypes).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="priority" render={({ field }) => (<FormItem><FormLabel>Priority</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select priority..." /></SelectTrigger></FormControl><SelectContent>{taskPriorities.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
@@ -313,14 +345,18 @@ export default function TaskForm({
                                     <FormMessage />
                                 </FormItem>
                             )}/>
-                            <Button type="button" size="sm" onClick={handleCommentSubmit}>Post Comment</Button>
+                            <Button type="button" size="sm" onClick={handleCommentSubmit} disabled={isCommenting}>
+                                {isCommenting ? 'Posting...' : 'Post Comment'}
+                            </Button>
                         </div>
                     </>
                 )}
 
                 <div className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-                    <Button type="submit">Save Task</Button>
+                    <Button type="button" variant="ghost" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? 'Saving...' : 'Save Task'}
+                    </Button>
                 </div>
             </form>
         </Form>

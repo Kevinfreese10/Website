@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { getFirestore, doc, collection, onSnapshot } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -11,12 +11,21 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Download, Landmark, Users, CreditCard, CheckCircle2, AlertTriangle, ChevronRight, FileSpreadsheet } from 'lucide-react';
 import { Employee, Payslip, User } from '@/lib/types';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 const db = getFirestore(firebaseApp);
 
 export default function PaymentExportPage() {
     const params = useParams();
+    const router = useRouter();
     const clientId = params.clientId as string;
+    const { user } = useAuth();
+
+    useEffect(() => {
+        if (user?.role === 'client') {
+            router.replace(`/dashboard/ai-payroll/${clientId}/dashboard`);
+        }
+    }, [user, clientId, router]);
 
     const [client, setClient] = useState<User | null>(null);
     const [employees, setEmployees] = useState<Employee[]>([]);

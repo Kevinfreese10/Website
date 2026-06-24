@@ -10,12 +10,15 @@ import { Users, Banknote, CalendarCheck, TrendingUp, Loader2, UserPlus, ArrowRig
 import { Employee, Payslip, User } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import CommunicationHistory from '@/components/payroll/CommunicationHistory';
 
 const db = getFirestore(firebaseApp);
 
 export default function PayrollDashboardPage() {
   const params = useParams();
   const clientId = params.clientId as string;
+  const { user } = useAuth();
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [payslips, setPayslips] = useState<Payslip[]>([]);
@@ -192,6 +195,12 @@ export default function PayrollDashboardPage() {
             </CardFooter>
         </Card>
       </div>
+
+      {client && user && (
+        <div className="mt-6">
+          <CommunicationHistory clientId={clientId} currentUser={user} />
+        </div>
+      )}
     </div>
   );
 }

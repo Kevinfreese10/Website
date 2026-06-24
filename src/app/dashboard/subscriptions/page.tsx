@@ -95,6 +95,7 @@ export default function SubscriptionsPage() {
                 date: Timestamp.now(),
                 source: 'AI Accountant Signup',
                 renewalForClientId: user.uid,
+                originalOrderId: null,
             };
             
             await setDoc(doc(db, 'orders', orderId), orderData);

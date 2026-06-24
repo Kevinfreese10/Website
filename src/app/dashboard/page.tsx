@@ -1,5 +1,6 @@
 'use client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Order, User, OrderNote } from '@/lib/types';
 import { useState, useEffect, useMemo } from 'react';
@@ -29,7 +30,14 @@ const getUserColor = (userId: string) => {
 
 export default function DashboardPage() {
     const { user, updateUser } = useAuth();
+    const router = useRouter();
     const [orders, setOrders] = useState<Order[]>([]);
+
+    useEffect(() => {
+        if (user && user.role === 'client' && user.clientSource === 'ai_payroll' && user.payrollClientId) {
+            router.push(`/dashboard/ai-payroll/${user.payrollClientId}/dashboard`);
+        }
+    }, [user, router]);
     const [allStaff, setAllStaff] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [archivedNotifications, setArchivedNotifications] = useState<string[]>([]);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calculator, Loader2, FileText, ReceiptText, CheckCircle2, AlertCircle, ArrowRightLeft, CalendarClock, ChevronRight, RotateCcw, History, Filter, Eye, Download, Search } from 'lucide-react';
@@ -21,13 +21,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PayrollService } from '@/services/PayrollService';
 import PayslipDownloadButton from '@/components/pdf/PayslipDownloadButton';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/contexts/AuthContext';
 
 const db = getFirestore(firebaseApp);
 
 export default function PayslipsPage() {
   const params = useParams();
+  const router = useRouter();
   const clientId = params.clientId as string;
   const { toast } = useToast();
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    if (user?.role === 'client') {
+      router.replace(`/dashboard/ai-payroll/${clientId}/dashboard`);
+    }
+  }, [user, clientId, router]);
   
   const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);

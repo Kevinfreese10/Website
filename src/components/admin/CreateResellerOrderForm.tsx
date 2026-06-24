@@ -202,6 +202,7 @@ export default function CreateOrderForm() {
         assignedTo: null,
         notes: [confirmationNote],
         source: 'Staff',
+        originalOrderId: null,
       };
 
       await setDoc(doc(db, 'orders', orderId), orderData);

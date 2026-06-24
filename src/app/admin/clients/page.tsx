@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, PlusCircle, Loader2, RotateCw, Search, Users, DollarSign, TrendingUp, HeartPulse, CheckCircle2, AlertOctagon, SlidersHorizontal, Eye, X, Edit, Calendar } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, RotateCw, Search, Users, DollarSign, TrendingUp, HeartPulse, CheckCircle2, AlertOctagon, SlidersHorizontal, Eye, X, Edit, Calendar, Building2, Landmark, CircleUser } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -40,9 +40,19 @@ const getTaskDate = (task: Task): Date => {
   return new Date(task.dueDate);
 };
 
+const entityTypes = [
+    { value: 'Company' as const, label: 'Company', icon: Building2, desc: 'PTY Ltd, CC, Inc' },
+    { value: 'Trust' as const, label: 'Trust', icon: Landmark, desc: 'Family, Business, Special' },
+    { value: 'Individual' as const, label: 'Individual', icon: CircleUser, desc: 'Sole Proprietor, Person' },
+];
+
 const clientFormSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(2, 'Company name is required.'),
+  entityType: z.enum(['Company', 'Trust', 'Individual'], { required_error: 'Please select a client type.' }),
+  name: z.string().min(2, 'Client name is required.'),
+  contactPerson: z.string().optional(),
+  contactEmail: z.string().email('Invalid email address.').optional().or(z.literal('')),
+  contactNumber: z.string().optional(),
   status: z.enum(['Active', 'Inactive', 'Archived']).default('Active'),
   yearEnd: z.string().min(1, 'Financial year end is required.'),
   monthlyRetainerFee: z.preprocess(val => Number(val) || 0, z.number().min(0).optional()),
@@ -65,7 +75,11 @@ function ClientForm({ client, onSubmit, onCancel }: { client: User | null, onSub
         resolver: zodResolver(clientFormSchema),
         defaultValues: {
             id: client?.id || '',
+            entityType: (client?.entityType as any) || undefined,
             name: client?.name || '',
+            contactPerson: client?.contactPerson || '',
+            contactEmail: client?.contactEmail || '',
+            contactNumber: client?.contactNumber || '',
             status: (client?.status as any) || 'Active',
             yearEnd: client?.yearEnd || 'February',
             monthlyRetainerFee: client?.monthlyRetainerFee || 0,
@@ -82,128 +96,204 @@ function ClientForm({ client, onSubmit, onCancel }: { client: User | null, onSub
         },
     });
 
+    const entityType = form.watch('entityType');
     const isVatRegistered = form.watch('isVatRegistered');
     const preparesPayroll = form.watch('preparesPayroll');
     const preparesManagementAccounts = form.watch('preparesManagementAccounts');
 
+    const isIndividual = entityType === 'Individual';
+    const isTrustOrIndividual = entityType === 'Trust' || entityType === 'Individual';
+
+    // Lock year-end and clear inapplicable toggles when entity type changes
+    useEffect(() => {
+        if (isTrustOrIndividual) {
+            form.setValue('yearEnd', 'February');
+        }
+        if (isIndividual) {
+            form.setValue('submitsEmp201', false);
+            form.setValue('preparesPayroll', false);
+            form.setValue('preparesManagementAccounts', false);
+            form.setValue('preparesFinancials', false);
+        }
+    }, [entityType]);
+
+    const nameLabel = entityType === 'Trust' ? 'Trust Name' : entityType === 'Individual' ? 'Full Name' : 'Company Name';
+    const namePlaceholder = entityType === 'Trust' ? 'e.g. Smith Family Trust' : entityType === 'Individual' ? 'e.g. John Smith' : 'e.g. Acme Corp (Pty) Ltd';
+    const itrLabel = entityType === 'Trust' ? 'Trust Tax Return (ITR12T)' : entityType === 'Individual' ? 'Income Tax Return (ITR12)' : 'Income Tax Return (ITR14)';
+    const itrDesc = entityType === 'Company' ? 'Due 12 months after Financial Year End.' : 'Due 31 October (filing season).';
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[75vh] overflow-y-auto p-1 pr-4">
-                <div className="space-y-4">
-                    <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="e.g. Acme Corp (Pty) Ltd" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="status" render={({ field }) => ( <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{['Active', 'Inactive', 'Archived'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                        <FormField control={form.control} name="yearEnd" render={({ field }) => ( <FormItem><FormLabel>Financial Year End</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a month" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></FormItem>)} />
-                    </div>
-                    <FormField control={form.control} name="monthlyRetainerFee" render={({ field }) => ( <FormItem><FormLabel>Monthly Retainer Fee (R)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Compliance Roadmap Automation</h3>
-                    <p className="text-xs text-muted-foreground">The system will automatically generate the next upcoming task for each enabled service.</p>
-                    
-                    <div className="space-y-3">
-                        <FormField
-                            control={form.control}
-                            name="isVatRegistered"
-                            render={({ field }) => (
-                                <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                    <div className="space-y-0.5"><FormLabel className="text-sm">VAT Submissions (VAT201)</FormLabel></div>
-                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                </FormItem>
-                            )}
-                        />
-                        {isVatRegistered && (
-                            <div className="pl-4 animate-in fade-in slide-in-from-top-2">
-                                <FormField control={form.control} name="vatCategory" render={({ field }) => ( 
-                                    <FormItem>
-                                        <FormLabel className="text-xs">VAT Category</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select category..." /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {vatCategories.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )} />
-                            </div>
-                        )}
-
-                        <FormField control={form.control} name="submitsEmp201" render={({ field }) => ( 
-                            <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <div className="space-y-0.5"><FormLabel className="text-sm">Monthly PAYE (EMP201)</FormLabel></div>
-                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            </FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="preparesPayroll" render={({ field }) => ( 
-                            <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <div className="space-y-0.5"><FormLabel className="text-sm">Monthly Payroll Preparation</FormLabel></div>
-                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            </FormItem>
-                        )} />
-                        {preparesPayroll && (
-                            <div className="pl-4 animate-in fade-in slide-in-from-top-2">
-                                <FormField control={form.control} name="payrollDay" render={({ field }) => ( 
-                                    <FormItem>
-                                        <FormLabel className="text-xs">Payroll Day of Month</FormLabel>
-                                        <FormControl><Input type="number" min="1" max="31" {...field} className="h-8 text-xs w-24" /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                            </div>
-                        )}
-
-                        <FormField control={form.control} name="preparesManagementAccounts" render={({ field }) => ( 
-                            <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <div className="space-y-0.5"><FormLabel className="text-sm">Monthly Management Accounts</FormLabel></div>
-                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            </FormItem>
-                        )} />
-                        {preparesManagementAccounts && (
-                            <div className="pl-4 animate-in fade-in slide-in-from-top-2">
-                                <FormField control={form.control} name="managementAccountsDay" render={({ field }) => ( 
-                                    <FormItem>
-                                        <FormLabel className="text-xs">Reporting Day of Month</FormLabel>
-                                        <FormControl><Input type="number" min="1" max="31" {...field} className="h-8 text-xs w-24" /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                            </div>
-                        )}
-
-                        <FormField control={form.control} name="submitsProvisionalTax" render={({ field }) => ( 
-                            <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <div className="space-y-0.5"><FormLabel className="text-sm">Provisional Tax (IRP6)</FormLabel></div>
-                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            </FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="submitsIncomeTax" render={({ field }) => ( 
-                            <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <div className="space-y-0.5">
-                                    <FormLabel className="text-sm">Annual Income Tax Return (ITR14)</FormLabel>
-                                    <p className="text-[10px] text-muted-foreground">Due 12 months after Financial Year End.</p>
+                {/* Entity Type Selector */}
+                <div className="space-y-2">
+                    <FormField control={form.control} name="entityType" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-sm font-bold">Client Type</FormLabel>
+                            <FormControl>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {entityTypes.map(type => (
+                                        <button
+                                            key={type.value}
+                                            type="button"
+                                            onClick={() => field.onChange(type.value)}
+                                            className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                                                field.value === type.value 
+                                                    ? 'border-primary bg-primary/5 shadow-sm' 
+                                                    : 'border-slate-200 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <type.icon className={`h-6 w-6 ${field.value === type.value ? 'text-primary' : 'text-slate-400'}`} />
+                                            <span className={`text-sm font-bold ${field.value === type.value ? 'text-primary' : 'text-slate-600'}`}>{type.label}</span>
+                                            <span className="text-[10px] text-slate-400">{type.desc}</span>
+                                        </button>
+                                    ))}
                                 </div>
-                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            </FormItem>
-                        )} />
-
-                        <FormField control={form.control} name="preparesFinancials" render={({ field }) => ( 
-                            <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <div className="space-y-0.5"><FormLabel className="text-sm">Annual Financial Statements</FormLabel></div>
-                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            </FormItem>
-                        )} />
-                    </div>
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-                    <Button type="submit">Save & Update Roadmap</Button>
-                </div>
+                {entityType && (
+                    <>
+                        {/* Client Details */}
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                            <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>{nameLabel}</FormLabel><FormControl><Input placeholder={namePlaceholder} {...field} /></FormControl><FormMessage /></FormItem>)} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="status" render={({ field }) => ( <FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{['Active', 'Inactive', 'Archived'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></FormItem>)} />
+                                <FormField control={form.control} name="yearEnd" render={({ field }) => ( <FormItem><FormLabel>Financial Year End</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={isTrustOrIndividual}><FormControl><SelectTrigger><SelectValue placeholder="Select a month" /></SelectTrigger></FormControl><SelectContent>{months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select>{isTrustOrIndividual && <p className="text-[10px] text-muted-foreground mt-1">Fixed to February for {entityType} tax year.</p>}</FormItem>)} />
+                            </div>
+                            <FormField control={form.control} name="monthlyRetainerFee" render={({ field }) => ( <FormItem><FormLabel>Monthly Retainer Fee (R)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        </div>
+
+                        {/* Contact Details */}
+                        <Separator />
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Contact Details</h3>
+                            {!isIndividual && (
+                                <FormField control={form.control} name="contactPerson" render={({ field }) => ( <FormItem><FormLabel>Contact Person</FormLabel><FormControl><Input placeholder="e.g. John Smith" {...field} /></FormControl></FormItem>)} />
+                            )}
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="contactEmail" render={({ field }) => ( <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" placeholder="email@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="contactNumber" render={({ field }) => ( <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input type="tel" placeholder="012 345 6789" {...field} /></FormControl></FormItem>)} />
+                            </div>
+                        </div>
+                        
+                        {/* Compliance Toggles */}
+                        <Separator />
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Compliance Roadmap Automation</h3>
+                            <p className="text-xs text-muted-foreground">The system will automatically generate the next upcoming task for each enabled service.</p>
+                            
+                            <div className="space-y-3">
+                                <FormField
+                                    control={form.control}
+                                    name="isVatRegistered"
+                                    render={({ field }) => (
+                                        <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                            <div className="space-y-0.5"><FormLabel className="text-sm">VAT Submissions (VAT201)</FormLabel></div>
+                                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                {isVatRegistered && (
+                                    <div className="pl-4 animate-in fade-in slide-in-from-top-2">
+                                        <FormField control={form.control} name="vatCategory" render={({ field }) => ( 
+                                            <FormItem>
+                                                <FormLabel className="text-xs">VAT Category</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select category..." /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        {vatCategories.map(cat => <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )} />
+                                    </div>
+                                )}
+
+                                {!isIndividual && (
+                                    <>
+                                        <FormField control={form.control} name="submitsEmp201" render={({ field }) => ( 
+                                            <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                                <div className="space-y-0.5"><FormLabel className="text-sm">Monthly PAYE (EMP201)</FormLabel></div>
+                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                            </FormItem>
+                                        )} />
+
+                                        <FormField control={form.control} name="preparesPayroll" render={({ field }) => ( 
+                                            <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                                <div className="space-y-0.5"><FormLabel className="text-sm">Monthly Payroll Preparation</FormLabel></div>
+                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                            </FormItem>
+                                        )} />
+                                        {preparesPayroll && (
+                                            <div className="pl-4 animate-in fade-in slide-in-from-top-2">
+                                                <FormField control={form.control} name="payrollDay" render={({ field }) => ( 
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs">Payroll Day of Month</FormLabel>
+                                                        <FormControl><Input type="number" min="1" max="31" {...field} className="h-8 text-xs w-24" /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                        )}
+
+                                        <FormField control={form.control} name="preparesManagementAccounts" render={({ field }) => ( 
+                                            <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                                <div className="space-y-0.5"><FormLabel className="text-sm">Monthly Management Accounts</FormLabel></div>
+                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                            </FormItem>
+                                        )} />
+                                        {preparesManagementAccounts && (
+                                            <div className="pl-4 animate-in fade-in slide-in-from-top-2">
+                                                <FormField control={form.control} name="managementAccountsDay" render={({ field }) => ( 
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs">Reporting Day of Month</FormLabel>
+                                                        <FormControl><Input type="number" min="1" max="31" {...field} className="h-8 text-xs w-24" /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+
+                                <FormField control={form.control} name="submitsProvisionalTax" render={({ field }) => ( 
+                                    <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5"><FormLabel className="text-sm">Provisional Tax (IRP6)</FormLabel></div>
+                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    </FormItem>
+                                )} />
+
+                                <FormField control={form.control} name="submitsIncomeTax" render={({ field }) => ( 
+                                    <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <FormLabel className="text-sm">{itrLabel}</FormLabel>
+                                            <p className="text-[10px] text-muted-foreground">{itrDesc}</p>
+                                        </div>
+                                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    </FormItem>
+                                )} />
+
+                                {!isIndividual && (
+                                    <FormField control={form.control} name="preparesFinancials" render={({ field }) => ( 
+                                        <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                            <div className="space-y-0.5"><FormLabel className="text-sm">Annual Financial Statements</FormLabel></div>
+                                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-4">
+                            <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+                            <Button type="submit">Save & Update Roadmap</Button>
+                        </div>
+                    </>
+                )}
             </form>
         </Form>
     );
@@ -223,6 +313,7 @@ export default function AdminClientsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
+  const [entityTypeFilter, setEntityTypeFilter] = useState('all');
 
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
@@ -297,6 +388,10 @@ export default function AdminClientsPage() {
         const clientData = {
             ...values,
             companyName: values.name,
+            entityType: values.entityType,
+            contactPerson: values.contactPerson || '',
+            contactEmail: values.contactEmail || '',
+            contactNumber: values.contactNumber || '',
             clientSource: 'admin' as const,
             updatedAt: serverTimestamp(),
         };
@@ -316,38 +411,46 @@ export default function AdminClientsPage() {
 
         const tasksToCreate: any[] = [];
         const today = startOfToday();
+        const et = values.entityType;
+        const isIndividual = et === 'Individual';
+        const isTrustOrIndividual = et === 'Trust' || et === 'Individual';
+        const effectiveYearEnd = isTrustOrIndividual ? 'February' : values.yearEnd;
 
         const getDueDate = (date: Date, day: number) => {
             return Timestamp.fromDate(setSeconds(setMinutes(setHours(setDate(date, day), 9), 0), 0));
         };
 
         const activeTasksByType = (type: string) => existingTasks.filter(t => t.type === type && t.status !== 'Done');
+        const deleteActiveByType = (type: string) => activeTasksByType(type).forEach(t => batch.delete(doc(db, 'tasks', t.id)));
 
-        // 1. EMP201
-        if (values.submitsEmp201) {
+        // --- Cleanup stale ITR task types when entity type changes ---
+        const allItrTypes = ['ITR', 'ITR12T', 'ITR12'];
+        const currentItrType = et === 'Company' ? 'ITR' : et === 'Trust' ? 'ITR12T' : 'ITR12';
+        allItrTypes.filter(t => t !== currentItrType).forEach(deleteActiveByType);
+
+        // --- 1. EMP201 (Company & Trust only, due 7th of following month) ---
+        if (!isIndividual && values.submitsEmp201) {
             if (activeTasksByType('EMP201').length === 0) {
                 let found = false;
                 for (let i = -1; i < 12 && !found; i++) {
                     const periodDate = addMonths(today, i);
-                    const dueDate = getDueDate(addMonths(periodDate, 1), 5);
+                    const dueDate = getDueDate(addMonths(periodDate, 1), 7);
                     if (dueDate.toDate() >= today) {
                         tasksToCreate.push({
                             title: `EMP201 Submission - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
-                            description: `Submit monthly EMP201 return to SARS for ${values.name}. Due on the 5th of the following month.`,
-                            dueDate: dueDate,
-                            type: 'EMP201',
-                            recurrence: 'Monthly'
+                            description: `Submit monthly EMP201 return to SARS for ${values.name}. Due on the 7th of the following month.`,
+                            dueDate, type: 'EMP201', recurrence: 'Monthly'
                         });
                         found = true;
                     }
                 }
             }
         } else {
-            activeTasksByType('EMP201').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+            deleteActiveByType('EMP201');
         }
 
-        // 2. PAYROLL
-        if (values.preparesPayroll && values.payrollDay) {
+        // --- 2. PAYROLL (Company & Trust only) ---
+        if (!isIndividual && values.preparesPayroll && values.payrollDay) {
             if (activeTasksByType('PAYROLL').length === 0) {
                 let found = false;
                 for (let i = -1; i < 12 && !found; i++) {
@@ -357,20 +460,18 @@ export default function AdminClientsPage() {
                         tasksToCreate.push({
                             title: `Payroll Preparation - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
                             description: `Prepare and issue payslips for ${values.name} for the period of ${format(periodDate, 'MMMM yyyy')}.`,
-                            dueDate: dueDate,
-                            type: 'PAYROLL',
-                            recurrence: 'Monthly'
+                            dueDate, type: 'PAYROLL', recurrence: 'Monthly'
                         });
                         found = true;
                     }
                 }
             }
         } else {
-            activeTasksByType('PAYROLL').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+            deleteActiveByType('PAYROLL');
         }
 
-        // 3. MGMT
-        if (values.preparesManagementAccounts && values.managementAccountsDay) {
+        // --- 3. MGMT (Company & Trust only) ---
+        if (!isIndividual && values.preparesManagementAccounts && values.managementAccountsDay) {
             if (activeTasksByType('MGMT').length === 0) {
                 let found = false;
                 for (let i = -1; i < 12 && !found; i++) {
@@ -380,19 +481,17 @@ export default function AdminClientsPage() {
                         tasksToCreate.push({
                             title: `Management Accounts - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
                             description: `Prepare and issue monthly management reports for ${values.name} for the ${format(periodDate, 'MMMM yyyy')} period.`,
-                            dueDate: dueDate,
-                            type: 'MGMT',
-                            recurrence: 'Monthly'
+                            dueDate, type: 'MGMT', recurrence: 'Monthly'
                         });
                         found = true;
                     }
                 }
             }
         } else {
-            activeTasksByType('MGMT').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+            deleteActiveByType('MGMT');
         }
 
-        // 4. VAT201
+        // --- 4. VAT201 (all entity types, due 25th of following month) ---
         if (values.isVatRegistered && values.vatCategory) {
             if (activeTasksByType('VAT201').length === 0) {
                 let found = false;
@@ -411,8 +510,7 @@ export default function AdminClientsPage() {
                             tasksToCreate.push({
                                 title: `VAT201 Submission - ${format(periodDate, 'MMMM yyyy')} for ${values.name}`,
                                 description: `Submit VAT201 return to SARS for ${values.name}. Due on the 25th of the following month.`,
-                                dueDate: dueDate,
-                                type: 'VAT201',
+                                dueDate, type: 'VAT201',
                                 recurrence: values.vatCategory === 'C' ? 'Monthly' : 'Bi-Monthly'
                             });
                             found = true;
@@ -421,13 +519,13 @@ export default function AdminClientsPage() {
                 }
             }
         } else {
-            activeTasksByType('VAT201').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+            deleteActiveByType('VAT201');
         }
 
-        // 5. AFS
-        if (values.preparesFinancials) {
+        // --- 5. AFS (Company & Trust only) ---
+        if (!isIndividual && values.preparesFinancials) {
             if (activeTasksByType('AFS').length === 0) {
-                const yeMonthIndex = months.indexOf(values.yearEnd);
+                const yeMonthIndex = months.indexOf(effectiveYearEnd);
                 let yeDate = new Date(today.getFullYear(), yeMonthIndex, 28);
                 let dueDate = getDueDate(addMonths(yeDate, 3), 25);
                 
@@ -437,64 +535,96 @@ export default function AdminClientsPage() {
                 }
 
                 tasksToCreate.push({
-                    title: `Annual Financial Statements for ${values.name} (${values.yearEnd} YE)`,
-                    description: `Prepare and finalize annual financial statements for the ${values.yearEnd} year end.`,
-                    dueDate: dueDate,
-                    type: 'AFS',
-                    recurrence: 'Annually'
+                    title: `Annual Financial Statements for ${values.name} (${effectiveYearEnd} YE)`,
+                    description: `Prepare and finalize annual financial statements for the ${effectiveYearEnd} year end.`,
+                    dueDate, type: 'AFS', recurrence: 'Annually'
                 });
             }
         } else {
-            activeTasksByType('AFS').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+            deleteActiveByType('AFS');
         }
 
-        // 6. ITR
+        // --- 6. INCOME TAX (entity-type-aware) ---
         if (values.submitsIncomeTax) {
-            if (activeTasksByType('ITR').length === 0) {
-                const yeMonthIndex = months.indexOf(values.yearEnd);
-                let yeDate = new Date(today.getFullYear(), yeMonthIndex, 28);
-                let dueDate = getDueDate(addYears(yeDate, 1), 28);
-                
-                if (dueDate.toDate() < today) {
-                    yeDate = addMonths(yeDate, 12);
-                    dueDate = getDueDate(addYears(yeDate, 1), 28);
-                }
-
-                tasksToCreate.push({
-                    title: `Income Tax Return (ITR14) for ${values.name} (${values.yearEnd} YE)`,
-                    description: `Submit annual income tax return for ${values.name}. Due 12 months after the financial year end.`,
-                    dueDate: dueDate,
-                    type: 'ITR',
-                    recurrence: 'Annually'
-                });
-            }
-        } else {
-            activeTasksByType('ITR').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
-        }
-
-        // 7. IRP6
-        if (values.submitsProvisionalTax) {
-            if (activeTasksByType('IRP6').length === 0) {
-                const yeMonthIndex = months.indexOf(values.yearEnd);
-                let firstPeriod = new Date(today.getFullYear(), yeMonthIndex - 6, 25);
-                let secondPeriod = new Date(today.getFullYear(), yeMonthIndex, 25);
-                
-                const dates = [firstPeriod, secondPeriod, addMonths(firstPeriod, 12), addMonths(secondPeriod, 12)];
-                const nextDate = dates.map(d => getDueDate(d, 25)).filter(d => d.toDate() >= today).sort((a,b) => a.toDate().getTime() - b.toDate().getTime())[0];
-
-                if (nextDate) {
-                    const isFirst = isSameDay(nextDate.toDate(), getDueDate(firstPeriod, 25).toDate()) || isSameDay(nextDate.toDate(), getDueDate(addMonths(firstPeriod, 12), 25).toDate());
+            if (activeTasksByType(currentItrType).length === 0) {
+                if (et === 'Company') {
+                    // ITR14: Due 12 months after variable financial year end
+                    const yeMonthIndex = months.indexOf(effectiveYearEnd);
+                    let yeDate = new Date(today.getFullYear(), yeMonthIndex, 28);
+                    let dueDate = getDueDate(addYears(yeDate, 1), 28);
+                    if (dueDate.toDate() < today) {
+                        yeDate = addMonths(yeDate, 12);
+                        dueDate = getDueDate(addYears(yeDate, 1), 28);
+                    }
                     tasksToCreate.push({
-                        title: `Provisional Tax (IRP6) - Period ${isFirst ? 1 : 2} for ${values.name}`,
-                        description: `Submit ${isFirst ? 1 : 2}st period provisional tax return for ${values.name}.`,
-                        dueDate: nextDate,
-                        type: 'IRP6',
-                        recurrence: 'Semi-Annually'
+                        title: `Income Tax Return (ITR14) for ${values.name} (${effectiveYearEnd} YE)`,
+                        description: `Submit annual company income tax return for ${values.name}. Due 12 months after the financial year end.`,
+                        dueDate, type: 'ITR', recurrence: 'Annually'
+                    });
+                } else if (et === 'Trust') {
+                    // ITR12T: Due 31 October (filing season)
+                    let filingDate = new Date(today.getFullYear(), 9, 31); // October = 9
+                    if (filingDate < today) filingDate = new Date(today.getFullYear() + 1, 9, 31);
+                    tasksToCreate.push({
+                        title: `Trust Tax Return (ITR12T) for ${values.name} (February YE)`,
+                        description: `Submit trust income tax return (ITR12T) for ${values.name}. Due 31 October (SARS filing season).`,
+                        dueDate: getDueDate(filingDate, 31), type: 'ITR12T', recurrence: 'Annually'
+                    });
+                } else {
+                    // ITR12 Individual: Due 31 October (non-provisional) or 31 January (provisional)
+                    const isProvisional = values.submitsProvisionalTax;
+                    const filingMonth = isProvisional ? 0 : 9; // January = 0, October = 9
+                    const filingDay = isProvisional ? 31 : 31;
+                    let filingDate = new Date(today.getFullYear(), filingMonth, filingDay);
+                    // For provisional (January), the return is for the previous tax year
+                    if (isProvisional && filingDate < today) filingDate = new Date(today.getFullYear() + 1, filingMonth, filingDay);
+                    if (!isProvisional && filingDate < today) filingDate = new Date(today.getFullYear() + 1, filingMonth, filingDay);
+                    tasksToCreate.push({
+                        title: `Income Tax Return (ITR12) for ${values.name} (February YE)`,
+                        description: `Submit individual income tax return (ITR12) for ${values.name}. Due ${isProvisional ? '31 January (provisional taxpayer)' : '31 October (filing season)'}.`,
+                        dueDate: getDueDate(filingDate, filingDay), type: 'ITR12', recurrence: 'Annually'
                     });
                 }
             }
         } else {
-            activeTasksByType('IRP6').forEach(t => batch.delete(doc(db, 'tasks', t.id)));
+            deleteActiveByType(currentItrType);
+        }
+
+        // --- 7. IRP6 (entity-type-aware) ---
+        if (values.submitsProvisionalTax) {
+            if (activeTasksByType('IRP6').length === 0) {
+                if (isTrustOrIndividual) {
+                    // Fixed dates: P1 = 31 August, P2 = 28 February
+                    const p1Dates = [new Date(today.getFullYear(), 7, 31), new Date(today.getFullYear() + 1, 7, 31)]; // Aug = 7
+                    const p2Dates = [new Date(today.getFullYear(), 1, 28), new Date(today.getFullYear() + 1, 1, 28)]; // Feb = 1
+                    const allDates = [...p1Dates.map(d => ({ date: d, period: 1 })), ...p2Dates.map(d => ({ date: d, period: 2 }))];
+                    const next = allDates.filter(d => d.date >= today).sort((a, b) => a.date.getTime() - b.date.getTime())[0];
+                    if (next) {
+                        tasksToCreate.push({
+                            title: `Provisional Tax (IRP6) - Period ${next.period} for ${values.name}`,
+                            description: `Submit period ${next.period} provisional tax return for ${values.name}. Due ${next.period === 1 ? '31 August' : '28 February'}.`,
+                            dueDate: getDueDate(next.date, next.period === 1 ? 31 : 28), type: 'IRP6', recurrence: 'Semi-Annually'
+                        });
+                    }
+                } else {
+                    // Company: relative to year end
+                    const yeMonthIndex = months.indexOf(effectiveYearEnd);
+                    let firstPeriod = new Date(today.getFullYear(), yeMonthIndex - 6, 25);
+                    let secondPeriod = new Date(today.getFullYear(), yeMonthIndex, 25);
+                    const dates = [firstPeriod, secondPeriod, addMonths(firstPeriod, 12), addMonths(secondPeriod, 12)];
+                    const nextDate = dates.map(d => getDueDate(d, 25)).filter(d => d.toDate() >= today).sort((a, b) => a.toDate().getTime() - b.toDate().getTime())[0];
+                    if (nextDate) {
+                        const isFirst = isSameDay(nextDate.toDate(), getDueDate(firstPeriod, 25).toDate()) || isSameDay(nextDate.toDate(), getDueDate(addMonths(firstPeriod, 12), 25).toDate());
+                        tasksToCreate.push({
+                            title: `Provisional Tax (IRP6) - Period ${isFirst ? 1 : 2} for ${values.name}`,
+                            description: `Submit period ${isFirst ? 1 : 2} provisional tax return for ${values.name}.`,
+                            dueDate: nextDate, type: 'IRP6', recurrence: 'Semi-Annually'
+                        });
+                    }
+                }
+            }
+        } else {
+            deleteActiveByType('IRP6');
         }
 
         tasksToCreate.forEach(t => {
@@ -503,6 +633,7 @@ export default function AdminClientsPage() {
                 ...t,
                 clientId,
                 clientSource: 'admin',
+                entityType: et,
                 status: 'To-Do',
                 priority: 'Medium',
                 assignedTo: [], 
@@ -571,6 +702,7 @@ export default function AdminClientsPage() {
     return clients.filter(client => {
       const nameMatch = client.name.toLowerCase().includes(searchTerm.toLowerCase());
       const statusMatch = statusFilter === 'all' ? true : client.status === statusFilter;
+      const entityMatch = entityTypeFilter === 'all' ? true : client.entityType === entityTypeFilter;
       
       let serviceMatch = true;
       if (serviceFilter !== 'all') {
@@ -583,9 +715,9 @@ export default function AdminClientsPage() {
         else if (serviceFilter === 'AFS') serviceMatch = !!client.preparesFinancials;
       }
 
-      return nameMatch && statusMatch && serviceMatch;
+      return nameMatch && statusMatch && serviceMatch && entityMatch;
     });
-  }, [clients, searchTerm, statusFilter, serviceFilter]);
+  }, [clients, searchTerm, statusFilter, serviceFilter, entityTypeFilter]);
 
   const selectedClientTasks = useMemo(() => {
     if (!selectedClient) return [];
@@ -687,7 +819,7 @@ export default function AdminClientsPage() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-2.5 h-4.5 w-4.5 text-slate-400" />
             <Input 
-              placeholder="Search clients by company name..." 
+              placeholder="Search clients by name..." 
               className="pl-10 h-10 w-full bg-white border-slate-200 focus:ring-2 focus:ring-primary/25 rounded-lg text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -728,12 +860,24 @@ export default function AdminClientsPage() {
               </SelectContent>
             </Select>
 
-            {(searchTerm || statusFilter !== 'all' || serviceFilter !== 'all') && (
+            <Select value={entityTypeFilter} onValueChange={setEntityTypeFilter}>
+              <SelectTrigger className="w-[150px] h-9 text-xs font-semibold bg-white border-slate-200">
+                <SelectValue placeholder="Entity Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Company">Company</SelectItem>
+                <SelectItem value="Trust">Trust</SelectItem>
+                <SelectItem value="Individual">Individual</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {(searchTerm || statusFilter !== 'all' || serviceFilter !== 'all' || entityTypeFilter !== 'all') && (
               <Button 
                 variant="ghost" 
                 size="sm" 
                 className="h-9 text-xs font-bold text-slate-500"
-                onClick={() => { setSearchTerm(''); setStatusFilter('all'); setServiceFilter('all'); }}
+                onClick={() => { setSearchTerm(''); setStatusFilter('all'); setServiceFilter('all'); setEntityTypeFilter('all'); }}
               >
                 Clear Filters
               </Button>
@@ -749,7 +893,8 @@ export default function AdminClientsPage() {
           <Table>
             <TableHeader className="bg-slate-50/20">
               <TableRow className="border-b">
-                <TableHead className="font-bold text-slate-500 py-4 pl-6">Company</TableHead>
+                <TableHead className="font-bold text-slate-500 py-4 pl-6">Client Name</TableHead>
+                <TableHead className="font-bold text-slate-500 py-4">Type</TableHead>
                 <TableHead className="font-bold text-slate-500 py-4">Year End</TableHead>
                 <TableHead className="font-bold text-slate-500 py-4">Retainer</TableHead>
                 <TableHead className="font-bold text-slate-500 py-4">Services Automation Roadmap</TableHead>
@@ -760,6 +905,8 @@ export default function AdminClientsPage() {
             <TableBody>
               {filteredClients.map(client => {
                 const overdueTasks = clientOverdueTasks[client.id] || [];
+                const EntityIcon = client.entityType === 'Company' ? Building2 : client.entityType === 'Trust' ? Landmark : CircleUser;
+                const entityColor = client.entityType === 'Company' ? 'bg-blue-50/80 text-blue-700 border-blue-200/50' : client.entityType === 'Trust' ? 'bg-amber-50/80 text-amber-700 border-amber-200/50' : 'bg-violet-50/80 text-violet-700 border-violet-200/50';
                 return (
                   <TableRow key={client.id} className="hover:bg-slate-50/40 transition-colors border-b">
                     <TableCell className="font-semibold text-slate-900 pl-6 py-4">
@@ -773,6 +920,12 @@ export default function AdminClientsPage() {
                           )}
                         </span>
                       </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <Badge variant="outline" className={`text-[9px] font-black uppercase tracking-tight ${entityColor}`}>
+                        <EntityIcon className="h-3 w-3 mr-1" />
+                        {client.entityType || 'N/A'}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-slate-600 font-medium py-4">{formatYearEnd(client.yearEnd)}</TableCell>
                     <TableCell className="text-sm text-slate-700 font-black py-4">
@@ -835,7 +988,7 @@ export default function AdminClientsPage() {
               })}
               {filteredClients.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-16 text-slate-400 font-medium">
+                  <TableCell colSpan={7} className="text-center py-16 text-slate-400 font-medium">
                     <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-slate-200" />
                     No clients matched the filter.
                   </TableCell>

@@ -10,12 +10,16 @@ import { Users, Banknote, CalendarCheck, TrendingUp, Loader2, UserPlus, ArrowRig
 import { Employee, Payslip, User } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import CommunicationHistory from '@/components/payroll/CommunicationHistory';
 
 const db = getFirestore(firebaseApp);
 
 export default function PayrollDashboardPage() {
   const params = useParams();
   const clientId = params.clientId as string;
+  const { user } = useAuth();
+  const isClient = user?.role === 'client';
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [payslips, setPayslips] = useState<Payslip[]>([]);
@@ -100,9 +104,7 @@ export default function PayrollDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-black text-slate-900">{formatPrice(stats.lastPayrollAmount)}</div>
-            <p className="text-[10px] font-medium text-muted-foreground uppercase mt-1">
-              {stats.lastPeriod ? `Total Net Pay for ${stats.lastPeriod}` : 'No processed payroll yet'}
-            </p>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase mt-1">Net Pay for {stats.lastPeriod || 'N/A'}</p>
           </CardContent>
         </Card>
 
@@ -152,18 +154,33 @@ export default function PayrollDashboardPage() {
                     </Button>
                 </div>
 
-                <div className="p-4 rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-center space-y-2 group hover:border-primary/50 transition-colors">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                        <Banknote className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-1">
-                        <p className="font-bold text-sm">Process Cycle</p>
-                        <p className="text-xs text-muted-foreground">Review and finalize the current payslips for {client?.firstProcessingMonth}.</p>
-                    </div>
-                    <Button variant="link" asChild className="h-auto p-0 text-xs font-bold">
-                        <Link href={`/dashboard/ai-payroll/${clientId}/payslips`}>View Payslips <ArrowRight className="ml-1 h-3 w-3" /></Link>
-                    </Button>
-                </div>
+                {isClient ? (
+                  <div className="p-4 rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-center space-y-2 group hover:border-primary/50 transition-colors">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          <Banknote className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-1">
+                          <p className="font-bold text-sm">View Reports</p>
+                          <p className="text-xs text-muted-foreground">Download EMP201 returns, payroll summaries, and payslips.</p>
+                      </div>
+                      <Button variant="link" asChild className="h-auto p-0 text-xs font-bold">
+                          <Link href={`/dashboard/ai-payroll/${clientId}/reports/payslips`}>View Reports <ArrowRight className="ml-1 h-3 w-3" /></Link>
+                      </Button>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-center space-y-2 group hover:border-primary/50 transition-colors">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          <Banknote className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-1">
+                          <p className="font-bold text-sm">Process Cycle</p>
+                          <p className="text-xs text-muted-foreground">Review and finalize the current payslips for {client?.firstProcessingMonth}.</p>
+                      </div>
+                      <Button variant="link" asChild className="h-auto p-0 text-xs font-bold">
+                          <Link href={`/dashboard/ai-payroll/${clientId}/payslips`}>View Payslips <ArrowRight className="ml-1 h-3 w-3" /></Link>
+                      </Button>
+                  </div>
+                )}
             </div>
           </CardContent>
         </Card>
@@ -192,6 +209,12 @@ export default function PayrollDashboardPage() {
             </CardFooter>
         </Card>
       </div>
+
+      {client && user && (
+        <div className="mt-6">
+          <CommunicationHistory clientId={clientId} currentUser={user} />
+        </div>
+      )}
     </div>
   );
 }

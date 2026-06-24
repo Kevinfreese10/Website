@@ -4,11 +4,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, isPast, isSameDay } from 'date-fns';
+import { format, isPast, isSameDay, subDays } from 'date-fns';
 import { Task, User, Order } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, Edit, CheckSquare, X, Filter, AlertOctagon, ArrowRight, CheckCircle2, LayoutGrid, List, ArrowRightLeft, MessageSquare, AlertTriangle } from 'lucide-react';
+import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, Edit, CheckSquare, X, Filter, AlertOctagon, ArrowRight, CheckCircle2, LayoutGrid, List, MessageSquare, AlertTriangle, UserIcon, MoreHorizontal } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +16,7 @@ import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, order
 import { firebaseApp } from '@/lib/firebase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateNextTaskOccurrence } from '@/app/actions';
-import TaskForm from '@/components/admin/TaskForm';
+import TaskForm, { TaskFormValues } from '@/components/admin/TaskForm';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -53,6 +53,8 @@ const taskTypeLabels: Record<string, string> = {
     'MGMT': 'Management Accounts',
     'AFS': 'Annual Financial Statements',
     'ITR': 'Income Tax Return (ITR14)',
+    'ITR12T': 'Trust Tax Return (ITR12T)',
+    'ITR12': 'Income Tax Return (ITR12)',
     'IRP6': 'Provisional Tax (IRP6)',
 };
 
@@ -67,6 +69,10 @@ export default function AdminDashboardPage() {
     const [taskTypeFilter, setTaskTypeFilter] = useState('all');
     const [overdueTaskTypeFilter, setOverdueTaskTypeFilter] = useState('all');
     
+    // Board Specific Filters
+    const [boardScope, setBoardScope] = useState<'all' | 'my'>('all');
+    const [boardAssignee, setBoardAssignee] = useState('all');
+    
     // View mode: 'list' or 'board' (Kanban)
     const [viewMode, setViewMode] = useState<'list' | 'board'>('board');
     
@@ -77,7 +83,7 @@ export default function AdminDashboardPage() {
         const usersRef = collection(db, "users");
         getDocs(usersRef).then(usersSnapshot => {
             const fetchedUsers = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, uid: doc.id } as User));
-            setAllUsers(fetchedUsers);
+            setAllUsers(fetchedUsers.sort((a,b) => a.name.localeCompare(b.name)));
         });
 
         const tasksUnsubscribe = onSnapshot(query(collection(db, 'tasks'), orderBy('dueDate', 'asc')), (snapshot) => {
@@ -113,6 +119,7 @@ export default function AdminDashboardPage() {
         ).sort((a,b) => getTaskDate(a).getTime() - getTaskDate(b).getTime());
     }, [tasks, user]);
 
+    // For the list view roadmap (system tasks only)
     const roadmapTasks = useMemo(() => {
         let filtered = tasks.filter(task => 
             task.createdBy === 'system' && 
@@ -126,11 +133,42 @@ export default function AdminDashboardPage() {
         return filtered.sort((a,b) => getTaskDate(a).getTime() - getTaskDate(b).getTime());
     }, [tasks, taskTypeFilter]);
 
-    // Practice progress indicator calculations
-    const todayCompletedCount = useMemo(() => {
-        return tasks.filter(t => t.status === 'Done' && t.createdAt && isSameDay(t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt), new Date())).length;
-    }, [tasks]);
+    // For the Kanban board (all tasks or filtered by scope/assignee)
+    const boardTasks = useMemo(() => {
+        let filtered = tasks;
+        
+        // Scope Filter
+        if (boardScope === 'my' && user) {
+            filtered = filtered.filter(t => Array.isArray(t.assignedTo) && t.assignedTo.includes(user.id));
+        }
+        
+        // Assignee Filter
+        if (boardAssignee !== 'all') {
+            filtered = filtered.filter(t => Array.isArray(t.assignedTo) && t.assignedTo.includes(boardAssignee));
+        }
 
+        // Service Filter
+        if (taskTypeFilter !== 'all') {
+            filtered = filtered.filter(task => task.type === taskTypeFilter);
+        }
+
+        return filtered.sort((a,b) => getTaskDate(a).getTime() - getTaskDate(b).getTime());
+    }, [tasks, taskTypeFilter, boardScope, boardAssignee, user]);
+
+    const boardDoneTasks = useMemo(() => {
+        const sevenDaysAgo = subDays(new Date(), 7);
+        return boardTasks.filter(t => {
+            if (t.status !== 'Done') return false;
+            // Only show recently completed tasks
+            let updated = new Date();
+            if (t.updatedAt && typeof (t.updatedAt as any).toDate === 'function') updated = (t.updatedAt as any).toDate();
+            else if (t.createdAt && typeof (t.createdAt as any).toDate === 'function') updated = (t.createdAt as any).toDate();
+            
+            return updated >= sevenDaysAgo;
+        });
+    }, [boardTasks]);
+
+    // Practice progress indicator calculations
     const practiceMetrics = useMemo(() => {
         const active = tasks.filter(t => t.status !== 'Done');
         const done = tasks.filter(t => t.status === 'Done');
@@ -150,7 +188,7 @@ export default function AdminDashboardPage() {
     }, [tasks]);
 
     const assignableStaff = useMemo(() => {
-        return allUsers.filter(u => u.role === 'staff' || u.role === 'admin');
+        return allUsers.filter(u => u.role === 'staff' || u.role === 'admin' || u.role === 'cap_staff' || u.role === 'cap_supervisor');
     }, [allUsers]);
 
     const staffByDept = useMemo(() => {
@@ -164,12 +202,30 @@ export default function AdminDashboardPage() {
     const handleUpdate = async (taskId: string, updates: Partial<Task>) => {
         const originalTask = tasks.find(t => t.id === taskId);
         if (!originalTask || !user) return;
-        updateDoc(doc(db, 'tasks', taskId), updates).then(() => {
+        
+        // Optimistically update the UI to make DND feel snappy
+        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+        
+        try {
+            await updateDoc(doc(db, 'tasks', taskId), {
+                ...updates,
+                updatedAt: serverTimestamp()
+            });
             if (updates.status === 'Done' && originalTask.recurrence && originalTask.recurrence !== 'None') {
                 generateNextTaskOccurrence(originalTask.id);
             }
-            toast({ title: 'Task Updated' });
-        });
+        } catch (error) {
+            toast({ title: 'Update failed', variant: 'destructive' });
+            // Revert on failure by triggering a re-fetch or relying on the snapshot listener
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent, status: 'To-Do' | 'In Progress' | 'Review' | 'Done') => {
+        e.preventDefault();
+        const taskId = e.dataTransfer.getData('taskId');
+        if (taskId) {
+            handleUpdate(taskId, { status });
+        }
     };
 
     const handleBulkAssign = async (staffId: string) => {
@@ -180,7 +236,7 @@ export default function AdminDashboardPage() {
         
         selectedRoadmapIds.forEach(taskId => {
             const taskRef = doc(db, 'tasks', taskId);
-            batch.update(taskRef, { assignedTo: [staffId] });
+            batch.update(taskRef, { assignedTo: [staffId], updatedAt: serverTimestamp() });
         });
 
         try {
@@ -198,28 +254,31 @@ export default function AdminDashboardPage() {
         }
     };
 
-    const handleFormSubmit = async (data: any) => {
+    const handleFormSubmit = async (data: TaskFormValues) => {
         if (!user) return;
         setIsLoading(true);
         
+        const { id, newComment, ...restData } = data;
+        
         const taskData = {
-            ...data,
+            ...restData,
             dueDate: Timestamp.fromDate(data.dueDate as Date),
+            updatedAt: serverTimestamp(),
         };
 
         try {
             if (selectedTask?.id) {
                 const taskRef = doc(db, 'tasks', selectedTask.id);
-                await updateDoc(taskRef, { ...taskData });
+                await updateDoc(taskRef, taskData);
                 toast({ title: 'Task Updated', description: 'The task details have been saved.' });
             } else {
-                const newTask: Omit<Task, 'id' | 'priority'> = {
-                    ...taskData,
+                const newTask: Omit<Task, 'id'> = {
+                    ...(taskData as any),
                     status: 'To-Do',
                     createdBy: user.uid, 
                     createdAt: serverTimestamp(),
                     comments: [],
-                    priority: 'Medium',
+                    priority: data.priority || 'Medium',
                 };
                 await addDoc(collection(db, 'tasks'), newTask);
                 toast({ title: 'Task Created', description: `Task assigned.` });
@@ -284,7 +343,7 @@ export default function AdminDashboardPage() {
     };
 
     // Helper to render task visual card
-    const renderTaskCard = (task: Task, options?: { showActions?: boolean }) => {
+    const renderTaskCard = (task: Task) => {
         const dueDate = getTaskDate(task);
         const isOverdue = isPast(dueDate) && !isSameDay(dueDate, new Date()) && task.status !== 'Done';
         
@@ -295,6 +354,7 @@ export default function AdminDashboardPage() {
 
         const leftBorderColor = 
             isOverdue ? 'border-l-red-550' : 
+            task.status === 'Done' ? 'border-l-emerald-500' :
             task.status === 'In Progress' ? 'border-l-indigo-500' : 
             task.status === 'Review' ? 'border-l-purple-500' : 
             'border-l-slate-400';
@@ -304,14 +364,19 @@ export default function AdminDashboardPage() {
         return (
             <Card 
                 key={task.id} 
+                draggable
+                onDragStart={(e) => {
+                    e.dataTransfer.setData('taskId', task.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                }}
                 className={cn(
-                    "group relative border-y border-r border-slate-200/70 border-l-[6px] shadow-[0_2px_5px_rgba(0,0,0,0.03)] hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden bg-white hover:border-slate-350 hover:border-l-[6px]",
-                    task.status === 'Done' && 'opacity-60',
+                    "group relative border-y border-r border-slate-200/70 border-l-[6px] shadow-[0_2px_5px_rgba(0,0,0,0.03)] hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing overflow-hidden bg-white hover:border-slate-350 hover:border-l-[6px]",
+                    task.status === 'Done' && 'opacity-70 grayscale-[20%]',
                     leftBorderColor
                 )}
                 onClick={() => { setSelectedTask(task); setIsFormOpen(true); }}
             >
-                <CardContent className="p-4.5 space-y-2.5">
+                <CardContent className="p-4 space-y-2.5">
                     {/* Header: Service type tag + Priority tag */}
                     <div className="flex items-center justify-between gap-2">
                         <Badge variant="outline" className={cn("text-[9px] font-black uppercase px-2 py-0.5 tracking-wider border rounded-md h-5 shrink-0", getServiceTypeColor(task.type))}>
@@ -334,32 +399,33 @@ export default function AdminDashboardPage() {
                     </div>
 
                     {/* Title & Client Name */}
-                    <div className="space-y-1">
-                        <h4 className="text-sm font-extrabold text-slate-800 line-clamp-1 group-hover:text-primary transition-colors leading-tight">
+                    <div className="space-y-1 pt-1">
+                        <h4 className="text-sm font-extrabold text-slate-800 line-clamp-2 group-hover:text-primary transition-colors leading-snug">
                             {displayTitle}
                         </h4>
                         {clientName && (
-                            <p className="text-[11px] font-bold text-slate-500 flex items-center gap-1 line-clamp-1">
-                                <span className="text-[9px] text-slate-400 font-normal uppercase tracking-wider bg-slate-50 border border-slate-200/50 px-1 rounded">Client</span>
+                            <p className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 line-clamp-1 bg-slate-50 border border-slate-100 rounded px-1.5 py-0.5 mt-1.5 w-max max-w-full">
+                                <span className="text-[9px] text-slate-400 font-normal uppercase tracking-wider">Client</span>
                                 <span className="truncate">{clientName}</span>
                             </p>
                         )}
                     </div>
 
-                    {/* Description */}
-                    {task.description && (
-                        <p className="text-xs text-slate-450 font-medium line-clamp-2 leading-relaxed">
-                            {task.description}
-                        </p>
-                    )}
-
                     {/* Footer: Date & Assignees */}
-                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-50 text-[11px]">
-                        <div className="flex items-center gap-1.5 font-bold">
-                            <CalendarIcon className={cn("h-3.5 w-3.5", isOverdue ? "text-red-500 animate-pulse" : "text-slate-400")} />
-                            <span className={cn(isOverdue ? "text-red-500" : "text-slate-500")}>
-                                {format(dueDate, 'dd MMM yyyy')}
-                            </span>
+                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-50 text-[11px] mt-2">
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 font-bold">
+                                <CalendarIcon className={cn("h-3.5 w-3.5", isOverdue ? "text-red-500 animate-pulse" : "text-slate-400")} />
+                                <span className={cn(isOverdue ? "text-red-500" : "text-slate-500")}>
+                                    {format(dueDate, 'dd MMM yyyy')}
+                                </span>
+                            </div>
+                            {(task.comments?.length ?? 0) > 0 && (
+                                <div className="flex items-center gap-1 text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
+                                    <MessageSquare className="h-3 w-3" />
+                                    <span>{task.comments?.length}</span>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -371,8 +437,9 @@ export default function AdminDashboardPage() {
                                     return (
                                         <div 
                                             key={uid} 
+                                            title={staff.name}
                                             className={cn(
-                                                "h-5.5 w-5.5 rounded-full border border-white flex items-center justify-center text-[9px] font-black shadow-sm shrink-0", 
+                                                "h-5.5 w-5.5 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-black shadow-sm shrink-0", 
                                                 getUserColor(staff.uid)
                                             )}
                                         >
@@ -381,23 +448,11 @@ export default function AdminDashboardPage() {
                                     );
                                 })}
                                 {(!task.assignedTo || task.assignedTo.length === 0) && (
-                                    <span className="text-[9px] font-bold text-slate-400 italic">Unassigned</span>
+                                    <div className="h-5.5 w-5.5 rounded-full border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center" title="Unassigned">
+                                        <UserIcon className="h-3 w-3 text-slate-300" />
+                                    </div>
                                 )}
                             </div>
-                            
-                            {options?.showActions !== false && (
-                                <Button 
-                                    variant="outline" 
-                                    size="icon" 
-                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-1 border-slate-200"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleUpdate(task.id, { status: 'Done' });
-                                    }}
-                                >
-                                    <Check className="h-3 w-3 text-green-600" />
-                                </Button>
-                            )}
                         </div>
                     </div>
                 </CardContent>
@@ -443,6 +498,27 @@ export default function AdminDashboardPage() {
                     </Button>
                 </div>
             </div>
+
+            <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto">
+                    <SheetHeader className="mb-6">
+                        <SheetTitle>{selectedTask ? 'Edit Task' : 'Create Task'}</SheetTitle>
+                        <SheetDescription>
+                            {selectedTask ? 'Update task details, change status, or leave comments.' : 'Assign a new task to your team.'}
+                        </SheetDescription>
+                    </SheetHeader>
+                    {isFormOpen && (
+                        <TaskForm 
+                            task={selectedTask} 
+                            allStaff={assignableStaff}
+                            staffByDept={staffByDept} 
+                            onSubmit={handleFormSubmit}
+                            onCancel={() => setIsFormOpen(false)}
+                            onCommentSubmit={handleCommentSubmit}
+                        />
+                    )}
+                </SheetContent>
+            </Sheet>
 
             {/* Practice Metrics & Performance Banner */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -491,7 +567,7 @@ export default function AdminDashboardPage() {
                 </Card>
             </div>
 
-            {/* Overdue Tasks Alert Banner - Removes duplicates */}
+            {/* Overdue Tasks Alert Banner */}
             {overdueTasks.length > 0 && (
                 <Card className="border-red-250 bg-gradient-to-r from-red-50/70 to-red-50/20 border-l-4 border-l-red-500 shadow-sm animate-in fade-in duration-300">
                     <CardContent className="p-4.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -499,7 +575,7 @@ export default function AdminDashboardPage() {
                             <div className="bg-red-100 text-red-700 p-2.5 rounded-xl"><AlertOctagon className="h-5.5 w-5.5" /></div>
                             <div>
                                 <h4 className="text-sm font-black text-slate-800">You have {overdueTasks.length} Overdue Compliance Tasks</h4>
-                                <p className="text-xs text-slate-500 font-medium mt-0.5">These tasks have missed their statutory due dates. Please review them in the To-Do column or view the task logs.</p>
+                                <p className="text-xs text-slate-500 font-medium mt-0.5">These tasks have missed their statutory due dates. Please review them in the To-Do column.</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -514,8 +590,8 @@ export default function AdminDashboardPage() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <Button size="sm" variant="destructive" className="h-8.5 font-bold text-xs px-4" asChild>
-                                <Link href="/admin/tasks">View List</Link>
+                            <Button size="sm" variant="destructive" className="h-8.5 font-bold text-xs px-4" onClick={() => setViewMode('list')}>
+                                View List
                             </Button>
                         </div>
                     </CardContent>
@@ -524,14 +600,49 @@ export default function AdminDashboardPage() {
 
             {/* Kanban Board View */}
             {viewMode === 'board' ? (
-                <div className="space-y-6 bg-slate-50/70 p-6 rounded-3xl border border-slate-100 shadow-inner">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-500">Task Board</h3>
-                        <div className="flex items-center gap-2">
-                            <Filter className="h-4 w-4 text-slate-400" />
+                <div className="space-y-6 bg-slate-50/70 p-6 rounded-3xl border border-slate-100 shadow-inner animate-in fade-in duration-300">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                            <LayoutGrid className="h-4 w-4" /> Interactive Task Board
+                        </h3>
+                        
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="bg-white p-0.5 rounded-md border flex items-center shadow-sm">
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className={cn("h-7 text-[10px] font-bold px-2.5", boardScope === 'my' ? "bg-primary/10 text-primary" : "text-slate-500 hover:text-slate-900")}
+                                    onClick={() => setBoardScope('my')}
+                                >
+                                    My Tasks
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className={cn("h-7 text-[10px] font-bold px-2.5", boardScope === 'all' ? "bg-primary/10 text-primary" : "text-slate-500 hover:text-slate-900")}
+                                    onClick={() => setBoardScope('all')}
+                                >
+                                    Practice Tasks
+                                </Button>
+                            </div>
+
+                            <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+                            <Select value={boardAssignee} onValueChange={setBoardAssignee}>
+                                <SelectTrigger className="w-[140px] h-8 text-xs font-semibold bg-white shadow-sm border-slate-200">
+                                    <SelectValue placeholder="Assignee" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Assignees</SelectItem>
+                                    {assignableStaff.map(staff => (
+                                        <SelectItem key={staff.id} value={staff.id}>{staff.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
                             <Select value={taskTypeFilter} onValueChange={setTaskTypeFilter}>
-                                <SelectTrigger className="w-[180px] h-8 text-xs font-semibold bg-white">
-                                    <SelectValue placeholder="Filter service..." />
+                                <SelectTrigger className="w-[150px] h-8 text-xs font-semibold bg-white shadow-sm border-slate-200">
+                                    <SelectValue placeholder="Service Type" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Services</SelectItem>
@@ -543,42 +654,79 @@ export default function AdminDashboardPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
                         {/* COLUMN 1: To-Do */}
-                        <div className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4.5 flex flex-col h-[680px] overflow-hidden shadow-sm">
-                            <div className="flex justify-between items-center border-b border-slate-200/60 pb-3.5 mb-4">
+                        <div 
+                            className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => handleDrop(e, 'To-Do')}
+                        >
+                            <div className="flex justify-between items-center border-b border-slate-200/80 pb-3 mb-4">
                                 <span className="text-xs font-black text-slate-650 uppercase tracking-widest">To-Do</span>
-                                <Badge variant="secondary" className="font-extrabold text-[10px] px-2.5 bg-slate-250/90 text-slate-700">{roadmapTasks.filter(t => t.status === 'To-Do').length}</Badge>
+                                <Badge variant="secondary" className="font-extrabold text-[10px] px-2.5 bg-slate-250/90 text-slate-700">{boardTasks.filter(t => t.status === 'To-Do').length}</Badge>
                             </div>
-                            <ScrollArea className="flex-1">
-                                <div className="space-y-3.5 pr-2.5">
-                                    {roadmapTasks.filter(t => t.status === 'To-Do').map(task => renderTaskCard(task))}
+                            <ScrollArea className="flex-1 -mr-3 pr-3">
+                                <div className="space-y-3.5 pb-4">
+                                    {boardTasks.filter(t => t.status === 'To-Do').map(task => renderTaskCard(task))}
                                 </div>
                             </ScrollArea>
                         </div>
 
                         {/* COLUMN 2: In Progress */}
-                        <div className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4.5 flex flex-col h-[680px] overflow-hidden shadow-sm">
-                            <div className="flex justify-between items-center border-b border-slate-200/60 pb-3.5 mb-4">
+                        <div 
+                            className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => handleDrop(e, 'In Progress')}
+                        >
+                            <div className="flex justify-between items-center border-b border-slate-200/80 pb-3 mb-4">
                                 <span className="text-xs font-black text-slate-650 uppercase tracking-widest text-indigo-755">In Progress</span>
-                                <Badge variant="secondary" className="font-extrabold text-[10px] px-2.5 bg-indigo-100 text-indigo-700 border-indigo-200/50">{roadmapTasks.filter(t => t.status === 'In Progress').length}</Badge>
+                                <Badge variant="secondary" className="font-extrabold text-[10px] px-2.5 bg-indigo-100 text-indigo-700 border-indigo-200/50">{boardTasks.filter(t => t.status === 'In Progress').length}</Badge>
                             </div>
-                            <ScrollArea className="flex-1">
-                                <div className="space-y-3.5 pr-2.5">
-                                    {roadmapTasks.filter(t => t.status === 'In Progress').map(task => renderTaskCard(task))}
+                            <ScrollArea className="flex-1 -mr-3 pr-3">
+                                <div className="space-y-3.5 pb-4">
+                                    {boardTasks.filter(t => t.status === 'In Progress').map(task => renderTaskCard(task))}
                                 </div>
                             </ScrollArea>
                         </div>
 
                         {/* COLUMN 3: Review */}
-                        <div className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4.5 flex flex-col h-[680px] overflow-hidden shadow-sm">
-                            <div className="flex justify-between items-center border-b border-slate-200/60 pb-3.5 mb-4">
+                        <div 
+                            className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => handleDrop(e, 'Review')}
+                        >
+                            <div className="flex justify-between items-center border-b border-slate-200/80 pb-3 mb-4">
                                 <span className="text-xs font-black text-slate-650 uppercase tracking-widest text-purple-755">Review</span>
-                                <Badge variant="secondary" className="font-extrabold text-[10px] px-2.5 bg-purple-100 text-purple-700 border-purple-200/50">{roadmapTasks.filter(t => t.status === 'Review').length}</Badge>
+                                <Badge variant="secondary" className="font-extrabold text-[10px] px-2.5 bg-purple-100 text-purple-700 border-purple-200/50">{boardTasks.filter(t => t.status === 'Review').length}</Badge>
                             </div>
-                            <ScrollArea className="flex-1">
-                                <div className="space-y-3.5 pr-2.5">
-                                    {roadmapTasks.filter(t => t.status === 'Review').map(task => renderTaskCard(task))}
+                            <ScrollArea className="flex-1 -mr-3 pr-3">
+                                <div className="space-y-3.5 pb-4">
+                                    {boardTasks.filter(t => t.status === 'Review').map(task => renderTaskCard(task))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+
+                        {/* COLUMN 4: Done */}
+                        <div 
+                            className="bg-emerald-50/50 border border-emerald-100/50 rounded-2xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => handleDrop(e, 'Done')}
+                        >
+                            <div className="flex justify-between items-center border-b border-emerald-200/60 pb-3 mb-4">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-black text-emerald-700 uppercase tracking-widest">Done</span>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger><CheckCircle2 className="h-3 w-3 text-emerald-500" /></TooltipTrigger>
+                                            <TooltipContent><p className="text-xs">Showing tasks completed in the last 7 days</p></TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
+                                <Badge variant="secondary" className="font-extrabold text-[10px] px-2.5 bg-emerald-100 text-emerald-700 border-emerald-200/50">{boardDoneTasks.length}</Badge>
+                            </div>
+                            <ScrollArea className="flex-1 -mr-3 pr-3">
+                                <div className="space-y-3.5 pb-4">
+                                    {boardDoneTasks.map(task => renderTaskCard(task))}
                                 </div>
                             </ScrollArea>
                         </div>
@@ -746,76 +894,58 @@ export default function AdminDashboardPage() {
                                                                             {staff.name.charAt(0)}
                                                                         </div>
                                                                     </TooltipTrigger>
-                                                                    <TooltipContent><p>{staff.name}</p></TooltipContent>
+                                                                    <TooltipContent>
+                                                                        <p>{staff.name}</p>
+                                                                    </TooltipContent>
                                                                 </Tooltip>
                                                             </TooltipProvider>
                                                         );
                                                     })}
-                                                    {(!task.assignedTo || task.assignedTo.length === 0) && (
-                                                        <span className="text-[10px] text-slate-400 font-bold italic uppercase opacity-60">Unassigned</span>
-                                                    )}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-xs text-slate-600 font-semibold py-3">
-                                                {format(getTaskDate(task), 'dd/MM/yyyy')}
+                                            <TableCell className="text-xs text-slate-600 font-medium py-3">
+                                                {format(getTaskDate(task), 'dd MMM yyyy')}
+                                                {isPast(getTaskDate(task)) && !isSameDay(getTaskDate(task), new Date()) && (
+                                                    <span className="ml-2 text-[10px] font-bold text-red-500 animate-pulse uppercase tracking-wider">Overdue</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-right pr-6 py-3" onClick={(e) => e.stopPropagation()}>
-                                                <div className="flex items-center justify-end gap-1.5">
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
-                                                        className="h-8 w-8 text-slate-400 hover:text-slate-900" 
-                                                        onClick={() => { setSelectedTask(task); setIsFormOpen(true); }}
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
-                                                        className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" 
-                                                        onClick={() => handleUpdate(task.id, { status: 'Done' })}
-                                                    >
-                                                        <Check className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => handleUpdate(task.id, { status: 'In Progress' })}>
+                                                            Mark In Progress
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleUpdate(task.id, { status: 'Review' })}>
+                                                            Send to Review
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem className="text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50" onClick={() => handleUpdate(task.id, { status: 'Done' })}>
+                                                            Mark as Done
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
                                     ))}
-                                    {roadmapTasks.length === 0 && <TableRow><TableCell colSpan={5} className="text-center py-12 text-slate-400 font-medium">No tasks found for the selected filter.</TableCell></TableRow>}
+                                    {roadmapTasks.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-10 text-slate-400 font-medium">
+                                                No roadmap tasks match the current filter.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>
                     </Card>
                 </div>
             )}
-
-            {/* Task Slide-over Sheet (Drawer) */}
-            <Sheet open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setSelectedTask(null); }}>
-                <SheetContent className="sm:max-w-xl w-full flex flex-col h-full bg-white p-0 overflow-hidden">
-                    <div className="p-6 border-b bg-gradient-to-r from-slate-900 to-slate-800 text-white relative">
-                        <SheetHeader className="text-left">
-                            <Badge className="bg-primary hover:bg-primary text-[10px] uppercase font-black tracking-wide w-fit">Task Workspace</Badge>
-                            <SheetTitle className="text-2xl font-black text-white mt-2 leading-tight">
-                                {selectedTask ? 'Update Task Details' : 'Create New Task'}
-                            </SheetTitle>
-                            <SheetDescription className="text-slate-300 text-xs font-medium mt-1">
-                                {selectedTask ? 'Edit task status, comment history, and assignments.' : 'Fill out the form to add a new task for a staff member.'}
-                            </SheetDescription>
-                        </SheetHeader>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-6">
-                        <TaskForm 
-                            task={selectedTask || {}} 
-                            onSubmit={handleFormSubmit}
-                            onCancel={() => setIsFormOpen(false)}
-                            onCommentSubmit={handleCommentSubmit}
-                            allStaff={assignableStaff}
-                            staffByDept={staffByDept}
-                        />
-                    </div>
-                </SheetContent>
-            </Sheet>
         </div>
     );
 }

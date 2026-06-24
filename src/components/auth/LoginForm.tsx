@@ -82,6 +82,7 @@ export default function LoginForm() {
             date: Timestamp.now(),
             source: 'AI Accountant Signup',
             renewalForClientId: lapsedUser.uid,
+            originalOrderId: null,
         };
         
         await setDoc(doc(db, 'orders', orderId), renewalOrderData);

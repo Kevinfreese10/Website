@@ -603,6 +603,7 @@ export async function websiteQAndA(
               date: FieldValue.serverTimestamp(),
               department: null,
               source: 'AI Sales Chatbot',
+              originalOrderId: null,
           };
 
           await adminDb.collection('orders').doc(orderId).set(orderData);

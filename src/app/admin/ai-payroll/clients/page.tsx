@@ -4,18 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, Search, Users, PlusCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Loader2, ArrowRight, Search, Users, PlusCircle, MoreHorizontal, Edit, Trash2, Mail } from 'lucide-react';
 import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User } from '@/lib/types';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import ClientForm from '@/components/admin/ClientForm';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { invitePayrollClient } from '@/app/actions/payroll-portal';
 
 const db = getFirestore(firebaseApp);
 
@@ -26,6 +27,53 @@ export default function AIPayrollClientsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState<User | null>(null);
     const { toast } = useToast();
+
+    // Invite Portal state
+    const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteName, setInviteName] = useState('');
+    const [isSendingInvite, setIsSendingInvite] = useState(false);
+
+    const handleOpenInviteDialog = (client: User) => {
+        setSelectedClient(client);
+        setInviteEmail(client.email || '');
+        setInviteName(client.name || '');
+        setIsInviteDialogOpen(true);
+    };
+
+    const handleSendInvite = async () => {
+        if (!selectedClient) return;
+        if (!inviteEmail || !inviteEmail.includes('@')) {
+            toast({ title: 'Invalid Email', description: 'Please enter a valid email address.', variant: 'destructive' });
+            return;
+        }
+
+        setIsSendingInvite(true);
+        try {
+            const res = await invitePayrollClient({
+                clientId: selectedClient.id,
+                email: inviteEmail,
+                name: inviteName || selectedClient.name || 'Client',
+                companyName: selectedClient.companyName || selectedClient.name || 'Company',
+            });
+
+            if (res.success) {
+                toast({
+                    title: 'Invitation Sent',
+                    description: res.isNewUser 
+                        ? `A new portal account has been created for ${inviteEmail}.`
+                        : `Access has been granted to existing user ${inviteEmail}.`
+                });
+                setIsInviteDialogOpen(false);
+            } else {
+                toast({ title: 'Invite Failed', description: res.error || 'Could not send invite.', variant: 'destructive' });
+            }
+        } catch (err: any) {
+            toast({ title: 'Invite Failed', description: err.message || 'An error occurred.', variant: 'destructive' });
+        } finally {
+            setIsSendingInvite(false);
+        }
+    };
 
     useEffect(() => {
         const q = query(collection(db, 'aiPayrollClients'), orderBy('name'));
@@ -163,6 +211,7 @@ export default function AIPayrollClientsPage() {
                                     <TableHead className="font-bold">Email Address</TableHead>
                                     <TableHead className="font-bold">Processing Cycle</TableHead>
                                     <TableHead className="font-bold">Status</TableHead>
+                                    <TableHead className="font-bold">Portal Access</TableHead>
                                     <TableHead className="text-right font-bold">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -186,6 +235,15 @@ export default function AIPayrollClientsPage() {
                                                 {client.status || 'Active'}
                                             </Badge>
                                         </TableCell>
+                                        <TableCell>
+                                            {client.portalStatus === 'Invited' ? (
+                                                <Badge variant="outline" className="text-[10px] font-bold border-green-200 text-green-700 bg-green-50 uppercase">
+                                                    Invited
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">None</span>
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button variant="outline" size="sm" asChild className="font-bold border-primary/20 text-primary hover:bg-primary hover:text-white transition-all">
@@ -203,6 +261,9 @@ export default function AIPayrollClientsPage() {
                                                         <DropdownMenuLabel>Manage</DropdownMenuLabel>
                                                         <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsFormOpen(true); }}>
                                                             <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleOpenInviteDialog(client)}>
+                                                            <Mail className="mr-2 h-4 w-4" /> Invite to Portal
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <AlertDialog>
@@ -242,6 +303,50 @@ export default function AIPayrollClientsPage() {
                     </p>
                 </CardFooter>
             </Card>
+
+            <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Mail className="h-5 w-5 text-primary" />
+                            Invite to Client Portal
+                        </DialogTitle>
+                        <DialogDescription>
+                            Send an invitation to collaborate on the AI Payroll profile for <strong>{selectedClient?.companyName || selectedClient?.name}</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-700">Client Name</label>
+                            <Input 
+                                placeholder="e.g. John Doe"
+                                value={inviteName}
+                                onChange={(e) => setInviteName(e.target.value)}
+                                disabled={isSendingInvite}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-700">Email Address</label>
+                            <Input 
+                                type="email"
+                                placeholder="e.g. john@company.co.za"
+                                value={inviteEmail}
+                                onChange={(e) => setInviteEmail(e.target.value)}
+                                disabled={isSendingInvite}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter className="flex justify-end gap-2 border-t pt-4">
+                        <Button variant="ghost" onClick={() => setIsInviteDialogOpen(false)} disabled={isSendingInvite}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSendInvite} disabled={isSendingInvite || !inviteEmail} className="gap-2">
+                            {isSendingInvite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                            {isSendingInvite ? 'Sending...' : 'Send Invitation'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

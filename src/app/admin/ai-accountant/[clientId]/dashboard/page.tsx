@@ -19,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import AIStatementImportDialog from '@/components/admin/AIStatementImportDialog';
+import AIBulkStatementImportDialog from '@/components/admin/AIBulkStatementImportDialog';
 
 const db = getFirestore(firebaseApp);
 
@@ -113,6 +114,7 @@ export default function AIAccountantClientDashboardPage() {
     const [transactions, setTransactions] = useState<(ImportedTransaction | AllocatedTransaction)[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+    const [isBulkImportDialogOpen, setIsBulkImportDialogOpen] = useState(false);
     const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | undefined>();
     const params = useParams();
     const clientId = params.clientId as string;
@@ -201,6 +203,14 @@ export default function AIAccountantClientDashboardPage() {
                     onImportComplete={() => {}}
                 />
             )}
+            {client && (
+                <AIBulkStatementImportDialog
+                    open={isBulkImportDialogOpen}
+                    onOpenChange={setIsBulkImportDialogOpen}
+                    client={client}
+                    onImportComplete={fetchDashboardData}
+                />
+            )}
 
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -210,7 +220,18 @@ export default function AIAccountantClientDashboardPage() {
                             A summary of all linked bank accounts for {client.companyName || client.name}.
                         </CardDescription>
                     </div>
-                    {client && <CreateAccountDialog client={client} onAccountCreated={fetchDashboardData} />}
+                    {client && (
+                        <div className="flex gap-2">
+                            <Button 
+                                size="sm" 
+                                className="font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
+                                onClick={() => setIsBulkImportDialogOpen(true)}
+                            >
+                                <Sparkles className="mr-2 h-4 w-4" /> Bulk Upload Statements (AI)
+                            </Button>
+                            <CreateAccountDialog client={client} onAccountCreated={fetchDashboardData} />
+                        </div>
+                    )}
                 </CardHeader>
                 <CardContent>
                     {accountSummaries.length === 0 ? (

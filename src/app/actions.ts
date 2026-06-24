@@ -1541,6 +1541,7 @@ export async function createCheckoutOrderAction({
       status: 'Pending Payment',
       date: new Date(), // Automatically stored as Timestamp in Firestore by Admin SDK
       source: partnerId ? 'Partner Landing Page' : 'Client',
+      originalOrderId: null,
       ...(partnerId ? { resellerId: partnerId } : {}),
     };
 

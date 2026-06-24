@@ -221,8 +221,8 @@ export default function EmployeeForm({
               control={form.control}
               name="joinDate"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>This employee started working on</FormLabel>
+                <FormItem>
+                  <FormLabel className="md:min-h-[3rem] md:flex md:items-end md:pb-1">This employee started working on</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -240,7 +240,7 @@ export default function EmployeeForm({
                 </FormItem>
               )}
             />
-            <FormField control={form.control} name="taxNumber" render={({ field }) => ( <FormItem><FormLabel>Income Tax Number</FormLabel><FormControl><Input placeholder="Optional" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <FormField control={form.control} name="taxNumber" render={({ field }) => ( <FormItem><FormLabel className="md:min-h-[3rem] md:flex md:items-end md:pb-1">Income Tax Number</FormLabel><FormControl><Input placeholder="Optional" {...field} /></FormControl><FormMessage /></FormItem> )} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField control={form.control} name="jobTitle" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Job Title (Optional)</FormLabel><FormControl><Input placeholder="e.g. Senior Assistant" {...field} /></FormControl></FormItem> )} />
@@ -258,7 +258,7 @@ export default function EmployeeForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField control={form.control} name="medicalAidMembers" render={({ field }) => ( 
               <FormItem>
-                <FormLabel>Medical Scheme Members (Self / Main Member)</FormLabel>
+                <FormLabel className="md:min-h-[3.5rem] md:flex md:items-end md:pb-1">Medical Scheme Members (Self / Main Member)</FormLabel>
                 <FormControl><Input type="number" min="0" {...field} /></FormControl>
                 <FormDescription className="text-[10px]">Enter 1 if the employee is the main member of a registered medical scheme.</FormDescription>
                 <FormMessage />
@@ -266,7 +266,7 @@ export default function EmployeeForm({
             )} />
             <FormField control={form.control} name="medicalAidDependents" render={({ field }) => ( 
               <FormItem>
-                <FormLabel>Medical Scheme Dependents</FormLabel>
+                <FormLabel className="md:min-h-[3.5rem] md:flex md:items-end md:pb-1">Medical Scheme Dependents</FormLabel>
                 <FormControl><Input type="number" min="0" {...field} /></FormControl>
                 <FormDescription className="text-[10px]">Number of registered dependents (spouse, children, etc.).</FormDescription>
                 <FormMessage />

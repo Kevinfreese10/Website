@@ -22,6 +22,7 @@ import PayslipEditor from '@/components/admin/PayslipEditor';
 import EmployeeImportDialog from '@/components/admin/EmployeeImportDialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PayrollService } from '@/services/PayrollService';
+import { useAuth } from '@/contexts/AuthContext';
 
 const db = getFirestore(firebaseApp);
 
@@ -29,6 +30,8 @@ export default function EmployeesPage() {
   const params = useParams();
   const clientId = params.clientId as string;
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isClient = user?.role === 'client';
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [payslips, setPayslips] = useState<Payslip[]>([]);
@@ -341,24 +344,26 @@ export default function EmployeesPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-8 w-8 text-primary"
-                                        onClick={() => handleEditPayslip(emp)}
-                                        disabled={(isFetchingPayslip && payslipEmployee?.id === emp.id) || emp.status === 'Terminated'}
-                                    >
-                                        {isFetchingPayslip && payslipEmployee?.id === emp.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <ReceiptText className="h-4 w-4" />}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{emp.status === 'Terminated' ? 'Cannot edit terminated employee payslip' : 'Edit Current Payslip'}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        {!isClient && (
+                          <TooltipProvider>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-8 w-8 text-primary"
+                                          onClick={() => handleEditPayslip(emp)}
+                                          disabled={(isFetchingPayslip && payslipEmployee?.id === emp.id) || emp.status === 'Terminated'}
+                                      >
+                                          {isFetchingPayslip && payslipEmployee?.id === emp.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <ReceiptText className="h-4 w-4" />}
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                      <p>{emp.status === 'Terminated' ? 'Cannot edit terminated employee payslip' : 'Edit Current Payslip'}</p>
+                                  </TooltipContent>
+                              </Tooltip>
+                          </TooltipProvider>
+                        )}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -371,31 +376,35 @@ export default function EmployeesPage() {
                             <DropdownMenuItem onClick={() => { setSelectedEmployee(emp); setIsFormOpen(true); }}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditPayslip(emp)} disabled={emp.status === 'Terminated'}>
-                                <Calculator className="mr-2 h-4 w-4" /> Edit Current Payslip
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                                    <Trash2 className="mr-2 h-4 w-4" /> Remove Employee
+                            {!isClient && (
+                              <>
+                                <DropdownMenuItem onClick={() => handleEditPayslip(emp)} disabled={emp.status === 'Terminated'}>
+                                    <Calculator className="mr-2 h-4 w-4" /> Edit Current Payslip
                                 </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                    This will permanently remove {emp.name} {emp.surname} from the payroll records.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteEmployee(emp.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                    Confirm Removal
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                                <DropdownMenuSeparator />
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                                        <Trash2 className="mr-2 h-4 w-4" /> Remove Employee
+                                    </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                        This will permanently remove {emp.name} {emp.surname} from the payroll records.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteEmployee(emp.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                        Confirm Removal
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                              </>
+                            )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

@@ -217,6 +217,7 @@ export default function PartnerOnboardingPage() {
         date: Timestamp.now(),
         source: 'Partner',
         resellerId: user.uid,
+        originalOrderId: null,
       };
       
       await setDoc(doc(db, 'orders', orderId), dfyOrder);

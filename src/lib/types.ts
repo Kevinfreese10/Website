@@ -504,6 +504,8 @@ export type User = {
   questionsCount?: number;
   answersCount?: number;
   solutionsCount?: number;
+  portalStatus?: string;
+  payrollClientId?: string;
 };
 
 export type DiscountCode = {
@@ -529,6 +531,7 @@ export type Task = {
   assignedTo: string[];
   createdBy: string;
   createdAt: any;
+  updatedAt?: any;
   dueDate: any;
   priority: 'High' | 'Medium' | 'Low';
   status: 'To-Do' | 'In Progress' | 'Review' | 'Done';
@@ -541,6 +544,7 @@ export type Task = {
   comments?: TaskComment[];
   tags?: string[];
   triggerField?: string;
+  entityType?: 'Company' | 'Trust' | 'Individual';
   vatCategory?: 'A' | 'B' | 'C';
   dueMonthOffset?: number;
   dueDay?: number;
