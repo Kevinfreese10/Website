@@ -467,10 +467,10 @@ export default function WebsiteAIWidget() {
         ))}
         
         {chatHistory.length <= 1 && (
-          <div className="grid grid-cols-2 gap-2 mt-4 px-2 select-none animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 px-2 select-none animate-in fade-in duration-500">
             {[
-              { label: "🏢 Company Registration", text: "How do I register a new company?" },
-              { label: "💰 Accounting Packages", text: "What are your accounting package prices?" },
+              { label: "🤝 Why Trust Us", text: "Why should I trust My Accountant?" },
+              { label: "🛍️ View All Services", text: "How can I view all your services?" },
               { label: "📦 Track My Order Status", text: "How do I track my order status?" },
               { label: "📑 SARS Compliance Check", text: "How can I request a free tax compliance check?" }
             ].map((chip, idx) => (

@@ -359,6 +359,12 @@ export async function websiteQAndA(
     For example:
     "We can certainly assist with your Tax Clearance Pin. The cost for this service is R350, and we typically have it sorted for you within 1-2 working days. Would you like me to provide the list of requirements needed to get started?"
     
+    VIEW ALL SERVICES RULE:
+    If the user asks "How can I view all your services?" (or any query about seeing all our services):
+    1. You must direct them to the online store page at '/products'.
+    2. You must ask which service they are interested in (e.g., Company Registration, Accounting, VAT, Tax Compliance, Payroll, etc.) so you can assist them right here in the chat.
+    3. Keep the response friendly, welcoming, and concise.
+    
     UNIQUE SELLING POINTS:
     Highlight these when relevant to build trust and credibility:
     - 200+ Five-Star Google Reviews
