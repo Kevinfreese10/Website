@@ -260,21 +260,22 @@ body.dark .border-slate-400 {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Redefine Text & Button Gradients for Soft Teal-to-Slate Look */
+/* Redefine Text & Buttons for Solid Soft Brand Blue & Slate Look */
 .home-light-theme .bg-gradient,
 .home-light-theme .bg-primary {
-  background: linear-gradient(135deg, #4ecdc4 0%, #556270 100%) !important;
-  color: #ffffff !important;
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
 }
 .home-light-theme .bg-gradient:hover,
 .home-light-theme .bg-primary:hover {
-  opacity: 0.9 !important;
+  background: hsl(var(--primary)/0.9) !important;
+  opacity: 1 !important;
 }
 .home-light-theme .text-gradient {
-  background: linear-gradient(135deg, #4ecdc4 0%, #556270 100%) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  color: transparent !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  color: #1e293b !important; /* Elegant solid slate */
 }
 
 /* Secondary Buttons: Soft Teal Tint */
