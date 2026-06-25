@@ -91,6 +91,14 @@ export default function HomePageClient() {
     }).format(price);
   };
 
+  const getServicePrice = (slug: string, fallback: string): string => {
+    const service = services.find(s => s.slug === slug);
+    if (service && service.price !== undefined && service.price !== null) {
+      return formatPrice(service.price);
+    }
+    return fallback;
+  };
+
   const calculatedPackage = useMemo(() => {
     let basePrice = 0;
     let name = "Essential";
@@ -600,7 +608,7 @@ export default function HomePageClient() {
                   <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary shrink-0" /> Submission & liaison with officers</li>
                 </ul>
                 <div className="mt-6 flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-gradient">R1,400</span>
+                  <span className="text-2xl font-black text-gradient">{getServicePrice('ncr-registration', 'R1,400')}</span>
                   <span className="text-xs text-muted-foreground font-semibold">once-off</span>
                 </div>
               </CardContent>
@@ -645,7 +653,7 @@ export default function HomePageClient() {
                   <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-accent shrink-0" /> Accepted by all SA banks & SARS</li>
                 </ul>
                 <div className="mt-6 flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-gradient">R1,200</span>
+                  <span className="text-2xl font-black text-gradient">{getServicePrice('accountants-letter', 'R1,200')}</span>
                   <span className="text-xs text-muted-foreground font-semibold">once-off</span>
                 </div>
               </CardContent>
@@ -690,7 +698,7 @@ export default function HomePageClient() {
                   <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> Active verification link</li>
                 </ul>
                 <div className="mt-6 flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-gradient">R350</span>
+                  <span className="text-2xl font-black text-gradient">{getServicePrice('tax-clearance-pin', 'R350')}</span>
                   <span className="text-xs text-muted-foreground font-semibold">once-off</span>
                 </div>
               </CardContent>
