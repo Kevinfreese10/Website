@@ -1218,7 +1218,7 @@ export default function HomePageClient() {
       <div className="fixed bottom-0 left-0 right-0 z-40 glass-nav border-t border-white/[0.06] p-3 md:hidden animate-in slide-in-from-bottom duration-500">
           <div className="grid grid-cols-1 gap-2">
               <Button asChild className="h-10 text-xs font-black uppercase tracking-widest bg-gradient hover:opacity-90 text-white neon-glow">
-                  <Link href="/signup">Get Started Now</Link>
+                  <Link href="/products">Visit our online store</Link>
               </Button>
           </div>
       </div>

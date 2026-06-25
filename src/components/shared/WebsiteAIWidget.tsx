@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/component
 import { Loader2, MessageCircle, Send, X, Bot, User, ArrowRight, ShieldCheck, Info, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp, getDocs, collection, query, orderBy } from 'firebase/firestore';
@@ -31,6 +32,7 @@ type ChatMessage = {
 }
 
 export default function WebsiteAIWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isModal, setIsModal] = useState(true);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -623,7 +625,10 @@ export default function WebsiteAIWidget() {
   return (
     <>
       {/* Bottom-right Launcher Button */}
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className={cn(
+        "fixed right-4 z-50 transition-all duration-300",
+        pathname === '/' ? "bottom-20 md:bottom-4" : "bottom-4"
+      )}>
         <Button 
           onClick={toggleChat} 
           size="icon" 
@@ -650,7 +655,10 @@ export default function WebsiteAIWidget() {
             </div>
           </div>
         ) : (
-          <div className="fixed bottom-20 left-4 right-4 z-50 sm:left-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className={cn(
+            "fixed left-4 right-4 z-50 sm:left-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-5 duration-300 transition-all duration-300",
+            pathname === '/' ? "bottom-36 md:bottom-20" : "bottom-20"
+          )}>
             <Card className="flex flex-col h-[65vh] sm:h-[600px] shadow-2xl bg-card border rounded-2xl overflow-hidden neon-glow">
               {cardInner}
             </Card>
