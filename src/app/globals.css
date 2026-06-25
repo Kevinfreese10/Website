@@ -278,33 +278,34 @@ body.dark .border-slate-400 {
   color: #1e293b !important; /* Elegant solid slate */
 }
 
-/* Secondary Buttons: Soft Teal Tint */
+/* Secondary Buttons: Clean Slate Gray */
 .home-light-theme .bg-secondary {
-  background-color: #f0fdfa !important;
-  color: #115e59 !important; /* Deep teal text for readability */
-  border: 1px solid rgba(78, 205, 196, 0.15) !important;
+  background-color: #f1f5f9 !important; /* slate-100 */
+  color: #475569 !important; /* slate-600 */
+  border: 1px solid #e2e8f0 !important; /* slate-200 */
 }
 .home-light-theme .bg-secondary:hover {
-  background-color: #ccfbf1 !important;
+  background-color: #e2e8f0 !important; /* slate-200 */
+  color: #334155 !important; /* slate-700 */
 }
 
-/* Outline Buttons: Slate Border & Text, Teal Hover */
+/* Outline Buttons: Cool Gray Border & Slate Text, Soft Slate Hover */
 .home-light-theme button.border-primary,
 .home-light-theme a.border-primary {
-  border-color: #556270 !important;
-  color: #556270 !important;
+  border-color: #cbd5e1 !important; /* slate-300 */
+  color: #475569 !important; /* slate-600 */
 }
 .home-light-theme button.border-primary:hover,
 .home-light-theme a.border-primary:hover {
-  background-color: rgba(78, 205, 196, 0.08) !important;
-  color: #0f766e !important;
-  border-color: #0f766e !important;
+  background-color: #f8fafc !important; /* slate-50 */
+  color: #334155 !important; /* slate-700 */
+  border-color: #94a3b8 !important; /* slate-400 */
 }
 
-/* Ghost Buttons (Tertiary): Faint Teal Hover Highlight */
+/* Ghost Buttons (Tertiary): Soft Slate Hover Highlight */
 .home-light-theme .hover\:bg-accent:hover {
-  background-color: rgba(78, 205, 196, 0.08) !important;
-  color: #0f766e !important;
+  background-color: #f1f5f9 !important; /* slate-100 */
+  color: #334155 !important; /* slate-700 */
 }
 
 /* Neutralize neon glows into soft blue/indigo shadows */
