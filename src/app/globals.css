@@ -260,10 +260,10 @@ body.dark .border-slate-400 {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Redefine Text & Button Gradients for Soft Champagne-to-Teal Look */
+/* Redefine Text & Button Gradients for Soft Teal-to-Slate Look */
 .home-light-theme .bg-gradient,
 .home-light-theme .bg-primary {
-  background: linear-gradient(135deg, #f1f2b5 0%, #135058 100%) !important;
+  background: linear-gradient(135deg, #4ecdc4 0%, #556270 100%) !important;
   color: #ffffff !important;
 }
 .home-light-theme .bg-gradient:hover,
@@ -271,7 +271,7 @@ body.dark .border-slate-400 {
   opacity: 0.9 !important;
 }
 .home-light-theme .text-gradient {
-  background: linear-gradient(135deg, #f1f2b5 0%, #135058 100%) !important;
+  background: linear-gradient(135deg, #4ecdc4 0%, #556270 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   color: transparent !important;
