@@ -230,3 +230,110 @@ body.dark .border-slate-300,
 body.dark .border-slate-400 {
   border-color: var(--border) !important;
 }
+
+/* ── Home Page Light Theme Specific Overrides (Option C: ChatGPT Style) ── */
+.home-light-theme {
+  --background: 0 0% 100%;             /* Pure white background */
+  --foreground: 240 10% 3.9%;          /* Off-black text */
+  --card: 240 5% 96.5%;                /* Extremely light gray cards */
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;             /* Off-black buttons (#18181B) */
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;        /* Light gray secondary buttons */
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;             /* Subtle gray border */
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+}
+
+/* Translucent Glass Nav for Light Theme */
+.home-light-theme .glass-nav {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Redefine Text & Button Gradients for Sophisticated Look */
+.home-light-theme .bg-gradient {
+  background: hsl(var(--primary)) !important;
+}
+.home-light-theme .text-gradient {
+  background: linear-gradient(135deg, hsl(240 10% 3.9%) 0%, hsl(240 5.9% 25%) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+/* Neutralize neon glows into soft box shadows */
+.home-light-theme .neon-glow,
+.home-light-theme .neon-glow-strong,
+.home-light-theme .neon-glow-violet {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+}
+.home-light-theme .neon-border {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Adjust dark-mode grid dots to light-mode dots */
+.home-light-theme .bg-dot-grid {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px) !important;
+}
+
+/* ── Remove section borders/backgrounds to create a flowing single-page canvas ── */
+body.home-light-theme section,
+body.home-light-theme footer {
+  border-color: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Remove full-width layout dividers (like trust badge bar) background and borders */
+body.home-light-theme .border-y.border-white\/\[0\.06\],
+body.home-light-theme .border-t.border-white\/\[0\.06\],
+body.home-light-theme .border-b.border-white\/\[0\.06\] {
+  border-color: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Convert hardcoded dark-mode backgrounds/borders to elegant light-mode equivalents */
+body.home-light-theme .bg-secondary\/50,
+body.home-light-theme .bg-secondary\/35 {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+body.home-light-theme .bg-white\/\[0\.01\],
+body.home-light-theme .bg-white\/\[0\.02\],
+body.home-light-theme .bg-white\/\[0\.04\],
+body.home-light-theme .bg-white\/\[0\.05\],
+body.home-light-theme .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+body.home-light-theme .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+body.home-light-theme .border-white\/\[0\.04\],
+body.home-light-theme .border-white\/\[0\.06\],
+body.home-light-theme .border-white\/\[0\.08\],
+body.home-light-theme .border-white\/10 {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Keep card layouts clean */
+body.home-light-theme .glass-card {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+body.home-light-theme .glass {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}

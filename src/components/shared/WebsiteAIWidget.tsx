@@ -274,24 +274,24 @@ export default function WebsiteAIWidget() {
   const cardInner = (
     <>
       {/* Header */}
-      <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 flex flex-row items-center justify-between space-y-0 border-b border-blue-700">
+      <CardHeader className="bg-primary text-primary-foreground p-4 flex flex-row items-center justify-between space-y-0 border-b border-primary/20">
         <div className="flex items-center gap-2">
           <div className="relative">
-            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center border border-white/25">
-              <Bot className="h-5 w-5 text-white" />
+            <div className="h-10 w-10 rounded-full bg-primary-foreground/15 flex items-center justify-center border border-primary-foreground/20">
+              <Bot className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-slate-950 animate-pulse" />
+            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-primary animate-pulse" />
           </div>
           <div>
-            <CardTitle className="text-sm font-bold text-white leading-tight">Khai</CardTitle>
-            <CardDescription className="text-[10px] text-blue-100 font-medium leading-none mt-0.5">Support Consultant</CardDescription>
+            <CardTitle className="text-sm font-bold text-primary-foreground leading-tight">Khai</CardTitle>
+            <CardDescription className="text-[10px] text-primary-foreground/80 font-medium leading-none mt-0.5">Support Consultant</CardDescription>
           </div>
         </div>
         <Button 
           onClick={() => setIsOpen(false)} 
           size="icon" 
           variant="ghost" 
-          className="h-8 w-8 rounded-full hover:bg-white/10 text-white hover:text-white"
+          className="h-8 w-8 rounded-full hover:bg-primary-foreground/10 text-primary-foreground hover:text-primary-foreground"
         >
           <X className="h-5 w-5" />
         </Button>
@@ -311,7 +311,7 @@ export default function WebsiteAIWidget() {
       {/* Messages Body */}
       <CardContent 
         ref={chatContainerRef} 
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950/40 border-t border-b border-white/[0.06]"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-background/40 border-t border-b border"
       >
         {chatHistory.map((message, index) => (
           <div 
@@ -322,13 +322,13 @@ export default function WebsiteAIWidget() {
             )}
           >
             {message.role === 'bot' && (
-              <div className="h-8 w-8 rounded-full bg-white/[0.04] flex items-center justify-center border border-white/10 shrink-0 shadow-sm">
+              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center border shrink-0 shadow-sm">
                 <Bot className="h-4.5 w-4.5 text-primary animate-pulse" />
               </div>
             )}
             {message.role === 'agent' && (
-              <div className="h-8 w-8 rounded-full bg-indigo-950/80 flex items-center justify-center border border-indigo-500/35 shrink-0 overflow-hidden shadow-sm">
-                <User className="h-4.5 w-4.5 text-indigo-400" />
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0 overflow-hidden shadow-sm">
+                <User className="h-4.5 w-4.5 text-primary" />
               </div>
             )}
             <div 
@@ -337,13 +337,13 @@ export default function WebsiteAIWidget() {
                 message.role === 'user' 
                   ? "bg-gradient text-white rounded-br-none" 
                   : message.role === 'agent'
-                    ? "bg-indigo-600 text-white rounded-bl-none border border-indigo-700"
-                    : "bg-white/[0.05] text-foreground border border-white/10 rounded-bl-none backdrop-blur-sm"
+                    ? "bg-primary text-primary-foreground rounded-bl-none border border-primary"
+                    : "bg-card text-foreground border rounded-bl-none backdrop-blur-sm"
               )}
             >
               {message.role === 'agent' && (
-                <div className="text-[9px] text-indigo-200 font-extrabold uppercase tracking-widest mb-1.5 select-none flex items-center gap-1">
-                  <ShieldCheck className="h-3 w-3 text-indigo-200" /> Human Advisor
+                <div className="text-[9px] text-primary-foreground/80 font-extrabold uppercase tracking-widest mb-1.5 select-none flex items-center gap-1">
+                  <ShieldCheck className="h-3 w-3 text-primary-foreground" /> Human Advisor
                 </div>
               )}
               <div className={cn(
@@ -510,13 +510,13 @@ export default function WebsiteAIWidget() {
       {/* Input Form Footer or Email Capture */}
       {isEmailRequired ? (
         chatMode === 'agent' ? (
-          <CardFooter className="p-4 border-t border-white/10 bg-indigo-950/25 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
+          <CardFooter className="p-4 border-t bg-muted/10 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
             <div className="space-y-1">
-              <h4 className="text-xs font-bold text-white flex items-center gap-1 select-none">
-                <ShieldCheck className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1 select-none">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary animate-pulse" />
                 Advisor Connecting...
               </h4>
-              <p className="text-[10px] text-indigo-200 leading-relaxed select-none">
+              <p className="text-[10px] text-muted-foreground leading-relaxed select-none">
                 Please enter your email so we can notify you when the advisor replies.
               </p>
             </div>
@@ -526,7 +526,7 @@ export default function WebsiteAIWidget() {
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 disabled={isSubmittingEmail}
-                className="flex-grow h-9 text-xs border-white/10 focus-visible:ring-indigo-500 bg-white/[0.04] text-foreground"
+                className="flex-grow h-9 text-xs border focus-visible:ring-primary bg-muted text-foreground"
                 required
                 type="email"
               />
@@ -534,20 +534,20 @@ export default function WebsiteAIWidget() {
                 type="submit" 
                 size="sm" 
                 disabled={isSubmittingEmail}
-                className="bg-indigo-600 hover:bg-indigo-700 text-xs font-bold shrink-0 text-white"
+                className="bg-primary hover:bg-primary/90 text-xs font-bold shrink-0 text-primary-foreground"
               >
-                {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : "Connect"}
+                {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" /> : "Connect"}
               </Button>
             </form>
           </CardFooter>
         ) : (
-          <CardFooter className="p-4 border-t border-white/10 bg-blue-950/25 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
+          <CardFooter className="p-4 border-t bg-muted/10 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
             <div className="space-y-1">
-              <h4 className="text-xs font-bold text-white flex items-center gap-1 select-none">
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1 select-none">
                 <ShieldCheck className="h-3.5 w-3.5 text-primary animate-pulse" />
                 Enter Email to Continue
               </h4>
-              <p className="text-[10px] text-blue-200 leading-relaxed select-none">
+              <p className="text-[10px] text-muted-foreground leading-relaxed select-none">
                 You have reached the limit of anonymous questions. Please enter your email address to continue chatting.
               </p>
             </div>
@@ -557,7 +557,7 @@ export default function WebsiteAIWidget() {
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 disabled={isSubmittingEmail}
-                className="flex-grow h-9 text-xs border-white/10 focus-visible:ring-primary bg-white/[0.04] text-foreground"
+                className="flex-grow h-9 text-xs border focus-visible:ring-primary bg-muted text-foreground"
                 required
                 type="email"
               />
@@ -573,7 +573,7 @@ export default function WebsiteAIWidget() {
           </CardFooter>
         )
       ) : (
-        <CardFooter className="p-3 border-t border-white/10 bg-slate-950/90 flex flex-col items-stretch gap-2 animate-in fade-in duration-300">
+        <CardFooter className="p-3 border-t bg-background flex flex-col items-stretch gap-2 animate-in fade-in duration-300">
           {(!chatEmail || chatEmail === 'Anonymous' || chatEmail === '') && (
             <div className="text-[10px] text-muted-foreground text-center font-semibold mb-1 flex items-center justify-center gap-1 select-none">
               <Info className="h-3 w-3 text-primary shrink-0" />
@@ -594,8 +594,7 @@ export default function WebsiteAIWidget() {
                         autoComplete="off" 
                         disabled={isLoading}
                         className={cn(
-                          "bg-white/[0.04] border-white/10 focus-visible:bg-white/[0.07] text-sm font-medium text-foreground placeholder-slate-400 rounded-xl h-10 shadow-inner focus-visible:ring-primary",
-                          chatMode === 'agent' ? "focus-visible:ring-indigo-600" : "focus-visible:ring-primary"
+                          "bg-muted border focus-visible:bg-muted/80 text-sm font-medium text-foreground placeholder-muted-foreground rounded-xl h-10 shadow-inner focus-visible:ring-primary"
                         )}
                       />
                     </FormControl>
@@ -609,10 +608,10 @@ export default function WebsiteAIWidget() {
                 disabled={isLoading} 
                 className={cn(
                   "rounded-xl h-10 w-10 active:scale-95 transition-all flex items-center justify-center shrink-0 shadow-md",
-                  chatMode === 'agent' ? "bg-indigo-600 hover:bg-indigo-700" : "bg-gradient hover:opacity-90"
+                  chatMode === 'agent' ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "bg-gradient hover:opacity-90 text-white"
                 )}
               >
-                <Send className="h-4.5 w-4.5 text-white" />
+                <Send className="h-4.5 w-4.5" />
               </Button>
             </form>
           </Form>
@@ -639,20 +638,20 @@ export default function WebsiteAIWidget() {
         isModal ? (
           <div 
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
           >
             <div 
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-lg animate-in zoom-in-95 duration-200"
             >
-              <Card className="flex flex-col h-[80vh] max-h-[700px] shadow-2xl bg-slate-950/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden neon-glow">
+              <Card className="flex flex-col h-[80vh] max-h-[700px] shadow-2xl bg-card border rounded-2xl overflow-hidden neon-glow">
                 {cardInner}
               </Card>
             </div>
           </div>
         ) : (
           <div className="fixed bottom-20 left-4 right-4 z-50 sm:left-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-5 duration-300">
-            <Card className="flex flex-col h-[65vh] sm:h-[600px] shadow-2xl bg-slate-950/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden neon-glow">
+            <Card className="flex flex-col h-[65vh] sm:h-[600px] shadow-2xl bg-card border rounded-2xl overflow-hidden neon-glow">
               {cardInner}
             </Card>
           </div>
