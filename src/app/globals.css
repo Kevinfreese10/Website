@@ -260,10 +260,10 @@ body.dark .border-slate-400 {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Redefine Text & Button Gradients for Sunset-to-Navy Look */
+/* Redefine Text & Button Gradients for Slate-to-Coral Look */
 .home-light-theme .bg-gradient,
 .home-light-theme .bg-primary {
-  background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%) !important;
+  background: linear-gradient(135deg, #2c3e50 0%, #fd746c 100%) !important;
   color: #ffffff !important;
 }
 .home-light-theme .bg-gradient:hover,
@@ -271,7 +271,7 @@ body.dark .border-slate-400 {
   opacity: 0.9 !important;
 }
 .home-light-theme .text-gradient {
-  background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%) !important;
+  background: linear-gradient(135deg, #2c3e50 0%, #fd746c 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   color: transparent !important;
