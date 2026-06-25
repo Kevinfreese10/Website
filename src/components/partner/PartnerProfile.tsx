@@ -1,5 +1,5 @@
 'use client';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,17 @@ import {
   MousePointer2,
   Save,
   Search,
-  Copy
+  Copy,
+  Sparkles,
+  Trash2,
+  Plus,
+  Eye,
+  LayoutGrid,
+  Star,
+  ChevronDown,
+  MessageSquare,
+  Undo2,
+  Redo2
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { getFirestore, doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
@@ -44,6 +54,10 @@ import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { User } from '@/lib/types';
+import { generateCopywritingCopy } from '@/app/actions/ai-copywriter';
+import { editLandingPageWithAI } from '@/app/actions/ai-landing-page';
+import PartnerLandingPagePreview from './PartnerLandingPagePreview';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
@@ -110,6 +124,18 @@ const formSchema = z.object({
     servicesHeroTextPosition: z.enum(['inside', 'below']).default('inside'),
     metaTitle: z.string().max(60, "Title must be 60 characters or less.").optional(),
     metaDescription: z.string().max(160, "Description must be 160 characters or less.").optional(),
+    testimonials: z.array(z.object({
+      name: z.string().min(2, "Name is required"),
+      role: z.string().min(2, "Role/Title is required"),
+      company: z.string().optional(),
+      quote: z.string().min(5, "Quote is required"),
+      rating: z.preprocess(val => Number(val) || 5, z.number().min(1).max(5)),
+    })).optional(),
+    faqs: z.array(z.object({
+      question: z.string().min(3, "Question is too short"),
+      answer: z.string().min(5, "Answer is too short"),
+    })).optional(),
+    showLeadForm: z.boolean().default(true),
   })
 });
 
@@ -226,6 +252,9 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
         servicesHeroTextPosition: targetUser?.landingPage?.servicesHeroTextPosition || 'inside',
         metaTitle: targetUser?.landingPage?.metaTitle || '',
         metaDescription: targetUser?.landingPage?.metaDescription || '',
+        testimonials: targetUser?.landingPage?.testimonials || [],
+        faqs: targetUser?.landingPage?.faqs || [],
+        showLeadForm: targetUser?.landingPage?.showLeadForm !== undefined ? targetUser?.landingPage?.showLeadForm : true,
       }
     },
   });
@@ -235,6 +264,15 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
   // Ensure form resets if propPartner changes (important for Modal reuse)
   useEffect(() => {
       if (propPartner) {
+          const initialLp = {
+            ...form.getValues().landingPage,
+            ...propPartner.landingPage,
+            enabled: propPartner.landingPage?.enabled || false,
+            slug: propPartner.landingPage?.slug || '',
+            testimonials: propPartner.landingPage?.testimonials || [],
+            faqs: propPartner.landingPage?.faqs || [],
+            showLeadForm: propPartner.landingPage?.showLeadForm !== undefined ? propPartner.landingPage?.showLeadForm : true,
+          };
           reset({
             companyName: propPartner.companyName || '',
             name: propPartner.name?.split(' ')[0] || propPartner.contactPerson?.split(' ')[0] || '',
@@ -254,19 +292,293 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                 accountNumber: propPartner.bankingDetails?.accountNumber || '', 
                 branchCode: propPartner.bankingDetails?.branchCode || ''
             },
-            landingPage: {
-                ...form.getValues().landingPage,
-                ...propPartner.landingPage,
-                enabled: propPartner.landingPage?.enabled || false,
-                slug: propPartner.landingPage?.slug || '',
-            }
+            landingPage: initialLp
           });
+          setConfigHistory([JSON.parse(JSON.stringify(initialLp))]);
+          setHistoryIndex(0);
       }
   }, [propPartner, reset]);
 
   const watchedBanking = watch('bankingDetails');
   const watchedLp = watch('landingPage');
   const themePreset = watch('landingPage.themePreset');
+
+  // Preview and custom managers
+  const [previewMode, setPreviewMode] = useState<'edit' | 'split'>('edit');
+  const [generatingFields, setGeneratingFields] = useState<Record<string, boolean>>({});
+
+  const { fields: testimonialFields, append: appendTestimonial, remove: removeTestimonial, replace: replaceTestimonials } = useFieldArray({
+    control: form.control,
+    name: "landingPage.testimonials" as any
+  });
+
+  const { fields: faqFields, append: appendFaq, remove: removeFaq, replace: replaceFaqs } = useFieldArray({
+    control: form.control,
+    name: "landingPage.faqs" as any
+  });
+
+  const handleAiGenerate = async (fieldName: 'heroTitle' | 'heroSubtitle' | 'aboutUs' | 'metaTitle' | 'metaDescription') => {
+    const partnerName = form.getValues('companyName') || targetUser?.companyName || targetUser?.name || 'our practice';
+    setGeneratingFields(prev => ({ ...prev, [fieldName]: true }));
+    try {
+      let context = '';
+      if (fieldName === 'heroSubtitle' || fieldName === 'aboutUs' || fieldName === 'metaDescription') {
+        context = form.getValues('landingPage.aboutUs') || '';
+      }
+      const res = await generateCopywritingCopy({
+        field: fieldName,
+        partnerName,
+        additionalContext: context
+      });
+      if (res.success && res.text) {
+        setValue(`landingPage.${fieldName}`, res.text, { shouldDirty: true });
+        toast({ title: 'Copy Generated!', description: `AI generated content for ${fieldName}` });
+      } else {
+        toast({ title: 'AI Generation Failed', description: res.error || 'Please try again.', variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'AI Generation Failed', description: 'Failed to connect to copywriting service.', variant: 'destructive' });
+    } finally {
+      setGeneratingFields(prev => ({ ...prev, [fieldName]: false }));
+    }
+  };
+
+  const [aiEditPrompt, setAiEditPrompt] = useState('');
+  const [isAiEditingPage, setIsAiEditingPage] = useState(false);
+  const [configHistory, setConfigHistory] = useState<any[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [pendingAiConfig, setPendingAiConfig] = useState<any | null>(null);
+  const [isDiffOpen, setIsDiffOpen] = useState(false);
+
+  const getDiffDescription = (current: any, pending: any) => {
+    const diffs: { field: string; label: string; from: string; to: string }[] = [];
+    if (!current || !pending) return diffs;
+
+    const fieldLabels: Record<string, string> = {
+      heroTitle: 'Hero Headline',
+      heroSubtitle: 'Hero Subtitle',
+      aboutUs: 'About Us Paragraph',
+      primaryColor: 'Primary Theme Color',
+      secondaryColor: 'Secondary Theme Color',
+      backgroundColor: 'Page Background Color',
+      textColor: 'Text Color',
+      cardBackgroundColor: 'Card Background Color',
+      cardBorderColor: 'Card Border Color',
+      buttonColor: 'Button Color',
+      buttonTextColor: 'Button Text Color',
+      buttonStyle: 'Button Style',
+      showLogo: 'Show Logo Flag',
+      heroOverlayOpacity: 'Hero Overlay Opacity',
+      heroLayout: 'Hero Layout Style',
+      metaTitle: 'SEO Meta Title',
+      metaDescription: 'SEO Meta Description',
+      showLeadForm: 'Lead Capture Form Toggle',
+    };
+
+    Object.keys(fieldLabels).forEach((key) => {
+      const curVal = current[key];
+      const penVal = pending[key];
+      if (penVal !== undefined && curVal !== penVal) {
+        diffs.push({
+          field: key,
+          label: fieldLabels[key],
+          from: String(curVal ?? 'None'),
+          to: String(penVal ?? 'None'),
+        });
+      }
+    });
+
+    const curTestimonials = current.testimonials || [];
+    const penTestimonials = pending.testimonials || [];
+    if (JSON.stringify(curTestimonials) !== JSON.stringify(penTestimonials)) {
+      diffs.push({
+        field: 'testimonials',
+        label: 'Testimonials / Reviews',
+        from: `${curTestimonials.length} reviews`,
+        to: `${penTestimonials.length} reviews (updated)`,
+      });
+    }
+
+    const curFaqs = current.faqs || [];
+    const penFaqs = pending.faqs || [];
+    if (JSON.stringify(curFaqs) !== JSON.stringify(penFaqs)) {
+      diffs.push({
+        field: 'faqs',
+        label: 'FAQ Items',
+        from: `${curFaqs.length} questions`,
+        to: `${penFaqs.length} questions (updated)`,
+      });
+    }
+
+    return diffs;
+  };
+
+  const applyConfigValues = (config: any) => {
+    if (!config) return;
+    Object.keys(config).forEach((key) => {
+      if (key === 'testimonials') {
+        replaceTestimonials(config.testimonials || []);
+      } else if (key === 'faqs') {
+        replaceFaqs(config.faqs || []);
+      } else {
+        setValue(`landingPage.${key}` as any, config[key], { shouldDirty: true, shouldValidate: true });
+      }
+    });
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const prevIndex = historyIndex - 1;
+      const prevConfig = configHistory[prevIndex];
+      setHistoryIndex(prevIndex);
+      applyConfigValues(prevConfig);
+      toast({ title: 'Undo Applied', description: 'Reverted to previous AI design.' });
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < configHistory.length - 1) {
+      const nextIndex = historyIndex + 1;
+      const nextConfig = configHistory[nextIndex];
+      setHistoryIndex(nextIndex);
+      applyConfigValues(nextConfig);
+      toast({ title: 'Redo Applied', description: 'Restored newer AI design.' });
+    }
+  };
+
+  const handleAiPageEdit = async () => {
+    if (!aiEditPrompt.trim()) return;
+    setIsAiEditingPage(true);
+    try {
+      const partnerName = form.getValues('companyName') || targetUser?.companyName || targetUser?.name || 'our practice';
+      const currentConfig = form.getValues('landingPage');
+      const res = await editLandingPageWithAI({
+        currentConfig,
+        instruction: aiEditPrompt,
+        partnerName
+      });
+      if (res.success && res.config) {
+        setPendingAiConfig(res.config);
+        setIsDiffOpen(true);
+      } else {
+        toast({
+          title: 'AI Update Failed',
+          description: res.error || 'Failed to update page configuration.',
+          variant: 'destructive'
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: 'AI Update Failed',
+        description: err.message || 'An error occurred while communicating with the AI service.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsAiEditingPage(false);
+    }
+  };
+
+  const handleApplyPendingConfig = () => {
+    if (!pendingAiConfig) return;
+    
+    applyConfigValues(pendingAiConfig);
+
+    // Add to history
+    const newHistory = configHistory.slice(0, historyIndex + 1);
+    newHistory.push(JSON.parse(JSON.stringify(pendingAiConfig)));
+    setConfigHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+
+    setPendingAiConfig(null);
+    setIsDiffOpen(false);
+    setAiEditPrompt('');
+
+    toast({
+      title: 'Redesign Applied!',
+      description: 'AI landing page changes have been applied. See the live preview simulator.'
+    });
+  };
+
+  const COLOR_PRESETS = [
+    {
+      name: 'Corporate Navy (Default)',
+      primaryColor: '#214392',
+      secondaryColor: '#214392',
+      backgroundColor: '#ffffff',
+      cardBackgroundColor: '#ffffff',
+      cardBorderColor: '#e5e7eb',
+      buttonColor: '#214392',
+      buttonTextColor: '#ffffff',
+      textColor: '#111827',
+    },
+    {
+      name: 'Emerald Growth',
+      primaryColor: '#059669',
+      secondaryColor: '#34d399',
+      backgroundColor: '#f9fafb',
+      cardBackgroundColor: '#ffffff',
+      cardBorderColor: '#e5e7eb',
+      buttonColor: '#059669',
+      buttonTextColor: '#ffffff',
+      textColor: '#111827',
+    },
+    {
+      name: 'Sleek Dark',
+      primaryColor: '#8b5cf6',
+      secondaryColor: '#a78bfa',
+      backgroundColor: '#020617',
+      cardBackgroundColor: '#0f172a',
+      cardBorderColor: '#1e293b',
+      buttonColor: '#8b5cf6',
+      buttonTextColor: '#ffffff',
+      textColor: '#ffffff',
+    },
+    {
+      name: 'Amber Trust',
+      primaryColor: '#d97706',
+      secondaryColor: '#f59e0b',
+      backgroundColor: '#fffdfa',
+      cardBackgroundColor: '#ffffff',
+      cardBorderColor: '#f3e8ff',
+      buttonColor: '#d97706',
+      buttonTextColor: '#ffffff',
+      textColor: '#1f2937',
+    },
+    {
+      name: 'Teal Minimal',
+      primaryColor: '#0d9488',
+      secondaryColor: '#2dd4bf',
+      backgroundColor: '#fafafa',
+      cardBackgroundColor: '#ffffff',
+      cardBorderColor: '#e5e5e5',
+      buttonColor: '#0d9488',
+      buttonTextColor: '#ffffff',
+      textColor: '#171717',
+    }
+  ];
+
+  const handleApplyPreset = (preset: typeof COLOR_PRESETS[0]) => {
+    setValue('landingPage.themePreset', 'custom', { shouldDirty: true });
+    setValue('landingPage.primaryColor', preset.primaryColor, { shouldDirty: true });
+    setValue('landingPage.secondaryColor', preset.secondaryColor, { shouldDirty: true });
+    setValue('landingPage.backgroundColor', preset.backgroundColor, { shouldDirty: true });
+    setValue('landingPage.cardBackgroundColor', preset.cardBackgroundColor, { shouldDirty: true });
+    setValue('landingPage.cardBorderColor', preset.cardBorderColor, { shouldDirty: true });
+    setValue('landingPage.buttonColor', preset.buttonColor, { shouldDirty: true });
+    setValue('landingPage.buttonTextColor', preset.buttonTextColor, { shouldDirty: true });
+    setValue('landingPage.textColor', preset.textColor, { shouldDirty: true });
+    toast({ title: `Theme Applied!`, description: `Loaded colors for ${preset.name}` });
+  };
+
+  const STOCK_HERO_IMAGES = [
+    { name: 'Modern Office', url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200' },
+    { name: 'Business Analysis', url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1200' },
+    { name: 'Tax Compliance & Ledger', url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1200' },
+    { name: 'Consulting Session', url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=1200' },
+    { name: 'Calculator & Charts', url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=1200' },
+    { name: 'Cozy Workspace', url: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=1200' }
+  ];
 
   useEffect(() => {
       const pId = targetUser?.uid;
@@ -505,11 +817,24 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                     <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-xl font-bold flex items-center gap-2"><Globe className="h-5 w-5 text-primary" /> White-Label Landing Page</h3>
-                    <FormField control={form.control} name="landingPage.enabled" render={({ field }) => ( <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="text-xs uppercase font-bold text-muted-foreground">Enabled</FormLabel></FormItem> )} />
+                    <div className="flex items-center gap-2">
+                        <FormField control={form.control} name="landingPage.enabled" render={({ field }) => ( <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="text-xs uppercase font-bold text-muted-foreground">Enabled</FormLabel></FormItem> )} />
+                        {landingPageEnabled && (
+                          <div className="ml-4 flex border rounded-md overflow-hidden shrink-0">
+                            <Button type="button" variant={previewMode === 'edit' ? 'default' : 'ghost'} size="xs" className="rounded-none h-7 px-2.5 font-bold" onClick={() => setPreviewMode('edit')}>
+                              <Layout className="h-3.5 w-3.5 mr-1" /> Edit
+                            </Button>
+                            <Button type="button" variant={previewMode === 'split' ? 'default' : 'ghost'} size="xs" className="rounded-none h-7 px-2.5 font-bold" onClick={() => setPreviewMode('split')}>
+                              <Eye className="h-3.5 w-3.5 mr-1" /> Split Preview
+                            </Button>
+                          </div>
+                        )}
+                    </div>
                 </div>
 
                 {landingPageEnabled && (
-                    <div className="grid grid-cols-1 gap-6 animate-in fade-in zoom-in-95 duration-300">
+                    <div className={cn("grid grid-cols-1 gap-6 animate-in fade-in zoom-in-95 duration-300", previewMode === 'split' && "lg:grid-cols-12 max-w-[1450px] mx-auto")}>
+                      <div className={cn("space-y-6", previewMode === 'split' && "lg:col-span-6")}>
                         <Card className="border-primary/20">
                             <CardHeader className="pb-3"><CardTitle className="text-sm">Public Link</CardTitle></CardHeader>
                             <CardContent>
@@ -535,21 +860,162 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                             </CardContent>
                         </Card>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card className="border-2 border-primary/30 shadow-md overflow-hidden bg-gradient-to-r from-primary/5 via-transparent to-transparent">
+                            <CardHeader className="pb-3 bg-muted/40">
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                                    <div>
+                                        <CardTitle className="text-sm font-bold">AI Page Designer</CardTitle>
+                                        <CardDescription className="text-[10px]">Describe the look or content you want, and the AI will update your page configuration instantly.</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="pt-4 space-y-3">
+                                <Textarea
+                                    value={aiEditPrompt}
+                                    onChange={(e) => setAiEditPrompt(e.target.value)}
+                                    placeholder="e.g., Change theme to futuristic dark mode with neon cyan buttons, write a catchy hero title for South African startups, and add 3 FAQs about audit requirements."
+                                    className="min-h-[90px] text-xs resize-none"
+                                />
+                                
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                    {[
+                                        { label: '🎨 Sleek Dark Mode', prompt: 'Change primary theme to a sleek dark mode with dark gray background and gold buttons/accents' },
+                                        { label: '🌿 Forest Green', prompt: 'Change theme to forest green and minimal cream card backgrounds' },
+                                        { label: '📊 Startup Focused', prompt: 'Rewrite hero title and subtitle to target modern tech startups and SMEs' },
+                                        { label: '💬 Add Reviews', prompt: 'Add 3 client testimonials highlighting fast turnaround times and accurate bookkeeping' },
+                                        { label: '❓ Add FAQs', prompt: 'Add 4 common FAQs about South African company registration, tax compliance, and payroll' },
+                                    ].map((tag) => (
+                                        <button
+                                            key={tag.label}
+                                            type="button"
+                                            onClick={() => setAiEditPrompt(tag.prompt)}
+                                            className="text-[9px] bg-primary/5 hover:bg-primary/10 text-primary border border-primary/10 rounded-full px-2 py-0.5 transition-colors font-medium text-left"
+                                        >
+                                            {tag.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="flex justify-between items-center pt-2">
+                                    <div className="flex items-center gap-1">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="xs"
+                                            onClick={handleUndo}
+                                            disabled={historyIndex <= 0}
+                                            title="Undo last AI redesign"
+                                            className="h-8 px-2 border-primary/10 hover:bg-primary/5 text-muted-foreground hover:text-primary"
+                                        >
+                                            <Undo2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="xs"
+                                            onClick={handleRedo}
+                                            disabled={historyIndex >= configHistory.length - 1}
+                                            title="Redo design"
+                                            className="h-8 px-2 border-primary/10 hover:bg-primary/5 text-muted-foreground hover:text-primary"
+                                        >
+                                            <Redo2 className="h-4 w-4" />
+                                        </Button>
+                                        {configHistory.length > 1 && (
+                                            <span className="text-[9px] text-muted-foreground font-mono ml-1">
+                                                {historyIndex + 1}/{configHistory.length}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={handleAiPageEdit}
+                                        disabled={isAiEditingPage || !aiEditPrompt.trim()}
+                                        className="font-bold gap-2"
+                                    >
+                                        {isAiEditingPage ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Redesigning Page...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles className="h-4 w-4" />
+                                                Apply AI Edits
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <div className="grid grid-cols-1 gap-6">
                             <Card className="border-2">
                                 <CardHeader className="bg-muted/30"><CardTitle className="text-sm flex items-center gap-2"><Layout className="h-4 w-4" /> Content & Images</CardTitle></CardHeader>
                                 <CardContent className="space-y-6 pt-6">
-                                    <FormField control={form.control} name="landingPage.heroTitle" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Hero Title</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                    <FormField control={form.control} name="landingPage.heroTitle" render={({ field }) => ( 
+                                        <FormItem>
+                                            <div className="flex justify-between items-center">
+                                                <FormLabel className="text-xs">Hero Title</FormLabel>
+                                                <Button type="button" variant="ghost" size="xs" className="h-6 gap-1 text-[10px] text-primary px-1 hover:bg-primary/5" onClick={() => handleAiGenerate('heroTitle')} disabled={generatingFields['heroTitle']}>
+                                                    {generatingFields['heroTitle'] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} Generate with AI
+                                                </Button>
+                                            </div>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem> 
+                                    )} />
                                     <ColorField name="landingPage.heroTitleColor" label="Hero Title Color" />
                                     <Separator />
-                                    <FormField control={form.control} name="landingPage.heroSubtitle" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Hero Subtitle</FormLabel><FormControl><Textarea {...field} rows={2} /></FormControl><FormMessage /></FormItem> )} />
+                                    <FormField control={form.control} name="landingPage.heroSubtitle" render={({ field }) => ( 
+                                        <FormItem>
+                                            <div className="flex justify-between items-center">
+                                                <FormLabel className="text-xs">Hero Subtitle</FormLabel>
+                                                <Button type="button" variant="ghost" size="xs" className="h-6 gap-1 text-[10px] text-primary px-1 hover:bg-primary/5" onClick={() => handleAiGenerate('heroSubtitle')} disabled={generatingFields['heroSubtitle']}>
+                                                    {generatingFields['heroSubtitle'] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} Generate with AI
+                                                </Button>
+                                            </div>
+                                            <FormControl><Textarea {...field} rows={2} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem> 
+                                    )} />
                                     <ColorField name="landingPage.heroSubtitleColor" label="Hero Subtitle Color" />
                                     
                                     <Separator />
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
                                             <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Hero Section Image</FormLabel>
-                                            <Button variant="outline" size="xs" className="h-7" asChild disabled={isUploadingHero}><label className="cursor-pointer">{isUploadingHero ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}Upload<input type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'hero')} /></label></Button>
+                                            <div className="flex items-center gap-1.5">
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <Button type="button" variant="outline" size="xs" className="h-7"><LayoutGrid className="h-3 w-3 mr-1" /> Choose Stock</Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-md">
+                                                        <DialogHeader>
+                                                            <DialogTitle>Select Stock Background</DialogTitle>
+                                                            <DialogDescription>Choose a professionally shot background image for your website header.</DialogDescription>
+                                                        </DialogHeader>
+                                                        <div className="grid grid-cols-2 gap-3 pt-2">
+                                                            {STOCK_HERO_IMAGES.map((img) => (
+                                                                <button
+                                                                    key={img.name}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setValue('landingPage.heroImageUrl', img.url, { shouldDirty: true });
+                                                                        toast({ title: 'Header Image Selected', description: `Applied ${img.name}` });
+                                                                    }}
+                                                                    className="group flex flex-col gap-1 text-left rounded-lg overflow-hidden border hover:border-primary transition-all bg-muted/30"
+                                                                >
+                                                                    <img src={img.url} alt={img.name} className="h-20 w-full object-cover group-hover:scale-105 transition-transform" />
+                                                                    <span className="p-1.5 text-[9px] font-bold truncate block w-full">{img.name}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
+                                                <Button variant="outline" size="xs" className="h-7" asChild disabled={isUploadingHero}><label className="cursor-pointer">{isUploadingHero ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}Upload<input type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'hero')} /></label></Button>
+                                            </div>
                                         </div>
                                         <FormField control={form.control} name="landingPage.heroImageUrl" render={({ field }) => ( <FormItem><FormControl><Input {...field} className="text-xs h-8" /></FormControl><FormMessage /></FormItem> )} />
                                         <div className="space-y-2">
@@ -621,7 +1087,18 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                         </div>
                                     </div>
                                     <Separator />
-                                    <FormField control={form.control} name="landingPage.aboutUs" render={({ field }) => ( <FormItem><FormLabel className="text-xs">About Us Paragraph</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
+                                    <FormField control={form.control} name="landingPage.aboutUs" render={({ field }) => ( 
+                                        <FormItem>
+                                            <div className="flex justify-between items-center">
+                                                <FormLabel className="text-xs">About Us Paragraph</FormLabel>
+                                                <Button type="button" variant="ghost" size="xs" className="h-6 gap-1 text-[10px] text-primary px-1 hover:bg-primary/5" onClick={() => handleAiGenerate('aboutUs')} disabled={generatingFields['aboutUs']}>
+                                                    {generatingFields['aboutUs'] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} Generate with AI
+                                                </Button>
+                                            </div>
+                                            <FormControl><Textarea {...field} rows={4} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem> 
+                                    )} />
                                 </CardContent>
                             </Card>
 
@@ -629,6 +1106,29 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                 <CardHeader className="bg-muted/30"><CardTitle className="text-sm flex items-center gap-2"><Palette className="h-4 w-4" /> Branding & Theme</CardTitle></CardHeader>
                                 <CardContent className="space-y-6 pt-6">
                                     <FormField control={form.control} name="landingPage.themePreset" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Theme Preset</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a theme..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="custom">Custom</SelectItem><SelectItem value="my_accountant">Master</SelectItem><SelectItem value="tech_blue">Light</SelectItem><SelectItem value="futuristic">Dark</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+                                    
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Curated Theme Presets</Label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            {COLOR_PRESETS.map((preset) => (
+                                                <Button
+                                                    key={preset.name}
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="xs"
+                                                    onClick={() => handleApplyPreset(preset)}
+                                                    className="h-8 justify-start gap-1.5 px-2 text-[10px] font-bold truncate"
+                                                >
+                                                    <span className="flex gap-0.5 shrink-0">
+                                                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.primaryColor }} />
+                                                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.secondaryColor }} />
+                                                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.backgroundColor }} />
+                                                    </span>
+                                                    <span className="truncate">{preset.name.split(' ')[0]}</span>
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
                                     <Separator className="my-2" />
                                     <div className="grid grid-cols-1 gap-6">
                                         <ColorField name="landingPage.primaryColor" label="Primary Brand Color" description="Main theme color." />
@@ -731,6 +1231,176 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            <Card className="border-2">
+                                <CardHeader className="bg-muted/30">
+                                    <CardTitle className="text-sm flex items-center justify-between">
+                                        <span className="flex items-center gap-2"><Star className="h-4 w-4 text-yellow-500 fill-yellow-500" /> Testimonials & Reviews</span>
+                                        <Button type="button" size="xs" className="h-7" onClick={() => appendTestimonial({ name: '', role: '', company: '', quote: '', rating: 5 })}>
+                                            <Plus className="h-3.5 w-3.5 mr-1" /> Add Review
+                                        </Button>
+                                    </CardTitle>
+                                    <CardDescription className="text-[10px]">Manage reviews from your clients displayed on your landing page.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4 pt-6">
+                                    {testimonialFields.length === 0 ? (
+                                        <p className="text-[11px] text-muted-foreground text-center py-6">No testimonials added yet. Click "Add Review" to show client quotes.</p>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {testimonialFields.map((field, index) => (
+                                                <div key={field.id} className="p-3 border rounded-lg bg-muted/10 relative space-y-3">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="absolute right-2 top-2 h-7 w-7 text-destructive hover:bg-destructive/10"
+                                                        onClick={() => removeTestimonial(index)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-3 pr-8">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name={`landingPage.testimonials.${index}.name` as any}
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-[10px]">Client Name</FormLabel>
+                                                                    <FormControl><Input {...field} className="h-8 text-xs" /></FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name={`landingPage.testimonials.${index}.role` as any}
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-[10px]">Role / Job Title</FormLabel>
+                                                                    <FormControl><Input {...field} className="h-8 text-xs" placeholder="e.g. Director, Founder" /></FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name={`landingPage.testimonials.${index}.company` as any}
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-[10px]">Company Name (Optional)</FormLabel>
+                                                                    <FormControl><Input {...field} className="h-8 text-xs" /></FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name={`landingPage.testimonials.${index}.rating` as any}
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-[10px]">Rating (1-5 Stars)</FormLabel>
+                                                                    <Select onValueChange={(val) => setValue(`landingPage.testimonials.${index}.rating`, Number(val), { shouldDirty: true })} value={String(form.watch(`landingPage.testimonials.${index}.rating`) || 5)}>
+                                                                        <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger></FormControl>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="5">⭐⭐⭐⭐⭐ (5/5)</SelectItem>
+                                                                            <SelectItem value="4">⭐⭐⭐⭐ (4/5)</SelectItem>
+                                                                            <SelectItem value="3">⭐⭐⭐ (3/5)</SelectItem>
+                                                                            <SelectItem value="2">⭐⭐ (2/5)</SelectItem>
+                                                                            <SelectItem value="1">⭐ (1/5)</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`landingPage.testimonials.${index}.quote` as any}
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-[10px]">Client Quote</FormLabel>
+                                                                <FormControl><Textarea {...field} rows={2} className="text-xs" placeholder="What the client said about your work..." /></FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-2">
+                                <CardHeader className="bg-muted/30">
+                                    <CardTitle className="text-sm flex items-center justify-between">
+                                        <span className="flex items-center gap-2"><ChevronDown className="h-4 w-4 text-primary" /> Frequently Asked Questions</span>
+                                        <Button type="button" size="xs" className="h-7" onClick={() => appendFaq({ question: '', answer: '' })}>
+                                            <Plus className="h-3.5 w-3.5 mr-1" /> Add FAQ
+                                        </Button>
+                                    </CardTitle>
+                                    <CardDescription className="text-[10px]">Add collapsible FAQs to answer standard customer inquiries on-page.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4 pt-6">
+                                    {faqFields.length === 0 ? (
+                                        <p className="text-[11px] text-muted-foreground text-center py-6">No FAQs added yet. Click "Add FAQ" to create standard questions and answers.</p>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {faqFields.map((field, index) => (
+                                                <div key={field.id} className="p-3 border rounded-lg bg-muted/10 relative space-y-3">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="absolute right-2 top-2 h-7 w-7 text-destructive hover:bg-destructive/10"
+                                                        onClick={() => removeFaq(index)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                    
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`landingPage.faqs.${index}.question` as any}
+                                                        render={({ field }) => (
+                                                            <FormItem className="pr-8">
+                                                                <FormLabel className="text-[10px]">Question</FormLabel>
+                                                                <FormControl><Input {...field} className="h-8 text-xs" placeholder="e.g. Do you offer virtual consultations?" /></FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`landingPage.faqs.${index}.answer` as any}
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-[10px]">Answer</FormLabel>
+                                                                <FormControl><Textarea {...field} rows={2} className="text-xs" placeholder="Detail your response to this question..." /></FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-2">
+                                <CardHeader className="bg-muted/30">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-sm flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /> Lead Contact Form</CardTitle>
+                                        <FormField control={form.control} name="landingPage.showLeadForm" render={({ field }) => ( <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl> )} />
+                                    </div>
+                                    <CardDescription className="text-[10px]">Toggle whether to show the contact form for client inquiries on your landing page.</CardDescription>
+                                </CardHeader>
+                            </Card>
                         </div>
 
                         <Card className="border-2">
@@ -742,7 +1412,12 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                 <FormField control={form.control} name="landingPage.metaTitle" render={({ field }) => ( 
                                     <FormItem>
                                         <div className="flex justify-between items-center">
-                                            <FormLabel className="text-xs">Meta Title</FormLabel>
+                                            <div className="flex items-center gap-2">
+                                                <FormLabel className="text-xs">Meta Title</FormLabel>
+                                                <Button type="button" variant="ghost" size="xs" className="h-6 gap-1 text-[10px] text-primary px-1 hover:bg-primary/5" onClick={() => handleAiGenerate('metaTitle')} disabled={generatingFields['metaTitle']}>
+                                                    {generatingFields['metaTitle'] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI
+                                                </Button>
+                                            </div>
                                             <span className="text-[10px] text-muted-foreground">{field.value?.length || 0}/60</span>
                                         </div>
                                         <FormControl><Input {...field} placeholder="e.g. Acme Tax Solutions | Professional Accounting in Sandton" /></FormControl>
@@ -752,7 +1427,12 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                 <FormField control={form.control} name="landingPage.metaDescription" render={({ field }) => ( 
                                     <FormItem>
                                         <div className="flex justify-between items-center">
-                                            <FormLabel className="text-xs">Meta Description</FormLabel>
+                                            <div className="flex items-center gap-2">
+                                                <FormLabel className="text-xs">Meta Description</FormLabel>
+                                                <Button type="button" variant="ghost" size="xs" className="h-6 gap-1 text-[10px] text-primary px-1 hover:bg-primary/5" onClick={() => handleAiGenerate('metaDescription')} disabled={generatingFields['metaDescription']}>
+                                                    {generatingFields['metaDescription'] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AI
+                                                </Button>
+                                            </div>
                                             <span className="text-[10px] text-muted-foreground">{field.value?.length || 0}/160</span>
                                         </div>
                                         <FormControl><Textarea {...field} rows={3} placeholder="Provide a brief summary of your practice for search engines..." /></FormControl>
@@ -773,6 +1453,22 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                 <FormField control={form.control} name="landingPage.termsAndConditions" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Terms & Conditions</FormLabel><FormControl><Textarea {...field} rows={4} placeholder="General terms of service for your practice..." /></FormControl><FormMessage /></FormItem> )} />
                             </CardContent>
                         </Card>
+                      </div>
+
+                      {previewMode === 'split' && (
+                        <div className="lg:col-span-6 lg:sticky lg:top-8 self-start hidden lg:block">
+                          <div className="mb-2 font-bold text-muted-foreground text-xs uppercase tracking-widest flex items-center gap-1.5">
+                            <Eye className="h-3.5 w-3.5 text-primary" /> Live Preview Simulator
+                          </div>
+                          <PartnerLandingPagePreview 
+                            watchedLp={watchedLp}
+                            companyName={form.getValues('companyName')}
+                            partnerEmail={form.getValues('email')}
+                            partnerPhone={form.getValues('contactNumber')}
+                            partnerAddress={form.getValues('address')}
+                          />
+                        </div>
+                      )}
                     </div>
                 )}
             </div>
@@ -786,6 +1482,91 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
             </Button>
         </form>
         </Form>
+
+        <Dialog open={isDiffOpen} onOpenChange={setIsDiffOpen}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" /> AI Redesign Proposals
+              </DialogTitle>
+              <DialogDescription>
+                Review the changes proposed by the AI based on your prompt before applying them to your landing page.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 my-4">
+              {pendingAiConfig && (
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="bg-muted border-b">
+                        <th className="p-3 font-bold">Field / Section</th>
+                        <th className="p-3 font-bold">Current State</th>
+                        <th className="p-3 font-bold text-primary">AI Proposed State</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getDiffDescription(form.getValues('landingPage'), pendingAiConfig).map((diff, idx) => (
+                        <tr key={diff.field} className={`border-b ${idx % 2 === 0 ? 'bg-transparent' : 'bg-slate-50/50'}`}>
+                          <td className="p-3 font-semibold">{diff.label}</td>
+                          <td className="p-3 text-muted-foreground break-words max-w-[200px]">
+                            {diff.field.includes('Color') ? (
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-3.5 h-3.5 rounded border" style={{ backgroundColor: diff.from }} />
+                                <code>{diff.from}</code>
+                              </span>
+                            ) : (
+                              diff.from
+                            )}
+                          </td>
+                          <td className="p-3 text-primary font-medium break-words max-w-[200px]">
+                            {diff.field.includes('Color') ? (
+                              <span className="flex items-center gap-1.5">
+                                <span className="w-3.5 h-3.5 rounded border" style={{ backgroundColor: diff.to }} />
+                                <code>{diff.to}</code>
+                              </span>
+                            ) : (
+                              diff.to
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {getDiffDescription(form.getValues('landingPage'), pendingAiConfig).length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="p-4 text-center text-muted-foreground">
+                            No changes detected. The AI generated a config identical to your current one.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setPendingAiConfig(null);
+                  setIsDiffOpen(false);
+                }}
+              >
+                Discard Edits
+              </Button>
+              <Button
+                type="button"
+                onClick={handleApplyPendingConfig}
+                disabled={getDiffDescription(form.getValues('landingPage'), pendingAiConfig).length === 0}
+                className="gap-2 font-bold"
+              >
+                <Sparkles className="h-4 w-4" />
+                Accept & Apply
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }

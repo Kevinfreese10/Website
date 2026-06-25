@@ -249,6 +249,11 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    match /partnerLeads/{leadId} {
+      allow read: if isAuthenticated() && (resource.data.partnerId == request.auth.uid || isAdmin());
+      allow write: if true;
+    }
+
     // ─── Chatbot ──────────────────────────────────────────────────────────────
     match /chatbotConversations/{conversationId} {
       allow get, create, update: if true;

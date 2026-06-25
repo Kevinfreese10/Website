@@ -120,6 +120,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
       { href: '/dashboard/ai-payroll/clients', label: 'AI Payroll', icon: Users, roles: ['partner', 'partner_staff', 'franchisee'] },
       { href: '/partner/staff', label: 'Staff Management', icon: UserPlus, roles: ['partner', 'partner_staff', 'franchisee'] },
       { href: '/partner/tasks', label: 'Task Manager', icon: ClipboardCheck, roles: ['partner', 'partner_staff', 'franchisee'] },
+      { href: '/partner/leads', label: 'Practice Leads', icon: MessageSquare, roles: ['partner', 'partner_staff', 'franchisee'] },
     ] : []),
     { href: '/partner/services', label: 'View Products', icon: Briefcase, roles: ['partner', 'partner_staff', 'franchisee'] },
     { href: '/partner/orders', label: isFreePartner ? 'My Orders' : 'Client Orders', icon: ShieldCheck, roles: ['partner', 'partner_staff', 'franchisee'] },

@@ -253,6 +253,19 @@ export type PartnerLandingPageConfig = {
   servicesHeroTextPosition?: 'inside' | 'below';
   metaTitle?: string;
   metaDescription?: string;
+  testimonials?: Array<{
+    name: string;
+    role: string;
+    company?: string;
+    quote: string;
+    rating: number;
+    avatarUrl?: string;
+  }>;
+  faqs?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  showLeadForm?: boolean;
 };
 
 export type FranchiseConfig = {
@@ -557,6 +570,16 @@ export type DemoLead = {
   surname: string;
   email: string;
   cell: string;
+  createdAt: any;
+};
+
+export type PartnerLead = {
+  id: string;
+  partnerId: string;
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
   createdAt: any;
 };
 

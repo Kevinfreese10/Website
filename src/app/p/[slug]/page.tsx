@@ -2,11 +2,13 @@ import { getPartnerBySlug, getServices, getPartnerOverrides, getCategories } fro
 import { User, Service } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Clock, CheckCircle2, ArrowRight, Star } from 'lucide-react';
 import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import PartnerLeadForm from '@/components/partner/PartnerLeadForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -150,7 +152,39 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
       )}
 
       <div className="container mx-auto px-4">
-        <TrustIndexWidget />
+        {lp?.testimonials && lp.testimonials.length > 0 ? (
+          <div className="space-y-12">
+            <div className="text-center space-y-4 max-w-2xl mx-auto">
+              <h2 className="text-3xl font-bold text-slate-900">What Our Clients Say</h2>
+              <p className="text-muted-foreground text-sm">Real feedback from local businesses and individuals.</p>
+              <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {lp.testimonials.map((t: any, i: number) => (
+                <Card key={i} className="flex flex-col partner-card border shadow-sm p-6 space-y-4 relative">
+                  <div className="flex gap-1">
+                    {Array.from({ length: t.rating || 5 }).map((_, rIdx) => (
+                      <Star key={rIdx} className="h-4 w-4 fill-yellow-400 text-yellow-400 shrink-0" />
+                    ))}
+                  </div>
+                  <p className="text-sm italic opacity-85 leading-relaxed flex-grow">
+                    &ldquo;{t.quote}&rdquo;
+                  </p>
+                  <div className="pt-3 border-t border-muted/50">
+                    <h4 className="font-bold text-sm text-slate-900">{t.name}</h4>
+                    {t.role && (
+                      <p className="text-xs text-muted-foreground">
+                        {t.role}{t.company ? ` at ${t.company}` : ''}
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <TrustIndexWidget />
+        )}
       </div>
 
       {/* About Section */}
@@ -267,6 +301,36 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
             ))}
         </div>
       </section>
+
+      {/* FAQ Section */}
+      {lp?.faqs && lp.faqs.length > 0 && (
+        <section id="faqs" className="container mx-auto px-4 scroll-m-24 max-w-3xl space-y-8">
+          <div className="text-center space-y-4 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
+            <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
+          </div>
+          <Accordion type="single" collapsible className="w-full border rounded-xl overflow-hidden bg-white shadow-sm divide-y">
+            {lp.faqs.map((faq: any, i: number) => (
+              <AccordionItem key={i} value={`faq-${i}`} className="border-b-0 px-6 py-1">
+                <AccordionTrigger className="text-left font-semibold text-slate-900 hover:no-underline text-base py-4">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-slate-600 text-sm leading-relaxed pb-4 pt-1">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </section>
+      )}
+
+      {/* Lead Form Section */}
+      {lp?.showLeadForm !== false && (
+        <section id="contact" className="container mx-auto px-4 scroll-m-24 max-w-lg space-y-8">
+          <Separator className="max-w-xs mx-auto opacity-20" />
+          <PartnerLeadForm partnerId={partner.id} />
+        </section>
+      )}
     </div>
   );
 }
