@@ -163,21 +163,49 @@ export default function ProductsPageClient({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 relative">
             {[
-              { step: "01", title: "Choose Your Service", desc: "Browse our online store and select the accounting, tax, or compliance service your business requires.", icon: ShoppingCart },
-              { step: "02", title: "Upload Your Documents", desc: "Securely upload your supporting documents through our online platform.", icon: FileUp },
-              { step: "03", title: "We Process Your Application", desc: "Our team handles the accounting, SARS, CIPC, or compliance process on your behalf.", icon: RefreshCw },
-              { step: "04", title: "Receive Confirmation & Support", desc: "We provide updates, confirmations, and ongoing support throughout the process.", icon: CheckCircle2 }
+              { 
+                step: "01", 
+                title: "Choose Your Service", 
+                desc: "Browse our online store and select the accounting, tax, or compliance service your business requires.", 
+                icon: ShoppingCart, 
+                bg: "bg-amber-50/80 border-amber-200/60 text-amber-600 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400",
+                textColor: "text-amber-600 dark:text-amber-400"
+              },
+              { 
+                step: "02", 
+                title: "Upload Your Documents", 
+                desc: "Securely upload your supporting documents through our online platform.", 
+                icon: FileUp, 
+                bg: "bg-blue-50/80 border-blue-200/60 text-blue-600 dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-400",
+                textColor: "text-blue-600 dark:text-blue-400"
+              },
+              { 
+                step: "03", 
+                title: "We Process Your Application", 
+                desc: "Our team handles the accounting, SARS, CIPC, or compliance process on your behalf.", 
+                icon: RefreshCw, 
+                bg: "bg-purple-50/80 border-purple-200/60 text-purple-600 dark:bg-purple-950/20 dark:border-purple-900/30 dark:text-purple-400",
+                textColor: "text-purple-600 dark:text-purple-400"
+              },
+              { 
+                step: "04", 
+                title: "Receive Confirmation & Support", 
+                desc: "We provide updates, confirmations, and ongoing support throughout the process.", 
+                icon: CheckCircle2, 
+                bg: "bg-emerald-50/80 border-emerald-200/60 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-400",
+                textColor: "text-emerald-600 dark:text-emerald-400"
+              }
             ].map((step, idx) => (
               <div key={idx} className="relative text-center space-y-6 group">
-                <div className="h-20 w-20 rounded-3xl glass-card neon-border text-primary flex items-center justify-center mx-auto mb-6 group-hover:bg-primary/10 group-hover:neon-glow transition-all duration-300">
+                <div className={cn("h-20 w-20 rounded-3xl border flex items-center justify-center mx-auto mb-6 shadow-sm transition-all duration-300 group-hover:scale-105", step.bg)}>
                   <step.icon className="h-10 w-10" />
                 </div>
                 <div className="space-y-2">
-                  <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none block mb-1">Step {step.step}</span>
+                  <span className={cn("text-[10px] font-black uppercase tracking-widest leading-none block mb-1", step.textColor)}>Step {step.step}</span>
                   <h3 className="font-bold text-xl leading-tight text-foreground">{step.title}</h3>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed px-4">{step.desc}</p>
-                {idx < 3 && <ArrowRight className="hidden lg:block absolute -right-6 top-10 h-8 w-8 text-primary/20" />}
+                {idx < 3 && <ArrowRight className="hidden lg:block absolute -right-6 top-10 h-8 w-8 text-muted-foreground/20" />}
               </div>
             ))}
           </div>
