@@ -277,6 +277,35 @@ body.dark .border-slate-400 {
   color: transparent !important;
 }
 
+/* Secondary Buttons: Soft Teal Tint */
+.home-light-theme .bg-secondary {
+  background-color: #f0fdfa !important;
+  color: #115e59 !important; /* Deep teal text for readability */
+  border: 1px solid rgba(78, 205, 196, 0.15) !important;
+}
+.home-light-theme .bg-secondary:hover {
+  background-color: #ccfbf1 !important;
+}
+
+/* Outline Buttons: Slate Border & Text, Teal Hover */
+.home-light-theme button.border-primary,
+.home-light-theme a.border-primary {
+  border-color: #556270 !important;
+  color: #556270 !important;
+}
+.home-light-theme button.border-primary:hover,
+.home-light-theme a.border-primary:hover {
+  background-color: rgba(78, 205, 196, 0.08) !important;
+  color: #0f766e !important;
+  border-color: #0f766e !important;
+}
+
+/* Ghost Buttons (Tertiary): Faint Teal Hover Highlight */
+.home-light-theme .hover\:bg-accent:hover {
+  background-color: rgba(78, 205, 196, 0.08) !important;
+  color: #0f766e !important;
+}
+
 /* Neutralize neon glows into soft blue/indigo shadows */
 .home-light-theme .neon-glow,
 .home-light-theme .neon-glow-strong,
