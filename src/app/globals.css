@@ -260,18 +260,18 @@ body.dark .border-slate-400 {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Redefine Text & Button Gradients for Slate-to-Coral Look */
+/* Redefine Text & Button Gradients for Soft Teal-to-Sky Look */
 .home-light-theme .bg-gradient,
 .home-light-theme .bg-primary {
-  background: linear-gradient(135deg, #2c3e50 0%, #fd746c 100%) !important;
-  color: #ffffff !important;
+  background: linear-gradient(135deg, #4ca1af 0%, #c4e0e5 100%) !important;
+  color: #1e293b !important; /* Dark text for readability on light pastel gradient */
 }
 .home-light-theme .bg-gradient:hover,
 .home-light-theme .bg-primary:hover {
   opacity: 0.9 !important;
 }
 .home-light-theme .text-gradient {
-  background: linear-gradient(135deg, #2c3e50 0%, #fd746c 100%) !important;
+  background: linear-gradient(135deg, #4ca1af 0%, #c4e0e5 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   color: transparent !important;
