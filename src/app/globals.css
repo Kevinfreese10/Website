@@ -231,7 +231,7 @@ body.dark .border-slate-400 {
   border-color: var(--border) !important;
 }
 
-/* ── Home Page Light Theme Specific Overrides (Option C: ChatGPT Style) ── */
+/* ── Home Page Light Theme Specific Overrides (Option C: ChatGPT Style with Blue Accents) ── */
 .home-light-theme {
   --background: 0 0% 100%;             /* Pure white background */
   --foreground: 240 10% 3.9%;          /* Off-black text */
@@ -239,8 +239,8 @@ body.dark .border-slate-400 {
   --card-foreground: 240 10% 3.9%;
   --popover: 0 0% 100%;
   --popover-foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;             /* Off-black buttons (#18181B) */
-  --primary-foreground: 0 0% 98%;
+  --primary: 221.2 83.2% 53.3%;       /* Soft brand blue (#2563EB) */
+  --primary-foreground: 0 0% 100%;    /* White text on primary buttons */
   --secondary: 240 4.8% 95.9%;        /* Light gray secondary buttons */
   --secondary-foreground: 240 5.9% 10%;
   --muted: 240 4.8% 95.9%;
@@ -251,7 +251,7 @@ body.dark .border-slate-400 {
   --destructive-foreground: 0 0% 98%;
   --border: 240 5.9% 90%;             /* Subtle gray border */
   --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
+  --ring: 221.2 83.2% 53.3%;
 }
 
 /* Translucent Glass Nav for Light Theme */
@@ -260,25 +260,25 @@ body.dark .border-slate-400 {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Redefine Text & Button Gradients for Sophisticated Look */
+/* Redefine Text & Button Gradients for Soft Blue-to-Indigo Look */
 .home-light-theme .bg-gradient {
   background: hsl(var(--primary)) !important;
 }
 .home-light-theme .text-gradient {
-  background: linear-gradient(135deg, hsl(240 10% 3.9%) 0%, hsl(240 5.9% 25%) 100%) !important;
+  background: linear-gradient(135deg, hsl(221.2 83.2% 53.3%) 0%, hsl(243 75.4% 58.6%) 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   color: transparent !important;
 }
 
-/* Neutralize neon glows into soft box shadows */
+/* Neutralize neon glows into soft blue/indigo shadows */
 .home-light-theme .neon-glow,
 .home-light-theme .neon-glow-strong,
 .home-light-theme .neon-glow-violet {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.06), 0 2px 4px -1px rgba(37, 99, 235, 0.03) !important;
 }
 .home-light-theme .neon-border {
-  border-color: rgba(0, 0, 0, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.12) !important;
 }
 
 /* Adjust dark-mode grid dots to light-mode dots */
