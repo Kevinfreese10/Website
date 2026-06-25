@@ -7,7 +7,7 @@ import { firebaseApp } from '@/lib/firebase';
 import { Order, User, Service, OrderNote, Task, ItnLog } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePartner } from '@/contexts/PartnerContext';
-import { services as allServices } from '@/lib/data';
+import { services as staticServices } from '@/lib/data';
 import {
   Table,
   TableBody,
@@ -60,6 +60,7 @@ const db = getFirestore(firebaseApp);
 
 export default function PartnerOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [allServices, setAllServices] = useState<Service[]>(staticServices);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -130,6 +131,14 @@ export default function PartnerOrdersPage() {
         setAllStaff(fetchedStaff);
     }).catch(err => {
         console.error("Error loading staff:", err);
+    });
+
+    const servicesQuery = query(collection(db, 'services'));
+    getDocs(servicesQuery).then(servicesSnapshot => {
+        const fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+        setAllServices(fetchedServices);
+    }).catch(err => {
+        console.error("Error loading services:", err);
     });
 
     const ordersRef = collection(db, 'orders');

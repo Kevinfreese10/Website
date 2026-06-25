@@ -292,7 +292,17 @@ export async function POST(req: NextRequest) {
               } else {
                   const itemIds = currentOrderData.items.map(i => i.id);
                   for (const itemId of itemIds) {
-                      const service = allServices.find(s => s.id === itemId);
+                      let service = allServices.find(s => s.id === itemId);
+                      if (!service) {
+                          try {
+                              const serviceSnap = await adminDb.collection('services').doc(itemId).get();
+                              if (serviceSnap.exists) {
+                                  service = { id: serviceSnap.id, ...serviceSnap.data() } as any;
+                              }
+                          } catch (dbErr) {
+                              console.error(`Failed to fetch service ${itemId} from Firestore in ITN:`, dbErr);
+                          }
+                      }
                       if (service && service.department) {
                           department = service.department as any;
                           break;
