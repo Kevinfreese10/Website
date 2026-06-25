@@ -180,9 +180,11 @@ export default function AnnualFinancialStatementsPage() {
             "Accurate annual financial statements are more than just a CIPC or SARS compliance requirement. They are the ultimate health check for your business, and the first document that banks, lenders, and investors demand. A clean, professionally compiled set of financials is the key to unlocking corporate finance in South Africa."
           </p>
           <div className="mt-6 flex items-center gap-4">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-lg border-2 border-primary/20 shadow-sm shrink-0">
-              KF
-            </div>
+            <img
+              src="/kevin-freese.jpg"
+              alt="Kevin Freese"
+              className="h-12 w-12 rounded-full object-cover border-2 border-primary/20 shadow-sm shrink-0"
+            />
             <div>
               <h4 className="text-base font-black text-slate-900 leading-tight">Kevin Freese</h4>
               <p className="text-xs text-muted-foreground font-semibold">
