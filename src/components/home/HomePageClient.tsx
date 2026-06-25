@@ -645,7 +645,7 @@ export default function HomePageClient() {
                   <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-accent shrink-0" /> Accepted by all SA banks & SARS</li>
                 </ul>
                 <div className="mt-6 flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-gradient">R950</span>
+                  <span className="text-2xl font-black text-gradient">R1,200</span>
                   <span className="text-xs text-muted-foreground font-semibold">once-off</span>
                 </div>
               </CardContent>
