@@ -465,22 +465,22 @@ export default function HomePageClient() {
               {/* Key Statistics Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-10 my-8 glass-card rounded-3xl p-8 text-center">
                 <div className="space-y-2">
-                  <p className="text-4xl md:text-5xl font-black text-gradient animate-glow-pulse">10,000+</p>
+                  <p className="text-4xl md:text-5xl font-black text-blue-600 animate-glow-pulse">10,000+</p>
                   <p className="text-sm font-bold text-foreground/80">Company Registrations</p>
                   <p className="text-xs text-muted-foreground leading-normal">Successfully registered and compliant businesses nationwide.</p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-4xl md:text-5xl font-black text-gradient animate-glow-pulse" style={{ animationDelay: '0.5s' }}>R120M+</p>
+                  <p className="text-4xl md:text-5xl font-black text-emerald-600 animate-glow-pulse" style={{ animationDelay: '0.5s' }}>R120M+</p>
                   <p className="text-sm font-bold text-foreground/80">Tax Savings & Debt Relief</p>
                   <p className="text-xs text-muted-foreground leading-normal">Legally negotiated debt compromise & tax structures for SA SMEs.</p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-4xl md:text-5xl font-black text-gradient animate-glow-pulse" style={{ animationDelay: '1s' }}>99.7%</p>
+                  <p className="text-4xl md:text-5xl font-black text-indigo-600 animate-glow-pulse" style={{ animationDelay: '1s' }}>99.7%</p>
                   <p className="text-sm font-bold text-foreground/80">SARS Acceptance Rate</p>
                   <p className="text-xs text-muted-foreground leading-normal">Accurate submissions resulting in immediate system approvals.</p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-4xl md:text-5xl font-black text-gradient animate-glow-pulse" style={{ animationDelay: '1.5s' }}>200+</p>
+                  <p className="text-4xl md:text-5xl font-black text-amber-600 animate-glow-pulse" style={{ animationDelay: '1.5s' }}>200+</p>
                   <p className="text-sm font-bold text-foreground/80">5-Star Google Reviews</p>
                   <p className="text-xs text-muted-foreground leading-normal">Highest rated online business accountant in South Africa.</p>
                 </div>
