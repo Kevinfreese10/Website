@@ -40,7 +40,7 @@ export default function TaskBoard() {
     if (!partnerId) return;
 
     // Get the owner
-    const ownerName = user?.role === 'partner' || user?.role === 'franchisee'
+    const ownerName = user?.role === 'partner'
       ? user.companyName || user.name
       : 'Owner';
     const ownerObj: StaffMember = { id: partnerId, name: `${ownerName} (Owner)` };

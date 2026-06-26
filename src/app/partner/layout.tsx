@@ -21,12 +21,12 @@ export default function PartnerLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   
   useEffect(() => {
-    if (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff' && user?.role !== 'franchisee') {
+    if (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff') {
       router.push('/login');
     }
   }, [isAuthenticated, user, router]);
 
-  if (isAuthenticated === undefined || (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff' && user?.role !== 'franchisee')) {
+  if (isAuthenticated === undefined || (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff')) {
      return (
         <div className="flex min-h-screen">
             <Skeleton className="hidden md:block w-16 lg:w-64" />

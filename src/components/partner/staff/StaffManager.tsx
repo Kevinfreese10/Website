@@ -61,7 +61,7 @@ export default function StaffManager() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const partnerId = currentUser?.partnerId || currentUser?.uid || '';
-  const isOwner = currentUser?.role === 'partner' || currentUser?.role === 'franchisee';
+  const isOwner = currentUser?.role === 'partner';
 
   // 1. Listen for staff users
   useEffect(() => {

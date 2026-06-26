@@ -142,7 +142,7 @@ export default function AIAccountantClientsPage() {
   }, [tasks, currentUser]);
 
   const handleAddClick = () => {
-    const isReseller = currentUser?.role === 'partner' || currentUser?.role === 'partner_staff' || currentUser?.role === 'partner_admin' || currentUser?.role === 'franchisee';
+    const isReseller = currentUser?.role === 'partner' || currentUser?.role === 'partner_staff' || currentUser?.role === 'partner_admin';
     if (isReseller) {
       if (myClients.length >= partner.limits.aiCompanies) {
         setIsPartnerLimitModalOpen(true);
@@ -395,7 +395,7 @@ export default function AIAccountantClientsPage() {
       </Card>
   )
 
-  const isReseller = currentUser?.role === 'partner' || currentUser?.role === 'partner_staff' || currentUser?.role === 'partner_admin' || currentUser?.role === 'franchisee';
+  const isReseller = currentUser?.role === 'partner' || currentUser?.role === 'partner_staff' || currentUser?.role === 'partner_admin';
 
   return (
     <div className="space-y-8">

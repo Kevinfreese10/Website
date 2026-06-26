@@ -154,8 +154,7 @@ export default function SocialMarketingPage() {
                     { id: 'sars-disputes', slug: 'sars-disputes', title: 'SARS Disputes & Objections', description: 'Professional assistance with SARS disputes, objections (Section 104), and appeals.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
                     { id: 'remission-of-fines', slug: 'remission-of-fines', title: 'Remission of Fines & Penalties', description: 'Apply for a SARS Request for Remission (RFR) to remove or reduce administrative and understatement penalties.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
                     { id: 'liquidations', slug: 'liquidations', title: 'Company Liquidations', description: 'Professional assistance with voluntary company liquidations in South Africa.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
-                    { id: 'become-a-partner', slug: 'become-a-partner', title: 'Become a Partner', description: 'Partner with My Accountant to grow your practice and scale with our technology.', category: 'Static Page', type: 'page' as const, imageUrl: '' },
-                    { id: 'franchise', slug: 'franchise', title: 'Own a Franchise', description: 'Explore exclusive territory opportunities with the My Accountant Franchise model.', category: 'Static Page', type: 'page' as const, imageUrl: '' }
+                    { id: 'become-a-partner', slug: 'become-a-partner', title: 'Become a Partner', description: 'Partner with My Accountant to grow your practice and scale with our technology.', category: 'Static Page', type: 'page' as const, imageUrl: '' }
                 ];
 
                 setSources([...fetchedServices, ...staticPagesConfig, ...fetchedBlogs]);

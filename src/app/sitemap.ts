@@ -64,21 +64,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Error fetching services for sitemap:", error);
   }
 
-  let franchiseeRoutes: MetadataRoute.Sitemap = [];
-  try {
-    const db = getAdminDb();
-    const franchiseesSnapshot = await db.collection("users").where("role", "==", "franchisee").get();
-    franchiseeRoutes = franchiseesSnapshot.docs
-      .map(doc => serializeDbData(doc.data()))
-      .filter(u => u.franchise?.areaSlug)
-      .map(u => ({
-        url: `${BASE_URL}/locations/${u.franchise.areaSlug}`,
-        lastModified: new Date(),
-      }));
-  } catch (error) {
-    console.error("Error fetching franchisees for sitemap:", error);
-  }
-
   let blogPostRoutes: MetadataRoute.Sitemap = [];
   try {
     const db = getAdminDb();
@@ -107,7 +92,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticRoutes,
     ...serviceRoutes,
-    ...franchiseeRoutes,
     ...blogPostRoutes,
   ];
 }

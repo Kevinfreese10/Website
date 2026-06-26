@@ -16,22 +16,6 @@ import { services as allServices } from '@/lib/data';
 import { format, addDays, addMonths, addYears, parse as parseDate } from 'date-fns';
 import { BankCleaner } from '@/lib/bank-cleaner';
 
-/**
- * Checks if a territory slug is available for a new franchisee.
- */
-export async function checkTerritoryAvailability(slug: string) {
-    try {
-        const adminDb = getAdminDb();
-        const snap = await adminDb.collection('users')
-            .where('franchise.areaSlug', '==', slug.toLowerCase().trim())
-            .get();
-        return { available: snap.empty };
-    } catch (e) {
-        console.error("Territory check failed:", e);
-        return { available: false, error: "System error" };
-    }
-}
-
 export async function saveDemoLead(data: Omit<DemoLead, 'id' | 'createdAt'>) {
     try {
         const adminDb = getAdminDb();

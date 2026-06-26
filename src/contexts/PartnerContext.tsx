@@ -44,7 +44,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (user.role === 'partner' || user.role === 'franchisee') {
+    if (user.role === 'partner') {
       setPartnerProfile(user);
       setLoading(false);
     } else if ((user.role === 'partner_staff' || user.role === 'partner_admin' || user.role === 'staff') && user.partnerId) {
@@ -65,7 +65,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const partnerId = partnerProfile?.uid || user?.uid;
-    if (!partnerId || !(user?.role === 'partner' || user?.role === 'partner_staff' || user?.role === 'partner_admin' || user?.role === 'franchisee' || user?.role === 'staff')) {
+    if (!partnerId || !(user?.role === 'partner' || user?.role === 'partner_staff' || user?.role === 'partner_admin' || user?.role === 'staff')) {
       setAiCompaniesCount(0);
       setAiPayrollCount(0);
       setStaffSeatsCount(0);
@@ -128,7 +128,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
   }, [partnerProfile?.uid, user?.uid, user?.role]);
 
   const value = useMemo<PartnerContextType>(() => {
-    const isOwner = user?.role === 'partner' || user?.role === 'franchisee';
+    const isOwner = user?.role === 'partner';
     const permissions = isOwner ? null : (user?.permissions ?? null);
     
     // Determine if growth is active:
@@ -139,7 +139,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     const targetUser = partnerProfile || user;
     const sub = targetUser?.partnerSubscription;
     
-    if (targetUser && (targetUser.role === 'partner' || targetUser.role === 'franchisee' || targetUser.role === 'partner_staff' || targetUser.role === 'partner_admin' || targetUser.role === 'staff')) {
+    if (targetUser && (targetUser.role === 'partner' || targetUser.role === 'partner_staff' || targetUser.role === 'partner_admin' || targetUser.role === 'staff')) {
       if (!targetUser?.partnerTier) {
         // Legacy one-time R4,950 partner — grandfather treatment
         isGrowthActive = true;

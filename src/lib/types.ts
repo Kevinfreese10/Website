@@ -135,7 +135,7 @@ export type Order = {
   notes?: OrderNote[];
   documentUploads?: DocumentUpload[];
   itnHistory?: ItnLog[];
-  source?: 'Client' | 'Staff' | 'Partner' | 'AI Accountant Signup' | 'Partner Landing Page' | 'Franchise';
+  source?: 'Client' | 'Staff' | 'Partner' | 'AI Accountant Signup' | 'Partner Landing Page';
   renewalForClientId?: string;
   documentContact?: 'partner' | 'client';
   overflowStatus?: 'none' | 'available' | 'claimed' | 'review' | 'completed' | 'cancelled';
@@ -268,13 +268,6 @@ export type PartnerLandingPageConfig = {
   showLeadForm?: boolean;
 };
 
-export type FranchiseConfig = {
-    areaSlug: string;
-    areaName: string;
-    royaltyPercentage: number;
-    setupFeePaid: boolean;
-};
-
 // --- Partner Subscription & Staff Types ---
 
 export type PartnerTier = 'free' | 'growth';
@@ -405,9 +398,9 @@ export type User = {
   name: string;
   surname?: string;
   email: string;
-  role: 'client' | 'admin' | 'staff' | 'partner' | 'ai_accountant' | 'cap_staff' | 'cap_supervisor' | 'partner_staff' | 'franchisee' | 'partner_admin';
+  role: 'client' | 'admin' | 'staff' | 'partner' | 'ai_accountant' | 'cap_staff' | 'cap_supervisor' | 'partner_staff' | 'partner_admin';
   createdAt?: any;
-  source?: 'AI Accountant' | 'Client Management' | 'Partner Management' | 'AI Payroll' | 'Franchise';
+  source?: 'AI Accountant' | 'Client Management' | 'Partner Management' | 'AI Payroll';
   clientSource?: 'admin' | 'partner' | 'ai_accountant' | 'ai_payroll';
   department?: 'Accounting and Tax' | 'Administration' | 'CAP' | string;
   departments?: string[]; 
@@ -491,7 +484,6 @@ export type User = {
   excludeSdl?: boolean;
   payrollFrequency?: 'Monthly' | 'Weekly' | 'Fortnightly';
   firstRunStartDate?: any;
-  franchise?: FranchiseConfig;
   allocationRules?: AllocationRule[];
   disableGlobalRules?: boolean;
   chartOfAccounts?: ChartOfAccount[];
