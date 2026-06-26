@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
+import PartnerAssignmentEmail from '@/components/emails/PartnerAssignmentEmail';
 import { notifyOfNewNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
@@ -531,6 +532,20 @@ export default function AdminOrderDetailsPage() {
         type: 'note',
       };
       await updateDoc(orderRef, { notes: arrayUnion(newNote) });
+
+      // Notify all eligible partners
+      const emailPromises = overflowPartners.map(partner => {
+          if (partner.email) {
+              const emailHtml = render(<PartnerAssignmentEmail order={order} partnerName={partner.companyName || partner.name.split(' ')[0]} isDirectAssignment={false} payoutAmount={totalSubcontractorPayout} />);
+              return sendEmail({
+                  to: partner.email,
+                  subject: `New Job on Overflow Board: Payout R${totalSubcontractorPayout}`,
+                  html: emailHtml,
+              }).catch(console.error);
+          }
+          return Promise.resolve();
+      });
+      await Promise.all(emailPromises);
       
       toast({ title: 'Posted to Overflow Board', description: 'Qualified partners can now claim this job.' });
       await fetchOrderAndStaff();
@@ -568,6 +583,16 @@ export default function AdminOrderDetailsPage() {
         type: 'note',
       };
       await updateDoc(orderRef, { notes: arrayUnion(newNote) });
+
+      // Notify the chosen partner
+      if (partnerObj && partnerObj.email) {
+          const emailHtml = render(<PartnerAssignmentEmail order={order} partnerName={partnerObj.companyName || partnerObj.name.split(' ')[0]} isDirectAssignment={true} payoutAmount={totalSubcontractorPayout} />);
+          await sendEmail({
+              to: partnerObj.email,
+              subject: `New Job Assigned: Payout R${totalSubcontractorPayout}`,
+              html: emailHtml,
+          }).catch(console.error);
+      }
       
       toast({ title: 'Assigned to Partner', description: `Successfully assigned to ${partnerObj?.companyName || partnerObj?.name}.` });
       await fetchOrderAndStaff();

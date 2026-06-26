@@ -51,6 +51,8 @@ import { render } from '@react-email/components';
 import PaymentConfirmationEmail from '@/components/emails/PaymentConfirmationEmail';
 import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
 import ReviewRequestEmail from '@/components/emails/ReviewRequestEmail';
+import StaffAssignmentEmail from '@/components/emails/StaffAssignmentEmail';
+import OrderStatusUpdateEmail from '@/components/emails/OrderStatusUpdateEmail';
 import { Dialog } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -198,6 +200,18 @@ export default function AdminOrdersPage() {
 
         await batch.commit();
 
+        // Notify the assigned staff member
+        const staffMember = allStaff.find(s => s.id === staffId);
+        const orderToAssign = orders.find(o => o.id === orderId);
+        if (staffMember && staffMember.email && orderToAssign) {
+            const emailHtml = render(<StaffAssignmentEmail order={orderToAssign} staffName={staffMember.name.split(' ')[0]} />);
+            await sendEmail({
+                to: staffMember.email,
+                subject: `New Order Assigned: #${orderToAssign.originalOrderId || orderToAssign.id}`,
+                html: emailHtml,
+            }).catch(console.error);
+        }
+
         toast({
             title: 'Order Reassigned',
             description: `Order and its associated task have been assigned.`,
@@ -262,6 +276,16 @@ export default function AdminOrdersPage() {
                     title: 'Order Assigned',
                     description: `Order has been assigned to ${assignedStaffMember.name}.`
                 });
+
+                // Send email to staff member
+                if (assignedStaffMember.email) {
+                    const emailHtml = render(<StaffAssignmentEmail order={orderToUpdate} staffName={assignedStaffMember.name.split(' ')[0]} />);
+                    sendEmail({
+                        to: assignedStaffMember.email,
+                        subject: `New Order Assigned: #${orderToUpdate.originalOrderId || orderToUpdate.id}`,
+                        html: emailHtml,
+                    }).catch(console.error);
+                }
             }
         }
     }
@@ -356,6 +380,20 @@ export default function AdminOrdersPage() {
             title: 'Review Request Sent',
             description: `An email has been sent to the client requesting a review.`
         });
+      }
+
+      if ((newStatus === 'Cancelled' || newStatus === 'Pending Payment') && emailTo) {
+          const emailHtml = render(<OrderStatusUpdateEmail order={emailOrder} reseller={reseller} />);
+          await sendEmail({
+              to: emailTo,
+              subject: `Update on your Order #${emailOrder.id}`,
+              html: emailHtml,
+              resellerId: orderToUpdate.resellerId
+          });
+          toast({
+              title: 'Status Update Email Sent',
+              description: `An email has been sent to the client regarding the new status.`
+          });
       }
 
     } catch (error) {
