@@ -266,6 +266,12 @@ export type PartnerLandingPageConfig = {
     answer: string;
   }>;
   showLeadForm?: boolean;
+  fontFamily?: 'sans' | 'serif' | 'mono' | 'inter' | 'outfit';
+  borderRadius?: 'none' | 'sm' | 'md' | 'lg';
+  glassmorphism?: boolean;
+  googleAnalyticsId?: string;
+  metaPixelId?: string;
+  showCalculator?: boolean;
 };
 
 // --- Partner Subscription & Staff Types ---

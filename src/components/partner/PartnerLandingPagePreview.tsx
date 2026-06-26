@@ -6,6 +6,22 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { Calculator } from 'lucide-react';
+
+const fontLinks: Record<string, string> = {
+  inter: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap',
+  outfit: 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap',
+  serif: 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap',
+  mono: 'https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap',
+};
+
+const fontFamilies: Record<string, string> = {
+  sans: 'system-ui, -apple-system, sans-serif',
+  inter: '"Inter", sans-serif',
+  outfit: '"Outfit", sans-serif',
+  serif: '"Playfair Display", Georgia, serif',
+  mono: '"Fira Code", monospace',
+};
 
 // Helper to format currency in preview
 const formatPrice = (price: number) => {
@@ -44,7 +60,17 @@ export default function PartnerLandingPagePreview({
   const buttonColor = lp.buttonColor || '#214392';
   const buttonTextColor = lp.buttonTextColor || '#ffffff';
 
+  const radiusMap = {
+    none: '0px',
+    sm: '4px',
+    md: '8px',
+    lg: '16px',
+  };
+  const fontValue = fontFamilies[lp.fontFamily as keyof typeof fontFamilies] || fontFamilies.sans;
+  const radiusValue = radiusMap[lp.borderRadius as keyof typeof radiusMap] || '8px';
+
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [selectedMockIds, setSelectedMockIds] = useState<string[]>(['1']);
 
   // Mock services for preview
   const mockServices = [
@@ -148,9 +174,30 @@ export default function PartnerLandingPagePreview({
       </div>
 
       {/* Mock Browser Viewport */}
-      <div className="flex-grow overflow-y-auto bg-white flex flex-col h-full" style={{ backgroundColor }}>
+      {lp.fontFamily && fontLinks[lp.fontFamily] && (
+        <link rel="stylesheet" href={fontLinks[lp.fontFamily]} />
+      )}
+      <div className="flex-grow overflow-y-auto bg-white flex flex-col h-full preview-viewport" style={{ backgroundColor }}>
         {/* Style injection for variables in preview */}
         <style dangerouslySetInnerHTML={{ __html: `
+          .preview-viewport * {
+            font-family: ${fontValue} !important;
+          }
+          .preview-viewport pre, .preview-viewport code {
+            font-family: ${lp.fontFamily === 'mono' ? fontValue : 'monospace'} !important;
+          }
+          .preview-viewport .preview-btn, 
+          .preview-viewport .preview-card, 
+          .preview-viewport input, 
+          .preview-viewport select, 
+          .preview-viewport textarea, 
+          .preview-viewport button, 
+          .preview-viewport .rounded-xl, 
+          .preview-viewport .rounded-lg, 
+          .preview-viewport .rounded-2xl {
+            border-radius: ${radiusValue} !important;
+          }
+
           .preview-btn {
             background-color: ${isOutline ? 'transparent' : buttonColor} !important;
             color: ${isOutline ? buttonColor : buttonTextColor} !important;
@@ -170,6 +217,17 @@ export default function PartnerLandingPagePreview({
             background-color: ${cardBackgroundColor} !important;
             border-color: ${cardBorderColor} !important;
           }
+
+          /* Glassmorphism custom controls overrides in preview */
+          ${lp.glassmorphism ? `
+          .preview-viewport .preview-card {
+            background-color: ${cardBackgroundColor ? `${cardBackgroundColor}70` : 'rgba(255, 255, 255, 0.45)'} !important;
+            backdrop-filter: blur(10px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+            border: 1px solid ${cardBorderColor || 'rgba(255, 255, 255, 0.25)'} !important;
+            box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.03) !important;
+          }
+          ` : ''}
         `}} />
 
         {/* Header */}
@@ -313,6 +371,83 @@ export default function PartnerLandingPagePreview({
               ))}
             </div>
           </section>
+
+          {/* Pricing Calculator Mockup */}
+          {lp.showCalculator && (
+            <section className="px-4 max-w-xl mx-auto space-y-4">
+              <div className="text-center space-y-1">
+                <h2 className="text-lg font-bold" style={{ color: textColor }}>Fee Estimator</h2>
+                <p className="text-[10px] text-muted-foreground">Select services to preview your estimated fees.</p>
+              </div>
+              <Card className="preview-card border rounded-xl overflow-hidden shadow-sm text-[10px]">
+                <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x border-b">
+                  {/* Left checklist */}
+                  <div className="p-3 md:col-span-7 space-y-2">
+                    {mockServices.map((service) => {
+                      const isSelected = selectedMockIds.includes(service.id);
+                      return (
+                        <div
+                          key={service.id}
+                          onClick={() => {
+                            setSelectedMockIds(prev =>
+                              prev.includes(service.id)
+                                ? prev.filter(id => id !== service.id)
+                                : [...prev, service.id]
+                            );
+                          }}
+                          className={`p-2 border rounded-lg cursor-pointer transition-all flex items-center justify-between ${
+                            isSelected ? 'bg-primary/5 border-primary/40' : 'border-slate-100 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center text-white shrink-0 ${
+                              isSelected ? 'bg-primary border-primary' : 'border-slate-300'
+                            }`}>
+                              {isSelected && <CheckCircle2 className="h-2.5 w-2.5 fill-current" />}
+                            </div>
+                            <span className="font-bold truncate leading-tight">{service.title}</span>
+                          </div>
+                          <span className="font-bold shrink-0 ml-2">{formatPrice(service.price)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Right summary */}
+                  <div className="p-3 md:col-span-5 bg-slate-50/55 flex flex-col justify-between space-y-3">
+                    <div className="space-y-1.5">
+                      <p className="font-bold text-[9px] uppercase tracking-wider text-muted-foreground">Estimate Retainer</p>
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold text-xs">
+                          <span>Monthly Total:</span>
+                          <span className="preview-text">
+                            {formatPrice(
+                              mockServices
+                                .filter(s => selectedMockIds.includes(s.id) && s.id === '1')
+                                .reduce((acc, curr) => acc + curr.price, 0)
+                            )}/mo
+                          </span>
+                        </div>
+                        <div className="flex justify-between font-bold">
+                          <span>Once-off Setup:</span>
+                          <span>
+                            {formatPrice(
+                              mockServices
+                                .filter(s => selectedMockIds.includes(s.id) && s.id !== '1')
+                                .reduce((acc, curr) => acc + curr.price, 0)
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button disabled size="xs" className="w-full preview-btn text-[9px] h-7">
+                      <Calculator className="h-3 w-3 mr-1" /> Request Quote
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </section>
+          )}
 
           {/* FAQ Section */}
           <section className="px-4 max-w-xl mx-auto space-y-4">

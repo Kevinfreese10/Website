@@ -37,7 +37,9 @@ import {
   ChevronDown,
   MessageSquare,
   Undo2,
-  Redo2
+  Redo2,
+  BarChart3,
+  Calculator
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { getFirestore, doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
@@ -136,6 +138,12 @@ const formSchema = z.object({
       answer: z.string().min(5, "Answer is too short"),
     })).optional(),
     showLeadForm: z.boolean().default(true),
+    fontFamily: z.enum(['sans', 'serif', 'mono', 'inter', 'outfit']).default('sans'),
+    borderRadius: z.enum(['none', 'sm', 'md', 'lg']).default('md'),
+    glassmorphism: z.boolean().default(false),
+    googleAnalyticsId: z.string().optional().or(z.literal('')),
+    metaPixelId: z.string().optional().or(z.literal('')),
+    showCalculator: z.boolean().default(false),
   })
 });
 
@@ -255,6 +263,12 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
         testimonials: targetUser?.landingPage?.testimonials || [],
         faqs: targetUser?.landingPage?.faqs || [],
         showLeadForm: targetUser?.landingPage?.showLeadForm !== undefined ? targetUser?.landingPage?.showLeadForm : true,
+        fontFamily: targetUser?.landingPage?.fontFamily || 'sans',
+        borderRadius: targetUser?.landingPage?.borderRadius || 'md',
+        glassmorphism: targetUser?.landingPage?.glassmorphism || false,
+        googleAnalyticsId: targetUser?.landingPage?.googleAnalyticsId || '',
+        metaPixelId: targetUser?.landingPage?.metaPixelId || '',
+        showCalculator: targetUser?.landingPage?.showCalculator || false,
       }
     },
   });
@@ -1107,6 +1121,72 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                 <CardContent className="space-y-6 pt-6">
                                     <FormField control={form.control} name="landingPage.themePreset" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Theme Preset</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a theme..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="custom">Custom</SelectItem><SelectItem value="my_accountant">Master</SelectItem><SelectItem value="tech_blue">Light</SelectItem><SelectItem value="futuristic">Dark</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
                                     
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="landingPage.fontFamily"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs">Typography / Fonts</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="h-9 text-xs">
+                                                                <SelectValue placeholder="Select a font..." />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="sans">Default Sans-Serif</SelectItem>
+                                                            <SelectItem value="inter">Inter (Modern & Clean)</SelectItem>
+                                                            <SelectItem value="outfit">Outfit (Geometric & Bold)</SelectItem>
+                                                            <SelectItem value="serif">Playfair Display (Elegant)</SelectItem>
+                                                            <SelectItem value="mono">Fira Code (Monospace)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="landingPage.borderRadius"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs">Border Radius (Corners)</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="h-9 text-xs">
+                                                                <SelectValue placeholder="Select radius..." />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="none">Sharp (0px)</SelectItem>
+                                                            <SelectItem value="sm">Subtle (4px)</SelectItem>
+                                                            <SelectItem value="md">Rounded (8px)</SelectItem>
+                                                            <SelectItem value="lg">Bubbly (16px)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    
+                                    <FormField
+                                        control={form.control}
+                                        name="landingPage.glassmorphism"
+                                        render={({ field }) => (
+                                            <FormItem className="flex items-center space-x-2 space-y-0 py-1 bg-muted/20 p-2.5 rounded-lg border border-dashed">
+                                                <FormControl>
+                                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                </FormControl>
+                                                <div>
+                                                    <FormLabel className="text-xs font-bold cursor-pointer">Enable Glassmorphism Overlay</FormLabel>
+                                                    <p className="text-[10px] text-muted-foreground leading-none mt-0.5">Applies translucent backing with glass-like backdrop blur onto page cards.</p>
+                                                </div>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Curated Theme Presets</Label>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -1439,6 +1519,53 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                         <FormMessage />
                                     </FormItem> 
                                 )} />
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-2">
+                            <CardHeader className="bg-muted/30">
+                                <CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Integrations & Analytics</CardTitle>
+                                <CardDescription className="text-[10px]">Configure third-party tracking scripts and lead generation widgets.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6 pt-6">
+                                <FormField control={form.control} name="landingPage.googleAnalyticsId" render={({ field }) => ( 
+                                    <FormItem>
+                                        <FormLabel className="text-xs">Google Analytics Tag ID</FormLabel>
+                                        <FormControl><Input {...field} placeholder="e.g. G-XXXXXXXXXX" /></FormControl>
+                                        <FormDescription className="text-[10px]">Track website visitors using your Google Analytics 4 Measurement ID.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem> 
+                                )} />
+                                <FormField control={form.control} name="landingPage.metaPixelId" render={({ field }) => ( 
+                                    <FormItem>
+                                        <FormLabel className="text-xs">Meta Pixel ID</FormLabel>
+                                        <FormControl><Input {...field} placeholder="e.g. 1234567890" /></FormControl>
+                                        <FormDescription className="text-[10px]">Run Facebook / Instagram ads directly to your white-label page.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem> 
+                                )} />
+                                
+                                <Separator />
+                                
+                                <FormField
+                                    control={form.control}
+                                    name="landingPage.showCalculator"
+                                    render={({ field }) => (
+                                        <FormItem className="flex items-center justify-between bg-muted/20 p-3 rounded-lg border border-dashed">
+                                            <div className="space-y-0.5 pr-4">
+                                                <FormLabel className="text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+                                                    <Calculator className="h-3.5 w-3.5 text-primary" /> Monthly Pricing Calculator
+                                                </FormLabel>
+                                                <p className="text-[10px] text-muted-foreground leading-snug">
+                                                    Allow clients to select services on-page to estimate and submit custom monthly accounting retaining quotes.
+                                                </p>
+                                            </div>
+                                            <FormControl>
+                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
                             </CardContent>
                         </Card>
 

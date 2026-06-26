@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import PartnerLeadForm from '@/components/partner/PartnerLeadForm';
+import PartnerPricingCalculator from '@/components/partner/PartnerPricingCalculator';
 
 export const dynamic = 'force-dynamic';
 
@@ -301,6 +302,17 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
             ))}
         </div>
       </section>
+
+      {/* Pricing Calculator Section */}
+      {lp?.showCalculator && (
+        <section id="calculator" className="container mx-auto px-4 scroll-m-24 max-w-4xl space-y-8">
+          <div className="text-center space-y-4 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold text-slate-900">Estimate Your Fees</h2>
+            <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
+          </div>
+          <PartnerPricingCalculator services={services} partnerId={partner.id} />
+        </section>
+      )}
 
       {/* FAQ Section */}
       {lp?.faqs && lp.faqs.length > 0 && (

@@ -57,6 +57,12 @@ const LandingPageConfigOutputSchema = z.object({
   testimonials: z.array(TestimonialSchema).optional().describe("List of client testimonials"),
   faqs: z.array(FaqSchema).optional().describe("List of FAQ items"),
   showLeadForm: z.boolean().optional().describe("Whether to show the contact form"),
+  fontFamily: z.enum(['sans', 'serif', 'mono', 'inter', 'outfit']).optional().describe("Typography/font-family style pairing"),
+  borderRadius: z.enum(['none', 'sm', 'md', 'lg']).optional().describe("Border radius styling for buttons and cards"),
+  glassmorphism: z.boolean().optional().describe("Whether to use translucent card borders and background blur"),
+  googleAnalyticsId: z.string().optional().describe("Google Analytics (G-XXXXXXXXXX) measurement ID"),
+  metaPixelId: z.string().optional().describe("Meta Pixel Tracking ID"),
+  showCalculator: z.boolean().optional().describe("Whether to render the interactive monthly retainer pricing calculator widget"),
 });
 
 export async function editLandingPageWithAI({
