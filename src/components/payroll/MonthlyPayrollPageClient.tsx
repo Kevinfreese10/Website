@@ -48,11 +48,18 @@ export default function MonthlyPayrollPageClient() {
   ];
 
   return (
-    <div className="space-y-16 pb-16 bg-white">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
       {/* HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
+      <section className="relative w-full overflow-hidden pt-16 lg:pt-24 pb-20 text-center bg-background">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="container relative z-10 mx-auto px-4">
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-6xl lg:text-7xl">
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-6xl lg:text-7xl">
             Monthly <span className="text-gradient">#Payroll</span> Services
           </h1>
           <div className="mx-auto mb-10 max-w-4xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
@@ -73,7 +80,7 @@ export default function MonthlyPayrollPageClient() {
 
       <TrustIndexWidget />
 
-      <section className="container mx-auto px-4 bg-white">
+      <section className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-center">Everything Your Business Needs</h2>
           <p className="text-muted-foreground mt-2 max-w-2xl mx-auto text-center">
@@ -97,17 +104,17 @@ export default function MonthlyPayrollPageClient() {
         </div>
       </section>
 
-      <section className="py-16 bg-white border-t border-b">
+      <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <h2 className="text-3xl font-bold text-slate-900">Total Compliance Management</h2>
+              <h2 className="text-3xl font-bold text-foreground">Total Compliance Management</h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
                 Payroll isn&apos;t just about paying people; it&apos;s about ensuring you meet all legal requirements from the Department of Labour and SARS.
               </p>
               <ul className="space-y-4">
                 {complianceItems.map((item, index) => (
-                  <li key={index} className="flex items-center gap-3 text-sm font-medium text-slate-700 p-3 bg-slate-50 rounded-lg border border-slate-100 shadow-sm">
+                  <li key={index} className="flex items-center gap-3 text-sm font-medium text-foreground/80 p-3 bg-slate-50 rounded-lg border border-slate-100 shadow-sm">
                     <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                     {item}
                   </li>
@@ -133,7 +140,7 @@ export default function MonthlyPayrollPageClient() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 text-center bg-white">
+      <section className="container mx-auto px-4 text-center">
         <h2 className="text-3xl font-bold text-center">Stop Struggling with Manual Payroll</h2>
         <p className="text-lg text-muted-foreground mt-4 max-w-2xl mx-auto text-center">
             Switch to a professional payroll solution and ensure your business remains compliant with the latest tax laws.

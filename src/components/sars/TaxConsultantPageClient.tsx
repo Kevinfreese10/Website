@@ -68,11 +68,18 @@ export default function TaxConsultantPageClient() {
   ];
 
   return (
-    <div className="space-y-16 pb-16 bg-white">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
       {/* HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-slate-50 pt-16 lg:pt-24 pb-20 border-b text-center">
+      <section className="relative w-full overflow-hidden pt-16 lg:pt-24 pb-20 text-center bg-background">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="container relative z-10 mx-auto px-4 max-w-4xl">
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
             SARS Tax <span className="text-gradient">Consulting</span> Specialists
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto text-center leading-relaxed">
@@ -82,7 +89,7 @@ export default function TaxConsultantPageClient() {
             <Button asChild size="lg" className="font-bold px-10 shadow-xl">
               <Link href="/contact">Book a Tax Consultation</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="font-bold px-10">
+            <Button asChild size="lg" variant="outline" className="font-bold px-10 border-primary">
               <Link href="/compliance">Get Free Compliance Check</Link>
             </Button>
           </div>
@@ -99,15 +106,15 @@ export default function TaxConsultantPageClient() {
       <TrustIndexWidget />
 
       {/* SERVICE AREAS */}
-      <section className="py-12 bg-white">
+      <section className="py-12">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-16 space-y-3">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">Expert SARS Advisory & Disputes</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">Expert SARS Advisory & Disputes</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">We bridge the gap between businesses and SARS, using the Tax Administration Act to defend your rights and minimize liability.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {whyChooseUs.map((card, index) => (
-              <Card key={index} className="border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <Card key={index} className="glass-card border shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="space-y-4">
                   <div className="bg-primary/10 rounded-full h-12 w-12 flex items-center justify-center flex-shrink-0">
                     {card.icon}
@@ -124,10 +131,10 @@ export default function TaxConsultantPageClient() {
       </section>
 
       {/* SERVICE INCLUDES */}
-      <section className="py-16 bg-slate-50 border-y">
+      <section className="py-16">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900">How Our Tax Consultants Can Assist</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">How Our Tax Consultants Can Assist</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {serviceIncludes.map((item, index) => (
@@ -143,16 +150,16 @@ export default function TaxConsultantPageClient() {
       </section>
 
       {/* FAQS */}
-      <section className="py-16 bg-white">
+      <section className="py-16">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="text-center mb-12 space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900">Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">Frequently Asked Questions</h2>
             <p className="text-sm text-muted-foreground font-semibold">Answers to common SARS audit, dispute, and debt questions.</p>
           </div>
           <Accordion type="single" collapsible className="w-full space-y-4">
             {faqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="bg-slate-50 border rounded-xl px-5 shadow-sm overflow-hidden">
-                <AccordionTrigger className="text-left font-bold text-slate-900 hover:no-underline py-4">{faq.q}</AccordionTrigger>
+              <AccordionItem key={index} value={`item-${index}`} className="bg-card/50 border rounded-xl px-5 shadow-sm overflow-hidden">
+                <AccordionTrigger className="text-left font-bold text-foreground hover:no-underline py-4">{faq.q}</AccordionTrigger>
                 <AccordionContent className="text-muted-foreground text-sm leading-relaxed pb-4">{faq.a}</AccordionContent>
               </AccordionItem>
             ))}
@@ -163,7 +170,7 @@ export default function TaxConsultantPageClient() {
       {/* CTA SECTION */}
       <section className="container mx-auto px-4 text-center max-w-3xl py-12">
         <div className="bg-primary/5 border border-primary/10 rounded-3xl p-8 md:p-12 space-y-6">
-          <h2 className="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">Facing a SARS Dispute or Audit?</h2>
+          <h2 className="text-3xl font-black tracking-tight text-foreground md:text-4xl">Facing a SARS Dispute or Audit?</h2>
           <p className="text-muted-foreground font-medium leading-relaxed max-w-xl mx-auto">
             Don't leave your tax affairs to chance. Our registered tax practitioners can review your case and represent you directly with SARS, saving you time and protecting your assets.
           </p>

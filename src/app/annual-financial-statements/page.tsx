@@ -60,16 +60,23 @@ export default function AnnualFinancialStatementsPage() {
   };
 
   return (
-    <div className="space-y-16 pb-16 bg-white">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
       <Script
         id="afs-faq-schema"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
-      <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
+      <section className="relative w-full overflow-hidden pt-16 lg:pt-24 pb-20 text-center bg-background">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="container relative z-10 mx-auto px-4">
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl text-center">
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl text-center">
             <span className="text-gradient">Annual Financial Statements</span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto">
@@ -86,34 +93,34 @@ export default function AnnualFinancialStatementsPage() {
       <TrustIndexWidget />
 
       {/* Key AFS Statistics */}
-      <section className="container mx-auto px-4 bg-white">
+      <section className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-10 bg-slate-50 rounded-3xl border border-slate-100 p-8 shadow-sm text-center max-w-4xl mx-auto">
           <div className="space-y-2">
             <p className="text-4xl md:text-5xl font-black text-primary">1,500+</p>
-            <p className="text-sm font-bold text-slate-700">AFS Compiled</p>
+            <p className="text-sm font-bold text-foreground/80">AFS Compiled</p>
             <p className="text-xs text-muted-foreground leading-normal">Compiled for South African close corporations, private companies, and trusts.</p>
           </div>
           <div className="space-y-2">
             <p className="text-4xl md:text-5xl font-black text-primary">100%</p>
-            <p className="text-sm font-bold text-slate-700">SARS & CIPC Acceptance</p>
+            <p className="text-sm font-bold text-foreground/80">SARS & CIPC Acceptance</p>
             <p className="text-xs text-muted-foreground leading-normal">Perfect submission record without compliance flags or rejections.</p>
           </div>
           <div className="space-y-2">
             <p className="text-4xl md:text-5xl font-black text-primary">R50M+</p>
-            <p className="text-sm font-bold text-slate-700">Business Funding Enabled</p>
+            <p className="text-sm font-bold text-foreground/80">Business Funding Enabled</p>
             <p className="text-xs text-muted-foreground leading-normal">Compliant financials utilized by clients to secure bank loans and investor funding.</p>
           </div>
         </div>
       </section>
 
-      <section className="container mx-auto px-4 bg-white">
+      <section className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold">Standard-Setting Year-End Support</h2>
           <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Our accountants ensure your annual reporting is correct and compliant with the Companies Act.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step, index) => (
-            <Card key={index} className="border-2 bg-slate-50 shadow-sm h-full">
+            <Card key={index} className="glass-card shadow-sm h-full">
               <CardHeader>
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                   <step.icon className="h-5 w-5 text-primary" />
@@ -129,16 +136,16 @@ export default function AnnualFinancialStatementsPage() {
       </section>
 
       {/* Public Interest Score & Reporting Table */}
-      <section className="container mx-auto px-4 bg-white">
+      <section className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="text-center space-y-2">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">South African Company Reporting Requirements</h2>
+            <h2 className="text-3xl font-black text-foreground tracking-tight">South African Company Reporting Requirements</h2>
             <p className="text-sm text-muted-foreground font-semibold">Determine the statutory reporting standard required for your entity based on its Public Interest Score (PIS).</p>
           </div>
           
           <div className="overflow-x-auto rounded-2xl border shadow-sm">
-            <table className="w-full border-collapse bg-white text-left text-sm text-slate-700">
-              <thead className="bg-slate-50 text-slate-900">
+            <table className="w-full border-collapse bg-white text-left text-sm text-foreground/80">
+              <thead className="bg-slate-50 text-foreground">
                 <tr className="border-b">
                   <th className="px-6 py-4 font-bold">Public Interest Score (PIS)</th>
                   <th className="px-6 py-4 font-bold">Audit vs. Review Requirement</th>
@@ -147,22 +154,22 @@ export default function AnnualFinancialStatementsPage() {
               </thead>
               <tbody className="divide-y">
                 <tr className="hover:bg-slate-50/50">
-                  <td className="px-6 py-4 font-semibold text-slate-950">Under 100 points</td>
+                  <td className="px-6 py-4 font-semibold text-foreground">Under 100 points</td>
                   <td className="px-6 py-4">No audit or review required (Compilation report only).</td>
                   <td className="px-6 py-4">IFRS for SMEs or Entity-Specific Framework</td>
                 </tr>
                 <tr className="hover:bg-slate-50/50">
-                  <td className="px-6 py-4 font-semibold text-slate-950">100 - 349 points (independently prepared)</td>
+                  <td className="px-6 py-4 font-semibold text-foreground">100 - 349 points (independently prepared)</td>
                   <td className="px-6 py-4">Independent Review by a qualified external practitioner.</td>
                   <td className="px-6 py-4">IFRS for SMEs</td>
                 </tr>
                 <tr className="hover:bg-slate-50/50">
-                  <td className="px-6 py-4 font-semibold text-slate-950">100 - 349 points (internally prepared)</td>
+                  <td className="px-6 py-4 font-semibold text-foreground">100 - 349 points (internally prepared)</td>
                   <td className="px-6 py-4">Compulsory Statutory Audit.</td>
                   <td className="px-6 py-4">IFRS or IFRS for SMEs</td>
                 </tr>
                 <tr className="hover:bg-slate-50/50">
-                  <td className="px-6 py-4 font-semibold text-slate-950">350 points and above</td>
+                  <td className="px-6 py-4 font-semibold text-foreground">350 points and above</td>
                   <td className="px-6 py-4">Compulsory Statutory Audit.</td>
                   <td className="px-6 py-4">Full IFRS</td>
                 </tr>
@@ -173,10 +180,10 @@ export default function AnnualFinancialStatementsPage() {
       </section>
 
       {/* Expert AFS Quote */}
-      <section className="container mx-auto px-4 bg-white">
+      <section className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto p-8 border-l-4 border-primary bg-primary/5 rounded-r-2xl text-left">
           <span className="text-5xl text-primary/30 font-serif leading-none block -mt-4 -ml-2">“</span>
-          <p className="text-lg font-medium text-slate-800 italic leading-relaxed">
+          <p className="text-lg font-medium text-foreground/90 italic leading-relaxed">
             "Accurate annual financial statements are more than just a CIPC or SARS compliance requirement. They are the ultimate health check for your business, and the first document that banks, lenders, and investors demand. A clean, professionally compiled set of financials is the key to unlocking corporate finance in South Africa."
           </p>
           <div className="mt-6 flex items-center gap-4">
@@ -186,7 +193,7 @@ export default function AnnualFinancialStatementsPage() {
               className="h-12 w-12 rounded-full object-cover border-2 border-primary/20 shadow-sm shrink-0"
             />
             <div>
-              <h4 className="text-base font-black text-slate-900 leading-tight">Kevin Freese</h4>
+              <h4 className="text-base font-black text-foreground leading-tight">Kevin Freese</h4>
               <p className="text-xs text-muted-foreground font-semibold">
                 Managing Director, Registered Tax Practitioner (SARS ID: PR-0098553)
               </p>
@@ -199,17 +206,17 @@ export default function AnnualFinancialStatementsPage() {
       </section>
 
       {/* FAQ Accordion Section */}
-      <section className="container mx-auto px-4 max-w-4xl bg-white">
+      <section className="container mx-auto px-4 max-w-4xl">
         <div className="space-y-6">
           <div className="text-center space-y-2">
-            <h2 className="text-3xl font-black tracking-tight text-slate-900 text-center">Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-black tracking-tight text-foreground text-center">Frequently Asked Questions</h2>
             <p className="text-sm text-muted-foreground font-semibold text-center">Important details on annual financial statement compliance.</p>
           </div>
           
           <Accordion type="single" collapsible className="w-full mt-4">
             {afsFaqs.map((faq, index) => (
               <AccordionItem key={index} value={`faq-${index}`} className="border-b">
-                <AccordionTrigger className="text-base font-bold text-slate-900 text-left py-4">
+                <AccordionTrigger className="text-base font-bold text-foreground text-left py-4">
                   {faq.q}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground leading-relaxed text-sm pb-4">
@@ -221,8 +228,8 @@ export default function AnnualFinancialStatementsPage() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 text-center bg-white">
-        <div className="max-w-3xl mx-auto p-12 rounded-3xl bg-slate-50 border border-slate-100 shadow-sm">
+      <section className="container mx-auto px-4 text-center">
+        <div className="max-w-3xl mx-auto p-12 rounded-3xl glass-card border shadow-sm">
             <h2 className="text-3xl font-bold">Close Your Year with Peace of Mind</h2>
             <p className="text-lg text-muted-foreground mt-4 leading-relaxed">
                 Whether you need financials for a bank loan application, CIPC compliance, or shareholder review, we deliver accurate statements you can rely on.

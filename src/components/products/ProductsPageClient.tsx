@@ -128,7 +128,14 @@ export default function ProductsPageClient({
   return (
     <div className="w-full bg-background flex flex-col min-h-screen animate-in fade-in">
       {/* RICH HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-background border-b border-white/[0.06] pt-12 pb-16 text-center mb-12">
+      <section className="relative w-full overflow-hidden bg-background border-white/[0.06] pt-12 pb-16 text-center mb-12">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         {/* Aurora background blobs */}
         <div className="aurora-blob aurora-cyan w-[400px] h-[400px] -top-32 -left-32 animate-aurora-drift" />
         <div className="aurora-blob aurora-violet w-[350px] h-[350px] top-10 right-[-80px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
@@ -155,7 +162,7 @@ export default function ProductsPageClient({
       
       <div className="container mx-auto px-4 pb-12 flex-grow">
 
-      <section className="py-12 bg-secondary/30 border-y border-white/[0.06] mb-12 rounded-3xl glass-card">
+      <section className="py-12 bg-secondary/30 border-white/[0.06] mb-12 rounded-3xl glass-card">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl font-black md:text-4xl uppercase tracking-tighter text-foreground font-headline">How Our Online Accounting Process Works</h2>

@@ -70,11 +70,18 @@ export default function ContactPageClient() {
   ];
 
   return (
-    <div className="space-y-16 pb-16 bg-white">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
       {/* HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
+      <section className="relative w-full overflow-hidden pt-16 lg:pt-24 pb-20 text-center bg-background">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="container relative z-10 mx-auto px-4">
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
             Contact Us | <span className="text-gradient">My Accountant</span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto">

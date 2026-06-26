@@ -73,11 +73,18 @@ export default function LiquidationsPage() {
   ];
 
   return (
-    <div className="space-y-16 pb-16 bg-white">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
       {/* HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
+      <section className="relative w-full overflow-hidden pt-16 lg:pt-24 pb-20 text-center bg-background">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="container relative z-10 mx-auto px-4">
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl text-center">
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl text-center">
             <span className="text-gradient">Liquidation Services</span> in South Africa
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto text-center">
@@ -100,7 +107,7 @@ export default function LiquidationsPage() {
 
       <TrustIndexWidget />
 
-       <section className="container mx-auto px-4 bg-white">
+       <section className="container mx-auto px-4">
         <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-center">What Is a Company Liquidation?</h2>
             <p className="text-muted-foreground mt-2 max-w-2xl mx-auto text-center">
@@ -108,7 +115,7 @@ export default function LiquidationsPage() {
             </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-2 bg-slate-50 shadow-sm">
+            <Card className="glass-card shadow-sm">
                 <CardHeader>
                     <CardTitle>1. Voluntary Liquidation (Solvent)</CardTitle>
                 </CardHeader>
@@ -122,7 +129,7 @@ export default function LiquidationsPage() {
                    </ul>
                 </CardContent>
             </Card>
-             <Card className="border-2 bg-slate-50 shadow-sm">
+             <Card className="glass-card shadow-sm">
                 <CardHeader>
                     <CardTitle>2. Voluntary Liquidation (Insolvent)</CardTitle>
                 </CardHeader>
@@ -136,7 +143,7 @@ export default function LiquidationsPage() {
                    </ul>
                 </CardContent>
             </Card>
-             <Card className="border-2 bg-slate-50 shadow-sm">
+             <Card className="glass-card shadow-sm">
                 <CardHeader>
                     <CardTitle>3. Compulsory Liquidation</CardTitle>
                 </CardHeader>
@@ -152,7 +159,7 @@ export default function LiquidationsPage() {
         </div>
       </section>
 
-      <section className="py-24 bg-white border-t border-b">
+      <section className="py-24">
         <div className="container mx-auto px-4">
             <div className="text-center mb-12">
                 <h2 className="text-3xl font-bold text-center">What Our Liquidation Service Includes</h2>
@@ -176,7 +183,7 @@ export default function LiquidationsPage() {
         </div>
       </section>
 
-       <section className="container mx-auto px-4 bg-white py-12">
+       <section className="container mx-auto px-4 py-12">
             <div className="text-center mb-12">
                 <h2 className="text-3xl font-bold text-center">Why Use My Accountant?</h2>
             </div>
@@ -187,7 +194,7 @@ export default function LiquidationsPage() {
                             <benefit.icon className="h-8 w-8 text-primary" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-slate-900">{benefit.title}</h3>
+                            <h3 className="font-bold text-foreground">{benefit.title}</h3>
                             <p className="text-[10px] text-muted-foreground mt-1 uppercase font-black tracking-widest">{benefit.description}</p>
                         </div>
                     </div>
@@ -195,7 +202,7 @@ export default function LiquidationsPage() {
             </div>
       </section>
 
-      <section className="container mx-auto px-4 text-center bg-white">
+      <section className="container mx-auto px-4 text-center">
         <h2 className="text-3xl font-bold text-center">Need Help Deciding If Liquidation Is Right?</h2>
         <p className="text-lg text-muted-foreground mt-2 max-w-2xl mx-auto text-center">
             If you’re unsure whether liquidation is the correct step, we’re happy to assess your situation and explain your options before you commit.

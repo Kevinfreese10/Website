@@ -140,14 +140,21 @@ export default function SarsDisputesPageClient() {
   ];
 
   return (
-    <div className="space-y-16 pb-16 bg-white">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
       {/* HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
+      <section className="relative w-full overflow-hidden pt-16 lg:pt-24 pb-20 text-center bg-background">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="container relative z-10 mx-auto px-4">
           <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
             SARS Dispute Resolution South Africa
           </Badge>
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
             Professional Assistance With SARS <span className="text-gradient">Objections, Appeals</span> & Tax Disputes
           </h1>
           <div className="mx-auto mb-10 max-w-4xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
@@ -171,11 +178,11 @@ export default function SarsDisputesPageClient() {
       <section className="container mx-auto px-4 max-w-5xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-slate-900">Protect Your Rights Under the TAA</h2>
+                <h2 className="text-2xl font-bold text-foreground">Protect Your Rights Under the TAA</h2>
                 <p className="text-muted-foreground leading-relaxed">Our experienced tax practitioners assist businesses and individuals with a full range of formal dispute services:</p>
                 <div className="grid grid-cols-1 gap-2">
                     {serviceList.map(item => (
-                        <div key={item} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <div key={item} className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
                             <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> {item}
                         </div>
                     ))}
@@ -201,7 +208,7 @@ export default function SarsDisputesPageClient() {
       </section>
 
       {/* CORE PILLARS */}
-      <section className="bg-slate-50 py-24 border-y">
+      <section className="py-24">
         <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Objections */}
@@ -217,8 +224,8 @@ export default function SarsDisputesPageClient() {
                         <p className="text-sm text-muted-foreground mb-6">The first formal step in challenging a SARS decision. We ensure submissions are technically aligned with legislation.</p>
                         <ul className="space-y-3">
                             {objectionServices.slice(0, 6).map((service, i) => (
-                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-slate-700">
-                                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-foreground/80">
+                                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                                     {service}
                                 </li>
                             ))}
@@ -239,7 +246,7 @@ export default function SarsDisputesPageClient() {
                         <p className="text-sm text-muted-foreground mb-6">If an objection is disallowed, we represent you in alternative dispute resolution (ADR) and preparaty phases.</p>
                         <ul className="space-y-3">
                             {appealServices.slice(0, 6).map((service, i) => (
-                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-slate-700">
+                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-foreground/80">
                                     <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                                     {service}
                                 </li>
@@ -261,8 +268,8 @@ export default function SarsDisputesPageClient() {
                         <p className="text-sm text-muted-foreground mb-6">Managing SARS engagements early during audits to prevent incorrect assessments and penalties.</p>
                         <ul className="space-y-3">
                             {auditSupport.slice(0, 6).map((service, i) => (
-                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-slate-700">
-                                    <CheckCircle2 className="h-4 w-4 text-slate-900 shrink-0" />
+                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-foreground/80">
+                                    <CheckCircle2 className="h-4 w-4 text-foreground shrink-0" />
                                     {service}
                                 </li>
                             ))}
@@ -306,7 +313,7 @@ export default function SarsDisputesPageClient() {
       <section className="container mx-auto px-4 max-w-5xl py-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
-                <h2 className="text-3xl font-bold text-slate-900">Estimated Assessments & SARS Debt</h2>
+                <h2 className="text-3xl font-bold text-foreground">Estimated Assessments & SARS Debt</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed">
                     SARS may issue estimates when returns are outstanding or information is incomplete. These often significantly overstate liabilities.
                 </p>
@@ -318,13 +325,13 @@ export default function SarsDisputesPageClient() {
                         'Submitting revised information',
                         'Challenging incorrect findings'
                     ].map(item => (
-                        <div key={item} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> {item}
+                        <div key={item} className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
+                            <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> {item}
                         </div>
                     ))}
                 </div>
               </div>
-              <div className="bg-slate-50 border border-slate-200/60 text-slate-900 p-8 rounded-3xl shadow-lg">
+              <div className="bg-slate-50 border border-slate-200/60 text-foreground p-8 rounded-3xl shadow-lg">
                   <h3 className="text-xl font-bold mb-4 text-primary">Penalty & Interest Remissions</h3>
                   <p className="text-sm text-slate-600 mb-6 leading-relaxed">SARS imposes administrative and understatement penalties (up to 200%). We request remission based on "Reasonable Grounds" or exceptional circumstances.</p>
                   <Button asChild className="w-full font-bold">
@@ -335,16 +342,16 @@ export default function SarsDisputesPageClient() {
       </section>
 
       {/* INDUSTRIES & WHY US */}
-      <section className="bg-slate-50 py-24 border-y">
+      <section className="py-24">
           <div className="container mx-auto px-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                   <div className="space-y-8">
-                      <h2 className="text-3xl font-bold text-slate-900">Why Choose My Accountant?</h2>
+                      <h2 className="text-3xl font-bold text-foreground">Why Choose My Accountant?</h2>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                         {whyChooseUs.map(item => (
                             <div key={item} className="flex items-start gap-3 p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:border-primary/20 transition-all">
                                 <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                                <span className="text-xs font-bold text-slate-700">{item}</span>
+                                <span className="text-xs font-bold text-foreground/80">{item}</span>
                             </div>
                         ))}
                       </div>
@@ -353,7 +360,7 @@ export default function SarsDisputesPageClient() {
                       </p>
                   </div>
                   <div className="space-y-6">
-                      <h2 className="text-3xl font-bold text-slate-900">Industries We Assist</h2>
+                      <h2 className="text-3xl font-bold text-foreground">Industries We Assist</h2>
                       <div className="bg-white p-8 rounded-3xl border-2 border-dashed border-slate-200">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {industries.map(item => (
@@ -374,7 +381,7 @@ export default function SarsDisputesPageClient() {
               <div className="space-y-8">
                   <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
                   <div className="space-y-4 text-center lg:text-left">
-                    <h2 className="text-3xl font-bold text-slate-900">SARS Dispute Resolution Across South Africa</h2>
+                    <h2 className="text-3xl font-bold text-foreground">SARS Dispute Resolution Across South Africa</h2>
                     <p className="text-lg text-muted-foreground leading-relaxed">
                         My Accountant provides online SARS dispute resolution services to taxpayers throughout South Africa. Our secure systems allow for professional assistance from anywhere.
                     </p>
@@ -398,16 +405,16 @@ export default function SarsDisputesPageClient() {
       </section>
 
       {/* FAQ SECTION */}
-      <section className="container mx-auto px-4 max-w-4xl py-12 border-t">
+      <section className="container mx-auto px-4 max-w-4xl py-12">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 flex items-center justify-center gap-2">
+            <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">
                 <HelpCircle className="h-8 w-8 text-primary" /> Frequently Asked Questions
             </h2>
           </div>
           <Accordion type="single" collapsible className="w-full space-y-4">
             {faqs.map((faq, idx) => (
-              <AccordionItem key={idx} value={`item-${idx}`} className="bg-slate-50 border rounded-xl px-6">
-                <AccordionTrigger className="text-left font-bold text-slate-900 hover:no-underline">{faq.q}</AccordionTrigger>
+              <AccordionItem key={idx} value={`item-${idx}`} className="bg-card/50 border rounded-xl px-6">
+                <AccordionTrigger className="text-left font-bold text-foreground hover:no-underline">{faq.q}</AccordionTrigger>
                 <AccordionContent className="text-muted-foreground leading-relaxed text-sm font-medium pb-6">{faq.a}</AccordionContent>
               </AccordionItem>
             ))}
@@ -416,9 +423,9 @@ export default function SarsDisputesPageClient() {
 
       {/* FINAL CTA */}
       <section className="container mx-auto px-4 text-center">
-        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-50 border border-slate-200/60 text-slate-900 shadow-xl relative overflow-hidden">
+        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-50 border border-slate-200/60 text-foreground shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-8">
-                <h2 className="text-4xl font-black text-slate-900">Speak to a SARS Dispute Specialist</h2>
+                <h2 className="text-4xl font-black text-foreground">Speak to a SARS Dispute Specialist</h2>
                 <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
                     If you are facing a SARS audit, disputed assessment, tax penalties, or collection pressure, we can assist with professional dispute resolution services.
                 </p>
@@ -428,7 +435,7 @@ export default function SarsDisputesPageClient() {
                     </Button>
                 </div>
             </div>
-            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none text-slate-900/5"><ShieldCheck size={400} /></div>
+            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none text-foreground/5"><ShieldCheck size={400} /></div>
         </div>
       </section>
     </div>

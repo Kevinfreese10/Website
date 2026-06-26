@@ -76,14 +76,21 @@ export default function CipcCompanyRegistrationOnlinePage() {
   ];
 
   return (
-    <div className="space-y-16 pb-24">
+    <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
       {/* Hero Section */}
-      <section className="bg-slate-50 text-slate-900 py-20 lg:py-32 border-b border-slate-200/50">
+      <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="container mx-auto px-4 text-center max-w-4xl space-y-6">
           <div className="h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
             <Building className="h-8 w-8 text-primary" />
           </div>
-          <h1 id="page-title" className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-slate-900">
+          <h1 id="page-title" className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-foreground">
             Online CIPC Company Registration in South Africa
           </h1>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
@@ -108,7 +115,7 @@ export default function CipcCompanyRegistrationOnlinePage() {
       {/* Core Benefits */}
       <section className="container mx-auto px-4 max-w-5xl space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="text-3xl font-bold text-slate-900">Why Register Your Company Online With Us?</h2>
+          <h2 className="text-3xl font-bold text-foreground">Why Register Your Company Online With Us?</h2>
           <Separator className="w-16 mx-auto border-b-2 border-primary/20" />
         </div>
 
@@ -139,12 +146,12 @@ export default function CipcCompanyRegistrationOnlinePage() {
         </div>
 
         <div className="bg-slate-50 border rounded-2xl p-8 lg:p-12">
-          <h3 className="text-2xl font-bold text-slate-900 mb-6 text-center">What is Included in Your Registration</h3>
+          <h3 className="text-2xl font-bold text-foreground mb-6 text-center">What is Included in Your Registration</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {benefits.map((benefit, i) => (
               <div key={i} className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
-                <span className="text-sm font-medium text-slate-700">{benefit}</span>
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <span className="text-sm font-medium text-foreground/80">{benefit}</span>
               </div>
             ))}
           </div>
@@ -152,10 +159,10 @@ export default function CipcCompanyRegistrationOnlinePage() {
       </section>
 
       {/* Step by Step */}
-      <section className="bg-slate-50 py-16 border-y">
+      <section className="py-16">
         <div className="container mx-auto px-4 max-w-5xl space-y-12">
           <div className="text-center space-y-4">
-            <h2 className="text-3xl font-bold text-slate-900">Our Seamless Registration Process</h2>
+            <h2 className="text-3xl font-bold text-foreground">Our Seamless Registration Process</h2>
             <Separator className="w-16 mx-auto border-b-2 border-primary/20" />
           </div>
 
@@ -184,16 +191,16 @@ export default function CipcCompanyRegistrationOnlinePage() {
           </div>
           <CardContent className="p-8 space-y-6 bg-white">
             <ul className="space-y-4">
-              <li className="flex items-center gap-3 text-sm font-medium text-slate-700">
+              <li className="flex items-center gap-3 text-sm font-medium text-foreground/80">
                 <CheckCircle2 className="h-5 w-5 text-green-600" /> COR14.3 Registration Certificate
               </li>
-              <li className="flex items-center gap-3 text-sm font-medium text-slate-700">
+              <li className="flex items-center gap-3 text-sm font-medium text-foreground/80">
                 <CheckCircle2 className="h-5 w-5 text-green-600" /> SARS Income Tax Registration Number
               </li>
-              <li className="flex items-center gap-3 text-sm font-medium text-slate-700">
+              <li className="flex items-center gap-3 text-sm font-medium text-foreground/80">
                 <CheckCircle2 className="h-5 w-5 text-green-600" /> Approved Share Certificates for Directors
               </li>
-              <li className="flex items-center gap-3 text-sm font-medium text-slate-700">
+              <li className="flex items-center gap-3 text-sm font-medium text-foreground/80">
                 <CheckCircle2 className="h-5 w-5 text-green-600" /> Standard Memorandum of Incorporation (MOI)
               </li>
             </ul>
@@ -209,14 +216,14 @@ export default function CipcCompanyRegistrationOnlinePage() {
       {/* FAQs */}
       <section className="container mx-auto px-4 max-w-4xl space-y-8">
         <div className="text-center space-y-4">
-          <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
+          <h2 className="text-3xl font-bold text-foreground">Frequently Asked Questions</h2>
           <Separator className="w-16 mx-auto border-b-2 border-primary/20" />
         </div>
 
         <Accordion type="single" collapsible className="w-full">
           {faqs.map((faq, i) => (
             <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border">
-              <AccordionTrigger className="text-left font-bold text-slate-900 py-4 hover:underline">
+              <AccordionTrigger className="text-left font-bold text-foreground py-4 hover:underline">
                 <div className="flex items-center gap-2">
                   <HelpCircle className="h-5 w-5 text-primary shrink-0" />
                   {faq.q}

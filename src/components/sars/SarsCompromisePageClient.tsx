@@ -284,14 +284,21 @@ export default function SarsCompromisePageClient() {
   };
 
   return (
-    <div className="space-y-16 pb-16 bg-white">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
       {/* HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
+      <section className="relative w-full overflow-hidden pt-16 lg:pt-24 pb-20 text-center bg-background">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="container relative z-10 mx-auto px-4">
           <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
             SARS Compromise & SARS Debt Relief Services South Africa
           </Badge>
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
             Reduce, Settle or Manage Your <span className="text-gradient">SARS Tax Debt</span> With Professional Assistance
           </h1>
           <div className="mx-auto mb-10 max-w-4xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
@@ -315,20 +322,20 @@ export default function SarsCompromisePageClient() {
       <section className="container mx-auto px-4 max-w-5xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-slate-900">Expert Assistance with SARS Debt</h2>
+                <h2 className="text-2xl font-bold text-foreground">Expert Assistance with SARS Debt</h2>
                 <p className="text-muted-foreground leading-relaxed">Our experienced tax practitioners assist taxpayers with a full range of debt resolution options:</p>
                 <div className="grid grid-cols-1 gap-2">
                     {serviceList.map(item => (
-                        <div key={item} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <div key={item} className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
                             <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> {item}
                         </div>
                     ))}
                 </div>
-                <p className="font-bold text-slate-900 mt-4">
+                <p className="font-bold text-foreground mt-4">
                     We help clients legally reduce tax exposure, negotiate sustainable repayment terms, and restore compliance with SARS.
                 </p>
               </div>
-              <div className="bg-slate-50 border border-slate-200/80 text-slate-800 p-8 rounded-3xl shadow-xl space-y-6">
+              <div className="bg-slate-50 border border-slate-200/80 text-foreground/90 p-8 rounded-3xl shadow-xl space-y-6">
                   <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
                     <LifeBuoy className="h-6 w-6" /> Why Seek Help?
                   </h3>
@@ -343,10 +350,10 @@ export default function SarsCompromisePageClient() {
       </section>
 
       {/* WHAT IS A COMPROMISE */}
-      <section className="bg-slate-50 py-24 border-y">
+      <section className="py-24">
           <div className="container mx-auto px-4">
               <div className="max-w-4xl mx-auto text-center space-y-8 mb-16">
-                  <h2 className="text-3xl font-bold text-slate-900">What Is a SARS Compromise?</h2>
+                  <h2 className="text-3xl font-bold text-foreground">What Is a SARS Compromise?</h2>
                   <p className="text-lg text-muted-foreground leading-relaxed">
                     A SARS compromise is a legal process available under Sections 200 to 204 of the Tax Administration Act (TAA), allowing qualifying taxpayers to negotiate a reduced settlement amount with SARS for outstanding tax debt under specific circumstances.
                   </p>
@@ -361,8 +368,8 @@ export default function SarsCompromisePageClient() {
                       <CardContent>
                           <ul className="space-y-3">
                               {compromiseBenefits.map((item, i) => (
-                                  <li key={i} className="flex items-start gap-3 text-sm font-medium text-slate-700">
-                                      <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                                  <li key={i} className="flex items-start gap-3 text-sm font-medium text-foreground/80">
+                                      <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                                       {item}
                                   </li>
                               ))}
@@ -375,7 +382,7 @@ export default function SarsCompromisePageClient() {
                       </p>
                       <div className="p-6 bg-white rounded-2xl border border-dashed border-primary/30 text-center">
                           <p className="text-xs font-black uppercase tracking-widest text-primary mb-2">Legal Framework</p>
-                          <p className="text-sm font-bold text-slate-900">Sections 200 - 204 of the Tax Administration Act</p>
+                          <p className="text-sm font-bold text-foreground">Sections 200 - 204 of the Tax Administration Act</p>
                       </div>
                   </div>
               </div>
@@ -383,13 +390,13 @@ export default function SarsCompromisePageClient() {
       </section>
 
       {/* COMPROMISE ELIGIBILITY CALCULATOR */}
-      <section className="bg-slate-50 py-24 border-y">
+      <section className="py-24">
           <div className="container mx-auto px-4 max-w-6xl">
               <div className="max-w-3xl mx-auto text-center space-y-4 mb-16">
                   <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
                       Interactive Tool
                   </Badge>
-                  <h2 className="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
+                  <h2 className="text-3xl font-black tracking-tight text-foreground md:text-4xl">
                       SARS Compromise Eligibility Calculator
                   </h2>
                   <p className="text-muted-foreground leading-relaxed">
@@ -401,7 +408,7 @@ export default function SarsCompromisePageClient() {
                   {/* Left Column: Input Form */}
                   <Card className="lg:col-span-7 bg-white shadow-xl border-slate-100 border-2">
                       <CardHeader className="bg-slate-50 border-b">
-                          <CardTitle className="flex items-center gap-2 text-slate-800">
+                          <CardTitle className="flex items-center gap-2 text-foreground/90">
                               <Calculator className="h-5 w-5 text-primary" />
                               Financial Details
                           </CardTitle>
@@ -411,7 +418,7 @@ export default function SarsCompromisePageClient() {
                       </CardHeader>
                       <CardContent className="p-6 space-y-6">
                           <div className="space-y-2">
-                              <Label htmlFor="tax-debt" className="text-sm font-bold text-slate-700">Total SARS Debt (All tax types)</Label>
+                              <Label htmlFor="tax-debt" className="text-sm font-bold text-foreground/80">Total SARS Debt (All tax types)</Label>
                               <div className="relative">
                                   <span className="absolute left-3.5 top-2.5 text-sm font-bold text-muted-foreground">R</span>
                                   <Input
@@ -428,7 +435,7 @@ export default function SarsCompromisePageClient() {
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                  <Label htmlFor="total-assets" className="text-sm font-bold text-slate-700">Total Assets</Label>
+                                  <Label htmlFor="total-assets" className="text-sm font-bold text-foreground/80">Total Assets</Label>
                                   <div className="relative">
                                       <span className="absolute left-3.5 top-2.5 text-sm font-bold text-muted-foreground">R</span>
                                       <Input
@@ -444,7 +451,7 @@ export default function SarsCompromisePageClient() {
                               </div>
 
                               <div className="space-y-2">
-                                  <Label htmlFor="total-liabilities" className="text-sm font-bold text-slate-700">Total Liabilities (Excl. Tax Debt)</Label>
+                                  <Label htmlFor="total-liabilities" className="text-sm font-bold text-foreground/80">Total Liabilities (Excl. Tax Debt)</Label>
                                   <div className="relative">
                                       <span className="absolute left-3.5 top-2.5 text-sm font-bold text-muted-foreground">R</span>
                                       <Input
@@ -464,11 +471,11 @@ export default function SarsCompromisePageClient() {
                               <div className="pt-4 border-t space-y-4">
                                   <div className="flex justify-between items-center text-sm font-medium">
                                       <span className="text-muted-foreground">Net Asset Value (NAV):</span>
-                                      <span className="font-mono font-bold text-slate-900">{formatZar(nav)}</span>
+                                      <span className="font-mono font-bold text-foreground">{formatZar(nav)}</span>
                                   </div>
                                   <div className="flex justify-between items-center text-sm font-medium">
                                       <span className="text-muted-foreground">Outstanding SARS Debt:</span>
-                                      <span className="font-mono font-bold text-slate-900">{formatZar(debtVal)}</span>
+                                      <span className="font-mono font-bold text-foreground">{formatZar(debtVal)}</span>
                                   </div>
                                   <div className="text-[10px] text-muted-foreground italic bg-slate-50 p-2.5 rounded-lg border">
                                       *Net Asset Value is calculated as Assets minus Liabilities (excluding the tax debt). Under Section 200 of the TAA, SARS considers if your Net Assets are insufficient to cover your tax liabilities.
@@ -486,7 +493,7 @@ export default function SarsCompromisePageClient() {
                                   <Calculator className="h-6 w-6" />
                               </div>
                               <div className="space-y-1">
-                                  <h3 className="font-bold text-slate-800">Awaiting Calculations</h3>
+                                  <h3 className="font-bold text-foreground/90">Awaiting Calculations</h3>
                                   <p className="text-xs text-muted-foreground max-w-xs">
                                       Enter your outstanding debt, asset value, and liabilities to see your eligibility assessment instantly.
                                   </p>
@@ -500,7 +507,7 @@ export default function SarsCompromisePageClient() {
                                       <CardTitle className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
                                           {isEligible ? (
                                               <>
-                                                  <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+                                                  <CheckCircle className="h-5 w-5 text-primary shrink-0" />
                                                   <span className="text-green-800">PRELIMINARILY ELIGIBLE</span>
                                               </>
                                           ) : (
@@ -514,7 +521,7 @@ export default function SarsCompromisePageClient() {
                                   <CardContent className="p-6 space-y-4">
                                       {isEligible ? (
                                           <div className="space-y-3">
-                                              <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                              <p className="text-sm text-foreground/80 leading-relaxed font-medium">
                                                   Your Net Asset Value (NAV) of <strong>{formatZar(nav)}</strong> is less than your outstanding SARS debt of <strong>{formatZar(debtVal)}</strong>.
                                               </p>
                                               <div className="bg-white p-3 rounded-lg border border-green-100 flex justify-between items-center text-sm font-medium">
@@ -527,7 +534,7 @@ export default function SarsCompromisePageClient() {
                                           </div>
                                       ) : (
                                           <div className="space-y-3">
-                                              <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                              <p className="text-sm text-foreground/80 leading-relaxed font-medium">
                                                   Your Net Asset Value (NAV) of <strong>{formatZar(nav)}</strong> is equal to or greater than your outstanding SARS debt of <strong>{formatZar(debtVal)}</strong>.
                                               </p>
                                               <p className="text-xs text-slate-600 leading-relaxed">
@@ -544,7 +551,7 @@ export default function SarsCompromisePageClient() {
                               {/* Fee Structure */}
                               <Card className="border-2 border-slate-100 bg-white shadow-lg">
                                   <CardHeader className="bg-slate-50 border-b py-3">
-                                      <CardTitle className="text-sm font-bold flex items-center gap-1.5 text-slate-800">
+                                      <CardTitle className="text-sm font-bold flex items-center gap-1.5 text-foreground/90">
                                           <Coins className="h-4 w-4 text-primary" />
                                           My Accountant Fee Structure
                                       </CardTitle>
@@ -554,13 +561,13 @@ export default function SarsCompromisePageClient() {
                                           <span className="text-slate-600 font-medium flex items-center gap-1">
                                               <Briefcase className="h-3.5 w-3.5 text-muted-foreground" /> Upfront Retainer:
                                           </span>
-                                          <span className="font-mono font-bold text-slate-900">{formatZar(upfrontFee)}</span>
+                                          <span className="font-mono font-bold text-foreground">{formatZar(upfrontFee)}</span>
                                       </div>
                                       <div className="flex justify-between items-center">
                                           <span className="text-slate-600 font-medium flex items-center gap-1">
                                               <Percent className="h-3.5 w-3.5 text-muted-foreground" /> Success Fee (10%):
                                           </span>
-                                          <span className="font-mono font-bold text-slate-900">
+                                          <span className="font-mono font-bold text-foreground">
                                               {isEligible ? `${formatZar(successFee)} (estimated)` : "N/A"}
                                           </span>
                                       </div>
@@ -571,7 +578,7 @@ export default function SarsCompromisePageClient() {
                               </Card>
 
                               {/* Lead Capture */}
-                              <Card className="border-2 border-primary/20 bg-white text-slate-900 shadow-xl relative overflow-hidden">
+                              <Card className="border-2 border-primary/20 bg-white text-foreground shadow-xl relative overflow-hidden">
                                   <CardContent className="p-6 space-y-4">
                                       {isSubmitted ? (
                                           <div className="text-center py-6 space-y-3">
@@ -579,7 +586,7 @@ export default function SarsCompromisePageClient() {
                                                   <Check className="h-5 w-5 text-white" />
                                               </div>
                                               <div className="space-y-1">
-                                                  <h4 className="font-bold text-slate-900 text-base">Request Submitted</h4>
+                                                  <h4 className="font-bold text-foreground text-base">Request Submitted</h4>
                                                   <p className="text-xs text-slate-500">
                                                       Thank you! A SARS Debt Specialist has received your eligibility metrics and will contact you shortly.
                                                   </p>
@@ -588,7 +595,7 @@ export default function SarsCompromisePageClient() {
                                       ) : (
                                           <form onSubmit={handleLeadSubmit} className="space-y-4">
                                               <div className="space-y-1">
-                                                  <h4 className="font-bold text-slate-900 text-sm">Request Debt Compromise Consultation</h4>
+                                                  <h4 className="font-bold text-foreground text-sm">Request Debt Compromise Consultation</h4>
                                                   <p className="text-[11px] text-slate-500">
                                                       Submit your assessment variables to speak with a tax practitioner about your SARS debt.
                                                   </p>
@@ -602,7 +609,7 @@ export default function SarsCompromisePageClient() {
                                                           value={leadName}
                                                           onChange={(e) => setLeadName(e.target.value)}
                                                           required
-                                                          className="bg-slate-50 border-slate-200 text-slate-900 h-9 text-xs placeholder:text-slate-400 focus-visible:ring-primary"
+                                                          className="bg-slate-50 border-slate-200 text-foreground h-9 text-xs placeholder:text-slate-400 focus-visible:ring-primary"
                                                       />
                                                   </div>
                                                   <div>
@@ -612,7 +619,7 @@ export default function SarsCompromisePageClient() {
                                                           value={leadEmail}
                                                           onChange={(e) => setLeadEmail(e.target.value)}
                                                           required
-                                                          className="bg-slate-50 border-slate-200 text-slate-900 h-9 text-xs placeholder:text-slate-400 focus-visible:ring-primary"
+                                                          className="bg-slate-50 border-slate-200 text-foreground h-9 text-xs placeholder:text-slate-400 focus-visible:ring-primary"
                                                       />
                                                   </div>
                                                   <div>
@@ -622,12 +629,12 @@ export default function SarsCompromisePageClient() {
                                                           value={leadPhone}
                                                           onChange={(e) => setLeadPhone(e.target.value)}
                                                           required
-                                                          className="bg-slate-50 border-slate-200 text-slate-900 h-9 text-xs placeholder:text-slate-400 focus-visible:ring-primary"
+                                                          className="bg-slate-50 border-slate-200 text-foreground h-9 text-xs placeholder:text-slate-400 focus-visible:ring-primary"
                                                       />
                                                   </div>
                                               </div>
 
-                                              <Button type="submit" disabled={isSubmitting} className="w-full bg-primary hover:bg-primary/95 text-slate-900 font-bold h-10 text-xs">
+                                              <Button type="submit" disabled={isSubmitting} className="w-full bg-primary hover:bg-primary/95 text-foreground font-bold h-10 text-xs">
                                                   {isSubmitting ? (
                                                       <>
                                                           <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Submitting...
@@ -655,12 +662,12 @@ export default function SarsCompromisePageClient() {
               {/* Reduction */}
               <div className="space-y-8">
                   <div className="space-y-4">
-                    <h2 className="text-3xl font-bold text-slate-900">SARS Debt Reduction Services</h2>
+                    <h2 className="text-3xl font-bold text-foreground">SARS Debt Reduction Services</h2>
                     <p className="text-muted-foreground leading-relaxed">Identifying lawful strategies to minimise outstanding liabilities and negotiate improved outcomes.</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {reductionAssistance.map(item => (
-                          <div key={item} className="flex items-start gap-2 p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs font-bold text-slate-700">
+                          <div key={item} className="flex items-start gap-2 p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs font-bold text-foreground/80">
                               <CheckCircle className="h-4 w-4 text-primary shrink-0" /> {item}
                           </div>
                       ))}
@@ -675,7 +682,7 @@ export default function SarsCompromisePageClient() {
               {/* Management */}
               <div className="space-y-8">
                   <div className="space-y-4">
-                    <h2 className="text-3xl font-bold text-slate-900">SARS Debt Management Services</h2>
+                    <h2 className="text-3xl font-bold text-foreground">SARS Debt Management Services</h2>
                     <p className="text-muted-foreground leading-relaxed">A structured and proactive approach to resolving liabilities and preventing enforcement.</p>
                   </div>
                   <div className="bg-destructive/5 p-6 rounded-2xl border border-destructive/20">
@@ -690,7 +697,7 @@ export default function SarsCompromisePageClient() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                        {managementServices.map(item => (
-                          <div key={item} className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                          <div key={item} className="flex items-center gap-2 text-xs font-bold text-foreground/80">
                               <CheckCircle2 className="h-3.5 w-3.5 text-green-600" /> {item}
                           </div>
                       ))}
@@ -700,7 +707,7 @@ export default function SarsCompromisePageClient() {
       </section>
 
       {/* COMPROMISE APPLICATIONS DETAIL */}
-      <section className="bg-slate-50 text-slate-900 py-24 border-y border-slate-200/50">
+      <section className="text-foreground py-24">
           <div className="container mx-auto px-4">
               <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                   <div className="space-y-6">
@@ -715,7 +722,7 @@ export default function SarsCompromisePageClient() {
                       </ul>
                       <p className="text-sm text-slate-600 italic pt-4">We tailor every compromise application based on the taxpayer’s specific financial circumstances and SARS risk factors.</p>
                   </div>
-                  <Card className="bg-white text-slate-900 border-none shadow-2xl">
+                  <Card className="bg-white text-foreground border-none shadow-2xl">
                       <CardHeader className="bg-slate-50 border-b">
                           <CardTitle className="text-lg">Compromise Eligibility</CardTitle>
                       </CardHeader>
@@ -730,7 +737,7 @@ export default function SarsCompromisePageClient() {
                                   'Taxpayer wishes to regularise tax affairs'
                               ].map(item => (
                                   <div key={item} className="flex items-start gap-2 text-xs font-medium">
-                                      <CheckCircle className="h-4 w-4 text-green-500 shrink-0" /> {item}
+                                      <CheckCircle className="h-4 w-4 text-primary shrink-0" /> {item}
                                   </div>
                               ))}
                           </div>
@@ -778,16 +785,16 @@ export default function SarsCompromisePageClient() {
       </section>
 
       {/* WHY CHOOSE US & ASSISTED ENTITIES */}
-      <section className="bg-slate-50 py-24 border-y">
+      <section className="py-24">
           <div className="container mx-auto px-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
                   <div className="space-y-8">
-                      <h2 className="text-3xl font-bold text-slate-900">Why Choose My Accountant for SARS Debt Assistance?</h2>
+                      <h2 className="text-3xl font-bold text-foreground">Why Choose My Accountant for SARS Debt Assistance?</h2>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                         {whyChooseUs.map(item => (
                             <div key={item} className="flex items-start gap-3 p-4 bg-white rounded-xl border border-slate-100 shadow-sm hover:border-primary/20 transition-all">
                                 <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                                <span className="text-xs font-bold text-slate-700">{item}</span>
+                                <span className="text-xs font-bold text-foreground/80">{item}</span>
                             </div>
                         ))}
                       </div>
@@ -796,7 +803,7 @@ export default function SarsCompromisePageClient() {
                       </p>
                   </div>
                   <div className="space-y-6">
-                      <h2 className="text-3xl font-bold text-slate-900">Businesses & Individuals We Assist</h2>
+                      <h2 className="text-3xl font-bold text-foreground">Businesses & Individuals We Assist</h2>
                       <div className="bg-white p-8 rounded-3xl border-2 border-dashed border-slate-200">
                         <div className="grid grid-cols-1 gap-3">
                             {assistedEntities.map(item => (
@@ -817,7 +824,7 @@ export default function SarsCompromisePageClient() {
               <div className="space-y-8">
                   <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
                   <div className="space-y-4 text-center lg:text-left">
-                    <h2 className="text-3xl font-bold text-slate-900">SARS Debt Assistance Across South Africa</h2>
+                    <h2 className="text-3xl font-bold text-foreground">SARS Debt Assistance Across South Africa</h2>
                     <p className="text-lg text-muted-foreground leading-relaxed">
                         My Accountant provides online SARS compromise and tax debt management services to clients throughout South Africa.
                     </p>
@@ -844,16 +851,16 @@ export default function SarsCompromisePageClient() {
       </section>
 
       {/* FAQ SECTION */}
-      <section className="container mx-auto px-4 max-w-4xl py-12 border-t">
+      <section className="container mx-auto px-4 max-w-4xl py-12">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 flex items-center justify-center gap-2">
+            <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">
                 <HelpCircle className="h-8 w-8 text-primary" /> Frequently Asked Questions
             </h2>
           </div>
           <Accordion type="single" collapsible className="w-full space-y-4">
             {faqs.map((faq, idx) => (
-              <AccordionItem key={idx} value={`item-${idx}`} className="bg-slate-50 border rounded-xl px-6">
-                <AccordionTrigger className="text-left font-bold text-slate-900 hover:no-underline">{faq.q}</AccordionTrigger>
+              <AccordionItem key={idx} value={`item-${idx}`} className="bg-card/50 border rounded-xl px-6">
+                <AccordionTrigger className="text-left font-bold text-foreground hover:no-underline">{faq.q}</AccordionTrigger>
                 <AccordionContent className="text-muted-foreground leading-relaxed text-sm font-medium pb-6">{faq.a}</AccordionContent>
               </AccordionItem>
             ))}
@@ -862,9 +869,9 @@ export default function SarsCompromisePageClient() {
 
       {/* FINAL CTA */}
       <section className="container mx-auto px-4 text-center">
-        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-50 border border-slate-200/60 text-slate-900 shadow-xl relative overflow-hidden">
+        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-50 border border-slate-200/60 text-foreground shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-8">
-                <h2 className="text-4xl font-black text-slate-900">Speak to a SARS Debt Specialist</h2>
+                <h2 className="text-4xl font-black text-foreground">Speak to a SARS Debt Specialist</h2>
                 <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
                     If you are struggling with SARS debt, tax penalties, or SARS collection pressure, My Accountant can assist you with practical and professional tax debt solutions.
                 </p>
@@ -874,7 +881,7 @@ export default function SarsCompromisePageClient() {
                     </Button>
                 </div>
             </div>
-            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none text-slate-900/5"><ShieldCheck size={400} /></div>
+            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none text-foreground/5"><ShieldCheck size={400} /></div>
         </div>
       </section>
     </div>

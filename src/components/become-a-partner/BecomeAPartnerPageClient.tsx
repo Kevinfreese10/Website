@@ -91,7 +91,7 @@ function PartnerPricingDialog() {
                                         <TableRow>
                                             <TableHead className="w-[40%]">Service Description</TableHead>
                                             <TableHead className="text-right">Retail Price</TableHead>
-                                            <TableHead className="text-right text-slate-700">Free Partner (5% Off)</TableHead>
+                                            <TableHead className="text-right text-foreground/80">Free Partner (5% Off)</TableHead>
                                             <TableHead className="text-right text-primary">Growth Partner (25% Off)</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -100,7 +100,7 @@ function PartnerPricingDialog() {
                                             <TableRow key={service.id}>
                                                 <TableCell className="font-medium text-xs sm:text-sm">{service.title}</TableCell>
                                                 <TableCell className="text-right text-xs opacity-50 line-through">{formatPrice(service.price)}</TableCell>
-                                                <TableCell className="text-right font-medium text-slate-700 text-xs sm:text-sm">{formatPrice(service.price * 0.95)}</TableCell>
+                                                <TableCell className="text-right font-medium text-foreground/80 text-xs sm:text-sm">{formatPrice(service.price * 0.95)}</TableCell>
                                                 <TableCell className="text-right font-bold text-primary text-xs sm:text-sm">{formatPrice(service.resellerPrice || service.price * 0.75)}</TableCell>
                                             </TableRow>
                                         ))}
@@ -292,28 +292,35 @@ const faqs = [
 
 export default function BecomeAPartnerPageClient() {
   return (
-    <div className="space-y-16 pb-16 bg-white">
-      <section className="bg-white border-b relative overflow-hidden">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
+      <section className="relative overflow-hidden bg-background">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
             <div className="absolute top-10 left-10"><Bot size={120} /></div>
             <div className="absolute bottom-10 right-10"><Wallet size={120} /></div>
         </div>
         <div className="container mx-auto px-4 py-20 text-center relative z-10">
-            <h1 className="text-4xl font-black tracking-tight md:text-6xl lg:text-7xl text-slate-900">
+            <h1 className="text-4xl font-black tracking-tight md:text-6xl lg:text-7xl text-foreground">
                 10X Your Practice — <span className="text-gradient">Without Hiring More Staff.</span>
             </h1>
-            <p className="mt-6 text-xl text-slate-700 max-w-4xl mx-auto font-medium leading-relaxed">
+            <p className="mt-6 text-xl text-foreground/80 max-w-4xl mx-auto font-medium leading-relaxed">
                 Never lose a client because you lack capacity, specialised expertise, or time. With the Bookkeeper Empowerment Initiative (BEI), you can confidently outsource complex work while keeping full control of the client relationship and growing your revenue.
             </p>
-            <p className="mt-6 text-2xl font-bold text-slate-800 uppercase tracking-tighter">Expand your services. Protect your clients. Scale your practice.</p>
+            <p className="mt-6 text-2xl font-bold text-foreground/90 uppercase tracking-tighter">Expand your services. Protect your clients. Scale your practice.</p>
         </div>
       </section>
 
-      <section className="bg-slate-50 py-24 border-y">
+      <section className="py-24">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16 space-y-4">
                 <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Pricing Plans</Badge>
-                <h2 className="text-4xl md:text-5xl font-black leading-tight text-slate-900">Choose the Plan for Your Practice</h2>
+                <h2 className="text-4xl md:text-5xl font-black leading-tight text-foreground">Choose the Plan for Your Practice</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
                     Get started for free to access our community and jobs, or upgrade to Growth for a complete, white-labeled practice backend.
                 </p>
@@ -321,13 +328,13 @@ export default function BecomeAPartnerPageClient() {
             
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
                 {/* Free Tier */}
-                <Card className="border border-slate-200 shadow-lg bg-white overflow-hidden flex flex-col justify-between">
+                <Card className="glass-card border shadow-lg overflow-hidden flex flex-col justify-between">
                     <div>
                         <CardHeader className="bg-slate-50/50 border-b p-8 text-center">
                             <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-500 font-bold">Community Free</CardTitle>
                             <div className="mt-4 flex items-baseline justify-center gap-1">
-                                <span className="text-2xl font-bold text-slate-900">R</span>
-                                <span className="text-7xl font-black text-slate-900">0</span>
+                                <span className="text-2xl font-bold text-foreground">R</span>
+                                <span className="text-7xl font-black text-foreground">0</span>
                                 <span className="text-lg text-muted-foreground">/mo</span>
                             </div>
                             <p className="mt-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">Perfect for getting started</p>
@@ -340,7 +347,7 @@ export default function BecomeAPartnerPageClient() {
                                     '5% Wholesale outsourcing discount',
                                     'Direct client billing dashboard'
                                 ].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                    <li key={i} className="flex items-center gap-2 text-sm font-medium text-foreground/80">
                                         <CheckCircle2 className="h-4.5 w-4.5 text-primary shrink-0" />
                                         {item}
                                     </li>
@@ -369,7 +376,7 @@ export default function BecomeAPartnerPageClient() {
                 </Card>
 
                 {/* Growth Tier */}
-                <Card className="border-2 border-primary shadow-2xl bg-white overflow-hidden flex flex-col justify-between relative transform md:scale-105">
+                <Card className="glass-card border-2 border-primary shadow-2xl overflow-hidden flex flex-col justify-between relative transform md:scale-105">
                     <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-lg">
                         Most Popular
                     </div>
@@ -377,8 +384,8 @@ export default function BecomeAPartnerPageClient() {
                         <CardHeader className="bg-primary/5 border-b p-8 text-center">
                             <CardTitle className="text-sm font-black uppercase tracking-widest text-primary font-bold">Growth Partner</CardTitle>
                             <div className="mt-4 flex items-baseline justify-center gap-1">
-                                <span className="text-2xl font-bold text-slate-900">R</span>
-                                <span className="text-7xl font-black text-slate-900">950</span>
+                                <span className="text-2xl font-bold text-foreground">R</span>
+                                <span className="text-7xl font-black text-foreground">950</span>
                                 <span className="text-lg text-muted-foreground">/mo</span>
                             </div>
                             <p className="mt-2 text-xs font-bold text-primary uppercase tracking-wider">All-in-one practice backend</p>
@@ -396,7 +403,7 @@ export default function BecomeAPartnerPageClient() {
                                     'Granular staff permission controls',
                                     '25% Wholesale outsourcing discount'
                                 ].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                    <li key={i} className="flex items-center gap-2 text-sm font-medium text-foreground/80">
                                         <CheckCircle2 className="h-4.5 w-4.5 text-primary shrink-0" />
                                         {item}
                                     </li>
@@ -416,27 +423,27 @@ export default function BecomeAPartnerPageClient() {
             {/* Detailed Feature Comparison */}
             <div className="max-w-5xl mx-auto mt-20 animate-in fade-in duration-500">
                 <div className="text-center mb-10">
-                    <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Detailed Plan Comparison</h3>
+                    <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Detailed Plan Comparison</h3>
                     <p className="text-sm text-muted-foreground mt-1">Compare the specific features and workflows of each tier</p>
                 </div>
                 <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xl">
                     <Table>
                         <TableHeader className="bg-slate-50/70 border-b">
                             <TableRow>
-                                <TableHead className="w-[40%] font-black text-slate-800 uppercase tracking-wider text-xs">Feature / Capability</TableHead>
+                                <TableHead className="w-[40%] font-black text-foreground/90 uppercase tracking-wider text-xs">Feature / Capability</TableHead>
                                 <TableHead className="font-black text-slate-600 text-center uppercase tracking-wider text-xs">Community Free</TableHead>
                                 <TableHead className="font-black text-primary text-center uppercase tracking-wider text-xs">Growth Partner</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody className="divide-y">
                             <TableRow>
-                                <TableCell className="font-semibold text-slate-900 py-4">Monthly Subscription</TableCell>
-                                <TableCell className="text-center font-bold text-slate-700 py-4">R0 / month</TableCell>
+                                <TableCell className="font-semibold text-foreground py-4">Monthly Subscription</TableCell>
+                                <TableCell className="text-center font-bold text-foreground/80 py-4">R0 / month</TableCell>
                                 <TableCell className="text-center font-black text-primary py-4">R950 / month</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">Wholesale Discount</div>
+                                    <div className="font-semibold text-foreground">Wholesale Discount</div>
                                     <div className="text-[10px] text-muted-foreground">Discount on all outsourced client services</div>
                                 </TableCell>
                                 <TableCell className="text-center font-semibold text-slate-600 py-4">5% Discount</TableCell>
@@ -444,31 +451,31 @@ export default function BecomeAPartnerPageClient() {
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">Service Pricing & Markup</div>
+                                    <div className="font-semibold text-foreground">Service Pricing & Markup</div>
                                     <div className="text-[10px] text-muted-foreground">Ability to set your own retail prices for clients</div>
                                 </TableCell>
                                 <TableCell className="text-center text-xs text-slate-500 py-4">Fixed Wholesale Rates Only</TableCell>
-                                <TableCell className="text-center text-xs font-semibold text-slate-800 py-4">Fully Customizable Markup</TableCell>
+                                <TableCell className="text-center text-xs font-semibold text-foreground/90 py-4">Fully Customizable Markup</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">Order Billing Workflow</div>
+                                    <div className="font-semibold text-foreground">Order Billing Workflow</div>
                                     <div className="text-[10px] text-muted-foreground">How orders are processed and paid for</div>
                                 </TableCell>
                                 <TableCell className="text-center text-xs text-slate-500 py-4">Pay-As-You-Order (Direct to PayFast)</TableCell>
-                                <TableCell className="text-center text-xs font-semibold text-slate-800 py-4">Generate Client Invoices & EFT Links</TableCell>
+                                <TableCell className="text-center text-xs font-semibold text-foreground/90 py-4">Generate Client Invoices & EFT Links</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">Order Fulfillment</div>
+                                    <div className="font-semibold text-foreground">Order Fulfillment</div>
                                     <div className="text-[10px] text-muted-foreground">Who completes the professional services</div>
                                 </TableCell>
                                 <TableCell className="text-center text-xs text-slate-500 py-4">Auto-Outsourced to My Accountant</TableCell>
-                                <TableCell className="text-center text-xs font-semibold text-slate-800 py-4">Choose to Do Internally or Outsource</TableCell>
+                                <TableCell className="text-center text-xs font-semibold text-foreground/90 py-4">Choose to Do Internally or Outsource</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">White-Label Landing Page</div>
+                                    <div className="font-semibold text-foreground">White-Label Landing Page</div>
                                     <div className="text-[10px] text-muted-foreground">Your own public practice website linked to a custom slug/domain</div>
                                 </TableCell>
                                 <TableCell className="py-4"><XCircle className="h-5 w-5 text-slate-300 mx-auto" /></TableCell>
@@ -476,7 +483,7 @@ export default function BecomeAPartnerPageClient() {
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">Custom Branding (Logo & Themes)</div>
+                                    <div className="font-semibold text-foreground">Custom Branding (Logo & Themes)</div>
                                     <div className="text-[10px] text-muted-foreground">Upload your logo and apply custom color palettes</div>
                                 </TableCell>
                                 <TableCell className="py-4"><XCircle className="h-5 w-5 text-slate-300 mx-auto" /></TableCell>
@@ -484,7 +491,7 @@ export default function BecomeAPartnerPageClient() {
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">Staff Seats Included</div>
+                                    <div className="font-semibold text-foreground">Staff Seats Included</div>
                                     <div className="text-[10px] text-muted-foreground">Additional logins for your team or partners</div>
                                 </TableCell>
                                 <TableCell className="text-center font-medium text-slate-600 py-4">0 Staff Seats (Owner Only)</TableCell>
@@ -492,7 +499,7 @@ export default function BecomeAPartnerPageClient() {
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">Granular Staff Permissions</div>
+                                    <div className="font-semibold text-foreground">Granular Staff Permissions</div>
                                     <div className="text-[10px] text-muted-foreground">Restrict team access to specific modules (e.g. financials)</div>
                                 </TableCell>
                                 <TableCell className="py-4"><XCircle className="h-5 w-5 text-slate-300 mx-auto" /></TableCell>
@@ -500,15 +507,15 @@ export default function BecomeAPartnerPageClient() {
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">AI Accountant & Payroll Companies</div>
+                                    <div className="font-semibold text-foreground">AI Accountant & Payroll Companies</div>
                                     <div className="text-[10px] text-muted-foreground">Automate compliance & calculations using AI tools</div>
                                 </TableCell>
                                 <TableCell className="text-center text-xs text-slate-500 py-4">Not Included</TableCell>
-                                <TableCell className="text-center text-xs font-semibold text-slate-800 py-4">5 Companies of Each Included</TableCell>
+                                <TableCell className="text-center text-xs font-semibold text-foreground/90 py-4">5 Companies of Each Included</TableCell>
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">Practice Workflow & Kanban</div>
+                                    <div className="font-semibold text-foreground">Practice Workflow & Kanban</div>
                                     <div className="text-[10px] text-muted-foreground">Manage client tasks, deadlines, and internal projects</div>
                                 </TableCell>
                                 <TableCell className="py-4"><XCircle className="h-5 w-5 text-slate-300 mx-auto" /></TableCell>
@@ -516,7 +523,7 @@ export default function BecomeAPartnerPageClient() {
                             </TableRow>
                             <TableRow>
                                 <TableCell className="py-4">
-                                    <div className="font-semibold text-slate-900">Community & Overflow Job Pool</div>
+                                    <div className="font-semibold text-foreground">Community & Overflow Job Pool</div>
                                     <div className="text-[10px] text-muted-foreground">Receive client requests and overflow work from the network</div>
                                 </TableCell>
                                 <TableCell className="py-4"><CheckCircle className="h-5 w-5 text-primary mx-auto" /></TableCell>
@@ -537,8 +544,8 @@ export default function BecomeAPartnerPageClient() {
         <div className="max-w-4xl mx-auto text-center space-y-8">
             <div className="space-y-4">
                 <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Our Philosophy</Badge>
-                <h2 className="text-4xl font-bold leading-tight text-slate-900">Our philosophy has always been simple</h2>
-                <p className="text-2xl font-bold text-slate-800 italic">"A client referred to someone else is a client lost."</p>
+                <h2 className="text-4xl font-bold leading-tight text-foreground">Our philosophy has always been simple</h2>
+                <p className="text-2xl font-bold text-foreground/90 italic">"A client referred to someone else is a client lost."</p>
             </div>
             
             <div className="space-y-6 text-lg text-muted-foreground leading-relaxed text-left sm:text-center">
@@ -561,18 +568,18 @@ export default function BecomeAPartnerPageClient() {
                     </div>
                 </div>
 
-                <p className="font-bold text-slate-950 text-center text-xl">
+                <p className="font-bold text-foreground text-center text-xl">
                     We handle the complexity behind the scenes so your client never needs to move to another accountant.
                 </p>
             </div>
         </div>
       </section>
 
-      <section className="bg-slate-50 py-24 border-y">
+      <section className="py-24">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16 space-y-4">
                 <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">The Problem</Badge>
-                <h2 className="text-4xl font-bold tracking-tight text-slate-900">Challenges We Solve for Practitioners</h2>
+                <h2 className="text-4xl font-bold tracking-tight text-foreground">Challenges We Solve for Practitioners</h2>
                 <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Running a practice shouldn't feel like a solo battle against paperwork.</p>
             </div>
             
@@ -583,7 +590,7 @@ export default function BecomeAPartnerPageClient() {
                             <div className="mx-auto h-16 w-16 rounded-full bg-primary/5 border flex items-center justify-center mb-4">
                                 <item.icon className="h-8 w-8 text-primary" />
                             </div>
-                            <CardTitle className="text-xl font-bold text-slate-900">{item.title}</CardTitle>
+                            <CardTitle className="text-xl font-bold text-foreground">{item.title}</CardTitle>
                         </CardHeader>
                         <CardContent className="text-center">
                             <p className="text-sm text-muted-foreground leading-relaxed px-4">{item.description}</p>
@@ -597,12 +604,12 @@ export default function BecomeAPartnerPageClient() {
       <section id="benefits" className="bg-white py-24 border-t border-b scroll-m-20">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold tracking-tight text-slate-900">Features vs Benefits</h2>
+                <h2 className="text-4xl font-bold tracking-tight text-foreground">Features vs Benefits</h2>
                 <p className="text-muted-foreground mt-4 max-w-2xl mx-auto text-lg">A powerful back-office engine for your accounting firm, designed for maximum results.</p>
             </div>
             
             <div className="max-w-5xl mx-auto border rounded-2xl overflow-hidden shadow-xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 bg-slate-100 border-b border-slate-200 text-slate-800 font-black uppercase tracking-widest text-[10px]">
+                <div className="grid grid-cols-1 md:grid-cols-2 bg-slate-100 border-b border-slate-200 text-foreground/90 font-black uppercase tracking-widest text-[10px]">
                     <div className="p-4 border-r border-slate-200 hidden md:block">The Platform Feature</div>
                     <div className="p-4 hidden md:block">The Business Benefit</div>
                 </div>
@@ -615,13 +622,13 @@ export default function BecomeAPartnerPageClient() {
                                     <div className="h-10 w-10 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 shadow-sm">
                                         <item.icon className="h-5 w-5 text-primary" />
                                     </div>
-                                    <h3 className="font-bold text-lg text-slate-900 leading-tight">{item.feature}</h3>
+                                    <h3 className="font-bold text-lg text-foreground leading-tight">{item.feature}</h3>
                                 </div>
                             </div>
                             <div className="p-6 bg-white group-hover:bg-transparent transition-colors flex flex-col justify-center items-start">
                                 <span className="md:hidden text-[10px] font-black uppercase text-green-600 tracking-widest block mb-2">The Benefit to You</span>
                                 <div className="flex items-start gap-3">
-                                    <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                                    <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                                     <p className="text-sm text-muted-foreground font-medium leading-relaxed">{item.benefit}</p>
                                 </div>
                                 {item.showPricing && <PartnerPricingDialog />}
@@ -635,7 +642,7 @@ export default function BecomeAPartnerPageClient() {
 
       <section className="container mx-auto px-4 max-w-4xl py-12">
          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-bold text-foreground">Frequently Asked Questions</h2>
         </div>
          <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, index) => (
@@ -649,7 +656,7 @@ export default function BecomeAPartnerPageClient() {
       
       <section className="container mx-auto px-4 text-center">
         <div className="max-w-2xl mx-auto space-y-8">
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Ready to Empower Your Practice?</h2>
+            <h2 className="text-4xl font-bold tracking-tight text-foreground">Ready to Empower Your Practice?</h2>
             <p className="text-xl text-muted-foreground">
                 Choose the plan that fits your practice size and start onboarding today.
             </p>

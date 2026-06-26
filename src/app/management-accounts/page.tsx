@@ -26,8 +26,15 @@ export default function ManagementAccountsPage() {
   ];
 
   return (
-    <div className="space-y-16 pb-16 bg-white">
-      <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
+      <section className="relative w-full overflow-hidden pt-16 lg:pt-24 pb-20 text-center bg-background">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="container relative z-10 mx-auto px-4">
           <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-center">
             <span className="text-gradient">Management #Accounts & Reporting</span>
@@ -45,14 +52,14 @@ export default function ManagementAccountsPage() {
 
       <TrustIndexWidget />
 
-      <section className="container mx-auto px-4 bg-white">
+      <section className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold">Why Management Accounts?</h2>
           <p className="text-muted-foreground mt-2 max-w-2xl mx-auto italic">"Waiting for year-end financials is too late to make strategic changes."</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {coreFeatures.map((feature, index) => (
-            <Card key={index} className="border-2 bg-slate-50 shadow-sm h-full">
+            <Card key={index} className="glass-card shadow-sm h-full">
               <CardHeader>
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                   <feature.icon className="h-5 w-5 text-primary" />
@@ -67,8 +74,8 @@ export default function ManagementAccountsPage() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 text-center bg-white py-12">
-        <div className="max-w-3xl mx-auto p-12 rounded-3xl bg-slate-50 border border-slate-100 shadow-sm">
+      <section className="container mx-auto px-4 text-center py-12">
+        <div className="max-w-3xl mx-auto p-12 rounded-3xl glass-card border shadow-sm">
             <h2 className="text-3xl font-bold">Get a Clear Financial View</h2>
             <p className="text-lg text-muted-foreground mt-4 leading-relaxed">
                 Our team provides monthly or quarterly management packs that help you identify growth opportunities and eliminate waste before it affects your bottom line.

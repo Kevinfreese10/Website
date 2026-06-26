@@ -292,21 +292,21 @@ export default function SarsRefundPageClient() {
             <Separator className="my-4" />
             <div className="space-y-3 text-sm text-muted-foreground text-left">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span>A tax practitioner will log into your eFiling profile</span>
               </div>
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span>We&apos;ll identify outstanding returns and refund opportunities</span>
               </div>
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <span>We&apos;ll call you with a clear report and recommended actions</span>
               </div>
             </div>
             <div className="pt-4">
               <Link href="/">
-                <Button variant="outline" className="border-white/10 hover:bg-white/5">
+                <Button variant="outline" className="border-white/10 hover:bg-white/5 border-primary">
                   Return to Homepage
                 </Button>
               </Link>
@@ -320,7 +320,14 @@ export default function SarsRefundPageClient() {
   return (
     <div className="space-y-0 pb-0 bg-white">
       {/* ===== HERO SECTION ===== */}
-      <section className="relative w-full overflow-hidden bg-white pt-20 lg:pt-28 pb-24 text-center">
+      <section className="relative w-full overflow-hidden pt-20 lg:pt-28 pb-24 text-center bg-background">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         {/* Aurora blobs */}
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-48 -left-24" style={{ animation: 'aurora-drift 20s ease-in-out infinite' }} />
         <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-0" style={{ animation: 'aurora-drift 25s ease-in-out infinite reverse' }} />
@@ -331,7 +338,7 @@ export default function SarsRefundPageClient() {
             Free Compliance Assessment
           </Badge>
 
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl xl:text-7xl leading-[1.1]">
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl xl:text-7xl leading-[1.1]">
             Are You Due a <span className="text-gradient">Refund</span> from <span className="text-gradient">SARS</span>?
           </h1>
 
@@ -392,13 +399,13 @@ export default function SarsRefundPageClient() {
       </section>
 
       {/* ===== HOW IT WORKS ===== */}
-      <section className="relative w-full py-20 bg-white border-y">
+      <section className="relative w-full py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
             <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
               Simple 3-Step Process
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900">
+            <h2 className="text-3xl md:text-4xl font-black text-foreground">
               How It <span className="text-gradient">Works</span>
             </h2>
             <p className="mt-4 max-w-2xl mx-auto text-muted-foreground text-lg">
@@ -429,14 +436,14 @@ export default function SarsRefundPageClient() {
       </section>
 
       {/* ===== QUALIFYING CHECKLIST ===== */}
-      <section className="relative w-full py-20 bg-white">
+      <section className="relative w-full py-20">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start max-w-6xl mx-auto">
             <div>
               <Badge className="mb-4 bg-amber-500/10 text-amber-500 hover:bg-amber-500/10 border border-amber-500/20 px-4 py-1 text-xs font-bold uppercase tracking-widest">
                 Quick Self-Assessment
               </Badge>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-4">
+              <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4">
                 Could You Be Owed a <span className="text-gradient">Tax Refund</span>?
               </h2>
               <p className="text-muted-foreground text-lg mb-6 leading-relaxed">
@@ -521,13 +528,13 @@ export default function SarsRefundPageClient() {
       </section>
 
       {/* ===== REFUND SCENARIOS ===== */}
-      <section className="relative w-full py-20 bg-white border-y">
+      <section className="relative w-full py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
             <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
               Common Refund Scenarios
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900">
+            <h2 className="text-3xl md:text-4xl font-black text-foreground">
               Where Your <span className="text-gradient">Refund</span> Could Come From
             </h2>
             <p className="mt-4 max-w-2xl mx-auto text-muted-foreground text-lg">
@@ -542,7 +549,7 @@ export default function SarsRefundPageClient() {
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <scenario.icon className={`h-8 w-8 ${scenario.color}`} />
-                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-xs font-bold border-primary">
                       <Banknote className="h-3 w-3 mr-1" />
                       {scenario.range}
                     </Badge>
@@ -568,7 +575,7 @@ export default function SarsRefundPageClient() {
                 <Gift className="h-3.5 w-3.5 mr-1.5" />
                 100% Free — No Obligation
               </Badge>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900">
+              <h2 className="text-3xl md:text-4xl font-black text-foreground">
                 Start Your Free <span className="text-gradient">Compliance Assessment</span>
               </h2>
               <p className="mt-4 max-w-2xl mx-auto text-muted-foreground text-lg">
@@ -798,12 +805,12 @@ export default function SarsRefundPageClient() {
       </section>
 
       {/* ===== SOCIAL PROOF / REVIEWS ===== */}
-      <section className="w-full py-16 bg-white border-y">
+      <section className="w-full py-16">
         <div className="container mx-auto px-4 text-center">
           <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
             Trusted By Thousands
           </Badge>
-          <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-10">
+          <h2 className="text-3xl md:text-4xl font-black text-foreground mb-10">
             What Our <span className="text-gradient">Clients</span> Say
           </h2>
           <TrustIndexWidget />
@@ -811,13 +818,13 @@ export default function SarsRefundPageClient() {
       </section>
 
       {/* ===== FAQ SECTION ===== */}
-      <section className="relative w-full py-20 bg-white">
+      <section className="relative w-full py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-14">
             <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
               Got Questions?
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900">
+            <h2 className="text-3xl md:text-4xl font-black text-foreground">
               Frequently Asked <span className="text-gradient">Questions</span>
             </h2>
           </div>
@@ -840,12 +847,12 @@ export default function SarsRefundPageClient() {
       </section>
 
       {/* ===== FINAL CTA ===== */}
-      <section className="relative w-full py-20 bg-white border-t overflow-hidden">
+      <section className="relative w-full py-20 overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -bottom-48 left-1/2 -translate-x-1/2" style={{ animation: 'aurora-drift 20s ease-in-out infinite' }} />
         
         <div className="container relative z-10 mx-auto px-4 text-center">
           <div className="max-w-2xl mx-auto space-y-6">
-            <h2 className="text-3xl md:text-4xl font-black text-slate-900">
+            <h2 className="text-3xl md:text-4xl font-black text-foreground">
               Don&apos;t Leave <span className="text-gradient">Your Money</span> With SARS
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
