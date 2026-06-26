@@ -82,9 +82,9 @@ export default function MovieFilmProductionAccountantRandburgPage() {
   ];
 
   return (
-    <div className="space-y-16 pb-24 bg-slate-950 text-slate-100">
+    <div className="space-y-16 pb-24">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 py-24 lg:py-36 border-b border-white/[0.06] overflow-hidden">
+      <section className="relative bg-slate-50 text-slate-900 py-20 lg:py-32 border-b border-slate-200/50 overflow-hidden">
         {/* Spotlight Effect */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
         
@@ -92,17 +92,17 @@ export default function MovieFilmProductionAccountantRandburgPage() {
           <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6">
             <Tv className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-white animate-fade-in">
+          <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-slate-900 animate-fade-in">
             Film & TV Production Accountant in Randburg
           </h1>
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
             Supporting Randburg's creative industry. Registered accountants specializing in cost tracking, cast & crew payroll, and SARS tax compliance for production studios.
           </p>
           <div className="pt-4 flex flex-col sm:flex-row justify-center gap-4">
-            <Button asChild size="lg" className="font-bold px-10 h-12 bg-primary text-slate-900 hover:bg-primary/90">
+            <Button asChild size="lg" className="font-bold px-10 h-12">
               <Link href="/contact">Schedule a Local Consultation</Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="font-bold h-12 border-white/10 text-white hover:bg-white/[0.05]">
+            <Button asChild variant="outline" size="lg" className="font-bold h-12">
               <Link href="/products">View Accounting Packages</Link>
             </Button>
           </div>
@@ -117,20 +117,20 @@ export default function MovieFilmProductionAccountantRandburgPage() {
       {/* Localized Services */}
       <section className="container mx-auto px-4 max-w-5xl space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="text-3xl font-bold text-white">Tailored Solutions for Randburg Filmmakers</h2>
-          <Separator className="w-16 mx-auto bg-primary/30" />
+          <h2 className="text-3xl font-bold text-slate-900">Tailored Solutions for Randburg Filmmakers</h2>
+          <Separator className="w-16 mx-auto border-b-2 border-primary/20" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {localServices.map((service, i) => (
-            <Card key={i} className="border border-white/10 bg-slate-900/50 backdrop-blur-sm flex flex-col justify-between hover:border-primary/30 transition-all duration-300">
+            <Card key={i} className="border shadow-sm border-border bg-card flex flex-col justify-between hover:border-primary/30 transition-all duration-300">
               <CardHeader className="space-y-3">
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                   <service.icon className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle className="text-xl font-bold text-white">{service.title}</CardTitle>
+                <CardTitle className="text-xl font-bold text-slate-900">{service.title}</CardTitle>
               </CardHeader>
-              <CardContent className="text-slate-400 text-sm leading-relaxed">
+              <CardContent className="text-slate-600 text-sm leading-relaxed">
                 {service.description}
               </CardContent>
             </Card>
@@ -139,14 +139,14 @@ export default function MovieFilmProductionAccountantRandburgPage() {
       </section>
 
       {/* Key Benefits */}
-      <section className="bg-slate-900 py-16 border-y border-white/[0.06]">
+      <section className="bg-slate-50 py-16 border-y border-slate-200/50">
         <div className="container mx-auto px-4 max-w-4xl space-y-8">
-          <h2 className="text-3xl font-bold text-white text-center">Why Work With a Local Production Accountant?</h2>
+          <h2 className="text-3xl font-bold text-slate-900 text-center">Why Work With a Local Production Accountant?</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {benefits.map((benefit, i) => (
               <div key={i} className="flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <span className="text-sm font-medium text-slate-300">{benefit}</span>
+                <span className="text-sm font-medium text-slate-700">{benefit}</span>
               </div>
             ))}
           </div>
@@ -156,15 +156,15 @@ export default function MovieFilmProductionAccountantRandburgPage() {
       {/* Suburbs We Serve */}
       <section className="container mx-auto px-4 max-w-5xl space-y-8">
         <div className="text-center space-y-4">
-          <h2 className="text-3xl font-bold text-white">Serving the Randburg Creative District</h2>
-          <p className="text-slate-400 max-w-xl mx-auto">
+          <h2 className="text-3xl font-bold text-slate-900">Serving the Randburg Creative District</h2>
+          <p className="text-slate-600 max-w-xl mx-auto">
             We work with production houses, freelance crew, and creative agencies throughout Randburg and surrounding neighborhoods:
           </p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
           {suburbs.map((suburb, i) => (
-            <div key={i} className="flex items-center gap-2 bg-slate-900/80 p-3 rounded-lg border border-white/10 justify-center font-semibold text-slate-300 shadow-sm text-sm">
+            <div key={i} className="flex items-center gap-2 bg-white p-3 rounded-lg border border-border justify-center font-semibold text-slate-700 shadow-sm text-sm">
               <MapPin className="h-4 w-4 text-primary shrink-0" />
               {suburb}
             </div>
@@ -174,12 +174,12 @@ export default function MovieFilmProductionAccountantRandburgPage() {
 
       {/* Call To Action */}
       <section className="container mx-auto px-4 max-w-4xl">
-        <div className="bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border border-primary/20 text-white p-8 lg:p-12 rounded-3xl text-center space-y-6 shadow-xl relative overflow-hidden">
+        <div className="bg-slate-900 text-white p-8 lg:p-12 rounded-3xl text-center space-y-6 shadow-xl relative overflow-hidden">
           <h3 className="text-3xl font-bold">Ready to wrap your next project?</h3>
-          <p className="text-slate-400 max-w-xl mx-auto text-sm leading-relaxed">
+          <p className="text-slate-300 max-w-xl mx-auto text-sm leading-relaxed">
             From single-day commercials to long-form series, our Darrenwood-based team ensures your film finances are structured, compliant, and optimized.
           </p>
-          <Button asChild size="lg" className="font-bold h-12 bg-primary text-slate-900 hover:bg-primary/90">
+          <Button asChild size="lg" className="font-bold h-12">
             <Link href="/contact">Book a Free Local Meetup <ArrowRight className="ml-2 h-4 w-4" /></Link>
           </Button>
         </div>
@@ -188,20 +188,20 @@ export default function MovieFilmProductionAccountantRandburgPage() {
       {/* FAQs */}
       <section className="container mx-auto px-4 max-w-4xl space-y-8">
         <div className="text-center space-y-4">
-          <h2 className="text-3xl font-bold text-white">Frequently Asked Questions</h2>
-          <Separator className="w-16 mx-auto bg-primary/30" />
+          <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
+          <Separator className="w-16 mx-auto border-b-2 border-primary/20" />
         </div>
 
         <Accordion type="single" collapsible className="w-full">
           {faqs.map((faq, i) => (
-            <AccordionItem key={i} value={`faq-${i}`} className="border-b border-white/10">
-              <AccordionTrigger className="text-left font-bold text-white py-4 hover:underline">
+            <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border">
+              <AccordionTrigger className="text-left font-bold text-slate-900 py-4 hover:underline">
                 <div className="flex items-center gap-2">
                   <HelpCircle className="h-5 w-5 text-primary shrink-0" />
                   {faq.q}
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="text-slate-400 leading-relaxed pl-7">
+              <AccordionContent className="text-slate-600 leading-relaxed pl-7">
                 {faq.a}
               </AccordionContent>
             </AccordionItem>
