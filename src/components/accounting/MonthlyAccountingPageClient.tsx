@@ -17,7 +17,8 @@ import {
   HelpCircle,
   ArrowRight,
   Target,
-  Search
+  Search,
+  Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
@@ -154,16 +155,16 @@ export default function MonthlyAccountingPageClient() {
   const renderVal = (val: string | boolean) => {
     if (typeof val === 'boolean') {
       return val ? (
-        <CheckCircle2 className="h-5 w-5 text-emerald-600 mx-auto" />
+        <CheckCircle2 className="h-5 w-5 text-primary mx-auto" />
       ) : (
-        <span className="text-slate-300 font-bold text-center block">—</span>
+        <span className="text-muted-foreground/30 font-bold text-center block">—</span>
       );
     }
-    return <span className="text-slate-700 font-semibold">{val}</span>;
+    return <span className="text-foreground font-semibold">{val}</span>;
   };
 
   return (
-    <div className="space-y-16 pb-16 bg-white">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
       {/* FAQ Schema for SEO */}
       <script
         type="application/ld+json"
@@ -183,12 +184,20 @@ export default function MonthlyAccountingPageClient() {
         }}
       />
       {/* HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-white pt-16 lg:pt-24 pb-20 border-b text-center">
+      <section className="relative w-full overflow-hidden bg-background pt-16 lg:pt-24 pb-20 text-center">
+        {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid" />
+
         <div className="container relative z-10 mx-auto px-4">
-          <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full glass neon-border text-xs font-semibold text-primary uppercase tracking-widest mx-auto">
+            <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
             Monthly Accounting Services South Africa
-          </Badge>
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+          </div>
+          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
             Professional Monthly Accounting, Financial Management & <span className="text-gradient">CFO Services</span>
           </h1>
           <div className="mx-auto mb-10 max-w-4xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
@@ -196,11 +205,11 @@ export default function MonthlyAccountingPageClient() {
               Running a successful business requires more than just staying compliant. Businesses need accurate financial records, reliable reporting, strategic financial guidance, and proactive tax management to grow sustainably.
             </p>
           </div>
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-xl">
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center relative z-20">
+            <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-xl bg-gradient text-white transition-all duration-300">
               <Link href="/contact">Enquire Today</Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="h-14 px-10 text-lg font-bold border-2 shadow-sm">
+            <Button asChild variant="outline" size="lg" className="h-14 px-10 text-lg font-bold border-primary transition-all duration-300">
               <Link href="/products">View All Packages</Link>
             </Button>
           </div>
@@ -217,18 +226,18 @@ export default function MonthlyAccountingPageClient() {
               <p>
                   At My Accountant, we provide professional monthly accounting services, monthly financial management services, and outsourced Chief Financial Officer (CFO) services to businesses across South Africa. Our experienced accountants, tax practitioners, bookkeepers, and financial professionals assist startups, SMEs, growing companies, non-profit organisations, and established businesses with ongoing accounting and financial management support tailored to their operational needs and budget.
               </p>
-              <p className="font-bold text-slate-900">
+              <p className="font-bold text-foreground">
                   Whether you need basic bookkeeping, full monthly accounting support, payroll management, VAT submissions, management accounts, or high-level financial strategy from an outsourced CFO, My Accountant offers scalable solutions designed to help your business remain compliant, financially organised, and growth-focused.
               </p>
           </div>
       </section>
 
       {/* MAIN PILLARS SECTION */}
-      <section className="bg-slate-50 py-24 border-y">
+      <section className="py-24">
         <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Pillar 1: Accounting */}
-                <Card className="border-2 border-slate-100 shadow-sm flex flex-col hover:border-primary/20 transition-all">
+                <Card className="glass-card shadow-sm flex flex-col hover:border-primary/20 transition-all">
                     <CardHeader className="pb-4">
                         <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
                             <Calculator className="h-6 w-6" />
@@ -240,8 +249,8 @@ export default function MonthlyAccountingPageClient() {
                         <p className="text-sm text-muted-foreground mb-6">Designed to ensure your business financial records remain accurate, compliant, and up to date throughout the year.</p>
                         <ul className="space-y-3">
                             {accountingServices.map((service, i) => (
-                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-slate-700">
-                                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-foreground/80">
+                                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                                     {service}
                                 </li>
                             ))}
@@ -250,7 +259,7 @@ export default function MonthlyAccountingPageClient() {
                 </Card>
 
                 {/* Pillar 2: Financial Management */}
-                <Card className="border-2 border-slate-100 shadow-sm flex flex-col hover:border-primary/20 transition-all">
+                <Card className="glass-card shadow-sm flex flex-col hover:border-primary/20 transition-all">
                     <CardHeader className="pb-4">
                         <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
                             <BarChart3 className="h-6 w-6" />
@@ -262,7 +271,7 @@ export default function MonthlyAccountingPageClient() {
                         <p className="text-sm text-muted-foreground mb-6">Helping business owners understand their financial position, improve profitability, and make informed business decisions.</p>
                         <ul className="space-y-3">
                             {financialMgmtServices.map((service, i) => (
-                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-slate-700">
+                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-foreground/80">
                                     <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                                     {service}
                                 </li>
@@ -272,7 +281,7 @@ export default function MonthlyAccountingPageClient() {
                 </Card>
 
                 {/* Pillar 3: CFO Services */}
-                <Card className="border-2 border-slate-100 shadow-sm flex flex-col hover:border-primary/20 transition-all">
+                <Card className="glass-card shadow-sm flex flex-col hover:border-primary/20 transition-all">
                     <CardHeader className="pb-4">
                         <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
                             <TrendingUp className="h-6 w-6" />
@@ -284,8 +293,8 @@ export default function MonthlyAccountingPageClient() {
                         <p className="text-sm text-muted-foreground mb-6">Providing businesses with executive-level financial expertise without the cost of a full-time in-house CFO.</p>
                         <ul className="space-y-3">
                             {cfoServices.map((service, i) => (
-                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-slate-700">
-                                    <CheckCircle2 className="h-4 w-4 text-slate-900 shrink-0" />
+                                <li key={i} className="flex items-start gap-3 text-xs font-medium text-foreground/80">
+                                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                                     {service}
                                 </li>
                             ))}
@@ -301,7 +310,7 @@ export default function MonthlyAccountingPageClient() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div className="space-y-6">
                 <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest">Unified Compliance</Badge>
-                <h2 className="text-3xl font-bold text-slate-900">Payroll, Tax & Compliance Support</h2>
+                <h2 className="text-3xl font-bold text-foreground">Payroll, Tax & Compliance Support</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed">
                     Our integrated approach allows businesses to manage accounting, tax, payroll, and compliance through one trusted financial partner. We handle:
                 </p>
@@ -319,18 +328,18 @@ export default function MonthlyAccountingPageClient() {
                         'CIPC annual returns',
                         'Beneficial ownership compliance'
                     ].map(item => (
-                        <div key={item} className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                            <CheckCircle className="h-4 w-4 text-green-500 shrink-0" /> {item}
+                        <div key={item} className="flex items-center gap-2 text-sm font-medium text-foreground/80">
+                            <CheckCircle className="h-4 w-4 text-primary shrink-0" /> {item}
                         </div>
                     ))}
                 </div>
               </div>
-              <div className="bg-slate-50 p-8 rounded-3xl border-2 border-dashed border-slate-200">
-                  <h3 className="text-xl font-bold mb-4">Industries We Assist</h3>
+              <div className="glass-card p-8 rounded-3xl border border-dashed border-border">
+                  <h3 className="text-xl font-bold mb-4 text-foreground">Industries We Assist</h3>
                   <div className="grid grid-cols-1 gap-2">
                       {industries.map(industry => (
                           <div key={industry} className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                              <Target className="h-4 w-4 text-primary" /> {industry}
+                              <Target className="h-4 w-4 text-primary animate-pulse" /> {industry}
                           </div>
                       ))}
                   </div>
@@ -339,13 +348,13 @@ export default function MonthlyAccountingPageClient() {
       </section>
 
       {/* PRICING COMPARISON SECTION */}
-      <section id="pricing" className="bg-slate-50 py-24 border-y scroll-m-20">
+      <section id="pricing" className="py-24 scroll-m-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 space-y-4">
-            <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
+            <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
               Simple, Transparent Pricing
             </Badge>
-            <h2 className="text-3xl font-black tracking-tight text-slate-900 md:text-5xl">
+            <h2 className="text-3xl font-black tracking-tight text-foreground md:text-5xl">
               Compare Accounting Packages
             </h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
@@ -354,139 +363,139 @@ export default function MonthlyAccountingPageClient() {
           </div>
 
           {/* Pricing Cards (Mobile-first responsive SaaS layout) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto mb-20">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto mb-20 relative z-20">
             {/* Essential Card */}
-            <Card className="flex flex-col bg-white border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-500/30 hover:scale-[1.02] transition-all duration-300">
+            <Card className="flex flex-col glass-card border border-border shadow-sm hover:shadow-xl hover:border-primary/30 hover:scale-[1.02] transition-all duration-300">
               <div className="p-6 border-b">
-                <h3 className="text-xl font-bold text-slate-900">Essential</h3>
+                <h3 className="text-xl font-bold text-foreground">Essential</h3>
                 <p className="text-xs text-muted-foreground mt-1">Best for small startups & sole proprietors</p>
                 <div className="flex items-baseline mt-4">
-                  <span className="text-4xl font-extrabold text-slate-900">R3,500</span>
+                  <span className="text-4xl font-extrabold text-foreground">R3,500</span>
                   <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
                 </div>
-                <p className="text-[11px] font-bold text-slate-500 mt-2 uppercase tracking-wide">For turnover under R1M</p>
+                <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wide">For turnover under R1M</p>
               </div>
               <CardContent className="flex-grow p-6">
                 <ul className="space-y-3">
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Monthly Bookkeeping & Reconciliations</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Quarterly Management Reports</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Annual Financial Statements</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Income Tax & CIPC Annual Returns</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Payroll Processing & PAYE / UIF</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Dedicated Accountant</span>
                   </li>
                 </ul>
               </CardContent>
               <div className="p-6 pt-0">
-                <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all">
+                <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all">
                   <Link href="/contact?package=essential">Get Started</Link>
                 </Button>
               </div>
             </Card>
 
             {/* Growth Card (Most Popular) */}
-            <Card className="flex flex-col bg-white border-2 border-emerald-500 shadow-lg relative hover:shadow-2xl hover:scale-[1.03] transition-all duration-300">
-              <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-emerald-600 text-white font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-full shadow-md select-none">
+            <Card className="flex flex-col glass-card border-2 border-primary shadow-lg relative hover:shadow-2xl hover:scale-[1.03] transition-all duration-300">
+              <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-primary text-white font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-full shadow-md select-none">
                 Most Popular
               </div>
-              <div className="p-6 border-b bg-slate-50/50 rounded-t-xl">
-                <h3 className="text-xl font-bold text-slate-900">Growth</h3>
+              <div className="p-6 border-b bg-primary/5 rounded-t-xl">
+                <h3 className="text-xl font-bold text-foreground">Growth</h3>
                 <p className="text-xs text-muted-foreground mt-1">Perfect for growing SME businesses</p>
                 <div className="flex items-baseline mt-4">
-                  <span className="text-4xl font-extrabold text-slate-900">R7,000</span>
+                  <span className="text-4xl font-extrabold text-foreground">R7,000</span>
                   <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
                 </div>
-                <p className="text-[11px] font-bold text-emerald-600 mt-2 uppercase tracking-wide">For turnover up to R7M</p>
+                <p className="text-[11px] font-bold text-primary mt-2 uppercase tracking-wide">For turnover up to R7M</p>
               </div>
               <CardContent className="flex-grow p-6">
                 <ul className="space-y-3">
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Everything in Essential</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>VAT Returns & Submissions</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Bi-Monthly Management Reports</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Financial Manager Support</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Cash Flow & Budgeting Assistance</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>CFO Advisory & Monthly Reviews</span>
                   </li>
                 </ul>
               </CardContent>
               <div className="p-6 pt-0">
-                <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all">
+                <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all">
                   <Link href="/contact?package=growth">Get Started</Link>
                 </Button>
               </div>
             </Card>
 
             {/* Executive Card */}
-            <Card className="flex flex-col bg-white border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-500/30 hover:scale-[1.02] transition-all duration-300">
+            <Card className="flex flex-col glass-card border border-border shadow-sm hover:shadow-xl hover:border-primary/30 hover:scale-[1.02] transition-all duration-300">
               <div className="p-6 border-b">
-                <h3 className="text-xl font-bold text-slate-900">Executive</h3>
+                <h3 className="text-xl font-bold text-foreground">Executive</h3>
                 <p className="text-xs text-muted-foreground mt-1">Comprehensive CFO & tax governance</p>
                 <div className="flex items-baseline mt-4">
-                  <span className="text-4xl font-extrabold text-slate-900">R11,500</span>
+                  <span className="text-4xl font-extrabold text-foreground">R11,500</span>
                   <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
                 </div>
-                <p className="text-[11px] font-bold text-slate-500 mt-2 uppercase tracking-wide">For turnover up to R25M</p>
+                <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wide">For turnover up to R25M</p>
               </div>
               <CardContent className="flex-grow p-6">
                 <ul className="space-y-3">
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Everything in Growth</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Monthly Management Reports</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Unlimited CFO Advisory Services</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Unlimited Strategic Business Reviews</span>
                   </li>
-                  <li className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     <span>Priority Support Response</span>
                   </li>
                 </ul>
               </CardContent>
               <div className="p-6 pt-0">
-                <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all">
+                <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all">
                   <Link href="/contact?package=executive">Get Started</Link>
                 </Button>
               </div>
@@ -494,29 +503,29 @@ export default function MonthlyAccountingPageClient() {
           </div>
 
           {/* Full Comparison Table Section (Responsive wrapper) */}
-          <div className="bg-white rounded-3xl border shadow-sm p-4 md:p-8 max-w-6xl mx-auto">
-            <h3 className="text-xl font-bold mb-6 text-slate-900">Detailed Feature Comparison</h3>
+          <div className="glass-card rounded-3xl border shadow-sm p-4 md:p-8 max-w-6xl mx-auto">
+            <h3 className="text-xl font-bold mb-6 text-foreground">Detailed Feature Comparison</h3>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-sm">
                 <thead>
-                  <tr className="border-b bg-slate-50/50">
-                    <th className="p-4 font-bold text-slate-950 w-1/3">Features</th>
-                    <th className="p-4 font-bold text-slate-950 text-center">Essential</th>
-                    <th className="p-4 font-bold text-emerald-600 text-center bg-emerald-50/20">Growth</th>
-                    <th className="p-4 font-bold text-slate-950 text-center">Executive</th>
+                  <tr className="border-b bg-card/50">
+                    <th className="p-4 font-bold text-foreground w-1/3">Features</th>
+                    <th className="p-4 font-bold text-foreground text-center">Essential</th>
+                    <th className="p-4 font-bold text-primary text-center bg-primary/5">Growth</th>
+                    <th className="p-4 font-bold text-foreground text-center">Executive</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {comparisonFeatures.map((feat) => (
-                    <tr key={feat.name} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-4 font-semibold text-slate-700">{feat.name}</td>
-                      <td className="p-4 text-center font-medium text-slate-600">
+                    <tr key={feat.name} className="hover:bg-card/30 transition-colors">
+                      <td className="p-4 font-semibold text-foreground/90">{feat.name}</td>
+                      <td className="p-4 text-center font-medium text-foreground/75">
                         {renderVal(feat.essential)}
                       </td>
-                      <td className="p-4 text-center font-semibold text-emerald-950 bg-emerald-50/10">
+                      <td className="p-4 text-center font-semibold text-foreground bg-primary/5">
                         {renderVal(feat.growth)}
                       </td>
-                      <td className="p-4 text-center font-medium text-slate-600">
+                      <td className="p-4 text-center font-medium text-foreground/75">
                         {renderVal(feat.executive)}
                       </td>
                     </tr>
@@ -527,8 +536,8 @@ export default function MonthlyAccountingPageClient() {
           </div>
 
           {/* Why Businesses Choose My Accountant checklist section */}
-          <div className="mt-24 max-w-4xl mx-auto bg-white border rounded-3xl p-8 md:p-12 shadow-sm">
-            <h3 className="text-2xl font-black text-slate-900 mb-8 text-center md:text-left">
+          <div className="mt-24 max-w-4xl mx-auto glass-card border rounded-3xl p-8 md:p-12 shadow-sm">
+            <h3 className="text-2xl font-black text-foreground mb-8 text-center md:text-left">
               Why Businesses Choose My Accountant
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -541,8 +550,8 @@ export default function MonthlyAccountingPageClient() {
                 "Dedicated Support Team",
                 "SARS Dispute & Compromise Specialists"
               ].map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 text-sm font-semibold text-slate-700 select-none">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                <div key={idx} className="flex items-center gap-3 text-sm font-semibold text-foreground/95 select-none">
+                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                   <span>{item}</span>
                 </div>
               ))}
@@ -550,19 +559,19 @@ export default function MonthlyAccountingPageClient() {
           </div>
 
           {/* CTA Section */}
-          <div className="mt-20 text-center max-w-4xl mx-auto p-10 md:p-16 rounded-[3rem] bg-slate-100 text-slate-900 border border-slate-200/80 relative overflow-hidden shadow-lg">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.04),transparent_50%)]" />
-            <h3 className="text-2xl md:text-4xl font-extrabold tracking-tight relative z-10">
+          <div className="mt-20 text-center max-w-4xl mx-auto p-10 md:p-16 rounded-[3rem] glass-card text-foreground border relative overflow-hidden shadow-lg">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(37,99,235,0.05),transparent_50%)]" />
+            <h3 className="text-2xl md:text-4xl font-extrabold tracking-tight relative z-10 text-foreground">
               Ready to simplify your accounting?
             </h3>
             <p className="text-muted-foreground mt-4 max-w-xl mx-auto text-sm md:text-base relative z-10 leading-relaxed">
               Get in touch with us today for a custom quote or schedule a free consultation with our team.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8 relative z-10">
-              <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-13 px-8 shadow-lg active:scale-95 transition-all">
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-white font-bold h-13 px-8 shadow-lg active:scale-95 transition-all">
                 <Link href="/contact?action=quote">Get a Quote</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="bg-white border-slate-300 text-slate-800 hover:bg-slate-50 font-bold h-13 px-8 active:scale-95 transition-all">
+              <Button asChild variant="outline" size="lg" className="border-primary font-bold h-13 px-8 active:scale-95 transition-all">
                 <Link href="/contact?action=consultation">Book a Consultation</Link>
               </Button>
             </div>
@@ -571,15 +580,15 @@ export default function MonthlyAccountingPageClient() {
       </section>
 
       {/* WHY CHOOSE US */}
-      <section className="bg-slate-50 py-24 border-y overflow-hidden relative">
+      <section className="py-24 overflow-hidden relative">
           <div className="container mx-auto px-4 relative z-10">
               <div className="text-center mb-16 space-y-4">
-                  <h2 className="text-3xl font-bold md:text-5xl tracking-tight text-slate-900">Why Businesses Choose <span className="text-primary">My Accountant</span></h2>
+                  <h2 className="text-3xl font-bold md:text-5xl tracking-tight text-foreground">Why Businesses Choose <span className="text-primary">My Accountant</span></h2>
                   <p className="text-muted-foreground max-w-2xl mx-auto">Combining technology-driven convenience with experienced financial professionals.</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {whyChooseUs.map(item => (
-                      <div key={item} className="flex items-center gap-3 p-4 bg-white border border-slate-200/80 rounded-xl shadow-sm hover:border-primary/20 hover:shadow-md transition-all text-slate-800 font-semibold">
+                      <div key={item} className="flex items-center gap-3 p-4 glass-card border rounded-xl shadow-sm hover:border-primary/20 hover:shadow-md transition-all text-foreground font-semibold">
                           <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                           <span className="text-sm font-medium">{item}</span>
                       </div>
@@ -591,22 +600,22 @@ export default function MonthlyAccountingPageClient() {
                   </p>
               </div>
           </div>
-          <div className="absolute top-0 right-0 p-20 opacity-[0.03] text-slate-900 pointer-events-none"><ShieldCheck size={400} /></div>
+          <div className="absolute top-0 right-0 p-20 opacity-[0.03] text-foreground pointer-events-none"><ShieldCheck size={400} /></div>
       </section>
 
       {/* REGIONAL SECTION */}
-      <section className="container mx-auto px-4 max-w-6xl py-12 border-b">
+      <section className="container mx-auto px-4 max-w-6xl py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-6">
                 <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
-                <h2 className="text-3xl font-bold text-slate-900">Accounting & Financial Services Across South Africa</h2>
+                <h2 className="text-3xl font-bold text-foreground">Accounting & Financial Services Across South Africa</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed">
                     My Accountant provides online monthly accounting services, financial management services, and outsourced CFO services to businesses throughout South Africa.
                 </p>
-                <div className="grid grid-cols-2 gap-3 text-sm font-bold text-slate-700">
+                <div className="grid grid-cols-2 gap-3 text-sm font-bold text-foreground/80">
                     {["Johannesburg", "Randburg", "Sandton", "Midrand", "Pretoria", "Durban", "Cape Town", "Gauteng"].map(loc => (
                         <div key={loc} className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> {loc}
+                            <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> {loc}
                         </div>
                     ))}
                 </div>
@@ -614,7 +623,7 @@ export default function MonthlyAccountingPageClient() {
                     Our online systems allow businesses nationwide to access reliable accounting, payroll, tax, and financial management support without needing to visit a physical office.
                 </p>
               </div>
-              <div className="relative h-[400px] rounded-3xl overflow-hidden shadow-xl border-8 border-slate-50">
+              <div className="relative h-[400px] rounded-3xl overflow-hidden shadow-xl border border-border bg-card">
                   <iframe
                       src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
                       className="absolute inset-0 w-full h-full"
@@ -629,14 +638,14 @@ export default function MonthlyAccountingPageClient() {
       {/* FAQ SECTION */}
       <section className="container mx-auto px-4 max-w-4xl py-12">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-slate-900 flex items-center justify-center gap-2">
+            <h2 className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">
                 <HelpCircle className="h-8 w-8 text-primary" /> Frequently Asked Questions
             </h2>
           </div>
           <Accordion type="single" collapsible className="w-full space-y-4">
             {faqs.map((faq, idx) => (
-              <AccordionItem key={idx} value={`item-${idx}`} className="bg-slate-50 border rounded-xl px-6">
-                <AccordionTrigger className="text-left font-bold text-slate-900 hover:no-underline">{faq.q}</AccordionTrigger>
+              <AccordionItem key={idx} value={`item-${idx}`} className="bg-card/50 border rounded-xl px-6">
+                <AccordionTrigger className="text-left font-bold text-foreground hover:no-underline">{faq.q}</AccordionTrigger>
                 <AccordionContent className="text-muted-foreground leading-relaxed text-sm font-medium pb-6">{faq.a}</AccordionContent>
               </AccordionItem>
             ))}
@@ -645,13 +654,13 @@ export default function MonthlyAccountingPageClient() {
 
       {/* FINAL CTA */}
       <section className="container mx-auto px-4 text-center">
-        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-50 border-2 border-dashed border-slate-200">
-            <h2 className="text-3xl font-bold">Partner With a Professional Financial Team</h2>
+        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] glass-card border-2 border-dashed border-border">
+            <h2 className="text-3xl font-bold text-foreground">Partner With a Professional Financial Team</h2>
             <p className="text-lg text-muted-foreground mt-4 max-w-2xl mx-auto leading-relaxed">
                 Whether your business requires monthly bookkeeping, financial management support, payroll administration, or executive-level CFO services, My Accountant provides scalable financial solutions designed to support your business growth.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
-                <Button asChild size="lg" className="h-14 px-12 text-lg font-bold shadow-lg">
+                <Button asChild size="lg" className="h-14 px-12 text-lg font-bold shadow-lg bg-gradient text-white transition-all duration-300">
                     <Link href="/contact">Contact My Accountant Today</Link>
                 </Button>
             </div>
