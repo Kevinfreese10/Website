@@ -142,7 +142,7 @@ export default function PartnerOrdersPage() {
     });
 
     const ordersRef = collection(db, 'orders');
-    const q = query(ordersRef, where('resellerId', '==', partnerId), where('originalOrderId', '==', null), orderBy('date', 'desc'));
+    const q = query(ordersRef, where('resellerId', '==', partnerId));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedOrders = snapshot.docs.map(doc => {
@@ -153,13 +153,15 @@ export default function PartnerOrdersPage() {
                 date: data.date?.toDate ? data.date.toDate().toISOString() : new Date().toISOString(),
             } as Order;
         });
-        setOrders(fetchedOrders.filter(order => order.status !== 'Cancelled'));
+        // Sort in memory descending by date
+        fetchedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setOrders(fetchedOrders.filter(order => order.status !== 'Cancelled' && !order.originalOrderId));
         setIsLoading(false);
     }, async (error) => {
         const permissionError = new FirestorePermissionError({
             path: 'orders',
             operation: 'list',
-        } satisfies SecurityRuleContext);
+          } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
         setIsLoading(false);
     });
@@ -183,7 +185,7 @@ export default function PartnerOrdersPage() {
 
             // Calculate cost based on tier
             let cost = 0;
-            const outsourceItems = selectedOrderForOutsource.items.map(item => {
+            selectedOrderForOutsource.items.forEach(item => {
                 const service = allServices.find(s => s.id === item.id);
                 const basePrice = service?.price || item.price;
                 const wholesalePrice = isGrowthActive 
@@ -191,48 +193,19 @@ export default function PartnerOrdersPage() {
                     : (basePrice * 0.95);
                 
                 cost += wholesalePrice * item.quantity;
-                return {
-                    id: item.id,
-                    title: item.title,
-                    price: wholesalePrice,
-                    quantity: item.quantity,
-                };
             });
 
-            const newOrderId = await getNextOrderId(); // Use sequential ID
             const firstServiceId = selectedOrderForOutsource.items[0]?.id;
             const serviceDetails = allServices.find(s => s.id === firstServiceId);
-            const department = serviceDetails?.department;
-            
-            const newOrderData: Order = {
-                id: newOrderId,
-                customerName: partnerProfile.companyName || partnerProfile.name,
-                customerEmail: partnerProfile.email,
-                customerPhone: (partnerProfile.contactNumber || undefined) as string | undefined,
-                endCustomerName: selectedOrderForOutsource.endCustomerName || selectedOrderForOutsource.customerName,
-                endCustomerEmail: selectedOrderForOutsource.endCustomerEmail || selectedOrderForOutsource.customerEmail,
-                documentContact: (!isGrowthActive || docContactPreference === 'reseller') ? 'partner' : 'client',
-                date: Timestamp.now(),
-                items: outsourceItems,
-                total: cost,
-                status: 'Pending Payment', // MOVES TO PROCESSING ONCE PAYFAST ITN IS COMPLETE
-                resellerId: partnerId,
-                originalOrderId: selectedOrderForOutsource.id,
-                discountCode: null,
-                discountAmount: null,
-                userId: selectedOrderForOutsource.userId || null,
-                source: 'Partner',
-                department: department || null,
-                assignedTo: null,
-            };
-            
-            if (department) {
-              const assignedStaff = getNextStaffMember(department);
-              newOrderData.assignedTo = assignedStaff?.id ? [assignedStaff.id] : null;
-            }
-            
-            // 1. Create the main store order in Pending Payment
-            await setDoc(doc(db, 'orders', newOrderId), newOrderData);
+            const department = serviceDetails?.department || null;
+            const documentContact = (!isGrowthActive || docContactPreference === 'reseller') ? 'partner' : 'client';
+
+            // 1. Update the document contact preference & department on the original order before payment
+            const orderRef = doc(db, 'orders', selectedOrderForOutsource.id);
+            await updateDoc(orderRef, {
+                documentContact,
+                department
+            });
 
             // 2. Redirect to PayFast
             const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
@@ -240,16 +213,18 @@ export default function PartnerOrdersPage() {
             form.method = 'POST';
             form.action = payfastUrl;
 
+            const outsourcePaymentId = `OUTSOURCE-${selectedOrderForOutsource.id}`;
+
             const payfastData: { [key: string]: string } = {
                 merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
                 merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-                return_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success/${newOrderId}`,
+                return_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success/${selectedOrderForOutsource.id}`,
                 cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/orders`,
                 notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
                 name_first: partnerProfile.name.split(' ')[0],
                 name_last: partnerProfile.name.split(' ').slice(1).join(' ') || 'Partner',
                 email_address: partnerProfile.email,
-                m_payment_id: newOrderId,
+                m_payment_id: outsourcePaymentId,
                 amount: cost.toFixed(2),
                 item_name: `Outsource Order #${selectedOrderForOutsource.id}`,
             };

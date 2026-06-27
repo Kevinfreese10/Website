@@ -221,7 +221,7 @@ export type PartnerLandingPageConfig = {
   heroTitle: string;
   heroSubtitle: string;
   aboutUs: string;
-  themePreset?: 'custom' | 'my_accountant' | 'futuristic' | 'tech_blue';
+  themePreset?: 'custom' | 'my_accountant' | 'futuristic' | 'tech_blue' | 'facebook' | 'lovable' | 'monday' | 'monday_crm' | 'stripe' | 'airbnb' | 'linear' | 'spotify' | 'notion' | 'apple';
   primaryColor: string;
   secondaryColor?: string;
   backgroundColor?: string;

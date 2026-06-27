@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { savePartnerLead } from '@/app/actions/partnerLeads';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, ShieldCheck, Clock, Sparkles } from 'lucide-react';
 
 const leadSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
@@ -72,6 +72,9 @@ export default function PartnerLeadForm({ partnerId }: { partnerId: string }) {
     return (
       <Card className="max-w-md mx-auto text-center p-6 border shadow-lg partner-card">
         <CardHeader className="space-y-2">
+          <div className="mx-auto w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 mb-2">
+            <Sparkles className="h-7 w-7" />
+          </div>
           <CardTitle className="text-xl font-bold">Thank You!</CardTitle>
           <CardDescription>
             Your inquiry has been successfully sent. A representative from our practice will contact you soon.
@@ -87,12 +90,27 @@ export default function PartnerLeadForm({ partnerId }: { partnerId: string }) {
   }
 
   return (
-    <Card className="max-w-md mx-auto border shadow-lg partner-card">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-xl font-bold text-center">Contact Our Practice</CardTitle>
-        <CardDescription className="text-center">
+    <Card className="max-w-md mx-auto border shadow-xl partner-card overflow-hidden">
+      <CardHeader className="pb-4 text-center space-y-3">
+        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center partner-text mb-1">
+          <Send className="h-5 w-5" />
+        </div>
+        <CardTitle className="text-2xl font-bold">Get Your Free Consultation</CardTitle>
+        <CardDescription className="text-sm">
           Have questions or want to discuss a custom service? Send us a message directly.
         </CardDescription>
+        {/* Trust signals */}
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 pt-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Sparkles className="h-3.5 w-3.5 partner-icon" /> Free consultation
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5 partner-icon" /> Response in 24hrs
+          </span>
+          <span className="flex items-center gap-1">
+            <ShieldCheck className="h-3.5 w-3.5 partner-icon" /> No obligations
+          </span>
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -151,7 +169,7 @@ export default function PartnerLeadForm({ partnerId }: { partnerId: string }) {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={isSubmitting} className="w-full h-11 partner-btn font-semibold mt-2">
+            <Button type="submit" disabled={isSubmitting} className="w-full h-12 partner-btn font-bold mt-2 text-base">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
@@ -162,6 +180,14 @@ export default function PartnerLeadForm({ partnerId }: { partnerId: string }) {
                 </>
               )}
             </Button>
+            {/* Trust footer */}
+            <div className="flex items-center justify-center gap-4 pt-2 text-[10px] text-muted-foreground/70">
+              <span className="flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3" /> SSL Secured
+              </span>
+              <span>•</span>
+              <span>Your data is private</span>
+            </div>
           </form>
         </Form>
       </CardContent>

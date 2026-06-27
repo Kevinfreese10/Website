@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Order, User, OrderNote } from '@/lib/types';
@@ -26,10 +26,18 @@ const formatPrice = (price: number) => {
 };
 
 export default function PartnerOutsourcedOrderDetailsPage() {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
   const params = useParams();
   const id = params.id as string;
+
+  useEffect(() => {
+    if (id) {
+        router.replace(`/partner/orders/${id}`);
+    }
+  }, [id, router]);
+
+  const [order, setOrder] = useState<Order | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [assignee, setAssignee] = useState<User | null>(null);
   const { user: currentUser } = useAuth();
   const [allStaff, setAllStaff] = useState<User[]>([]);

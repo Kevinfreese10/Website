@@ -221,10 +221,17 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Find the normal checkout order (if not a subscription)
-        const querySnapshot = await adminDb.collection('orders').where('id', '==', orderId).get();
+        let isOutsourcePayment = false;
+        let actualOrderId = orderId;
+        if (orderId.startsWith('OUTSOURCE-')) {
+            isOutsourcePayment = true;
+            actualOrderId = orderId.replace('OUTSOURCE-', '');
+        }
+
+        const querySnapshot = await adminDb.collection('orders').where('id', '==', actualOrderId).get();
 
         if (querySnapshot.empty) {
-            console.error(`Order ${orderId} not found.`);
+            console.error(`Order ${actualOrderId} not found.`);
             return new NextResponse('OK', { status: 200 });
         }
         
@@ -233,13 +240,48 @@ export async function POST(req: NextRequest) {
         const currentOrderData = orderDoc.data() as Order;
 
         // Idempotency: Ignore if already processed
-        if (currentOrderData.status !== 'Pending Payment') {
-            console.log(`ITN Info: Order ${orderId} already processed (Status: ${currentOrderData.status}).`);
-            return new NextResponse('OK', { status: 200 });
+        if (isOutsourcePayment) {
+            if (currentOrderData.isOutsourced) {
+                console.log(`ITN Info: Order ${actualOrderId} already outsourced.`);
+                return new NextResponse('OK', { status: 200 });
+            }
+        } else {
+            if (currentOrderData.status !== 'Pending Payment') {
+                console.log(`ITN Info: Order ${actualOrderId} already processed (Status: ${currentOrderData.status}).`);
+                return new NextResponse('OK', { status: 200 });
+            }
         }
         
         // 3. Amount Validation
-        const orderTotal = parseFloat((currentOrderData.clientTotal || currentOrderData.total).toFixed(2));
+        let orderTotal = parseFloat((currentOrderData.clientTotal || currentOrderData.total).toFixed(2));
+
+        if (currentOrderData.resellerId && currentOrderData.isOutsourced && !isOutsourcePayment) {
+            orderTotal = parseFloat(currentOrderData.total.toFixed(2));
+        }
+
+        if (isOutsourcePayment) {
+            // Calculate outsourcing cost
+            const partnerId = currentOrderData.resellerId;
+            if (!partnerId) {
+                return new NextResponse('Missing resellerId', { status: 400 });
+            }
+            const partnerSnap = await adminDb.collection('users').doc(partnerId).get();
+            const partnerProfile = partnerSnap.data() as User;
+            const isGrowthActive = partnerProfile?.partnerTier === 'growth' || 
+                (partnerProfile?.partnerSubscription?.status === 'active');
+                
+            let cost = 0;
+            for (const item of currentOrderData.items) {
+                const service = allServices.find(s => s.id === item.id);
+                const basePrice = service?.price || item.price;
+                const wholesalePrice = isGrowthActive 
+                    ? (service?.resellerPrice || basePrice * 0.75)
+                    : (basePrice * 0.95);
+                cost += wholesalePrice * item.quantity;
+            }
+            orderTotal = parseFloat(cost.toFixed(2));
+        }
+
         const receivedAmount = parseFloat(data.amount_gross);
         if (Math.abs(orderTotal - receivedAmount) > 0.01) {
              console.error(`Amount mismatch. Expected: ${orderTotal}, Received: ${receivedAmount}`);
@@ -255,7 +297,23 @@ export async function POST(req: NextRequest) {
         }
 
         if (data.payment_status === 'COMPLETE') {
-          await orderRef.update({ status: 'Processing' });
+          if (isOutsourcePayment) {
+              const note = {
+                  text: `Order outsourced to My Accountant. Paid via PayFast. Document request sent to ${currentOrderData.documentContact === 'client' ? currentOrderData.endCustomerEmail : currentOrderData.customerEmail}.`,
+                  date: new Date(),
+                  authorId: 'system',
+                  type: 'note',
+                  subject: null,
+                  attachments: null,
+              };
+              await orderRef.update({
+                  isOutsourced: true,
+                  status: 'Processing',
+                  notes: FieldValue.arrayUnion(note)
+              });
+          } else {
+              await orderRef.update({ status: 'Processing' });
+          }
 
           if (currentOrderData.userId && currentOrderData.items && currentOrderData.items.some(item => item.id === 'partner_dfy_setup')) {
               await adminDb.collection('users').doc(currentOrderData.userId).update({ setupAddon: true });

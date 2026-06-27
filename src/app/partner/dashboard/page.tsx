@@ -265,7 +265,7 @@ export default function PartnerDashboardPage() {
 
       const ordersRef = collection(db, 'orders');
       
-      const clientOrdersQuery = query(ordersRef, where('resellerId', '==', partnerId), where('originalOrderId', '==', null), orderBy('date', 'desc'));
+      const clientOrdersQuery = query(ordersRef, where('resellerId', '==', partnerId));
       const unsubClientOrders = onSnapshot(clientOrdersQuery, (snapshot) => {
           let clientOrders = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -275,7 +275,9 @@ export default function PartnerDashboardPage() {
               date: data.date.toDate(),
             } as Order;
           });
-          setOrders(clientOrders.filter(order => order.status !== 'Cancelled'));
+          // Sort in memory descending by date
+          clientOrders.sort((a, b) => b.date.getTime() - a.date.getTime());
+          setOrders(clientOrders.filter(order => order.status !== 'Cancelled' && !order.originalOrderId));
       }, async (error) => {
           const permissionError = new FirestorePermissionError({
               path: 'orders',
@@ -284,7 +286,7 @@ export default function PartnerDashboardPage() {
           errorEmitter.emit('permission-error', permissionError);
       });
 
-      const outsourcedOrdersQuery = query(ordersRef, where('resellerId', '==', partnerId), where('originalOrderId', '!=', null), orderBy('date', 'desc'));
+      const outsourcedOrdersQuery = query(ordersRef, where('resellerId', '==', partnerId));
       const unsubOutsourcedOrders = onSnapshot(outsourcedOrdersQuery, (snapshot) => {
           let fetchedOutsourcedOrders = snapshot.docs.map(doc => {
               const data = doc.data();
@@ -294,7 +296,9 @@ export default function PartnerDashboardPage() {
                   date: data.date.toDate(),
               } as Order;
           });
-          setOutsourcedOrders(fetchedOutsourcedOrders);
+          // Sort in memory descending by date
+          fetchedOutsourcedOrders.sort((a, b) => b.date.getTime() - a.date.getTime());
+          setOutsourcedOrders(fetchedOutsourcedOrders.filter(order => order.status !== 'Cancelled' && (order.isOutsourced || order.originalOrderId)));
       }, async (error) => {
           const permissionError = new FirestorePermissionError({
               path: 'orders',

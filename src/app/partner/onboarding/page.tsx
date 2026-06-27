@@ -26,6 +26,16 @@ const themePresets = [
   { id: 'my_accountant', name: 'Master Theme', primaryColor: '#214392', hoverColor: '#1a3575' },
   { id: 'tech_blue', name: 'Light Blue', primaryColor: '#0072b2', hoverColor: '#005a8d' },
   { id: 'futuristic', name: 'Dark Theme', primaryColor: '#1e2229', hoverColor: '#12151a' },
+  { id: 'facebook', name: 'Facebook', primaryColor: '#0866FF', hoverColor: '#0054d1' },
+  { id: 'lovable', name: 'Lovable', primaryColor: '#9b87f5', hoverColor: '#7E69AB' },
+  { id: 'monday', name: 'Monday.com', primaryColor: '#e2445c', hoverColor: '#c23b4f' },
+  { id: 'monday_crm', name: 'Monday CRM', primaryColor: '#784bd1', hoverColor: '#633ead' },
+  { id: 'stripe', name: 'Stripe', primaryColor: '#635bff', hoverColor: '#524bcf' },
+  { id: 'airbnb', name: 'Airbnb', primaryColor: '#FF385C', hoverColor: '#d90b36' },
+  { id: 'linear', name: 'Linear', primaryColor: '#5e6ad2', hoverColor: '#4c56aa' },
+  { id: 'spotify', name: 'Spotify', primaryColor: '#1DB954', hoverColor: '#189a46' },
+  { id: 'notion', name: 'Notion', primaryColor: '#000000', hoverColor: '#333333' },
+  { id: 'apple', name: 'Apple', primaryColor: '#0071e3', hoverColor: '#005bb5' },
 ];
 
 export default function PartnerOnboardingPage() {

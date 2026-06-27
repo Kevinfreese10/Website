@@ -2,7 +2,7 @@ import { getPartnerBySlug, getServices, getPartnerOverrides, getCategories } fro
 import { User, Service } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle2, ArrowRight, Star } from 'lucide-react';
+import { Clock, CheckCircle2, ArrowRight, Star, Shield, Award, Users, TrendingUp, Quote } from 'lucide-react';
 import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Separator } from '@/components/ui/separator';
@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import PartnerLeadForm from '@/components/partner/PartnerLeadForm';
 import PartnerPricingCalculator from '@/components/partner/PartnerPricingCalculator';
+import AnimatedSection from '@/components/partner/AnimatedSection';
+import FloatingCTA from '@/components/partner/FloatingCTA';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +43,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
   const servicesHeroLayout = lp?.servicesHeroLayout || 'centered';
   const servicesHeroTextPosition = lp?.servicesHeroTextPosition || 'inside';
   const showServicesHero = lp?.showServicesHero !== false;
+  const ctaTarget = lp?.showCalculator ? '#calculator' : '#contact';
 
   const services = globalServices.map(s => {
       const override = overrides[s.id];
@@ -62,6 +65,12 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
     }))
     .filter(c => c.data.length > 0);
 
+  // Find the lowest-priced non-TBC service for "Most Popular" badge
+  const pricedServices = services.filter(s => !s.isPriceTbc && s.price > 0);
+  const mostPopularId = pricedServices.length > 0
+    ? pricedServices.reduce((a, b) => a.price < b.price ? a : b).id
+    : null;
+
   const HeroContent = ({ isOverlay = true }: { isOverlay?: boolean }) => (
     <div className={cn(
         isOverlay && "container mx-auto px-4 relative z-10",
@@ -79,13 +88,41 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           {lp?.heroTitle}
         </h1>
         <p 
-            className="text-xl opacity-90 leading-relaxed"
+            className="text-xl opacity-90 leading-relaxed max-w-2xl mx-auto"
             style={{ 
                 color: isOverlay ? (lp?.heroSubtitleColor || (heroImage && overlayOpacity > 0.3 ? '#ffffff' : 'inherit')) : lp?.heroSubtitleColor || 'inherit'
             }}
         >
           {lp?.heroSubtitle}
         </p>
+
+        {/* Hero CTAs */}
+        <div className={cn(
+          "flex flex-col sm:flex-row gap-3 pt-2",
+          heroLayout === 'split-right' ? 'sm:justify-end' : 
+          heroLayout === 'split-left' ? 'sm:justify-start' : 'justify-center'
+        )}>
+          <Button asChild size="lg" className="partner-btn font-bold h-13 px-8 text-base shadow-lg">
+            <Link href={`/p/${slug}${ctaTarget}`}>
+              Get a Free Quote <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+          <Button 
+            asChild 
+            size="lg" 
+            variant="outline" 
+            className={cn(
+              "font-semibold h-13 px-8 text-base",
+              isOverlay && heroImage && overlayOpacity > 0.3 
+                ? "border-white/50 text-white hover:bg-white/10" 
+                : "border-border"
+            )}
+          >
+            <Link href={`/p/${slug}#products`}>
+              View Our Services
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -114,7 +151,10 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
   );
 
   return (
-    <div className="space-y-24 pb-24">
+    <div className="pb-24">
+      {/* Floating Mobile CTA */}
+      <FloatingCTA />
+
       {/* Hero Section */}
       <section 
         className={cn(
@@ -145,204 +185,292 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
 
       {/* Text Below Hero Image */}
       {textPosition === 'below' && (
-          <section className="container mx-auto px-4 -mt-12 lg:-mt-16">
+          <section className="container mx-auto px-4">
               <div className="py-12 md:py-16 text-center">
                 <HeroContent isOverlay={false} />
               </div>
           </section>
       )}
 
-      <div className="container mx-auto px-4">
-        {lp?.testimonials && lp.testimonials.length > 0 ? (
-          <div className="space-y-12">
-            <div className="text-center space-y-4 max-w-2xl mx-auto">
-              <h2 className="text-3xl font-bold text-slate-900">What Our Clients Say</h2>
-              <p className="text-muted-foreground text-sm">Real feedback from local businesses and individuals.</p>
-              <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {lp.testimonials.map((t: any, i: number) => (
-                <Card key={i} className="flex flex-col partner-card border shadow-sm p-6 space-y-4 relative">
-                  <div className="flex gap-1">
-                    {Array.from({ length: t.rating || 5 }).map((_, rIdx) => (
-                      <Star key={rIdx} className="h-4 w-4 fill-yellow-400 text-yellow-400 shrink-0" />
-                    ))}
-                  </div>
-                  <p className="text-sm italic opacity-85 leading-relaxed flex-grow">
-                    &ldquo;{t.quote}&rdquo;
-                  </p>
-                  <div className="pt-3 border-t border-muted/50">
-                    <h4 className="font-bold text-sm text-slate-900">{t.name}</h4>
-                    {t.role && (
-                      <p className="text-xs text-muted-foreground">
-                        {t.role}{t.company ? ` at ${t.company}` : ''}
-                      </p>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
+      {/* Trust Strip */}
+      <AnimatedSection className="py-8 border-b bg-muted/20">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
+            <span className="flex items-center gap-2 font-medium">
+              <Shield className="h-4 w-4 partner-icon" /> SARS Registered
+            </span>
+            <span className="hidden sm:block w-px h-4 bg-border" />
+            <span className="flex items-center gap-2 font-medium">
+              <Award className="h-4 w-4 partner-icon" /> Professionally Accredited
+            </span>
+            <span className="hidden sm:block w-px h-4 bg-border" />
+            <span className="flex items-center gap-2 font-medium">
+              <Users className="h-4 w-4 partner-icon" /> 100+ Clients Served
+            </span>
+            <span className="hidden sm:block w-px h-4 bg-border" />
+            <span className="flex items-center gap-2 font-medium">
+              <Clock className="h-4 w-4 partner-icon" /> Same-Day Response
+            </span>
           </div>
-        ) : (
-          <TrustIndexWidget />
+        </div>
+      </AnimatedSection>
+
+      {/* Stats Counter Section */}
+      <AnimatedSection className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+            {[
+              { value: '10+', label: 'Years of Experience', icon: TrendingUp },
+              { value: '500+', label: 'Businesses Served', icon: Users },
+              { value: '2,000+', label: 'Tax Returns Filed', icon: CheckCircle2 },
+              { value: '99%', label: 'Client Satisfaction', icon: Star },
+            ].map((stat, i) => (
+              <div key={i} className="text-center space-y-2">
+                <stat.icon className="h-6 w-6 mx-auto partner-icon opacity-70" />
+                <div className="text-3xl md:text-4xl font-extrabold partner-text">{stat.value}</div>
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </AnimatedSection>
+
+      <div className="space-y-24">
+        {/* Testimonials Section */}
+        <AnimatedSection className="container mx-auto px-4">
+          {lp?.testimonials && lp.testimonials.length > 0 ? (
+            <div className="space-y-12">
+              <div className="text-center space-y-4 max-w-2xl mx-auto">
+                <h2 className="text-3xl font-bold text-slate-900">What Our Clients Say</h2>
+                <p className="text-muted-foreground text-sm">Real feedback from local businesses and individuals.</p>
+                <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {lp.testimonials.map((t: any, i: number) => (
+                  <Card key={i} className="flex flex-col partner-card border shadow-sm p-6 space-y-4 relative">
+                    <Quote className="h-8 w-8 partner-icon opacity-15 absolute top-4 right-4" />
+                    <div className="flex gap-1">
+                      {Array.from({ length: t.rating || 5 }).map((_, rIdx) => (
+                        <Star key={rIdx} className="h-4 w-4 fill-yellow-400 text-yellow-400 shrink-0" />
+                      ))}
+                    </div>
+                    <p className="text-sm italic opacity-85 leading-relaxed flex-grow">
+                      &ldquo;{t.quote}&rdquo;
+                    </p>
+                    <div className="pt-3 border-t border-muted/50 flex items-center gap-3">
+                      {/* Avatar with initials */}
+                      {t.avatarUrl ? (
+                        <img src={t.avatarUrl} alt={t.name} className="w-9 h-9 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                          style={{ backgroundColor: lp?.primaryColor || '#214392' }}
+                        >
+                          {t.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900">{t.name}</h4>
+                        {t.role && (
+                          <p className="text-xs text-muted-foreground">
+                            {t.role}{t.company ? ` at ${t.company}` : ''}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <TrustIndexWidget />
+          )}
+        </AnimatedSection>
+
+        {/* About Section */}
+        <AnimatedSection>
+          <section id="about" className="container mx-auto px-4 scroll-m-24">
+            <div className="max-w-4xl mx-auto text-center space-y-6">
+              <h2 className="text-3xl font-bold text-slate-900">About Our Practice</h2>
+              <Separator className="w-24 mx-auto partner-border border-b-2 opacity-50" />
+              <p className="text-lg opacity-80 leading-relaxed whitespace-pre-wrap">
+                {lp?.aboutUs}
+              </p>
+              <div className="pt-4">
+                <Button asChild size="lg" className="partner-btn font-bold h-12 px-8">
+                  <Link href={`/p/${slug}${ctaTarget}`}>
+                    Let&apos;s Work Together <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </section>
+        </AnimatedSection>
+
+        {/* Services Grid */}
+        <section id="products" className="scroll-m-24 space-y-16">
+          {showServicesHero && lp?.servicesHeroImageUrl ? (
+              <div className={cn(servicesHeroTextPosition === 'below' ? "space-y-12" : "")}>
+                  <div className={cn(servicesHeroLayout === 'background' ? "w-full" : "container mx-auto px-4")}>
+                      <div 
+                          className={cn(
+                              "relative overflow-hidden flex items-center p-8 md:p-12",
+                              servicesHeroLayout === 'background' ? "min-h-[350px] lg:min-h-[500px]" : "h-[250px] lg:h-[400px]",
+                              servicesHeroTextPosition === 'inside' ? "py-20 lg:py-32" : "",
+                              servicesHeroLayout === 'split-left' ? 'justify-start' : 
+                              servicesHeroLayout === 'split-right' ? 'justify-end' : 'justify-center'
+                          )}
+                          style={{ 
+                              backgroundImage: `url("${lp.servicesHeroImageUrl}")`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              borderRadius: servicesHeroLayout === 'background' ? '0' : '1.5rem',
+                          }}
+                      >
+                          <div 
+                              className="absolute inset-0" 
+                              style={{ backgroundColor: `rgba(0,0,0,${(lp.servicesHeroOverlayOpacity || 0) / 100})` }}
+                          />
+                          {servicesHeroTextPosition === 'inside' && <ServicesHeroContent isOverlay={true} />}
+                      </div>
+                  </div>
+                  {servicesHeroTextPosition === 'below' && (
+                      <div className="container mx-auto px-4">
+                          <ServicesHeroContent isOverlay={false} />
+                      </div>
+                  )}
+              </div>
+          ) : (
+              <AnimatedSection className="container mx-auto px-4 text-center space-y-4">
+                <h2 className="text-3xl font-bold text-slate-900">{lp?.servicesHeroTitle || 'Accounting & Tax Solutions'}</h2>
+                <p className="opacity-70 text-lg">{lp?.servicesHeroSubtitle || 'Comprehensive professional services for individuals and SMEs.'}</p>
+              </AnimatedSection>
+          )}
+
+          <div className="container mx-auto px-4 space-y-20">
+              {categorizedServices.map((category) => (
+                  <AnimatedSection key={category.id} className="space-y-12">
+                      <div className="text-center space-y-4 max-w-2xl mx-auto">
+                          <h3 className="text-3xl font-bold text-slate-900">{category.name}</h3>
+                          {category.description && (
+                              <p className="text-muted-foreground text-sm leading-relaxed">
+                                  {category.description}
+                              </p>
+                          )}
+                          <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                          {category.data.map((service: Service) => {
+                              const isPopular = service.id === mostPopularId;
+                              return (
+                                <Card key={service.id} className={cn(
+                                  "flex flex-col group hover:shadow-xl transition-all duration-300 partner-card border shadow-sm relative",
+                                  isPopular && "ring-2 ring-primary/30 shadow-md"
+                                )}>
+                                    {/* Most Popular Badge */}
+                                    {isPopular && (
+                                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                                        <span className="partner-btn px-4 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shadow-md whitespace-nowrap">
+                                          ⭐ Most Popular
+                                        </span>
+                                      </div>
+                                    )}
+                                    <CardHeader className={cn("space-y-2 pb-4", isPopular && "pt-8")}>
+                                        <CardTitle className="text-2xl font-bold leading-tight group-hover:partner-text transition-colors">
+                                            {service.title}
+                                        </CardTitle>
+                                        <div className="space-y-1">
+                                            {service.isPriceTbc ? (
+                                                <span className="text-xl font-bold opacity-50 block">Price on Request</span>
+                                            ) : (
+                                                <span className="text-2xl font-bold partner-text block">
+                                                    {formatPrice(service.price)}
+                                                </span>
+                                            )}
+                                            <div className="flex items-center text-xs opacity-70 font-medium">
+                                                <Clock className="h-4 w-4 mr-1.5 opacity-70 partner-icon" />
+                                                {service.turnaroundTime}
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="flex-grow space-y-6">
+                                        <p className="text-sm opacity-80 leading-relaxed line-clamp-3">
+                                            {service.description}
+                                        </p>
+                                        <div className="space-y-3">
+                                            <p className="text-sm font-semibold">What&apos;s Included:</p>
+                                            <ul className="space-y-2">
+                                                {service.whatsIncluded.slice(0, 4).map((item: string, i: number) => (
+                                                    <li key={i} className="flex items-start text-xs opacity-90">
+                                                        <CheckCircle2 className="h-4 w-4 mr-3 mt-0.5 partner-icon flex-shrink-0" />
+                                                        <span className="leading-tight">{item}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter className="pt-0">
+                                        <Button className="w-full partner-btn font-semibold h-11" asChild>
+                                            <Link href={`/p/${slug}/products/${service.slug}`}>
+                                                Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                              );
+                          })}
+                      </div>
+                  </AnimatedSection>
+              ))}
+          </div>
+        </section>
+
+        {/* Pricing Calculator Section */}
+        {lp?.showCalculator && (
+          <AnimatedSection>
+            <section id="calculator" className="container mx-auto px-4 scroll-m-24 max-w-4xl space-y-8">
+              <div className="text-center space-y-4 max-w-2xl mx-auto">
+                <h2 className="text-3xl font-bold text-slate-900">Estimate Your Fees</h2>
+                <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
+              </div>
+              <PartnerPricingCalculator services={services} partnerId={partner.id} />
+            </section>
+          </AnimatedSection>
+        )}
+
+        {/* FAQ Section */}
+        {lp?.faqs && lp.faqs.length > 0 && (
+          <AnimatedSection>
+            <section id="faqs" className="container mx-auto px-4 scroll-m-24 max-w-3xl space-y-8">
+              <div className="text-center space-y-4 max-w-2xl mx-auto">
+                <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
+                <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
+              </div>
+              <Accordion type="single" collapsible className="w-full border rounded-xl overflow-hidden bg-white shadow-sm divide-y">
+                {lp.faqs.map((faq: any, i: number) => (
+                  <AccordionItem key={i} value={`faq-${i}`} className="border-b-0 px-6 py-1">
+                    <AccordionTrigger className="text-left font-semibold text-slate-900 hover:no-underline text-base py-4">
+                      {faq.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-slate-600 text-sm leading-relaxed pb-4 pt-1">
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </section>
+          </AnimatedSection>
+        )}
+
+        {/* Lead Form Section */}
+        {lp?.showLeadForm !== false && (
+          <AnimatedSection>
+            <section id="contact" className="container mx-auto px-4 scroll-m-24 max-w-lg space-y-8">
+              <Separator className="max-w-xs mx-auto opacity-20" />
+              <PartnerLeadForm partnerId={partner.id} />
+            </section>
+          </AnimatedSection>
         )}
       </div>
-
-      {/* About Section */}
-      <section id="about" className="container mx-auto px-4 scroll-m-24">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
-          <h2 className="text-3xl font-bold text-slate-900">About Our Practice</h2>
-          <Separator className="w-24 mx-auto partner-border border-b-2 opacity-50" />
-          <p className="text-lg opacity-80 leading-relaxed whitespace-pre-wrap">
-            {lp?.aboutUs}
-          </p>
-        </div>
-      </section>
-
-      {/* Services Grid */}
-      <section id="products" className="scroll-m-24 space-y-16">
-        {showServicesHero && lp?.servicesHeroImageUrl ? (
-            <div className={cn(servicesHeroTextPosition === 'below' ? "space-y-12" : "")}>
-                <div className={cn(servicesHeroLayout === 'background' ? "w-full" : "container mx-auto px-4")}>
-                    <div 
-                        className={cn(
-                            "relative overflow-hidden flex items-center p-8 md:p-12",
-                            servicesHeroLayout === 'background' ? "min-h-[350px] lg:min-h-[500px]" : "h-[250px] lg:h-[400px]",
-                            servicesHeroTextPosition === 'inside' ? "py-20 lg:py-32" : "",
-                            servicesHeroLayout === 'split-left' ? 'justify-start' : 
-                            servicesHeroLayout === 'split-right' ? 'justify-end' : 'justify-center'
-                        )}
-                        style={{ 
-                            backgroundImage: `url("${lp.servicesHeroImageUrl}")`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            borderRadius: servicesHeroLayout === 'background' ? '0' : '1.5rem',
-                        }}
-                    >
-                        <div 
-                            className="absolute inset-0" 
-                            style={{ backgroundColor: `rgba(0,0,0,${(lp.servicesHeroOverlayOpacity || 0) / 100})` }}
-                        />
-                        {servicesHeroTextPosition === 'inside' && <ServicesHeroContent isOverlay={true} />}
-                    </div>
-                </div>
-                {servicesHeroTextPosition === 'below' && (
-                    <div className="container mx-auto px-4">
-                        <ServicesHeroContent isOverlay={false} />
-                    </div>
-                )}
-            </div>
-        ) : (
-            <div className="container mx-auto px-4 text-center space-y-4">
-              <h2 className="text-3xl font-bold text-slate-900">{lp?.servicesHeroTitle || 'Accounting & Tax Solutions'}</h2>
-              <p className="opacity-70 text-lg">{lp?.servicesHeroSubtitle || 'Comprehensive professional services for individuals and SMEs.'}</p>
-            </div>
-        )}
-
-        <div className="container mx-auto px-4 space-y-20">
-            {categorizedServices.map((category) => (
-                <div key={category.id} className="space-y-12">
-                    <div className="text-center space-y-4 max-w-2xl mx-auto">
-                        <h3 className="text-3xl font-bold text-slate-900">{category.name}</h3>
-                        {category.description && (
-                            <p className="text-muted-foreground text-sm leading-relaxed">
-                                {category.description}
-                            </p>
-                        )}
-                        <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {category.data.map((service: Service) => (
-                            <Card key={service.id} className="flex flex-col group hover:shadow-xl transition-all duration-300 partner-card border shadow-sm">
-                                <CardHeader className="space-y-2 pb-4">
-                                    <CardTitle className="text-2xl font-bold leading-tight group-hover:partner-text transition-colors">
-                                        {service.title}
-                                    </CardTitle>
-                                    <div className="space-y-1">
-                                        {service.isPriceTbc ? (
-                                            <span className="text-xl font-bold opacity-50 block">Price on Request</span>
-                                        ) : (
-                                            <span className="text-2xl font-bold partner-text block">
-                                                {formatPrice(service.price)}
-                                            </span>
-                                        )}
-                                        <div className="flex items-center text-xs opacity-70 font-medium">
-                                            <Clock className="h-4 w-4 mr-1.5 opacity-70 partner-icon" />
-                                            {service.turnaroundTime}
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="flex-grow space-y-6">
-                                    <p className="text-sm opacity-80 leading-relaxed line-clamp-3">
-                                        {service.description}
-                                    </p>
-                                    <div className="space-y-3">
-                                        <p className="text-sm font-semibold">What&apos;s Included:</p>
-                                        <ul className="space-y-2">
-                                            {service.whatsIncluded.slice(0, 3).map((item: string, i: number) => (
-                                                <li key={i} className="flex items-start text-xs opacity-90">
-                                                    <CheckCircle2 className="h-4 w-4 mr-3 mt-0.5 partner-icon flex-shrink-0" />
-                                                    <span className="leading-tight">{item}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </CardContent>
-                                <CardFooter className="pt-0">
-                                    <Button className="w-full partner-btn font-semibold h-11" asChild>
-                                        <Link href={`/p/${slug}/products/${service.slug}`}>
-                                            View Details <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-            ))}
-        </div>
-      </section>
-
-      {/* Pricing Calculator Section */}
-      {lp?.showCalculator && (
-        <section id="calculator" className="container mx-auto px-4 scroll-m-24 max-w-4xl space-y-8">
-          <div className="text-center space-y-4 max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold text-slate-900">Estimate Your Fees</h2>
-            <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
-          </div>
-          <PartnerPricingCalculator services={services} partnerId={partner.id} />
-        </section>
-      )}
-
-      {/* FAQ Section */}
-      {lp?.faqs && lp.faqs.length > 0 && (
-        <section id="faqs" className="container mx-auto px-4 scroll-m-24 max-w-3xl space-y-8">
-          <div className="text-center space-y-4 max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
-            <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
-          </div>
-          <Accordion type="single" collapsible className="w-full border rounded-xl overflow-hidden bg-white shadow-sm divide-y">
-            {lp.faqs.map((faq: any, i: number) => (
-              <AccordionItem key={i} value={`faq-${i}`} className="border-b-0 px-6 py-1">
-                <AccordionTrigger className="text-left font-semibold text-slate-900 hover:no-underline text-base py-4">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-slate-600 text-sm leading-relaxed pb-4 pt-1">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </section>
-      )}
-
-      {/* Lead Form Section */}
-      {lp?.showLeadForm !== false && (
-        <section id="contact" className="container mx-auto px-4 scroll-m-24 max-w-lg space-y-8">
-          <Separator className="max-w-xs mx-auto opacity-20" />
-          <PartnerLeadForm partnerId={partner.id} />
-        </section>
-      )}
     </div>
   );
 }

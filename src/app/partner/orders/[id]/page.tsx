@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { notifyOfNewNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 
 const db = getFirestore(firebaseApp);
@@ -74,8 +75,13 @@ export default function PartnerOrderDetailsPage() {
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [isRejectionDialogOpen, setIsRejectionDialogOpen] = useState(false);
   const [documentToReject, setDocumentToReject] = useState<DocumentUpload | null>(null);
+  const [isCustomDocOpen, setIsCustomDocOpen] = useState(false);
+  const [customDocLabel, setCustomDocLabel] = useState('');
+  const [customDocType, setCustomDocType] = useState<'pdf' | 'text'>('pdf');
+  const [isSubmittingCustomDoc, setIsSubmittingCustomDoc] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<{ [key: string]: number }>({});
   const [textInputs, setTextInputs] = useState<{ [key: string]: string }>({});
+  const [assignee, setAssignee] = useState<User | null>(null);
 
   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
     resolver: zodResolver(noteFormSchema),
@@ -124,6 +130,22 @@ export default function PartnerOrderDetailsPage() {
           } as Order;
 
           setOrder(fetchedOrder);
+
+          if (fetchedOrder.assignedTo && fetchedOrder.assignedTo.length > 0) {
+            try {
+              const assigneeSnap = await getDoc(doc(db, 'users', fetchedOrder.assignedTo[0]));
+              if (assigneeSnap.exists()) {
+                setAssignee({ id: assigneeSnap.id, ...assigneeSnap.data() } as User);
+              } else {
+                setAssignee(null);
+              }
+            } catch (err) {
+              console.error("Error loading assignee profile:", err);
+              setAssignee(null);
+            }
+          } else {
+            setAssignee(null);
+          }
 
           const itemsWithServices = fetchedOrder.items.map(item => {
             const serviceDetails = fetchedServices.find(s => 
@@ -323,6 +345,58 @@ export default function PartnerOrderDetailsPage() {
     } catch (error) {
       console.error("Error updating document status:", error);
       toast({ title: 'Error', description: 'Failed to update document status.', variant: "destructive" });
+    }
+  };
+
+  const handleBatchApprove = async () => {
+    if (!order || !order.documentUploads) return;
+    const updatedUploads = (order.documentUploads || []).map(doc => {
+      if (doc.status === 'pending') {
+        return { ...doc, status: 'approved' as const, rejectionReason: null };
+      }
+      return doc;
+    });
+
+    try {
+      const orderRef = doc(db, 'orders', order.id);
+      await updateDoc(orderRef, { documentUploads: updatedUploads });
+      toast({ title: 'Documents Approved', description: 'All pending documents have been approved.'});
+      fetchOrder();
+    } catch (error) {
+      console.error("Error batch approving documents:", error);
+      toast({ title: 'Error', description: 'Failed to batch approve documents.', variant: "destructive" });
+    }
+  };
+
+  const handleRequestCustomDoc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order || !customDocLabel.trim()) return;
+
+    setIsSubmittingCustomDoc(true);
+    
+    const newRequest: DocumentUpload = {
+      serviceId: order.items[0]?.id || 'custom',
+      requirementLabel: customDocLabel.trim(),
+      type: customDocType === 'pdf' ? 'file' : 'text',
+      uploadedAt: Timestamp.now(),
+      status: 'pending',
+    };
+
+    try {
+      const orderRef = doc(db, 'orders', order.id);
+      await updateDoc(orderRef, {
+        documentUploads: arrayUnion(newRequest)
+      });
+      toast({ title: 'Request Sent', description: `Requested: "${customDocLabel}"` });
+      setIsCustomDocOpen(false);
+      setCustomDocLabel('');
+      setCustomDocType('pdf');
+      fetchOrder();
+    } catch (error) {
+      console.error("Error requesting custom document:", error);
+      toast({ title: 'Error', description: 'Failed to request document.', variant: "destructive" });
+    } finally {
+      setIsSubmittingCustomDoc(false);
     }
   };
 
@@ -615,6 +689,50 @@ export default function PartnerOrderDetailsPage() {
             </DialogContent>
         </Dialog>
 
+        <Dialog open={isCustomDocOpen} onOpenChange={setIsCustomDocOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Request Custom Document</DialogTitle>
+                    <DialogDescription>
+                        Ask the client to upload an additional document or provide specific information.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleRequestCustomDoc} className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Document / Info Name</label>
+                        <Input 
+                            placeholder="e.g. Proof of Business Address" 
+                            value={customDocLabel} 
+                            onChange={(e) => setCustomDocLabel(e.target.value)} 
+                            required 
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Response Type</label>
+                        <Select 
+                            value={customDocType} 
+                            onValueChange={(value: 'pdf' | 'text') => setCustomDocType(value)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="pdf">File Upload (PDF)</SelectItem>
+                                <SelectItem value="text">Text / Information Input</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button type="button" variant="outline" onClick={() => setIsCustomDocOpen(false)}>Cancel</Button>
+                        <Button type="submit" disabled={isSubmittingCustomDoc}>
+                            {isSubmittingCustomDoc ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : null}
+                            Send Request
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+
         <div>
             <Button variant="outline" asChild>
                 <Link href="/partner/orders">
@@ -625,7 +743,7 @@ export default function PartnerOrderDetailsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            <div className="lg:col-span-2 space-y-8">
+            <div className={order?.isOutsourced ? "lg:col-span-2 space-y-8" : "lg:col-span-3 space-y-8"}>
                 <Card>
                     <CardHeader>
                         <CardTitle>Order {order.id}</CardTitle>
@@ -683,10 +801,20 @@ export default function PartnerOrderDetailsPage() {
                                 <CardTitle>Required Information</CardTitle>
                                 <CardDescription>Documents and information needed from your client.</CardDescription>
                             </div>
-                            <Button variant="outline" size="sm" onClick={handleSendFollowUp} disabled={isSendingReminder}>
-                                {isSendingReminder ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <MessageSquare className="h-4 w-4 mr-2"/>}
-                                Follow Up
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                {order.documentUploads && order.documentUploads.some(d => d.status === 'pending') && (
+                                    <Button variant="outline" size="sm" className="text-green-600 hover:text-green-700 border-green-200 hover:bg-green-50" onClick={handleBatchApprove}>
+                                        <CheckCircle className="h-4 w-4 mr-2"/>Approve All Pending
+                                    </Button>
+                                )}
+                                <Button variant="outline" size="sm" onClick={() => setIsCustomDocOpen(true)}>
+                                    <FileText className="h-4 w-4 mr-2"/>Request Custom Doc
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={handleSendFollowUp} disabled={isSendingReminder}>
+                                    {isSendingReminder ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <MessageSquare className="h-4 w-4 mr-2"/>}
+                                    Follow Up
+                                </Button>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -915,6 +1043,42 @@ export default function PartnerOrderDetailsPage() {
                     </CardContent>
                 </Card>
             </div>
+            {order?.isOutsourced && (
+                <div className="lg:col-span-1 space-y-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+                            <UserIcon className="h-5 w-5 text-muted-foreground"/>
+                            <CardTitle className="text-lg">Fulfillment Details</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                This order is being processed by My Accountant.
+                            </p>
+                            {assignee ? (
+                                <div className="space-y-4 pt-2">
+                                     <h4 className="font-semibold text-sm">Assigned To</h4>
+                                     <div className="flex items-center gap-4">
+                                        <div>
+                                            <p className="font-semibold">{assignee.name}</p>
+                                            <p className="text-sm text-muted-foreground">{assignee.department}</p>
+                                        </div>
+                                     </div>
+                                     <Button variant="outline" className="w-full" asChild>
+                                        <a href={`mailto:${assignee.email}?subject=Query regarding Order ${order.id}`}>
+                                            <Mail className="mr-2 h-4 w-4"/>
+                                            Contact Accountant
+                                        </a>
+                                     </Button>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground pt-2">
+                                    Our team will be assigned to this order shortly.
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     </div>
   );

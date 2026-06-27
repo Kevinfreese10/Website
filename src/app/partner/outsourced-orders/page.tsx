@@ -87,7 +87,7 @@ export default function OutsourcedOrdersPage() {
 
     const ordersRef = collection(db, 'orders');
     // Query for orders where resellerId is the practice's partnerId
-    const q = query(ordersRef, where('resellerId', '==', partnerId), where('originalOrderId', '!=', null), orderBy('date', 'desc'));
+    const q = query(ordersRef, where('resellerId', '==', partnerId));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
         let allOrders = snapshot.docs.map(doc => {
@@ -98,8 +98,10 @@ export default function OutsourcedOrdersPage() {
             date: data.date.toDate().toISOString(),
           } as Order;
         });
+        // Sort in memory descending by date
+        allOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         
-        setOrders(allOrders.filter(order => order.status !== 'Cancelled'));
+        setOrders(allOrders.filter(order => order.status !== 'Cancelled' && (order.isOutsourced || order.originalOrderId)));
         setIsLoading(false);
     }, (error) => {
         console.error("Error fetching outsourced orders: ", error);
@@ -183,7 +185,7 @@ export default function OutsourcedOrdersPage() {
                         <TableCell>{format(new Date(order.date), 'dd/MM/yyyy')}</TableCell>
                         <TableCell>
                             <Button variant="link" asChild className="p-0 h-auto font-semibold">
-                                <Link href={`/partner/orders/${order.originalOrderId}`}>{order.originalOrderId}</Link>
+                                <Link href={`/partner/orders/${order.originalOrderId || order.id}`}>{order.originalOrderId || order.id}</Link>
                             </Button>
                         </TableCell>
                          <TableCell>
@@ -213,7 +215,7 @@ export default function OutsourcedOrdersPage() {
                         <TableCell className="text-right font-semibold">{formatPrice(order.total)}</TableCell>
                         <TableCell className="text-right">
                          <Button variant="ghost" size="icon" asChild>
-                            <Link href={`/partner/outsourced-orders/${order.id}`}>
+                            <Link href={`/partner/orders/${order.id}`}>
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
                         </Button>

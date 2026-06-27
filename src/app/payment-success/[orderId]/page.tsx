@@ -35,11 +35,35 @@ export default function PaymentSuccessPage() {
     const { toast } = useToast();
     const router = useRouter();
 
+    const orderUrl = useMemo(() => {
+        if (!currentUser) return '/login';
+        if (currentUser.role === 'admin' || currentUser.role === 'staff') return `/admin/orders/${orderId}`;
+        if (currentUser.role === 'partner' || currentUser.role === 'partner_staff') return `/partner/orders/${orderId}`;
+        return `/dashboard/orders/${orderId}`;
+    }, [currentUser, orderId]);
+
+    const [countdown, setCountdown] = useState(5);
+
     useEffect(() => {
-        if (order && currentUser && (currentUser.role === 'partner' || currentUser.role === 'partner_staff')) {
+        if (!order || !currentUser) return;
+        if (currentUser.role === 'partner' || currentUser.role === 'partner_staff') {
             router.push('/partner/orders');
+            return;
         }
-    }, [order, currentUser, router]);
+
+        const interval = setInterval(() => {
+            setCountdown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    router.push(orderUrl);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [order, currentUser, router, orderUrl]);
 
     useEffect(() => {
         if (orderId) {
@@ -127,12 +151,7 @@ export default function PaymentSuccessPage() {
         }
     }, [orderId, toast]);
 
-    const orderUrl = useMemo(() => {
-        if (!currentUser) return '/login';
-        if (currentUser.role === 'admin' || currentUser.role === 'staff') return `/admin/orders/${orderId}`;
-        if (currentUser.role === 'partner' || currentUser.role === 'partner_staff') return `/partner/orders/${orderId}`;
-        return `/dashboard/orders/${orderId}`;
-    }, [currentUser, orderId]);
+    // orderUrl moved to top
     
     if (isLoading) {
         return (
@@ -258,12 +277,15 @@ export default function PaymentSuccessPage() {
                         </div>
                     </section>
                     
-                    <div className="text-center pt-4">
+                    <div className="flex flex-col items-center gap-3 pt-4">
                         <Button asChild size="lg">
                             <Link href={orderUrl}>
-                                Go to My Dashboard
+                                Go to Document Upload Portal
                             </Link>
                         </Button>
+                        <p className="text-sm text-muted-foreground animate-pulse">
+                            Redirecting to your document upload portal in {countdown} seconds...
+                        </p>
                     </div>
                 </CardContent>
             </Card>

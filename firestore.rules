@@ -54,7 +54,8 @@ service cloud.firestore {
         (request.resource != null && request.resource.data.partnerId == request.auth.uid)
       );
       match /serviceOverrides/{overrideId} {
-        allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+        allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isPartnerStaffOf(userId));
+        allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       }
       match /walletLogs/{logId} {
         allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());

@@ -94,7 +94,7 @@ const formSchema = z.object({
     heroTitle: z.string().min(5, "Hero title is too short"),
     heroSubtitle: z.string().min(10, "Hero subtitle is too short"),
     aboutUs: z.string().min(20, "About Us text is too short"),
-    themePreset: z.enum(['custom', 'my_accountant', 'futuristic', 'tech_blue']).default('custom'),
+    themePreset: z.enum(['custom', 'my_accountant', 'futuristic', 'tech_blue', 'facebook', 'lovable', 'monday', 'monday_crm', 'stripe', 'airbnb', 'linear', 'spotify', 'notion', 'apple']).default('custom'),
     primaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Must be a valid hex color"),
     secondaryColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Must be a valid hex color").optional(),
     backgroundColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Must be a valid hex color").optional(),
@@ -178,6 +178,116 @@ const THEMES = {
         cardBackgroundColor: '#ffffff',
         cardBorderColor: '#e2e8f0',
         buttonColor: '#0ea5e9',
+        buttonTextColor: '#ffffff',
+        buttonStyle: 'solid',
+    },
+    facebook: {
+        primaryColor: '#0866FF',
+        secondaryColor: '#0054d1',
+        backgroundColor: '#F0F2F5',
+        textColor: '#1C1E21',
+        cardBackgroundColor: '#ffffff',
+        cardBorderColor: '#dddfe2',
+        buttonColor: '#0866FF',
+        buttonTextColor: '#ffffff',
+        buttonStyle: 'solid',
+    },
+    lovable: {
+        primaryColor: '#9b87f5',
+        secondaryColor: '#7E69AB',
+        backgroundColor: '#ffffff',
+        textColor: '#1A1F2C',
+        cardBackgroundColor: '#F1F0FB',
+        cardBorderColor: '#E5E7EB',
+        buttonColor: '#9b87f5',
+        buttonTextColor: '#ffffff',
+        buttonStyle: 'solid',
+    },
+    monday: {
+        primaryColor: '#e2445c',
+        secondaryColor: '#ff158a',
+        backgroundColor: '#ffffff',
+        textColor: '#323338',
+        cardBackgroundColor: '#ffffff',
+        cardBorderColor: '#c3c6d4',
+        buttonColor: '#e2445c',
+        buttonTextColor: '#ffffff',
+        buttonStyle: 'solid',
+    },
+    monday_crm: {
+        primaryColor: '#784bd1',
+        secondaryColor: '#a25ddc',
+        backgroundColor: '#ffffff',
+        textColor: '#323338',
+        cardBackgroundColor: '#f5f6f8',
+        cardBorderColor: '#d0d4e4',
+        buttonColor: '#784bd1',
+        buttonTextColor: '#ffffff',
+        buttonStyle: 'solid',
+    },
+    stripe: {
+        primaryColor: '#635bff',
+        secondaryColor: '#0a2540',
+        backgroundColor: '#f6f9fc',
+        textColor: '#425466',
+        cardBackgroundColor: '#ffffff',
+        cardBorderColor: '#e6ebf1',
+        buttonColor: '#635bff',
+        buttonTextColor: '#ffffff',
+        buttonStyle: 'solid',
+    },
+    airbnb: {
+        primaryColor: '#FF385C',
+        secondaryColor: '#D90B36',
+        backgroundColor: '#ffffff',
+        textColor: '#222222',
+        cardBackgroundColor: '#ffffff',
+        cardBorderColor: '#DDDDDD',
+        buttonColor: '#FF385C',
+        buttonTextColor: '#ffffff',
+        buttonStyle: 'solid',
+    },
+    linear: {
+        primaryColor: '#5e6ad2',
+        secondaryColor: '#8f9af3',
+        backgroundColor: '#000000',
+        textColor: '#f4f4f8',
+        cardBackgroundColor: '#111216',
+        cardBorderColor: '#2b2d31',
+        buttonColor: '#5e6ad2',
+        buttonTextColor: '#ffffff',
+        buttonStyle: 'solid',
+    },
+    spotify: {
+        primaryColor: '#1DB954',
+        secondaryColor: '#1ed760',
+        backgroundColor: '#121212',
+        textColor: '#ffffff',
+        cardBackgroundColor: '#181818',
+        cardBorderColor: '#282828',
+        buttonColor: '#1DB954',
+        buttonTextColor: '#000000',
+        buttonStyle: 'solid',
+    },
+    notion: {
+        primaryColor: '#000000',
+        secondaryColor: '#333333',
+        backgroundColor: '#ffffff',
+        textColor: '#37352f',
+        cardBackgroundColor: '#ffffff',
+        cardBorderColor: '#e9e9e7',
+        buttonColor: '#000000',
+        buttonTextColor: '#ffffff',
+        buttonStyle: 'outline',
+    },
+    apple: {
+        primaryColor: '#0071e3',
+        secondaryColor: '#0077ED',
+        backgroundColor: '#f5f5f7',
+        textColor: '#1d1d1f',
+        cardBackgroundColor: '#ffffff',
+        cardBorderColor: '#d2d2d7',
+        buttonColor: '#0071e3',
         buttonTextColor: '#ffffff',
         buttonStyle: 'solid',
     }
@@ -874,6 +984,52 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                             </CardContent>
                         </Card>
 
+                        <Card className="border-primary/20">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center gap-2">
+                                    <Globe className="h-4 w-4 text-primary" />
+                                    <CardTitle className="text-sm">Custom Domain & DNS Setup</CardTitle>
+                                </div>
+                                <CardDescription className="text-[10px]">
+                                    Link your own domain (e.g. <span className="font-semibold text-foreground">www.interscopeadvisory.co.za</span>) directly to your branded landing page.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="text-xs space-y-3">
+                                    <div className="bg-muted/40 p-3 rounded-lg border border-border/60">
+                                        <p className="font-semibold text-foreground mb-1">Step 1: Configure your DNS settings</p>
+                                        <p className="text-muted-foreground leading-relaxed mb-2">
+                                            Log in to your domain registrar (e.g., xneelo, GoDaddy, Cloudflare) and add the following CNAME record to your domain's DNS zone file:
+                                        </p>
+                                        <div className="grid grid-cols-3 gap-2 bg-background p-2 rounded border font-mono text-[10px] select-all">
+                                            <div>
+                                                <span className="text-muted-foreground block text-[9px] uppercase tracking-wider">Type</span>
+                                                <span className="font-bold text-foreground">CNAME</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-muted-foreground block text-[9px] uppercase tracking-wider">Host/Name</span>
+                                                <span className="font-bold text-foreground">www</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-muted-foreground block text-[9px] uppercase tracking-wider">Points To</span>
+                                                <span className="font-bold text-foreground">domains.myacc.co.za</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-muted/40 p-3 rounded-lg border border-border/60">
+                                        <p className="font-semibold text-foreground mb-1">Step 2: Submit mapping request</p>
+                                        <p className="text-muted-foreground leading-relaxed">
+                                            Once your CNAME record is configured, email our support team at <a href="mailto:support@myacc.co.za" className="font-semibold text-primary underline">support@myacc.co.za</a> with your domain and landing page slug (e.g., <span className="font-mono text-[11px] bg-background px-1 py-0.5 rounded border">/p/{landingPageSlug || 'your-slug'}</span>).
+                                        </p>
+                                        <p className="text-muted-foreground leading-relaxed mt-2">
+                                            We will complete the SSL certificate generation and domain provisioning within 24 hours.
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
                         <Card className="border-2 border-primary/30 shadow-md overflow-hidden bg-gradient-to-r from-primary/5 via-transparent to-transparent">
                             <CardHeader className="pb-3 bg-muted/40">
                                 <div className="flex items-center gap-2">
@@ -1119,7 +1275,22 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                             <Card className="border-2">
                                 <CardHeader className="bg-muted/30"><CardTitle className="text-sm flex items-center gap-2"><Palette className="h-4 w-4" /> Branding & Theme</CardTitle></CardHeader>
                                 <CardContent className="space-y-6 pt-6">
-                                    <FormField control={form.control} name="landingPage.themePreset" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Theme Preset</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a theme..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="custom">Custom</SelectItem><SelectItem value="my_accountant">Master</SelectItem><SelectItem value="tech_blue">Light</SelectItem><SelectItem value="futuristic">Dark</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+                                    <FormField control={form.control} name="landingPage.themePreset" render={({ field }) => ( <FormItem><FormLabel className="text-xs">Theme Preset</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a theme..." /></SelectTrigger></FormControl><SelectContent>
+                                        <SelectItem value="custom">Custom</SelectItem>
+                                        <SelectItem value="my_accountant">Master</SelectItem>
+                                        <SelectItem value="tech_blue">Light</SelectItem>
+                                        <SelectItem value="futuristic">Dark</SelectItem>
+                                        <SelectItem value="facebook">Facebook</SelectItem>
+                                        <SelectItem value="lovable">Lovable</SelectItem>
+                                        <SelectItem value="monday">Monday.com</SelectItem>
+                                        <SelectItem value="monday_crm">Monday CRM</SelectItem>
+                                        <SelectItem value="stripe">Stripe</SelectItem>
+                                        <SelectItem value="airbnb">Airbnb</SelectItem>
+                                        <SelectItem value="linear">Linear</SelectItem>
+                                        <SelectItem value="spotify">Spotify</SelectItem>
+                                        <SelectItem value="notion">Notion</SelectItem>
+                                        <SelectItem value="apple">Apple</SelectItem>
+                                    </SelectContent></Select><FormMessage /></FormItem> )} />
                                     
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField

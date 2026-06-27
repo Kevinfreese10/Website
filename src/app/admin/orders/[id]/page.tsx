@@ -84,6 +84,11 @@ export default function AdminOrderDetailsPage() {
   const [documentToReject, setDocumentToReject] = useState<DocumentUpload | null>(null);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
+  const [isCustomDocOpen, setIsCustomDocOpen] = useState(false);
+  const [customDocLabel, setCustomDocLabel] = useState('');
+  const [customDocType, setCustomDocType] = useState<'pdf' | 'text'>('pdf');
+  const [isSubmittingCustomDoc, setIsSubmittingCustomDoc] = useState(false);
+
   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
     resolver: zodResolver(noteFormSchema),
     defaultValues: { noteText: "" },
@@ -294,6 +299,72 @@ export default function AdminOrderDetailsPage() {
     } catch (error) {
       console.error("Error updating document status:", error);
       toast({ title: 'Error', description: 'Failed to update document status.', variant: "destructive" });
+    }
+  };
+
+  const handleBatchApprove = async () => {
+    if (!order || !order.documentUploads) return;
+    const updatedUploads = (order.documentUploads || []).map(doc => {
+      if (doc.status === 'pending') {
+        return { ...doc, status: 'approved' as const, rejectionReason: null };
+      }
+      return doc;
+    });
+
+    try {
+      const orderRef = doc(db, 'orders', order.id);
+      await updateDoc(orderRef, { documentUploads: updatedUploads });
+      
+      if (order.originalOrderId) {
+        const originalOrderRef = doc(db, 'orders', order.originalOrderId);
+        await updateDoc(originalOrderRef, { documentUploads: updatedUploads });
+      }
+      
+      toast({ title: 'Documents Approved', description: 'All pending documents have been approved.'});
+      fetchOrderAndStaff();
+    } catch (error) {
+      console.error("Error batch approving documents:", error);
+      toast({ title: 'Error', description: 'Failed to batch approve documents.', variant: "destructive" });
+    }
+  };
+
+  const handleRequestCustomDoc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order || !customDocLabel.trim()) return;
+
+    setIsSubmittingCustomDoc(true);
+    
+    const newRequest: DocumentUpload = {
+      serviceId: order.items[0]?.id || 'custom',
+      requirementLabel: customDocLabel.trim(),
+      type: customDocType === 'pdf' ? 'file' : 'text',
+      uploadedAt: Timestamp.now(),
+      status: 'pending',
+    };
+
+    try {
+      const orderRef = doc(db, 'orders', order.id);
+      await updateDoc(orderRef, {
+        documentUploads: arrayUnion(newRequest)
+      });
+
+      if (order.originalOrderId) {
+        const originalOrderRef = doc(db, 'orders', order.originalOrderId);
+        await updateDoc(originalOrderRef, {
+          documentUploads: arrayUnion(newRequest)
+        });
+      }
+
+      toast({ title: 'Request Sent', description: `Requested: "${customDocLabel}"` });
+      setIsCustomDocOpen(false);
+      setCustomDocLabel('');
+      setCustomDocType('pdf');
+      fetchOrderAndStaff();
+    } catch (error) {
+      console.error("Error requesting custom document:", error);
+      toast({ title: 'Error', description: 'Failed to request document.', variant: "destructive" });
+    } finally {
+      setIsSubmittingCustomDoc(false);
     }
   };
 
@@ -744,6 +815,50 @@ export default function AdminOrderDetailsPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={isCustomDocOpen} onOpenChange={setIsCustomDocOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Request Custom Document</DialogTitle>
+                        <DialogDescription>
+                            Ask the client to upload an additional document or provide specific information.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleRequestCustomDoc} className="space-y-4 pt-2">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Document / Info Name</label>
+                            <Input 
+                                placeholder="e.g. Proof of Business Address" 
+                                value={customDocLabel} 
+                                onChange={(e) => setCustomDocLabel(e.target.value)} 
+                                required 
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Response Type</label>
+                            <Select 
+                                value={customDocType} 
+                                onValueChange={(value: 'pdf' | 'text') => setCustomDocType(value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="pdf">File Upload (PDF)</SelectItem>
+                                    <SelectItem value="text">Text / Information Input</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" onClick={() => setIsCustomDocOpen(false)}>Cancel</Button>
+                            <Button type="submit" disabled={isSubmittingCustomDoc}>
+                                {isSubmittingCustomDoc ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : null}
+                                Send Request
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
             <Button variant="outline" asChild><Link href="/admin/orders"><ArrowLeft className="mr-2 h-4 w-4" />Back to Orders</Link></Button>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -770,7 +885,17 @@ export default function AdminOrderDetailsPage() {
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <div><CardTitle>Required Information</CardTitle><CardDescription>Information needed from the client.</CardDescription></div>
-                                <Button variant="outline" size="sm" onClick={handleSendFollowUp} disabled={isSendingReminder}>{isSendingReminder ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <MessageSquare className="h-4 w-4 mr-2"/>}Follow Up</Button>
+                                <div className="flex items-center gap-2">
+                                    {order.documentUploads && order.documentUploads.some(d => d.status === 'pending') && (
+                                        <Button variant="outline" size="sm" className="text-green-600 hover:text-green-700 border-green-200 hover:bg-green-50" onClick={handleBatchApprove}>
+                                            <CheckCircle className="h-4 w-4 mr-2"/>Approve All Pending
+                                        </Button>
+                                    )}
+                                    <Button variant="outline" size="sm" onClick={() => setIsCustomDocOpen(true)}>
+                                        <FileText className="h-4 w-4 mr-2"/>Request Custom Doc
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={handleSendFollowUp} disabled={isSendingReminder}>{isSendingReminder ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <MessageSquare className="h-4 w-4 mr-2"/>}Follow Up</Button>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4">

@@ -144,8 +144,19 @@ export default function ClientOrderDetailsPage() {
             };
             
             const orderRef = doc(db, 'orders', order.id);
+            const currentUploads = order.documentUploads || [];
+            const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
+            
+            let updatedUploads;
+            if (existingIndex > -1) {
+                updatedUploads = [...currentUploads];
+                updatedUploads[existingIndex] = newUpload;
+            } else {
+                updatedUploads = [...currentUploads, newUpload];
+            }
+            
             await updateDoc(orderRef, {
-                documentUploads: arrayUnion(newUpload)
+                documentUploads: updatedUploads
             });
 
             toast({ title: 'File Uploaded', description: `${file.name} has been submitted for review.`});
@@ -181,8 +192,19 @@ export default function ClientOrderDetailsPage() {
 
         try {
             const orderRef = doc(db, 'orders', order.id);
+            const currentUploads = order.documentUploads || [];
+            const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
+            
+            let updatedUploads;
+            if (existingIndex > -1) {
+                updatedUploads = [...currentUploads];
+                updatedUploads[existingIndex] = newUpload;
+            } else {
+                updatedUploads = [...currentUploads, newUpload];
+            }
+
             await updateDoc(orderRef, {
-                documentUploads: arrayUnion(newUpload)
+                documentUploads: updatedUploads
             });
             toast({ title: 'Information Submitted', description: 'Your information has been securely saved.' });
             setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
@@ -325,20 +347,32 @@ export default function ClientOrderDetailsPage() {
 
   if (!order) return notFound();
 
-   const orderedItemsWithServices = order.items.map(item => {
+    const orderedItemsWithServices = order.items.map(item => {
         const serviceDetails = allServices.find(s => 
           s.id === item.id || 
           s.title.toLowerCase() === item.id.toLowerCase() || 
           s.title.toLowerCase() === item.title.toLowerCase() ||
           s.slug === item.id
         );
-        return { ...item, service: serviceDetails };
+        
+        const standardReqs = serviceDetails?.informationToProvide || [];
+        const customReqs = (order.documentUploads || [])
+            .filter(d => (d.serviceId === item.id || d.serviceId === serviceDetails?.id) && !standardReqs.some(p => p.label === d.requirementLabel))
+            .map(d => ({
+                label: d.requirementLabel,
+                type: d.type
+            }));
+            
+        const combinedRequirements = [...standardReqs, ...customReqs];
+
+        return { ...item, service: serviceDetails, combinedRequirements };
     });
 
-  const allRequirements = orderedItemsWithServices.flatMap(item => item.service?.informationToProvide || []);
+  const allRequirements = orderedItemsWithServices.flatMap(item => item.combinedRequirements || []);
   const allSubmitted = allRequirements.every(req => 
-      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected')
+      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected' && (doc.fileUrl || doc.textValue))
   );
+  const consultantNotified = order.notes?.some(note => note.text === "Client has submitted their documents for review.") || false;
 
   return (
     <div className="space-y-8">
@@ -353,6 +387,31 @@ export default function ClientOrderDetailsPage() {
 
         <div className="grid grid-cols-1 gap-8 items-start">
             <div className="space-y-8">
+                {allSubmitted && (
+                    consultantNotified ? (
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-800 dark:bg-green-950/20 dark:border-green-900 dark:text-green-300">
+                            <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+                            <div>
+                                <p className="font-semibold text-green-900 dark:text-green-200">All documents submitted!</p>
+                                <p className="text-sm">Your consultant has been notified and is currently reviewing your documents. We will update you here and via email once the review is complete.</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900 dark:text-amber-300">
+                            <div className="flex items-start gap-3">
+                                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-semibold text-amber-900 dark:text-amber-200">Action Required: Submit for Review</p>
+                                    <p className="text-sm">All required documents have been uploaded. Please submit them so your consultant can start processing your order.</p>
+                                </div>
+                            </div>
+                            <Button onClick={handleNotifyConsultant} disabled={isSubmitting} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
+                                Submit Documents Now
+                            </Button>
+                        </div>
+                    )
+                )}
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Order {order.id}</CardTitle>
@@ -380,20 +439,29 @@ export default function ClientOrderDetailsPage() {
                                     <div><p className="font-semibold text-lg">{item.title}</p></div>
                                     <p className="font-semibold text-lg">{formatPrice(item.price)}</p>
                                 </div>
-                                {item.service && item.service.informationToProvide && item.service.informationToProvide.length > 0 && (
+                                {item.combinedRequirements && item.combinedRequirements.length > 0 && (
                                     <div className="mt-4 pl-4 ml-4 border-l-2 space-y-4">
                                         <h4 className="font-medium text-md">Documents Required:</h4>
-                                        {item.service.informationToProvide.map((info: any, infoIndex: number) => {
-                                            const upload = order.documentUploads?.find(d => d.serviceId === item.service?.id && d.requirementLabel === info.label);
-                                            const uploadKey = `${item.service?.id}-${info.label}`;
+                                        {item.combinedRequirements.map((info: any, infoIndex: number) => {
+                                            const upload = order.documentUploads?.find(d => (d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === info.label);
+                                            const uploadKey = `${item.service?.id || item.id}-${info.label}`;
                                             const isUploading = uploadingFiles[uploadKey] !== undefined;
                                             const isRejected = upload?.status === 'rejected';
+                                            const isNotUploaded = !upload || (upload.status === 'pending' && !upload.fileUrl && !upload.textValue);
 
-                                            return (
-                                            <div key={infoIndex} className="space-y-2 p-3 rounded-md border">
-                                                <div className="flex justify-between items-center"><label className="text-sm font-medium flex items-center gap-2"><ClipboardCheck className="h-4 w-4" />{info.label}</label>{upload && ( <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'}>{upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}{upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}{upload.status.charAt(0).toUpperCase() + upload.status.slice(1).replace('_', ' ')}</Badge> )}</div>
-                                                {isRejected && ( <p className="text-xs text-destructive mt-1 italic">Reason: {upload.rejectionReason}</p> )}
-                                                {isRejected || !upload ? ( <> {isUploading ? ( <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin"/><p className="text-sm">Uploading... {Math.round(uploadingFiles[uploadKey])}%</p></div> ) : ( info.type === 'pdf' ? ( <Input type="file" accept="application/pdf" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service!.id, info.label)} /> ) : ( <div className="flex items-center gap-2"><Input type="text" className="h-9" placeholder="Enter information here..." value={textInputs[info.label] || ''} onChange={(e) => handleTextChange(info.label, e.target.value)} /><Button size="sm" onClick={() => handleTextSubmit(item.service!.id, info.label)}>Save</Button></div> ) )} </> ) : ( <div className="p-2 bg-green-50 text-green-800 rounded-md border border-green-200 text-sm">{upload.type === 'file' ? `Submitted: ${upload.fileName}` : `Submitted: "${upload.textValue}"`}</div> )}
+                                             return (
+                                            <div key={infoIndex} className={`space-y-2 p-3 rounded-md border ${isRejected ? 'border-destructive bg-destructive/5 dark:bg-destructive/10' : ''}`}>
+                                                <div className="flex justify-between items-center"><label className="text-sm font-medium flex items-center gap-2"><ClipboardCheck className="h-4 w-4" />{info.label}</label>{upload && (upload.fileUrl || upload.textValue) && ( <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'}>{upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}{upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}{upload.status.charAt(0).toUpperCase() + upload.status.slice(1).replace('_', ' ')}</Badge> )}</div>
+                                                {isRejected && (
+                                                    <div className="p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive flex items-start gap-2 mt-1">
+                                                        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                                                        <div>
+                                                            <span className="font-semibold">Rejection Reason:</span> {upload.rejectionReason}
+                                                            <p className="mt-1 text-muted-foreground font-normal">Please upload a corrected version below.</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {isRejected || isNotUploaded ? ( <> {isUploading ? ( <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin"/><p className="text-sm">Uploading... {Math.round(uploadingFiles[uploadKey])}%</p></div> ) : ( info.type === 'pdf' ? ( <Input type="file" accept="application/pdf" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} /> ) : ( <div className="flex items-center gap-2"><Input type="text" className="h-9" placeholder="Enter information here..." value={textInputs[info.label] || ''} onChange={(e) => handleTextChange(info.label, e.target.value)} /><Button size="sm" onClick={() => handleTextSubmit(item.service?.id || item.id, info.label)}>Save</Button></div> ) )} </> ) : ( <div className="p-2 bg-green-50 text-green-800 rounded-md border border-green-200 text-sm">{upload.type === 'file' ? `Submitted: ${upload.fileName}` : `Submitted: "${upload.textValue}"`}</div> )}
                                             </div>
                                         )})}
                                     </div>
@@ -403,7 +471,23 @@ export default function ClientOrderDetailsPage() {
                         ))}
                          <Separator className="my-4" /><div className="flex justify-between font-bold text-xl"><span>Total</span><span>{formatPrice(order.total)}</span></div>
                     </CardContent>
-                    {allRequirements.length > 0 && ( <CardFooter><Button onClick={handleNotifyConsultant} disabled={isSubmitting || !allSubmitted}>{isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}Notify Consultant of All Submissions</Button></CardFooter> )}
+                    {allRequirements.length > 0 && (
+                        <CardFooter>
+                            <Button 
+                                onClick={handleNotifyConsultant} 
+                                disabled={isSubmitting || !allSubmitted || consultantNotified}
+                            >
+                                {isSubmitting ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : consultantNotified ? (
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                ) : (
+                                    <Send className="mr-2 h-4 w-4" />
+                                )}
+                                {consultantNotified ? "Consultant Notified" : "Notify Consultant of All Submissions"}
+                            </Button>
+                        </CardFooter>
+                    )}
                 </Card>
                 
                  <Card>

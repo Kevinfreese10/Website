@@ -22,7 +22,7 @@ const LandingPageConfigOutputSchema = z.object({
   heroTitle: z.string().describe("The primary heading at the top of the landing page"),
   heroSubtitle: z.string().describe("A supporting subtitle displayed under the hero title"),
   aboutUs: z.string().describe("The 'About Us' section text"),
-  themePreset: z.enum(['custom', 'my_accountant', 'futuristic', 'tech_blue']).optional(),
+  themePreset: z.enum(['custom', 'my_accountant', 'futuristic', 'tech_blue', 'facebook', 'lovable', 'monday', 'monday_crm', 'stripe', 'airbnb', 'linear', 'spotify', 'notion', 'apple']).optional(),
   primaryColor: z.string().describe("Primary brand color (hex format, starting with #)"),
   secondaryColor: z.string().optional().describe("Secondary brand color (hex format, starting with #)"),
   backgroundColor: z.string().optional().describe("Background color of the page (hex format, starting with #)"),
