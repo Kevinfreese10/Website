@@ -13,6 +13,7 @@ import { format, addDays } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { services as allServices } from '@/lib/data';
 import { sendDocumentRequestEmailAction } from '@/app/actions';
+import Script from 'next/script';
 import { useToast } from '@/hooks/use-toast';
 
 const db = getFirestore(firebaseApp);
@@ -219,6 +220,16 @@ export default function PaymentSuccessPage() {
 
     return (
         <div className="container mx-auto px-4 py-12 max-w-4xl">
+            <Script id="google-ads-conversion" strategy="afterInteractive">
+                {`
+                  gtag('event', 'conversion', {
+                      'send_to': 'AW-18282670193/v02BCKW9vsccEPHQ7Y1E',
+                      'value': ${order.total || 1.0},
+                      'currency': 'ZAR',
+                      'transaction_id': '${order.id}'
+                  });
+                `}
+            </Script>
             <Card>
                 <CardHeader className="text-center">
                     <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
