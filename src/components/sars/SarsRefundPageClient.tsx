@@ -98,6 +98,14 @@ export default function SarsRefundPageClient() {
       });
       return;
     }
+    if (checkedCount === 0) {
+      toast({
+        title: "Please select an option",
+        description: "Please select at least one option that applies to you before continuing.",
+        variant: "destructive"
+      });
+      return;
+    }
     setFormStep(2);
   };
 
@@ -646,6 +654,36 @@ export default function SarsRefundPageClient() {
                           required 
                           className="bg-white/5 border-white/10 focus:border-primary"
                         />
+                      </div>
+                      
+                      <div className="space-y-3 pt-2">
+                        <Label className="text-sm font-medium">Which of these apply to you? (Select at least one) *</Label>
+                        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                           {qualifyingChecklist.map((item) => (
+                             <button
+                               key={item.id}
+                               type="button"
+                               onClick={() => toggleCheckItem(item.id)}
+                               className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all duration-300 text-left ${
+                                 checkedItems[item.id] 
+                                   ? 'bg-emerald-500/10 border-emerald-500/30 shadow-sm' 
+                                   : 'bg-white/5 border-white/10 hover:border-white/20'
+                               }`}
+                             >
+                               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all duration-300 ${
+                                 checkedItems[item.id] 
+                                   ? 'bg-emerald-500 border-emerald-500' 
+                                   : 'border-white/20'
+                               }`}>
+                                 {checkedItems[item.id] && <CheckCircle2 className="h-3 w-3 text-white" />}
+                               </div>
+                               <item.icon className={`h-4 w-4 shrink-0 ${checkedItems[item.id] ? 'text-emerald-500' : 'text-muted-foreground'}`} />
+                               <span className={`text-sm ${checkedItems[item.id] ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                                 {item.label}
+                               </span>
+                             </button>
+                           ))}
+                        </div>
                       </div>
                       <Button type="submit" className="w-full bg-gradient text-primary-foreground py-6 rounded-xl font-bold text-base hover:scale-[1.02] transition-all duration-300">
                         Continue to Step 2
