@@ -20,6 +20,7 @@ const TransactionLineSchema = z.object({
     date: z.string().describe("The transaction date in 'YYYY-MM-DD' format."),
     description: z.string().describe("The full transaction description."),
     amount: z.number().describe("The transaction amount. Use negative numbers for debits/payments and positive numbers for credits/receipts."),
+    balance: z.number().optional().describe("The running balance AFTER this transaction, if present on the statement row."),
 });
 
 const ExtractStatementDataOutputSchema = z.object({
@@ -59,12 +60,14 @@ Strictly follow these rules:
 1.  **Date**: Extract the transaction date, always formatted as YYYY-MM-DD. If the statement only contains day and month (e.g. 02/06 or 03 Jun), infer the correct year from the statement header or context.
 2.  **Description**: Extract the full, untruncated description of the transaction as it appears on the statement.
 3.  **Amount**: The transaction amount. It is CRITICAL to use negative numbers for any debits, payments, withdrawals, or money out, and positive numbers for any credits, deposits, receipts, or money in.
-4.  **Bank Fees / Service Charges**: If a transaction row contains a bank fee or charge (often in a dedicated 'Fee', 'Charge', 'Fee*', or 'Service Fee' column, or explicitly listed on the same row), you MUST generate a separate, additional transaction line in the output for this fee. Do NOT combine the fee with the main transaction amount.
+4.  **Balance**: Extract the running balance for the transaction if it is shown on that row. Ensure it is parsed as a proper floating-point number.
+5.  **Bank Fees / Service Charges**: If a transaction row contains a bank fee or charge (often in a dedicated 'Fee', 'Charge', 'Fee*', or 'Service Fee' column, or explicitly listed on the same row), you MUST generate a separate, additional transaction line in the output for this fee. Do NOT combine the fee with the main transaction amount.
     - The fee transaction must have the same date as the parent transaction.
     - The fee description should append ' (BANK FEE)' to the parent description, or be formatted as 'Bank Fee: [Parent Description]'.
     - The fee amount must be a negative number (e.g. -10.00).
-5.  **Numeric Formats**: South African statements often use spaces or commas as thousands separators (e.g., '10 000.00' or '-1 200,50') and currency symbols (e.g., 'R'). Clean these formats and parse them as proper floating-point numbers (e.g., 10000.00 or -1200.50).
-6.  **Exclude Running Balances & Totals**: Never extract values from the 'Balance' column or any page sub-totals, totals, or overview summary boxes as transactions.
+    - The fee's balance should be the balance AFTER the fee is applied. If the statement shows a single balance for both the transaction and the fee, assign that balance to the fee transaction and omit the balance for the main transaction, or vice-versa.
+6.  **Numeric Formats**: South African statements often use spaces or commas as thousands separators (e.g., '10 000.00' or '-1 200,50') and currency symbols (e.g., 'R'). Clean these formats and parse them as proper floating-point numbers (e.g., 10000.00 or -1200.50).
+7.  **Exclude Running Balances & Totals**: Never extract values from page sub-totals, totals, or overview summary boxes as transactions. Only extract actual line-item transactions.
 
 If the document is a scanned image, use advanced OCR to ensure every character is read correctly.` },
       { media: { url: input.statementFile, contentType: mimeType } }

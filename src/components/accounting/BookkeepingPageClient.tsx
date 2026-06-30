@@ -57,6 +57,18 @@ export default function BookkeepingPageClient() {
       q: 'Can you clean up my previous years’ messy bookkeeping records?',
       a: 'Yes! We specialize in "catch-up bookkeeping" for dormant or legacy entities. We will reconstruct your records, compile them into compliant ledgers, and prepare them for tax filing to bring your business back to good standing.',
     },
+    {
+      q: 'How much does a bookkeeper cost per month in South Africa?',
+      a: 'The cost of a bookkeeper in South Africa depends entirely on your monthly transaction volume and the complexity of your business. Outsourcing to My Accountant starts with affordable fixed monthly retainers, which is typically 70% cheaper than hiring a full-time, in-house bookkeeper.',
+    },
+    {
+      q: 'Do I need a bookkeeper for a small business in SA?',
+      a: 'Yes. Every registered business in South Africa (including Sole Proprietors) is required by SARS to keep accurate financial records. A bookkeeper ensures your bank accounts reconcile, your expenses are categorized correctly, and you are prepared for provisional tax and VAT submissions.',
+    },
+    {
+      q: 'What is the difference between a bookkeeper and a tax practitioner?',
+      a: 'A bookkeeper manages the day-to-day recording of your financial transactions (invoicing, bank feeds, expenses). A tax practitioner takes those organized records and legally submits your tax returns (ITR14, EMP201, VAT201) to SARS, representing you in case of audits or disputes.',
+    }
   ];
 
   const keywordButtons = [
@@ -145,6 +157,34 @@ export default function BookkeepingPageClient() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ACCOUNTING SOFTWARE */}
+      <section className="py-16 bg-slate-50">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="text-center mb-12 space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">Which Accounting Software Do You Use?</h2>
+            <p className="text-sm text-muted-foreground font-semibold">We are certified partners for South Africa's leading cloud platforms.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="border shadow-sm border-slate-200">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-[#13b5ea]">Xero Accounting</CardTitle>
+              </CardHeader>
+              <CardContent className="text-slate-600 text-sm leading-relaxed">
+                As Xero Silver Partners, we highly recommend Xero for its automated bank feeds, intuitive dashboard, and seamless integration with hundreds of apps (like Hubdoc for receipt scanning). It is perfect for SMEs looking for real-time data.
+              </CardContent>
+            </Card>
+            <Card className="border shadow-sm border-slate-200">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-[#00d639]">Sage Business Cloud</CardTitle>
+              </CardHeader>
+              <CardContent className="text-slate-600 text-sm leading-relaxed">
+                Sage is a powerful, locally-compliant software excellent for South African VAT tracking and inventory management. Our Sage Certified Advisers can train your team or manage the entire platform on your behalf.
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>

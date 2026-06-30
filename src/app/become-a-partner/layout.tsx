@@ -1,8 +1,7 @@
 import { ReactNode } from 'react';
 import { Metadata } from 'next';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Become a Partner | Bookkeeper Empowerment Initiative | My Accountant',

@@ -8,8 +8,8 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import Script from 'next/script';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600;
+
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {

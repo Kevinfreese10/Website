@@ -14,9 +14,13 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useBlog } from '@/contexts/BlogContext';
 import { format } from 'date-fns';
+import { BlogPost } from '@/lib/types';
 
-export default function BlogPageClient() {
-  const { blogPosts, isLoading } = useBlog();
+export default function BlogPageClient({ initialBlogPosts }: { initialBlogPosts?: BlogPost[] }) {
+  const { blogPosts: contextPosts, isLoading } = useBlog();
+  
+  const blogPosts = initialBlogPosts && initialBlogPosts.length > 0 ? initialBlogPosts : contextPosts;
+  const showLoader = isLoading && (!initialBlogPosts || initialBlogPosts.length === 0);
 
   return (
     <div className="w-full bg-white flex flex-col min-h-screen animate-in fade-in">
@@ -34,7 +38,7 @@ export default function BlogPageClient() {
       </section>
       
       <div className="container mx-auto px-4 pb-12 flex-grow">
-        {isLoading ? (
+        {showLoader ? (
           <div className="flex justify-center items-center h-64">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>

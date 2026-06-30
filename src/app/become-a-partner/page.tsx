@@ -5,8 +5,7 @@ import BecomeAPartnerPageClient from '@/components/become-a-partner/BecomeAPartn
  * Forces dynamic rendering to ensure fresh content and resolves build conflicts.
  */
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600;
 
 export default function BecomeAPartnerPage() {
   return <BecomeAPartnerPageClient />;

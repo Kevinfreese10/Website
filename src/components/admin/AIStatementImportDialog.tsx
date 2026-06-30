@@ -40,8 +40,10 @@ type Transaction = {
   date: string;
   description: string;
   amount: number;
+  balance?: number;
   isFee?: boolean;
   parentDescription?: string;
+  sourceStmtId?: string;
 };
 
 type StatementFile = {
@@ -241,13 +243,27 @@ export default function AIStatementImportDialog({
   const calculatedRecon = useMemo(() => {
     if (!combinedStatementMeta || editedOpeningBalance === null || editedClosingBalance === null) return null;
     const importTotal = filteredTransactions.reduce((s, t) => s + t.amount, 0);
-    const startingBalance = createOpeningBalance ? editedOpeningBalance : currentAccountData.balance;
+    // Use the statement's opening balance to validate the extraction itself, not the current DB balance
+    const startingBalance = editedOpeningBalance;
     const projectedBalance = startingBalance + importTotal;
     const diff = Math.abs(projectedBalance - editedClosingBalance);
     const isMatched = diff < 0.01;
 
     return { importTotal, projectedBalance, diff, isMatched };
-  }, [combinedStatementMeta, editedOpeningBalance, editedClosingBalance, filteredTransactions, currentAccountData.balance, createOpeningBalance]);
+  }, [combinedStatementMeta, editedOpeningBalance, editedClosingBalance, filteredTransactions]);
+
+  const runningBalances = useMemo(() => {
+      let currentBal = editedOpeningBalance || 0;
+      return extractedTransactions.map((tx, idx) => {
+          const isExcluded = excludedIndices.has(idx);
+          const isOutOfDateRange = (filterStartDate && tx.date < filterStartDate) || (filterEndDate && tx.date > filterEndDate);
+          
+          if (!isExcluded && !isOutOfDateRange) {
+              currentBal += tx.amount;
+          }
+          return currentBal;
+      });
+  }, [extractedTransactions, excludedIndices, filterStartDate, filterEndDate, editedOpeningBalance]);
 
   const handlePreAnalyze = async (files: FileList) => {
     if (!files || files.length === 0) return;
@@ -502,7 +518,8 @@ export default function AIStatementImportDialog({
           const result = await extractStatementChunk({ chunkBase64 });
 
           if (result.success && result.transactions) {
-            allTransactions = [...allTransactions, ...result.transactions];
+            const txsWithSource = result.transactions.map((tx: Transaction) => ({ ...tx, sourceStmtId: stmt.id }));
+            allTransactions = [...allTransactions, ...txsWithSource];
             setExtractedTransactions([...allTransactions]);
           } else {
             throw new Error(result.error || `Failed to extract transactions from pages ${start + 1} to ${end} of ${stmt.name}`);
@@ -519,15 +536,31 @@ export default function AIStatementImportDialog({
 
       allTransactions.sort((a, b) => a.date.localeCompare(b.date));
 
-      // Smart deduplication across statements
+      // Smart deduplication across statements that preserves legitimate same-day duplicates
       const uniqueTransactions: Transaction[] = [];
-      const seenTxKeys = new Set<string>();
+      const txGroups = new Map<string, Transaction[]>();
 
       allTransactions.forEach(tx => {
         const key = `${tx.date}_${tx.description.toLowerCase().trim()}_${tx.amount.toFixed(2)}`;
-        if (!seenTxKeys.has(key)) {
-          seenTxKeys.add(key);
-          uniqueTransactions.push(tx);
+        if (!txGroups.has(key)) txGroups.set(key, []);
+        txGroups.get(key)!.push(tx);
+      });
+
+      txGroups.forEach((groupTxs) => {
+        const countsPerStmt = new Map<string, number>();
+        groupTxs.forEach(tx => {
+           if (tx.sourceStmtId) {
+               countsPerStmt.set(tx.sourceStmtId, (countsPerStmt.get(tx.sourceStmtId) || 0) + 1);
+           }
+        });
+        
+        let maxCount = groupTxs.length;
+        if (countsPerStmt.size > 0) {
+            maxCount = Math.max(...Array.from(countsPerStmt.values()));
+        }
+
+        for (let i = 0; i < maxCount; i++) {
+            uniqueTransactions.push(groupTxs[i]);
         }
       });
 
@@ -1055,6 +1088,8 @@ export default function AIStatementImportDialog({
                                     <TableHead className="text-[10px] py-2">Date</TableHead>
                                     <TableHead className="text-[10px] py-2">Description</TableHead>
                                     <TableHead className="text-right text-[10px] py-2">Amount</TableHead>
+                                    <TableHead className="text-right text-[10px] py-2">Calc Bal</TableHead>
+                                    <TableHead className="text-right text-[10px] py-2">Stmt Bal</TableHead>
                                     <TableHead className="w-10"></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -1104,6 +1139,16 @@ export default function AIStatementImportDialog({
                                                     onChange={(e) => handleUpdateTransaction(idx, 'amount', parseFloat(e.target.value) || 0)}
                                                     className={cn("h-7 text-[10px] border-none bg-transparent text-right font-mono", tx.amount < 0 ? "text-destructive" : "text-green-600")}
                                                 />
+                                            </TableCell>
+                                            <TableCell className="p-1 text-right text-[10px] font-mono text-muted-foreground pr-4">
+                                                {formatPrice(runningBalances[idx])}
+                                            </TableCell>
+                                            <TableCell className="p-1 text-right text-[10px] font-mono pr-4">
+                                                {tx.balance !== undefined ? (
+                                                    <span className={Math.abs(runningBalances[idx] - tx.balance) > 0.01 ? "text-destructive font-bold" : "text-green-600"}>
+                                                        {formatPrice(tx.balance)}
+                                                    </span>
+                                                ) : <span className="text-muted-foreground opacity-50">-</span>}
                                             </TableCell>
                                             <TableCell className="text-right py-2 pr-4">
                                                 <Button 

@@ -13,7 +13,7 @@ import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 900;
 
 async function getService(slug: string): Promise<Service | null> {
     const adminDb = getAdminDb();
@@ -198,6 +198,37 @@ export default async function ProductDetailPage({ params }: Props) {
     }))
   };
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": SITE_URL
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Products",
+        "item": `${SITE_URL}/products`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": service.category,
+        "item": `${SITE_URL}/products#${service.category.toLowerCase().replace(/ /g, '-')}`
+      },
+      {
+        "@type": "ListItem",
+        "position": 4,
+        "name": service.title,
+        "item": `${SITE_URL}/products/${service.slug}`
+      }
+    ]
+  };
+
   return (
     <>
       <Script
@@ -210,6 +241,12 @@ export default async function ProductDetailPage({ params }: Props) {
         id="faq-schema"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
+      <Script
+        id="breadcrumb-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
 
       {/* BREADCRUMB */}

@@ -2,8 +2,7 @@ import ContactPageClient from '@/components/contact/ContactPageClient';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import { Metadata } from 'next';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {

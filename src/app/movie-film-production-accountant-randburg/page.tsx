@@ -19,8 +19,7 @@ import {
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600;
 
 export const viewport = {
   width: 'device-width',

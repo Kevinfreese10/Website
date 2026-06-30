@@ -7,7 +7,7 @@ import { Metadata } from 'next';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import Script from 'next/script';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 const fontLinks: Record<string, string> = {
   inter: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap',

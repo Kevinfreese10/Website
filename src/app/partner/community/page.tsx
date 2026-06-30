@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 
 // Force dynamic page rendering for freshness (Next.js App Router)
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 interface PageProps {
   searchParams: Promise<{

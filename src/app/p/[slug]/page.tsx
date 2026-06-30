@@ -13,7 +13,7 @@ import PartnerPricingCalculator from '@/components/partner/PartnerPricingCalcula
 import AnimatedSection from '@/components/partner/AnimatedSection';
 import FloatingCTA from '@/components/partner/FloatingCTA';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-ZA', {

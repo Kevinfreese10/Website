@@ -6,6 +6,14 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
+        disallow: [
+          '/login',
+          '/signup',
+          '/dashboard',
+          '/cart',
+          '/checkout',
+          '/admin'
+        ],
       },
     ],
     sitemap: 'https://www.myacc.co.za/sitemap.xml',

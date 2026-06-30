@@ -13,7 +13,7 @@ import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import Script from 'next/script';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 1800;
 
 async function getPost(slug: string): Promise<BlogPost | null> {
     const adminDb = getAdminDb();

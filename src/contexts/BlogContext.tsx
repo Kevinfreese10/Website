@@ -31,10 +31,21 @@ export const BlogProvider = ({ children }: { children: ReactNode }) => {
         const querySnapshot = await getDocs(q);
         const fetchedPosts = querySnapshot.docs.map(doc => {
           const data = doc.data();
+          let dateStr = new Date().toISOString();
+          if (data.date) {
+             if (typeof data.date.toDate === 'function') {
+                dateStr = data.date.toDate().toISOString();
+             } else if (typeof data.date === 'string') {
+                dateStr = new Date(data.date).toISOString();
+             } else if (data.date instanceof Date) {
+                dateStr = data.date.toISOString();
+             }
+          }
+
           return { 
             ...data, 
             id: doc.id,
-            date: (data.date as Timestamp).toDate().toISOString(), // Convert Timestamp to ISO string
+            date: dateStr,
          } as BlogPost
         });
         setBlogPosts(fetchedPosts);

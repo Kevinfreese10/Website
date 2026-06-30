@@ -5,8 +5,7 @@ import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firesto
 import { db } from '@/lib/firebase';
 import { Service } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 900;
 
 export const viewport = {
   width: 'device-width',

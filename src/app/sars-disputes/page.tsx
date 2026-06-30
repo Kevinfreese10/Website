@@ -2,8 +2,7 @@ import SarsDisputesPageClient from '@/components/sars/SarsDisputesPageClient';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import { Metadata } from 'next';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600;
 
 export const viewport = {
   width: 'device-width',

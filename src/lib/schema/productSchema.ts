@@ -115,11 +115,10 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
   };
 
   // 5. Add AggregateRating and Review to trigger star snippets in SERPs.
-  // Defaults to site-wide TrustIndex rating (4.9 with 187 reviews) if not custom defined,
-  // unless explicitly disabled.
-  if (service.enableAggregateRating !== false) {
-    const ratingValue = service.aggregateRatingValue || 4.9;
-    const reviewCount = service.reviewCount || 187;
+  // Only include if the service explicitly defines its own ratings (avoids Google manual action for site-wide ratings on individual products).
+  if (service.enableAggregateRating !== false && service.aggregateRatingValue && service.reviewCount) {
+    const ratingValue = service.aggregateRatingValue;
+    const reviewCount = service.reviewCount;
 
     schema.aggregateRating = {
       "@type": "AggregateRating",
@@ -138,7 +137,7 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
       },
       "author": {
         "@type": "Organization",
-        "name": "TrustIndex Customers"
+        "name": "Verified Customers"
       }
     };
   }

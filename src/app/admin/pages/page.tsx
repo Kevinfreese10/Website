@@ -5,7 +5,6 @@ import SeoManagementClient from '@/components/admin/SeoManagementClient';
  */
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export default function PagesManagementPage() {
   return <SeoManagementClient />;

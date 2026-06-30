@@ -54,25 +54,19 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_BUILD_TIMESTAMP: new Date().toISOString(),
   },
   async headers() {
+    const noCacheHeaders = [
+      { key: 'Cache-Control', value: 'no-store, max-age=0, must-revalidate' },
+      { key: 'Pragma', value: 'no-cache' },
+      { key: 'Expires', value: '0' },
+    ];
+    
     return [
-      {
-        // Apply no-cache headers to all routes to ensure the latest version is always fetched
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, max-age=0, must-revalidate',
-          },
-          {
-            key: 'Pragma',
-            value: 'no-cache',
-          },
-          {
-            key: 'Expires',
-            value: '0',
-          },
-        ],
-      },
+      { source: '/admin/:path*', headers: noCacheHeaders },
+      { source: '/dashboard/:path*', headers: noCacheHeaders },
+      { source: '/login', headers: noCacheHeaders },
+      { source: '/signup', headers: noCacheHeaders },
+      { source: '/cart', headers: noCacheHeaders },
+      { source: '/checkout', headers: noCacheHeaders },
     ];
   },
   async redirects() {
