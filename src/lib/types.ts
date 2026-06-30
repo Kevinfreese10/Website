@@ -372,6 +372,7 @@ export type Employee = {
   terminationDate?: any;
   medicalAidMembers?: number;
   medicalAidDependents?: number;
+  dateOfBirth?: any;
 };
 
 export type PayslipItem = {
