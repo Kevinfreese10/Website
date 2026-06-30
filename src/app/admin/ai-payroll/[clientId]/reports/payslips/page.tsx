@@ -12,10 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Download, FileText, Users } from 'lucide-react';
+import { Loader2, Download, FileText, Users, Mail } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parse, isValid } from 'date-fns';
 import jsPDF from 'jspdf';
 import { generatePayslipPdfPage } from '@/lib/payslipPdf';
+import { emailBatchPayslips } from '@/app/actions/emailBatchPayslips';
 
 const db = getFirestore(firebaseApp);
 
@@ -40,6 +41,7 @@ export default function PayslipsBatchDownloadPage() {
     const [selectedMonth, setSelectedMonth] = useState<string>('');
     const [selectedPayslipIds, setSelectedPayslipIds] = useState<string[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isEmailing, setIsEmailing] = useState(false);
 
     // Fetch Initial Data
     useEffect(() => {
@@ -269,6 +271,42 @@ export default function PayslipsBatchDownloadPage() {
         }
     };
 
+    const handleEmailBatch = async () => {
+        const selected = periodPayslips.filter(ps => selectedPayslipIds.includes(ps.id!));
+        if (selected.length === 0) {
+            toast({ title: 'No payslips selected', description: 'Please select at least one payslip to email.', variant: 'destructive' });
+            return;
+        }
+
+        setIsEmailing(true);
+        try {
+            const res = await emailBatchPayslips(clientId, selectedMonth, selectedPayslipIds);
+            
+            if (!res.success) {
+                toast({ title: 'Emailing Failed', description: res.error || 'Unknown error occurred.', variant: 'destructive' });
+            } else {
+                let desc = `Successfully sent ${res.sentCount} emails.`;
+                if (res.skippedCount && res.skippedCount > 0) {
+                    desc += ` Skipped ${res.skippedCount} (missing email/password).`;
+                }
+                if (res.errorCount && res.errorCount > 0) {
+                    desc += ` Failed ${res.errorCount}.`;
+                }
+                
+                toast({ 
+                    title: 'Batch Email Complete', 
+                    description: desc,
+                    variant: res.errorCount && res.errorCount > 0 ? 'destructive' : 'default'
+                });
+            }
+        } catch (err) {
+            console.error(err);
+            toast({ title: 'Emailing Failed', description: 'An error occurred while communicating with the server.', variant: 'destructive' });
+        } finally {
+            setIsEmailing(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
@@ -350,8 +388,26 @@ export default function PayslipsBatchDownloadPage() {
                     </div>
                     <div className="flex items-center gap-2">
                         <Button 
+                            onClick={handleEmailBatch} 
+                            disabled={isEmailing || isDownloading || selectedPayslipIds.length === 0}
+                            variant="outline"
+                            className="shadow-sm"
+                        >
+                            {isEmailing ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Emailing...
+                                </>
+                            ) : (
+                                <>
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    Email Selected ({selectedPayslipIds.length})
+                                </>
+                            )}
+                        </Button>
+                        <Button 
                             onClick={handleDownloadBatch} 
-                            disabled={isDownloading || selectedPayslipIds.length === 0}
+                            disabled={isDownloading || isEmailing || selectedPayslipIds.length === 0}
                             className="font-bold shadow-sm"
                         >
                             {isDownloading ? (

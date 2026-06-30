@@ -13,7 +13,7 @@ type EmailPayload = {
     html: string;
     from?: string;
     resellerId?: string;
-    attachments?: { filename: string; path: string }[];
+    attachments?: { filename: string; path?: string; content?: Buffer; contentType?: string }[];
     replyTo?: string;
     smtpOverride?: { host: string; port: string; user: string; pass: string };
     fromNameOverride?: string;
