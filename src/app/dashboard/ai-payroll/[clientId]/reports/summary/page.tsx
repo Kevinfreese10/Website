@@ -131,7 +131,7 @@ export default function PayrollSummaryReportPage() {
 
     // Aggregation
     const reportData = useMemo(() => {
-        if (!selectedMonth) return { breakdown: [], uniqueEarningLabels: [], earningTotals: {}, totals: { gross: 0, paye: 0, uifEe: 0, uifEr: 0, sdl: 0, net: 0, totalCost: 0 } };
+        if (!selectedMonth) return { breakdown: [], uniqueEarningLabels: [] as string[], earningTotals: {} as Record<string, number>, uniqueDeductionLabels: [] as string[], deductionTotals: {} as Record<string, number>, totals: { gross: 0, paye: 0, uifEe: 0, uifEr: 0, sdl: 0, net: 0, totalCost: 0 } };
 
         const isFortnightly = client?.payrollFrequency === 'Fortnightly';
         let periodPayslips: Payslip[] = [];
@@ -199,6 +199,17 @@ export default function PayrollSummaryReportPage() {
         });
         const uniqueEarningLabels = Array.from(earningLabels).sort();
 
+        // Gather unique extra deduction labels
+        const deductionLabels = new Set<string>();
+        periodPayslips.forEach(ps => {
+            ps.deductions.forEach(d => {
+                if (d.label.toLowerCase() !== 'tax' && !d.label.toLowerCase().includes('unemployment')) {
+                    deductionLabels.add(d.label);
+                }
+            });
+        });
+        const uniqueDeductionLabels = Array.from(deductionLabels).sort();
+
         let totalGross = 0;
         let totalPaye = 0;
         let totalUifEe = 0;
@@ -223,16 +234,26 @@ export default function PayrollSummaryReportPage() {
                     uifEr: 0,
                     sdl: 0,
                     net: 0,
-                    earningsBreakdown: {}
+                    earningsBreakdown: {} as Record<string, number>,
+                    deductionsBreakdown: {} as Record<string, number>
                 };
                 uniqueEarningLabels.forEach(label => {
                     empMap[ps.employeeId].earningsBreakdown[label] = 0;
+                });
+                uniqueDeductionLabels.forEach(label => {
+                    empMap[ps.employeeId].deductionsBreakdown[label] = 0;
                 });
             }
 
             ps.earnings.forEach(e => {
                 const label = getConsolidatedLabel(e.label);
                 empMap[ps.employeeId].earningsBreakdown[label] = (empMap[ps.employeeId].earningsBreakdown[label] || 0) + e.amount;
+            });
+            
+            ps.deductions.forEach(d => {
+                if (d.label.toLowerCase() !== 'tax' && !d.label.toLowerCase().includes('unemployment')) {
+                    empMap[ps.employeeId].deductionsBreakdown[d.label] = (empMap[ps.employeeId].deductionsBreakdown[d.label] || 0) + d.amount;
+                }
             });
 
             empMap[ps.employeeId].gross += (ps.grossPay || 0);
@@ -255,9 +276,17 @@ export default function PayrollSummaryReportPage() {
         uniqueEarningLabels.forEach(label => {
             earningTotals[label] = 0;
         });
+        const deductionTotals: Record<string, number> = {};
+        uniqueDeductionLabels.forEach(label => {
+            deductionTotals[label] = 0;
+        });
+
         Object.values(empMap).forEach((b: any) => {
             uniqueEarningLabels.forEach(label => {
                 earningTotals[label] += (b.earningsBreakdown[label] || 0);
+            });
+            uniqueDeductionLabels.forEach(label => {
+                deductionTotals[label] += (b.deductionsBreakdown[label] || 0);
             });
         });
 
@@ -265,6 +294,8 @@ export default function PayrollSummaryReportPage() {
             breakdown: Object.values(empMap),
             uniqueEarningLabels,
             earningTotals,
+            uniqueDeductionLabels,
+            deductionTotals,
             totals: {
                 gross: totalGross,
                 paye: totalPaye,
@@ -287,6 +318,7 @@ export default function PayrollSummaryReportPage() {
             "Gross Earnings",
             "PAYE (Tax)",
             "UIF (Employee)",
+            ...reportData.uniqueDeductionLabels,
             "UIF (Employer)",
             "SDL (Employer)",
             "Net Pay",
@@ -308,6 +340,7 @@ export default function PayrollSummaryReportPage() {
                 b.gross,
                 b.paye,
                 b.uifEe,
+                ...reportData.uniqueDeductionLabels.map(label => b.deductionsBreakdown[label] || 0),
                 b.uifEr,
                 b.sdl,
                 b.net,
@@ -321,6 +354,7 @@ export default function PayrollSummaryReportPage() {
             reportData.totals.gross,
             reportData.totals.paye,
             reportData.totals.uifEe,
+            ...reportData.uniqueDeductionLabels.map(label => reportData.deductionTotals[label] || 0),
             reportData.totals.uifEr,
             reportData.totals.sdl,
             reportData.totals.net,
@@ -359,6 +393,7 @@ export default function PayrollSummaryReportPage() {
             'Gross ZAR',
             'PAYE ZAR',
             'UIF EE ZAR',
+            ...reportData.uniqueDeductionLabels,
             'UIF ER ZAR',
             'SDL ZAR',
             'Net Pay ZAR',
@@ -372,6 +407,7 @@ export default function PayrollSummaryReportPage() {
                 formatCurr(b.gross),
                 formatCurr(b.paye),
                 formatCurr(b.uifEe),
+                ...reportData.uniqueDeductionLabels.map(label => formatCurr(b.deductionsBreakdown[label] || 0)),
                 formatCurr(b.uifEr),
                 formatCurr(b.sdl),
                 formatCurr(b.net),
@@ -383,6 +419,7 @@ export default function PayrollSummaryReportPage() {
                 formatCurr(reportData.totals.gross),
                 formatCurr(reportData.totals.paye),
                 formatCurr(reportData.totals.uifEe),
+                ...reportData.uniqueDeductionLabels.map(label => formatCurr(reportData.deductionTotals[label] || 0)),
                 formatCurr(reportData.totals.uifEr),
                 formatCurr(reportData.totals.sdl),
                 formatCurr(reportData.totals.net),
@@ -505,6 +542,9 @@ export default function PayrollSummaryReportPage() {
                                     <TableHead className="text-right font-bold text-slate-800">Gross Earnings</TableHead>
                                     <TableHead className="text-right font-bold text-primary">PAYE</TableHead>
                                     <TableHead className="text-right font-bold">UIF (EE)</TableHead>
+                                    {reportData.uniqueDeductionLabels.map(label => (
+                                        <TableHead key={label} className="text-right font-bold text-red-600">{label}</TableHead>
+                                    ))}
                                     <TableHead className="text-right font-bold">UIF (ER)</TableHead>
                                     <TableHead className="text-right font-bold">SDL</TableHead>
                                     <TableHead className="text-right font-bold text-green-700">Net Pay</TableHead>
@@ -514,7 +554,7 @@ export default function PayrollSummaryReportPage() {
                             <TableBody>
                                 {reportData.breakdown.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={8 + reportData.uniqueEarningLabels.length} className="text-center py-12 text-muted-foreground italic">
+                                        <TableCell colSpan={8 + reportData.uniqueEarningLabels.length + reportData.uniqueDeductionLabels.length} className="text-center py-12 text-muted-foreground italic">
                                             No finalized payslips found in this month.
                                         </TableCell>
                                     </TableRow>
@@ -528,6 +568,9 @@ export default function PayrollSummaryReportPage() {
                                             <TableCell className="text-right font-mono text-xs font-semibold">{formatCurrency(row.gross)}</TableCell>
                                             <TableCell className="text-right font-mono text-xs font-bold text-primary">{formatCurrency(row.paye)}</TableCell>
                                             <TableCell className="text-right font-mono text-xs">{formatCurrency(row.uifEe)}</TableCell>
+                                            {reportData.uniqueDeductionLabels.map(label => (
+                                                <TableCell key={label} className="text-right font-mono text-xs text-red-600">{formatCurrency(row.deductionsBreakdown[label] || 0)}</TableCell>
+                                            ))}
                                             <TableCell className="text-right font-mono text-xs">{formatCurrency(row.uifEr)}</TableCell>
                                             <TableCell className="text-right font-mono text-xs">{formatCurrency(row.sdl)}</TableCell>
                                             <TableCell className="text-right font-mono text-xs font-bold text-green-700">{formatCurrency(row.net)}</TableCell>
@@ -545,6 +588,9 @@ export default function PayrollSummaryReportPage() {
                                     <TableCell className="text-right font-black text-slate-900">{formatCurrency(reportData.totals.gross)}</TableCell>
                                     <TableCell className="text-right font-black text-primary">{formatCurrency(reportData.totals.paye)}</TableCell>
                                     <TableCell className="text-right font-black text-slate-900">{formatCurrency(reportData.totals.uifEe)}</TableCell>
+                                    {reportData.uniqueDeductionLabels.map(label => (
+                                        <TableCell key={label} className="text-right font-black text-red-600">{formatCurrency(reportData.deductionTotals[label] || 0)}</TableCell>
+                                    ))}
                                     <TableCell className="text-right font-black text-slate-900">{formatCurrency(reportData.totals.uifEr)}</TableCell>
                                     <TableCell className="text-right font-black text-slate-900">{formatCurrency(reportData.totals.sdl)}</TableCell>
                                     <TableCell className="text-right font-black text-green-700">{formatCurrency(reportData.totals.net)}</TableCell>
