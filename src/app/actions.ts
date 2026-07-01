@@ -419,7 +419,6 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
                 });
             }
         }
-    }
         }
         await batch.commit();
     }
