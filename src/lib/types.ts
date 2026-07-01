@@ -373,12 +373,25 @@ export type Employee = {
   medicalAidMembers?: number;
   medicalAidDependents?: number;
   dateOfBirth?: any;
+  recurringItems?: RecurringItem[];
+};
+
+export type RecurringItem = {
+  id: string;
+  label: string;
+  amount: number;
+  type: 'earning' | 'deduction' | 'contribution' | 'fringe';
+  remainingMonths: number | 'indefinite';
+  taxCategory?: 'regular' | 'bonus' | 'non-taxable';
+  isStatutory?: boolean;
 };
 
 export type PayslipItem = {
   label: string;
   amount: number;
   isStatutory?: boolean;
+  taxCategory?: 'regular' | 'bonus' | 'non-taxable';
+  durationMonths?: number | 'indefinite';
 };
 
 export type Payslip = {

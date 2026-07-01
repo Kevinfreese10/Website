@@ -957,11 +957,19 @@ export async function syncEmployeeSalaryToActivePayslipAction({ clientId, employ
     return { success: true };
 }
 
-export async function updatePayslipAction({ clientId, payslipId, data }: { clientId: string, payslipId: string, data: any }) {
+export async function updatePayslipAction({ clientId, payslipId, data, employeeId, recurringItems }: { clientId: string, payslipId: string, data: any, employeeId?: string, recurringItems?: any[] }) {
     try {
         const adminDb = getAdminDb();
+        const batch = adminDb.batch();
         const psRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc(payslipId);
-        await psRef.update({ ...data, status: 'finalized', updatedAt: new Date() });
+        batch.update(psRef, { ...data, status: 'finalized', updatedAt: new Date() });
+
+        if (employeeId && recurringItems) {
+            const empRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc(employeeId);
+            batch.update(empRef, { recurringItems });
+        }
+
+        await batch.commit();
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
@@ -998,14 +1006,40 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
     for (const d of empsSnap.docs) {
         const emp = d.data() as Employee;
         const newPsRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc();
+        
+        let initialEarnings = [] as any[];
+        let initialDeductions = [] as any[];
+        
+        let newRecurringItems = [] as any[];
+        if (emp.recurringItems && emp.recurringItems.length > 0) {
+            emp.recurringItems.forEach(item => {
+                const payslipItem = {
+                    label: item.label,
+                    amount: item.amount,
+                    isStatutory: item.isStatutory,
+                    taxCategory: item.taxCategory,
+                    durationMonths: item.remainingMonths
+                };
+                if (item.type === 'earning') initialEarnings.push(payslipItem);
+                if (item.type === 'deduction') initialDeductions.push(payslipItem);
+                
+                if (item.remainingMonths === 'indefinite') {
+                    newRecurringItems.push(item);
+                } else if (typeof item.remainingMonths === 'number' && item.remainingMonths > 1) {
+                    newRecurringItems.push({ ...item, remainingMonths: item.remainingMonths - 1 });
+                }
+            });
+            batch.update(d.ref, { recurringItems: newRecurringItems });
+        }
+        
         batch.set(newPsRef, {
             employeeId: d.id,
             employeeName: `${emp.name} ${emp.surname}`,
             period: nextPeriod,
             status: 'draft',
             createdAt: FieldValue.serverTimestamp(),
-            earnings: [],
-            deductions: [],
+            earnings: initialEarnings,
+            deductions: initialDeductions,
             contributions: [],
             fringeBenefits: [],
             grossPay: 0,

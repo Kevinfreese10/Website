@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import PayslipDownloadButton from '@/components/pdf/PayslipDownloadButton';
 import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 
 const formatCurrency = (val: number) => {
@@ -181,6 +182,8 @@ export default function PayslipEditor({
     // Dynamic Recalculation logic
     const totals = useMemo(() => {
         const gross = earnings.reduce((sum, item) => sum + item.amount, 0);
+        const regularGross = earnings.filter(e => e.taxCategory !== 'bonus' && e.taxCategory !== 'non-taxable').reduce((s, i) => s + i.amount, 0);
+        const bonusGross = earnings.filter(e => e.taxCategory === 'bonus').reduce((s, i) => s + i.amount, 0);
         const period = client.firstProcessingMonth;
         
         const updatedDeductions = [...deductions];
@@ -193,13 +196,14 @@ export default function PayslipEditor({
 
         if (payeIdx > -1) {
             updatedDeductions[payeIdx].amount = PayrollService.calculatePaye(
-                gross, 
+                regularGross, 
                 period, 
                 frequency, 
                 employee.joinDate,
                 employee.idNumber,
                 employee.medicalAidMembers || 0,
-                employee.medicalAidDependents || 0
+                employee.medicalAidDependents || 0,
+                bonusGross
             );
         }
         if (uifIdx > -1) updatedDeductions[uifIdx].amount = PayrollService.calculateUif(gross, period, frequency);
@@ -306,7 +310,7 @@ export default function PayslipEditor({
         else setFringeBenefits(fringeBenefits.filter((_, i) => i !== index));
     };
 
-    const handleUpdateItem = (index: number, field: 'label' | 'amount', value: any, type: 'earning' | 'deduction' | 'contribution' | 'fringe') => {
+    const handleUpdateItem = (index: number, field: 'label' | 'amount' | 'taxCategory' | 'durationMonths', value: any, type: 'earning' | 'deduction' | 'contribution' | 'fringe') => {
         const setter = type === 'earning' ? setEarnings : type === 'deduction' ? setDeductions : type === 'contribution' ? setContributions : setFringeBenefits;
         const list = type === 'earning' ? earnings : type === 'deduction' ? deductions : type === 'contribution' ? contributions : fringeBenefits;
         
@@ -334,10 +338,39 @@ export default function PayslipEditor({
                 hoursWorked
             };
 
+            const newRecurringItems = [...(employee.recurringItems || [])];
+            
+            const processRecurring = (list: PayslipItem[], type: 'earning' | 'deduction') => {
+                list.forEach(item => {
+                    if (item.durationMonths === 'indefinite' || (typeof item.durationMonths === 'number' && item.durationMonths > 1)) {
+                        const existingIdx = newRecurringItems.findIndex(r => r.label === item.label && r.type === type);
+                        const rItem = {
+                            id: Date.now().toString() + Math.random().toString(),
+                            label: item.label,
+                            amount: item.amount,
+                            type,
+                            remainingMonths: item.durationMonths,
+                            taxCategory: item.taxCategory,
+                            isStatutory: item.isStatutory
+                        };
+                        if (existingIdx > -1) {
+                            newRecurringItems[existingIdx] = { ...newRecurringItems[existingIdx], ...rItem, id: newRecurringItems[existingIdx].id };
+                        } else {
+                            newRecurringItems.push(rItem);
+                        }
+                    }
+                });
+            };
+
+            processRecurring(earnings, 'earning');
+            processRecurring(totals.updatedDeductions, 'deduction');
+
             const res = await updatePayslipAction({
                 clientId: client.id,
                 payslipId: payslip.id,
-                data: finalData
+                data: finalData,
+                employeeId: employee.id,
+                recurringItems: newRecurringItems
             });
 
             if (res.success) {
@@ -362,6 +395,9 @@ export default function PayslipEditor({
         </div>
     );
 
+    const STANDARD_EARNINGS = ["Leave Paid", "Back Pay", "Annual Bonus", "Work From Home Allowance", "Commission"];
+    const STANDARD_DEDUCTIONS = ["Advance Repayment", "Loan Repayment", "Garnishee Order", "Union Fee", "Unpaid Leave"];
+
     const ItemRow = ({ item, index, type }: { item: PayslipItem, index: number, type: 'earning' | 'deduction' | 'contribution' | 'fringe' }) => {
         const isCalculatedItem = type === 'earning' && (
             item.label.toLowerCase().includes('normal hours') ||
@@ -369,30 +405,95 @@ export default function PayslipEditor({
             item.label.toLowerCase().includes('overtime')
         );
 
+        const isStandardLabel = type === 'earning' ? STANDARD_EARNINGS.includes(item.label) : type === 'deduction' ? STANDARD_DEDUCTIONS.includes(item.label) : false;
+        const [isCustom, setIsCustom] = useState(!isStandardLabel && item.label !== 'New item');
+
         return (
-            <div className="flex items-center gap-2 group py-1 px-2 border-b border-gray-100 last:border-0 hover:bg-slate-50/50 transition-colors">
-                <Input 
-                    value={item.label} 
-                    onChange={(e) => handleUpdateItem(index, 'label', e.target.value, type)}
-                    disabled={item.isStatutory || isCalculatedItem}
-                    className="h-7 text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 flex-grow font-medium"
-                />
-                <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-muted-foreground font-mono">R</span>
-                    <Input 
-                        type="number"
-                        step="0.01"
-                        value={item.amount}
-                        onChange={(e) => handleUpdateItem(index, 'amount', e.target.value, type)}
-                        disabled={item.isStatutory || isCalculatedItem}
-                        className="h-7 w-24 text-right text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 font-mono font-bold"
-                    />
-                    {!item.isStatutory && !isCalculatedItem && (
-                        <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => handleRemoveItem(index, type)}>
-                            <Trash2 className="h-3 w-3" />
-                        </Button>
+            <div className="flex flex-col gap-1 py-2 px-2 border-b border-gray-100 last:border-0 hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-center gap-2 group">
+                    {(!isCalculatedItem && !item.isStatutory && (type === 'earning' || type === 'deduction')) ? (
+                        <div className="flex-grow flex gap-2">
+                            {!isCustom ? (
+                                <Select 
+                                    value={item.label === 'New item' ? '' : item.label} 
+                                    onValueChange={(val) => {
+                                        if (val === 'Other') {
+                                            setIsCustom(true);
+                                            handleUpdateItem(index, 'label', '', type);
+                                        } else {
+                                            handleUpdateItem(index, 'label', val, type);
+                                            if (val === 'Annual Bonus' && type === 'earning') {
+                                                handleUpdateItem(index, 'taxCategory', 'bonus', type);
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="h-7 text-[11px] bg-transparent border-none shadow-none font-medium flex-grow p-0 focus:ring-0">
+                                        <SelectValue placeholder="Select type..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {(type === 'earning' ? STANDARD_EARNINGS : STANDARD_DEDUCTIONS).map(opt => (
+                                            <SelectItem key={opt} value={opt} className="text-[11px]">{opt}</SelectItem>
+                                        ))}
+                                        <SelectItem value="Other" className="text-[11px] italic">Custom Option...</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <Input 
+                                    value={item.label} 
+                                    onChange={(e) => handleUpdateItem(index, 'label', e.target.value, type)}
+                                    placeholder="Enter custom label..."
+                                    className="h-7 text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 flex-grow font-medium"
+                                    autoFocus
+                                />
+                            )}
+                        </div>
+                    ) : (
+                        <Input 
+                            value={item.label} 
+                            onChange={(e) => handleUpdateItem(index, 'label', e.target.value, type)}
+                            disabled={item.isStatutory || isCalculatedItem}
+                            className="h-7 text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 flex-grow font-medium"
+                        />
                     )}
+                    <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground font-mono">R</span>
+                        <Input 
+                            type="number"
+                            step="0.01"
+                            value={item.amount}
+                            onChange={(e) => handleUpdateItem(index, 'amount', e.target.value, type)}
+                            disabled={item.isStatutory || isCalculatedItem}
+                            className="h-7 w-24 text-right text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 font-mono font-bold"
+                        />
+                        {!item.isStatutory && !isCalculatedItem && (
+                            <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => handleRemoveItem(index, type)}>
+                                <Trash2 className="h-3 w-3" />
+                            </Button>
+                        )}
+                    </div>
                 </div>
+                {(!isCalculatedItem && !item.isStatutory && (type === 'earning' || type === 'deduction')) && (
+                    <div className="flex justify-between items-center pl-1 pr-7">
+                        <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Duration:</span>
+                        <Select 
+                            value={item.durationMonths?.toString() || '1'} 
+                            onValueChange={(val) => handleUpdateItem(index, 'durationMonths', val === 'indefinite' ? 'indefinite' : parseInt(val), type)}
+                        >
+                            <SelectTrigger className="h-5 w-28 text-[9px] bg-transparent border-none shadow-none p-0 focus:ring-0 text-muted-foreground hover:text-foreground">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="1" className="text-[10px]">This Period Only</SelectItem>
+                                <SelectItem value="2" className="text-[10px]">2 Months</SelectItem>
+                                <SelectItem value="3" className="text-[10px]">3 Months</SelectItem>
+                                <SelectItem value="6" className="text-[10px]">6 Months</SelectItem>
+                                <SelectItem value="12" className="text-[10px]">12 Months</SelectItem>
+                                <SelectItem value="indefinite" className="text-[10px]">Indefinitely</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
             </div>
         );
     };

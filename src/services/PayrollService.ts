@@ -189,19 +189,21 @@ export class PayrollService {
     joinDate?: any, 
     idNumber?: string, 
     medicalAidMembers: number = 0, 
-    medicalAidDependents: number = 0
+    medicalAidDependents: number = 0,
+    bonusEarnings: number = 0
   ): number {
     const config = this.getTaxConfig(period);
     const effectivePeriods = this.getRemainingPeriods(period, joinDate, frequency);
-    const annualGross = periodEarnings * effectivePeriods;
-    let annualTax = 0;
-
-    const bracket = [...config.brackets].reverse().find(b => annualGross > b.threshold);
     
-    if (bracket) {
-      annualTax = bracket.base + (annualGross - bracket.threshold) * bracket.rate;
+    // Regular Annual Gross
+    const annualRegularGross = periodEarnings * effectivePeriods;
+    let annualRegularTax = 0;
+
+    const regularBracket = [...config.brackets].reverse().find(b => annualRegularGross > b.threshold);
+    if (regularBracket) {
+      annualRegularTax = regularBracket.base + (annualRegularGross - regularBracket.threshold) * regularBracket.rate;
     } else {
-      annualTax = annualGross * config.brackets[0].rate;
+      annualRegularTax = annualRegularGross * config.brackets[0].rate;
     }
 
     // Determine age-based rebates
@@ -216,8 +218,25 @@ export class PayrollService {
       }
     }
 
-    const netAnnualTax = Math.max(0, annualTax - rebate);
-    const monthlyPaye = netAnnualTax / effectivePeriods;
+    const netAnnualRegularTax = Math.max(0, annualRegularTax - rebate);
+    const monthlyRegularPaye = netAnnualRegularTax / effectivePeriods;
+
+    // Calculate tax on bonus if applicable
+    let taxOnBonus = 0;
+    if (bonusEarnings > 0) {
+      const annualTotalGross = annualRegularGross + bonusEarnings; // Bonus added to annual gross
+      let annualTotalTax = 0;
+      const totalBracket = [...config.brackets].reverse().find(b => annualTotalGross > b.threshold);
+      if (totalBracket) {
+        annualTotalTax = totalBracket.base + (annualTotalGross - totalBracket.threshold) * totalBracket.rate;
+      } else {
+        annualTotalTax = annualTotalGross * config.brackets[0].rate;
+      }
+      const netAnnualTotalTax = Math.max(0, annualTotalTax - rebate);
+      taxOnBonus = Math.max(0, netAnnualTotalTax - netAnnualRegularTax);
+    }
+
+    const totalMonthlyPaye = monthlyRegularPaye + taxOnBonus;
 
     // Monthly Medical Aid Credit
     let medicalCredit = 0;
@@ -236,7 +255,7 @@ export class PayrollService {
       }
     }
 
-    return parseFloat(Math.max(0, monthlyPaye - medicalCredit).toFixed(2));
+    return parseFloat(Math.max(0, totalMonthlyPaye - medicalCredit).toFixed(2));
   }
 
   /**
