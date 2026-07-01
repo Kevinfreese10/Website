@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableFooterComponent } from "@/components/ui/table";
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
+import { AccountSelector } from "@/components/accounting/AccountSelector";
 
 const db = getFirestore(firebaseApp);
 
@@ -203,13 +204,19 @@ export default function BankTransactionsReportPage() {
                             </div>
                             <div className="grid gap-1.5">
                                 <Label>Bank Account</Label>
-                                <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-                                    <SelectTrigger><SelectValue placeholder="Select an account" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Bank Accounts</SelectItem>
-                                        {bankAccounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
+                                <AccountSelector
+                                    client={client}
+                                    showAccounts={true}
+                                    showCustomers={false}
+                                    showSuppliers={false}
+                                    value={selectedAccountId}
+                                    onChange={(selection) => setSelectedAccountId(selection.value)}
+                                    placeholder="Select an account"
+                                    allowClear={true}
+                                    clearText="All Bank Accounts"
+                                    filterAccounts={(acc) => acc.accountNumber.startsWith('8400-')}
+                                    className="w-full"
+                                />
                             </div>
                         </div>
                         <div className="flex justify-start pt-4">

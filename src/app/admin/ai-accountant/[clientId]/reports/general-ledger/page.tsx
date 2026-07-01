@@ -2,6 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AccountSelector } from "@/components/accounting/AccountSelector";
 import { Label } from "@/components/ui/label";
 import React, { useState, useEffect, useMemo, ReactNode } from "react";
 import { User, ChartOfAccount, AllocatedTransaction, ImportedTransaction, VatType, Supplier, ClientCustomer } from "@/lib/types";
@@ -81,14 +82,16 @@ function ReallocateDialog({ transaction, client, onSave, onOpenChange, open }: {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>New Account</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Select an account" /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            {client.chartOfAccounts?.map(acc => (
-                                                <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <AccountSelector
+                                        client={client}
+                                        showAccounts={true}
+                                        showCustomers={false}
+                                        showSuppliers={false}
+                                        value={field.value}
+                                        onChange={(selection) => field.onChange(selection.value)}
+                                        placeholder="Select an account"
+                                        className="w-full"
+                                    />
                                     <FormMessage />
                                 </FormItem>
                             )}

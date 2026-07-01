@@ -3056,17 +3056,19 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                     </Tabs>
                     <div className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
                         <div className="flex items-center gap-2 w-full md:auto flex-wrap">
-                            <Select value={selectedGlAccountId} onValueChange={setSelectedGlAccountId}>
-                                <SelectTrigger className="w-full md:w-[240px]">
-                                    <SelectValue placeholder="Filter by Account..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Accounts ({usedAccountIds.size})</SelectItem>
-                                    {uniqueChartOfAccounts.filter(acc => usedAccountIds.has(acc.id)).map(acc => (
-                                        <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <AccountSelector
+                                client={client}
+                                showAccounts={true}
+                                showCustomers={false}
+                                showSuppliers={false}
+                                value={selectedGlAccountId}
+                                onChange={(selection) => setSelectedGlAccountId(selection.value)}
+                                placeholder="Filter by Account..."
+                                allowClear={true}
+                                clearText={`All Accounts (${usedAccountIds.size})`}
+                                filterAccounts={(acc) => usedAccountIds.has(acc.id)}
+                                className="w-full md:w-[240px]"
+                            />
                             
                             <div className="relative w-full md:w-40">
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -3530,10 +3532,17 @@ export default function BankTransactionsPage() {
 
             <div className="md:flex items-start justify-between">
                 <div className="flex flex-col gap-2">
-                     <Select onValueChange={setAccountId} value={accountId || ''}>
-                        <SelectTrigger className="w-[280px]"><SelectValue placeholder="Select a bank account" /></SelectTrigger>
-                        <SelectContent>{bankAccounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}</SelectContent>
-                    </Select>
+                     <AccountSelector
+                        client={client}
+                        showAccounts={true}
+                        showCustomers={false}
+                        showSuppliers={false}
+                        value={accountId || ''}
+                        onChange={(selection) => setAccountId(selection.value === "all" ? "" : selection.value)}
+                        placeholder="Select a bank account"
+                        className="w-[280px]"
+                        filterAccounts={(acc) => acc.accountNumber.startsWith('8400-')}
+                    />
                      <div className="flex gap-4 text-sm">
                         <div><span className="text-muted-foreground">Balance: </span><span className="font-semibold">{formatPrice(stats.balance)}</span></div>
                         <div><span className="text-muted-foreground">Unallocated: </span><span className="font-semibold">{stats.unallocatedCount}</span></div>

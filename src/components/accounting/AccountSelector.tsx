@@ -36,6 +36,9 @@ interface AccountSelectorProps {
     onCreateAccountClick?: () => void;
     // Optional account filter
     filterAccounts?: (acc: any) => boolean;
+    // Clear selection
+    allowClear?: boolean;
+    clearText?: string;
 }
 
 export function AccountSelector({
@@ -55,6 +58,8 @@ export function AccountSelector({
     size = "default",
     onCreateAccountClick,
     filterAccounts,
+    allowClear = false,
+    clearText = "Clear selection",
 }: AccountSelectorProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedAccountForVat, setSelectedAccountForVat] = useState<any>(null);
@@ -88,6 +93,7 @@ export function AccountSelector({
         const { value: valId, type } = normalizedValue;
 
         if (type === "account") {
+            if (valId === "all" && allowClear) return clearText;
             const acc = client?.chartOfAccounts?.find((a) => a.id === valId);
             return acc ? acc.description : placeholder;
         }
@@ -201,6 +207,22 @@ export function AccountSelector({
                         <CommandInput placeholder="Search accounts..." />
                         <CommandList className="max-h-72 overflow-y-auto">
                             <CommandEmpty>No results found.</CommandEmpty>
+                            {allowClear && (
+                                <>
+                                    <CommandGroup>
+                                        <CommandItem
+                                            onSelect={() => {
+                                                onChange({ value: "all", type: "account" });
+                                                setIsOpen(false);
+                                            }}
+                                            className="text-muted-foreground font-medium cursor-pointer p-2 flex items-center text-xs"
+                                        >
+                                            {clearText}
+                                        </CommandItem>
+                                    </CommandGroup>
+                                    <CommandSeparator />
+                                </>
+                            )}
                             {onCreateAccountClick && (
                                 <>
                                     <CommandGroup>
