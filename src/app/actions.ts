@@ -299,9 +299,15 @@ export async function prepareAiAccountantAnalysis({ clientId, bankAccountId }: {
     
     if (snap.empty) return { count: 0 };
 
-    const batch = adminDb.batch();
-    snap.docs.forEach(d => batch.update(d.ref, { status: 'ai_processing' }));
-    await batch.commit();
+    const chunks = [];
+    for (let i = 0; i < snap.docs.length; i += 450) {
+        chunks.push(snap.docs.slice(i, i + 450));
+    }
+    for (const chunk of chunks) {
+        const batch = adminDb.batch();
+        chunk.forEach(d => batch.update(d.ref, { status: 'ai_processing' }));
+        await batch.commit();
+    }
 
     return { count: snap.size };
 }
@@ -363,8 +369,13 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
         }
     });
 
-    const batch = adminDb.batch();
-    for (const d of snap.docs) {
+    const chunks = [];
+    for (let i = 0; i < snap.docs.length; i += 450) {
+        chunks.push(snap.docs.slice(i, i + 450));
+    }
+    for (const chunk of chunks) {
+        const batch = adminDb.batch();
+        for (const d of chunk) {
         const tx = d.data() as ImportedTransaction;
         const result = BankCleaner.process(tx.description);
         
@@ -409,8 +420,9 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
             }
         }
     }
-
-    await batch.commit();
+        }
+        await batch.commit();
+    }
 }
 
 export async function moveTransactionToNew({ clientId, transactionId }: { clientId: string, transactionId: string }) {
@@ -430,18 +442,24 @@ export async function moveTransactionToNew({ clientId, transactionId }: { client
 
 export async function bulkMoveTransactionsToNew({ clientId, transactionIds }: { clientId: string, transactionIds: string[] }) {
     const adminDb = getAdminDb();
-    const batch = adminDb.batch();
-    transactionIds.forEach(id => {
-        const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
-        batch.update(ref, {
-            status: 'new',
-            allocatedTo: FieldValue.delete(),
-            vatType: FieldValue.delete(),
-            smartAllocationResult: FieldValue.delete(),
-            allocationSource: FieldValue.delete()
+    const chunks = [];
+    for (let i = 0; i < transactionIds.length; i += 450) {
+        chunks.push(transactionIds.slice(i, i + 450));
+    }
+    for (const chunk of chunks) {
+        const batch = adminDb.batch();
+        chunk.forEach(id => {
+            const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
+            batch.update(ref, {
+                status: 'new',
+                allocatedTo: FieldValue.delete(),
+                vatType: FieldValue.delete(),
+                smartAllocationResult: FieldValue.delete(),
+                allocationSource: FieldValue.delete()
+            });
         });
-    });
-    await batch.commit();
+        await batch.commit();
+    }
     return { count: transactionIds.length };
 }
 
@@ -487,9 +505,15 @@ export async function resetAiAccountantAnalysis({ clientId, bankAccountId }: { c
     
     if (snap.empty) return { count: 0 };
 
-    const batch = adminDb.batch();
-    snap.docs.forEach(d => batch.update(d.ref, { status: 'new', smartAllocationResult: FieldValue.delete() }));
-    await batch.commit();
+    const chunks = [];
+    for (let i = 0; i < snap.docs.length; i += 450) {
+        chunks.push(snap.docs.slice(i, i + 450));
+    }
+    for (const chunk of chunks) {
+        const batch = adminDb.batch();
+        chunk.forEach(d => batch.update(d.ref, { status: 'new', smartAllocationResult: FieldValue.delete() }));
+        await batch.commit();
+    }
 
     return { count: snap.size };
 }
@@ -503,17 +527,23 @@ export async function reanalyzeAndRegroupTransactions({ clientId, bankAccountId,
     
     if (snap.empty) return { count: 0 };
 
-    const batch = adminDb.batch();
-    snap.docs.forEach(d => {
-        batch.update(d.ref, { 
-            status: 'ai_processing',
-            smartAllocationResult: FieldValue.delete(),
-            merchantKey: FieldValue.delete(),
-            cleanDescription: FieldValue.delete(),
-            rawDescription: FieldValue.delete()
+    const chunks = [];
+    for (let i = 0; i < snap.docs.length; i += 450) {
+        chunks.push(snap.docs.slice(i, i + 450));
+    }
+    for (const chunk of chunks) {
+        const batch = adminDb.batch();
+        chunk.forEach(d => {
+            batch.update(d.ref, { 
+                status: 'ai_processing',
+                smartAllocationResult: FieldValue.delete(),
+                merchantKey: FieldValue.delete(),
+                cleanDescription: FieldValue.delete(),
+                rawDescription: FieldValue.delete()
+            });
         });
-    });
-    await batch.commit();
+        await batch.commit();
+    }
 
     await runAiAccountantAnalysis({ clientId, bankAccountId, initiatorEmail });
 
