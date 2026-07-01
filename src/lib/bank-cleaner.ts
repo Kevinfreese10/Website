@@ -41,6 +41,12 @@ export class BankCleaner {
         let str = description.toUpperCase();
         let channel = 'UNKNOWN';
 
+        // Specific SKJ Physiotherapy extraction
+        const skjMatch = str.match(/^FNB APP PAYMENT TO (.*?)\s*(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC|JANUARY|FEBRUARY|MARCH|APRIL|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)?\s*SKJ PHYSIOTHERAPY/i);
+        if (skjMatch) {
+             return { clean: skjMatch[1].trim(), channel: 'EFT' };
+        }
+
         // Remove parenthesized text containing digits (e.g. references like (GN260221107247517698) or (12345))
         str = str.replace(/\([^)]*\d+[^)]*\)/g, ' ');
 
