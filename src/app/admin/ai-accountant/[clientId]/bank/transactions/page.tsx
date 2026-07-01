@@ -2534,10 +2534,24 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                                 <div className={cn("grid gap-4", client?.isVatRegistered ? "grid-cols-2" : "grid-cols-1")}>
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">ALLOCATE TO</Label>
-                                        <Select value={approvalSettings[group.merchantKey]?.accountId || ''} onValueChange={(v) => setApprovalSettings((p: any) => ({...p, [group.merchantKey]: {...p[group.merchantKey], accountId: v}}))}>
-                                            <SelectTrigger className="h-10 text-[11px] font-bold"><SelectValue placeholder="Account..." /></SelectTrigger>
-                                            <SelectContent>{client?.chartOfAccounts?.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>)}</SelectContent>
-                                        </Select>
+                                        <AccountSelector 
+                                            client={client}
+                                            showAccounts={true}
+                                            showCustomers={false}
+                                            showSuppliers={false}
+                                            value={approvalSettings[group.merchantKey]?.accountId || ''}
+                                            onChange={(selection) => {
+                                                setApprovalSettings((p: any) => ({
+                                                    ...p, 
+                                                    [group.merchantKey]: {
+                                                        ...p[group.merchantKey], 
+                                                        accountId: selection.value
+                                                    }
+                                                }));
+                                            }}
+                                            placeholder="Select account..."
+                                            className="w-full h-10"
+                                        />
                                     </div>
                                     {client?.isVatRegistered && (
                                         <div className="space-y-2">
