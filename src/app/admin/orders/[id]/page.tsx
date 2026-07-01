@@ -210,7 +210,7 @@ export default function AdminOrderDetailsPage() {
     }
 
     const newNote: OrderNote = {
-      text: values.noteText,
+      text: values.noteText || "",
       authorId: currentUser.uid,
       date: Timestamp.now(),
       type: 'note',
@@ -235,7 +235,7 @@ export default function AdminOrderDetailsPage() {
               recipientName: recipientName,
               senderName: currentUser.name || 'Admin',
               orderId: order.originalOrderId || order.id,
-              notePreview: values.noteText.substring(0, 150) + (values.noteText.length > 150 ? '...' : ''),
+              notePreview: (values.noteText || "").substring(0, 150) + ((values.noteText || "").length > 150 ? '...' : ''),
               actionUrl: isToClient 
                   ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`
                   : `${process.env.NEXT_PUBLIC_APP_URL}/partner/orders/${order.id}`,

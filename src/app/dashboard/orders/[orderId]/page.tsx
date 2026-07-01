@@ -245,7 +245,7 @@ export default function ClientOrderDetailsPage() {
     }
 
     const newNote: OrderNote = {
-      text: values.noteText,
+      text: values.noteText || "",
       authorId: currentUser.uid,
       date: Timestamp.now(),
       type: 'note',
@@ -263,7 +263,7 @@ export default function ClientOrderDetailsPage() {
       notifyStaffOfClientNote({
           orderId: order.id,
           senderName: currentUser?.name || 'Client',
-          noteText: values.noteText
+          noteText: values.noteText || "Attached File"
       }).catch(err => console.error("Failed to send note notification to staff:", err));
 
       toast({ title: "Note Added", description: "Your note has been saved." });

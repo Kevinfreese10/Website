@@ -208,7 +208,7 @@ export default function PartnerOrderDetailsPage() {
     }
 
     const newNote: OrderNote = {
-      text: values.noteText,
+      text: values.noteText || "",
       authorId: currentUser.uid,
       date: Timestamp.now(),
       type: 'note',
@@ -232,7 +232,7 @@ export default function PartnerOrderDetailsPage() {
               recipientName: recipientName,
               senderName: currentUser.name || 'Partner',
               orderId: order.originalOrderId || order.id,
-              notePreview: values.noteText.substring(0, 150) + (values.noteText.length > 150 ? '...' : ''),
+              notePreview: (values.noteText || "").substring(0, 150) + ((values.noteText || "").length > 150 ? '...' : ''),
               actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`,
               isToClient: true,
               resellerId: order.resellerId
