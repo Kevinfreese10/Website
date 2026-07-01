@@ -29,7 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList, CommandGroup } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { AccountSelector } from '@/components/accounting/AccountSelector';
+
 
 const db = getFirestore(firebaseApp);
 

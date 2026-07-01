@@ -238,6 +238,21 @@ export default function CommunicationHistory({ clientId, currentUser }: Communic
             placeholder="Type a message or add a note..."
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
+            onPaste={(e) => {
+              const items = e.clipboardData?.items;
+              if (!items) return;
+              for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                  const file = items[i].getAsFile();
+                  if (file) {
+                    // Create a new File object with a recognizable name
+                    const renamedFile = new File([file], `screenshot-${Date.now()}.png`, { type: file.type });
+                    setSelectedFile(renamedFile);
+                  }
+                  break;
+                }
+              }
+            }}
             rows={3}
             disabled={isSubmitting}
             className="bg-white border-primary/15 focus-visible:ring-primary text-sm"

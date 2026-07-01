@@ -52,8 +52,11 @@ const formatPrice = (price: number) => {
 };
 
 const noteFormSchema = z.object({
-  noteText: z.string().min(3, "Note must be at least 3 characters."),
+  noteText: z.string().optional(),
   attachments: z.any().optional(),
+}).refine(data => (data.noteText && data.noteText.trim().length >= 3) || (data.attachments && data.attachments.length > 0), {
+  message: "Note must be at least 3 characters or include an attachment.",
+  path: ["noteText"],
 });
 
 const rejectionFormSchema = z.object({
@@ -935,7 +938,26 @@ export default function AdminOrderDetailsPage() {
                             <Separator className="my-4" />
                             <Form {...noteForm}>
                             <form onSubmit={noteForm.handleSubmit(onNoteSubmit)} className="space-y-4">
-                                <FormField control={noteForm.control} name="noteText" render={({ field }) => ( <FormItem><FormControl><Textarea placeholder="Add a new note..." {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
+                                <FormField control={noteForm.control} name="noteText" render={({ field }) => ( <FormItem><FormControl><Textarea placeholder="Add a new note..." {...field} rows={4} onPaste={(e) => {
+                                    const items = e.clipboardData?.items;
+                                    if (!items) return;
+                                    for (let i = 0; i < items.length; i++) {
+                                        if (items[i].type.indexOf('image') !== -1) {
+                                            const file = items[i].getAsFile();
+                                            if (file) {
+                                                const renamedFile = new File([file], `screenshot-${Date.now()}.png`, { type: file.type });
+                                                const dataTransfer = new DataTransfer();
+                                                const existing = noteForm.getValues('attachments');
+                                                if (existing) {
+                                                    Array.from(existing as FileList).forEach(f => dataTransfer.items.add(f));
+                                                }
+                                                dataTransfer.items.add(renamedFile);
+                                                noteForm.setValue('attachments', dataTransfer.files);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }} /></FormControl><FormMessage /></FormItem> )} />
                                 <FormField control={noteForm.control} name="attachments" render={({ field: { onChange, value, ...rest }}) => ( <FormItem><FormLabel>Attachments (optional)</FormLabel><FormControl><Input type="file" multiple onChange={(e) => onChange(e.target.files)} {...rest} /></FormControl><FormMessage /></FormItem> )} />
                                 <div className="flex justify-between items-center"><div className="flex gap-2"><Button type="submit" size="sm" disabled={isLoading}>{isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}Post Note</Button><Button type="button" variant="outline" size="sm" onClick={handleProofread} disabled={isProofreading}>{isProofreading ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Sparkles className="mr-2" />}Proofread</Button></div></div>
                             </form>

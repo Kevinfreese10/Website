@@ -51,8 +51,11 @@ const formatPrice = (price: number) => {
 };
 
 const noteFormSchema = z.object({
-  noteText: z.string().min(3, "Note must be at least 3 characters."),
+  noteText: z.string().optional(),
   attachments: z.any().optional(),
+}).refine(data => (data.noteText && data.noteText.trim().length >= 3) || (data.attachments && data.attachments.length > 0), {
+  message: "Note must be at least 3 characters or include an attachment.",
+  path: ["noteText"],
 });
 
 const rejectionFormSchema = z.object({
@@ -968,7 +971,26 @@ export default function PartnerOrderDetailsPage() {
                                     name="noteText"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <Textarea placeholder="Add a new note..." {...field} rows={4} />
+                                            <Textarea placeholder="Add a new note..." {...field} rows={4} onPaste={(e) => {
+                                                const items = e.clipboardData?.items;
+                                                if (!items) return;
+                                                for (let i = 0; i < items.length; i++) {
+                                                    if (items[i].type.indexOf('image') !== -1) {
+                                                        const file = items[i].getAsFile();
+                                                        if (file) {
+                                                            const renamedFile = new File([file], `screenshot-${Date.now()}.png`, { type: file.type });
+                                                            const dataTransfer = new DataTransfer();
+                                                            const existing = noteForm.getValues('attachments');
+                                                            if (existing) {
+                                                                Array.from(existing as FileList).forEach(f => dataTransfer.items.add(f));
+                                                            }
+                                                            dataTransfer.items.add(renamedFile);
+                                                            noteForm.setValue('attachments', dataTransfer.files);
+                                                        }
+                                                        break;
+                                                    }
+                                                }
+                                            }} />
                                             <FormMessage />
                                         </FormItem>
                                     )}
