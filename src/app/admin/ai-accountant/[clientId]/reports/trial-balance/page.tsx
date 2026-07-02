@@ -67,7 +67,7 @@ function getFinancialYearStart(date: Date, endMonthName?: string) {
     }
 }
 
-function calculateBalances(client: User, transactions: (ImportedTransaction | AllocatedTransaction)[], dateRange?: DateRange) {
+function calculateBalances(client: User, transactions: (ImportedTransaction | AllocatedTransaction)[], dateRange?: DateRange, includeOpeningBalances: boolean = true) {
     const balances = new Map<string, number>();
     client.chartOfAccounts?.forEach(acc => balances.set(acc.id, 0));
 
@@ -95,6 +95,8 @@ function calculateBalances(client: User, transactions: (ImportedTransaction | Al
             if (!account) return;
 
             if (isPriorPeriod) {
+                if (!includeOpeningBalances) return;
+                
                 if (account.section === 'Income Statement') {
                     priorPeriodNetIncome -= amount; // Income is credit (negative), expenses are debit (positive)
                 } else { // Balance Sheet accounts
@@ -150,16 +152,16 @@ function calculateBalances(client: User, transactions: (ImportedTransaction | Al
     return balances;
 }
 
-function TrialBalanceReport({ client, transactions, dateRange, comparativeDateRange }: { client: User, transactions: (ImportedTransaction | AllocatedTransaction)[], dateRange?: DateRange, comparativeDateRange?: DateRange }) {
+function TrialBalanceReport({ client, transactions, dateRange, comparativeDateRange, includeOpeningBalances }: { client: User, transactions: (ImportedTransaction | AllocatedTransaction)[], dateRange?: DateRange, comparativeDateRange?: DateRange, includeOpeningBalances: boolean }) {
     const pathname = usePathname();
     const isDashboard = pathname.startsWith('/dashboard');
     const basePath = isDashboard ? `/dashboard/ai-accountant/${client.id}` : `/admin/ai-accountant/${client.id}`;
     
-    const primaryBalances = useMemo(() => calculateBalances(client, transactions, dateRange), [client, transactions, dateRange]);
+    const primaryBalances = useMemo(() => calculateBalances(client, transactions, dateRange, includeOpeningBalances), [client, transactions, dateRange, includeOpeningBalances]);
     const showComparison = !!comparativeDateRange;
     const comparativeBalances = useMemo(() => {
-        return showComparison ? calculateBalances(client, transactions, comparativeDateRange) : new Map<string, number>();
-    }, [client, transactions, comparativeDateRange, showComparison]);
+        return showComparison ? calculateBalances(client, transactions, comparativeDateRange, includeOpeningBalances) : new Map<string, number>();
+    }, [client, transactions, comparativeDateRange, showComparison, includeOpeningBalances]);
     
     const trialBalanceData = useMemo(() => {
         return client.chartOfAccounts
@@ -325,6 +327,7 @@ export default function TrialBalancePage() {
     const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
     const [comparativeDateRange, setComparativeDateRange] = React.useState<DateRange | undefined>(undefined);
     const [showComparison, setShowComparison] = useState(false);
+    const [includeOpeningBalances, setIncludeOpeningBalances] = useState(true);
     const { toast } = useToast();
     const [isSavingReport, setIsSavingReport] = useState(false);
     const [reportName, setReportName] = useState('');
@@ -531,6 +534,13 @@ export default function TrialBalancePage() {
                                 <DateRangePicker onDateChange={setComparativeDateRange} financialYearEnd={client?.yearEnd} />
                             )}
                          </div>
+                         <div className="space-y-2 lg:col-span-2">
+                            <div className="flex items-center space-x-2">
+                                <Switch id="include-opening-balances" checked={includeOpeningBalances} onCheckedChange={setIncludeOpeningBalances}/>
+                                <Label htmlFor="include-opening-balances" className="font-semibold">Include Opening Balances</Label>
+                            </div>
+                            <p className="text-sm text-muted-foreground">Turn this off to view only the movement for the selected period.</p>
+                         </div>
                      </div>
                      <Separator />
                     <div className="flex flex-col sm:flex-row gap-2">
@@ -553,6 +563,7 @@ export default function TrialBalancePage() {
                                         transactions={transactions} 
                                         dateRange={dateRange} 
                                         comparativeDateRange={showComparison ? comparativeDateRange : undefined}
+                                        includeOpeningBalances={includeOpeningBalances}
                                     />
                                 </DialogContent>
                             </Dialog>
