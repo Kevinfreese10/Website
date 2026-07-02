@@ -117,12 +117,12 @@ export function DateRangePicker({
 
   const handleFromBlur = () => {
       if (!fromText) {
-          setDate(prev => ({ ...prev, from: undefined }));
+          setDate(prev => ({ from: undefined, to: prev?.to }));
           return;
       }
       const parsed = parse(fromText, "dd/MM/yyyy", new Date());
       if (isValid(parsed)) {
-          setDate(prev => ({ ...prev, from: parsed }));
+          setDate(prev => ({ from: parsed, to: prev?.to }));
       } else {
           setFromText(date?.from ? format(date.from, "dd/MM/yyyy") : "");
       }
@@ -130,12 +130,12 @@ export function DateRangePicker({
 
   const handleToBlur = () => {
       if (!toText) {
-          setDate(prev => ({ ...prev, to: undefined }));
+          setDate(prev => ({ from: prev?.from, to: undefined }));
           return;
       }
       const parsed = parse(toText, "dd/MM/yyyy", new Date());
       if (isValid(parsed)) {
-          setDate(prev => ({ ...prev, to: endOfDay(parsed) }));
+          setDate(prev => ({ from: prev?.from, to: endOfDay(parsed) }));
       } else {
           setToText(date?.to ? format(date.to, "dd/MM/yyyy") : "");
       }
@@ -180,7 +180,7 @@ export function DateRangePicker({
                                     initialFocus
                                     mode="single"
                                     selected={date?.from}
-                                    onSelect={(day) => { setDate(prev => ({ ...prev, from: day })); }}
+                                    onSelect={(day) => { setDate(prev => ({ from: day, to: prev?.to })); }}
                                     numberOfMonths={1}
                                 />
                             </PopoverContent>
@@ -208,7 +208,7 @@ export function DateRangePicker({
                                     initialFocus
                                     mode="single"
                                     selected={date?.to}
-                                    onSelect={(day) => { setDate(prev => ({ ...prev, to: day ? endOfDay(day) : undefined })); }}
+                                    onSelect={(day) => { setDate(prev => ({ from: prev?.from, to: day ? endOfDay(day) : undefined })); }}
                                     numberOfMonths={1}
                                 />
                             </PopoverContent>
