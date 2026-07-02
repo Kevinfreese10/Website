@@ -1,14 +1,14 @@
-
 "use client"
 
 import * as React from "react"
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, getMonth, endOfDay } from "date-fns"
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, getMonth, endOfDay, parse, isValid } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { DateRange } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { Input } from "@/components/ui/input"
 import {
   Popover,
   PopoverContent,
@@ -36,6 +36,9 @@ export function DateRangePicker({
 }: DateRangePickerProps) {
   const [date, setDate] = React.useState<DateRange | undefined>(value);
   const [preset, setPreset] = React.useState<string>("all");
+  
+  const [fromText, setFromText] = React.useState<string>(value?.from ? format(value.from, "dd/MM/yyyy") : "");
+  const [toText, setToText] = React.useState<string>(value?.to ? format(value.to, "dd/MM/yyyy") : "");
 
   React.useEffect(() => {
     const isDifferent = (value?.from?.getTime() !== date?.from?.getTime()) || (value?.to?.getTime() !== date?.to?.getTime());
@@ -51,6 +54,8 @@ export function DateRangePicker({
 
   React.useEffect(() => {
     onDateChange(date);
+    setFromText(date?.from ? format(date.from, "dd/MM/yyyy") : "");
+    setToText(date?.to ? format(date.to, "dd/MM/yyyy") : "");
   }, [date, onDateChange]);
 
   const handlePresetChange = (value: string) => {
@@ -85,7 +90,6 @@ export function DateRangePicker({
         return { from: lastYearStart, to: endOfDay(lastYearEnd) };
     };
 
-
     switch (value) {
       case "all":
         newDate = undefined;
@@ -111,6 +115,32 @@ export function DateRangePicker({
     setDate(newDate);
   };
 
+  const handleFromBlur = () => {
+      if (!fromText) {
+          setDate(prev => ({ ...prev, from: undefined }));
+          return;
+      }
+      const parsed = parse(fromText, "dd/MM/yyyy", new Date());
+      if (isValid(parsed)) {
+          setDate(prev => ({ ...prev, from: parsed }));
+      } else {
+          setFromText(date?.from ? format(date.from, "dd/MM/yyyy") : "");
+      }
+  };
+
+  const handleToBlur = () => {
+      if (!toText) {
+          setDate(prev => ({ ...prev, to: undefined }));
+          return;
+      }
+      const parsed = parse(toText, "dd/MM/yyyy", new Date());
+      if (isValid(parsed)) {
+          setDate(prev => ({ ...prev, to: endOfDay(parsed) }));
+      } else {
+          setToText(date?.to ? format(date.to, "dd/MM/yyyy") : "");
+      }
+  };
+
   return (
     <div className={cn("grid gap-2", className)}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-end">
@@ -129,54 +159,61 @@ export function DateRangePicker({
             
             {preset === "custom" && (
                 <div className="grid grid-cols-2 gap-2">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <Button
+                    <div className="relative w-full">
+                        <Input
                             id="date-from"
-                            variant={"outline"}
-                            className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !date?.from && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {date?.from ? format(date.from, "dd/MM/yyyy") : <span>From</span>}
-                        </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            initialFocus
-                            mode="single"
-                            selected={date?.from}
-                            onSelect={(day) => setDate(prev => ({ from: day, to: prev?.to }))}
-                            numberOfMonths={1}
+                            value={fromText}
+                            onChange={e => setFromText(e.target.value)}
+                            onBlur={handleFromBlur}
+                            onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+                            placeholder="From"
+                            className={cn("pl-9 w-full", !date?.from && "text-muted-foreground")}
                         />
-                        </PopoverContent>
-                    </Popover>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <Button
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="absolute left-0 top-0 h-full w-9 px-0 py-0 hover:bg-transparent">
+                                    <CalendarIcon className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="single"
+                                    selected={date?.from}
+                                    onSelect={(day) => { setDate(prev => ({ ...prev, from: day })); }}
+                                    numberOfMonths={1}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    <div className="relative w-full">
+                        <Input
                             id="date-to"
-                            variant={"outline"}
-                            className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !date?.to && "text-muted-foreground"
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {date?.to ? format(date.to, "dd/MM/yyyy") : <span>To</span>}
-                        </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            initialFocus
-                            mode="single"
-                            selected={date?.to}
-                            onSelect={(day) => setDate(prev => ({ from: prev?.from, to: day ? endOfDay(day) : undefined }))}
-                            numberOfMonths={1}
+                            value={toText}
+                            onChange={e => setToText(e.target.value)}
+                            onBlur={handleToBlur}
+                            onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+                            placeholder="To"
+                            className={cn("pl-9 w-full", !date?.to && "text-muted-foreground")}
                         />
-                        </PopoverContent>
-                    </Popover>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="absolute left-0 top-0 h-full w-9 px-0 py-0 hover:bg-transparent">
+                                    <CalendarIcon className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="single"
+                                    selected={date?.to}
+                                    onSelect={(day) => { setDate(prev => ({ ...prev, to: day ? endOfDay(day) : undefined })); }}
+                                    numberOfMonths={1}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </div>
             )}
         </div>
