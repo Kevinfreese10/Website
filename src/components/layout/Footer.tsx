@@ -81,6 +81,10 @@ const Footer = () => {
             </div>
           </div>
         </div>
+        <div className="mt-8 flex justify-center gap-6 mb-8">
+          <script defer async src='https://cdn.trustindex.io/loader-cert.js?a78a37175c7b7428511669d1ff3'></script>
+          <script defer async src='https://cdn.trustindex.io/loader-cert.js?4926f2a758e0744bd106e7e6f62'></script>
+        </div>
         <div className="text-center text-sm text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} My Accountant. All rights reserved.</p>
           {buildId && (
