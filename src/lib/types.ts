@@ -164,7 +164,9 @@ export type Invoice = {
   subtotal: number;
   vat: number;
   total: number;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'final';
+  amountPaid?: number;
+  balanceDue?: number;
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'final' | 'partial';
   createdAt: any;
 };
 

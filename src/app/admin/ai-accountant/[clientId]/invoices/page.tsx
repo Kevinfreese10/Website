@@ -29,6 +29,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import InvoicePreview from '@/components/admin/InvoicePreview';
 import InvoiceDownloadButton from '@/components/pdf/InvoiceDownloadButton';
 import { AccountSelector } from '@/components/accounting/AccountSelector';
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
 const db = getFirestore(firebaseApp);
 
@@ -97,6 +99,38 @@ export default function InvoicesPage() {
     const [emailAddress, setEmailAddress] = useState("kev@thinkestry.co.za");
     const [isSendingEmail, setIsSendingEmail] = useState(false);
 
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+    const submitMode = useRef<'draft' | 'final'>('final');
+
+    const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
+    const [paymentAmount, setPaymentAmount] = useState<number>(0);
+    const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+    const [paymentAccountId, setPaymentAccountId] = useState<string>('');
+    const [paymentReference, setPaymentReference] = useState<string>('');
+    const [isSavingPayment, setIsSavingPayment] = useState(false);
+
+    const filteredInvoices = useMemo(() => {
+        return invoices.filter(invoice => {
+            const customer = customers.find(c => c.id === invoice.customerId);
+            const matchesSearch = !searchQuery || 
+                customer?.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                invoice.id.toLowerCase().includes(searchQuery.toLowerCase());
+            
+            const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
+
+            let matchesDate = true;
+            if (dateRange?.from) {
+                if (invoice.invoiceDate.getTime() < dateRange.from.getTime()) matchesDate = false;
+            }
+            if (dateRange?.to) {
+                if (invoice.invoiceDate.getTime() > dateRange.to.getTime()) matchesDate = false;
+            }
+
+            return matchesSearch && matchesStatus && matchesDate;
+        });
+    }, [invoices, customers, searchQuery, statusFilter, dateRange]);
 
     const form = useForm<InvoiceFormValues>({
         resolver: zodResolver(invoiceFormSchema),
@@ -123,6 +157,83 @@ export default function InvoicesPage() {
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
         toast({ title: 'Invoice Duplicated', description: 'The form has been pre-filled with the duplicate details.' });
+    };
+
+    const handleSavePayment = async () => {
+        if (!paymentInvoice || !client || !paymentAccountId || paymentAmount <= 0) {
+            toast({ title: "Error", description: "Please enter a valid amount and select an account.", variant: "destructive" });
+            return;
+        }
+        setIsSavingPayment(true);
+        try {
+            const batch = writeBatch(db);
+            const customerControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '8000-001')?.id;
+
+            if (!customerControlAccount) {
+                throw new Error("Customer Control Account not found.");
+            }
+
+            // Debit Selected Bank Account
+            const debitRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
+            batch.set(debitRef, {
+                clientId: client.id,
+                date: paymentDate.toISOString(),
+                reference: paymentReference,
+                description: `Payment for Invoice ${paymentInvoice.id}`,
+                amount: paymentAmount,
+                isExpense: false,
+                bankAccountId: 'JOURNAL',
+                allocatedTo: { value: paymentAccountId, type: 'account' },
+                vatType: 'no_vat',
+                vatAmount: 0,
+                status: 'allocated',
+                allocatedAt: serverTimestamp()
+            });
+
+            // Credit Accounts Receivable
+            const creditRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
+            batch.set(creditRef, {
+                clientId: client.id,
+                date: paymentDate.toISOString(),
+                reference: paymentReference,
+                description: `Payment applied to Invoice ${paymentInvoice.id}`,
+                amount: -paymentAmount,
+                isExpense: false,
+                bankAccountId: 'JOURNAL',
+                allocatedTo: { value: customerControlAccount, type: 'account' },
+                vatType: 'no_vat',
+                vatAmount: 0,
+                status: 'allocated',
+                allocatedAt: serverTimestamp()
+            });
+
+            // Update Invoice
+            const currentPaid = paymentInvoice.amountPaid || 0;
+            const newPaid = currentPaid + paymentAmount;
+            const currentBalance = paymentInvoice.balanceDue !== undefined ? paymentInvoice.balanceDue : paymentInvoice.total;
+            const newBalance = currentBalance - paymentAmount;
+            
+            let newStatus = paymentInvoice.status;
+            if (newBalance <= 0) newStatus = 'paid';
+            else if (newPaid > 0) newStatus = 'partial';
+
+            const invRef = doc(db, `aiAccountantClients/${client.id}/invoices`, paymentInvoice.id);
+            batch.update(invRef, {
+                amountPaid: newPaid,
+                balanceDue: newBalance,
+                status: newStatus
+            });
+
+            await batch.commit();
+            toast({ title: 'Payment Recorded', description: 'The payment has been successfully recorded.' });
+            setPaymentInvoice(null);
+            fetchData();
+        } catch(e: any) {
+            console.error(e);
+            toast({ title: 'Error', description: e.message || 'Failed to record payment.', variant: 'destructive' });
+        } finally {
+            setIsSavingPayment(false);
+        }
     };
 
     const handleSendEmail = async () => {
@@ -230,12 +341,16 @@ export default function InvoicesPage() {
             const batch = writeBatch(db);
             const invoiceRef = doc(db, `aiAccountantClients/${clientId}/invoices`, invoiceId);
 
+            const isDraft = submitMode.current === 'draft';
+
             batch.set(invoiceRef, {
                 ...data,
-                status: 'final',
+                status: isDraft ? 'draft' : 'final',
                 subtotal: subtotal,
                 vat: vat,
                 total: total,
+                amountPaid: 0,
+                balanceDue: total,
                 createdAt: serverTimestamp(),
             });
 
@@ -243,14 +358,15 @@ export default function InvoicesPage() {
             const clientRef = doc(db, 'aiAccountantClients', clientId);
             batch.update(clientRef, { nextInvoiceNumber: nextInvoiceNumber + 1 });
 
-            const customerControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '8000-001')?.id;
-            const vatControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '7000-008')?.id;
+            if (!isDraft) {
+                const customerControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '8000-001')?.id;
+                const vatControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '7000-008')?.id;
 
-            if (!customerControlAccount || (client.isVatRegistered && !vatControlAccount)) {
-                throw new Error("Control accounts not found in Chart of Accounts.");
-            }
-            
-            // 1. Debit Customer Control
+                if (!customerControlAccount || (client.isVatRegistered && !vatControlAccount)) {
+                    throw new Error("Control accounts not found in Chart of Accounts.");
+                }
+                
+                // 1. Debit Customer Control
             const debitTxRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
             batch.set(debitTxRef, {
                 clientId: client.id,
@@ -305,10 +421,11 @@ export default function InvoicesPage() {
                     allocatedAt: serverTimestamp(),
                 });
             }
+            }
 
             await batch.commit();
 
-            toast({ title: 'Invoice Finalized', description: 'The invoice has been created and posted to the general ledger.' });
+            toast({ title: isDraft ? 'Draft Saved' : 'Invoice Finalized', description: isDraft ? 'The invoice has been saved as a draft.' : 'The invoice has been created and posted to the general ledger.' });
             form.reset({
                  invoiceDate: new Date(),
                  dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
@@ -325,7 +442,7 @@ export default function InvoicesPage() {
     const vatTypes = allVatTypes.filter(vt => vt.category === 'Output Tax');
 
     return (
-        <Dialog onOpenChange={(isOpen) => !isOpen && setViewingInvoice(null)}>
+        <>
             <div className="space-y-8">
                  <Card>
                     <CardHeader>
@@ -421,8 +538,13 @@ export default function InvoicesPage() {
                                     )}
                                 />
                                 <InvoiceTotals control={form.control} isVatRegistered={client?.isVatRegistered} />
-                                <div className="flex justify-end pt-4">
-                                  <Button type="submit" disabled={isLoading}>{isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Finalizing...</> : "Finalize & Post Invoice"}</Button>
+                                <div className="flex justify-end gap-2 pt-4">
+                                  <Button type="submit" variant="secondary" onClick={() => submitMode.current = 'draft'} disabled={isLoading}>
+                                    {isLoading && submitMode.current === 'draft' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Saving...</> : "Save as Draft"}
+                                  </Button>
+                                  <Button type="submit" onClick={() => submitMode.current = 'final'} disabled={isLoading}>
+                                    {isLoading && submitMode.current === 'final' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Finalizing...</> : "Finalize & Post Invoice"}
+                                  </Button>
                                 </div>
                             </form>
                         </Form>
@@ -434,7 +556,38 @@ export default function InvoicesPage() {
                         <CardTitle>Posted Invoices</CardTitle>
                         <CardDescription>A list of invoices created for {client?.name}.</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
+                        <div className="flex flex-col md:flex-row gap-4 items-end">
+                            <div className="space-y-2 flex-1">
+                                <FormLabel>Search</FormLabel>
+                                <Input 
+                                    placeholder="Search by customer or invoice #" 
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2 w-full md:w-48">
+                                <FormLabel>Status</FormLabel>
+                                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All Statuses" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All</SelectItem>
+                                        <SelectItem value="draft">Draft</SelectItem>
+                                        <SelectItem value="final">Final (Unpaid)</SelectItem>
+                                        <SelectItem value="partial">Partial Payment</SelectItem>
+                                        <SelectItem value="paid">Paid</SelectItem>
+                                        <SelectItem value="overdue">Overdue</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2 w-full md:w-[350px]">
+                                <FormLabel>Date Range</FormLabel>
+                                <DateRangePicker onDateChange={setDateRange} value={dateRange} financialYearEnd={client?.yearEnd} />
+                            </div>
+                        </div>
+
                         {isLoading ? (
                             <div className="flex justify-center items-center h-40">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -446,26 +599,41 @@ export default function InvoicesPage() {
                                         <TableHead>Invoice #</TableHead>
                                         <TableHead>Customer</TableHead>
                                         <TableHead>Date</TableHead>
-                                        <TableHead>Due Date</TableHead>
+                                        <TableHead>Status</TableHead>
                                         <TableHead className="text-right">Total</TableHead>
+                                        <TableHead className="text-right">Paid</TableHead>
+                                        <TableHead className="text-right">Balance</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {invoices.length === 0 ? (
+                                    {filteredInvoices.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                                                 No invoices created yet.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        invoices.map((invoice) => (
+                                        filteredInvoices.map((invoice) => (
                                             <TableRow key={invoice.id}>
                                                 <TableCell className="font-mono">{invoice.id}</TableCell>
                                                 <TableCell>{customers.find(c => c.id === invoice.customerId)?.name}</TableCell>
                                                 <TableCell>{format(invoice.invoiceDate, "dd/MM/yyyy")}</TableCell>
-                                                <TableCell>{format(invoice.dueDate, "dd/MM/yyyy")}</TableCell>
+                                                <TableCell>
+                                                    <span className={cn(
+                                                        "px-2 py-1 rounded-full text-xs font-medium",
+                                                        invoice.status === 'draft' ? "bg-slate-100 text-slate-700" :
+                                                        invoice.status === 'paid' ? "bg-green-100 text-green-700" :
+                                                        invoice.status === 'partial' ? "bg-amber-100 text-amber-700" :
+                                                        invoice.status === 'overdue' ? "bg-red-100 text-red-700" :
+                                                        "bg-blue-100 text-blue-700"
+                                                    )}>
+                                                        {invoice.status.toUpperCase()}
+                                                    </span>
+                                                </TableCell>
                                                 <TableCell className="text-right">{formatPrice(invoice.total)}</TableCell>
+                                                <TableCell className="text-right text-muted-foreground">{formatPrice(invoice.amountPaid || 0)}</TableCell>
+                                                <TableCell className="text-right font-medium">{formatPrice(invoice.balanceDue !== undefined ? invoice.balanceDue : invoice.total)}</TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <InvoiceDownloadButton
@@ -483,6 +651,15 @@ export default function InvoicesPage() {
                                                                         <Eye className="mr-2 h-4 w-4" />View Preview
                                                                     </DropdownMenuItem>
                                                                 </DialogTrigger>
+                                                                <DropdownMenuItem onSelect={() => {
+                                                                    setPaymentInvoice(invoice);
+                                                                    setPaymentAmount(invoice.balanceDue !== undefined ? invoice.balanceDue : invoice.total);
+                                                                    setPaymentDate(new Date());
+                                                                    setPaymentAccountId('');
+                                                                    setPaymentReference(`Payment INV-${invoice.id}`);
+                                                                }}>
+                                                                    <CheckCircle className="mr-2 h-4 w-4" />Record Payment
+                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem onSelect={() => handleDuplicateInvoice(invoice)}><Copy className="mr-2 h-4 w-4" />Duplicate</DropdownMenuItem>
                                                                 <DropdownMenuItem onSelect={() => router.push(`/admin/ai-accountant/${clientId}/credit-notes?invoiceId=${invoice.id}`)}>
                                                                     <FileText className="mr-2 h-4 w-4" />Issue Credit Note
@@ -505,6 +682,8 @@ export default function InvoicesPage() {
                 </Card>
 
             </div>
+            
+            <Dialog open={!!viewingInvoice} onOpenChange={(isOpen) => !isOpen && setViewingInvoice(null)}>
              <DialogContent className="sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>Tax Invoice Preview</DialogTitle>
@@ -525,7 +704,8 @@ export default function InvoicesPage() {
                     </DialogFooter>
                     </>
                 )}
-            </DialogContent>
+             </DialogContent>
+            </Dialog>
 
             <Dialog open={!!emailInvoice} onOpenChange={(isOpen) => !isOpen && setEmailInvoice(null)}>
                 <DialogContent>
@@ -551,6 +731,62 @@ export default function InvoicesPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </Dialog>
+
+            <Dialog open={!!paymentInvoice} onOpenChange={(isOpen) => !isOpen && setPaymentInvoice(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Record Payment</DialogTitle>
+                        <DialogDescription>Record a payment for Invoice #{paymentInvoice?.id}</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <FormLabel>Amount Received</FormLabel>
+                            <Input 
+                                type="number" 
+                                step="0.01" 
+                                value={paymentAmount || ''} 
+                                onChange={e => setPaymentAmount(parseFloat(e.target.value) || 0)} 
+                            />
+                        </div>
+                        <div className="space-y-2 flex flex-col">
+                            <FormLabel>Payment Date</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-10", !paymentDate && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {paymentDate ? format(paymentDate, "dd MMMM yyyy") : <span>Pick a date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar mode="single" selected={paymentDate} onSelect={(d) => d && setPaymentDate(d)} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="space-y-2 flex flex-col">
+                            <FormLabel>Deposited To (Bank Account)</FormLabel>
+                            <AccountSelector 
+                                client={client} 
+                                customers={customers} 
+                                showAccounts={true} 
+                                showCustomers={false} 
+                                value={paymentAccountId ? { value: paymentAccountId, type: 'account' } : null} 
+                                onChange={s => setPaymentAccountId(s.value)} 
+                                placeholder="Select bank account..."
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <FormLabel>Reference</FormLabel>
+                            <Input value={paymentReference} onChange={e => setPaymentReference(e.target.value)} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setPaymentInvoice(null)}>Cancel</Button>
+                        <Button onClick={handleSavePayment} disabled={isSavingPayment || !paymentAmount || !paymentAccountId}>
+                            {isSavingPayment ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Saving...</> : "Save Payment"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
