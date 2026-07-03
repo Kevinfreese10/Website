@@ -93,6 +93,9 @@ export default function InvoicesPage() {
     const { toast } = useToast();
     const [accounts, setAccounts] = useState<ChartOfAccount[]>([]);
     const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+    const [emailInvoice, setEmailInvoice] = useState<Invoice | null>(null);
+    const [emailAddress, setEmailAddress] = useState("kev@thinkestry.co.za");
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
 
 
     const form = useForm<InvoiceFormValues>({
@@ -109,6 +112,39 @@ export default function InvoicesPage() {
         control: form.control,
         name: "lineItems",
     });
+
+    const handleDuplicateInvoice = (invoice: Invoice) => {
+        form.reset({
+            customerId: invoice.customerId,
+            invoiceDate: new Date(),
+            dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+            lineItems: invoice.lineItems,
+            notes: invoice.notes,
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast({ title: 'Invoice Duplicated', description: 'The form has been pre-filled with the duplicate details.' });
+    };
+
+    const handleSendEmail = async () => {
+        if (!emailInvoice || !emailAddress || !client) return;
+        setIsSendingEmail(true);
+        try {
+            const { sendInvoiceEmailAction } = await import('@/app/actions');
+            const customer = customers.find(c => c.id === emailInvoice.customerId);
+            if (!customer) throw new Error("Customer not found.");
+            const res = await sendInvoiceEmailAction({ invoice: emailInvoice, client, customer, recipientEmail: emailAddress });
+            if (res.success) {
+                toast({ title: 'Email Sent', description: `Invoice emailed to ${emailAddress}.` });
+                setEmailInvoice(null);
+            } else {
+                toast({ title: 'Error', description: res.error, variant: 'destructive' });
+            }
+        } catch (e: any) {
+            toast({ title: 'Error', description: 'Failed to send email.', variant: 'destructive' });
+        } finally {
+            setIsSendingEmail(false);
+        }
+    };
 
     const handleAccountChange = (value: string, index: number) => {
         const selectedAccount = accounts.find(acc => acc.id === value);
@@ -447,11 +483,14 @@ export default function InvoicesPage() {
                                                                         <Eye className="mr-2 h-4 w-4" />View Preview
                                                                     </DropdownMenuItem>
                                                                 </DialogTrigger>
-                                                                <DropdownMenuItem><Copy className="mr-2 h-4 w-4" />Duplicate</DropdownMenuItem>
+                                                                <DropdownMenuItem onSelect={() => handleDuplicateInvoice(invoice)}><Copy className="mr-2 h-4 w-4" />Duplicate</DropdownMenuItem>
                                                                 <DropdownMenuItem onSelect={() => router.push(`/admin/ai-accountant/${clientId}/credit-notes?invoiceId=${invoice.id}`)}>
                                                                     <FileText className="mr-2 h-4 w-4" />Issue Credit Note
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem><Mail className="mr-2 h-4 w-4" />Email to Client</DropdownMenuItem>
+                                                                <DropdownMenuItem onSelect={() => {
+                                                                    setEmailInvoice(invoice);
+                                                                    setEmailAddress("kev@thinkestry.co.za");
+                                                                }}><Mail className="mr-2 h-4 w-4" />Email to Client</DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </div>
@@ -487,6 +526,31 @@ export default function InvoicesPage() {
                     </>
                 )}
             </DialogContent>
+
+            <Dialog open={!!emailInvoice} onOpenChange={(isOpen) => !isOpen && setEmailInvoice(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Email Invoice</DialogTitle>
+                        <DialogDescription>Send invoice #{emailInvoice?.id} to the client.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <FormLabel>Send To Email</FormLabel>
+                            <Input 
+                                value={emailAddress} 
+                                onChange={(e) => setEmailAddress(e.target.value)} 
+                                placeholder="Email address"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEmailInvoice(null)}>Cancel</Button>
+                        <Button onClick={handleSendEmail} disabled={isSendingEmail}>
+                            {isSendingEmail ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Sending...</> : "Send Email"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 }

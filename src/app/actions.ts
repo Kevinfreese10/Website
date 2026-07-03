@@ -2,7 +2,7 @@
 
 import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { Order, Service, User, OrderNote, Task, DocumentUpload, DemoLead, ImportedTransaction, SmartAllocationResult, AllocationRule, ClientCustomer, Employee, Payslip } from '@/lib/types';
+import { Order, Service, User, OrderNote, Task, DocumentUpload, DemoLead, ImportedTransaction, SmartAllocationResult, AllocationRule, ClientCustomer, Employee, Payslip, Invoice } from '@/lib/types';
 import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
 import React from 'react';
@@ -15,6 +15,8 @@ import { DocumentRequestEmail } from '@/components/emails/DocumentRequestEmail';
 import { services as allServices } from '@/lib/data';
 import { format, addDays, addMonths, addYears, parse as parseDate } from 'date-fns';
 import { BankCleaner } from '@/lib/bank-cleaner';
+import { InvoicePdfDocument } from '@/server/pdf/InvoicePdfDocument';
+import { renderToBuffer } from '@react-pdf/renderer';
 
 export async function saveDemoLead(data: Omit<DemoLead, 'id' | 'createdAt'>) {
     try {
@@ -1626,6 +1628,52 @@ export async function createCheckoutOrderAction({
       message: error.message || 'There was a problem saving your order.',
     };
   }
+}
+
+export async function sendInvoiceEmailAction({
+    invoice,
+    client,
+    customer,
+    recipientEmail
+}: {
+    invoice: Invoice;
+    client: User;
+    customer: ClientCustomer;
+    recipientEmail: string;
+}) {
+    try {
+        const element = React.createElement(InvoicePdfDocument, { invoice, client, customer });
+        const buffer = await renderToBuffer(element as any);
+        
+        const formatPrice = (price: number) => new Intl.NumberFormat('en-GB', { style: 'decimal', minimumFractionDigits: 2 }).format(price);
+        const emailHtml = `
+            <div style="font-family: sans-serif; line-height: 1.5; color: #333;">
+                <p>Dear ${customer.name},</p>
+                <p>Please find attached your invoice <strong>${invoice.id}</strong> from ${client.companyName || client.name}.</p>
+                <p>The total amount due is <strong>R${formatPrice(invoice.total)}</strong>, due on <strong>${new Date(invoice.dueDate).toLocaleDateString('en-GB')}</strong>.</p>
+                <p>Thank you for your business!</p>
+                <br/>
+                <p>Best regards,<br/>${client.companyName || client.name}</p>
+            </div>
+        `;
+
+        await sendEmail({
+            to: recipientEmail,
+            subject: `Invoice ${invoice.id} from ${client.companyName || client.name}`,
+            html: emailHtml,
+            attachments: [
+                {
+                    filename: `Invoice-${invoice.id}.pdf`,
+                    content: buffer,
+                }
+            ],
+        });
+        
+        return { success: true };
+    } catch (error: any) {
+        console.error('Failed to send invoice email:', error);
+        return { success: false, error: error.message };
+    }
 }
 
 
