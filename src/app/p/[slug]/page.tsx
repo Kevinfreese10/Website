@@ -2,7 +2,7 @@ import { getPartnerBySlug, getServices, getPartnerOverrides, getCategories } fro
 import { User, Service } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle2, ArrowRight, Star, Shield, Award, Users, TrendingUp, Quote } from 'lucide-react';
+import { Clock, CheckCircle2, ArrowRight, Star, Shield, Award, Users, TrendingUp, Quote, ShoppingCart, FileUp, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Separator } from '@/components/ui/separator';
@@ -12,6 +12,7 @@ import PartnerLeadForm from '@/components/partner/PartnerLeadForm';
 import PartnerPricingCalculator from '@/components/partner/PartnerPricingCalculator';
 import AnimatedSection from '@/components/partner/AnimatedSection';
 import FloatingCTA from '@/components/partner/FloatingCTA';
+import PartnerServicesList from '@/components/partner/PartnerServicesList';
 
 export const revalidate = 3600;
 
@@ -80,7 +81,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
     )}>
       <div className="space-y-6">
         <h1 
-            className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight"
+            className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-tight"
             style={{ 
                 color: isOverlay ? (lp?.heroTitleColor || (heroImage && overlayOpacity > 0.3 ? '#ffffff' : 'inherit')) : lp?.heroTitleColor || 'inherit'
             }}
@@ -102,7 +103,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           heroLayout === 'split-right' ? 'sm:justify-end' : 
           heroLayout === 'split-left' ? 'sm:justify-start' : 'justify-center'
         )}>
-          <Button asChild size="lg" className="partner-btn font-bold h-13 px-8 text-base shadow-lg">
+          <Button asChild size="lg" className="partner-btn font-bold h-14 px-8 text-base shadow-lg">
             <Link href={`/p/${slug}${ctaTarget}`}>
               Get a Free Quote <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
@@ -112,7 +113,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
             size="lg" 
             variant="outline" 
             className={cn(
-              "font-semibold h-13 px-8 text-base",
+              "font-bold h-14 px-8 text-base",
               isOverlay && heroImage && overlayOpacity > 0.3 
                 ? "border-white/50 text-white hover:bg-white/10" 
                 : "border-border"
@@ -151,7 +152,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
   );
 
   return (
-    <div className="pb-24">
+    <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
       {/* Floating Mobile CTA */}
       <FloatingCTA />
 
@@ -172,6 +173,13 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
             borderRadius: heroLayout === 'background' ? '0' : '1.5rem',
         }}
       >
+                {/* Aurora background blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift opacity-60" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift opacity-60" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift opacity-60" style={{ animationDelay: '-10s' }} />
+        {/* Dot grid overlay */}
+        <div className="absolute inset-0 bg-dot-grid opacity-70" />
+
         {/* Overlay */}
         {heroImage && (
             <div 
@@ -197,19 +205,19 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-2 font-medium">
-              <Shield className="h-4 w-4 partner-icon" /> SARS Registered
+              <Shield className="h-4 w-4 text-blue-500" /> SARS Registered
             </span>
             <span className="hidden sm:block w-px h-4 bg-border" />
             <span className="flex items-center gap-2 font-medium">
-              <Award className="h-4 w-4 partner-icon" /> Professionally Accredited
+              <Award className="h-4 w-4 text-emerald-500" /> Professionally Accredited
             </span>
             <span className="hidden sm:block w-px h-4 bg-border" />
             <span className="flex items-center gap-2 font-medium">
-              <Users className="h-4 w-4 partner-icon" /> 100+ Clients Served
+              <Users className="h-4 w-4 text-violet-500" /> 100+ Clients Served
             </span>
             <span className="hidden sm:block w-px h-4 bg-border" />
             <span className="flex items-center gap-2 font-medium">
-              <Clock className="h-4 w-4 partner-icon" /> Same-Day Response
+              <Clock className="h-4 w-4 text-orange-500" /> Same-Day Response
             </span>
           </div>
         </div>
@@ -220,15 +228,73 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
             {[
-              { value: '10+', label: 'Years of Experience', icon: TrendingUp },
-              { value: '500+', label: 'Businesses Served', icon: Users },
-              { value: '2,000+', label: 'Tax Returns Filed', icon: CheckCircle2 },
-              { value: '99%', label: 'Client Satisfaction', icon: Star },
+              { value: '10+', label: 'Years of Experience', icon: TrendingUp, color: 'text-blue-500' },
+              { value: '500+', label: 'Businesses Served', icon: Users, color: 'text-emerald-500' },
+              { value: '2,000+', label: 'Tax Returns Filed', icon: CheckCircle2, color: 'text-violet-500' },
+              { value: '99%', label: 'Client Satisfaction', icon: Star, color: 'text-orange-500' },
             ].map((stat, i) => (
               <div key={i} className="text-center space-y-2">
-                <stat.icon className="h-6 w-6 mx-auto partner-icon opacity-70" />
-                <div className="text-3xl md:text-4xl font-extrabold partner-text">{stat.value}</div>
+                <stat.icon className={cn("h-6 w-6 mx-auto opacity-80", stat.color)} />
+                <div className={cn("text-3xl md:text-4xl font-extrabold", stat.color)}>{stat.value}</div>
                 <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </AnimatedSection>
+
+      {/* Online Process Steps */}
+      <AnimatedSection className="py-16 bg-muted/20 border-y">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-3xl font-black md:text-4xl uppercase tracking-tighter text-foreground font-headline">How Our Online Accounting Process Works</h2>
+            <p className="text-muted-foreground text-lg">Four simple steps to full compliance.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 relative">
+            {[
+              { 
+                step: "01", 
+                title: "Choose Your Service", 
+                desc: "Browse our online store and select the accounting, tax, or compliance service your business requires.", 
+                icon: ShoppingCart, 
+                bg: "bg-amber-50/80 border-amber-200/60 text-amber-600 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400",
+                textColor: "text-amber-600 dark:text-amber-400"
+              },
+              { 
+                step: "02", 
+                title: "Upload Your Documents", 
+                desc: "Securely upload your supporting documents through our online platform.", 
+                icon: FileUp, 
+                bg: "bg-blue-50/80 border-blue-200/60 text-blue-600 dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-400",
+                textColor: "text-blue-600 dark:text-blue-400"
+              },
+              { 
+                step: "03", 
+                title: "We Process Your Application", 
+                desc: "Our team handles the accounting, SARS, CIPC, or compliance process on your behalf.", 
+                icon: RefreshCw, 
+                bg: "bg-purple-50/80 border-purple-200/60 text-purple-600 dark:bg-purple-950/20 dark:border-purple-900/30 dark:text-purple-400",
+                textColor: "text-purple-600 dark:text-purple-400"
+              },
+              { 
+                step: "04", 
+                title: "Receive Confirmation & Support", 
+                desc: "We provide updates, confirmations, and ongoing support throughout the process.", 
+                icon: CheckCircle2, 
+                bg: "bg-emerald-50/80 border-emerald-200/60 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-400",
+                textColor: "text-emerald-600 dark:text-emerald-400"
+              }
+            ].map((step, idx) => (
+              <div key={idx} className="relative text-center space-y-6 group">
+                <div className={cn("h-20 w-20 rounded-3xl border flex items-center justify-center mx-auto mb-6 shadow-sm transition-all duration-300 group-hover:scale-105", step.bg)}>
+                  <step.icon className="h-10 w-10" />
+                </div>
+                <div className="space-y-2">
+                  <span className={cn("text-[10px] font-black uppercase tracking-widest leading-none block mb-1", step.textColor)}>Step {step.step}</span>
+                  <h3 className="font-bold text-xl leading-tight text-foreground">{step.title}</h3>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed px-4">{step.desc}</p>
+                {idx < 3 && <ArrowRight className="hidden lg:block absolute -right-6 top-10 h-8 w-8 text-muted-foreground/20" />}
               </div>
             ))}
           </div>
@@ -241,13 +307,13 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           {lp?.testimonials && lp.testimonials.length > 0 ? (
             <div className="space-y-12">
               <div className="text-center space-y-4 max-w-2xl mx-auto">
-                <h2 className="text-3xl font-bold text-slate-900">What Our Clients Say</h2>
-                <p className="text-muted-foreground text-sm">Real feedback from local businesses and individuals.</p>
+                <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">What Our Clients Say</h2>
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">Real feedback from local businesses and individuals.</p>
                 <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {lp.testimonials.map((t: any, i: number) => (
-                  <Card key={i} className="flex flex-col partner-card border shadow-sm p-6 space-y-4 relative">
+                  <Card key={i} className="flex flex-col glass-card border border-border shadow-sm p-6 space-y-4 relative hover:scale-[1.02] transition-all duration-300">
                     <Quote className="h-8 w-8 partner-icon opacity-15 absolute top-4 right-4" />
                     <div className="flex gap-1">
                       {Array.from({ length: t.rating || 5 }).map((_, rIdx) => (
@@ -269,7 +335,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
                         </div>
                       )}
                       <div>
-                        <h4 className="font-bold text-sm text-slate-900">{t.name}</h4>
+                        <h4 className="font-bold text-sm text-foreground">{t.name}</h4>
                         {t.role && (
                           <p className="text-xs text-muted-foreground">
                             {t.role}{t.company ? ` at ${t.company}` : ''}
@@ -290,7 +356,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
         <AnimatedSection>
           <section id="about" className="container mx-auto px-4 scroll-m-24">
             <div className="max-w-4xl mx-auto text-center space-y-6">
-              <h2 className="text-3xl font-bold text-slate-900">About Our Practice</h2>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">About Our Practice</h2>
               <Separator className="w-24 mx-auto partner-border border-b-2 opacity-50" />
               <p className="text-lg opacity-80 leading-relaxed whitespace-pre-wrap">
                 {lp?.aboutUs}
@@ -341,87 +407,166 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
               </div>
           ) : (
               <AnimatedSection className="container mx-auto px-4 text-center space-y-4">
-                <h2 className="text-3xl font-bold text-slate-900">{lp?.servicesHeroTitle || 'Accounting & Tax Solutions'}</h2>
+                <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">{lp?.servicesHeroTitle || 'Accounting & Tax Solutions'}</h2>
                 <p className="opacity-70 text-lg">{lp?.servicesHeroSubtitle || 'Comprehensive professional services for individuals and SMEs.'}</p>
               </AnimatedSection>
           )}
 
-          <div className="container mx-auto px-4 space-y-20">
-              {categorizedServices.map((category) => (
-                  <AnimatedSection key={category.id} className="space-y-12">
-                      <div className="text-center space-y-4 max-w-2xl mx-auto">
-                          <h3 className="text-3xl font-bold text-slate-900">{category.name}</h3>
-                          {category.description && (
-                              <p className="text-muted-foreground text-sm leading-relaxed">
-                                  {category.description}
-                              </p>
-                          )}
-                          <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                          {category.data.map((service: Service) => {
-                              const isPopular = service.id === mostPopularId;
-                              return (
-                                <Card key={service.id} className={cn(
-                                  "flex flex-col group hover:shadow-xl transition-all duration-300 partner-card border shadow-sm relative",
-                                  isPopular && "ring-2 ring-primary/30 shadow-md"
-                                )}>
-                                    {/* Most Popular Badge */}
-                                    {isPopular && (
-                                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                                        <span className="partner-btn px-4 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shadow-md whitespace-nowrap">
-                                          ⭐ Most Popular
-                                        </span>
-                                      </div>
-                                    )}
-                                    <CardHeader className={cn("space-y-2 pb-4", isPopular && "pt-8")}>
-                                        <CardTitle className="text-2xl font-bold leading-tight group-hover:partner-text transition-colors">
-                                            {service.title}
-                                        </CardTitle>
-                                        <div className="space-y-1">
-                                            {service.isPriceTbc ? (
-                                                <span className="text-xl font-bold opacity-50 block">Price on Request</span>
-                                            ) : (
-                                                <span className="text-2xl font-bold partner-text block">
-                                                    {formatPrice(service.price)}
-                                                </span>
-                                            )}
-                                            <div className="flex items-center text-xs opacity-70 font-medium">
-                                                <Clock className="h-4 w-4 mr-1.5 opacity-70 partner-icon" />
-                                                {service.turnaroundTime}
-                                            </div>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="flex-grow space-y-6">
-                                        <p className="text-sm opacity-80 leading-relaxed line-clamp-3">
-                                            {service.description}
-                                        </p>
-                                        <div className="space-y-3">
-                                            <p className="text-sm font-semibold">What&apos;s Included:</p>
-                                            <ul className="space-y-2">
-                                                {service.whatsIncluded.slice(0, 4).map((item: string, i: number) => (
-                                                    <li key={i} className="flex items-start text-xs opacity-90">
-                                                        <CheckCircle2 className="h-4 w-4 mr-3 mt-0.5 partner-icon flex-shrink-0" />
-                                                        <span className="leading-tight">{item}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter className="pt-0">
-                                        <Button className="w-full partner-btn font-semibold h-11" asChild>
-                                            <Link href={`/p/${slug}/products/${service.slug}`}>
-                                                Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                                            </Link>
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                              );
-                          })}
-                      </div>
-                  </AnimatedSection>
-              ))}
-          </div>
+        {/* Pricing / Packages Comparison Section */}
+        <AnimatedSection>
+          <section id="pricing" className="container mx-auto px-4 scroll-m-24 max-w-5xl space-y-12">
+            <div className="text-center space-y-4 max-w-2xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Simple, Transparent Packages</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">Choose the plan that fits your business stage.</p>
+              <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+              {/* Essential Card */}
+              <Card className="flex flex-col glass-card border border-border shadow-sm hover:shadow-xl hover:border-slate-300 hover:scale-[1.02] transition-all duration-300 bg-card/30">
+                <div className="p-6 border-b">
+                  <h3 className="text-xl font-bold text-foreground/90">Essential</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Best for small startups & sole proprietors</p>
+                  <div className="flex items-baseline mt-4">
+                    <span className="text-4xl font-extrabold text-foreground">R3,500</span>
+                    <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
+                  </div>
+                  <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wide">For turnover under R1M</p>
+                </div>
+                <CardContent className="flex-grow p-6">
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Monthly Bookkeeping & Reconciliations</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Quarterly Management Reports</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Annual Financial Statements</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Income Tax & CIPC Annual Returns</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Payroll Processing & PAYE / UIF</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Dedicated Accountant</span>
+                    </li>
+                  </ul>
+                </CardContent>
+                <div className="p-6 pt-0">
+                  <Button className="w-full partner-btn text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all" asChild>
+                    <Link href="#contact">Get Started</Link>
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Growth Card (Most Popular) */}
+              <Card className="flex flex-col glass-card border-2 partner-border shadow-lg relative hover:shadow-2xl hover:scale-[1.03] transition-all duration-300">
+                <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-background border border-border partner-text font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-full shadow-md select-none">
+                  Most Popular
+                </div>
+                <div className="p-6 border-b partner-bg/5 rounded-t-xl bg-card/50">
+                  <h3 className="text-xl font-bold text-foreground/90">Growth</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Perfect for growing SME businesses</p>
+                  <div className="flex items-baseline mt-4">
+                    <span className="text-4xl font-extrabold text-foreground">R7,000</span>
+                    <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
+                  </div>
+                  <p className="text-[11px] font-bold partner-text mt-2 uppercase tracking-wide">For turnover up to R7M</p>
+                </div>
+                <CardContent className="flex-grow p-6">
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Everything in Essential</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>VAT Returns & Submissions</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Bi-Monthly Management Reports</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Financial Manager Support</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Cash Flow & Budgeting Assistance</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>CFO Advisory & Monthly Reviews</span>
+                    </li>
+                  </ul>
+                </CardContent>
+                <div className="p-6 pt-0">
+                  <Button className="w-full partner-btn text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all" asChild>
+                    <Link href="#contact">Get Started</Link>
+                  </Button>
+                </div>
+              </Card>
+
+              {/* Executive Card */}
+              <Card className="flex flex-col glass-card border border-border shadow-sm hover:shadow-xl hover:border-slate-300 hover:scale-[1.02] transition-all duration-300 bg-card/30">
+                <div className="p-6 border-b">
+                  <h3 className="text-xl font-bold text-foreground/90">Executive</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Comprehensive CFO & tax governance</p>
+                  <div className="flex items-baseline mt-4">
+                    <span className="text-4xl font-extrabold text-foreground">R11,500</span>
+                    <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
+                  </div>
+                  <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wide">For turnover up to R25M</p>
+                </div>
+                <CardContent className="flex-grow p-6">
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Everything in Growth</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Monthly Management Reports</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Unlimited CFO Advisory Services</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Unlimited Strategic Business Reviews</span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                      <span>Priority Support Response</span>
+                    </li>
+                  </ul>
+                </CardContent>
+                <div className="p-6 pt-0">
+                  <Button className="w-full partner-btn text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all" asChild>
+                    <Link href="#contact">Get Started</Link>
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          </section>
+        </AnimatedSection>
+          <PartnerServicesList 
+            categories={categories} 
+            services={services} 
+            mostPopularId={mostPopularId} 
+            slug={slug} 
+          />
         </section>
 
         {/* Pricing Calculator Section */}
@@ -429,7 +574,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           <AnimatedSection>
             <section id="calculator" className="container mx-auto px-4 scroll-m-24 max-w-4xl space-y-8">
               <div className="text-center space-y-4 max-w-2xl mx-auto">
-                <h2 className="text-3xl font-bold text-slate-900">Estimate Your Fees</h2>
+                <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Estimate Your Fees</h2>
                 <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
               </div>
               <PartnerPricingCalculator services={services} partnerId={partner.id} />
@@ -437,29 +582,33 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           </AnimatedSection>
         )}
 
+
         {/* FAQ Section */}
-        {lp?.faqs && lp.faqs.length > 0 && (
-          <AnimatedSection>
-            <section id="faqs" className="container mx-auto px-4 scroll-m-24 max-w-3xl space-y-8">
-              <div className="text-center space-y-4 max-w-2xl mx-auto">
-                <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
-                <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
-              </div>
-              <Accordion type="single" collapsible className="w-full border rounded-xl overflow-hidden bg-white shadow-sm divide-y">
-                {lp.faqs.map((faq: any, i: number) => (
-                  <AccordionItem key={i} value={`faq-${i}`} className="border-b-0 px-6 py-1">
-                    <AccordionTrigger className="text-left font-semibold text-slate-900 hover:no-underline text-base py-4">
-                      {faq.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-slate-600 text-sm leading-relaxed pb-4 pt-1">
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </section>
-          </AnimatedSection>
-        )}
+        <AnimatedSection>
+          <section id="faqs" className="container mx-auto px-4 scroll-m-24 max-w-3xl space-y-8">
+            <div className="text-center space-y-4 max-w-2xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Frequently Asked Questions</h2>
+              <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
+            </div>
+            <Accordion type="single" collapsible className="w-full border rounded-xl overflow-hidden bg-white shadow-sm divide-y">
+              {(lp?.faqs && lp.faqs.length > 0 ? lp.faqs : [
+                { question: "How secure are my documents?", answer: "We use bank-level 256-bit encryption and strict access controls. Your financial data and personal documents are stored in secure cloud vaults and never shared with unauthorized third parties." },
+                { question: "How long does registration take?", answer: "Most standard registrations (like CIPC or basic SARS registrations) take 1-3 business days once we have all your required documents. We'll keep you updated every step of the way." },
+                { question: "What if I need help after my service is completed?", answer: "Our relationship doesn't end after delivery. You get post-service support for any questions related to your recent order, and we offer affordable retainers for ongoing accounting and tax needs." },
+                { question: "Do I need to come into an office?", answer: "Not at all! Our entire process is optimized for remote collaboration. You can upload documents securely, sign electronically, and consult with us via video call or phone from anywhere in the world." }
+              ]).map((faq: any, i: number) => (
+                <AccordionItem key={i} value={`faq-${i}`} className="border-b-0 px-6 py-1">
+                  <AccordionTrigger className="text-left font-bold text-foreground hover:no-underline text-base py-4">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-slate-600 text-sm leading-relaxed pb-4 pt-1">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </section>
+        </AnimatedSection>
 
         {/* Lead Form Section */}
         {lp?.showLeadForm !== false && (
