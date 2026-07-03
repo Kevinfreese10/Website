@@ -1,6 +1,6 @@
 'use server';
 
-import { ai } from '@/ai/genkit';
+import { getPartnerAiInstance } from '@/lib/gemini-key';
 
 export async function generateCopywritingCopy({
   field,
@@ -55,7 +55,9 @@ export async function generateCopywritingCopy({
         throw new Error('Invalid field type');
     }
 
-    const { text } = await ai.generate({
+    const partnerAi = await getPartnerAiInstance();
+
+    const { text } = await partnerAi.generate({
       prompt: `${systemPrompt}\n\nTask:\n${prompt}`,
     });
 

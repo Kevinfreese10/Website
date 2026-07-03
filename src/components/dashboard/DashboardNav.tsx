@@ -116,8 +116,26 @@ export default function DashboardNav({ user }: { user: UserType }) {
     { href: '/partner/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['partner', 'partner_staff'] },
     ...(!isFreePartner ? [
       { href: '/partner/clients', label: 'Manage Clients', icon: Briefcase, roles: ['partner', 'partner_staff'] },
-      { href: '/dashboard/ai-accountant/clients', label: 'AI Accountant', icon: Calculator, roles: ['partner', 'partner_staff'] },
-      { href: '/dashboard/ai-payroll/clients', label: 'AI Payroll', icon: Users, roles: ['partner', 'partner_staff'] },
+      { 
+        href: '/partner/ai-accountant', 
+        label: 'AI Accountant', 
+        icon: Calculator, 
+        roles: ['partner', 'partner_staff'],
+        subItems: [
+          { href: '/partner/ai-accountant/clients', label: 'Manage Clients' },
+          { href: '/partner/ai-accountant/allocation-rules', label: 'Allocation Rules' },
+          { href: '/partner/ai-accountant/chart-of-accounts', label: 'Chart of Accounts' }
+        ]
+      },
+      { 
+        href: '/partner/ai-payroll', 
+        label: 'AI Payroll', 
+        icon: Users, 
+        roles: ['partner', 'partner_staff'],
+        subItems: [
+          { href: '/partner/ai-payroll/clients', label: 'Manage Clients' }
+        ]
+      },
       { href: '/partner/staff', label: 'Staff Management', icon: UserPlus, roles: ['partner', 'partner_staff'] },
       { href: '/partner/tasks', label: 'Task Manager', icon: ClipboardCheck, roles: ['partner', 'partner_staff'] },
       { href: '/partner/leads', label: 'Practice Leads', icon: MessageSquare, roles: ['partner', 'partner_staff'] },
@@ -178,16 +196,46 @@ export default function DashboardNav({ user }: { user: UserType }) {
         ))}
 
         {(user.role === 'partner' || user.role === 'partner_staff') && (
-            visiblePartnerNavItems.map((item) => (
-                <SidebarMenuItem key={item.label}>
-                <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)} tooltip={item.label}>
-                    <Link href={item.href}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                    </Link>
-                </SidebarMenuButton>
-                </SidebarMenuItem>
-            ))
+            visiblePartnerNavItems.map((item) => {
+                if (item.subItems) {
+                    return (
+                        <Collapsible key={item.label} defaultOpen={pathname.startsWith(item.href)} className="group/collapsible">
+                            <SidebarMenuItem>
+                            <CollapsibleTrigger asChild>
+                                <SidebarMenuButton isActive={pathname.startsWith(item.href)} tooltip={item.label}>
+                                <item.icon />
+                                <span>{item.label}</span>
+                                <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-[[data-state=open]]:rotate-180" />
+                                </SidebarMenuButton>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <SidebarMenuSub>
+                                {item.subItems.map((subItem) => (
+                                  <SidebarMenuSubItem key={subItem.label}>
+                                    <SidebarMenuSubButton asChild isActive={pathname === subItem.href}>
+                                      <Link href={subItem.href}>
+                                        <span>{subItem.label}</span>
+                                      </Link>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                ))}
+                              </SidebarMenuSub>
+                            </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
+                    );
+                }
+                return (
+                    <SidebarMenuItem key={item.label}>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)} tooltip={item.label}>
+                        <Link href={item.href}>
+                        <item.icon />
+                        <span>{item.label}</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                );
+            })
         )}
 
         {(user.role === 'admin' || user.role === 'staff') && (

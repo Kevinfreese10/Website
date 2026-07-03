@@ -103,22 +103,22 @@ export function PendingSetupScreen({ user }: { user: User }) {
                 <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 space-y-4">
                     <h3 className="font-bold flex items-center gap-2 text-slate-900">
                         <Wallet2 className="h-5 w-5 text-primary" />
-                        R4,950 Setup & Onboarding
+                        R1,950 Setup & Onboarding
                     </h3>
                     <div className="space-y-2 text-sm text-muted-foreground leading-relaxed text-left">
-                        <p>To begin using the Bookkeeper Empowerment Initiative, a <strong>R4,950</strong> activation fee is required. This lifetime license includes:</p>
+                        <p>To begin using the Bookkeeper Empowerment Initiative, a <strong>R1,950</strong> setup fee is required for your Done-For-You Onboarding. This includes:</p>
                         <ul className="space-y-2 mt-4">
                             <li className="flex items-start gap-2">
                                 <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                                <span><strong>Lifetime Access:</strong> No more monthly hosting fees.</span>
+                                <span><strong>Platform Setup:</strong> Re-branded landing page and custom domain linking.</span>
                             </li>
                             <li className="flex items-start gap-2">
                                 <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                                <span><strong>Wholesale Store:</strong> 65+ re-branded services ready to sell.</span>
+                                <span><strong>Wholesale Store:</strong> Service pricing markups loaded for you.</span>
                             </li>
                             <li className="flex items-start gap-2">
                                 <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                                <span><strong>Onboarding:</strong> Professional CA-led platform training.</span>
+                                <span><strong>Onboarding:</strong> 1-on-1 CA training session.</span>
                             </li>
                         </ul>
                     </div>
@@ -131,7 +131,7 @@ export function PendingSetupScreen({ user }: { user: User }) {
                         className="w-full h-14 text-lg font-bold shadow-lg"
                     >
                         {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-5 w-5" />}
-                        Complete Setup & Pay R4,950
+                        Complete Setup & Pay R1,950
                     </Button>
                     <p className="text-center text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
                         Secure Payment via PayFast

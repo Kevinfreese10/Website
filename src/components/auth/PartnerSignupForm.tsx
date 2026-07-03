@@ -41,7 +41,7 @@ const formSchema = z.object({
     .min(3, 'Slug must be at least 3 characters.')
     .max(30, 'Slug must be at most 30 characters.')
     .regex(/^[a-z0-9\-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens.'),
-  tier: z.enum(['free', 'growth']).default('growth'),
+  tier: z.literal('growth').default('growth'),
   setupAddon: z.boolean().default(false),
   wantsOutsourcedWork: z.boolean().default(false),
   cv: z.any().optional(),
@@ -83,8 +83,6 @@ export default function PartnerSignupForm() {
   const [isSlugAvailable, setIsSlugAvailable] = useState<boolean | null>(null);
   const [isSlugManual, setIsSlugManual] = useState(false);
 
-  const initialTier = searchParams.get('tier') === 'free' ? 'free' : 'growth';
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -95,7 +93,7 @@ export default function PartnerSignupForm() {
       password: '',
       contactNumber: '',
       slug: '',
-      tier: initialTier,
+      tier: 'growth',
       setupAddon: false,
       wantsOutsourcedWork: false,
       agreeTerms: false,
@@ -214,6 +212,13 @@ export default function PartnerSignupForm() {
 
         // 2. Create the User Document
         const newUserDocRef = doc(db, "users", authUid);
+        
+        const trialEndDate = new Date();
+        trialEndDate.setDate(trialEndDate.getDate() + 14);
+
+        const initialStatus = values.setupAddon ? 'Pending Setup Payment' : 'Trial';
+        const initialSubStatus = values.setupAddon ? 'pending' : 'trialing';
+
         await setDoc(newUserDocRef, {
             ...partnerData,
             contactPerson: contactPersonFullName,
@@ -221,22 +226,23 @@ export default function PartnerSignupForm() {
             id: authUid,
             uid: authUid,
             role: 'partner',
-            partnerTier: values.tier,
-            status: values.tier === 'free' ? 'Active' : 'Pending Setup Payment', 
+            partnerTier: 'growth',
+            status: initialStatus, 
             creditBalance: 0,
             createdAt: serverTimestamp(),
             cvUrl: cvUrl,
             certificateUrl: certificateUrl,
             landingPage: {
-                enabled: values.tier === 'growth',
+                enabled: true,
                 slug: values.slug.toLowerCase().trim(),
                 companyName: values.companyName,
             },
             partnerSubscription: {
-                status: values.tier === 'free' ? 'active' : 'pending',
-                aiCompanyLimit: values.tier === 'growth' ? 5 : 0,
-                aiPayrollLimit: values.tier === 'growth' ? 5 : 0,
-                staffSeatLimit: values.tier === 'growth' ? 3 : 0,
+                status: initialSubStatus,
+                currentPeriodEnd: Timestamp.fromDate(trialEndDate),
+                aiCompanyLimit: 1,
+                aiPayrollLimit: 1,
+                staffSeatLimit: 3,
             }
         });
 
@@ -261,21 +267,18 @@ export default function PartnerSignupForm() {
             console.error("Welcome email failed", e);
         }
 
-        // 5. Subscription Checkout vs Direct Redirect
-        if (values.tier === 'free') {
+        // 5. Subscription Checkout or Direct Dashboard
+        if (values.setupAddon) {
             toast({
                 title: 'Account Registered',
-                description: `Welcome to the community! Redirecting to dashboard...`,
-            });
-            router.push('/partner/dashboard');
-        } else {
-            // Growth Tier subscription payment checkout via form submission
-            toast({
-                title: 'Account Registered',
-                description: `Redirecting to PayFast to set up your subscription...`,
+                description: `Redirecting to PayFast to set up your subscription and onboarding...`,
             });
 
-            const amountVal = values.setupAddon ? 2900 : 950;
+            const amountVal = 1950;
+            const billingDate = new Date();
+            billingDate.setDate(billingDate.getDate() + 14);
+            const billingDateStr = billingDate.toISOString().split('T')[0];
+
             const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
             
             const formElement = document.createElement('form');
@@ -293,13 +296,14 @@ export default function PartnerSignupForm() {
                 email_address: values.email,
                 m_payment_id: authUid, // partnerId
                 amount: amountVal.toFixed(2),
-                item_name: values.setupAddon ? 'BEI Growth Subscription + Onboarding Setup' : 'BEI Growth Subscription',
+                item_name: 'BEI Growth Subscription + Onboarding Setup',
                 
                 // Subscription fields
                 subscription_type: '1',
                 recurring_amount: '950.00',
                 frequency: '3', // monthly
                 cycles: '0', // indefinite
+                billing_date: billingDateStr,
                 custom_str1: 'partner_subscription',
             };
 
@@ -313,6 +317,13 @@ export default function PartnerSignupForm() {
             
             document.body.appendChild(formElement);
             formElement.submit();
+        } else {
+            // Free trial, no upfront setup payment
+            toast({
+                title: 'Welcome to My Accountant!',
+                description: `Your 14-day free trial has started.`,
+            });
+            router.push('/partner/dashboard');
         }
 
     } catch (error: any) {
@@ -404,57 +415,11 @@ export default function PartnerSignupForm() {
 
         {step === 2 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                {/* Pricing Tier Selector */}
                 <div className="space-y-4">
                     <h3 className="text-lg font-bold flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-primary" />
-                        Step 3: Select Pricing Tier
+                        Step 3: Account Setup
                     </h3>
-                    <FormField
-                        control={form.control}
-                        name="tier"
-                        render={({ field }) => (
-                            <FormItem className="space-y-3">
-                                <div className="flex flex-col sm:flex-row gap-4">
-                                    <label className={`flex items-start gap-3 border p-4 rounded-xl flex-1 cursor-pointer hover:bg-muted/10 transition-colors ${field.value === 'growth' ? 'border-primary bg-primary/5' : ''}`}>
-                                        <input
-                                            type="radio"
-                                            name="pricing-tier"
-                                            value="growth"
-                                            checked={field.value === 'growth'}
-                                            onChange={() => field.onChange('growth')}
-                                            className="h-4 w-4 accent-primary mt-1"
-                                        />
-                                        <div>
-                                            <div className="text-sm font-bold text-foreground">Growth Plan (R950/mo)</div>
-                                            <div className="text-xs text-muted-foreground leading-relaxed mt-1">
-                                                Branded landing page, 5 AI accounting companies, 3 staff seats, task board, and chatbot.
-                                            </div>
-                                        </div>
-                                    </label>
-                                    <label className={`flex items-start gap-3 border p-4 rounded-xl flex-1 cursor-pointer hover:bg-muted/10 transition-colors ${field.value === 'free' ? 'border-primary bg-primary/5' : ''}`}>
-                                        <input
-                                            type="radio"
-                                            name="pricing-tier"
-                                            value="free"
-                                            checked={field.value === 'free'}
-                                            onChange={() => field.onChange('free')}
-                                            className="h-4 w-4 accent-primary mt-1"
-                                        />
-                                        <div>
-                                            <div className="text-sm font-bold text-foreground">Community Free (R0)</div>
-                                            <div className="text-xs text-muted-foreground leading-relaxed mt-1">
-                                                Access community forums, view potential overflow jobs, and outsource manually.
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                {selectedTier === 'growth' && (
                     <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-4">
                         <FormField
                             control={form.control}
@@ -476,8 +441,7 @@ export default function PartnerSignupForm() {
                             )}
                         />
                     </div>
-                )}
-
+                </div>
                 <Separator />
 
                 <div className="space-y-4">
@@ -596,29 +560,25 @@ export default function PartnerSignupForm() {
                         Plan Summary
                     </h3>
                     <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
-                        {selectedTier === 'free' ? (
+                        <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <span className="font-bold text-sm">Community Free Membership</span>
-                                <span className="font-black text-lg text-primary">R0.00</span>
+                                <span className="font-bold text-sm">Growth Tier Monthly Subscription</span>
+                                <span className="font-black text-md text-primary">R950.00 /mo</span>
                             </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-bold text-sm">Growth Tier Monthly Subscription</span>
-                                    <span className="font-black text-md text-primary">R950.00 /mo</span>
-                                </div>
-                                {setupAddon && (
-                                    <div className="flex justify-between items-center border-t pt-2 mt-2">
-                                        <span className="font-medium text-xs">Done-For-You Setup (Once-off Add-on)</span>
-                                        <span className="font-bold text-xs text-primary">+ R1,950.00</span>
-                                    </div>
-                                )}
-                                <div className="flex justify-between items-center border-t border-primary/20 pt-2 font-bold text-sm">
-                                    <span>Total Due Today</span>
-                                    <span>R{(setupAddon ? 2900 : 950).toFixed(2)}</span>
-                                </div>
+                            <div className="text-xs text-muted-foreground mb-2">
+                                Includes branded landing page, 1 Free AI Accountant company, 1 Free AI Payroll company, 3 staff seats, task board, and chatbot.
                             </div>
-                        )}
+                            {setupAddon && (
+                                <div className="flex justify-between items-center border-t pt-2 mt-2">
+                                    <span className="font-medium text-xs">Done-For-You Setup (Once-off Add-on)</span>
+                                    <span className="font-bold text-xs text-primary">+ R1,950.00</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between items-center border-t border-primary/20 pt-2 font-bold text-sm">
+                                <span>Total Due Today</span>
+                                <span>R{(setupAddon ? 1950 : 0).toFixed(2)}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -646,7 +606,7 @@ export default function PartnerSignupForm() {
                     <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-1/3 h-12 font-bold" disabled={isLoading}>Back</Button>
                     <Button type="submit" className="w-2/3 h-12 text-lg font-black shadow-xl" disabled={isLoading}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isLoading ? 'Creating Account...' : (selectedTier === 'free' ? 'Create Free Account' : 'Proceed to Checkout')}
+                        {isLoading ? 'Creating Account...' : 'Proceed to Checkout'}
                     </Button>
                 </div>
             </div>

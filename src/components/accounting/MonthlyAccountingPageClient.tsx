@@ -568,10 +568,10 @@ export default function MonthlyAccountingPageClient() {
               Get in touch with us today for a custom quote or schedule a free consultation with our team.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8 relative z-10">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-white font-bold h-13 px-8 shadow-lg active:scale-95 transition-all">
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-white font-bold h-14 px-8 shadow-lg active:scale-95 transition-all">
                 <Link href="/contact?action=quote">Get a Quote</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="border-primary font-bold h-13 px-8 active:scale-95 transition-all">
+              <Button asChild variant="outline" size="lg" className="border-primary font-bold h-14 px-8 active:scale-95 transition-all">
                 <Link href="/contact?action=consultation">Book a Consultation</Link>
               </Button>
             </div>

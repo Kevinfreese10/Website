@@ -306,7 +306,7 @@ export const ADMIN_STAFF_PERMISSIONS: StaffPermissions = {
 };
 
 export type PartnerSubscription = {
-  status: 'active' | 'lapsed' | 'cancelled' | 'pending';
+  status: 'active' | 'lapsed' | 'cancelled' | 'pending' | 'trialing';
   /** PayFast subscription token — used to cancel via PayFast API */
   payfastToken?: string;
   currentPeriodStart?: any;   // Firestore Timestamp

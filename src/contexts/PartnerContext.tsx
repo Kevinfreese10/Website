@@ -153,7 +153,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
         
         if (grandfatheredUntil && !isPast(grandfatheredUntil)) {
           isGrowthActive = true;
-        } else if (sub.status === 'active' && periodEnd && !isPast(periodEnd)) {
+        } else if ((sub.status === 'active' || sub.status === 'trialing' || sub.status === 'pending') && periodEnd && !isPast(periodEnd)) {
           isGrowthActive = true;
         }
       }

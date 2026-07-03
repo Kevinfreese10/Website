@@ -2,6 +2,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { getPartnerAiInstance } from '@/lib/gemini-key';
 
 const TestimonialSchema = z.object({
   name: z.string().describe("Name of the client giving the testimonial"),
@@ -75,7 +76,9 @@ export async function editLandingPageWithAI({
   partnerName: string;
 }) {
   try {
-    const { output } = await ai.generate({
+    const partnerAi = await getPartnerAiInstance();
+
+    const { output } = await partnerAi.generate({
       model: 'googleai/gemini-2.5-flash',
       output: { schema: LandingPageConfigOutputSchema },
       prompt: `You are an expert web designer, developer, and marketing copywriter specializing in creating beautiful white-label landing pages for accounting and auditing practices.
