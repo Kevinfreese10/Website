@@ -119,13 +119,13 @@ service cloud.firestore {
     // ─── Orders ──────────────────────────────────────────────────────────────
     match /orders/{orderId} {
       allow read: if isAuthenticated() && (
+        isAdmin() ||
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
         request.auth.uid == resource.data.clientId ||
-        request.auth.token.email != null && request.auth.token.email.lower() == resource.data.customerEmail.lower() ||
-        request.auth.token.email != null && resource.data.endCustomerEmail != null && request.auth.token.email.lower() == resource.data.endCustomerEmail.lower() ||
-        isAdmin() ||
-        (resource != null && isPartnerStaffOf(resource.data.resellerId))
+        (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
+        (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email.lower() == resource.data.customerEmail.lower()) ||
+        (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email.lower() == resource.data.endCustomerEmail.lower())
       );
       // Require authentication for order creation (fixes unauthenticated exploit)
       allow create: if isAuthenticated() && (
@@ -137,9 +137,9 @@ service cloud.firestore {
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
         request.auth.uid == resource.data.clientId ||
-        request.auth.token.email != null && request.auth.token.email.lower() == resource.data.customerEmail.lower() ||
-        request.auth.token.email != null && resource.data.endCustomerEmail != null && request.auth.token.email.lower() == resource.data.endCustomerEmail.lower() ||
-        (resource != null && isPartnerStaffOf(resource.data.resellerId))
+        (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
+        (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email.lower() == resource.data.customerEmail.lower()) ||
+        (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email.lower() == resource.data.endCustomerEmail.lower())
       );
       allow delete: if isAdmin();
     }

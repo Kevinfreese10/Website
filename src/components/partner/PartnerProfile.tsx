@@ -149,13 +149,13 @@ const formSchema = z.object({
 
 const THEMES = {
     my_accountant: {
-        primaryColor: '#214392',
-        secondaryColor: '#214392',
+        primaryColor: '#0866FF',
+        secondaryColor: '#0054d1',
         backgroundColor: '#ffffff',
-        textColor: '#111827',
-        cardBackgroundColor: '#ffffff',
-        cardBorderColor: '#e5e7eb',
-        buttonColor: '#214392',
+        textColor: '#1C1E21',
+        cardBackgroundColor: '#e5e7eb',
+        cardBorderColor: '#dddfe2',
+        buttonColor: '#0866FF',
         buttonTextColor: '#ffffff',
         buttonStyle: 'solid',
     },
@@ -626,15 +626,15 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
 
   const COLOR_PRESETS = [
     {
-      name: 'Corporate Navy (Default)',
-      primaryColor: '#214392',
-      secondaryColor: '#214392',
+      name: 'Master Theme',
+      primaryColor: '#0866FF',
+      secondaryColor: '#0054d1',
       backgroundColor: '#ffffff',
-      cardBackgroundColor: '#ffffff',
-      cardBorderColor: '#e5e7eb',
-      buttonColor: '#214392',
+      cardBackgroundColor: '#e5e7eb',
+      cardBorderColor: '#dddfe2',
+      buttonColor: '#0866FF',
       buttonTextColor: '#ffffff',
-      textColor: '#111827',
+      textColor: '#1C1E21',
     },
     {
       name: 'Emerald Growth',

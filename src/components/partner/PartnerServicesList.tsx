@@ -111,7 +111,7 @@ export default function PartnerServicesList({ categories, services, mostPopularI
                 "px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200",
                 activeCategory === 'all'
                   ? "partner-btn shadow-sm"
-                  : "partner-card partner-text-main opacity-70 partner-border opacity-30 hover:border-primary/50 hover:partner-text-main"
+                  : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground shadow-sm"
               )}
             >
               All Services
@@ -124,7 +124,7 @@ export default function PartnerServicesList({ categories, services, mostPopularI
                   "px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200",
                   activeCategory === cat.name
                     ? "partner-btn shadow-sm"
-                    : "partner-card partner-text-main opacity-70 partner-border opacity-30 hover:border-primary/50 hover:partner-text-main"
+                    : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground shadow-sm"
                 )}
               >
                 {cat.name}

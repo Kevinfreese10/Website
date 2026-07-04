@@ -23,7 +23,7 @@ const db = getFirestore(firebaseApp);
 
 const themePresets = [
   { id: 'custom', name: 'Custom Theme', primaryColor: '#214392', hoverColor: '#1a3575' },
-  { id: 'my_accountant', name: 'Master Theme', primaryColor: '#214392', hoverColor: '#1a3575' },
+  { id: 'my_accountant', name: 'Master Theme', primaryColor: '#0866FF', hoverColor: '#0054d1' },
   { id: 'tech_blue', name: 'Light Blue', primaryColor: '#0072b2', hoverColor: '#005a8d' },
   { id: 'futuristic', name: 'Dark Theme', primaryColor: '#1e2229', hoverColor: '#12151a' },
   { id: 'facebook', name: 'Facebook', primaryColor: '#0866FF', hoverColor: '#0054d1' },
