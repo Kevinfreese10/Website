@@ -5,6 +5,7 @@ import { sendEmail } from '@/lib/email';
 import React from 'react';
 import ChatNotificationEmail from '@/components/emails/ChatNotificationEmail';
 import ChatInviteEmail from '@/components/emails/ChatInviteEmail';
+import ChatWelcomeSummaryEmail from '@/components/emails/ChatWelcomeSummaryEmail';
 import { SITE_URL } from '@/lib/constants';
 
 export async function sendChatNotificationEmail(
@@ -65,3 +66,32 @@ export async function sendChatInviteEmail(
   }
 }
 
+export async function sendChatWelcomeSummaryEmail(
+  conversationId: string,
+  recipientEmail: string,
+  recipientName: string,
+  summaryText: string
+) {
+  try {
+    const actionUrl = `${SITE_URL}?resumeChat=${conversationId}`;
+    const emailHtml = await render(
+      React.createElement(ChatWelcomeSummaryEmail, {
+        recipientName: recipientName || 'Guest',
+        summaryText,
+        actionUrl,
+      })
+    );
+
+    await sendEmail({
+      to: recipientEmail.trim().toLowerCase(),
+      bcc: ['kev@thinkestry.co.za'],
+      subject: `Welcome to My Accountant! Here is a summary of our chat`,
+      html: emailHtml,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error sending chat welcome summary email:", error);
+    return { success: false, error: error.message || 'Unknown error' };
+  }
+}

@@ -54,12 +54,20 @@ export async function websiteQAndA(
   const adminDb = getAdminDb();
   const authAdmin = getAdminAuth();
 
-  // If the conversation is in agent takeover mode, bypass AI and save user message
+  let userName = 'Guest';
+  let userEmail = 'Unknown';
+  let userPhone = 'Unknown';
+
   if (input.conversationId) {
     const chatRef = adminDb.collection('chatbotConversations').doc(input.conversationId);
     const docSnap = await chatRef.get();
     if (docSnap.exists) {
       const chatData = docSnap.data();
+      
+      if (chatData?.userName) userName = chatData.userName;
+      if (chatData?.userEmail) userEmail = chatData.userEmail;
+      if (chatData?.userPhone) userPhone = chatData.userPhone;
+
       if (chatData?.mode === 'agent') {
         const userMsg = {
           role: 'user',
@@ -69,25 +77,10 @@ export async function websiteQAndA(
         const messages = chatData.messages || [];
         const updatedMessages = [...messages, userMsg];
 
-        const fullHistoryAndCurrent = [
-          ...messages.map((m: any) => m.content),
-          input.question
-        ].join('\n');
-        
-        const nameMatch = fullHistoryAndCurrent.match(/Name:\s*([^\n]+)/i);
-        const emailMatch = fullHistoryAndCurrent.match(/Email:\s*([^\n]+)/i);
-        
         const updateData: any = {
           updatedAt: FieldValue.serverTimestamp(),
           messages: updatedMessages
         };
-        
-        if (nameMatch && (!chatData.userName || chatData.userName === 'Guest')) {
-          updateData.userName = nameMatch[1].trim();
-        }
-        if (emailMatch && (!chatData.userEmail || chatData.userEmail === 'Anonymous')) {
-          updateData.userEmail = emailMatch[1].trim().toLowerCase();
-        }
 
         await chatRef.set(updateData, { merge: true });
 
@@ -382,46 +375,32 @@ export async function websiteQAndA(
     1. Understand: Ask questions before selling. E.g. Is this for a business or individual? How long has the business been operating? Are you currently registered with SARS? What challenge are you trying to solve? Do you already have an accountant?
     2. Diagnose: Identify urgency, pain points, compliance risks, and growth opportunities.
     3. Recommend: Provide the service cost, timeline, link, and offer to provide the requirements/documents required. Do not list requirements or long descriptions upfront.
-    4. Convert: Always end with a clear next step (e.g. quote, consultant contact, checklist, name/email/phone capture).
+    4. Convert: Always end with a clear next step (e.g. quote, consultant contact, checklist, or order confirmation).
     
     ORDER GENERATION FLOW:
     If the user indicates they want to place an order, purchase a service, or proceed with buying:
     1. Verify you know which specific service/product from the context they want to order.
-    2. Ask the user to provide the following details:
-       - First Name
-       - Surname
-       - Email Address
-       - Cell Number
+    2. Note: You already have their Name, Email, and Cell Number from when they started the chat, so you do NOT need to ask for these again.
     3. You MUST explicitly ask them to confirm, presenting links to the policies and requirements (replace [service_url] with the actual product URL from context, e.g., /products/vat-registration):
         "Please confirm:
         1. You have all the prerequisites for this service (you can review them on the [Service Page]([service_url])).
         2. You agree to the [Refund Policy](/refund-policy)."
-    4. Once (and ONLY once) the user has provided all 4 details (First Name, Surname, Email, Cell Number) and has explicitly confirmed both conditions, populate the 'orderTrigger' object in your JSON output with the exact details (look up ID, Title, and Price in the context).
+    4. Once the user has explicitly confirmed both conditions, populate the 'orderTrigger' object in your JSON output. You can use their Name, Email, and Phone from the USER CONTEXT section. (look up ID, Title, and Price in the context).
     5. In your text answer, state that you are creating the order.
-    6. Never populate 'orderTrigger' until all these conditions are fully satisfied in the chat history.
+    6. Never populate 'orderTrigger' until the user has explicitly agreed to the prerequisites and refund policy.
+    
+    USER CONTEXT:
+    - Name: ${userName}
+    - Email: ${userEmail}
+    - Phone: ${userPhone}
     
     LEAD QUALIFICATION:
-    Always try to capture:
-    - Name
+    Since we already have their contact info, focus on capturing their business context:
     - Company Name
-    - Phone Number
-    - Email Address
     - Service Required
     - Monthly Turnover
     - Number of Employees
     - Urgency Level
-    
-    Once you have collected the contact details (specifically Name, Email, and Phone) and service requirements, summarize the lead clearly in your response using this exact format:
-    Lead Summary:
-    Name: [Name]
-    Company: [Company Name]
-    Email: [Email Address]
-    Phone: [Phone Number]
-    Service: [Service Required]
-    Turnover: [Monthly Turnover]
-    Employees: [Number of Employees]
-    Urgency: [Urgency Level]
-    Notes: [Notes]
     
     HANDLING OBJECTIONS:
     - "Your price is too expensive": Emphasize expertise, compliance protection, time savings, reduced SARS risk, and professional support.

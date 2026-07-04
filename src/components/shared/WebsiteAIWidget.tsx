@@ -40,7 +40,9 @@ export default function WebsiteAIWidget() {
   const [conversationId, setConversationId] = useState<string>('');
   const [chatMode, setChatMode] = useState<'ai' | 'agent'>('ai');
   const [chatEmail, setChatEmail] = useState<string>('');
+  const [nameInput, setNameInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +51,7 @@ export default function WebsiteAIWidget() {
   const { toast } = useToast();
 
   const userMessagesCount = chatHistory.filter(m => m.role === 'user').length;
-  const isEmailRequired = (!chatEmail || chatEmail === 'Anonymous' || chatEmail === '') && userMessagesCount >= 2;
+  const isEmailRequired = (!chatEmail || chatEmail === 'Anonymous' || chatEmail === '');
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -211,12 +213,14 @@ export default function WebsiteAIWidget() {
 
   const handleRegisterEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nameClean = nameInput.trim();
     const emailClean = emailInput.trim();
-    if (!emailClean) return;
+    const phoneClean = phoneInput.trim();
+    if (!nameClean || !emailClean || !phoneClean) return;
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailClean)) {
-      alert("Please enter a valid email address.");
+      toast({ title: "Invalid Email", description: "Please enter a valid email address.", variant: "destructive" });
       return;
     }
 
@@ -224,9 +228,10 @@ export default function WebsiteAIWidget() {
     try {
       const docRef = doc(db, 'chatbotConversations', conversationId);
       await setDoc(docRef, { 
+        userName: nameClean,
         userEmail: emailClean,
+        userPhone: phoneClean,
         mode: chatMode || 'ai',
-        userName: 'Guest',
         updatedAt: serverTimestamp(),
         startedAt: serverTimestamp()
       }, { merge: true });
@@ -300,7 +305,7 @@ export default function WebsiteAIWidget() {
       </CardHeader>
 
       {/* Agent Takeover Banner */}
-      {chatMode === 'agent' && (
+      {!isEmailRequired && chatMode === 'agent' && (
         <div className="bg-indigo-950/45 border-b border-indigo-500/20 px-4 py-2 flex items-center justify-between text-[11px] font-bold text-indigo-300 select-none animate-in slide-in-from-top duration-200">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
@@ -311,6 +316,31 @@ export default function WebsiteAIWidget() {
       )}
 
       {/* Messages Body */}
+      {isEmailRequired ? (
+        <CardContent className="flex-1 overflow-y-auto p-6 bg-white flex flex-col justify-center">
+          <div className="text-center space-y-2 mb-6">
+            <h4 className="text-xl font-extrabold tracking-tight text-slate-900">Welcome to My Accountant</h4>
+            <p className="text-sm text-slate-500">Please enter your details to start chatting with Khai, our AI Support Assistant.</p>
+          </div>
+          <form onSubmit={handleRegisterEmail} className="flex flex-col gap-4 max-w-sm mx-auto w-full">
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-semibold text-slate-700 ml-1">Full Name</label>
+              <Input placeholder="John Doe" value={nameInput} onChange={(e) => setNameInput(e.target.value)} disabled={isSubmittingEmail} required className="h-10 border-slate-200" />
+            </div>
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-semibold text-slate-700 ml-1">Email Address</label>
+              <Input placeholder="john@example.com" type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} disabled={isSubmittingEmail} required className="h-10 border-slate-200" />
+            </div>
+            <div className="space-y-1.5 text-left">
+              <label className="text-xs font-semibold text-slate-700 ml-1">Cell Number</label>
+              <Input placeholder="082 123 4567" type="tel" value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} disabled={isSubmittingEmail} required className="h-10 border-slate-200" />
+            </div>
+            <Button type="submit" disabled={isSubmittingEmail} className="mt-2 h-11 bg-gradient hover:opacity-90 transition-opacity text-white font-bold w-full shadow-sm rounded-xl">
+              {isSubmittingEmail ? <Loader2 className="h-5 w-5 animate-spin" /> : "Start Chatting"}
+            </Button>
+          </form>
+        </CardContent>
+      ) : (
       <CardContent 
         ref={chatContainerRef} 
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-background/40 border-t border-b border"
@@ -508,80 +538,11 @@ export default function WebsiteAIWidget() {
           </div>
         )}
       </CardContent>
+      )}
 
-      {/* Input Form Footer or Email Capture */}
-      {isEmailRequired ? (
-        chatMode === 'agent' ? (
-          <CardFooter className="p-4 border-t bg-muted/10 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
-            <div className="space-y-1">
-              <h4 className="text-xs font-bold text-foreground flex items-center gap-1 select-none">
-                <ShieldCheck className="h-3.5 w-3.5 text-primary animate-pulse" />
-                Advisor Connecting...
-              </h4>
-              <p className="text-[10px] text-muted-foreground leading-relaxed select-none">
-                Please enter your email so we can notify you when the advisor replies.
-              </p>
-            </div>
-            <form onSubmit={handleRegisterEmail} className="flex gap-2 w-full">
-              <Input 
-                placeholder="yourname@example.com"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                disabled={isSubmittingEmail}
-                className="flex-grow h-9 text-xs border focus-visible:ring-primary bg-muted text-foreground"
-                required
-                type="email"
-              />
-              <Button 
-                type="submit" 
-                size="sm" 
-                disabled={isSubmittingEmail}
-                className="bg-primary hover:bg-primary/90 text-xs font-bold shrink-0 text-primary-foreground"
-              >
-                {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" /> : "Connect"}
-              </Button>
-            </form>
-          </CardFooter>
-        ) : (
-          <CardFooter className="p-4 border-t bg-muted/10 flex flex-col items-stretch gap-3 animate-in fade-in duration-300">
-            <div className="space-y-1">
-              <h4 className="text-xs font-bold text-foreground flex items-center gap-1 select-none">
-                <ShieldCheck className="h-3.5 w-3.5 text-primary animate-pulse" />
-                Enter Email to Continue
-              </h4>
-              <p className="text-[10px] text-muted-foreground leading-relaxed select-none">
-                You have reached the limit of anonymous questions. Please enter your email address to continue chatting.
-              </p>
-            </div>
-            <form onSubmit={handleRegisterEmail} className="flex gap-2 w-full">
-              <Input 
-                placeholder="yourname@example.com"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                disabled={isSubmittingEmail}
-                className="flex-grow h-9 text-xs border focus-visible:ring-primary bg-muted text-foreground"
-                required
-                type="email"
-              />
-              <Button 
-                type="submit" 
-                size="sm" 
-                disabled={isSubmittingEmail}
-                className="bg-gradient hover:opacity-90 text-xs font-bold shrink-0 text-white"
-              >
-                {isSubmittingEmail ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : "Submit"}
-              </Button>
-            </form>
-          </CardFooter>
-        )
-      ) : (
+      {/* Input Form Footer */}
+      {!isEmailRequired && (
         <CardFooter className="p-3 border-t bg-background flex flex-col items-stretch gap-2 animate-in fade-in duration-300">
-          {(!chatEmail || chatEmail === 'Anonymous' || chatEmail === '') && (
-            <div className="text-[10px] text-muted-foreground text-center font-semibold mb-1 flex items-center justify-center gap-1 select-none">
-              <Info className="h-3 w-3 text-primary shrink-0" />
-              Guest Session: {userMessagesCount}/2 anonymous messages used.
-            </div>
-          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="w-full flex items-center gap-2">
               <FormField
