@@ -39,6 +39,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  SidebarContent,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -172,8 +173,9 @@ export default function DashboardNav({ user }: { user: UserType }) {
         </div>
       </SidebarHeader>
 
-      <SidebarMenu className="flex-1">
-        {(user.role === 'client') && visibleNavItems.map((item) => (
+      <SidebarContent>
+        <SidebarMenu>
+          {(user.role === 'client') && visibleNavItems.map((item) => (
             <SidebarMenuItem key={item.label}>
             <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
                 <Link href={item.href}>
@@ -265,7 +267,8 @@ export default function DashboardNav({ user }: { user: UserType }) {
                 </SidebarMenuItem>
             </Collapsible>
         )}
-      </SidebarMenu>
+        </SidebarMenu>
+      </SidebarContent>
 
       <SidebarFooter>
         <SidebarMenu>
