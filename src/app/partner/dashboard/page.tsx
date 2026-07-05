@@ -559,9 +559,9 @@ export default function PartnerDashboardPage() {
                         <CardContent className="space-y-3">
                             {isGrowthActive && (
                                 <>
-                                    <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/onboarding"><Sparkles className="mr-3 h-4 w-4 text-primary"/>Onboarding Wizard</Link></Button>
-                                    <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/clients"><Briefcase className="mr-3 h-4 w-4 text-primary"/>Manage Clients</Link></Button>
-                                    <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/staff"><Users className="mr-3 h-4 w-4 text-primary"/>Staff Management</Link></Button>
+                                    <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/onboarding"><Sparkles className="mr-3 h-4 w-4"/>Onboarding Wizard</Link></Button>
+                                    <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/clients"><Briefcase className="mr-3 h-4 w-4"/>Manage Clients</Link></Button>
+                                    <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/staff"><Users className="mr-3 h-4 w-4"/>Staff Management</Link></Button>
                                 </>
                             )}
                             <Button className="w-full justify-start font-semibold" asChild><Link href="/partner/services"><Briefcase className="mr-3 h-4 w-4"/>Services & Pricing</Link></Button>
