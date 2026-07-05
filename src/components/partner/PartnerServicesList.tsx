@@ -204,7 +204,7 @@ export default function PartnerServicesList({ categories, services, mostPopularI
                                     </a>
                                     <Dialog>
                                         <DialogTrigger asChild>
-                                            <button className="flex-1 partner-btn inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow h-11 px-4 py-2">
+                                            <button suppressHydrationWarning className="flex-1 partner-btn inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow h-11 px-4 py-2">
                                                 Buy Now <ArrowRight className="ml-2 h-4 w-4" />
                                             </button>
                                         </DialogTrigger>
