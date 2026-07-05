@@ -225,11 +225,15 @@ export type PartnerLandingPageConfig = {
   aboutUs: string;
   themePreset?: 'custom' | 'my_accountant' | 'futuristic' | 'tech_blue' | 'facebook' | 'lovable' | 'monday' | 'monday_crm' | 'stripe' | 'airbnb' | 'linear' | 'spotify' | 'notion' | 'apple';
   primaryColor: string;
+  hoverColor?: string;
   secondaryColor?: string;
   backgroundColor?: string;
   textColor?: string;
   cardBackgroundColor?: string;
+  cardBg?: string;
   cardBorderColor?: string;
+  cardBorder?: string;
+  cardRadius?: string;
   buttonColor?: string;
   buttonTextColor?: string;
   buttonStyle?: 'solid' | 'outline';
@@ -428,6 +432,7 @@ export type User = {
   departments?: string[]; 
   entityType?: 'Company' | 'Trust' | 'Individual';
   status?: 'Active' | 'Inactive' | 'Archived' | 'Pending Setup Payment';
+  onboardingStep?: number;
   partnerId?: string; 
   companyName?: string;
   contactPerson?: string;

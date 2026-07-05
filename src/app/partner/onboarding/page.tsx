@@ -8,6 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ColorPicker } from '@/components/ui/color-picker';
+import { Switch } from '@/components/ui/switch';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getFirestore, doc, updateDoc, writeBatch, Timestamp, setDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -58,18 +62,47 @@ export default function PartnerOnboardingPage() {
   const [heroSubheadline, setHeroSubheadline] = useState('');
   const [aboutUs, setAboutUs] = useState('');
   const [selectedTheme, setSelectedTheme] = useState('custom');
-
+  
+  const [logoUrl, setLogoUrl] = useState('');
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [primaryColor, setPrimaryColor] = useState('#0866FF');
+  const [hoverColor, setHoverColor] = useState('#0054d1');
+  const [secondaryColor, setSecondaryColor] = useState('#f3f4f6');
+  const [cardBg, setCardBg] = useState('#ffffff');
+  const [cardBorder, setCardBorder] = useState('#e5e7eb');
+  const [textColor, setTextColor] = useState('#1C1E21');
+  const [glassmorphism, setGlassmorphism] = useState(false);
+  const [cardRadius, setCardRadius] = useState('0.75rem');
+  const [slug, setSlug] = useState('');
+  const [selectedServices, setSelectedServices] = useState<Record<string, boolean>>({});
   useEffect(() => {
     if (user) {
-      setBankName(user.bankingDetails?.bankName || '');
-      setAccountHolder(user.bankingDetails?.accountHolder || user.companyName || user.name);
-      setAccountNumber(user.bankingDetails?.accountNumber || '');
-      setBranchCode(user.bankingDetails?.branchCode || '');
-      setAccountType((user.bankingDetails as any)?.accountType || 'Current');
-
       setHeroSubheadline(user.landingPage?.heroSubtitle || 'Professional Accounting & Tax Solutions for Small Businesses');
       setAboutUs(user.landingPage?.aboutUs || '');
       setSelectedTheme(user.landingPage?.themePreset || 'custom');
+      
+      setLogoUrl(user.landingPage?.logoUrl || '');
+      setPrimaryColor(user.landingPage?.primaryColor || '#0866FF');
+      setHoverColor(user.landingPage?.hoverColor || '#0054d1');
+      setSecondaryColor(user.landingPage?.secondaryColor || '#f3f4f6');
+      setCardBg(user.landingPage?.cardBg || '#ffffff');
+      setCardBorder(user.landingPage?.cardBorder || '#e5e7eb');
+      setTextColor(user.landingPage?.textColor || '#1C1E21');
+      setGlassmorphism(user.landingPage?.glassmorphism || false);
+      setCardRadius(user.landingPage?.cardRadius || '0.75rem');
+      setSlug(user.landingPage?.slug || user.companyName?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || '');
+      
+      if (user.onboardingStep !== undefined && user.onboardingStep > activeStep) {
+        // Do not auto-jump if they are already further, but it's an option.
+        // For now, let's let them resume if they load at step 0
+        if (activeStep === 0 && user.onboardingStep > 0 && user.onboardingStep < 4) {
+           setActiveStep(user.onboardingStep);
+        }
+      }
+      
+      const initServices: Record<string, boolean> = {};
+      baseServices.forEach(s => initServices[s.id] = true);
+      setSelectedServices(initServices);
     }
   }, [user]);
 
@@ -87,6 +120,25 @@ export default function PartnerOnboardingPage() {
       </div>
     );
   }
+
+  
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setIsUploadingLogo(true);
+    try {
+      const storage = getStorage(firebaseApp);
+      const storageRef = ref(storage, `users/${user.uid}/landing-page/logo_${Date.now()}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setLogoUrl(url);
+      toast({ title: 'Logo Uploaded', description: 'Your logo has been successfully uploaded.' });
+    } catch (error) {
+      toast({ title: 'Upload Failed', description: 'Could not upload logo.', variant: 'destructive' });
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
 
   const handleSaveBanking = async () => {
     if (!user) return;
@@ -113,7 +165,7 @@ export default function PartnerOnboardingPage() {
         } as any
       });
       toast({ title: 'Banking Details Saved', description: 'Your EFT information is configured.' });
-      setActiveStep(2);
+      setActiveStep(2); if(user) { updateDoc(doc(db, 'users', user.uid), { onboardingStep: 2 }); updateUser({...user, onboardingStep: 2}); }
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'Failed to save banking details.', variant: 'destructive' });
@@ -131,14 +183,21 @@ export default function PartnerOnboardingPage() {
       await updateDoc(userRef, {
         landingPage: {
           themePreset: selectedTheme as any,
-          primaryColor: theme.primaryColor,
-          hoverColor: theme.hoverColor,
+          primaryColor,
+          hoverColor,
+          secondaryColor,
+          cardBg,
+          cardBorder,
+          textColor,
+          glassmorphism,
+          cardRadius,
+          logoUrl,
           heroTitle: user.landingPage?.heroTitle || user.companyName || 'Welcome to Our Practice',
           heroSubtitle: heroSubheadline,
           aboutUs,
           enabled: true,
-          slug: user.landingPage?.slug || '',
-        } as any
+          slug,
+} as any
       });
       updateUser({
         ...user,
@@ -154,7 +213,7 @@ export default function PartnerOnboardingPage() {
         } as any
       });
       toast({ title: 'Branding Saved', description: 'Your landing page customization is updated.' });
-      setActiveStep(3);
+      setActiveStep(3); if(user) { updateDoc(doc(db, 'users', user.uid), { onboardingStep: 3 }); updateUser({...user, onboardingStep: 3}); }
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'Failed to update website branding.', variant: 'destructive' });
@@ -177,6 +236,7 @@ export default function PartnerOnboardingPage() {
     try {
       const batch = writeBatch(db);
       baseServices.forEach(service => {
+        const isEnabled = !!selectedServices[service.id];
         const markedPrice = Math.round(service.price * markupMultiplier);
         
         const newValues = {
@@ -187,6 +247,7 @@ export default function PartnerOnboardingPage() {
           turnaroundTime: service.turnaroundTime,
           whatsIncluded: service.whatsIncluded || [],
           clientRequirements: service.clientRequirements || [],
+          enabled: isEnabled
         };
 
         const overrideRef = doc(db, 'users', user.uid, 'serviceOverrides', service.id);
@@ -195,7 +256,7 @@ export default function PartnerOnboardingPage() {
 
       await batch.commit();
       toast({ title: 'Pricing Configured', description: 'Successfully applied a ' + globalMarkup + '% markup to all services.' });
-      setActiveStep(4);
+      setActiveStep(4); if(user) { updateDoc(doc(db, 'users', user.uid), { onboardingStep: 4 }); updateUser({...user, onboardingStep: 4}); }
     } catch (e) {
       console.error(e);
       toast({ title: 'Markup Failed', description: 'Could not apply bulk markup.', variant: 'destructive' });
@@ -432,7 +493,13 @@ export default function PartnerOnboardingPage() {
                       <button
                         key={theme.id}
                         type="button"
-                        onClick={() => setSelectedTheme(theme.id)}
+                        onClick={() => {
+        setSelectedTheme(theme.id);
+        if (theme.id !== 'custom') {
+           setPrimaryColor(theme.primaryColor);
+           setHoverColor(theme.hoverColor);
+        }
+    }}
                         className={'p-3 border-2 rounded-lg text-center font-bold text-xs flex flex-col items-center gap-2 transition-all ' + (
                           selectedTheme === theme.id 
                             ? 'border-primary bg-primary/5 text-primary shadow-sm' 
@@ -466,6 +533,96 @@ export default function PartnerOnboardingPage() {
                     placeholder="Tell your clients about your credentials, services, and commitment..."
                   />
                 </div>
+              
+                <div className="space-y-4 pt-4 border-t">
+                  <h4 className="text-sm font-bold">Logo & Public URL</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label>Practice Logo</Label>
+                        <div className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center min-h-[100px] bg-slate-50 relative group">
+                          {logoUrl ? (
+                            <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+                          ) : (
+                            <div className="text-center">
+                              <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                              <span className="text-xs text-muted-foreground">Upload your logo</span>
+                            </div>
+                          )}
+                          <input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                          {isUploadingLogo && (
+                             <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                               <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                             </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="slug">Custom URL Slug</Label>
+                        <div className="flex items-center">
+                           <span className="bg-muted text-muted-foreground border border-r-0 rounded-l-md px-3 h-10 flex items-center text-sm">myacc.co.za/p/</span>
+                           <Input 
+                             id="slug" 
+                             value={slug} 
+                             onChange={e => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} 
+                             className="rounded-l-none border-l-0"
+                             placeholder="your-practice"
+                           />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">This will be your public landing page link.</p>
+                      </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t">
+                   <h4 className="text-sm font-bold">Advanced Colors & Styling</h4>
+                   
+                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                     <div className="space-y-2">
+                       <Label className="text-xs">Primary Brand Color</Label>
+                       <ColorPicker value={primaryColor} onChange={setPrimaryColor} />
+                     </div>
+                     <div className="space-y-2">
+                       <Label className="text-xs">Card Background</Label>
+                       <ColorPicker value={cardBg} onChange={setCardBg} />
+                     </div>
+                     <div className="space-y-2">
+                       <Label className="text-xs">Card Border</Label>
+                       <ColorPicker value={cardBorder} onChange={setCardBorder} />
+                     </div>
+                     <div className="space-y-2">
+                       <Label className="text-xs">Text Color</Label>
+                       <ColorPicker value={textColor} onChange={setTextColor} />
+                     </div>
+                   </div>
+
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                     <div className="flex items-center justify-between border rounded-md p-3">
+                       <div className="space-y-0.5">
+                         <Label className="text-xs">Enable Glassmorphism</Label>
+                         <p className="text-[10px] text-muted-foreground">Applies a frosted glass effect to cards.</p>
+                       </div>
+                       <Switch checked={glassmorphism} onCheckedChange={setGlassmorphism} />
+                     </div>
+                     
+                     <div className="space-y-2 border rounded-md p-3">
+                        <Label className="text-xs">Card Border Radius</Label>
+                        <div className="flex gap-2">
+                           {['0', '0.5rem', '0.75rem', '1.5rem'].map(r => (
+                             <button 
+                               key={r} 
+                               type="button"
+                               onClick={() => setCardRadius(r)}
+                               className={`px-2 py-1 text-xs border rounded transition-all ${cardRadius === r ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}
+                             >
+                               {r === '0' ? 'Sharp' : r === '0.5rem' ? 'Small' : r === '0.75rem' ? 'Medium' : 'Round'}
+                             </button>
+                           ))}
+                        </div>
+                     </div>
+                   </div>
+                </div>
+
               </CardContent>
               <CardFooter className="flex justify-end gap-2 border-t pt-4">
                 <Button variant="ghost" onClick={() => setActiveStep(1)}>Back</Button>
@@ -525,6 +682,42 @@ export default function PartnerOnboardingPage() {
                     </div>
                   </div>
                 </div>
+              
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="flex justify-between items-end">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-slate-800">Select Services to Offer</h4>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Uncheck any services you don't want to show on your public landing page.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
+                    {baseServices.map(service => (
+                      <label key={service.id} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${selectedServices[service.id] ? 'bg-primary/5 border-primary/30' : 'bg-background hover:bg-muted'}`}>
+                        <div className="flex items-center h-5">
+                          <input 
+                            type="checkbox" 
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            checked={!!selectedServices[service.id]}
+                            onChange={(e) => setSelectedServices((prev: Record<string, boolean>) => ({...prev, [service.id]: e.target.checked}))}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-sm font-bold truncate">{service.title}</span>
+                            <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                               R{Math.round(service.price * (1 + parseFloat(globalMarkup || '0') / 100))}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{service.description}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
               </CardContent>
               <CardFooter className="flex justify-end gap-2 border-t pt-4">
                 <Button variant="ghost" onClick={() => setActiveStep(2)}>Back</Button>
