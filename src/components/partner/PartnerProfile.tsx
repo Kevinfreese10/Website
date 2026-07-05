@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { ColorPicker } from '@/components/ui/color-picker';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   Loader2, 
@@ -827,12 +828,13 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                     {description && <p className="text-[10px] text-muted-foreground">{description}</p>}
                 </div>
                 <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full">
                         <FormControl>
-                            <div className="flex items-center gap-2 border rounded-md px-2 py-1 flex-grow bg-background shadow-sm">
-                                <input type="color" value={field.value || '#ffffff'} onChange={(e) => { field.onChange(e.target.value); setValue('landingPage.themePreset', 'custom'); }} className="w-6 h-6 rounded-sm cursor-pointer border-0 bg-transparent p-0" />
-                                <Input {...field} className="border-0 h-7 text-xs font-mono uppercase focus-visible:ring-0 focus-visible:ring-offset-0 px-1" onChange={(e) => { field.onChange(e.target.value); setValue('landingPage.themePreset', 'custom'); }} />
-                            </div>
+                            <ColorPicker
+                                value={field.value || '#ffffff'}
+                                onChange={(val) => { field.onChange(val); setValue('landingPage.themePreset', 'custom'); }}
+                                className="w-full"
+                            />
                         </FormControl>
                     </div>
                     <div className="flex flex-wrap gap-1.5">

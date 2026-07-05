@@ -194,19 +194,6 @@ export default function PartnerServicesList({ categories, services, mostPopularI
                                     <p className="text-sm opacity-80 leading-relaxed line-clamp-3">
                                         {service.description}
                                     </p>
-                                    {service.whatsIncluded && service.whatsIncluded.length > 0 && (
-                                        <div className="space-y-3">
-                                            <p className="text-sm font-semibold">What&apos;s Included:</p>
-                                            <ul className="space-y-2">
-                                                {service.whatsIncluded.slice(0, 4).map((item: string, i: number) => (
-                                                    <li key={i} className="flex items-start text-xs opacity-90">
-                                                        <CheckCircle2 className="h-4 w-4 mr-3 mt-0.5 partner-icon flex-shrink-0" />
-                                                        <span className="leading-tight">{item}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
                                 </CardContent>
                                 <CardFooter className="pt-0">
                                     <a href={`/p/${slug}/checkout?serviceId=${service.id}`} className="w-full partner-btn inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow h-11 px-4 py-2">
