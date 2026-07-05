@@ -153,7 +153,7 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
             </div>
           </div>
 
-          <aside className="lg:col-span-1">
+          <aside id="checkout" className="lg:col-span-1">
             <div className="sticky top-24">
               <Card className="partner-card border-2 overflow-hidden shadow-xl">
                 <CardHeader style={{ backgroundColor: lp?.secondaryColor || 'rgba(0,0,0,0.03)' }}>
