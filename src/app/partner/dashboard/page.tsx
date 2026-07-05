@@ -356,8 +356,9 @@ export default function PartnerDashboardPage() {
     }, [setupChecklist]);
 
     const notifications = useMemo(() => {
-        if (!user || outsourcedOrders.length === 0) return [];
-        let allNotes: (OrderNote & { orderId: string, orderTitle: string, customerName: string })[] = [];
+        if (!user) return [];
+        let allNotes: (OrderNote & { orderId: string, orderTitle: string, customerName: string, link: string, authorFallback: string })[] = [];
+        
         outsourcedOrders.forEach(order => {
           const notes = (order.notes || [])
             .filter(note => note.authorId !== user.id && note.type === 'note')
@@ -367,11 +368,29 @@ export default function PartnerDashboardPage() {
               orderId: order.id,
               orderTitle: order.items[0]?.title || 'Untitled Order',
               customerName: order.customerName,
+              link: `/partner/outsourced-orders/${order.id}`,
+              authorFallback: 'My Accountant Support'
             }));
           allNotes.push(...notes);
         });
+
+        orders.forEach(order => {
+          const notes = (order.notes || [])
+            .filter(note => note.authorId !== user.id && note.type === 'note')
+            .map(note => ({
+              ...note,
+              date: note.date instanceof Date ? note.date : note.date.toDate(),
+              orderId: order.id,
+              orderTitle: order.items[0]?.title || 'Untitled Order',
+              customerName: order.customerName,
+              link: `/partner/orders/${order.id}`,
+              authorFallback: order.customerName || 'Client'
+            }));
+          allNotes.push(...notes);
+        });
+
         return allNotes.sort((a, b) => b.date.getTime() - a.date.getTime());
-    }, [outsourcedOrders, user]);
+    }, [outsourcedOrders, orders, user]);
 
     const getAuthor = (authorId: string): User | undefined => {
         return allStaff.find(u => u.id === authorId);
@@ -460,8 +479,8 @@ export default function PartnerDashboardPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Recent Notifications</CardTitle>
-                            <CardDescription>Updates from My Accountant on your outsourced orders.</CardDescription>
+                            <CardTitle>Communication History</CardTitle>
+                            <CardDescription>Latest notes and updates on your orders.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> :
@@ -480,9 +499,9 @@ export default function PartnerDashboardPage() {
                                             <div className="flex-1">
                                                 <div className="flex justify-between items-start">
                                                     <p className="text-sm">
-                                                        <span className="font-semibold">{author?.name || 'My Accountant Support'}</span>
+                                                        <span className="font-semibold">{author?.name || note.authorFallback}</span>
                                                         <span className="text-muted-foreground"> left a note on order </span>
-                                                        <Link href={`/partner/outsourced-orders/${note.orderId}`} className="font-semibold text-primary hover:underline">{note.orderId}</Link>
+                                                        <Link href={note.link} className="font-semibold text-primary hover:underline">{note.orderId}</Link>
                                                     </p>
                                                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                                                         {formatDistanceToNow(date, { addSuffix: true })}
@@ -506,7 +525,7 @@ export default function PartnerDashboardPage() {
                             <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground border-2 border-dashed rounded-lg">
                                 <Inbox className="h-12 w-12 mb-4 opacity-20"/>
                                 <p className="font-semibold text-sm">All caught up!</p>
-                                <p className="text-xs">No new notes on your outsourced orders.</p>
+                                <p className="text-xs">No new notes on your orders.</p>
                             </div>
                             )}
                         </CardContent>
