@@ -144,7 +144,6 @@ export default function DashboardNav({ user }: { user: UserType }) {
     { href: '/partner/services', label: 'View Products', icon: Briefcase, roles: ['partner', 'partner_staff'] },
     { href: '/partner/orders', label: isFreePartner ? 'My Orders' : 'Client Orders', icon: ShieldCheck, roles: ['partner', 'partner_staff'] },
     ...(!isFreePartner ? [{ href: '/partner/outsourced-orders', label: 'Outsourced Orders', icon: FileText, roles: ['partner', 'partner_staff'] }] : []),
-    { href: '/partner/overflow-board', label: 'Overflow Board', icon: Briefcase, roles: ['partner', 'partner_staff'] },
     { href: '/partner/profile', label: 'My Profile', icon: User, roles: ['partner', 'partner_staff'] },
     { href: '/partner/community', label: 'Community Q&A', icon: MessageSquare, roles: ['partner', 'partner_staff'] },
   ];

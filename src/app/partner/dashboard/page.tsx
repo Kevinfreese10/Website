@@ -586,22 +586,7 @@ export default function PartnerDashboardPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm flex items-center gap-2">
-                                <Briefcase className="h-4 w-4 text-primary" />
-                                Outsourced Job Board
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                View practice overflow jobs outsourced from the My Accountant network.
-                            </p>
-                            <Badge variant="outline" className="font-bold w-fit text-muted-foreground border-slate-200">
-                                No active jobs
-                            </Badge>
-                        </CardContent>
-                    </Card>
+
 
                      <Card className="bg-muted/20">
                         <CardHeader className="pb-2">
