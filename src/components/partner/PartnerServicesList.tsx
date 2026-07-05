@@ -2,6 +2,8 @@
 import { useState, useMemo } from 'react';
 import { Search, X, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
 import { cn } from '@/lib/utils';
 import AnimatedSection from './AnimatedSection';
 import { Service } from '@/lib/types';
@@ -19,6 +21,7 @@ interface PartnerServicesListProps {
   services: Service[];
   mostPopularId: string | null;
   slug: string;
+  partnerId: string;
 }
 
 const formatPrice = (price: number) => {
@@ -30,7 +33,7 @@ const formatPrice = (price: number) => {
     }).format(price);
 };
 
-export default function PartnerServicesList({ categories, services, mostPopularId, slug }: PartnerServicesListProps) {
+export default function PartnerServicesList({ categories, services, mostPopularId, slug, partnerId }: PartnerServicesListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
@@ -199,9 +202,21 @@ export default function PartnerServicesList({ categories, services, mostPopularI
                                     <a href={`/p/${slug}/products/${service.slug}`} className="flex-1 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow-sm h-11 px-4 py-2 border border-border bg-background hover:bg-muted text-foreground">
                                         Learn More
                                     </a>
-                                    <a href={`/p/${slug}/products/${service.slug}#checkout`} className="flex-1 partner-btn inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow h-11 px-4 py-2">
-                                        Buy Now <ArrowRight className="ml-2 h-4 w-4" />
-                                    </a>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <button className="flex-1 partner-btn inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow h-11 px-4 py-2">
+                                                Buy Now <ArrowRight className="ml-2 h-4 w-4" />
+                                            </button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+                                            <DialogHeader>
+                                                <DialogTitle>Order {service.title}</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="mt-4">
+                                                <ServiceCheckoutForm service={service} partnerId={partnerId} />
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
                                 </CardFooter>
                             </Card>
                           );

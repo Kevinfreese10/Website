@@ -564,8 +564,9 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
           <PartnerServicesList 
             categories={categories} 
             services={services} 
-            mostPopularId={mostPopularId} 
-            slug={slug} 
+            mostPopularId={mostPopularId}
+            slug={slug}
+            partnerId={partner.id}
           />
         </section>
 
