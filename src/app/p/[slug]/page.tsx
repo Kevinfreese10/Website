@@ -423,7 +423,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
               {/* Essential Card */}
-              <Card className="flex flex-col glass-card border border-border shadow-sm hover:shadow-xl hover:border-slate-300 hover:scale-[1.02] transition-all duration-300 bg-card/30">
+              <Card className="flex flex-col partner-card shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
                 <div className="p-6 border-b">
                   <h3 className="text-xl font-bold text-foreground/90">Essential</h3>
                   <p className="text-xs text-muted-foreground mt-1">Best for small startups & sole proprietors</p>
@@ -473,7 +473,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
                 <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-background border border-border partner-text font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-full shadow-md select-none">
                   Most Popular
                 </div>
-                <div className="p-6 border-b partner-bg/5 rounded-t-xl bg-card/50">
+                <div className="p-6 border-b partner-bg/5 rounded-t-xl partner-card">
                   <h3 className="text-xl font-bold text-foreground/90">Growth</h3>
                   <p className="text-xs text-muted-foreground mt-1">Perfect for growing SME businesses</p>
                   <div className="flex items-baseline mt-4">
@@ -518,7 +518,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
               </Card>
 
               {/* Executive Card */}
-              <Card className="flex flex-col glass-card border border-border shadow-sm hover:shadow-xl hover:border-slate-300 hover:scale-[1.02] transition-all duration-300 bg-card/30">
+              <Card className="flex flex-col partner-card shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
                 <div className="p-6 border-b">
                   <h3 className="text-xl font-bold text-foreground/90">Executive</h3>
                   <p className="text-xs text-muted-foreground mt-1">Comprehensive CFO & tax governance</p>

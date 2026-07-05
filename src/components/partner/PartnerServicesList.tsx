@@ -85,6 +85,7 @@ export default function PartnerServicesList({ categories, services, mostPopularI
               <Search className="h-4 w-4 partner-text-main opacity-60" />
             </div>
             <input
+              suppressHydrationWarning
               type="text"
               placeholder="Search for tax clearance, VAT, registration..."
               value={searchQuery}
@@ -93,6 +94,7 @@ export default function PartnerServicesList({ categories, services, mostPopularI
             />
             {searchQuery && (
               <button
+                suppressHydrationWarning
                 onClick={() => setSearchQuery("")}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center partner-text-main opacity-60 hover:partner-text-main opacity-70 transition-colors"
               >
@@ -106,6 +108,7 @@ export default function PartnerServicesList({ categories, services, mostPopularI
         {!searchQuery && (
           <div className="flex flex-wrap gap-2 justify-center animate-in fade-in duration-300">
             <button
+              suppressHydrationWarning
               onClick={() => scrollToSection('all')}
               className={cn(
                 "px-4 py-2 rounded-full text-xs font-bold border transition-all duration-200",
@@ -118,6 +121,7 @@ export default function PartnerServicesList({ categories, services, mostPopularI
             </button>
             {categories.slice().map(cat => (
               <button
+                suppressHydrationWarning
                 key={cat.id}
                 onClick={() => scrollToSection(cat.name)}
                 className={cn(
@@ -157,7 +161,7 @@ export default function PartnerServicesList({ categories, services, mostPopularI
                           const isPopular = service.id === mostPopularId;
                           return (
                               <Card key={service.id} className={cn(
-                                "flex flex-col group hover:shadow-xl transition-all duration-300 glass-card border border-border shadow-sm hover:scale-[1.02] relative bg-card/50",
+                                "flex flex-col group hover:shadow-xl transition-all duration-300 partner-card shadow-sm hover:scale-[1.02] relative",
                                 isPopular && "ring-2 ring-primary/30 shadow-md"
                               )}>
                                 {/* Most Popular Badge */}
