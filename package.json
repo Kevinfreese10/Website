@@ -16,6 +16,7 @@
     "test:rules": "firebase emulators:exec \"tsx scratch/test_firestore_rules.ts\""
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.2.22",
     "@genkit-ai/google-genai": "1.19.1",
     "@genkit-ai/next": "1.19.1",
     "@hookform/resolvers": "^4.1.3",
@@ -42,6 +43,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@react-email/components": "^0.0.21",
     "@react-pdf/renderer": "^3.4.4",
+    "ai": "^4.1.66",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
