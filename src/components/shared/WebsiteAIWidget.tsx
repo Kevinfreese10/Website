@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp, getDocs, collection, query, orderBy } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp, getDocs, collection, query, orderBy, where } from 'firebase/firestore';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';

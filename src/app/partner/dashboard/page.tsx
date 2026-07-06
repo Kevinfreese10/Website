@@ -543,7 +543,7 @@ export default function PartnerDashboardPage() {
                         </CardHeader>
                         <CardContent className="space-y-3 pb-4">
                             <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-                                Get your custom practice landing page, 5 AI accountant companies, client chatbot, tasks, and 3 staff seats.
+                                Get your custom practice landing page, 5 AI accountant companies, tasks, and 3 staff seats.
                             </p>
                             <Button asChild size="sm" className="w-full font-bold shadow-sm">
                                 <Link href="/become-a-partner">Upgrade Plan for R950/mo</Link>

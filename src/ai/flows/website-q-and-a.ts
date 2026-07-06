@@ -28,6 +28,8 @@ const WebsiteQAndAInputSchema = z.object({
     content: z.string(),
   })).optional().describe('The conversation history.'),
   conversationId: z.string().optional().describe('The unique conversation/session ID.'),
+  partnerSlug: z.string().optional().describe('The partner slug, if this chat is happening on a white-labeled partner page.'),
+  partnerId: z.string().optional().describe('The partner ID, if this chat is happening on a white-labeled partner page.'),
 });
 export type WebsiteQAndAInput = z.infer<typeof WebsiteQAndAInputSchema>;
 
@@ -235,17 +237,17 @@ export async function websiteQAndA(
   const becomeAPartnerPageContent = `
     Bookkeeper Empowerment Initiative (BEI): Empowers small and growing bookkeepers in South Africa. Joining is free.
     BEI Benefits:
-    - 25% Discount: Partners get 25% off My Accountant's standard service fees (excluding 3rd party costs like CIPC).
+    - 25% Discount: Partners get 25% off ${companyName}'s standard service fees (excluding 3rd party costs like CIPC).
     - White-Labeling: Seamless outsourcing while maintaining your brand.
     - Client CRM: Advanced dashboard that automatically creates tasks based on client requirements (VAT, PAYE, etc.).
     - Staff Management: Manage your team, assign tasks, and track internal project workflows.
-    - Pricing Control: Partners can set their own client selling prices while My Accountant's base cost remains fixed.
+    - Pricing Control: Partners can set their own client selling prices while ${companyName}'s base cost remains fixed.
     How it works: Apply online, pay R4,950 once-off setup and activation fee, and get lifetime access to your dashboard. There are zero monthly subscription or hosting fees. Upon successful payment of the setup fee, your practice wallet is instantly credited with R2,475 in practice credits to spend on outsourcing.
-    Who can join: Freelance Bookkeepers, Startup Accounting Firms, Tax Practitioners, Business Consultants, Payroll Administrators. No need to be a registered accountant to offer services, but to receive outsourced work from My Accountant, you must belong to a recognized professional body (SAICA, SAIT, CIBA, or SAIPA).
+    Who can join: Freelance Bookkeepers, Startup Accounting Firms, Tax Practitioners, Business Consultants, Payroll Administrators. No need to be a registered accountant to offer services, but to receive outsourced work from ${companyName}, you must belong to a recognized professional body (SAICA, SAIT, CIBA, or SAIPA).
   `;
   
   const aboutPageContent = `
-    About My Accountant: Your dynamic partner in conquering the financial world. With a heritage rooted in over 35 years of combined expertise in Audit, Accounting, and Tax Advisory, our black-owned, cloud-powered firm is dedicated to streamlining tax compliance for both SMEs and individuals. Our team, rich in diversity and expertise, demystifies financial complexities, enabling you to channel your energies into growing your enterprise.
+    About ${companyName}: Your dynamic partner in conquering the financial world. With a heritage rooted in over 35 years of combined expertise in Audit, Accounting, and Tax Advisory, our black-owned, cloud-powered firm is dedicated to streamlining tax compliance for both SMEs and individuals. Our team, rich in diversity and expertise, demystifies financial complexities, enabling you to channel your energies into growing your enterprise.
     Our Vision: To redefine excellence in financial services, grounded in integrity, transparency, and professionalism. We aim not just to meet expectations but to surpass them, forging lasting relationships based on trust and mutual respect.
     Our Mission: To set a new standard in financial and professional services. We’re committed to supporting both immediate and future financial goals with our forward-thinking approach.
     Bookkeeper Empowerment Initiative: Our pioneering initiative has made us the premier destination for accounting professionals across South Africa looking to outsource. It enhances efficiency, reduces overhead costs, and provides access to a team of experts.
@@ -262,20 +264,20 @@ export async function websiteQAndA(
   `;
 
   const popiaPolicyContent = `
-    POPIA Compliance: My Accountant is committed to safeguarding personal information in line with POPIA. We process information lawfully and for legitimate business purposes. We do not sell personal information. Our Information Officer is Kevin William Freese, reachable at info@myacc.co.za.
+    POPIA Compliance: ${companyName} is committed to safeguarding personal information in line with POPIA. We process information lawfully and for legitimate business purposes. We do not sell personal information. Our Information Officer is Kevin William Freese, reachable at ${contactEmail}.
   `;
   
   const footerContent = `
     CONTACT INFORMATION:
     - Address: Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195
-    - Email: info@myacc.co.za
-    - Phone: 010 109 1625
+    - Email: ${contactEmail}
+    - Phone: ${contactPhone}
   `;
 
   // Serialize the website content to pass to the prompt
   const websiteContent = `
     SERVICES:
-    ${services.map(s => `Title: ${s.title}, URL: /products/${s.slug}, Description: ${s.longDescription}, Price: R${s.price}, Turnaround Time: ${s.turnaroundTime}, Prerequisites: ${s.clientRequirements.join(', ')}`).join('\n\n')}
+    ${services.map(s => `Title: ${s.title}, URL: ${partnerData ? `/p/${partnerData.slug}/products/${s.slug}` : `/products/${s.slug}`}, Description: ${s.longDescription}, Price: ${s.isPriceTbc ? 'Price on Request' : `R${s.price}`}, Turnaround Time: ${s.turnaroundTime}, Prerequisites: ${(s.clientRequirements || []).join(', ')}`).join('\n\n')}
 
     BLOG POSTS:
     ${blogPosts.map(p => `Title: ${p.title}, Excerpt: ${p.excerpt}`).join('\n\n')}
@@ -322,7 +324,7 @@ export async function websiteQAndA(
     model: 'googleai/gemini-2.5-flash',
     input: {schema: WebsiteQAndAInputSchema},
     output: {schema: WebsiteQAndAOutputSchema},
-    prompt: `You are the Support Specialist for My Accountant (Pty) Ltd. Your name is 'Khai'.
+    prompt: `You are the Support Specialist for ${companyName} (Pty) Ltd. Your name is 'Khai'.
     
     Your primary objective is to:
     - Convert website visitors into paying clients.
@@ -429,30 +431,30 @@ export async function websiteQAndA(
           - Keep the tone supportive and reassuring.
        e. If the verification is FAILED (email mismatch) or the order is NOT FOUND:
           - Politely inform the user that the details could not be verified or the order was not found.
-          - Explicitly instruct them that if they cannot verify their email and order number, they must contact us via email at info@myacc.co.za or call us at 010 109 1625 to follow up.
+          - Explicitly instruct them that if they cannot verify their email and order number, they must contact us via email at ${contactEmail} or call us at ${contactPhone} to follow up.
           - Do NOT ask them to try entering details again; direct them to contact us.
        f. Never disclose any order status, tracking, or update details unless the verification status is explicitly SUCCESS.
     
     UNOFFERED SERVICES & UNAVAILABLE INFO FALLBACK:
     If a user asks for a service that we do not offer (not found in our services database, such as liquor licenses) or if the requested information is not available:
     - Inform them politely that we do not currently offer this service or that the details are not immediately available.
-    - Explicitly tell them to call us on 010 109 1625 during office hours (Mon-Fri 09:00 - 17:00) or to email us at info@myacc.co.za, and we will get back to them to assist.
-    - Example: "I'm afraid we don't currently offer that specific service. Please feel free to call us on 010 109 1625 during office hours or email us at info@myacc.co.za, and we will get back to you right away to assist."
+    - Explicitly tell them to call us on ${contactPhone} during office hours (Mon-Fri 09:00 - 17:00) or to email us at ${contactEmail}, and we will get back to them to assist.
+    - Example: "I'm afraid we don't currently offer that specific service. Please feel free to call us on ${contactPhone} during office hours or email us at ${contactEmail}, and we will get back to you right away to assist."
     - You may still offer to capture their details (Name, Email, Phone) so a consultant can call them back if they prefer.
     
     SEO & CONVERSION FOCUS:
-    Intelligently address visitors searching for keywords like "Accountant near me", "Accounting services South Africa", "VAT registration", "Company registration", "SARS compromise", etc., guiding them towards My Accountant's online services.
+    Intelligently address visitors searching for keywords like "Accountant near me", "Accounting services South Africa", "VAT registration", "Company registration", "SARS compromise", etc., guiding them towards ${companyName}'s online services.
     
     TONE EXAMPLES:
     - Instead of "We offer VAT registration", say: "We can assist with your VAT registration from start to finish, including reviewing the requirements, preparing the application, and liaising with SARS where necessary."
     - Instead of "Contact us", say: "I can help arrange a quotation or have one of our consultants contact you. May I get your name and contact details?"
     
     BUSINESS DETAILS:
-    - Name: My Accountant (Pty) Ltd
+    - Name: ${companyName} (Pty) Ltd
     - Website: https://www.myacc.co.za
     - Office: Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195
-    - Phone: 010 109 1625
-    - Email: info@myacc.co.za
+    - Phone: ${contactPhone}
+    - Email: ${contactEmail}
     - Hours: Mon-Fri 09:00 - 17:00
     - Coverage: All of South Africa
     

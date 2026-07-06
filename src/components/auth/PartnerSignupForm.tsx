@@ -566,7 +566,7 @@ export default function PartnerSignupForm() {
                                 <span className="font-black text-md text-primary">R950.00 /mo</span>
                             </div>
                             <div className="text-xs text-muted-foreground mb-2">
-                                Includes branded landing page, 1 Free AI Accountant company, 1 Free AI Payroll company, 3 staff seats, task board, and chatbot.
+                                Includes branded landing page, 1 Free AI Accountant company, 1 Free AI Payroll company, 3 staff seats, task board, and Partner Community Chat.
                             </div>
                             {setupAddon && (
                                 <div className="flex justify-between items-center border-t pt-2 mt-2">

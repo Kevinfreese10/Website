@@ -342,17 +342,25 @@ export default function BecomeAPartnerPageClient() {
                             <ul className="space-y-3">
                                 {[
                                     'Custom Practice Landing Page (Domain linked)',
-                                    'Access Outsourced Overflow Jobs',
-                                    'Interactive Client Chatbot',
                                     'Task & Workflow Manager',
                                     '3 Staff Seats (Owner + 2 staff)',
                                     'Granular staff permission controls',
+                                    'Partner Community Chat',
                                     '25% Wholesale outsourcing discount',
                                     '100% Subscription Rebate (R5,000+ outsourced)'
                                 ].map((item, i) => (
                                     <li key={i} className="flex items-start gap-2 text-sm font-medium text-foreground/80">
                                         <CheckCircle2 className="h-4.5 w-4.5 text-primary shrink-0 mt-0.5" />
-                                        <span>{item}</span>
+                                        {item === 'Custom Practice Landing Page (Domain linked)' ? (
+                                            <span>
+                                                Custom Practice Landing Page (Domain linked) - {' '}
+                                                <a href="https://www.myacc.co.za/p/interscope" target="_blank" rel="noreferrer" className="text-primary hover:underline font-semibold">
+                                                    Click here to view a demo page
+                                                </a>
+                                            </span>
+                                        ) : (
+                                            <span>{item}</span>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
