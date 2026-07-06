@@ -70,7 +70,8 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    const GLOBAL_OG_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FLRM285EOq3gwNMKayY6vtzooaC03%2F1778842309292-South%20Africa%E2%80%99s%20Trusted%20Online%20Accounting%20%26%20Tax%20Compliance%20Partner%20(1).png?alt=media&token=f64e0df6-ab06-4ebb-9470-e15c9f827437';
+    // GLOBAL_OG_URL matches the GLOBAL_OG_IMAGE constant in src/lib/constants.ts
+    const GLOBAL_OG_URL = 'https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FLRM285EOq3gwNMKayY6vtzooaC03%2F1778852737208-South%20Africa%E2%80%99s%20Trusted%20Online%20Accounting%20%26%20Tax%20Compliance%20Partner%20(2).png?alt=media&token=3e8db3bc-8d7a-44b3-a258-dce170c9076d';
     return [
       {
         source: '/:path*',
@@ -93,11 +94,9 @@ const nextConfig: NextConfig = {
         destination: '/products/:path*',
         permanent: true,
       },
-      {
-        source: '/p/:partner/products/:slug',
-        destination: '/products/:slug',
-        permanent: true,
-      },
+      // NOTE: The /p/:partner/products/:slug route is a live white-label partner page
+      // (see src/app/p/[slug]/products/[serviceSlug]/page.tsx). Do NOT redirect it.
+      // The redirect below was removed to prevent intercepting those active routes.
       {
         source: '/blog/:year(\\d{4})/:month(\\d{2})/:day(\\d{2})/:slug',
         destination: '/blog/:slug',

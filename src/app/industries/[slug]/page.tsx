@@ -7,7 +7,7 @@ import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Separator } from '@/components/ui/separator';
 import { Metadata } from 'next';
-import { SITE_URL } from '@/lib/constants';
+import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -20,11 +20,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!industry) return { title: 'Industry Not Found' };
 
   return {
-    title: `${industry.title} | My Accountant`,
+    title: { absolute: `${industry.title} | My Accountant` },
     description: industry.description,
     alternates: {
         canonical: `${SITE_URL}/industries/${slug}`,
-    }
+    },
+    openGraph: {
+      title: `${industry.title} | My Accountant`,
+      description: industry.description,
+      url: `${SITE_URL}/industries/${slug}`,
+      siteName: 'My Accountant',
+      locale: 'en_ZA',
+      type: 'website',
+      images: [{ url: GLOBAL_OG_IMAGE, width: 1200, height: 630, alt: `${industry.title} | My Accountant` }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${industry.title} | My Accountant`,
+      description: industry.description,
+      images: [GLOBAL_OG_IMAGE],
+    },
   };
 }
 

@@ -14,6 +14,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import Script from 'next/script';
 
 export const revalidate = 3600;
 
@@ -114,7 +115,8 @@ export default async function CityAccountantPage({ params }: Props) {
 
   return (
     <>
-      <script
+      <Script
+        id={`local-business-schema-${cityData.id}`}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
       />

@@ -3,11 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Link from 'next/link';
 import PartnerSignupForm from '@/components/auth/PartnerSignupForm';
 import { Metadata } from 'next';
+import { SITE_URL } from '@/lib/constants';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'Become a Partner',
   description: 'Join the My Accountant partner program to grow your practice, access new opportunities, and leverage our expert team and technology.',
+  alternates: { canonical: `${SITE_URL}/partner-signup` },
 };
 
 export default function PartnerSignupPage() {

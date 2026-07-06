@@ -11,6 +11,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Metadata } from 'next';
 import Script from 'next/script';
 import { generateStructuredData } from '@/lib/schema/productSchema';
+import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string, serviceSlug: string }> }): Promise<Metadata> {
   const { slug, serviceSlug } = await params;
@@ -24,24 +25,24 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const override = await getPartnerOverride(partner.id, rawService.id);
   const title = override?.metaTitle || `${override?.title || rawService.title} | ${partner.companyName || partner.name}`;
   const description = override?.metaDescription || override?.description || rawService.metaDescription || rawService.description;
-  const ogImage = partner.landingPage?.heroImageUrl || rawService.imageUrl;
+  const ogImage = partner.landingPage?.heroImageUrl || rawService.imageUrl || GLOBAL_OG_IMAGE;
 
   return {
     title: title,
     description: description,
     alternates: {
-        canonical: `https://www.myacc.co.za/p/${slug}/products/${serviceSlug}`,
+        canonical: `${SITE_URL}/p/${slug}/products/${serviceSlug}`,
     },
     openGraph: {
         title,
         description,
-        images: ogImage ? [ogImage] : [],
+        images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
     },
     twitter: {
         card: 'summary_large_image',
         title,
         description,
-        images: ogImage ? [ogImage] : [],
+        images: [ogImage],
     }
   };
 }

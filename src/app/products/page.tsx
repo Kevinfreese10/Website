@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Service } from '@/lib/types';
+import Script from 'next/script';
 
 export const revalidate = 900;
 
@@ -51,7 +52,7 @@ export default async function ProductsPage() {
 
   return (
     <>
-      <script
+      <Script
         id="products-list-schema"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}

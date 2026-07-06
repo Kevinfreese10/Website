@@ -165,24 +165,6 @@ export default function MonthlyAccountingPageClient() {
 
   return (
     <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
-      {/* FAQ Schema for SEO */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": faqs.map(faq => ({
-              "@type": "Question",
-              "name": faq.q,
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": faq.a
-              }
-            }))
-          })
-        }}
-      />
       {/* HERO SECTION */}
       <section className="relative w-full overflow-hidden bg-background pt-16 lg:pt-24 pb-20 text-center">
         {/* Aurora background blobs */}

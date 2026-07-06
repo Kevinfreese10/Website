@@ -221,26 +221,8 @@ export default function HomePageClient() {
   ];
 
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": faqData.map(item => ({
-      "@type": "Question",
-      "name": item.q,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": item.a
-      }
-    }))
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Script
-        id="faq-schema"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
       
       {/* HERO SECTION */}
       <section className="relative w-full overflow-hidden bg-background pt-16 lg:pt-24 pb-20 text-left">

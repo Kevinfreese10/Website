@@ -1,4 +1,5 @@
 import { Service, User } from '@/lib/types';
+import { SITE_URL } from '@/lib/constants';
 
 /**
  * Generates valid Schema.org JSON-LD for My Accountant products and services.
@@ -7,7 +8,7 @@ import { Service, User } from '@/lib/types';
  * Supports a customCanonicalUrl parameter to align white-label dynamic partner routes.
  */
 export function generateStructuredData(service: Service, customCanonicalUrl?: string) {
-  const baseUrl = 'https://www.myacc.co.za';
+  const baseUrl = SITE_URL;
   const fullUrl = customCanonicalUrl || `${baseUrl}/products/${service.slug}`;
   
   // 1. Safe rolling expiry: Ensure it is a valid date in the future
@@ -150,7 +151,7 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
  * Compliantly binds global TrustIndex ratings since the widget is sitewide and visible on the DOM.
  */
 export function generateOrganizationSchema() {
-  const baseUrl = 'https://www.myacc.co.za';
+  const baseUrl = SITE_URL;
   return {
     "@context": "https://schema.org",
     "@type": ["Organization", "AccountingService"],
@@ -231,7 +232,7 @@ export function generateOrganizationSchema() {
  * Global WebSite schema for My Accountant.
  */
 export function generateWebSiteSchema() {
-  const baseUrl = 'https://www.myacc.co.za';
+  const baseUrl = SITE_URL;
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
