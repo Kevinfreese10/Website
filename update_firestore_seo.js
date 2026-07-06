@@ -33,8 +33,8 @@ async function updateSEO() {
     const ncrSnap = await db.collection('services').where('slug', '==', 'ncr-registration').get();
     if (!ncrSnap.empty) {
         await ncrSnap.docs[0].ref.update({
-            metaTitle: "NCR Registration South Africa — From R1,400 | My Accountant",
-            metaDescription: "Register with the National Credit Regulator in 15-20 days. Full application, CIPC vetting & NCR liaison included. Apply online now."
+            metaTitle: "Fast NCR Registration South Africa | Apply Online Today",
+            metaDescription: "Register with the National Credit Regulator in 15-20 days. We handle the CIPC vetting & NCR liaison for R1,400. Start your online application now."
         });
         console.log('Updated service: ncr-registration');
     }

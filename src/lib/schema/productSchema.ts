@@ -156,6 +156,7 @@ export function generateOrganizationSchema() {
     "@type": ["Organization", "AccountingService"],
     "name": "My Accountant",
     "url": baseUrl,
+    "priceRange": "$$",
     "telephone": "+27-10-109-1625",
     "email": "info@myacc.co.za",
     "logo": `${baseUrl}/logo.png`,
@@ -173,7 +174,7 @@ export function generateOrganizationSchema() {
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.9",
-      "reviewCount": "187",
+      "reviewCount": "204",
       "bestRating": "5",
       "worstRating": "1"
     },

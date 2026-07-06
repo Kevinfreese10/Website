@@ -68,7 +68,7 @@ export async function generateMetadata(
   }
  
   return {
-    title: title,
+    title: { absolute: title },
     description: description,
     alternates: {
         canonical: canonicalUrl,

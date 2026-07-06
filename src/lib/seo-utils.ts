@@ -74,7 +74,7 @@ export function getStaticPageMetadata(pageId: string, defaults: Metadata): Metad
 
     return {
       ...defaults,
-      title,
+      title: { absolute: title },
       description,
       alternates: {
         canonical: canonicalUrl,

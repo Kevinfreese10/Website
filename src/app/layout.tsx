@@ -18,7 +18,6 @@ export const metadata: Metadata = {
     template: '%s | My Accountant',
   },
   description: 'Professional online tax, accounting, CIPC, SARS and compliance services for South African businesses.',
-  keywords: ['accounting', 'tax services', 'CIPC', 'SARS', 'bookkeeping', 'South Africa'],
   alternates: {
     canonical: SITE_URL,
   },
