@@ -124,8 +124,8 @@ service cloud.firestore {
         request.auth.uid == resource.data.resellerId ||
         request.auth.uid == resource.data.clientId ||
         (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
-        (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email.lower() == resource.data.customerEmail.lower()) ||
-        (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email.lower() == resource.data.endCustomerEmail.lower())
+        (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
+        (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
       );
       // Require authentication for order creation (fixes unauthenticated exploit)
       allow create: if isAuthenticated() && (
@@ -138,8 +138,8 @@ service cloud.firestore {
         request.auth.uid == resource.data.resellerId ||
         request.auth.uid == resource.data.clientId ||
         (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
-        (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email.lower() == resource.data.customerEmail.lower()) ||
-        (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email.lower() == resource.data.endCustomerEmail.lower())
+        (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
+        (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
       );
       allow delete: if isAdmin();
     }
