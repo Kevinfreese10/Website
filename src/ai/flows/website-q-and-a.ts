@@ -56,6 +56,17 @@ export async function websiteQAndA(
   const adminDb = getAdminDb();
   const authAdmin = getAdminAuth();
 
+  const companyName = 'My Accountant';
+  const contactEmail = 'hello@myacc.co.za';
+  const contactPhone = '011 000 0000';
+  let partnerData: any = null;
+  if (input.partnerSlug) {
+    const partnerSnap = await adminDb.collection('resellers').where('slug', '==', input.partnerSlug).get();
+    if (!partnerSnap.empty) {
+      partnerData = partnerSnap.docs[0].data();
+    }
+  }
+
   let userName = 'Guest';
   let userEmail = 'Unknown';
   let userPhone = 'Unknown';
