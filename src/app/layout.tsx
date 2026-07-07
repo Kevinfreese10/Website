@@ -24,7 +24,6 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'My Accountant | Professional Accounting & Tax Services',
     description: 'Professional online tax, accounting, CIPC, SARS and compliance services for South African businesses.',
-    url: SITE_URL,
     siteName: 'My Accountant',
     images: [
       {

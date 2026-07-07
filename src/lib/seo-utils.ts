@@ -1,6 +1,6 @@
 import { getAdminDb } from '@/lib/firebase-admin';
 import { Metadata } from 'next';
-import { SITE_URL, GLOBAL_OG_IMAGE } from './constants';
+import { SITE_URL, STATIC_OG_IMAGE } from './constants';
 
 // Store cache in globalThis to persist across hot-module reloads in Next.js development mode
 const CACHE_TTL = 60 * 1000; // 1 minute cache TTL
@@ -55,7 +55,7 @@ export function getStaticPageMetadata(pageId: string, defaults: Metadata): Metad
   
   let title = String(defaults.title || 'My Accountant');
   let description = String(defaults.description || '');
-  let imageUrl = GLOBAL_OG_IMAGE;
+  let imageUrl = STATIC_OG_IMAGE;
   let imageAlt = title;
 
   const buildMetadata = (data: any): Metadata => {
