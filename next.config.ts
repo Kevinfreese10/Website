@@ -94,6 +94,21 @@ const nextConfig: NextConfig = {
         destination: '/products/:path*',
         permanent: true,
       },
+      {
+        source: '/products/vat-returns',
+        destination: '/products/periodic-vat-calculation-and-submission',
+        permanent: true,
+      },
+      {
+        source: '/products/company-registration',
+        destination: '/products/private-company-registration',
+        permanent: true,
+      },
+      {
+        source: '/products/cipc-annual-returns',
+        destination: '/products/annual-returns',
+        permanent: true,
+      },
       // NOTE: The /p/:partner/products/:slug route is a live white-label partner page
       // (see src/app/p/[slug]/products/[serviceSlug]/page.tsx). Do NOT redirect it.
       // The redirect below was removed to prevent intercepting those active routes.

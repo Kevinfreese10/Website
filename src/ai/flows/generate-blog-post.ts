@@ -66,7 +66,7 @@ const prompt = ai.definePrompt({
 
   **6. Call-to-Action (CTA):**
   - Every post must end with a clear call-to-action that guides the user to a relevant next step. Examples:
-    - "Ready to register your company? <a href="/products/company-registration">Get started with our Company Registration service today</a>."
+    - "Ready to register your company? <a href="/products/private-company-registration">Get started with our Company Registration service today</a>."
     - "Unsure about your compliance status? <a href="/compliance">Get a free SARS compliance check</a>."
 
   **7. Final Output:**

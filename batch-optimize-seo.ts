@@ -1,11 +1,12 @@
 import { generateBlogPostSeo } from './src/ai/flows/generate-blog-post-seo';
-import { getFirestore, collection, getDocs, doc, setDoc } from 'firebase/firestore';
-import { firebaseApp } from './src/lib/firebase';
+import { getAdminDb } from './src/lib/firebase-admin';
 import * as dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-const db = getFirestore(firebaseApp);
+const db = getAdminDb();
 
 const staticPagesConfig = [
     { id: 'home', path: '/', title: 'My Accountant | Professional Accounting & Tax Services', description: 'Professional Accounting & Tax Services for South Africa. We handle SARS, CIPC, and all your compliance needs so you can focus on your business.' },
@@ -29,6 +30,30 @@ const staticPagesConfig = [
     { id: 'terms', path: '/terms', title: 'Terms & Conditions', description: 'Review the official Terms and Conditions for My Accountant services and partner programs.' },
     { id: 'login', path: '/login', title: 'Portal Login | My Accountant', description: 'Access your secure client or partner dashboard to manage your orders and services.' },
     { id: 'signup', path: '/signup', title: 'Create an Account | My Accountant', description: 'Sign up for a My Accountant account to manage your tax and accounting services online.' },
+    { id: 'accounting-services-south-africa', path: '/accounting-services-south-africa', title: 'Accounting Services South Africa | Top Accountants | My Accountant', description: 'Professional accounting services in South Africa for small to medium businesses. Monthly accounting, management accounts, and bookkeeping on Xero & Sage.' },
+    { id: 'annual-financial-statements', path: '/annual-financial-statements', title: 'Annual Financial Statements (AFS) | My Accountant', description: 'Professional preparation of IFRS-compliant Annual Financial Statements for South African companies and trusts.' },
+    { id: 'bookkeeping-services-johannesburg', path: '/bookkeeping-services-johannesburg', title: 'Bookkeeping Services Johannesburg | Local Accountants | My Accountant', description: 'Reliable monthly bookkeeping services for small and medium businesses in Johannesburg. Certified accountants handling bank reconciliations, VAT, and SARS compliance.' },
+    { id: 'bookkeeping-services', path: '/bookkeeping-services', title: 'Professional Bookkeeping Services | My Accountant', description: 'Outsource your bookkeeping to certified professionals in South Africa. Comprehensive monthly record-keeping, bank reconciliations, ledgers, and cloud accounting.' },
+    { id: 'cipc-company-registration-online', path: '/cipc-company-registration-online', title: 'CIPC Company Registration Online | My Accountant', description: 'Register your private company (Pty) Ltd online with CIPC. Fast 24-hour turnaround, tax registration, and official share certificates included.' },
+    { id: 'fractional-cfo-services-south-africa', path: '/fractional-cfo-services-south-africa', title: 'Fractional CFO Services South Africa | Outsourced CFO | My Accountant', description: 'Access executive financial leadership at a fraction of the cost. Our outsourced CFO services in South Africa cover strategy, cash flow management, and board reports.' },
+    { id: 'management-accounts', path: '/management-accounts', title: 'Management Accounts & Financial Reporting | My Accountant', description: 'Professional monthly and quarterly management accounts for South African businesses. Data-driven insights to grow your practice.' },
+    { id: 'monthly-accounting', path: '/monthly-accounting', title: 'Monthly Accounting & CFO Services | My Accountant', description: 'Professional monthly accounting, financial management, and outsourced CFO services for South African SMEs. Scalable solutions for startups and growing businesses.' },
+    { id: 'monthly-payroll', path: '/monthly-payroll', title: 'Monthly Payroll Services | My Accountant', description: 'Professional monthly payroll management for South African businesses. Digital payslips, EMP201 submissions, and UIF declarations.' },
+    { id: 'movie-film-production-accountant-randburg', path: '/movie-film-production-accountant-randburg', title: 'Movie & Film Production Accountant Randburg | My Accountant', description: 'Professional film and TV production accountants in Randburg. Supporting production companies near MultiChoice, Ferndale, and Johannesburg. SARS compliance, cost reporting, and payroll.' },
+    { id: 'movie-film-production-accounting-south-africa', path: '/movie-film-production-accounting-south-africa', title: 'Movie & Film Production Accounting South Africa | My Accountant', description: 'Specialised movie and film production accounting services in South Africa. Manage production budgets, SARS Section 12O tax incentives, cast & crew payroll, and VAT audits.' },
+    { id: 'outsourced-payroll-fees-sa', path: '/outsourced-payroll-fees-sa', title: 'Outsourced Payroll Fees South Africa | Cost & Packages | My Accountant', description: 'Compare outsourced payroll fees in South Africa. Transparent per-employee pricing covering payslips, SARS EMP201 submissions, COIDA, and UIF filing.' },
+    { id: 'pastel-accountant-south-africa', path: '/pastel-accountant-south-africa', title: 'Pastel Accountant South Africa | Partner & Evolution | My Accountant', description: 'Professional Sage Pastel accounting, database cleanup, and support. We assist with legacy Pastel Partner to Sage Cloud migrations.' },
+    { id: 'paye-compliance', path: '/paye-compliance', title: 'PAYE Compliance & EMP201 Returns | My Accountant', description: 'Professional management of PAYE compliance and monthly EMP201 submissions for South African employers.' },
+    { id: 'payroll-administration', path: '/payroll-administration', title: 'Payroll Administration Services | My Accountant', description: 'Professional payroll administration for South African businesses. Digital payslips, leave tracking, and employer tax management.' },
+    { id: 'register-company-south-africa-price', path: '/register-company-south-africa-price', title: 'Company Registration Price South Africa | CIPC Cost | My Accountant', description: 'How much does it cost to register a company in South Africa? View our transparent CIPC registration fees and package pricing with no hidden costs.' },
+    { id: 'sage-accountant-south-africa', path: '/sage-accountant-south-africa', title: 'Sage Accountant South Africa | Pastel Support | My Accountant', description: 'Expert Sage accounting and Pastel support for South African businesses. Transition to the cloud, automate payroll, and stay compliant with SARS.' },
+    { id: 'sars-tax-refund', path: '/sars-tax-refund', title: 'Free SARS Tax Refund Check | Are You Due a Refund? | My Accountant', description: 'Find out if SARS owes you money. Get a free compliance assessment — we check your eFiling profile for unclaimed refunds from medical credits, retirement deductions, work-from-home claims and more. Results in 24 hours.' },
+    { id: 'small-business-accounting-south-africa', path: '/small-business-accounting-south-africa', title: 'Small Business Accounting South Africa | SME Financial Services', description: 'Affordable accounting and bookkeeping packages tailored specifically for startups and small businesses in South Africa. Get Xero integration and SARS compliance.' },
+    { id: 'tax-consultant', path: '/tax-consultant', title: 'Professional Tax Consultant SA | SARS Compliance | My Accountant', description: 'Get expert tax consulting and SARS dispute assistance in South Africa. We handle audits, objections, compromises, penalty remissions, and structured tax planning.' },
+    { id: 'tax-services-south-africa', path: '/tax-services-south-africa', title: 'Tax Services South Africa | SARS Compliance & Advisory', description: 'Expert tax services in South Africa. We handle ITR12, Provisional Tax, Corporate Tax, VAT, and SARS disputes. Get compliant today.' },
+    { id: 'uif-compliance', path: '/uif-compliance', title: 'UIF & SDL Compliance Services | My Accountant', description: 'Ensure your business meets its UIF and SDL obligations. We handle uFiling registrations and monthly declarations.' },
+    { id: 'xero-accountant-south-africa', path: '/xero-accountant-south-africa', title: 'Certified Xero Accountant South Africa | My Accountant', description: 'Scale your business with our certified Xero accounting services. Automated bank feeds, real-time reports, and professional monthly bookkeeping.' },
+    { id: 'zoho-accountant-south-africa', path: '/zoho-accountant-south-africa', title: 'Zoho Books Accountant South Africa | My Accountant', description: 'Automate your bookkeeping with certified Zoho Books accountants in South Africa. Complete integration with Zoho CRM, inventory, and expense tracking.' },
 ];
 
 async function delay(ms: number) {
@@ -70,13 +95,13 @@ async function startSeoBatchOptimization() {
     try {
         // 1. Fetch Dynamic Service Pages
         console.log("\n[1/3] Fetching Service Pages (Products) from Firestore...");
-        const serviceSnap = await getDocs(collection(db, "services"));
+        const serviceSnap = await db.collection("services").get();
         const services = serviceSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as any));
         console.log(`Successfully loaded ${services.length} Service Pages.`);
 
         // 2. Fetch Blog Posts
         console.log("\n[2/3] Fetching Blog Posts from Firestore...");
-        const blogSnap = await getDocs(collection(db, "blogPosts"));
+        const blogSnap = await db.collection("blogPosts").get();
         const blogPosts = blogSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as any));
         console.log(`Successfully loaded ${blogPosts.length} Blog Posts.`);
 
@@ -124,10 +149,31 @@ async function startSeoBatchOptimization() {
 
         for (let i = 0; i < totalItems.length; i++) {
             const item = totalItems[i];
-            console.log(`\n[Optimizing ${i + 1}/${totalItems.length}] Type: ${item.type.toUpperCase()} | Path: ${item.path}`);
+
+            // Skip check
+            try {
+                let docSnap;
+                if (item.type === 'service') {
+                    docSnap = await db.collection('services').doc(item.id).get();
+                } else if (item.type === 'blog') {
+                    docSnap = await db.collection('blogPosts').doc(item.id).get();
+                } else {
+                    docSnap = await db.collection('staticSeo').doc(item.id).get();
+                }
+
+                if (docSnap.exists && docSnap.data()?.metaTitle && docSnap.data()?.metaDescription) {
+                    console.log(`[SKIPPED] ${item.path} (Already optimized)`);
+                    skipCount++;
+                    continue;
+                }
+            } catch (err: any) {
+                console.warn(`[WARN] Failed to check status for ${item.path}:`, err.message || err);
+            }
+
+            console.log(`\n[Optimizing] Type: ${item.type.toUpperCase()} | Path: ${item.path}`);
             
             // 12s sleep to strictly respect Gemini free-tier rate limits (5 RPM)
-            if (i > 0) {
+            if (successCount > 0) {
                 console.log(`[Rate Limit Guard] Pausing 12 seconds...`);
                 await delay(12000);
             }
@@ -153,13 +199,13 @@ async function startSeoBatchOptimization() {
 
                 // Direct Save to Firestore
                 if (item.type === 'service') {
-                    await setDoc(doc(db, 'services', item.id), commonData, { merge: true });
+                    await db.collection('services').doc(item.id).set(commonData, { merge: true });
                     console.log(`  [Firestore Success] Saved to services/${item.id}`);
                 } else if (item.type === 'blog') {
-                    await setDoc(doc(db, 'blogPosts', item.id), commonData, { merge: true });
+                    await db.collection('blogPosts').doc(item.id).set(commonData, { merge: true });
                     console.log(`  [Firestore Success] Saved to blogPosts/${item.id}`);
                 } else {
-                    await setDoc(doc(db, 'staticSeo', item.id), {
+                    await db.collection('staticSeo').doc(item.id).set({
                         ...commonData,
                         path: item.path
                     });

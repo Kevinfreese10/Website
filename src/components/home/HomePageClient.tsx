@@ -929,7 +929,7 @@ export default function HomePageClient() {
                                   </Link>
                               </li>
                               <li className="group/item">
-                                  <Link href="/products/vat-returns" className="text-sm font-bold text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
+                                  <Link href="/products/periodic-vat-calculation-and-submission" className="text-sm font-bold text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
                                       <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                                       VAT Returns
                                   </Link>
@@ -1010,13 +1010,13 @@ export default function HomePageClient() {
                       <CardContent>
                           <ul className="space-y-4">
                               <li className="group/item">
-                                  <Link href="/products/company-registration" className="text-sm font-bold text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
+                                  <Link href="/products/private-company-registration" className="text-sm font-bold text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
                                       <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                                       Company Registration
                                   </Link>
                               </li>
                               <li className="group/item">
-                                  <Link href="/products/cipc-annual-returns" className="text-sm font-bold text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
+                                  <Link href="/products/annual-returns" className="text-sm font-bold text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
                                       <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                                       CIPC Annual Returns
                                   </Link>
@@ -1166,11 +1166,11 @@ export default function HomePageClient() {
                   <p className="text-xs font-black uppercase text-primary tracking-[0.2em]">Popular Services</p>
                   <div className="flex flex-wrap justify-center gap-3">
                       {[
-                          { label: "Company Registration Services", href: "/products/company-registration" },
+                          { label: "Company Registration Services", href: "/products/private-company-registration" },
                           { label: "VAT Registration Services", href: "/products/vat-registration" },
                           { label: "Bookkeeping Services", href: "/products#accounting-services" },
                           { label: "Tax Clearance Certificate PIN", href: "/products/tax-clearance-pin" },
-                          { label: "CIPC Annual Returns", href: "/products/cipc-annual-returns" },
+                          { label: "CIPC Annual Returns", href: "/products/annual-returns" },
                           { label: "Beneficial Ownership Services", href: "/products/beneficial-ownership-declaration" }
                       ].map(s => (
                           <Button key={s.label} variant="outline" size="sm" asChild className="h-9 border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-primary/30 text-foreground font-bold rounded-full transition-all shadow-sm">
