@@ -636,10 +636,12 @@ export async function applyRegroups({ clientId, merges, userId }: { clientId: st
     const adminDb = getAdminDb();
     const batch = adminDb.batch();
     merges.forEach(m => {
-        m.fromTxIds.forEach((id: string) => {
-            const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
-            batch.update(ref, { merchantKey: m.toKey });
-        });
+        if (m.fromTxIds && Array.isArray(m.fromTxIds)) {
+            m.fromTxIds.forEach((id: string) => {
+                const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
+                batch.update(ref, { merchantKey: m.toKey });
+            });
+        }
     });
     await batch.commit();
 }
@@ -667,16 +669,18 @@ export async function proposeAiRegroups({ clientId, bankAccountId, selectedMerch
     groupData.forEach(g => g.count = merchantMap[g.key].length);
 
     const res = await aiSmartRegroup({ groups: groupData });
-    return res.proposals.map(p => ({
-        ...p,
-        fromTxIds: merchantMap[p.fromKey],
-        fromImpact: merchantMap[p.fromKey]?.length || 0,
-        toImpact: merchantMap[p.toKey]?.length || 0,
-        score: p.confidence,
-        reason: p.reasoning,
-        fromExamples: [txs.find(t => t.merchantKey === p.fromKey)?.description],
-        toExamples: [txs.find(t => t.merchantKey === p.toKey)?.description]
-    }));
+    return res.proposals
+        .filter(p => merchantMap[p.fromKey] && merchantMap[p.fromKey].length > 0)
+        .map(p => ({
+            ...p,
+            fromTxIds: merchantMap[p.fromKey],
+            fromImpact: merchantMap[p.fromKey].length,
+            toImpact: merchantMap[p.toKey]?.length || 0,
+            score: p.confidence,
+            reason: p.reasoning,
+            fromExamples: [txs.find(t => t.merchantKey === p.fromKey)?.description],
+            toExamples: [txs.find(t => t.merchantKey === p.toKey)?.description]
+        }));
 }
 
 export async function analyzeClientCommentAndSuggest({ clientId, transactionIds, comment, merchantKey, examples, chartOfAccounts, isVatRegistered }: any) {
