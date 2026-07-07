@@ -9,7 +9,7 @@ import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import ExternalScripts from '@/components/layout/ExternalScripts';
 import Script from 'next/script';
 import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/schema/productSchema';
-import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
+import { SITE_URL, STATIC_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     siteName: 'My Accountant',
     images: [
       {
-        url: GLOBAL_OG_IMAGE,
+        url: STATIC_OG_IMAGE,
         width: 1200,
         height: 630,
         alt: 'My Accountant - Professional Accounting & Tax',
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'My Accountant | Professional Accounting & Tax Services',
     description: 'Simplify your finances with our expert accounting and tax solutions.',
-    images: [GLOBAL_OG_IMAGE],
+    images: [STATIC_OG_IMAGE],
   },
 };
 
