@@ -64,12 +64,15 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
     
     const [isTaxDialogOpen, setIsTaxDialogOpen] = useState(false);
     const [taxMode, setTaxMode] = useState<'standard' | 'sbc'>('standard');
+    const [taxYear, setTaxYear] = useState<string>('2026');
     
     const reportData = useMemo(() => {
         const balances = new Map<string, number>();
+        let provisionalTaxAccountId = '';
         client.chartOfAccounts?.forEach(acc => {
-            if (acc.section === 'Income Statement') {
+            if (acc.section === 'Income Statement' || acc.accountNumber === '8000-003') {
                 balances.set(acc.id, 0);
+                if (acc.accountNumber === '8000-003') provisionalTaxAccountId = acc.id;
             }
         });
 
@@ -91,7 +94,7 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
                 else if (type === 'customer') targetId = customerControlAccount?.id || '8000-001';
 
                 const account = client.chartOfAccounts?.find(a => a.id === targetId);
-                if (account && account.section === 'Income Statement' && balances.has(targetId)) {
+                if (account && (account.section === 'Income Statement' || account.accountNumber === '8000-003') && balances.has(targetId)) {
                     balances.set(targetId, (balances.get(targetId) || 0) + amount);
                 }
             };
@@ -135,47 +138,68 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
         const grossProfit = totalIncome - totalCostOfSales;
         const totalExpenses = expenses.reduce((sum, acc) => sum + acc.balance, 0);
         const netProfit = grossProfit - totalExpenses;
+        const provisionalTaxPaid = provisionalTaxAccountId ? (balances.get(provisionalTaxAccountId) || 0) : 0;
 
-        return { income, costOfSales, expenses, totalIncome, totalCostOfSales, grossProfit, totalExpenses, netProfit };
+        return { income, costOfSales, expenses, totalIncome, totalCostOfSales, grossProfit, totalExpenses, netProfit, provisionalTaxPaid };
 
     }, [client, dateRange, transactions]);
     
     const taxCalculation = useMemo(() => {
         const taxableIncome = reportData.netProfit > 0 ? reportData.netProfit : 0;
         let taxAmount = 0;
-        let taxRateLabel = '27%';
+        let taxRateLabel = '';
+        let calculationBreakdown = '';
         
         if (taxMode === 'standard') {
-            taxAmount = taxableIncome * 0.27;
+            const rate = taxYear === '2023' ? 0.28 : 0.27;
+            taxAmount = taxableIncome * rate;
+            taxRateLabel = `${(rate * 100).toFixed(0)}%`;
+            calculationBreakdown = `${formatPrice(taxableIncome)} × ${(rate * 100).toFixed(0)}% = ${formatPrice(taxAmount)}`;
         } else {
-            // SARS FY 2024/2025 SBC Tax rates:
-            // 0 – 95 750: 0%
-            // 95 751 – 365 000: 7% of taxable income above 95 750
-            // 365 001 – 550 000: 18 848 + 21% of taxable income above 365 000
-            // 550 001 and above: 57 698 + 27% of taxable income above 550 000
-            if (taxableIncome <= 95750) {
+            // SBC Brackets
+            let bracket1 = 95750, bracket2 = 365000, bracket3 = 550000;
+            let base3 = 18848, base4 = 57698;
+            let rate2 = 0.07, rate3 = 0.21, rate4 = 0.27;
+
+            if (taxYear === '2023') {
+                bracket1 = 91250;
+                base3 = 19163;
+                base4 = 58013;
+                rate4 = 0.28;
+            }
+            
+            if (taxableIncome <= bracket1) {
                 taxAmount = 0;
                 taxRateLabel = '0% (SBC)';
-            } else if (taxableIncome <= 365000) {
-                taxAmount = (taxableIncome - 95750) * 0.07;
-                taxRateLabel = '7% (SBC)';
-            } else if (taxableIncome <= 550000) {
-                taxAmount = 18848 + (taxableIncome - 365000) * 0.21;
+                calculationBreakdown = `R0 – ${formatPrice(bracket1)} bracket (0%) = R 0.00`;
+            } else if (taxableIncome <= bracket2) {
+                taxAmount = (taxableIncome - bracket1) * rate2;
+                taxRateLabel = `${(rate2 * 100).toFixed(0)}% (SBC)`;
+                calculationBreakdown = `${formatPrice(taxableIncome)} - ${formatPrice(bracket1)} = ${formatPrice(taxableIncome - bracket1)}\n${formatPrice(taxableIncome - bracket1)} × ${(rate2 * 100).toFixed(0)}% = ${formatPrice(taxAmount)}`;
+            } else if (taxableIncome <= bracket3) {
+                taxAmount = base3 + (taxableIncome - bracket2) * rate3;
                 taxRateLabel = 'SBC Brackets';
+                calculationBreakdown = `Base: ${formatPrice(base3)}\nPlus: (${formatPrice(taxableIncome)} - ${formatPrice(bracket2)}) × ${(rate3 * 100).toFixed(0)}%\n= ${formatPrice(base3)} + ${formatPrice((taxableIncome - bracket2) * rate3)}\n= ${formatPrice(taxAmount)}`;
             } else {
-                taxAmount = 57698 + (taxableIncome - 550000) * 0.27;
+                taxAmount = base4 + (taxableIncome - bracket3) * rate4;
                 taxRateLabel = 'SBC Brackets';
+                calculationBreakdown = `Base: ${formatPrice(base4)}\nPlus: (${formatPrice(taxableIncome)} - ${formatPrice(bracket3)}) × ${(rate4 * 100).toFixed(0)}%\n= ${formatPrice(base4)} + ${formatPrice((taxableIncome - bracket3) * rate4)}\n= ${formatPrice(taxAmount)}`;
             }
         }
         
+        const amountPayable = taxAmount - reportData.provisionalTaxPaid;
+
         return {
             taxMode,
             taxRateLabel,
             taxableIncome,
             taxAmount,
+            calculationBreakdown,
+            provisionalTaxPaid: reportData.provisionalTaxPaid,
+            amountPayable,
             netProfitAfterTax: reportData.netProfit - taxAmount,
         };
-    }, [reportData.netProfit, taxMode]);
+    }, [reportData.netProfit, reportData.provisionalTaxPaid, taxMode, taxYear]);
 
      const handleDownloadExcel = () => {
         let excelData: any[] = [
@@ -276,13 +300,27 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                                <span className="text-sm font-semibold text-muted-foreground">Financial Year:</span>
+                                <Select value={taxYear} onValueChange={setTaxYear}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="2026">2026 (Ending 28 Feb 2026)</SelectItem>
+                                        <SelectItem value="2025">2025 (Ending 28 Feb 2025)</SelectItem>
+                                        <SelectItem value="2024">2024 (Ending 29 Feb 2024)</SelectItem>
+                                        <SelectItem value="2023">2023 (Ending 28 Feb 2023)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                                 <span className="text-sm font-semibold text-muted-foreground">Tax Scheme:</span>
                                 <Select value={taxMode} onValueChange={(v: 'standard' | 'sbc') => setTaxMode(v)}>
                                     <SelectTrigger className="w-full">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="standard">Standard Corporate (27%)</SelectItem>
+                                        <SelectItem value="standard">Standard Corporate</SelectItem>
                                         <SelectItem value="sbc">Small Business Corp (SBC)</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -290,8 +328,15 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
                             <Separator />
                             <div className="flex justify-between items-center"><span className="text-muted-foreground">Net Profit Before Tax:</span><span className="font-semibold">{formatPrice(taxCalculation.taxableIncome)}</span></div>
                             <div className="flex justify-between items-center"><span className="text-muted-foreground">Effective Scheme:</span><span className="font-semibold">{taxCalculation.taxRateLabel}</span></div>
+                            
+                            <div className="bg-muted p-3 rounded-md text-xs font-mono whitespace-pre-line text-muted-foreground mt-2 border">
+                                {taxCalculation.calculationBreakdown}
+                            </div>
+                            
                             <Separator />
                             <div className="flex justify-between items-center text-lg"><span className="font-bold">Estimated Tax Expense:</span><span className="font-bold text-destructive">{formatPrice(taxCalculation.taxAmount)}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-muted-foreground">Less: Provisional Tax Paid:</span><span className="font-semibold text-green-600">({formatPrice(taxCalculation.provisionalTaxPaid)})</span></div>
+                            <div className="flex justify-between items-center text-md font-semibold"><span className="">Amount {taxCalculation.amountPayable >= 0 ? 'Payable' : 'Refundable'}:</span><span className={taxCalculation.amountPayable >= 0 ? 'text-destructive' : 'text-green-600'}>{formatPrice(Math.abs(taxCalculation.amountPayable))}</span></div>
                             <Separator />
                             <div className="flex justify-between items-center"><span className="text-muted-foreground">Net Profit After Tax:</span><span className="font-semibold">{formatPrice(taxCalculation.netProfitAfterTax)}</span></div>
                         </div>
