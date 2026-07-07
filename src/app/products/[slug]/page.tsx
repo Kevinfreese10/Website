@@ -262,19 +262,31 @@ export default async function ProductDetailPage({ params }: Props) {
         </ol>
       </nav>
 
-      {/* DYNAMIC PREMIUM HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-card/40 border-b border-border/40 pt-8 pb-16 text-center mb-12 animate-in fade-in">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <Badge variant="secondary" className="mb-4 uppercase tracking-wider">{service.category}</Badge>
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
+      {/* COLOURFUL HERO SECTION */}
+      <section className="relative w-full overflow-hidden pt-8 pb-20 text-center mb-12 animate-in fade-in">
+        {/* Aurora blobs */}
+        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
+        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-10 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
+        <div className="aurora-blob aurora-blue w-[250px] h-[250px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
+        <div className="absolute inset-0 bg-dot-grid" />
+
+        <div className="container relative z-10 mx-auto px-4 max-w-3xl">
+          <div className="inline-flex items-center gap-2 mb-5 px-4 py-1.5 rounded-full glass neon-border text-xs font-extrabold text-primary uppercase tracking-widest">
+            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            {service.category}
+          </div>
+          <h1 className="mb-5 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
             {firstPart} {secondPart && <span className="text-gradient">{secondPart}</span>}
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
             {service.description || `Professional ${service.title} compliance services tailored for South African businesses and individuals.`}
           </p>
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground font-semibold">
-            <span className="flex items-center"><Clock className="h-4 w-4 mr-1.5 text-primary" /> {service.turnaroundTime}</span>
-            <span className="flex items-center text-primary text-lg font-extrabold">
+          <div className="flex items-center justify-center gap-6 text-sm font-semibold">
+            <span className="flex items-center text-muted-foreground gap-1.5">
+              <Clock className="h-4 w-4 text-primary" />
+              {service.turnaroundTime}
+            </span>
+            <span className="inline-flex items-center gap-2 px-5 py-2 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-xl font-black neon-border">
               {service.isPriceTbc ? 'Price on Request' : formatPrice(service.price)}
             </span>
           </div>
@@ -290,19 +302,25 @@ export default async function ProductDetailPage({ params }: Props) {
           <div className="space-y-8 md:col-span-2">
               
             <div>
-              <h2 className="text-xl font-semibold font-bold">Product Description</h2>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <span className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-purple-600 shrink-0" />
+                Product Description
+              </h2>
               <Separator className="my-3" />
               <p className="text-muted-foreground leading-relaxed">{service.longDescription}</p>
             </div>
 
             {service.whatsIncluded && service.whatsIncluded.length > 0 && (
               <div>
-                <h2 className="text-xl font-semibold font-bold">What's Included</h2>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <span className="h-5 w-1 rounded-full bg-gradient-to-b from-cyan-500 to-blue-600 shrink-0" />
+                  What's Included
+                </h2>
                 <Separator className="my-3" />
                 <ul className="space-y-3">
                   {service.whatsIncluded.map((item, index) => (
                     <li key={index} className="flex items-start">
-                      <BadgeCheck className="h-5 w-5 text-primary mr-3 mt-1 flex-shrink-0" />
+                      <BadgeCheck className="h-5 w-5 text-emerald-400 mr-3 mt-1 flex-shrink-0" />
                       <span>{item}</span>
                     </li>
                   ))}
@@ -312,12 +330,15 @@ export default async function ProductDetailPage({ params }: Props) {
 
             {service.clientRequirements && service.clientRequirements.length > 0 && (
               <div>
-                <h2 className="text-xl font-semibold font-bold">Prerequisites</h2>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <span className="h-5 w-1 rounded-full bg-gradient-to-b from-amber-500 to-orange-600 shrink-0" />
+                  Prerequisites
+                </h2>
                 <Separator className="my-3" />
                  <ul className="space-y-3">
                   {service.clientRequirements.map((doc, index) => (
                     <li key={index} className="flex items-start">
-                      <ClipboardCheck className="h-5 w-5 text-primary mr-3 mt-1 flex-shrink-0" />
+                      <ClipboardCheck className="h-5 w-5 text-amber-400 mr-3 mt-1 flex-shrink-0" />
                       <span>{doc}</span>
                     </li>
                   ))}
