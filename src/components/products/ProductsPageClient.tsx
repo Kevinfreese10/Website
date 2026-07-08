@@ -342,7 +342,7 @@ export default function ProductsPageClient({
                           
                           {/* Turnaround Time */}
                           <div className="flex items-center text-slate-500 gap-1.5">
-                            <CalendarDays className="h-3.5 w-3.5 text-blue-500" />
+                            <CalendarDays className="h-3.5 w-3.5 text-emerald-500" />
                             <span className="text-xs font-semibold text-slate-500">{service.turnaroundTime}</span>
                           </div>
                         </div>
