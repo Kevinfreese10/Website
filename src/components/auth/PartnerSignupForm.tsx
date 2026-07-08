@@ -43,21 +43,9 @@ const formSchema = z.object({
     .regex(/^[a-z0-9\-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens.'),
   tier: z.literal('growth').default('growth'),
   setupAddon: z.boolean().default(false),
-  wantsOutsourcedWork: z.boolean().default(false),
-  cv: z.any().optional(),
-  certificate: z.any().optional(),
   agreeTerms: z.boolean().refine(val => val === true, {
     message: 'You must accept the terms and conditions.',
   }),
-  capableServices: z.array(z.string()).optional(),
-}).refine(data => {
-    if (data.wantsOutsourcedWork) {
-      return data.cv?.[0] && data.certificate?.[0];
-    }
-    return true;
-}, {
-    message: 'CV and Certificate are required to be considered for outsourced work.',
-    path: ['wantsOutsourcedWork'],
 });
 
 type Category = { 
@@ -74,9 +62,6 @@ export default function PartnerSignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
   const { user: currentUser, reauthenticate } = useAuth();
-  const [allServices, setAllServices] = useState<Service[]>([]);
-  const [allCategories, setAllCategories] = useState<Category[]>([]);
-  const [isServicesLoading, setIsServicesLoading] = useState(true);
 
   // Slug states
   const [checkingSlug, setCheckingSlug] = useState(false);
@@ -95,9 +80,7 @@ export default function PartnerSignupForm() {
       slug: '',
       tier: 'growth',
       setupAddon: false,
-      wantsOutsourcedWork: false,
       agreeTerms: false,
-      capableServices: [],
     },
   });
 
@@ -149,47 +132,8 @@ export default function PartnerSignupForm() {
     return () => clearTimeout(timer);
   }, [currentSlug]);
 
-  useEffect(() => {
-    const fetchServicesAndCategories = async () => {
-        setIsServicesLoading(true);
-        try {
-            const servicesQuery = query(collection(db, "services"), orderBy("title"));
-            const servicesSnapshot = await getDocs(servicesQuery);
-            const fetchedServices = servicesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Service));
-            setAllServices(fetchedServices);
-
-            const categoriesQuery = query(collection(db, "categories"), orderBy("order"));
-            const categoriesSnapshot = await getDocs(categoriesQuery);
-            const fetchedCategories = categoriesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
-            setAllCategories(fetchedCategories);
-
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        } finally {
-            setIsServicesLoading(false);
-        }
-    };
-    fetchServicesAndCategories();
-  }, []);
-
-  const categorizedServices = useMemo(() => {
-    if (!allCategories.length || !allServices.length) return [];
-    return allCategories
-      .map(category => ({
-        ...category,
-        services: allServices.filter(service => service.category === category.name),
-      }))
-      .filter(category => category.services.length > 0);
-  }, [allCategories, allServices]);
-
-  const wantsOutsourcedWork = form.watch('wantsOutsourcedWork');
   const setupAddon = form.watch('setupAddon');
 
-  const uploadFile = async (file: File, path: string): Promise<string> => {
-    const fileRef = ref(storage, path);
-    await uploadBytes(fileRef, file);
-    return await getDownloadURL(fileRef);
-  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.tier === 'growth' && isSlugAvailable === false) {
@@ -199,7 +143,7 @@ export default function PartnerSignupForm() {
 
     setIsLoading(true);
     try {
-        const { password, cv, certificate, ...partnerData } = values;
+        const { password, ...partnerData } = values;
 
         let newFirebaseUser;
         let authUid;
@@ -218,14 +162,6 @@ export default function PartnerSignupForm() {
             authUid = newFirebaseUser.uid;
         }
         
-        let cvUrl = '';
-        let certificateUrl = '';
-
-        if (values.wantsOutsourcedWork && values.cv?.[0] && values.certificate?.[0]) {
-            toast({ title: 'Uploading Documents...', description: 'Please wait while we upload your files.' });
-            cvUrl = await uploadFile(values.cv[0], `partner-applications/${authUid}/cv-${values.cv[0].name}`);
-            certificateUrl = await uploadFile(values.certificate[0], `partner-applications/${authUid}/certificate-${values.certificate[0].name}`);
-        }
         
         const contactPersonFullName = `${values.name} ${values.surname}`;
 
@@ -249,8 +185,6 @@ export default function PartnerSignupForm() {
             status: initialStatus, 
             creditBalance: 0,
             createdAt: serverTimestamp(),
-            cvUrl: cvUrl,
-            certificateUrl: certificateUrl,
             landingPage: {
                 enabled: true,
                 slug: values.slug.toLowerCase().trim(),
@@ -476,116 +410,6 @@ export default function PartnerSignupForm() {
                         />
                     </div>
                 </div>
-                <Separator />
-
-                <div className="space-y-4">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Briefcase className="h-5 w-5 text-primary" />
-                        Step 4: Overflow Work & Capabilities (Optional)
-                    </h3>
-                    <FormField
-                        control={form.control}
-                        name="wantsOutsourcedWork"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-col space-y-3 rounded-md border p-4 bg-muted/20">
-                                <div className="flex flex-row items-start space-x-3">
-                                    <FormControl>
-                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                    <div className="space-y-1 leading-none">
-                                        <FormLabel className="font-bold cursor-pointer">
-                                            Apply for the Overflow Work Program?
-                                        </FormLabel>
-                                        <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                                            We regularly have more work than our team can handle. If you are a member of a professional body, we can outsource overflow projects to your practice at wholesale rates.
-                                        </p>
-                                    </div>
-                                </div>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    {wantsOutsourcedWork && (
-                        <div className="space-y-6 pt-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="cv"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs">Upload Professional CV (PDF)</FormLabel>
-                                            <FormControl>
-                                                <Input type="file" accept=".pdf" onChange={(e) => field.onChange(e.target.files)} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="certificate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs">Professional Certificate / Membership Proof</FormLabel>
-                                            <FormControl>
-                                                <Input type="file" accept=".pdf,.jpg,.png" onChange={(e) => field.onChange(e.target.files)} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            
-                            <FormField
-                                control={form.control}
-                                name="capableServices"
-                                render={({ field: parentField }) => (
-                                    <FormItem>
-                                        <div className="mb-4">
-                                            <FormLabel className="text-base">Service Expertise</FormLabel>
-                                            <p className="text-sm text-muted-foreground">
-                                                Select services you are qualified to handle for the network.
-                                            </p>
-                                        </div>
-                                        <div className="space-y-4 max-h-60 overflow-y-auto p-4 border rounded-lg bg-white">
-                                            {isServicesLoading ? (
-                                                <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                                            ) : (
-                                                categorizedServices.map(category => (
-                                                    <div key={category.id}>
-                                                        <h4 className="font-bold text-[10px] uppercase text-primary mb-3 tracking-widest">{category.name}</h4>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                                                            {category.services.map((service) => (
-                                                                <div key={service.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                                                    <Checkbox
-                                                                        id={`check-${service.id}`}
-                                                                        checked={parentField.value?.includes(service.id)}
-                                                                        onCheckedChange={(checked) => {
-                                                                            const current = parentField.value || [];
-                                                                            const updated = checked
-                                                                                ? [...current, service.id]
-                                                                                : current.filter(val => val !== service.id);
-                                                                            parentField.onChange(updated);
-                                                                        }}
-                                                                    />
-                                                                    <Label htmlFor={`check-${service.id}`} className="font-normal text-xs cursor-pointer leading-tight">
-                                                                        {service.title}
-                                                                    </Label>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                    )}
-                </div>
-
                 <Separator />
 
                 <div className="space-y-4">
