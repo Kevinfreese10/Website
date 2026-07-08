@@ -331,7 +331,7 @@ export default function ProductsPageClient({
                         </CardTitle>
 
                         {/* Price + Turnaround row */}
-                        <div className="flex flex-col gap-1.5 mt-3">
+                        <div className="flex items-center justify-between mt-3">
                           {service.isPriceTbc ? (
                             <p className="text-sm font-bold text-slate-400">Price on Request</p>
                           ) : (
