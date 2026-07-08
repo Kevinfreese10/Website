@@ -341,10 +341,10 @@ export default function ProductsPageClient({
                             </div>
                           )}
                           
-                          {/* Polished turnaround time chip */}
-                          <div className="flex items-center text-slate-400/90 gap-1 bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 shadow-sm">
-                            <Clock className="h-3.5 w-3.5 text-blue-500/70" />
-                            <span className="text-[10px] font-extrabold tracking-wide uppercase">{service.turnaroundTime}</span>
+                          {/* Turnaround Time */}
+                          <div className="flex items-center text-slate-500 gap-1.5">
+                            <Clock className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="text-xs font-semibold text-slate-500">{service.turnaroundTime}</span>
                           </div>
                         </div>
                     </CardHeader>
