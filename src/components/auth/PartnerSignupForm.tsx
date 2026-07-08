@@ -205,7 +205,7 @@ export default function PartnerSignupForm() {
         let authUid;
 
         if (currentUser) {
-            newFirebaseUser = currentUser;
+            newFirebaseUser = auth.currentUser!;
             authUid = currentUser.uid;
         } else {
             if (!values.password || values.password.length < 6) {
