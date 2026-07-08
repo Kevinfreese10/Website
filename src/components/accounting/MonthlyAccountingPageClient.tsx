@@ -607,6 +607,7 @@ export default function MonthlyAccountingPageClient() {
               </div>
               <div className="relative h-[400px] rounded-3xl overflow-hidden shadow-xl border border-border bg-card">
                   <iframe
+                      title="Office Location Map"
                       src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
                       className="absolute inset-0 w-full h-full"
                       style={{ border: 0 }}

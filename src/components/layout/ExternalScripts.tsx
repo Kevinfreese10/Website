@@ -90,6 +90,17 @@ export default function ExternalScripts() {
                 position: "BOTTOM_RIGHT",
                 region: "ZA",
               });
+              // Monitor and add title when the iframe is injected
+              var checks = 0;
+              var interval = setInterval(function() {
+                var iframe = document.getElementById("merchantwidgetiframe");
+                if (iframe) {
+                  iframe.setAttribute("title", "Google Customer Reviews");
+                  clearInterval(interval);
+                }
+                checks++;
+                if (checks > 30) clearInterval(interval);
+              }, 500);
             } else if (attempts > 0) {
               setTimeout(function() { tryInitWidget(attempts - 1); }, 500);
             }

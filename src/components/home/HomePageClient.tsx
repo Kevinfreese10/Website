@@ -1102,6 +1102,7 @@ export default function HomePageClient() {
                   </div>
                   <div className="relative h-[400px] lg:h-[600px] rounded-3xl overflow-hidden border border-white/10 neon-glow">
                       <iframe
+                          title="Office Location Map"
                           src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
                           className="absolute inset-0 w-full h-full"
                           style={{ border: 0 }}

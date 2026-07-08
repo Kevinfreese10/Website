@@ -232,7 +232,7 @@ export default function ProductsPageClient({
               placeholder="Search for tax clearance, VAT, registration..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setActiveCategory('all'); }}
-              className="block w-full pl-11 pr-10 py-3 border border-white/10 rounded-2xl bg-white/[0.04] backdrop-blur-sm placeholder-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 focus:bg-white/[0.06] text-sm font-medium text-foreground shadow-sm transition-all"
+              className="block w-full pl-11 pr-10 py-3 border border-input rounded-2xl bg-background placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm font-medium text-foreground shadow-sm transition-all"
             />
             {searchQuery && (
               <button
