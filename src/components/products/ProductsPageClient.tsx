@@ -303,8 +303,8 @@ export default function ProductsPageClient({
                     <Card
                     key={service.id}
                     className={cn(
-                      "flex flex-col overflow-hidden transition-all duration-300 glass-card border border-white/[0.06] group",
-                      "hover:shadow-[0_0_30px_rgba(0,229,255,0.06)] hover:-translate-y-1 hover:border-primary/30",
+                      "flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group",
+                      "shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25",
                       service.isFeatured && "ring-2 ring-primary/20 border-primary/15 neon-glow"
                     )}
                     >
@@ -318,31 +318,39 @@ export default function ProductsPageClient({
                           </div>
                         )}
 
-                        {/* Category chip */}
-                        <Badge variant="secondary" className="w-fit text-[10px] uppercase tracking-wider mb-2 font-bold bg-primary/10 text-primary border-none">
-                          {service.category}
-                        </Badge>
+                        {/* Category chip with accent dot */}
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold bg-blue-500/5 text-blue-600 border border-blue-500/10 rounded-full px-2 py-0.5 flex items-center">
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-500 mr-1.5 animate-pulse" />
+                            {service.category}
+                          </Badge>
+                        </div>
 
-                        <CardTitle className="leading-snug text-foreground text-base font-extrabold pr-14">
+                        <CardTitle className="leading-snug text-slate-800 text-[16px] font-black group-hover:text-primary transition-colors duration-300 pr-14">
                           {service.title}
                         </CardTitle>
 
                         {/* Price + Turnaround row */}
-                        <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center justify-between mt-3">
                           {service.isPriceTbc ? (
-                            <p className="text-base font-bold text-muted-foreground">Price on Request</p>
+                            <p className="text-sm font-bold text-slate-400">Price on Request</p>
                           ) : (
-                            <p className="text-2xl font-black text-gradient leading-none">{formatPrice(service.price)}</p>
+                            <div className="flex items-baseline">
+                              <span className="text-sm font-extrabold text-blue-600/80 mr-0.5">R</span>
+                              <span className="text-2xl font-black text-slate-800 tracking-tight">{formatPrice(service.price).replace('R', '').trim()}</span>
+                            </div>
                           )}
-                          <div className="flex items-center text-muted-foreground gap-1">
-                            <Clock className="h-3.5 w-3.5 shrink-0" />
-                            <span className="text-xs font-semibold">{service.turnaroundTime}</span>
+                          
+                          {/* Polished turnaround time chip */}
+                          <div className="flex items-center text-slate-400/90 gap-1 bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 shadow-sm">
+                            <Clock className="h-3.5 w-3.5 text-blue-500/70" />
+                            <span className="text-[10px] font-extrabold tracking-wide uppercase">{service.turnaroundTime}</span>
                           </div>
                         </div>
                     </CardHeader>
 
                     <CardContent className="flex-grow pt-0 pb-3">
-                        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{service.description}</p>
+                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">{service.description}</p>
                     </CardContent>
 
                     <CardFooter className="pt-0 pb-4 flex gap-2">
@@ -351,7 +359,7 @@ export default function ProductsPageClient({
                           <Button
                             size="sm"
                             variant="default"
-                            className="flex-1 font-bold gap-1.5 shadow-sm h-9 text-xs bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300"
+                            className="flex-1 font-bold gap-1.5 shadow-md h-10 text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl transition-all duration-300 transform active:scale-95"
                             onClick={() => addToCart(service)}
                           >
                             <ShoppingBag className="h-3.5 w-3.5" />
@@ -364,15 +372,15 @@ export default function ProductsPageClient({
                           size="sm"
                           variant={service.isPriceTbc ? "default" : "outline"}
                           className={cn(
-                            "font-bold h-9 text-xs gap-1 transition-all",
+                            "font-bold h-10 text-xs gap-1 transition-all rounded-xl",
                             service.isPriceTbc 
-                              ? "flex-1 bg-gradient hover:opacity-90 text-white neon-glow" 
-                              : "flex-none px-3 border-white/10 hover:border-primary/30 hover:text-primary text-foreground"
+                              ? "flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md" 
+                              : "flex-none px-4 border-slate-200 hover:border-blue-500/30 hover:bg-blue-50/50 hover:text-blue-600 text-slate-700"
                           )}
                         >
-                          <Link href={`/products/${service.slug}`}>
+                          <Link href={`/products/${service.slug}`} className="group/btn">
                             {service.isPriceTbc ? "Get a Quote" : "Details"}
-                            <ArrowRight className="h-3 w-3" />
+                            <ArrowRight className="h-3 w-3 group-hover/btn:translate-x-0.5 transition-transform" />
                           </Link>
                         </Button>
                     </CardFooter>
