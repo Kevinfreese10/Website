@@ -263,7 +263,7 @@ export default function PartnerSignupForm() {
                 aiPayrollLimit: 1,
                 staffSeatLimit: 3,
             }
-        });
+        }, { merge: true });
 
         // 3. Trigger manual re-auth logic
         await reauthenticate(newFirebaseUser);
