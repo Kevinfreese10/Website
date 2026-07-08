@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Clock, 
+  CalendarDays, 
   Loader2, 
   CheckCircle2, 
   ArrowRight, 
@@ -335,15 +335,14 @@ export default function ProductsPageClient({
                           {service.isPriceTbc ? (
                             <p className="text-sm font-bold text-slate-400">Price on Request</p>
                           ) : (
-                            <div className="flex items-baseline">
-                              <span className="text-sm font-extrabold text-blue-600/80 mr-0.5">R</span>
-                              <span className="text-2xl font-black text-slate-800 tracking-tight">{formatPrice(service.price).replace('R', '').trim()}</span>
-                            </div>
+                            <p className="text-2xl font-black text-slate-800 leading-none">
+                              {formatPrice(service.price)}
+                            </p>
                           )}
                           
                           {/* Turnaround Time */}
                           <div className="flex items-center text-slate-500 gap-1.5">
-                            <Clock className="h-3.5 w-3.5 text-slate-400" />
+                            <CalendarDays className="h-3.5 w-3.5 text-blue-500" />
                             <span className="text-xs font-semibold text-slate-500">{service.turnaroundTime}</span>
                           </div>
                         </div>
