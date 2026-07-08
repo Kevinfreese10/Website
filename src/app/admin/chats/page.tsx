@@ -10,8 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { collection, deleteDoc, doc, query, orderBy, getFirestore, onSnapshot, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { formatDistanceToNow, format } from 'date-fns';
-import { sendChatNotificationEmail, sendChatInviteEmail } from '@/app/actions/chat-actions';
+import { sendChatNotificationEmail, sendChatInviteEmail, generateFollowUpEmailDraft, sendFollowUpEmail } from '@/app/actions/chat-actions';
 import { cn } from '@/lib/utils';
 
 type ChatMessage = {
@@ -32,6 +34,7 @@ type Conversation = {
   mode?: 'ai' | 'agent';
   status?: 'online' | 'offline';
   lastActiveAt?: any;
+  closed?: boolean;
 };
 
 const db = getFirestore(firebaseApp);
@@ -46,7 +49,12 @@ export default function AdminChatsPage() {
   const [tick, setTick] = useState(0);
   const [isInviting, setIsInviting] = useState(false);
   const [cooldowns, setCooldowns] = useState<{ [chatId: string]: number }>({});
-  const [filterTab, setFilterTab] = useState<'all' | 'ai' | 'agent' | 'online'>('all');
+  const [filterTab, setFilterTab] = useState<'all' | 'ai' | 'agent' | 'online' | 'archived'>('all');
+  const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
+  const [followUpSubject, setFollowUpSubject] = useState('');
+  const [followUpBody, setFollowUpBody] = useState('');
+  const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false);
+  const [isSendingFollowUp, setIsSendingFollowUp] = useState(false);
   const { toast } = useToast();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -86,6 +94,7 @@ export default function AdminChatsPage() {
           mode: data.mode || 'ai',
           status: data.status || 'offline',
           lastActiveAt: data.lastActiveAt || null,
+          closed: data.closed || false,
         };
       });
       setConversations(fetched);
@@ -247,6 +256,51 @@ export default function AdminChatsPage() {
     }
   };
 
+  const handleOpenFollowUp = async () => {
+    if (!selectedChatId || !activeChat || isGeneratingFollowUp) return;
+    setIsGeneratingFollowUp(true);
+    setIsFollowUpDialogOpen(true);
+    setFollowUpSubject('');
+    setFollowUpBody('');
+
+    try {
+      const history = activeChat.messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+      const res = await generateFollowUpEmailDraft(history, activeChat.userName);
+      if (res.success && res.draft) {
+        setFollowUpSubject(res.draft.subject);
+        setFollowUpBody(res.draft.body);
+      } else {
+        toast({ title: 'Error', description: 'Failed to generate email draft', variant: 'destructive' });
+        setIsFollowUpDialogOpen(false);
+      }
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'Failed to generate email draft', variant: 'destructive' });
+      setIsFollowUpDialogOpen(false);
+    } finally {
+      setIsGeneratingFollowUp(false);
+    }
+  };
+
+  const handleSendFollowUp = async () => {
+    if (!selectedChatId || !activeChat || !activeChat.userEmail) return;
+    setIsSendingFollowUp(true);
+    try {
+      const res = await sendFollowUpEmail(selectedChatId, activeChat.userEmail, followUpSubject, followUpBody);
+      if (res.success) {
+        toast({ title: 'Success', description: 'Follow-up email sent successfully.' });
+        setIsFollowUpDialogOpen(false);
+      } else {
+        toast({ title: 'Error', description: res.error || 'Failed to send email', variant: 'destructive' });
+      }
+    } catch (error) {
+       console.error(error);
+       toast({ title: 'Error', description: 'Failed to send email', variant: 'destructive' });
+    } finally {
+      setIsSendingFollowUp(false);
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyText.trim() || !selectedChatId) return;
@@ -298,6 +352,11 @@ export default function AdminChatsPage() {
       c.id.toLowerCase().includes(term)
     );
     if (!matchesSearch) return false;
+
+    if (filterTab === 'archived') return c.closed === true;
+    
+    // Hide archived chats from all other tabs
+    if (c.closed) return false;
 
     if (filterTab === 'ai') return c.mode === 'ai';
     if (filterTab === 'agent') return c.mode === 'agent';
@@ -377,7 +436,7 @@ export default function AdminChatsPage() {
 
             {/* Filter Tabs */}
             <div className="px-4 pb-2 flex border-b border-slate-100 gap-1 shrink-0 select-none">
-              {(['all', 'ai', 'agent', 'online'] as const).map((tab) => (
+              {(['all', 'ai', 'agent', 'online', 'archived'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setFilterTab(tab)}
@@ -392,6 +451,7 @@ export default function AdminChatsPage() {
                   {tab === 'ai' && 'AI'}
                   {tab === 'agent' && 'Human'}
                   {tab === 'online' && 'Online'}
+                  {tab === 'archived' && 'Archived'}
                 </button>
               ))}
             </div>
@@ -455,9 +515,20 @@ export default function AdminChatsPage() {
                           <Calendar className="h-3 w-3 shrink-0 text-slate-400" />
                           <span>{formatDistanceSafely(chat.updatedAt)}</span>
                         </div>
-                        <Badge variant="secondary" className="bg-slate-100 text-slate-600 font-bold hover:bg-slate-100 text-[9px] py-0 px-1">
-                          {chat.messages.length} messages
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-slate-100 text-slate-600 font-bold hover:bg-slate-100 text-[9px] py-0 px-1">
+                            {chat.messages.length} messages
+                          </Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={(e) => handleDeleteConversation(e, chat.id)}
+                            className="h-5 w-5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md shrink-0"
+                            title="Delete Conversation"
+                          >
+                            <Trash className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -526,6 +597,18 @@ export default function AdminChatsPage() {
                         : selectedChatId && cooldowns[selectedChatId] 
                           ? `Invite Sent (${cooldowns[selectedChatId]}s)` 
                           : 'Invite to Chat'}
+                    </Button>
+                  )}
+
+                  {activeChat.userEmail && activeChat.userEmail !== 'Anonymous' && activeChat.userEmail.includes('@') && (
+                    <Button
+                      onClick={handleOpenFollowUp}
+                      variant="outline"
+                      size="sm"
+                      className="text-[10px] h-8 font-black uppercase tracking-wider text-purple-700 border-purple-200 hover:bg-purple-50 bg-white"
+                    >
+                      <Sparkles className="mr-1.5 h-3.5 w-3.5 text-purple-500" />
+                      Follow-up
                     </Button>
                   )}
 
@@ -758,6 +841,57 @@ export default function AdminChatsPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={isFollowUpDialogOpen} onOpenChange={setIsFollowUpDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Generate Follow-up Email</DialogTitle>
+            <DialogDescription>
+              Review and edit the AI-generated follow-up email before sending. This will be sent to <strong>{activeChat?.userEmail}</strong> and CC'd to kev@thinkestry.co.za.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {isGeneratingFollowUp ? (
+              <div className="flex flex-col items-center justify-center py-8 text-slate-500">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mb-4" />
+                <p className="text-sm font-medium">Generating draft using AI...</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700">Subject</label>
+                  <Input 
+                    value={followUpSubject} 
+                    onChange={(e) => setFollowUpSubject(e.target.value)}
+                    placeholder="Email subject..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700">Body</label>
+                  <Textarea 
+                    value={followUpBody}
+                    onChange={(e) => setFollowUpBody(e.target.value)}
+                    rows={8}
+                    placeholder="Email body..."
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFollowUpDialogOpen(false)} disabled={isSendingFollowUp || isGeneratingFollowUp}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendFollowUp} disabled={isSendingFollowUp || isGeneratingFollowUp || !followUpSubject || !followUpBody} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              {isSendingFollowUp ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+              ) : (
+                <><Send className="mr-2 h-4 w-4" /> Send Email</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

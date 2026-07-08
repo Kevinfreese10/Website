@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '../ui/checkbox';
@@ -35,7 +35,7 @@ const formSchema = z.object({
   name: z.string().min(2, 'First name is required.'),
   surname: z.string().min(2, 'Surname is required.'),
   email: z.string().email('Please enter a valid email.'),
-  password: z.string().min(6, 'Password must be at least 6 characters.'),
+  password: z.string().optional(),
   contactNumber: z.string().min(10, 'A valid contact number is required.'),
   slug: z.string()
     .min(3, 'Slug must be at least 3 characters.')
@@ -73,7 +73,7 @@ export default function PartnerSignupForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const { reauthenticate } = useAuth();
+  const { user: currentUser, reauthenticate } = useAuth();
   const [allServices, setAllServices] = useState<Service[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [isServicesLoading, setIsServicesLoading] = useState(true);
@@ -87,9 +87,9 @@ export default function PartnerSignupForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       companyName: '',
-      name: '',
+      name: searchParams.get('name') || '',
       surname: '',
-      email: '',
+      email: searchParams.get('email') || currentUser?.email || '',
       password: '',
       contactNumber: '',
       slug: '',
@@ -100,6 +100,13 @@ export default function PartnerSignupForm() {
       capableServices: [],
     },
   });
+
+  // Update email if currentUser changes after initial render
+  useEffect(() => {
+      if (currentUser?.email) {
+          form.setValue('email', currentUser.email);
+      }
+  }, [currentUser, form]);
 
   const selectedTier = form.watch('tier');
   const companyName = form.watch('companyName');
@@ -194,10 +201,22 @@ export default function PartnerSignupForm() {
     try {
         const { password, cv, certificate, ...partnerData } = values;
 
-        // 1. Create firebase auth user
-        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        const newFirebaseUser = userCredential.user;
-        const authUid = newFirebaseUser.uid;
+        let newFirebaseUser;
+        let authUid;
+
+        if (currentUser) {
+            newFirebaseUser = currentUser;
+            authUid = currentUser.uid;
+        } else {
+            if (!values.password || values.password.length < 6) {
+                toast({ title: 'Password Required', description: 'Please enter a password with at least 6 characters.', variant: 'destructive' });
+                setIsLoading(false);
+                return;
+            }
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+            newFirebaseUser = userCredential.user;
+            authUid = newFirebaseUser.uid;
+        }
         
         let cvUrl = '';
         let certificateUrl = '';
@@ -249,22 +268,24 @@ export default function PartnerSignupForm() {
         // 3. Trigger manual re-auth logic
         await reauthenticate(newFirebaseUser);
 
-        // 4. Send welcome email (credentials, plaintext password REMOVED)
-        try {
-            const emailHtml = render(<PartnerWelcomeEmail 
-                partnerName={values.name} 
-                email={values.email}
-                loginUrl={`${process.env.NEXT_PUBLIC_APP_URL}/login`} 
-            />);
+        // 4. Send welcome email (only if they created a new account)
+        if (!currentUser) {
+            try {
+                const emailHtml = render(<PartnerWelcomeEmail 
+                    partnerName={values.name} 
+                    email={values.email}
+                    loginUrl={`${process.env.NEXT_PUBLIC_APP_URL}/login`} 
+                />);
 
-            await sendEmail({
-                to: values.email,
-                cc: 'kev@thinkestry.co.za',
-                subject: `Welcome to the My Accountant Partner Program!`,
-                html: emailHtml,
-            });
-        } catch (e) {
-            console.error("Welcome email failed", e);
+                await sendEmail({
+                    to: values.email,
+                    cc: 'kev@thinkestry.co.za',
+                    subject: `Welcome to the My Accountant Partner Program!`,
+                    html: emailHtml,
+                });
+            } catch (e) {
+                console.error("Welcome email failed", e);
+            }
         }
 
         // 5. Subscription Checkout or Direct Dashboard
@@ -330,7 +351,15 @@ export default function PartnerSignupForm() {
         console.error("Partner signup error:", error);
         let description = 'There was a problem creating your account.';
         if (error.code === 'auth/email-already-in-use') {
-            description = 'An account with this email already exists.';
+            description = 'An account with this email already exists. Are you a My Accountant client? Please log in first to upgrade to a Partner account.';
+            toast({ 
+                title: 'Email Already In Use', 
+                description, 
+                variant: 'destructive',
+                action: <Button variant="outline" size="sm" asChild><Link href={`/login?redirect=/partner-signup`}>Go to Login</Link></Button>
+            });
+            setIsLoading(false);
+            return;
         }
         toast({ title: 'Signup Failed', description, variant: 'destructive' });
         setIsLoading(false);
@@ -364,8 +393,10 @@ export default function PartnerSignupForm() {
                         <FormField control={form.control} name="contactNumber" render={({ field }) => ( <FormItem><FormLabel>Contact Number</FormLabel><FormControl><Input placeholder="082 123 4567" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Contact First Name</FormLabel><FormControl><Input placeholder="John" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="surname" render={({ field }) => ( <FormItem><FormLabel>Contact Surname</FormLabel><FormControl><Input placeholder="Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Login Email Address</FormLabel><FormControl><Input placeholder="john@acme.co.za" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Create Password</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Login Email Address</FormLabel><FormControl><Input placeholder="john@acme.co.za" {...field} disabled={!!currentUser} /></FormControl><FormMessage /></FormItem>)} />
+                        {!currentUser && (
+                            <FormField control={form.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Create Password</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        )}
                     </div>
                 </div>
 
@@ -398,6 +429,9 @@ export default function PartnerSignupForm() {
                                         />
                                     </FormControl>
                                 </div>
+                                <FormDescription className="text-amber-600 font-medium">
+                                    Warning: This URL cannot be changed later. Choose carefully!
+                                </FormDescription>
                                 <div className="text-xs mt-1">
                                     {checkingSlug && <p className="text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Checking availability...</p>}
                                     {isSlugAvailable === true && <p className="text-green-600 font-semibold">✓ Custom URL is available!</p>}

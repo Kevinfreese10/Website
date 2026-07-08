@@ -979,6 +979,7 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                         <FormControl><Input {...field} /></FormControl>
                                         <FormDescription className="text-[10px]">
                                             Must be unique, lowercase, no spaces. Avoid reserved keywords like 'admin', 'api', or 'login'.
+                                            <span className="block mt-1 text-amber-600 font-bold text-[11px]">Warning: This URL cannot be changed later. Choose carefully!</span>
                                         </FormDescription>
                                         <FormMessage />
                                     </FormItem> 

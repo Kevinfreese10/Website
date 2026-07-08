@@ -278,15 +278,17 @@ export default function ClientOrderDetailsPage() {
   };
 
   const handleNotifyConsultant = async () => {
-    if (!currentUser || !order || !order.assignedTo || order.assignedTo.length === 0) {
-      toast({ title: "Cannot Submit", description: "This order is not yet assigned to a consultant.", variant: "destructive" });
-      return;
-    }
+    if (!currentUser || !order) return;
     
-    const assignedStaff = allStaff.find(s => s.id === order.assignedTo![0]);
-    if (!assignedStaff || !assignedStaff.email) {
-      toast({ title: "Cannot Submit", description: "The assigned consultant could not be found or does not have an email address.", variant: "destructive" });
-      return;
+    let assignedStaffName = 'Admin';
+    let assignedStaffEmail = 'info@myacc.co.za';
+
+    if (order.assignedTo && order.assignedTo.length > 0) {
+      const assignedStaff = allStaff.find(s => s.id === order.assignedTo![0]);
+      if (assignedStaff && assignedStaff.email) {
+        assignedStaffName = assignedStaff.name || 'Consultant';
+        assignedStaffEmail = assignedStaff.email;
+      }
     }
 
     setIsSubmitting(true);
@@ -309,8 +311,8 @@ export default function ClientOrderDetailsPage() {
       await notifyStaffOfDocumentUpload({
           orderId: order.id,
           clientName: currentUser.name,
-          assignedStaffName: assignedStaff.name,
-          assignedStaffEmail: assignedStaff.email,
+          assignedStaffName: assignedStaffName,
+          assignedStaffEmail: assignedStaffEmail,
       });
 
       toast({ title: "Documents Submitted!", description: "Your consultant has been notified." });

@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Users, Loader2, Wallet2, Plus, Minus, CheckCircle2, Circle, Info, FileText, Download, Briefcase, GraduationCap, Globe, Mail, ExternalLink, XCircle, Settings, Wrench } from 'lucide-react';
+import { MoreHorizontal, Users, Loader2, Wallet2, Plus, Minus, CheckCircle2, Circle, Info, FileText, Download, Briefcase, GraduationCap, Globe, Mail, ExternalLink, XCircle, Settings, Wrench, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -441,6 +441,8 @@ export default function AdminPartnersPage() {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [inviteData, setInviteData] = useState({ email: '', name: '' });
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
 
@@ -487,6 +489,37 @@ export default function AdminPartnersPage() {
     }
   };
 
+  const handleGrant3MonthsFree = async (partner: User) => {
+    setIsLoading(true);
+    try {
+        const userRef = doc(db, 'users', partner.id);
+        const updates: any = {
+            partnerTier: 'growth',
+        };
+        
+        updates.partnerSubscription = {
+            status: 'active',
+            aiCompanyLimit: 5,
+            aiPayrollLimit: 5,
+            staffSeatLimit: 3,
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
+            grandfatheredUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 months
+        };
+        
+        await updateDoc(userRef, updates);
+        toast({
+            title: 'Granted 3 Months Free',
+            description: `Successfully granted 3 months free Premium for ${partner.companyName || partner.name}.`
+        });
+    } catch (err) {
+        console.error("Error granting 3 months free:", err);
+        toast({ title: 'Operation Failed', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
@@ -495,6 +528,8 @@ export default function AdminPartnersPage() {
         setAllServices(servicesSnap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Service)));
     } catch (error) {
         console.error("Error fetching services:", error);
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -545,17 +580,28 @@ export default function AdminPartnersPage() {
   };
 
   const handleDelete = async (partnerId: string) => {
+    setIsLoading(true);
     try {
+        // Delete associated subcollections to prevent orphaned documents (partner pages/overrides, wallet logs)
+        const walletLogsSnap = await getDocs(collection(db, 'users', partnerId, 'walletLogs'));
+        const serviceOverridesSnap = await getDocs(collection(db, 'users', partnerId, 'serviceOverrides'));
+        
+        const deletePromises: Promise<void>[] = [];
+        walletLogsSnap.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+        serviceOverridesSnap.forEach(d => deletePromises.push(deleteDoc(d.ref)));
+        await Promise.all(deletePromises);
+
         await deleteDoc(doc(db, "users", partnerId));
-        fetchInitialData();
         toast({
             title: 'Partner Deleted',
-            description: 'The partner has been removed from Firestore.',
+            description: 'The partner and their custom pages/data have been removed from Firestore.',
             variant: 'destructive',
         });
     } catch (error) {
         console.error("Error deleting partner:", error);
         toast({ title: 'Error', description: 'Could not delete partner.', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -572,11 +618,17 @@ export default function AdminPartnersPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Manage Partners</h1>
-         <Button asChild>
-            <Link href="/partner-signup">
-                Add New Partner
-            </Link>
-        </Button>
+        <div className="flex gap-3">
+            <Button onClick={() => setIsInviteDialogOpen(true)} variant="outline">
+                <Mail className="mr-2 h-4 w-4" />
+                Invite Partner
+            </Button>
+            <Button asChild>
+                <Link href="/partner-signup">
+                    Add New Partner
+                </Link>
+            </Button>
+        </div>
       </div>
 
       <ManualCreditDialog 
@@ -607,6 +659,64 @@ export default function AdminPartnersPage() {
             if (!open) setSelectedPartnerIdForProfile(null);
         }}
       />
+
+      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Invite a Partner</DialogTitle>
+                <DialogDescription>Send an email invitation for a prospective partner to set up their practice.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label>Email Address</Label>
+                    <Input 
+                        placeholder="partner@example.com" 
+                        value={inviteData.email}
+                        onChange={e => setInviteData({...inviteData, email: e.target.value})}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label>First Name</Label>
+                    <Input 
+                        placeholder="John" 
+                        value={inviteData.name}
+                        onChange={e => setInviteData({...inviteData, name: e.target.value})}
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>Cancel</Button>
+                <Button 
+                    onClick={async () => {
+                        if (!inviteData.email || !inviteData.name) {
+                            toast({ title: 'Validation Error', description: 'Email and name are required.', variant: 'destructive' });
+                            return;
+                        }
+                        setIsLoading(true);
+                        try {
+                            const { invitePartnerAction } = await import('@/app/actions/invite-partner');
+                            const res = await invitePartnerAction(inviteData.email, inviteData.name);
+                            if (res.success) {
+                                toast({ title: 'Invite Sent', description: `Successfully invited ${inviteData.email}.` });
+                                setIsInviteDialogOpen(false);
+                                setInviteData({ email: '', name: '' });
+                            } else {
+                                toast({ title: 'Failed to Send', description: res.error, variant: 'destructive' });
+                            }
+                        } catch (e) {
+                            toast({ title: 'Error', variant: 'destructive' });
+                        } finally {
+                            setIsLoading(false);
+                        }
+                    }}
+                    disabled={isLoading}
+                >
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Send Invitation
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Admin Full Practice Configuration Modal */}
       <Dialog open={isConfigDialogOpen} onOpenChange={(open) => {
@@ -722,9 +832,14 @@ export default function AdminPartnersPage() {
                                 <FileText className="mr-2 h-4 w-4" /> Wallet History
                             </DropdownMenuItem>
                             {partner.partnerTier === 'free' ? (
-                                <DropdownMenuItem onClick={() => handleToggleTier(partner)}>
-                                    <GraduationCap className="mr-2 h-4 w-4 text-primary" /> Upgrade to Premium
-                                </DropdownMenuItem>
+                                <>
+                                    <DropdownMenuItem onClick={() => handleToggleTier(partner)}>
+                                        <GraduationCap className="mr-2 h-4 w-4 text-primary" /> Upgrade to Premium
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGrant3MonthsFree(partner)}>
+                                        <Award className="mr-2 h-4 w-4 text-emerald-500" /> Grant 3 Months Free
+                                    </DropdownMenuItem>
+                                </>
                             ) : (
                                 <DropdownMenuItem onClick={() => handleToggleTier(partner)}>
                                     <Circle className="mr-2 h-4 w-4 text-muted-foreground" /> Downgrade to Freemium
