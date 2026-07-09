@@ -280,6 +280,25 @@ export default async function BlogPostPage({ params }: Props) {
           suppressHydrationWarning
         />
 
+        {/* PROMINENT CTA BLOCK TO REDIRECT TRAFFIC */}
+        <div className="my-16 bg-primary/5 rounded-3xl p-8 md:p-12 border border-primary/10 shadow-sm text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-dot-grid opacity-30" />
+          <div className="relative z-10 max-w-2xl mx-auto space-y-6">
+            <h2 className="text-3xl font-black tracking-tight text-foreground font-headline">Need Expert Accounting or Compliance Help?</h2>
+            <p className="text-lg text-muted-foreground font-medium">
+              Don't let SARS, CIPC, or complex accounting slow your business down. Our team of registered professionals is ready to handle it for you online.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300 w-full sm:w-auto">
+                <Link href="/contact">Book Free Consultation</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-14 px-8 text-base font-bold bg-white hover:bg-slate-50 text-foreground transition-all duration-300 w-full sm:w-auto">
+                <Link href="/products">Visit Online Store</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* FAQ SECTION (Strictly aligned with Google Search Engine requirements) */}
         {postFaqs && postFaqs.length > 0 && (
           <section className="mt-16 bg-slate-50 rounded-2xl p-8 border shadow-sm max-w-3xl mx-auto">

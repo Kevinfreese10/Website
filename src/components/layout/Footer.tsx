@@ -52,8 +52,8 @@ const Footer = () => {
 
             <div className="rounded-xl overflow-hidden border border-white/10 relative h-[200px] md:h-full min-h-[200px]">
                 <iframe
-                    title="Office Location Map"
-                    src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
+                    title="My Accountant Office Location"
+                    src="https://www.google.com/maps?q=My+Accountant,+Stonemill+Office+Park,+300+Acacia+Road,+Darrenwood,+Johannesburg&output=embed"
                     className="absolute inset-0 w-full h-full"
                     style={{ border: 0 }}
                     allowFullScreen={false}

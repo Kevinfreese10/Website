@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
-import { BadgeCheck, Clock, ClipboardCheck, ChevronRight, Home, ShoppingCart, FileUp, RefreshCw, CheckCircle2, ArrowRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { BadgeCheck, Clock, ClipboardCheck, ChevronRight, Home, ShoppingCart, FileUp, RefreshCw, CheckCircle2, ArrowRight, Star } from 'lucide-react';
+import { cn, formatPrice } from '@/lib/utils';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { Service } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
@@ -97,14 +97,6 @@ export async function generateMetadata(
   }
 }
 
-const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-ZA', {
-      style: 'currency',
-      currency: 'ZAR',
-      minimumFractionDigits: price % 1 === 0 ? 0 : 2,
-      maximumFractionDigits: 2,
-    }).format(price);
-};
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
@@ -279,6 +271,18 @@ export default async function ProductDetailPage({ params }: Props) {
           <h1 className="mb-5 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
             {firstPart} {secondPart && <span className="text-gradient">{secondPart}</span>}
           </h1>
+          <div className="flex items-center justify-center gap-1.5 mb-6">
+            <div className="flex items-center text-amber-400">
+              <Star className="h-4 w-4 fill-amber-400" />
+              <Star className="h-4 w-4 fill-amber-400" />
+              <Star className="h-4 w-4 fill-amber-400" />
+              <Star className="h-4 w-4 fill-amber-400" />
+              <Star className="h-4 w-4 fill-amber-400" />
+            </div>
+            <span className="text-sm font-bold text-slate-500">
+              {service.aggregateRatingValue || "5.0"} ({service.reviewCount || "120+"} reviews)
+            </span>
+          </div>
           <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
             {service.description || `Professional ${service.title} compliance services tailored for South African businesses and individuals.`}
           </p>
@@ -299,13 +303,17 @@ export default async function ProductDetailPage({ params }: Props) {
       </div>
 
       <div className="container mx-auto px-4 pb-12 flex-grow">
-        <section className="py-12 bg-secondary/30 border-white/[0.06] mb-12 rounded-3xl glass-card">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-16 space-y-4">
-              <h2 className="text-3xl font-black md:text-4xl uppercase tracking-tighter text-foreground font-headline">How Our Online Accounting Process Works</h2>
-              <p className="text-muted-foreground text-lg">Four simple steps to full compliance.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-12 relative">
+        <section className="bg-secondary/30 border-white/[0.06] mb-12 rounded-3xl glass-card px-4 sm:px-8">
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="how-it-works" className="border-none">
+              <AccordionTrigger className="hover:no-underline py-8">
+                <div className="text-left md:text-center w-full space-y-2">
+                  <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-foreground font-headline">How Our Online Accounting Process Works</h2>
+                  <p className="text-muted-foreground text-base md:text-lg font-normal">Four simple steps to full compliance. Click to view.</p>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 relative pb-8 pt-4">
               {[
                 { 
                   step: "01", 
@@ -352,8 +360,10 @@ export default async function ProductDetailPage({ params }: Props) {
                   {idx < 3 && <ArrowRight className="hidden lg:block absolute -right-6 top-10 h-8 w-8 text-muted-foreground/20" />}
                 </div>
               ))}
-            </div>
-          </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </section>
       </div>
 
@@ -458,7 +468,7 @@ export default async function ProductDetailPage({ params }: Props) {
       {/* MOBILE STICKY BUY BAR */}
       {!service.isPriceTbc && (
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-t border-border/40 shadow-2xl px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-4">
-          <div>
+          <div aria-hidden="true">
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider truncate max-w-[180px]">{service.title}</p>
             <p className="text-lg font-black text-primary leading-none">{formatPrice(service.price)}</p>
           </div>

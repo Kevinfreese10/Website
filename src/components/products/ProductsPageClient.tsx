@@ -21,6 +21,8 @@ import {
   Star,
   ShoppingBag,
   Sparkles,
+  Globe,
+  Heart
 } from 'lucide-react';
 import { collection, getFirestore, orderBy, query, onSnapshot, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -29,7 +31,8 @@ import { useEffect, useState, useMemo } from 'react';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
-import { cn } from '@/lib/utils';
+import { useWishlist } from '@/contexts/WishlistContext';
+import { cn, formatPrice } from '@/lib/utils';
 
 const db = getFirestore(firebaseApp);
 
@@ -40,13 +43,12 @@ type Category = {
     order: number; 
 };
 
-const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-ZA', {
-      style: 'currency',
-      currency: 'ZAR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
+const getCategoryStyle = (category: string) => {
+  if (category.includes('SARS')) return { badge: 'bg-green-500/5 text-green-600 border-green-500/10', dot: 'bg-green-500' };
+  if (category.includes('CIPC') || category.includes('Compliance')) return { badge: 'bg-purple-500/5 text-purple-600 border-purple-500/10', dot: 'bg-purple-500' };
+  if (category.includes('Payroll') || category.includes('UIF') || category.includes('COIDA')) return { badge: 'bg-amber-500/5 text-amber-600 border-amber-500/10', dot: 'bg-amber-500' };
+  if (category.includes('Entity') || category.includes('Company')) return { badge: 'bg-blue-500/5 text-blue-600 border-blue-500/10', dot: 'bg-blue-500' };
+  return { badge: 'bg-slate-500/5 text-slate-600 border-slate-500/10', dot: 'bg-slate-500' };
 };
 
 export default function ProductsPageClient({ 
@@ -62,6 +64,7 @@ export default function ProductsPageClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const { addToCart } = useCart();
+  const { wishlist, addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
   const scrollToSection = (categoryName: string) => {
     if (categoryName === 'all') {
@@ -106,22 +109,87 @@ export default function ProductsPageClient({
   
   const categorizedServices = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    return categories
-      .map(category => {
-        const filteredData = services.filter(s => {
-          const thisCategoryMatch = s.category === category.name;
-          const searchMatches = !q || 
-            s.title.toLowerCase().includes(q) || 
-            s.description.toLowerCase().includes(q) ||
-            s.category.toLowerCase().includes(q);
-          return thisCategoryMatch && searchMatches;
-        });
-        return {
-          ...category,
-          data: filteredData
-        };
-      })
-      .filter(c => c.data.length > 0);
+    const stopWords = new Set(["i", "want", "to", "a", "the", "an", "my", "need", "for", "with", "of", "and", "in", "on", "do", "get", "help", "me", "am", "is", "are", "can", "you", "please"]);
+    const tokens = q.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+
+    if (!q) {
+      return categories.map(c => ({
+        ...c,
+        data: services.filter(s => s.category === c.name)
+      })).filter(c => c.data.length > 0);
+    }
+
+    const scoredServices = services.map(s => {
+      const searchableText = [
+        s.title,
+        s.description,
+        s.category,
+        ...(s.metaKeywords || []),
+        ...(s.whatsIncluded || [])
+      ].join(" ").toLowerCase();
+
+      let score = 0;
+      let matchedTokensCount = 0;
+
+      // 1. Exact phrase match
+      if (searchableText.includes(q)) {
+          score += 20;
+      }
+
+      // 2. Token match
+      tokens.forEach(token => {
+         if (searchableText.includes(token)) {
+             matchedTokensCount++;
+             score += 1;
+             if (s.title.toLowerCase().includes(token)) score += 3;
+         }
+      });
+
+      return { service: s, score, matchedTokensCount };
+    }).filter(item => item.matchedTokensCount > 0 || item.score > 0);
+
+    // Sort by relevance score
+    scoredServices.sort((a, b) => b.score - a.score);
+
+    const bestMatches: Service[] = [];
+    const relatedMatches: Service[] = [];
+
+    scoredServices.forEach(item => {
+        // A Best Match must either hit the exact phrase OR match all/most of the tokens.
+        const isBestMatch = 
+             item.score >= 20 || 
+             (tokens.length <= 2 ? item.matchedTokensCount === tokens.length : item.matchedTokensCount >= tokens.length - 1);
+             
+        if (isBestMatch) {
+            bestMatches.push(item.service);
+        } else {
+            relatedMatches.push(item.service);
+        }
+    });
+
+    const results = [];
+    
+    if (bestMatches.length > 0) {
+      results.push({
+        id: 'best-matches',
+        name: 'Best Matches',
+        description: '',
+        order: 0,
+        data: bestMatches
+      });
+    }
+    
+    if (relatedMatches.length > 0) {
+      results.push({
+        id: 'related-services',
+        name: 'Related Services',
+        description: '',
+        order: 1,
+        data: relatedMatches
+      });
+    }
+
+    return results;
   }, [categories, services, searchQuery]);
 
 
@@ -229,7 +297,7 @@ export default function ProductsPageClient({
             </div>
             <input
               type="text"
-              placeholder="Search for tax clearance, VAT, registration..."
+              placeholder="E.g. 'I need to submit a provisional return' or 'Register a company'..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setActiveCategory('all'); }}
               className="block w-full pl-11 pr-10 py-3 border border-input rounded-2xl bg-background placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm font-medium text-foreground shadow-sm transition-all"
@@ -318,28 +386,62 @@ export default function ProductsPageClient({
                           </div>
                         )}
 
-                        {/* Category chip with accent dot */}
+                        {/* Category chip with accent dot & Wishlist action */}
                         <div className="flex items-center justify-between mb-2">
-                          <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold bg-blue-500/5 text-blue-600 border border-blue-500/10 rounded-full px-2 py-0.5 flex items-center">
-                            <span className="h-1.5 w-1.5 rounded-full bg-blue-500 mr-1.5 animate-pulse" />
-                            {service.category}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className={cn("w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-full px-2 py-0.5 flex items-center", getCategoryStyle(service.category).badge)}>
+                              <span className={cn("h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse", getCategoryStyle(service.category).dot)} />
+                              {service.category}
+                            </Badge>
+                            {(service.title.toLowerCase().includes('foreign') || service.title.toLowerCase().includes('external')) && (
+                              <Badge variant="outline" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-full px-2 py-0.5 flex items-center bg-slate-50 text-slate-600 border-slate-200">
+                                <Globe className="h-2.5 w-2.5 mr-1 text-slate-400" />
+                                Foreign Entity
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              isInWishlist(service.id) ? removeFromWishlist(service.id) : addToWishlist(service);
+                            }}
+                            className="p-1.5 hover:bg-slate-100 rounded-full transition-colors group/heart"
+                            aria-label="Save for later"
+                          >
+                            <Heart className={cn("h-4 w-4 transition-all duration-300", isInWishlist(service.id) ? "fill-rose-500 text-rose-500" : "text-slate-400 group-hover/heart:text-rose-400")} />
+                          </button>
                         </div>
 
                         <CardTitle className="leading-snug text-slate-800 text-[16px] font-black group-hover:text-primary transition-colors duration-300 pr-14">
-                          {service.title}
+                          <Link href={`/products/${service.slug}`} className="hover:underline line-clamp-2">
+                            {service.title}
+                          </Link>
                         </CardTitle>
 
-                        {/* Price + Turnaround row */}
-                        <div className="flex items-center justify-between mt-3">
-                          {service.isPriceTbc ? (
-                            <p className="text-sm font-bold text-slate-400">Price on Request</p>
-                          ) : (
-                            <p className="text-2xl font-black text-slate-800 leading-none">
-                              {formatPrice(service.price)}
-                            </p>
-                          )}
-                          
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <div className="flex items-center text-amber-400">
+                            <Star className="h-3 w-3 fill-amber-400" />
+                            <Star className="h-3 w-3 fill-amber-400" />
+                            <Star className="h-3 w-3 fill-amber-400" />
+                            <Star className="h-3 w-3 fill-amber-400" />
+                            <Star className="h-3 w-3 fill-amber-400" />
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-500">
+                            {service.aggregateRatingValue || "5.0"} ({service.reviewCount || "120+"})
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex items-start justify-between gap-2">
+                          <div>
+                            {service.isPriceTbc ? (
+                              <span className="text-xl font-black text-slate-900 leading-none block">Price on Request</span>
+                            ) : (
+                              <span className="text-xl font-black text-slate-900 leading-none block">
+                                {formatPrice(service.price)}
+                              </span>
+                            )}
+                          </div>  
                           {/* Turnaround Time */}
                           <div className="flex items-center text-slate-500 gap-1.5">
                             <CalendarDays className="h-3.5 w-3.5 text-emerald-500" />
@@ -349,20 +451,34 @@ export default function ProductsPageClient({
                     </CardHeader>
 
                     <CardContent className="flex-grow pt-0 pb-3">
-                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">{service.description}</p>
+                        {service.whatsIncluded && service.whatsIncluded.length > 0 ? (
+                          <div className="mt-1">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">What's Included</p>
+                            <ul className="text-xs text-slate-600 leading-relaxed space-y-1.5">
+                              {service.whatsIncluded.slice(0, 3).map((item, idx) => (
+                                <li key={idx} className="flex items-start">
+                                  <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-green-500 flex-none" />
+                                  <span className="line-clamp-1">{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mt-1">{service.description}</p>
+                        )}
                     </CardContent>
 
                     <CardFooter className="pt-0 pb-4 flex gap-2">
-                        {/* Add to Cart */}
+                        {/* Order Now (Add to Cart) */}
                         {!service.isPriceTbc && (
                           <Button
                             size="sm"
                             variant="default"
-                            className="flex-1 font-bold gap-1.5 shadow-md h-10 text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl transition-all duration-300 transform active:scale-95"
+                            className="flex-1 font-bold h-10 text-xs rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
                             onClick={() => addToCart(service)}
                           >
-                            <ShoppingBag className="h-3.5 w-3.5" />
-                            Add to Cart
+                            <ShoppingCart className="h-3.5 w-3.5" />
+                            Order Now
                           </Button>
                         )}
                         {/* View Details */}
@@ -371,13 +487,13 @@ export default function ProductsPageClient({
                           size="sm"
                           variant={service.isPriceTbc ? "default" : "outline"}
                           className={cn(
-                            "font-bold h-10 text-xs gap-1 transition-all rounded-xl",
-                            service.isPriceTbc 
-                              ? "flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md" 
-                              : "flex-none px-4 border-slate-200 hover:border-blue-500/30 hover:bg-blue-50/50 hover:text-blue-600 text-slate-700"
+                            "font-bold h-10 text-xs rounded-xl transition-all duration-300",
+                            service.isPriceTbc
+                              ? "flex-1 shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white" 
+                              : "flex-none px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700"
                           )}
                         >
-                          <Link href={`/products/${service.slug}`} className="group/btn">
+                          <Link href={`/products/${service.slug}`} className="group/btn flex items-center justify-center gap-1">
                             {service.isPriceTbc ? "Get a Quote" : "Details"}
                             <ArrowRight className="h-3 w-3 group-hover/btn:translate-x-0.5 transition-transform" />
                           </Link>
@@ -389,6 +505,31 @@ export default function ProductsPageClient({
             </section>
             )))
         )}
+
+        {/* SPECIALIST & QUOTE-BASED SERVICES */}
+        <section className="mt-16 bg-card/40 border border-border/40 rounded-3xl p-8 glass-card">
+          <div className="text-center mb-10 space-y-3">
+            <h2 className="text-2xl font-black md:text-3xl tracking-tighter text-foreground font-headline">Specialist & Complex Cases</h2>
+            <p className="text-muted-foreground">Expert negotiation and compliance services available on a bespoke, quote-based model.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { title: "SARS Compromise", desc: "Negotiate outstanding tax debts", href: "/sars-compromise" },
+              { title: "SARS Disputes", desc: "Resolve disputes and audits", href: "/sars-disputes" },
+              { title: "Remission of Fines", desc: "Apply for penalty waivers", href: "/remission-of-fines" },
+              { title: "Liquidations", desc: "Corporate liquidation services", href: "/liquidations" }
+            ].map((s, i) => (
+              <div key={i} className="rounded-2xl border border-border/40 p-6 flex flex-col items-center text-center space-y-4 hover:border-primary/30 transition-colors bg-background">
+                <h3 className="font-bold text-foreground text-lg">{s.title}</h3>
+                <p className="text-sm text-muted-foreground flex-grow">{s.desc}</p>
+                <Button asChild variant="outline" className="w-full font-bold">
+                  <Link href={s.href}>Learn More</Link>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+
       </div>
     </div>
   </div>

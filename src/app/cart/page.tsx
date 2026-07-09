@@ -4,17 +4,10 @@ import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { formatPrice } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Trash2, ShoppingCart, ArrowRight, ShieldCheck, Clock, ChevronRight } from 'lucide-react';
 
-const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-ZA', {
-      style: 'currency',
-      currency: 'ZAR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-};
 
 export default function CartPage() {
   const { cartItems, removeFromCart, cartTotal, itemCount } = useCart();

@@ -256,12 +256,6 @@ export default function HomePageClient() {
                 <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300">
                   <Link href="/contact">Book Free Consultation</Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="h-14 px-8 text-base font-bold border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.08] hover:border-primary/30 text-foreground transition-all duration-300">
-                  <Link href="/contact">Speak to an Accountant</Link>
-                </Button>
-                <Button asChild variant="secondary" size="lg" className="h-14 px-8 text-base font-bold bg-secondary hover:bg-secondary/80 text-foreground transition-all duration-300">
-                  <Link href="/products">Visit online store</Link>
-                </Button>
               </div>
             </div>
 
@@ -426,7 +420,9 @@ export default function HomePageClient() {
         </div>
       </div>
 
-      <TrustIndexWidget />
+      <div id="reviews" className="scroll-m-20">
+        <TrustIndexWidget />
+      </div>
 
       {/* TRUST & AUTHORITY SECTION */}
       <section className="py-24 bg-background text-center relative overflow-hidden">
@@ -469,7 +465,7 @@ export default function HomePageClient() {
               </div>
 
               <p>
-                My Accountant is backed by strong client satisfaction and has earned over 200+ 5-star Google reviews from businesses across South Africa. View our Google Reviews & Client Feedback to see what our clients have to say about our accounting, tax, payroll, SARS, and compliance services.
+                My Accountant is backed by strong client satisfaction and has earned over 200+ 5-star Google reviews from businesses across South Africa. <Link href="#reviews" className="text-primary hover:underline font-bold">View our Google Reviews & Client Feedback</Link> to see what our clients have to say about our accounting, tax, payroll, SARS, and compliance services.
               </p>
 
               {/* Expert Quotation Section */}
@@ -1040,80 +1036,7 @@ export default function HomePageClient() {
           </div>
       </section>
 
-      {/* SOUTH AFRICA SEO SECTION */}
-      <section className="py-24 bg-background border-t border-white/[0.06] relative overflow-hidden">
-          <div className="aurora-blob aurora-cyan w-[400px] h-[400px] bottom-0 right-0 animate-aurora-drift" style={{ animationDelay: '-3s' }} />
-          <div className="container relative z-10 mx-auto px-4">
-              <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                  <div className="space-y-8 text-center lg:text-left">
-                      <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto lg:mx-0 neon-glow"><MapPin className="h-6 w-6" /></div>
-                      
-                      <div className="space-y-4">
-                        <h2 className="text-3xl font-black text-foreground md:text-4xl text-center lg:text-left font-headline">Accounting & Tax Services for Businesses Across South Africa</h2>
-                        <div className="space-y-4 text-lg text-muted-foreground leading-relaxed text-center lg:text-left">
-                            <p>
-                                My Accountant provides professional online accounting, tax, payroll, bookkeeping, and compliance services to businesses throughout South Africa. Our team assists startups, SMEs, established companies, non-profit organisations, and growing enterprises with reliable financial management, SARS compliance, payroll administration, VAT submissions, annual financial statements, and CIPC services.
-                            </p>
-                            <p>
-                                As a modern online accounting firm, we work with clients remotely across the country, allowing businesses to access qualified accounting and tax support without needing to visit a physical office. Whether you require monthly bookkeeping, payroll processing, VAT returns, tax compliance, or outsourced accounting services, our team is equipped to assist businesses of all sizes across South Africa.
-                            </p>
-                        </div>
-                      </div>
 
-                      <div className="space-y-4">
-                        <h3 className="text-xl font-bold text-foreground">We proudly assist businesses in:</h3>
-                        <div className="grid grid-cols-2 gap-2 text-sm font-bold text-foreground/80 max-w-sm mx-auto lg:mx-0">
-                            {[
-                                "Johannesburg", "Randburg", "Sandton", "Midrand", 
-                                "Pretoria", "Durban", "Cape Town", "Gauteng"
-                            ].map((loc) => (
-                                <div key={loc} className="flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" /> {loc}
-                                </div>
-                            ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <h3 className="text-xl font-bold text-foreground">Our services include:</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm font-bold text-foreground/80 text-left">
-                            {[
-                                "Monthly Accounting & Bookkeeping",
-                                "Payroll Processing & PAYE Submissions",
-                                "VAT Registration & VAT Returns",
-                                "Annual Financial Statements",
-                                "Tax Returns & SARS Compliance",
-                                "Tax Clearance Certificates",
-                                "Company Registrations & CIPC Annual Returns",
-                                "Beneficial Ownership Declarations",
-                                "Outsourced Accounting Services",
-                                "Management Accounts & Financial Reporting"
-                            ].map((service) => (
-                                <div key={service} className="flex items-center gap-2">
-                                    <CheckCircle2 className="h-4 w-4 text-primary shrink-0" /> {service}
-                                </div>
-                            ))}
-                        </div>
-                      </div>
-
-                      <p className="text-lg font-medium text-foreground/90 leading-relaxed italic text-center lg:text-left">
-                        My Accountant combines technology-driven convenience with experienced financial professionals to help South African businesses remain compliant, financially organised, and focused on growth.
-                      </p>
-                  </div>
-                  <div className="relative h-[400px] lg:h-[600px] rounded-3xl overflow-hidden border border-white/10 neon-glow">
-                      <iframe
-                          title="Office Location Map"
-                          src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
-                          className="absolute inset-0 w-full h-full"
-                          style={{ border: 0 }}
-                          allowFullScreen={false}
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
-                      ></iframe>
-                  </div>
-              </div>
-          </div>
-      </section>
 
       {/* GENERAL FAQ SECTION */}
       <section className="py-24 bg-background border-t border-white/[0.06] scroll-m-20 relative overflow-hidden">
