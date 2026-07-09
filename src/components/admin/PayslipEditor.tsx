@@ -102,9 +102,17 @@ export default function PayslipEditor({
                     item.label.toLowerCase().includes('normal hours') ||
                     item.label.toLowerCase().includes('hourly rate')
                 );
-                if (basicIdx > -1) {
-                    updated[basicIdx].amount = parseFloat((hourlyRate * hoursWorked).toFixed(2));
-                    updated[basicIdx].label = `Normal Hours pay (${hoursWorked}h)`;
+                
+                if (hoursWorked > 0) {
+                    const amount = parseFloat((hourlyRate * hoursWorked).toFixed(2));
+                    const label = `Normal Hours pay (${hoursWorked}h)`;
+                    if (basicIdx > -1) {
+                        updated[basicIdx] = { ...updated[basicIdx], label, amount };
+                    } else {
+                        updated.push({ label, amount, isStatutory: false });
+                    }
+                } else if (basicIdx > -1) {
+                    updated = updated.filter((_, i) => i !== basicIdx);
                 }
             }
 
