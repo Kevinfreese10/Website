@@ -1028,7 +1028,7 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
             nextPeriod = format(addDays(new Date(), 14), 'dd/MM/yyyy');
         }
     } else {
-        nextPeriod = format(addMonths(parse(currentPeriod, 'MMMM yyyy', new Date()), 1), 'MMMM yyyy');
+        nextPeriod = format(addMonths(parseDate(currentPeriod, 'MMMM yyyy', new Date()), 1), 'MMMM yyyy');
     }
 
     const empsSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('employees')
@@ -1108,7 +1108,7 @@ export async function rollBackPayrollAction({ clientId }: { clientId: string }) 
             prevPeriod = format(addDays(new Date(), -14), 'dd/MM/yyyy');
         }
     } else {
-        prevPeriod = format(addMonths(parse(currentPeriod, 'MMMM yyyy', new Date()), -1), 'MMMM yyyy');
+        prevPeriod = format(addMonths(parseDate(currentPeriod, 'MMMM yyyy', new Date()), -1), 'MMMM yyyy');
     }
 
     const psSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips')
