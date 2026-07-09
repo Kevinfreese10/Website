@@ -1051,9 +1051,9 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
                 const payslipItem = {
                     label: item.label,
                     amount: item.amount,
-                    isStatutory: item.isStatutory,
-                    taxCategory: item.taxCategory,
-                    durationMonths: item.remainingMonths
+                    isStatutory: item.isStatutory || false,
+                    taxCategory: item.taxCategory || 'non-taxable',
+                    durationMonths: item.remainingMonths || 'indefinite'
                 };
                 if (item.type === 'earning') initialEarnings.push(payslipItem);
                 if (item.type === 'deduction') initialDeductions.push(payslipItem);
