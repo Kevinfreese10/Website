@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 import { 
   CheckCircle, 
   ShieldCheck, 
@@ -298,7 +298,7 @@ export default function SarsCompromisePageClient() {
           <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">
             SARS Compromise & SARS Debt Relief Services South Africa
           </Badge>
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
+          <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
             Reduce, Settle or Manage Your <span className="text-gradient">SARS Tax Debt</span> With Professional Assistance
           </h1>
           <div className="mx-auto mb-10 max-w-4xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
@@ -858,14 +858,18 @@ export default function SarsCompromisePageClient() {
                 <HelpCircle className="h-8 w-8 text-primary" /> Frequently Asked Questions
             </h2>
           </div>
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            {faqs.map((faq, idx) => (
-              <AccordionItem key={idx} value={`item-${idx}`} className="bg-card/50 border rounded-xl px-6">
-                <AccordionTrigger className="text-left font-bold text-foreground hover:no-underline">{faq.q}</AccordionTrigger>
-                <AccordionContent className="text-muted-foreground leading-relaxed text-sm font-medium pb-6">{faq.a}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          <div className="w-full space-y-6">
+          {faqs.map((faq, idx) => (
+            <div key={idx} className="border-b border-border pb-6 last:border-0">
+              <h3 className="text-lg font-bold text-foreground mb-2">
+                {faq.q}
+              </h3>
+              <div className="text-slate-600 leading-relaxed">
+                {faq.a}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* FINAL CTA */}

@@ -43,12 +43,7 @@ import {
   CardTitle,
   CardFooter
 } from '@/components/ui/card';
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
-} from '@/components/ui/accordion';
+
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
@@ -241,7 +236,7 @@ export default function HomePageClient() {
                 <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
                 AI-Powered Accounting Platform
               </div>
-              <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl xl:text-7xl font-headline leading-tight">
+              <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl xl:text-7xl font-headline leading-tight text-hero-gradient pb-2">
                 Online <span className="text-gradient">Accounting, Tax & Payroll</span> Services in South Africa
               </h1>
               <div className="mb-10 max-w-2xl text-base font-medium text-muted-foreground md:text-lg leading-relaxed space-y-4">
@@ -1048,18 +1043,18 @@ export default function HomePageClient() {
           </div>
           
           {mounted ? (
-            <Accordion type="single" collapsible className="w-full space-y-4">
-              {faqData.map((faq, idx) => (
-                <AccordionItem key={idx} value={`item-${idx}`} className="glass-card border border-white/[0.06] rounded-xl overflow-hidden px-6 hover:border-primary/15 transition-all duration-300">
-                  <AccordionTrigger className="py-4 hover:no-underline hover:text-primary transition-colors text-left font-bold text-foreground">
-                    {faq.q}
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-6 pt-2 text-muted-foreground leading-relaxed text-sm font-medium">
-                    {faq.a}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            <div className="w-full space-y-6">
+          {faqData.map((faq, idx) => (
+            <div key={idx} className="border-b border-border pb-6 last:border-0">
+              <h3 className="text-lg font-bold text-foreground mb-2">
+                {faq.q}
+              </h3>
+              <div className="text-slate-600 leading-relaxed">
+                {faq.a}
+              </div>
+            </div>
+          ))}
+        </div>
           ) : (
             <div className="w-full space-y-4">
               {faqData.map((faq, idx) => (

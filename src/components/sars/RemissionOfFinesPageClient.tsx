@@ -84,7 +84,7 @@ export default function RemissionOfFinesPageClient() {
         <div className="absolute inset-0 bg-dot-grid" />
 
         <div className="container relative z-10 mx-auto px-4">
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
+          <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
             Remission of <span className="text-gradient">#Fines</span> & Penalties
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto text-center">
@@ -132,14 +132,14 @@ export default function RemissionOfFinesPageClient() {
             <div className="text-center mb-12">
                 <h2 className="text-3xl font-bold text-center">Understanding SARS Penalties</h2>
             </div>
-            <Accordion type="single" collapsible className="w-full space-y-4">
+            <div className="w-full space-y-6">
                 {penaltySections.map((section, index) => (
-                <AccordionItem key={index} value={`item-${index}`} className="bg-slate-50 border rounded-xl px-4 shadow-sm overflow-hidden">
-                    <AccordionTrigger className="text-left font-semibold hover:no-underline">{section.title}</AccordionTrigger>
-                    <AccordionContent className="whitespace-pre-line text-muted-foreground text-sm leading-relaxed pb-4">{section.content}</AccordionContent>
-                </AccordionItem>
+                <div key={index} className="bg-slate-50 border rounded-xl px-4 py-4 shadow-sm overflow-hidden mb-4">
+                    <h3 className="text-lg font-bold text-foreground mb-2">{section.title}</h3>
+                    <div className="whitespace-pre-line text-muted-foreground text-sm leading-relaxed">{section.content}</div>
+                </div>
                 ))}
-            </Accordion>
+            </div>
          </div>
       </section>
 

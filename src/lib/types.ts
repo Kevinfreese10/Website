@@ -425,6 +425,7 @@ export type User = {
   name: string;
   surname?: string;
   email: string;
+  photoUrl?: string;
   role: 'client' | 'admin' | 'staff' | 'partner' | 'ai_accountant' | 'cap_staff' | 'cap_supervisor' | 'partner_staff' | 'partner_admin';
   createdAt?: any;
   source?: 'AI Accountant' | 'Client Management' | 'Partner Management' | 'AI Payroll';
@@ -758,6 +759,7 @@ export type CommunityQuestion = {
   answersCount: number;
   isSolved: boolean;
   solvedAnswerId?: string;
+  status?: 'pending' | 'approved' | 'rejected';
 };
 
 export type CommunityAnswer = {

@@ -12,16 +12,17 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Separator } from '../ui/separator';
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getAuth, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getFirestore, doc, setDoc, collection, getDocs, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useState, useEffect, useMemo } from 'react';
 import { Loader2, Briefcase, CheckCircle2, UserPlus, Wallet2, CreditCard, Sparkles, Globe } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Service, Order } from '@/lib/types';
 import { sendEmail } from '@/lib/email';
-import { checkSlugAvailability } from '@/app/actions';
+import { checkSlugAvailability, checkIfEmailExists } from '@/app/actions';
 import { render } from '@react-email/components';
 import PartnerWelcomeEmail from '../emails/PartnerWelcomeEmail';
 import { getNextOrderId } from '@/lib/sequence';
@@ -49,6 +50,7 @@ const formSchema = z.object({
   agreeTerms: z.boolean().refine(val => val === true, {
     message: 'You must accept the terms and conditions.',
   }),
+  designations: z.array(z.string()).optional(),
   capableServices: z.array(z.string()).optional(),
 }).refine(data => {
     if (data.wantsOutsourcedWork) {
@@ -99,6 +101,37 @@ export default function PartnerSignupForm() {
       capableServices: [],
     },
   });
+
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [emailExists, setEmailExists] = useState<boolean | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const currentEmail = form.watch('email');
+
+  useEffect(() => {
+      if (!currentEmail || currentEmail.length < 5 || !currentEmail.includes('@')) {
+          setEmailExists(null);
+          return;
+      }
+
+      const checkEmail = async () => {
+          setCheckingEmail(true);
+          try {
+              const res = await checkIfEmailExists(currentEmail);
+              if (res.success) {
+                  setEmailExists(res.exists);
+              } else {
+                  setEmailExists(null);
+              }
+          } catch (err) {
+              setEmailExists(null);
+          } finally {
+              setCheckingEmail(false);
+          }
+      };
+
+      const timer = setTimeout(checkEmail, 600);
+      return () => clearTimeout(timer);
+  }, [currentEmail]);
 
   // Update email if currentUser changes after initial render
   useEffect(() => {
@@ -315,14 +348,46 @@ export default function PartnerSignupForm() {
     }
   }
 
-  const handleNext = async () => {
-      const isValid = await form.trigger(['companyName', 'name', 'surname', 'email', 'password', 'contactNumber', 'slug']);
+  const handleNextOrLogin = async () => {
+      const fieldsToValidate: any = ['companyName', 'name', 'surname', 'email', 'slug'];
+      if (!currentUser) fieldsToValidate.push('password', 'contactNumber');
+      
+      const isValid = await form.trigger(fieldsToValidate);
       if (isValid) {
           if (selectedTier === 'growth' && isSlugAvailable === false) {
               toast({ title: 'Slug Unavailable', description: 'Please select an available practice URL slug.', variant: 'destructive' });
               return;
           }
-          setStep(2);
+
+          if (emailExists && !currentUser) {
+              // Perform Login
+              setIsLoggingIn(true);
+              try {
+                  const values = form.getValues();
+                  const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password || '');
+                  
+                  // Successfully logged in! Now pull their data to pre-fill the form.
+                  const userDocRef = doc(db, 'users', userCredential.user.uid);
+                  const userDoc = await getDoc(userDocRef);
+                  if (userDoc.exists()) {
+                      const data = userDoc.data();
+                      if (data.name) form.setValue('name', data.name.split(' ')[0]);
+                      if (data.surname) form.setValue('surname', data.surname || data.name.split(' ')[1] || '');
+                      if (data.companyName) form.setValue('companyName', data.companyName);
+                      if (data.contactNumber) form.setValue('contactNumber', data.contactNumber);
+                  }
+
+                  toast({ title: 'Logged In Successfully!', description: 'Your account was found. Please continue completing your Partner Profile.' });
+                  setStep(2);
+              } catch (error: any) {
+                  console.error('Login failed:', error);
+                  toast({ title: 'Login Failed', description: 'Incorrect password for this email address. Please try again.', variant: 'destructive' });
+              } finally {
+                  setIsLoggingIn(false);
+              }
+          } else {
+              setStep(2);
+          }
       }
   };
 
@@ -338,15 +403,38 @@ export default function PartnerSignupForm() {
                         Step 1: Practice Information
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="email" render={({ field }) => ( 
+                            <FormItem>
+                                <FormLabel>Login Email Address</FormLabel>
+                                <FormControl>
+                                    <div className="relative">
+                                        <Input placeholder="john@acme.co.za" {...field} disabled={!!currentUser} />
+                                        {checkingEmail && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground absolute right-3 top-2.5" />}
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        {!currentUser && (
+                            <FormField control={form.control} name="password" render={({ field }) => ( 
+                                <FormItem>
+                                    <FormLabel>{emailExists ? 'Enter Existing Password' : 'Create Password'}</FormLabel>
+                                    <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        )}
                         <FormField control={form.control} name="companyName" render={({ field }) => ( <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input placeholder="Acme Consulting" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="contactNumber" render={({ field }) => ( <FormItem><FormLabel>Contact Number</FormLabel><FormControl><Input placeholder="082 123 4567" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Contact First Name</FormLabel><FormControl><Input placeholder="John" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="surname" render={({ field }) => ( <FormItem><FormLabel>Contact Surname</FormLabel><FormControl><Input placeholder="Doe" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Login Email Address</FormLabel><FormControl><Input placeholder="john@acme.co.za" {...field} disabled={!!currentUser} /></FormControl><FormMessage /></FormItem>)} />
-                        {!currentUser && (
-                            <FormField control={form.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Create Password</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        )}
                     </div>
+                    {emailExists && !currentUser && (
+                        <div className="bg-green-50 border border-green-200 border-l-4 border-l-green-600 text-green-900 p-4 rounded-md my-4 animate-in fade-in zoom-in-95 shadow-sm">
+                            <h4 className="font-bold flex items-center gap-2 text-green-700 text-base"><UserPlus className="h-5 w-5" /> Account Found!</h4>
+                            <p className="text-sm mt-1 text-green-800">We found an existing account for this email. Enter your password above and click "Login & Continue" to securely upgrade to a Partner.</p>
+                        </div>
+                    )}
                 </div>
 
                 <Separator />
@@ -392,7 +480,10 @@ export default function PartnerSignupForm() {
                     />
                 </div>
                 
-                <Button type="button" onClick={handleNext} className="w-full h-12 font-bold mt-4">Next: Overflow Work & Summary</Button>
+                <Button type="button" onClick={handleNextOrLogin} disabled={checkingSlug || checkingEmail || isLoggingIn} className="w-full h-12 font-bold mt-4">
+                    {isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
+                    {emailExists && !currentUser ? 'Login & Continue' : 'Next: Overflow Work & Summary'}
+                </Button>
             </div>
         )}
 
@@ -458,6 +549,56 @@ export default function PartnerSignupForm() {
                             
                             <FormField
                                 control={form.control}
+                                name="designations"
+                                render={({ field: parentField }) => (
+                                    <FormItem>
+                                        <div className="mb-2">
+                                            <FormLabel className="text-base">Professional Designations</FormLabel>
+                                            <p className="text-xs text-muted-foreground mt-1">Select all designations that apply to you.</p>
+                                        </div>
+                                        <div className="space-y-3 max-h-48 overflow-y-auto p-4 border rounded-lg bg-white mb-6">
+                                            {[
+                                                "CA(SA) – Chartered Accountant (South Africa)",
+                                                "AGA(SA) – Associate General Accountant",
+                                                "AT(SA) – Accounting Technician",
+                                                "BAP(SA) – Business Accountant in Practice",
+                                                "CBA(SA) – Chartered Business Accountant (SA)",
+                                                "CBP(SA) – Chartered Business Professional",
+                                                "Professional Accountant (SA)",
+                                                "Professional Tax Practitioner (SA)",
+                                                "Master Tax Practitioner (SA)",
+                                                "General Tax Practitioner",
+                                                "Registered Tax Practitioner",
+                                                "Registered Auditor (RA)",
+                                                "ACMA / CGMA",
+                                                "CFA Charterholder",
+                                                "ACCA"
+                                            ].map((designation) => (
+                                                <div key={designation} className="flex flex-row items-center space-x-3 space-y-0">
+                                                    <Checkbox
+                                                        id={`designation-${designation.replace(/\s+/g, '-').toLowerCase()}`}
+                                                        checked={parentField.value?.includes(designation)}
+                                                        onCheckedChange={(checked) => {
+                                                            const current = parentField.value || [];
+                                                            const updated = checked
+                                                                ? [...current, designation]
+                                                                : current.filter(val => val !== designation);
+                                                            parentField.onChange(updated);
+                                                        }}
+                                                    />
+                                                    <Label htmlFor={`designation-${designation.replace(/\s+/g, '-').toLowerCase()}`} className="font-normal text-xs cursor-pointer leading-tight">
+                                                        {designation}
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
                                 name="capableServices"
                                 render={({ field: parentField }) => (
                                     <FormItem>
@@ -476,7 +617,7 @@ export default function PartnerSignupForm() {
                                                         <h4 className="font-bold text-[10px] uppercase text-primary mb-3 tracking-widest">{category.name}</h4>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                                                             {category.services.map((service) => (
-                                                                <div key={service.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                                                <div key={service.id} className="flex flex-row items-center space-x-3 space-y-0">
                                                                     <Checkbox
                                                                         id={`check-${service.id}`}
                                                                         checked={parentField.value?.includes(service.id)}

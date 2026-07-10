@@ -6,7 +6,7 @@ import { Metadata } from 'next';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import Script from 'next/script';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 
 export const revalidate = 3600;
 
@@ -76,7 +76,7 @@ export default function AnnualFinancialStatementsPage() {
         <div className="absolute inset-0 bg-dot-grid" />
 
         <div className="container relative z-10 mx-auto px-4">
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl text-center">
+          <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-center text-hero-gradient pb-2">
             <span className="text-gradient">Annual Financial Statements</span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto">
@@ -213,18 +213,18 @@ export default function AnnualFinancialStatementsPage() {
             <p className="text-sm text-muted-foreground font-semibold text-center">Important details on annual financial statement compliance.</p>
           </div>
           
-          <Accordion type="single" collapsible className="w-full mt-4">
-            {afsFaqs.map((faq, index) => (
-              <AccordionItem key={index} value={`faq-${index}`} className="border-b">
-                <AccordionTrigger className="text-base font-bold text-foreground text-left py-4">
-                  {faq.q}
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground leading-relaxed text-sm pb-4">
-                  {faq.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          <div className="w-full space-y-6">
+          {afsFaqs.map((faq, index) => (
+            <div key={index} className="border-b border-border pb-6 last:border-0">
+              <h3 className="text-lg font-bold text-foreground mb-2">
+                {faq.q}
+              </h3>
+              <div className="text-slate-600 leading-relaxed">
+                {faq.a}
+              </div>
+            </div>
+          ))}
+        </div>
         </div>
       </section>
 

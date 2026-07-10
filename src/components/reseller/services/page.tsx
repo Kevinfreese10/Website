@@ -49,7 +49,7 @@ export default function ResellerServicesPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight">Our Products</h1>
+      <h1 className="text-3xl font-bold tracking-tight text-hero-gradient pb-2">Our Products</h1>
       <Card>
         <CardHeader>
           <CardTitle>Product & Price List</CardTitle>

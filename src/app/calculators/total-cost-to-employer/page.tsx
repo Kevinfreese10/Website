@@ -65,7 +65,7 @@ export default function TotalCostToEmployerCalculatorPage() {
           <div className="h-14 w-14 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-4">
             <Calculator className="h-7 w-7 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl text-hero-gradient pb-2">
             Total Cost to Employer (TCOE) Calculator
           </h1>
           <p className="text-lg text-slate-600 max-w-xl mx-auto leading-relaxed">

@@ -58,7 +58,7 @@ export default async function IndustryPage({ params }: Props) {
             <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-8">
                 <industry.icon className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl max-w-4xl mx-auto">
+            <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl max-w-4xl mx-auto text-hero-gradient pb-2">
                 {industry.heroTitle}
             </h1>
             <p className="mt-6 text-xl text-slate-600 max-w-2xl mx-auto">

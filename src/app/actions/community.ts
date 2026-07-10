@@ -12,10 +12,14 @@ export async function getCommunityQuestions({
   search,
   tag,
   filterType = 'all',
+  status = 'approved',
+  authorId,
 }: {
   search?: string;
   tag?: string;
   filterType?: 'all' | 'unsolved' | 'solved';
+  status?: 'approved' | 'pending' | 'rejected' | 'all';
+  authorId?: string;
 } = {}) {
   try {
     const db = getAdminDb();
@@ -25,6 +29,14 @@ export async function getCommunityQuestions({
       queryRef = queryRef.where('isSolved', '==', true);
     } else if (filterType === 'unsolved') {
       queryRef = queryRef.where('isSolved', '==', false);
+    }
+
+    if (status !== 'all') {
+      queryRef = queryRef.where('status', '==', status);
+    }
+
+    if (authorId) {
+      queryRef = queryRef.where('authorId', '==', authorId);
     }
 
     queryRef = queryRef.orderBy('createdAt', 'desc');
@@ -149,6 +161,7 @@ export async function askQuestion({
       likedBy: [],
       answersCount: 0,
       isSolved: false,
+      status: ['admin', 'staff'].includes(author.role) ? 'approved' : 'pending',
     };
 
     await db.runTransaction(async (transaction) => {
@@ -419,5 +432,117 @@ export async function getLeaderboard() {
   } catch (error: any) {
     console.error('Error fetching leaderboard:', error);
     return { success: false, error: error.message || 'Failed to fetch leaderboard', leaderboard: [] };
+  }
+}
+
+/**
+ * Approve a pending question
+ */
+export async function approveQuestion(questionId: string) {
+  try {
+    const db = getAdminDb();
+    await db.collection('communityQuestions').doc(questionId).update({
+      status: 'approved',
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    revalidatePath('/partner/community');
+    revalidatePath('/admin/community');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error approving question:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Reject a pending question
+ */
+export async function rejectQuestion(questionId: string) {
+  try {
+    const db = getAdminDb();
+    await db.collection('communityQuestions').doc(questionId).update({
+      status: 'rejected',
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    revalidatePath('/partner/community');
+    revalidatePath('/admin/community');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error rejecting question:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Update a question (Admin)
+ */
+export async function updateQuestion(questionId: string, data: { title?: string, content?: string, tags?: string[], likesCount?: number }) {
+  try {
+    const db = getAdminDb();
+    
+    const updates: any = {
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    
+    if (data.title !== undefined) updates.title = data.title;
+    if (data.content !== undefined) updates.content = data.content;
+    if (data.tags !== undefined) updates.tags = data.tags.filter(Boolean);
+    if (data.likesCount !== undefined) updates.likesCount = Number(data.likesCount);
+
+    await db.collection('communityQuestions').doc(questionId).update(updates);
+    
+    revalidatePath('/partner/community');
+    revalidatePath('/admin/community');
+    revalidatePath(`/partner/community/${questionId}`);
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating question:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Delete a question (Admin)
+ */
+export async function deleteQuestion(questionId: string) {
+  try {
+    const db = getAdminDb();
+    
+    // Deleting the document hides it from queries. 
+    // Ideally subcollections should be recursively deleted if this was a production cleanup script,
+    // but this suffices for the app functionality.
+    await db.collection('communityQuestions').doc(questionId).delete();
+    
+    revalidatePath('/partner/community');
+    revalidatePath('/admin/community');
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting question:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+import { getPartnerAiInstance } from '@/lib/gemini-key';
+
+/**
+ * Generate an AI answer for a question
+ */
+export async function generateAIAnswer(questionTitle: string, questionContent: string) {
+  try {
+    const partnerAi = await getPartnerAiInstance();
+    const { text } = await partnerAi.generate({
+      prompt: `You are an expert tax and accounting professional answering a question in a community forum for accounting professionals in South Africa.
+Question Title: ${questionTitle}
+Question Details: ${questionContent}
+
+Write a professional, helpful, and accurate response. Keep it concise but comprehensive. Provide practical advice relevant to South African tax and accounting laws where applicable. DO NOT include any preamble like "Here is your answer:" or "Dear user,". Just write the answer directly.`,
+    });
+    
+    return { success: true, text: text?.trim() || '' };
+  } catch (error: any) {
+    console.error('Error generating AI answer:', error);
+    return { success: false, error: error.message || 'Failed to generate answer' };
   }
 }

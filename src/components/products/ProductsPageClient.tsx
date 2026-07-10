@@ -215,7 +215,7 @@ export default function ProductsPageClient({
             <Sparkles className="h-3 w-3 mr-1" />
             Service Catalog
           </Badge>
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl font-headline">
+          <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl font-headline text-hero-gradient pb-2">
             Our Professional <span className="text-gradient">Services &amp; Solutions</span>
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">

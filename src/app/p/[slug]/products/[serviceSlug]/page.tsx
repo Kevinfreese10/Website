@@ -101,7 +101,7 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
           <div className="lg:col-span-2 space-y-8">
             <div className="space-y-4">
               <Badge variant="secondary" className="partner-btn-secondary">{service.category}</Badge>
-              <h1 className="text-3xl md:text-5xl font-bold tracking-tight">{service.title}</h1>
+              <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-hero-gradient pb-2">{service.title}</h1>
               <div className="flex items-center gap-6">
                 {service.isPriceTbc ? (
                   <p className="text-2xl font-bold opacity-50">Price on Request</p>

@@ -3,7 +3,6 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { 
   CheckCircle2, 
@@ -91,7 +90,7 @@ export default function MovieFilmProductionAccountingSouthAfricaPage() {
            <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6">
              <Film className="h-8 w-8 text-primary" />
            </div>
-           <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-slate-900">
+           <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
              Movie & Film Production Accounting in South Africa
            </h1>
            <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
@@ -191,21 +190,21 @@ export default function MovieFilmProductionAccountingSouthAfricaPage() {
            <Separator className="w-16 mx-auto border-b-2 border-primary/20" />
          </div>
 
-         <Accordion type="single" collapsible className="w-full">
-           {faqs.map((faq, i) => (
-             <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border">
-               <AccordionTrigger className="text-left font-bold text-slate-900 py-4 hover:underline">
-                 <div className="flex items-center gap-2">
+         <div className="w-full space-y-6">
+          {faqs.map((faq, i) => (
+            <div key={i} className="border-b border-border pb-6 last:border-0">
+              <h3 className="text-lg font-bold text-foreground mb-2">
+                <div className="flex items-center gap-2">
                    <HelpCircle className="h-5 w-5 text-primary shrink-0" />
                    {faq.q}
                  </div>
-               </AccordionTrigger>
-               <AccordionContent className="text-slate-600 leading-relaxed pl-7">
-                 {faq.a}
-               </AccordionContent>
-             </AccordionItem>
-           ))}
-         </Accordion>
+              </h3>
+              <div className="text-slate-600 leading-relaxed">
+                {faq.a}
+              </div>
+            </div>
+          ))}
+        </div>
        </section>
      </div>
   );

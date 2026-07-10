@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 import { CheckCircle, ShieldCheck, Scale, FileText, BadgeDollarSign, Laptop, Users, CalendarClock, History } from 'lucide-react';
 import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
@@ -91,7 +91,7 @@ export default function BookkeepingPageClient() {
         <div className="absolute inset-0 bg-dot-grid" />
 
         <div className="container relative z-10 mx-auto px-4 max-w-4xl">
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
+          <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
             Professional <span className="text-gradient">Bookkeeping</span> Services
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto text-center leading-relaxed">
@@ -196,14 +196,18 @@ export default function BookkeepingPageClient() {
             <h2 className="text-3xl font-bold tracking-tight text-foreground">Frequently Asked Questions</h2>
             <p className="text-sm text-muted-foreground font-semibold">Everything you need to know about bookkeeping and invoicing setups.</p>
           </div>
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            {faqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="bg-card/50 border rounded-xl px-5 shadow-sm overflow-hidden">
-                <AccordionTrigger className="text-left font-bold text-foreground hover:no-underline py-4">{faq.q}</AccordionTrigger>
-                <AccordionContent className="text-muted-foreground text-sm leading-relaxed pb-4">{faq.a}</AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          <div className="w-full space-y-6">
+          {faqs.map((faq, index) => (
+            <div key={index} className="border-b border-border pb-6 last:border-0">
+              <h3 className="text-lg font-bold text-foreground mb-2">
+                {faq.q}
+              </h3>
+              <div className="text-slate-600 leading-relaxed">
+                {faq.a}
+              </div>
+            </div>
+          ))}
+        </div>
         </div>
       </section>
 

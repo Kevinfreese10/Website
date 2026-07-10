@@ -268,7 +268,7 @@ export default async function ProductDetailPage({ params }: Props) {
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             {service.category}
           </div>
-          <h1 className="mb-5 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl">
+          <h1 className="mb-5 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
             {firstPart} {secondPart && <span className="text-gradient">{secondPart}</span>}
           </h1>
           <div className="flex items-center justify-center gap-1.5 mb-6">
@@ -448,18 +448,18 @@ export default async function ProductDetailPage({ params }: Props) {
                 <p className="text-sm text-muted-foreground font-semibold">Everything you need to know about our {service.title} solutions.</p>
               </div>
               
-              <Accordion type="single" collapsible className="w-full mt-4">
-                {serviceFaqs.map((faq, index) => (
-                  <AccordionItem key={index} value={`faq-${index}`} className="border-b">
-                    <AccordionTrigger className="text-base font-bold text-foreground text-left py-4">
-                      {faq.q}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground leading-relaxed text-sm pb-4">
-                      {faq.a}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+              <div className="w-full space-y-6">
+          {serviceFaqs.map((faq, index) => (
+            <div key={index} className="border-b border-border pb-6 last:border-0">
+              <h3 className="text-lg font-bold text-foreground mb-2">
+                {faq.q}
+              </h3>
+              <div className="text-slate-600 leading-relaxed">
+                {faq.a}
+              </div>
+            </div>
+          ))}
+        </div>
             </div>
           </div>
         )}

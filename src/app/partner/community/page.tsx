@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { MessageSquare, Heart, CheckCircle2, Calendar, Search, Tag, Eye } from 'lucide-react';
 import AskQuestionDialog from '@/components/partner/community/AskQuestionDialog';
 import LeaderboardWidget from '@/components/partner/community/LeaderboardWidget';
+import FeedLikeButton from '@/components/partner/community/FeedLikeButton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
@@ -235,10 +236,11 @@ export default async function CommunityPage({ searchParams }: PageProps) {
                             <span>Solved</span>
                           </span>
                         )}
-                        <span className="flex items-center gap-1 text-xs hover:text-foreground">
-                          <Heart className="h-4 w-4" />
-                          <span className="font-mono">{q.likesCount}</span>
-                        </span>
+                        <FeedLikeButton 
+                          questionId={q.id} 
+                          initialLikesCount={q.likesCount} 
+                          likedBy={q.likedBy || []} 
+                        />
                         <span className="flex items-center gap-1 text-xs hover:text-foreground">
                           <MessageSquare className="h-4 w-4" />
                           <span className="font-mono">{q.answersCount}</span>

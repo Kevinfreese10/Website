@@ -81,7 +81,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
     )}>
       <div className="space-y-6">
         <h1 
-            className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-tight"
+            className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight text-hero-gradient pb-2"
             style={{ 
                 color: isOverlay ? (lp?.heroTitleColor || (heroImage && overlayOpacity > 0.3 ? '#ffffff' : 'inherit')) : lp?.heroTitleColor || 'inherit'
             }}
@@ -591,23 +591,23 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
               <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Frequently Asked Questions</h2>
               <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
             </div>
-            <Accordion type="single" collapsible className="w-full border rounded-xl overflow-hidden bg-white shadow-sm divide-y">
+            <div className="w-full space-y-6">
               {(lp?.faqs && lp.faqs.length > 0 ? lp.faqs : [
                 { question: "How secure are my documents?", answer: "We use bank-level 256-bit encryption and strict access controls. Your financial data and personal documents are stored in secure cloud vaults and never shared with unauthorized third parties." },
                 { question: "How long does registration take?", answer: "Most standard registrations (like CIPC or basic SARS registrations) take 1-3 business days once we have all your required documents. We'll keep you updated every step of the way." },
                 { question: "What if I need help after my service is completed?", answer: "Our relationship doesn't end after delivery. You get post-service support for any questions related to your recent order, and we offer affordable retainers for ongoing accounting and tax needs." },
                 { question: "Do I need to come into an office?", answer: "Not at all! Our entire process is optimized for remote collaboration. You can upload documents securely, sign electronically, and consult with us via video call or phone from anywhere in the world." }
               ]).map((faq: any, i: number) => (
-                <AccordionItem key={i} value={`faq-${i}`} className="border-b-0 px-6 py-1">
-                  <AccordionTrigger className="text-left font-bold text-foreground hover:no-underline text-base py-4">
+                <div key={i} className="border-b border-border pb-6 last:border-0">
+                  <h3 className="text-lg font-bold text-foreground mb-2">
                     {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-slate-600 text-sm leading-relaxed pb-4 pt-1">
+                  </h3>
+                  <div className="text-slate-600 text-sm leading-relaxed">
                     {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
+                  </div>
+                </div>
               ))}
-            </Accordion>
+            </div>
           </section>
         </AnimatedSection>
 

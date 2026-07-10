@@ -77,7 +77,12 @@ export default function AskQuestionDialog() {
         setTitle('');
         setContent('');
         setTagsInput('');
-        router.push(`/partner/community/${res.id}`);
+        if (user.role === 'admin' || user.role === 'staff') {
+          // Stay on the admin community page or go to feed
+          router.push('/admin/community');
+        } else {
+          router.push(`/partner/community/${res.id}`);
+        }
       } else {
         toast({
           variant: 'destructive',

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 import { 
   CheckCircle2, 
   ShieldCheck, 
@@ -346,7 +346,7 @@ export default function SarsRefundPageClient() {
             Free Compliance Assessment
           </Badge>
 
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-foreground md:text-5xl lg:text-6xl xl:text-7xl leading-[1.1]">
+          <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl xl:text-7xl leading-[1.1] text-hero-gradient pb-2">
             Are You Due a <span className="text-gradient">Refund</span> from <span className="text-gradient">SARS</span>?
           </h1>
 
@@ -868,18 +868,18 @@ export default function SarsRefundPageClient() {
           </div>
 
           <div className="max-w-3xl mx-auto">
-            <Accordion type="single" collapsible className="space-y-3">
-              {faqs.map((faq, index) => (
-                <AccordionItem key={index} value={`faq-${index}`} className="glass-card border border-white/10 rounded-xl px-6 overflow-hidden">
-                  <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-5">
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground text-sm leading-relaxed pb-5">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            <div className="w-full space-y-6">
+          {faqs.map((faq, index) => (
+            <div key={index} className="border-b border-border pb-6 last:border-0">
+              <h3 className="text-lg font-bold text-foreground mb-2">
+                {faq.question}
+              </h3>
+              <div className="text-slate-600 leading-relaxed">
+                {faq.answer}
+              </div>
+            </div>
+          ))}
+        </div>
           </div>
         </div>
       </section>

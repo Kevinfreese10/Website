@@ -11,7 +11,6 @@ import { ArrowRight, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import Script from 'next/script';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export const revalidate = 1800;
 
@@ -241,7 +240,7 @@ export default async function BlogPostPage({ params }: Props) {
       <section className="relative w-full overflow-hidden bg-slate-50 border-b pt-16 pb-20 text-center animate-in fade-in">
         <div className="container mx-auto px-4 max-w-4xl">
           <Badge variant="secondary" className="mb-4 uppercase tracking-wider">Tax Tip Blog</Badge>
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl leading-tight">
+          <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl leading-tight text-hero-gradient pb-2">
             {firstPart} {secondPart && <span className="text-gradient">{secondPart}</span>}
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
@@ -308,18 +307,18 @@ export default async function BlogPostPage({ params }: Props) {
                 <p className="text-sm text-muted-foreground font-semibold">Answers to common questions about "{titleClean}".</p>
               </div>
               
-              <Accordion type="single" collapsible className="w-full mt-4">
-                {postFaqs.map((faq, index) => (
-                  <AccordionItem key={index} value={`faq-${index}`} className="border-b">
-                    <AccordionTrigger className="text-base font-bold text-slate-900 text-left py-4">
-                      {faq.q}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground leading-relaxed text-sm pb-4">
-                      {faq.a}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+              <div className="w-full space-y-6">
+          {postFaqs.map((faq, index) => (
+            <div key={index} className="border-b border-border pb-6 last:border-0">
+              <h3 className="text-lg font-bold text-foreground mb-2">
+                {faq.q}
+              </h3>
+              <div className="text-slate-600 leading-relaxed">
+                {faq.a}
+              </div>
+            </div>
+          ))}
+        </div>
             </div>
           </section>
         )}

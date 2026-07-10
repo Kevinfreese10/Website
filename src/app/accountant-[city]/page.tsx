@@ -3,7 +3,6 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { 
   Building2, 
@@ -131,7 +130,7 @@ export default async function CityAccountantPage({ params }: Props) {
             <div className="h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
               <MapPin className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-foreground">
+            <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
               Professional Accountant in {cityData.name}
             </h1>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
@@ -196,18 +195,18 @@ export default async function CityAccountantPage({ params }: Props) {
             <Separator className="w-16 mx-auto border-b-2 border-primary/20" />
           </div>
 
-          <Accordion type="single" collapsible className="w-full">
-            {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border">
-                <AccordionTrigger className="text-left font-bold text-foreground py-4 hover:underline">
-                  {faq.q}
-                </AccordionTrigger>
-                <AccordionContent className="text-slate-600 leading-relaxed pl-4">
-                  {faq.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          <div className="w-full space-y-6">
+          {faqs.map((faq, i) => (
+            <div key={i} className="border-b border-border pb-6 last:border-0">
+              <h3 className="text-lg font-bold text-foreground mb-2">
+                {faq.q}
+              </h3>
+              <div className="text-slate-600 leading-relaxed">
+                {faq.a}
+              </div>
+            </div>
+          ))}
+        </div>
         </section>
       </div>
     </>

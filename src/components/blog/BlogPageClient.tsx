@@ -28,7 +28,7 @@ export default function BlogPageClient({ initialBlogPosts }: { initialBlogPosts?
       <section className="relative w-full overflow-hidden bg-slate-50 border-b pt-12 pb-16 text-center mb-12">
         <div className="container mx-auto px-4 max-w-4xl">
           <Badge variant="secondary" className="mb-4 uppercase tracking-wider">Tax Tip Blog</Badge>
-          <h1 className="mb-6 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
+          <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
             Stay Informed & <span className="text-gradient">Tax-Compliant</span>
           </h1>
           <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">

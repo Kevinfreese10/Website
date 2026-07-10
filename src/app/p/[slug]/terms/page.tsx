@@ -15,7 +15,7 @@ export default async function PartnerTermsPage({ params }: { params: Promise<{ s
     <div className="container mx-auto max-w-4xl px-4 py-12">
       <div className="space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Terms & Conditions</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-hero-gradient pb-2">Terms & Conditions</h1>
           <p className="mt-2 text-lg opacity-70">{partner.companyName || partner.name}</p>
         </div>
         

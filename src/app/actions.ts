@@ -45,6 +45,17 @@ export async function checkSlugAvailability(slug: string) {
     }
 }
 
+export async function checkIfEmailExists(email: string) {
+    try {
+        const adminDb = getAdminDb();
+        const snap = await adminDb.collection('users').where('email', '==', email.toLowerCase().trim()).limit(1).get();
+        return { success: true, exists: !snap.empty };
+    } catch (e) {
+        console.error("Check email existence failed:", e);
+        return { success: false, exists: false };
+    }
+}
+
 
 export async function notifyStaffOfDocumentUpload({ orderId, clientName, assignedStaffName, assignedStaffEmail }: { orderId: string, clientName: string, assignedStaffName: string, assignedStaffEmail: string }) {
     const emailHtml = render(

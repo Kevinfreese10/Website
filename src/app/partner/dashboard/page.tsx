@@ -407,17 +407,77 @@ export default function PartnerDashboardPage() {
 
     const walletBalance = practiceProfile?.creditBalance || 0;
 
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+        
+        setIsUploadingAvatar(true);
+        try {
+            const { getStorage, ref, uploadBytesResumable, getDownloadURL } = await import('firebase/storage');
+            const storage = getStorage(firebaseApp);
+            const storageRef = ref(storage, `avatars/${user.uid}/${Date.now()}-${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            
+            await uploadTask;
+            const downloadUrl = await getDownloadURL(storageRef);
+            
+            const userRef = doc(db, 'users', user.uid);
+            await updateDoc(userRef, { photoUrl: downloadUrl }).catch(async (error) => {
+                const permissionError = new FirestorePermissionError({
+                    path: userRef.path,
+                    operation: 'update',
+                    requestResourceData: { photoUrl: downloadUrl },
+                } satisfies SecurityRuleContext);
+                errorEmitter.emit('permission-error', permissionError);
+            });
+            
+            updateUser({ ...user, photoUrl: downloadUrl });
+            toast({ title: 'Success', description: 'Profile picture updated successfully.' });
+        } catch (error) {
+            console.error('Error uploading avatar:', error);
+            toast({ title: 'Error', description: 'Failed to upload profile picture.', variant: 'destructive' });
+        } finally {
+            setIsUploadingAvatar(false);
+        }
+    };
+
     return (
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
-                <div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-950">Welcome, {user?.contactPerson || user?.name}!</h1>
-                        <Badge variant={isGrowthActive ? "default" : "secondary"} className="font-bold">
-                            {isGrowthActive ? "Premium Partner" : "Free Partner"}
-                        </Badge>
+                <div className="flex items-center gap-4">
+                    <div className="relative group cursor-pointer h-16 w-16">
+                        <label htmlFor="avatar-upload" className="cursor-pointer block h-full w-full">
+                            <div className={cn("h-16 w-16 rounded-full flex items-center justify-center text-2xl font-bold overflow-hidden shadow-sm border border-border/50", !user?.photoUrl && getUserColor(user?.uid || ''))}>
+                                {user?.photoUrl ? (
+                                    <img src={user.photoUrl} alt={user.name} className="h-full w-full object-cover" />
+                                ) : (
+                                    user?.name?.charAt(0) || 'U'
+                                )}
+                            </div>
+                            <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                {isUploadingAvatar ? <Loader2 className="h-6 w-6 text-white animate-spin" /> : <Settings className="h-6 w-6 text-white" />}
+                            </div>
+                        </label>
+                        <input 
+                            id="avatar-upload" 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={handleAvatarUpload}
+                            disabled={isUploadingAvatar}
+                        />
                     </div>
-                    <p className="text-lg text-muted-foreground">{user?.companyName || 'Practice Member'}</p>
+                    <div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <h1 className="text-3xl font-bold tracking-tight text-slate-950">Welcome, {user?.contactPerson || user?.name}!</h1>
+                            <Badge variant={isGrowthActive ? "default" : "secondary"} className="font-bold">
+                                {isGrowthActive ? "Premium Partner" : "Free Partner"}
+                            </Badge>
+                        </div>
+                        <p className="text-lg text-muted-foreground">{user?.companyName || 'Practice Member'}</p>
+                    </div>
                 </div>
             </div>
 
