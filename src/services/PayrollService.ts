@@ -247,7 +247,9 @@ export class PayrollService {
     bonusEarnings: number = 0
   ): number {
     const config = this.getTaxConfig(period);
-    const effectivePeriods = this.getRemainingPeriods(period, joinDate, frequency);
+    // Standard periodic PAYE calculation annualises the period income by the full frequency (e.g., * 12)
+    // rather than remaining periods, to avoid under-taxing employees who join mid-year.
+    const effectivePeriods = frequency;
     
     // Regular Annual Gross
     const annualRegularGross = periodEarnings * effectivePeriods;
