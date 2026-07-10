@@ -356,7 +356,26 @@ export class PayrollService {
       mid = (low + high) / 2;
       iterations++;
     }
-    return parseFloat(mid.toFixed(2));
+    
+    let finalGross = parseFloat(mid.toFixed(2));
+    
+    // Fine-tuning loop to ensure exact cent match after rounding
+    for (let i = 0; i < 20; i++) {
+        const paye = this.calculatePaye(finalGross, period, frequency, joinDate, idNumber, medicalAidMembers, medicalAidDependents);
+        const uif = this.calculateUif(finalGross, period, frequency);
+        const net = parseFloat((finalGross - paye - uif).toFixed(2));
+        
+        if (net === targetNet) {
+            break;
+        } else if (net < targetNet) {
+            finalGross += 0.01;
+        } else {
+            finalGross -= 0.01;
+        }
+        finalGross = parseFloat(finalGross.toFixed(2));
+    }
+    
+    return finalGross;
   }
 
   /**
@@ -395,7 +414,11 @@ export class PayrollService {
               );
           }
           
-          earnings.push({ label: frequency === 26 ? 'Fortnightly salary' : 'Basic salary', amount: parseFloat(periodAmount.toFixed(2)) });
+          const label = employee.isNetSalary 
+              ? (frequency === 26 ? 'Fortnightly salary (Grossed Up)' : 'Basic salary (Grossed Up)')
+              : (frequency === 26 ? 'Fortnightly salary' : 'Basic salary');
+              
+          earnings.push({ label, amount: parseFloat(periodAmount.toFixed(2)) });
       }
 
       if (hours) {

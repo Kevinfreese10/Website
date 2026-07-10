@@ -330,14 +330,26 @@ export default function EmployeeForm({
 
             <FormField control={form.control} name="isNetSalary" render={({ field }) => (
                 <FormItem className={cn(
-                    "flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm h-10",
+                    "flex flex-col space-y-3 rounded-lg border p-3 shadow-sm",
                     payType === 'Hourly' && "opacity-50 pointer-events-none"
                 )}>
-                    <div className="space-y-0.5">
-                        <FormLabel className="text-xs font-bold">Gross-up Net Salary?</FormLabel>
-                    </div>
+                    <FormLabel className="text-xs font-bold">Salary Type</FormLabel>
                     <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} disabled={payType === 'Hourly'} />
+                        <RadioGroup 
+                            onValueChange={(val) => field.onChange(val === 'net')} 
+                            value={field.value ? 'net' : 'gross'} 
+                            className="flex flex-col space-y-2 mt-2"
+                            disabled={payType === 'Hourly'}
+                        >
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="gross" id="salary-gross" />
+                                <Label htmlFor="salary-gross" className="font-medium cursor-pointer text-xs">Gross Salary (Before Tax)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="net" id="salary-net" />
+                                <Label htmlFor="salary-net" className="font-medium cursor-pointer text-xs">Net Salary (Exact Take-home Pay)</Label>
+                            </div>
+                        </RadioGroup>
                     </FormControl>
                 </FormItem>
             )} />
