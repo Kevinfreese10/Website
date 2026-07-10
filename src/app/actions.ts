@@ -1023,6 +1023,9 @@ export async function bulkSyncDraftPayslipsAction({ clientId }: any) {
         if (payslipsSnap.empty) return { success: true, count: 0 };
 
         const { PayrollService } = await import('@/services/PayrollService');
+        const clientSnap = await clientRef.get();
+        const clientData = clientSnap.data() as User;
+
         let count = 0;
 
         for (const psDoc of payslipsSnap.docs) {
@@ -1045,12 +1048,16 @@ export async function bulkSyncDraftPayslipsAction({ clientId }: any) {
                 employee.medicalAidMembers || 0,
                 employee.medicalAidDependents || 0
             );
-            
+            const contributions = PayrollService.getInitialContributions(gross, ps.period, freq, !!clientData.excludeSdl);
+            const totalDeductions = deductions.reduce((s, i) => s + i.amount, 0);
+
             await psDoc.ref.update({
                 earnings,
                 deductions,
+                contributions,
                 grossPay: gross,
-                netPay: gross - deductions.reduce((s, i) => s + i.amount, 0)
+                totalDeductions,
+                netPay: gross - totalDeductions
             });
             count++;
         }
@@ -1066,14 +1073,39 @@ export async function bulkFinalizeDraftPayslipsAction({ clientId }: any) {
         const payslipsSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').where('status', '==', 'draft').get();
         if (payslipsSnap.empty) return { success: true, count: 0 };
 
+        const { PayrollService } = await import('@/services/PayrollService');
+        const clientSnap = await adminDb.collection('aiPayrollClients').doc(clientId).get();
+        const clientData = clientSnap.data() as User;
+
         const batch = adminDb.batch();
-        payslipsSnap.docs.forEach(doc => {
+        for (const doc of payslipsSnap.docs) {
+            const ps = doc.data() as Payslip;
+            const empSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc(ps.employeeId).get();
+            if (!empSnap.exists) continue;
+            
+            const employee = empSnap.data() as Employee;
+            const freq = PayrollService.getFrequencyMultiplier(ps.frequency);
+            const baseValue = employee.payType === 'Hourly' ? employee.hourlyRate : employee.basicSalary;
+            
+            const earnings = ps.earnings && ps.earnings.length > 0 ? ps.earnings : PayrollService.calculateEarningsList(employee, baseValue || 0, ps.period, freq);
+            const grossPay = earnings.reduce((s: number, i: any) => s + i.amount, 0);
+            const deductions = ps.deductions && ps.deductions.length > 0 ? ps.deductions : PayrollService.getInitialDeductions(grossPay, ps.period, freq, employee.joinDate, employee.idNumber, employee.medicalAidMembers || 0, employee.medicalAidDependents || 0);
+            const contributions = ps.contributions && ps.contributions.length > 0 ? ps.contributions : PayrollService.getInitialContributions(grossPay, ps.period, freq, !!clientData.excludeSdl);
+            const totalDeductions = deductions.reduce((s: number, i: any) => s + i.amount, 0);
+            const netPay = grossPay - totalDeductions;
+
             batch.update(doc.ref, { 
                 status: 'finalized',
                 date: new Date().toISOString(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
+                earnings,
+                deductions,
+                contributions,
+                grossPay,
+                totalDeductions,
+                netPay
             });
-        });
+        }
         await batch.commit();
 
         return { success: true, count: payslipsSnap.docs.length };
@@ -1163,6 +1195,7 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
             period: nextPeriod,
             status: 'draft',
             createdAt: FieldValue.serverTimestamp(),
+            date: new Date().toISOString(),
             earnings: initialEarnings,
             deductions: initialDeductions,
             contributions: [],

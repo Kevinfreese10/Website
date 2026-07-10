@@ -177,8 +177,11 @@ export default function Emp201ReportPage() {
         const periodPayslips = payslips.filter(ps => {
             if (ps.status !== 'finalized') return false;
             const psPeriodDate = getPeriodDate(ps.period);
-            return isWithinInterval(psPeriodDate, { start, end });
+            const isWithin = isWithinInterval(psPeriodDate, { start, end });
+            console.log(`[EMP201 Debug] ps ${ps.employeeName}: period=${ps.period}, psPeriodDate=${psPeriodDate}, start=${start}, end=${end}, isWithin=${isWithin}`);
+            return isWithin;
         });
+        console.log(`[EMP201 Debug] selectedMonth=${selectedMonth}, payslips total=${payslips.length}, periodPayslips=${periodPayslips.length}`);
         
         let totalPaye = 0;
         let totalUif = 0;
@@ -188,10 +191,12 @@ export default function Emp201ReportPage() {
         const employeeAggregates: Record<string, any> = {};
 
         periodPayslips.forEach(ps => {
-            const paye = ps.deductions.find(d => d.label.toLowerCase() === 'tax')?.amount || 0;
-            const uifEmp = ps.deductions.find(d => d.label.toLowerCase().includes('unemployment'))?.amount || 0;
-            const uifCo = ps.contributions.find(c => c.label.toLowerCase().includes('unemployment'))?.amount || 0;
-            const sdl = ps.contributions.find(c => c.label.toLowerCase().includes('skills'))?.amount || 0;
+            const deds = ps.deductions || [];
+            const contribs = ps.contributions || [];
+            const paye = deds.find(d => d.label.toLowerCase() === 'tax')?.amount || 0;
+            const uifEmp = deds.find(d => d.label.toLowerCase().includes('unemployment'))?.amount || 0;
+            const uifCo = contribs.find(c => c.label.toLowerCase().includes('unemployment'))?.amount || 0;
+            const sdl = contribs.find(c => c.label.toLowerCase().includes('skills'))?.amount || 0;
             
             if (!employeeAggregates[ps.employeeId]) {
                 employeeAggregates[ps.employeeId] = {

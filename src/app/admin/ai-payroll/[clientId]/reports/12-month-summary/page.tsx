@@ -134,17 +134,19 @@ export default function TwelveMonthSummaryReportPage() {
             let net = 0;
 
             periodPayslips.forEach(ps => {
-                gross += ps.earnings.reduce((s, i) => s + i.amount, 0);
-                paye += ps.deductions.find(d => d.label.toLowerCase() === 'tax')?.amount || 0;
-                uifEe += ps.deductions.find(d => d.label.toLowerCase().includes('unemployment'))?.amount || 0;
-                uifEr += ps.contributions.find(c => c.label.toLowerCase().includes('unemployment'))?.amount || 0;
-                sdl += ps.contributions.find(c => c.label.toLowerCase().includes('skills'))?.amount || 0;
+                const deds = ps.deductions || [];
+                const contribs = ps.contributions || [];
+                gross += (ps.earnings || []).reduce((s, i) => s + i.amount, 0);
+                paye += deds.find(d => d.label.toLowerCase() === 'tax')?.amount || 0;
+                uifEe += deds.find(d => d.label.toLowerCase().includes('unemployment'))?.amount || 0;
+                uifEr += contribs.find(c => c.label.toLowerCase().includes('unemployment'))?.amount || 0;
+                sdl += contribs.find(c => c.label.toLowerCase().includes('skills'))?.amount || 0;
             });
 
             // Extra Deductions
             let totalDed = 0;
             periodPayslips.forEach(ps => {
-                totalDed += ps.deductions.reduce((s, i) => s + i.amount, 0);
+                totalDed += (ps.deductions || []).reduce((s, i) => s + i.amount, 0);
             });
             net = gross - totalDed;
 
