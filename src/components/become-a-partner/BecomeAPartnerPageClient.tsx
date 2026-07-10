@@ -285,101 +285,137 @@ export default function BecomeAPartnerPageClient() {
         <TrustIndexWidget />
       </div>
 
-      <section className="py-24">
+      <section className="py-24 scroll-m-20" id="benefits">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16 space-y-4">
-                <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Pricing</Badge>
-                <h2 className="text-4xl md:text-5xl font-black leading-tight text-foreground">Free to Join Partner Program</h2>
+                <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Pricing & Benefits</Badge>
+                <h2 className="text-4xl md:text-5xl font-black leading-tight text-foreground">Standard Practice Access is Free</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-                    Get started today at no cost. Activate add-ons directly from your dashboard as your practice grows.
+                    Get started today at no cost. Outsource backend tasks or use the portal to collaborate.
                 </p>
             </div>
             
-            <div className="max-w-md mx-auto">
-                <div className="relative p-[2px] rounded-2xl bg-gradient-to-r from-primary via-blue-500 to-violet-600 shadow-2xl hover:shadow-primary/20 transition-all duration-300 group md:scale-105">
-                    {/* Glowing background blob */}
-                    <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary to-violet-600 opacity-25 blur transition duration-1000 group-hover:opacity-40 group-hover:duration-200" />
-                    
-                    <div className="relative bg-white dark:bg-slate-900 rounded-[14px] overflow-hidden flex flex-col justify-between h-full">
-                        <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-lg z-20">
-                            Partner Plan
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch max-w-6xl mx-auto">
+                {/* Left Column: Standard Practice Access Card */}
+                <div className="lg:col-span-5 flex flex-col">
+                    <div className="relative p-[2px] rounded-2xl bg-gradient-to-r from-primary via-blue-500 to-violet-600 shadow-2xl hover:shadow-primary/20 transition-all duration-300 group h-full flex flex-col">
+                        {/* Glowing background blob */}
+                        <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary to-violet-600 opacity-25 blur transition duration-1000 group-hover:opacity-40 group-hover:duration-200" />
+                        
+                        <div className="relative bg-white dark:bg-slate-900 rounded-[14px] overflow-hidden flex flex-col justify-between h-full flex-1">
+                            <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-lg z-20">
+                                Partner Plan
+                            </div>
+                            <div>
+                                <CardHeader className="bg-gradient-to-b from-primary/5 via-blue-50/10 to-transparent border-b border-slate-100 p-8 text-center">
+                                    <CardTitle className="text-xs font-black uppercase tracking-widest text-primary/80">Standard Practice Access</CardTitle>
+                                    <div className="mt-4 flex flex-col items-center justify-center gap-1">
+                                        <span className="text-xl text-muted-foreground line-through font-bold decoration-red-500/80 decoration-2">R950/mo</span>
+                                        <span className="text-6xl font-black bg-gradient-to-r from-primary via-indigo-600 to-rose-600 bg-clip-text text-transparent pb-1">Free</span>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-8">
+                                    <ul className="space-y-4">
+                                        {[
+                                            {
+                                                id: 'landing',
+                                                text: 'Custom Practice Landing Page (Domain linked) - Included Free',
+                                                icon: Globe,
+                                                isDemo: true,
+                                                bgClass: 'bg-cyan-500/10',
+                                                textClass: 'text-cyan-600 dark:text-cyan-400',
+                                            },
+                                            {
+                                                id: 'collab',
+                                                text: 'Access outsourcing and collaboration opportunities',
+                                                icon: Users,
+                                                bgClass: 'bg-amber-500/10',
+                                                textClass: 'text-amber-600 dark:text-amber-400',
+                                            },
+                                            {
+                                                id: 'overflow',
+                                                text: 'Outsource overflow work securely',
+                                                icon: Briefcase,
+                                                bgClass: 'bg-indigo-500/10',
+                                                textClass: 'text-indigo-600 dark:text-indigo-400',
+                                            },
+                                            {
+                                                id: 'discount',
+                                                text: '10% Wholesale outsourcing discount',
+                                                icon: Percent,
+                                                bgClass: 'bg-emerald-500/10',
+                                                textClass: 'text-emerald-600 dark:text-emerald-400',
+                                            },
+                                            {
+                                                id: 'chat',
+                                                text: 'Partner Community Chat',
+                                                icon: MessageSquare,
+                                                bgClass: 'bg-rose-500/10',
+                                                textClass: 'text-rose-600 dark:text-rose-400',
+                                            }
+                                        ].map((item) => {
+                                            const Icon = item.icon;
+                                            return (
+                                                <li key={item.id} className="flex items-start gap-3 text-sm font-semibold text-foreground/80 hover:translate-x-1 transition-transform duration-200">
+                                                    <div className={`flex items-center justify-center h-8 w-8 rounded-lg ${item.bgClass} ${item.textClass} shrink-0 mt-0.5`}>
+                                                        <Icon className="h-4 w-4" />
+                                                    </div>
+                                                    {item.isDemo ? (
+                                                        <span className="leading-tight pt-1 text-left">
+                                                            Custom Practice Landing Page (Domain linked) - {' '}
+                                                            <a href="https://www.myacc.co.za/p/interscope" target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold">
+                                                                Click here to view a demo page
+                                                            </a>
+                                                        </span>
+                                                    ) : (
+                                                        <span className="leading-tight pt-1 text-left">{item.text}</span>
+                                                    )}
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </CardContent>
+                            </div>
+                            <CardFooter className="p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col gap-3">
+                                <Button asChild size="lg" className="w-full h-14 text-lg font-black shadow-lg hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 text-white">
+                                    <Link href="/partner-signup">Join Partner Program Free</Link>
+                                </Button>
+                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-center">No credit card required to join</p>
+                            </CardFooter>
                         </div>
-                        <div>
-                            <CardHeader className="bg-gradient-to-b from-primary/5 via-blue-50/10 to-transparent border-b border-slate-100 p-8 text-center">
-                                <CardTitle className="text-xs font-black uppercase tracking-widest text-primary/80">Standard Practice Access</CardTitle>
-                                <div className="mt-4 flex flex-col items-center justify-center gap-1">
-                                    <span className="text-xl text-muted-foreground line-through font-bold decoration-red-500/80 decoration-2">R950/mo</span>
-                                    <span className="text-6xl font-black bg-gradient-to-r from-primary via-indigo-600 to-rose-600 bg-clip-text text-transparent pb-1">Free</span>
+                    </div>
+                </div>
+
+                {/* Right Column: Features vs Benefits Table */}
+                <div className="lg:col-span-7 flex flex-col justify-center">
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xl bg-white dark:bg-slate-900 h-full flex flex-col justify-between">
+                        <div className="grid grid-cols-1 md:grid-cols-2 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-foreground/90 font-black uppercase tracking-widest text-[10px]">
+                            <div className="p-4 border-r border-slate-200 dark:border-slate-700 hidden md:block">The Platform Feature</div>
+                            <div className="p-4 hidden md:block">The Business Benefit</div>
+                        </div>
+                        <div className="divide-y divide-slate-100 dark:divide-slate-800 flex-1 flex flex-col justify-around">
+                            {featureBenefits.map((item, idx) => (
+                                <div key={idx} className="grid grid-cols-1 md:grid-cols-2 group hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors flex-1 items-center">
+                                    <div className="p-6 md:border-r border-slate-100 dark:border-slate-800 space-y-2">
+                                        <span className="md:hidden text-[10px] font-black uppercase text-primary tracking-widest block mb-2">Feature</span>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-10 w-10 rounded-xl ${item.bgClass} border ${item.borderClass} flex items-center justify-center shrink-0 shadow-sm`}>
+                                                <item.icon className={`h-5 w-5 ${item.iconClass}`} />
+                                            </div>
+                                            <h3 className="font-bold text-lg text-foreground leading-tight text-left">{item.feature}</h3>
+                                        </div>
+                                    </div>
+                                    <div className="p-6 bg-white dark:bg-slate-900 group-hover:bg-transparent transition-colors flex flex-col justify-center items-start">
+                                        <span className="md:hidden text-[10px] font-black uppercase text-green-600 tracking-widest block mb-2">The Benefit to You</span>
+                                        <div className="flex items-start gap-3 text-left">
+                                            <CheckCircle className={`h-5 w-5 ${item.checkClass} shrink-0 mt-0.5`} />
+                                            <p className="text-sm text-muted-foreground font-medium leading-relaxed">{item.benefit}</p>
+                                        </div>
+                                        {item.showPricing && <PartnerPricingDialog />}
+                                    </div>
                                 </div>
-                            </CardHeader>
-                            <CardContent className="p-8">
-                                <ul className="space-y-4">
-                                    {[
-                                        {
-                                            id: 'landing',
-                                            text: 'Custom Practice Landing Page (Domain linked) - Included Free',
-                                            icon: Globe,
-                                            isDemo: true,
-                                            bgClass: 'bg-cyan-500/10',
-                                            textClass: 'text-cyan-600 dark:text-cyan-400',
-                                        },
-                                        {
-                                            id: 'collab',
-                                            text: 'Access outsourcing and collaboration opportunities',
-                                            icon: Users,
-                                            bgClass: 'bg-amber-500/10',
-                                            textClass: 'text-amber-600 dark:text-amber-400',
-                                        },
-                                        {
-                                            id: 'overflow',
-                                            text: 'Outsource overflow work securely',
-                                            icon: Briefcase,
-                                            bgClass: 'bg-indigo-500/10',
-                                            textClass: 'text-indigo-600 dark:text-indigo-400',
-                                        },
-                                        {
-                                            id: 'discount',
-                                            text: '10% Wholesale outsourcing discount',
-                                            icon: Percent,
-                                            bgClass: 'bg-emerald-500/10',
-                                            textClass: 'text-emerald-600 dark:text-emerald-400',
-                                        },
-                                        {
-                                            id: 'chat',
-                                            text: 'Partner Community Chat',
-                                            icon: MessageSquare,
-                                            bgClass: 'bg-rose-500/10',
-                                            textClass: 'text-rose-600 dark:text-rose-400',
-                                        }
-                                    ].map((item) => {
-                                        const Icon = item.icon;
-                                        return (
-                                            <li key={item.id} className="flex items-start gap-3 text-sm font-semibold text-foreground/80 hover:translate-x-1 transition-transform duration-200">
-                                                <div className={`flex items-center justify-center h-8 w-8 rounded-lg ${item.bgClass} ${item.textClass} shrink-0 mt-0.5`}>
-                                                    <Icon className="h-4 w-4" />
-                                                </div>
-                                                {item.isDemo ? (
-                                                    <span className="leading-tight pt-1">
-                                                        Custom Practice Landing Page (Domain linked) - {' '}
-                                                        <a href="https://www.myacc.co.za/p/interscope" target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold">
-                                                            Click here to view a demo page
-                                                        </a>
-                                                    </span>
-                                                ) : (
-                                                    <span className="leading-tight pt-1">{item.text}</span>
-                                                )}
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </CardContent>
+                            ))}
                         </div>
-                        <CardFooter className="p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col gap-3">
-                            <Button asChild size="lg" className="w-full h-14 text-lg font-black shadow-lg hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 text-white">
-                                <Link href="/partner-signup">Join Partner Program Free</Link>
-                            </Button>
-                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-center">No credit card required to join</p>
-                        </CardFooter>
                     </div>
                 </div>
             </div>
@@ -494,44 +530,7 @@ export default function BecomeAPartnerPageClient() {
         </div>
       </section>
       
-      <section id="benefits" className="bg-white py-24 border-t border-b scroll-m-20">
-        <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold tracking-tight text-foreground">Features vs Benefits</h2>
-                <p className="text-muted-foreground mt-4 max-w-2xl mx-auto text-lg">A powerful back-office engine for your accounting firm, designed for maximum results.</p>
-            </div>
-            
-            <div className="max-w-5xl mx-auto border rounded-2xl overflow-hidden shadow-xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 bg-slate-100 border-b border-slate-200 text-foreground/90 font-black uppercase tracking-widest text-[10px]">
-                    <div className="p-4 border-r border-slate-200 hidden md:block">The Platform Feature</div>
-                    <div className="p-4 hidden md:block">The Business Benefit</div>
-                </div>
-                <div className="divide-y divide-slate-100">
-                    {featureBenefits.map((item, idx) => (
-                        <div key={idx} className="grid grid-cols-1 md:grid-cols-2 group hover:bg-slate-50 transition-colors">
-                            <div className="p-6 md:border-r border-slate-100 space-y-2">
-                                <span className="md:hidden text-[10px] font-black uppercase text-primary tracking-widest block mb-2">Feature</span>
-                                <div className="flex items-center gap-4">
-                                    <div className={`h-10 w-10 rounded-xl ${item.bgClass} border ${item.borderClass} flex items-center justify-center shrink-0 shadow-sm`}>
-                                        <item.icon className={`h-5 w-5 ${item.iconClass}`} />
-                                    </div>
-                                    <h3 className="font-bold text-lg text-foreground leading-tight">{item.feature}</h3>
-                                </div>
-                            </div>
-                            <div className="p-6 bg-white group-hover:bg-transparent transition-colors flex flex-col justify-center items-start">
-                                <span className="md:hidden text-[10px] font-black uppercase text-green-600 tracking-widest block mb-2">The Benefit to You</span>
-                                <div className="flex items-start gap-3">
-                                    <CheckCircle className={`h-5 w-5 ${item.checkClass} shrink-0 mt-0.5`} />
-                                    <p className="text-sm text-muted-foreground font-medium leading-relaxed">{item.benefit}</p>
-                                </div>
-                                {item.showPricing && <PartnerPricingDialog />}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-      </section>
+
 
       <section className="container mx-auto px-4 max-w-4xl py-12">
          <div className="text-center mb-12">
