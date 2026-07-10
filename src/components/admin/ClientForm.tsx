@@ -150,13 +150,14 @@ export default function ClientForm({
     const processingPeriods = useMemo(() => {
         const periods: string[] = [];
         const currentYear = new Date().getFullYear();
-        const years = [currentYear - 1, currentYear, currentYear + 1];
         
-        years.forEach(year => {
-            months.forEach(month => {
+        for (let year = 2022; year <= currentYear + 1; year++) {
+            months.forEach((month, idx) => {
+                // Support from March 2022 onwards
+                if (year === 2022 && idx < 2) return;
                 periods.push(`${month} ${year}`);
             });
-        });
+        }
         return periods;
     }, []);
 
