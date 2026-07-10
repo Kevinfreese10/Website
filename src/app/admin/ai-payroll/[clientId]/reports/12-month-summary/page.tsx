@@ -62,86 +62,69 @@ export default function TwelveMonthSummaryReportPage() {
         };
     }, [clientId]);
 
-    // Available Months (same logic as summary, but we take up to 12)
+    // Available Months (12 continuous months ending at the Active Period)
     const twelveMonths = useMemo(() => {
-        const months = new Set<string>();
-        const isFortnightly = client?.payrollFrequency === 'Fortnightly';
+        const months: string[] = [];
         
-        if (isFortnightly) {
-            payslips.forEach(ps => {
-                if (ps.period && ps.status === 'finalized') {
-                    months.add(ps.period);
+        let endMonthStr = format(new Date(), 'MMMM yyyy');
+        if (client?.firstProcessingMonth) {
+            let mStr = client.firstProcessingMonth;
+            if (mStr.includes('/')) {
+                const parsed = parse(mStr.split(' - ').pop()?.trim() || '', 'dd/MM/yyyy', new Date());
+                if (isValid(parsed)) {
+                    endMonthStr = format(parsed, 'MMMM yyyy');
                 }
-            });
-            const sorted = Array.from(months).sort((a, b) => {
-                try {
-                    const dateA = parse(a, 'dd/MM/yyyy', new Date());
-                    const dateB = parse(b, 'dd/MM/yyyy', new Date());
-                    return dateB.getTime() - dateA.getTime();
-                } catch (e) {
-                    return 0;
-                }
-            });
-            return sorted.slice(0, 12).reverse();
-        } else {
-            payslips.forEach(ps => {
-                if (ps.status === 'finalized') {
-                    const d = ps.date?.toDate ? ps.date.toDate() : new Date(ps.date || Date.now());
-                    months.add(format(d, 'MMMM yyyy'));
-                }
-            });
-            const sorted = Array.from(months).sort((a, b) => {
-                const dateA = new Date(a);
-                const dateB = new Date(b);
-                return dateB.getTime() - dateA.getTime();
-            });
-            return sorted.slice(0, 12).reverse();
+            } else {
+                endMonthStr = mStr;
+            }
         }
-    }, [payslips, client]);
+
+        const endDate = parse(endMonthStr, 'MMMM yyyy', new Date());
+        if (isValid(endDate)) {
+            for (let i = 0; i < 12; i++) {
+                const d = new Date(endDate);
+                d.setMonth(d.getMonth() - i);
+                months.push(format(d, 'MMMM yyyy'));
+            }
+        }
+        return months.reverse(); // Chronological order
+    }, [client]);
 
     // Aggregation
     const reportData = useMemo(() => {
         if (!twelveMonths.length) return [];
-
-        const isFortnightly = client?.payrollFrequency === 'Fortnightly';
         
         return twelveMonths.map(month => {
-            let periodPayslips: Payslip[] = [];
+            const targetDate = parse(month, 'MMMM yyyy', new Date());
+            const start = startOfMonth(targetDate);
+            const end = endOfMonth(targetDate);
 
-            if (isFortnightly) {
-                periodPayslips = payslips.filter(ps => ps.status === 'finalized' && ps.period === month);
-            } else {
-                const targetDate = parse(month, 'MMMM yyyy', new Date());
-                const start = startOfMonth(targetDate);
-                const end = endOfMonth(targetDate);
+            const getPeriodDate = (periodStr?: string): Date => {
+                if (!periodStr) return new Date();
+                if (periodStr.includes('/')) {
+                    const parts = periodStr.split(' - ');
+                    const datePart = parts[parts.length - 1].trim();
+                    const parsed = parse(datePart, 'dd/MM/yyyy', new Date());
+                    return isValid(parsed) ? parsed : new Date();
+                }
+                const base = periodStr.split(' - ')[0];
+                const parts = base.trim().split(' ');
+                if (parts.length < 2) return new Date();
+                const monthName = parts[0];
+                const year = parseInt(parts[1]);
+                const mlist = [
+                    "January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December"
+                ];
+                const monthIdx = mlist.indexOf(monthName);
+                return new Date(year, monthIdx !== -1 ? monthIdx : 0, 1);
+            };
 
-                const getPeriodDate = (periodStr?: string): Date => {
-                    if (!periodStr) return new Date();
-                    if (periodStr.includes('/')) {
-                        const parts = periodStr.split(' - ');
-                        const datePart = parts[parts.length - 1].trim();
-                        const parsed = parse(datePart, 'dd/MM/yyyy', new Date());
-                        return isValid(parsed) ? parsed : new Date();
-                    }
-                    const base = periodStr.split(' - ')[0];
-                    const parts = base.trim().split(' ');
-                    if (parts.length < 2) return new Date();
-                    const monthName = parts[0];
-                    const year = parseInt(parts[1]);
-                    const mlist = [
-                        "January", "February", "March", "April", "May", "June",
-                        "July", "August", "September", "October", "November", "December"
-                    ];
-                    const monthIdx = mlist.indexOf(monthName);
-                    return new Date(year, monthIdx !== -1 ? monthIdx : 0, 1);
-                };
-
-                periodPayslips = payslips.filter(ps => {
-                    if (ps.status !== 'finalized') return false;
-                    const psPeriodDate = getPeriodDate(ps.period);
-                    return isWithinInterval(psPeriodDate, { start, end });
-                });
-            }
+            const periodPayslips = payslips.filter(ps => {
+                if (ps.status !== 'finalized') return false;
+                const psPeriodDate = getPeriodDate(ps.period);
+                return isWithinInterval(psPeriodDate, { start, end });
+            });
 
             let gross = 0;
             let paye = 0;
