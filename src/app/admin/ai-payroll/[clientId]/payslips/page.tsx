@@ -4,14 +4,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calculator, Loader2, FileText, ReceiptText, CheckCircle2, AlertCircle, ArrowRightLeft, CalendarClock, ChevronRight, RotateCcw, History, Filter, Eye, Download, Search } from 'lucide-react';
+import { Calculator, Loader2, FileText, ReceiptText, CheckCircle2, AlertCircle, ArrowRightLeft, CalendarClock, ChevronRight, RotateCcw, History, Filter, Eye, Download, Search, SaveAll, RefreshCw } from 'lucide-react';
 import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, getDocs, where, limit } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Payslip, Employee, User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
-import { rollForwardPayrollAction, rollBackPayrollAction, generateEmployeePayslipAction } from '@/app/actions';
+import { rollForwardPayrollAction, rollBackPayrollAction, generateEmployeePayslipAction, bulkSyncDraftPayslipsAction, bulkFinalizeDraftPayslipsAction } from '@/app/actions';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import PayslipEditor from '@/components/admin/PayslipEditor';
@@ -43,6 +43,10 @@ export default function PayslipsPage() {
   const [editingPayslip, setEditingPayslip] = useState<Payslip | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isFetchingPayslip, setIsFetchingPayslip] = useState(false);
+  
+  // Bulk states
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [isFinalizingAll, setIsFinalizingAll] = useState(false);
 
   // History Preview states
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -171,6 +175,38 @@ export default function PayslipsPage() {
     } finally {
         setIsRollingBack(false);
     }
+  };
+
+  const handleSyncAll = async () => {
+      setIsSyncingAll(true);
+      try {
+          const res = await bulkSyncDraftPayslipsAction({ clientId });
+          if (res.success) {
+              toast({ title: "Sync Complete", description: `Synchronized ${res.count} draft payslips with employee profiles.` });
+          } else {
+              toast({ title: "Sync Failed", description: res.error, variant: "destructive" });
+          }
+      } catch (e: any) {
+          toast({ title: "Error", description: e.message, variant: "destructive" });
+      } finally {
+          setIsSyncingAll(false);
+      }
+  };
+
+  const handleFinalizeAll = async () => {
+      setIsFinalizingAll(true);
+      try {
+          const res = await bulkFinalizeDraftPayslipsAction({ clientId });
+          if (res.success) {
+              toast({ title: "Finalize Complete", description: `Saved and finalized ${res.count} payslips.` });
+          } else {
+              toast({ title: "Finalize Failed", description: res.error, variant: "destructive" });
+          }
+      } catch (e: any) {
+          toast({ title: "Error", description: e.message, variant: "destructive" });
+      } finally {
+          setIsFinalizingAll(false);
+      }
   };
 
   const handleEditDetails = async (employee: Employee, existingPayslip: Payslip | null) => {
@@ -368,14 +404,53 @@ export default function PayslipsPage() {
                     <CardDescription>Review and finalize staff payments for all active employees.</CardDescription>
                 </div>
                 {activeEmployeesWithPayslips.length > 0 && (
-                    <div className="relative w-full md:w-64">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search employee..." 
-                            className="pl-8 h-9" 
-                            value={employeeSearchTerm}
-                            onChange={(e) => setEmployeeSearchTerm(e.target.value)}
-                        />
+                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+                        <div className="relative w-full sm:w-64">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search employee..." 
+                                className="pl-8 h-9" 
+                                value={employeeSearchTerm}
+                                onChange={(e) => setEmployeeSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full sm:w-auto text-slate-600 h-9"
+                            onClick={handleSyncAll}
+                            disabled={isSyncingAll || isLoading}
+                        >
+                            {isSyncingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                            Sync All with Profile
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button 
+                                    size="sm" 
+                                    className="w-full sm:w-auto font-bold h-9 bg-slate-900 hover:bg-slate-800"
+                                    disabled={isFinalizingAll || isLoading}
+                                >
+                                    {isFinalizingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <SaveAll className="mr-2 h-4 w-4" />}
+                                    Save & Finalize All
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Finalize All Payslips?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will save and mark all draft payslips for this period as finalized.
+                                        They will be locked from further edits unless rolled back.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleFinalizeAll} className="bg-slate-900 text-white hover:bg-slate-800">
+                                        Confirm Finalize
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 )}
             </CardHeader>

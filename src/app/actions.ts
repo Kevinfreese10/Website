@@ -1015,6 +1015,69 @@ export async function syncEmployeeSalaryToActivePayslipAction({ clientId, employ
     return { success: true };
 }
 
+export async function bulkSyncDraftPayslipsAction({ clientId }: any) {
+    try {
+        const adminDb = getAdminDb();
+        const clientRef = adminDb.collection('aiPayrollClients').doc(clientId);
+        const payslipsSnap = await clientRef.collection('payslips').where('status', '==', 'draft').get();
+        if (payslipsSnap.empty) return { success: true, count: 0 };
+
+        const { PayrollService } = await import('@/services/PayrollService');
+        let count = 0;
+
+        for (const psDoc of payslipsSnap.docs) {
+            const ps = psDoc.data() as Payslip;
+            const empSnap = await clientRef.collection('employees').doc(ps.employeeId).get();
+            if (!empSnap.exists) continue;
+            
+            const employee = empSnap.data() as Employee;
+            const freq = PayrollService.getFrequencyMultiplier(ps.frequency);
+            const baseValue = employee.payType === 'Hourly' ? employee.hourlyRate : employee.basicSalary;
+
+            const earnings = PayrollService.calculateEarningsList(employee, baseValue || 0, ps.period, freq);
+            const gross = earnings.reduce((s, i) => s + i.amount, 0);
+            const deductions = PayrollService.getInitialDeductions(
+                gross, 
+                ps.period, 
+                freq, 
+                employee.joinDate,
+                employee.idNumber,
+                employee.medicalAidMembers || 0,
+                employee.medicalAidDependents || 0
+            );
+            
+            await psDoc.ref.update({
+                earnings,
+                deductions,
+                grossPay: gross,
+                netPay: gross - deductions.reduce((s, i) => s + i.amount, 0)
+            });
+            count++;
+        }
+        return { success: true, count };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function bulkFinalizeDraftPayslipsAction({ clientId }: any) {
+    try {
+        const adminDb = getAdminDb();
+        const payslipsSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').where('status', '==', 'draft').get();
+        if (payslipsSnap.empty) return { success: true, count: 0 };
+
+        const batch = adminDb.batch();
+        payslipsSnap.docs.forEach(doc => {
+            batch.update(doc.ref, { status: 'finalized' });
+        });
+        await batch.commit();
+
+        return { success: true, count: payslipsSnap.docs.length };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
 export async function updatePayslipAction({ clientId, payslipId, data, employeeId, recurringItems }: { clientId: string, payslipId: string, data: any, employeeId?: string, recurringItems?: any[] }) {
     try {
         const adminDb = getAdminDb();
