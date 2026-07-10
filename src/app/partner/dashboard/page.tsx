@@ -629,20 +629,20 @@ export default function PartnerDashboardPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => router.push('/partner/community')}>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm flex items-center gap-2">
-                                <MessageSquare className="h-4 w-4 text-primary" />
-                                Partner Community Chat
+                            <CardTitle className="text-sm flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <MessageSquare className="h-4 w-4 text-primary" />
+                                    Partner Community Q&A
+                                </div>
+                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                                Connect with bookkeepers and accountants across South Africa.
+                                Connect with bookkeepers and accountants across South Africa. Ask questions, share insights, and get answers from experts.
                             </p>
-                            <Badge variant="secondary" className="font-bold w-fit bg-slate-100 text-slate-600">
-                                Coming Soon
-                            </Badge>
                         </CardContent>
                     </Card>
 

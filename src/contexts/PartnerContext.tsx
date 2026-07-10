@@ -196,3 +196,7 @@ export function usePartner() {
   if (!ctx) throw new Error('usePartner must be used within PartnerProvider');
   return ctx;
 }
+
+export function useOptionalPartner() {
+  return useContext(PartnerContext) || null;
+}

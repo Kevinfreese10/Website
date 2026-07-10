@@ -43,6 +43,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOptionalPartner } from '@/contexts/PartnerContext';
 import type { User as UserType } from '@/lib/types';
 import { Button } from '../ui/button';
 import { useState } from 'react';
@@ -52,6 +53,8 @@ export default function DashboardNav({ user }: { user: UserType }) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
+  const partnerCtx = useOptionalPartner();
+  const limits = partnerCtx?.limits || { aiCompanies: 0, aiPayroll: 0, staffSeats: 0 };
   const { state, toggleSidebar } = useSidebar();
   const [isSettingsOpen, setIsSettingsOpen] = useState(
     pathname.startsWith('/admin/settings') || 
@@ -118,7 +121,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
     { href: '/partner/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['partner', 'partner_staff'] },
     ...(!isFreePartner ? [
       { href: '/partner/clients', label: 'Manage Clients', icon: Briefcase, roles: ['partner', 'partner_staff'] },
-      { 
+      ...(limits.aiCompanies > 0 ? [{ 
         href: '/partner/ai-accountant', 
         label: 'AI Accountant', 
         icon: Calculator, 
@@ -128,8 +131,8 @@ export default function DashboardNav({ user }: { user: UserType }) {
           { href: '/partner/ai-accountant/allocation-rules', label: 'Allocation Rules' },
           { href: '/partner/ai-accountant/chart-of-accounts', label: 'Chart of Accounts' }
         ]
-      },
-      { 
+      }] : []),
+      ...(limits.aiPayroll > 0 ? [{ 
         href: '/partner/ai-payroll', 
         label: 'AI Payroll', 
         icon: Users, 
@@ -137,9 +140,9 @@ export default function DashboardNav({ user }: { user: UserType }) {
         subItems: [
           { href: '/partner/ai-payroll/clients', label: 'Manage Clients' }
         ]
-      },
+      }] : []),
       { href: '/partner/staff', label: 'Staff Management', icon: UserPlus, roles: ['partner', 'partner_staff'] },
-      { href: '/partner/tasks', label: 'Task Manager', icon: ClipboardCheck, roles: ['partner', 'partner_staff'] },
+      ...(user?.partnerSubscription?.hasTaskManager ? [{ href: '/partner/tasks', label: 'Task Manager', icon: ClipboardCheck, roles: ['partner', 'partner_staff'] }] : []),
       { href: '/partner/leads', label: 'Practice Leads', icon: MessageSquare, roles: ['partner', 'partner_staff'] },
     ] : []),
     { href: '/partner/services', label: 'View Products', icon: Briefcase, roles: ['partner', 'partner_staff'] },
