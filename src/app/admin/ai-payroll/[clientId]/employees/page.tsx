@@ -25,6 +25,14 @@ import { PayrollService } from '@/services/PayrollService';
 
 const db = getFirestore(firebaseApp);
 
+const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('en-ZA', {
+        style: 'currency',
+        currency: 'ZAR',
+        minimumFractionDigits: 2,
+    }).format(val);
+};
+
 export default function EmployeesPage() {
   const params = useParams();
   const clientId = params.clientId as string;
@@ -206,6 +214,13 @@ export default function EmployeesPage() {
     emp.jobTitle?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalMonthlySalaries = filteredEmployees.reduce((sum, emp) => {
+      if (emp.status === 'Active' && emp.payType !== 'Hourly') {
+          return sum + (emp.basicSalary || 0);
+      }
+      return sum;
+  }, 0);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -274,15 +289,19 @@ export default function EmployeesPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-grow">
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-grow max-w-sm">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Search staff..." 
-                className="pl-8 max-w-sm h-10" 
+                className="pl-8 h-10" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+            </div>
+            <div className="text-right">
+                <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Total Active Monthly Salaries</p>
+                <p className="text-lg font-black text-slate-900">{formatCurrency(totalMonthlySalaries)}</p>
             </div>
           </div>
         </CardHeader>
@@ -302,6 +321,7 @@ export default function EmployeesPage() {
                   <TableHead>Employee</TableHead>
                   <TableHead>ID Number</TableHead>
                   <TableHead>Job Title</TableHead>
+                  <TableHead>Compensation</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -323,6 +343,16 @@ export default function EmployeesPage() {
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-600">{emp.idNumber}</TableCell>
                     <TableCell className="text-xs font-medium text-slate-700">{emp.jobTitle}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-sm text-slate-900">
+                              {emp.payType === 'Hourly' ? formatCurrency(emp.hourlyRate || 0) : formatCurrency(emp.basicSalary || 0)}
+                          </span>
+                          <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                              {emp.payType === 'Hourly' ? 'Hourly Rate' : (emp.isNetSalary ? 'Net Salary' : 'Gross Salary')}
+                          </span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-[9px] uppercase font-black tracking-tighter bg-muted/50">{emp.department}</Badge>
                     </TableCell>
