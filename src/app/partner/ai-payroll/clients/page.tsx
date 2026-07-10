@@ -172,24 +172,18 @@ export default function AIPayrollClientsPage() {
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>
-                                    {partner.tier === 'free' ? 'Upgrade to Growth Tier' : 'Company Limit Reached'}
+                                    {partner.limits.aiPayroll === 0 ? 'Activate AI Payroll' : 'Company Limit Reached'}
                                 </DialogTitle>
                                 <DialogDescription>
-                                    {partner.tier === 'free' 
-                                        ? 'Your current Free partner tier does not include AI Payroll companies. Please upgrade to the Growth tier (R950/month) to manage up to 5 companies.' 
-                                        : 'Your Growth subscription supports a maximum of 5 AI Payroll companies. Please contact support or upgrade your plan to add more.'}
+                                    {partner.limits.aiPayroll === 0 
+                                        ? 'The AI Payroll add-on is not active. Please activate the AI Payroll module (R950/month) in your settings to start managing client payrolls.' 
+                                        : `You have reached your limit of ${partner.limits.aiPayroll} AI Payroll companies. Please purchase additional company slots or manage your subscription.`}
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="py-4 flex flex-col gap-3">
-                                {partner.tier === 'free' ? (
-                                    <Button asChild className="w-full font-bold">
-                                        <Link href="/partner/profile">Upgrade to Growth Tier</Link>
-                                    </Button>
-                                ) : (
-                                    <Button asChild className="w-full font-bold" variant="outline">
-                                        <a href="mailto:support@myacc.co.za?subject=Request Additional AI Payroll Companies">Contact Support</a>
-                                    </Button>
-                                )}
+                                <Button asChild className="w-full font-bold">
+                                    <Link href="/partner/profile">Go to Settings & Add-ons</Link>
+                                </Button>
                                 <Button variant="ghost" onClick={() => setIsLimitModalOpen(false)}>Cancel</Button>
                             </div>
                         </DialogContent>

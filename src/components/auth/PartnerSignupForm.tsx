@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '../ui/checkbox';
 import { Label } from '../ui/label';
 import { Separator } from '../ui/separator';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirestore, doc, setDoc, collection, getDocs, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -21,6 +21,7 @@ import { Loader2, Briefcase, CheckCircle2, UserPlus, Wallet2, CreditCard, Sparkl
 import { useAuth } from '@/contexts/AuthContext';
 import { Service, Order } from '@/lib/types';
 import { sendEmail } from '@/lib/email';
+import { checkSlugAvailability } from '@/app/actions';
 import { render } from '@react-email/components';
 import PartnerWelcomeEmail from '../emails/PartnerWelcomeEmail';
 import { getNextOrderId } from '@/lib/sequence';
@@ -42,10 +43,21 @@ const formSchema = z.object({
     .max(30, 'Slug must be at most 30 characters.')
     .regex(/^[a-z0-9\-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens.'),
   tier: z.literal('growth').default('growth'),
-  setupAddon: z.boolean().default(false),
+  wantsOutsourcedWork: z.boolean().default(false),
+  cv: z.any().optional(),
+  certificate: z.any().optional(),
   agreeTerms: z.boolean().refine(val => val === true, {
     message: 'You must accept the terms and conditions.',
   }),
+  capableServices: z.array(z.string()).optional(),
+}).refine(data => {
+    if (data.wantsOutsourcedWork) {
+      return data.cv?.[0] && data.certificate?.[0];
+    }
+    return true;
+}, {
+    message: 'CV and Certificate are required to be considered for outsourced work.',
+    path: ['wantsOutsourcedWork'],
 });
 
 type Category = { 
@@ -62,6 +74,9 @@ export default function PartnerSignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
   const { user: currentUser, reauthenticate } = useAuth();
+  const [allServices, setAllServices] = useState<Service[]>([]);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [isServicesLoading, setIsServicesLoading] = useState(true);
 
   // Slug states
   const [checkingSlug, setCheckingSlug] = useState(false);
@@ -79,8 +94,9 @@ export default function PartnerSignupForm() {
       contactNumber: '',
       slug: '',
       tier: 'growth',
-      setupAddon: false,
+      wantsOutsourcedWork: false,
       agreeTerms: false,
+      capableServices: [],
     },
   });
 
@@ -118,11 +134,15 @@ export default function PartnerSignupForm() {
     const checkSlug = async () => {
       setCheckingSlug(true);
       try {
-        const q = query(collection(db, "users"), where("landingPage.slug", "==", currentSlug));
-        const snap = await getDocs(q);
-        setIsSlugAvailable(snap.empty);
+        const res = await checkSlugAvailability(currentSlug);
+        if (res.success) {
+          setIsSlugAvailable(res.isAvailable);
+        } else {
+          setIsSlugAvailable(null);
+        }
       } catch (err) {
         console.error("Error checking slug:", err);
+        setIsSlugAvailable(null);
       } finally {
         setCheckingSlug(false);
       }
@@ -132,8 +152,46 @@ export default function PartnerSignupForm() {
     return () => clearTimeout(timer);
   }, [currentSlug]);
 
-  const setupAddon = form.watch('setupAddon');
+  useEffect(() => {
+    const fetchServicesAndCategories = async () => {
+        setIsServicesLoading(true);
+        try {
+            const servicesQuery = query(collection(db, "services"), orderBy("title"));
+            const servicesSnapshot = await getDocs(servicesQuery);
+            const fetchedServices = servicesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Service));
+            setAllServices(fetchedServices);
 
+            const categoriesQuery = query(collection(db, "categories"), orderBy("order"));
+            const categoriesSnapshot = await getDocs(categoriesQuery);
+            const fetchedCategories = categoriesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
+            setAllCategories(fetchedCategories);
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        } finally {
+            setIsServicesLoading(false);
+        }
+    };
+    fetchServicesAndCategories();
+  }, []);
+
+  const categorizedServices = useMemo(() => {
+    if (!allCategories.length || !allServices.length) return [];
+    return allCategories
+      .map(category => ({
+        ...category,
+        services: allServices.filter(service => service.category === category.name),
+      }))
+      .filter(category => category.services.length > 0);
+  }, [allCategories, allServices]);
+
+  const wantsOutsourcedWork = form.watch('wantsOutsourcedWork');
+
+  const uploadFile = async (file: File, path: string): Promise<string> => {
+    const fileRef = ref(storage, path);
+    await uploadBytes(fileRef, file);
+    return await getDownloadURL(fileRef);
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (values.tier === 'growth' && isSlugAvailable === false) {
@@ -143,7 +201,7 @@ export default function PartnerSignupForm() {
 
     setIsLoading(true);
     try {
-        const { password, ...partnerData } = values;
+        const { password, cv, certificate, ...partnerData } = values;
 
         let newFirebaseUser;
         let authUid;
@@ -160,19 +218,26 @@ export default function PartnerSignupForm() {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             newFirebaseUser = userCredential.user;
             authUid = newFirebaseUser.uid;
+            
+            // Set profile display name (naturally delays execution to prevent Firestore auth state race conditions)
+            await updateProfile(newFirebaseUser, { displayName: `${values.name} ${values.surname}` });
         }
         
+        let cvUrl = '';
+        let certificateUrl = '';
+
+        if (values.wantsOutsourcedWork && values.cv?.[0] && values.certificate?.[0]) {
+            toast({ title: 'Uploading Documents...', description: 'Please wait while we upload your files.' });
+            cvUrl = await uploadFile(values.cv[0], `partner-applications/${authUid}/cv-${values.cv[0].name}`);
+            certificateUrl = await uploadFile(values.certificate[0], `partner-applications/${authUid}/certificate-${values.certificate[0].name}`);
+        }
         
         const contactPersonFullName = `${values.name} ${values.surname}`;
 
         // 2. Create the User Document
         const newUserDocRef = doc(db, "users", authUid);
         
-        const trialEndDate = new Date();
-        trialEndDate.setDate(trialEndDate.getDate() + 14);
-
-        const initialStatus = values.setupAddon ? 'Pending Setup Payment' : 'Trial';
-        const initialSubStatus = values.setupAddon ? 'pending' : 'trialing';
+        const periodEndDate = new Date('2099-12-31');
 
         await setDoc(newUserDocRef, {
             ...partnerData,
@@ -182,20 +247,23 @@ export default function PartnerSignupForm() {
             uid: authUid,
             role: 'partner',
             partnerTier: 'growth',
-            status: initialStatus, 
+            status: 'Active', 
             creditBalance: 0,
             createdAt: serverTimestamp(),
+            cvUrl: cvUrl,
+            certificateUrl: certificateUrl,
             landingPage: {
                 enabled: true,
                 slug: values.slug.toLowerCase().trim(),
                 companyName: values.companyName,
             },
             partnerSubscription: {
-                status: initialSubStatus,
-                currentPeriodEnd: Timestamp.fromDate(trialEndDate),
-                aiCompanyLimit: 1,
-                aiPayrollLimit: 1,
-                staffSeatLimit: 3,
+                status: 'active',
+                currentPeriodEnd: Timestamp.fromDate(periodEndDate),
+                aiCompanyLimit: 0,
+                aiPayrollLimit: 0,
+                staffSeatLimit: 1,
+                hasTaskManager: false,
             }
         }, { merge: true });
 
@@ -222,64 +290,11 @@ export default function PartnerSignupForm() {
             }
         }
 
-        // 5. Subscription Checkout or Direct Dashboard
-        if (values.setupAddon) {
-            toast({
-                title: 'Account Registered',
-                description: `Redirecting to PayFast to set up your subscription and onboarding...`,
-            });
-
-            const amountVal = 1950;
-            const billingDate = new Date();
-            billingDate.setDate(billingDate.getDate() + 14);
-            const billingDateStr = billingDate.toISOString().split('T')[0];
-
-            const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-            
-            const formElement = document.createElement('form');
-            formElement.method = 'POST';
-            formElement.action = payfastUrl;
-
-            const payfastData: { [key: string]: string } = {
-                merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-                merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-                return_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/dashboard`,
-                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/dashboard`,
-                notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
-                name_first: values.name,
-                name_last: values.surname,
-                email_address: values.email,
-                m_payment_id: authUid, // partnerId
-                amount: amountVal.toFixed(2),
-                item_name: 'BEI Growth Subscription + Onboarding Setup',
-                
-                // Subscription fields
-                subscription_type: '1',
-                recurring_amount: '950.00',
-                frequency: '3', // monthly
-                cycles: '0', // indefinite
-                billing_date: billingDateStr,
-                custom_str1: 'partner_subscription',
-            };
-
-            for (const key in payfastData) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = payfastData[key];
-                formElement.appendChild(input);
-            }
-            
-            document.body.appendChild(formElement);
-            formElement.submit();
-        } else {
-            // Free trial, no upfront setup payment
-            toast({
-                title: 'Welcome to My Accountant!',
-                description: `Your 14-day free trial has started.`,
-            });
-            router.push('/partner/dashboard');
-        }
+        toast({
+            title: 'Welcome to My Accountant!',
+            description: `Your partner account has been created successfully.`,
+        });
+        router.push('/partner/dashboard');
 
     } catch (error: any) {
         console.error("Partner signup error:", error);
@@ -377,7 +392,7 @@ export default function PartnerSignupForm() {
                     />
                 </div>
                 
-                <Button type="button" onClick={handleNext} className="w-full h-12 font-bold mt-4">Next: Pricing & Capabilities</Button>
+                <Button type="button" onClick={handleNext} className="w-full h-12 font-bold mt-4">Next: Overflow Work & Summary</Button>
             </div>
         )}
 
@@ -385,31 +400,112 @@ export default function PartnerSignupForm() {
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                 <div className="space-y-4">
                     <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-primary" />
-                        Step 3: Account Setup
+                        <Briefcase className="h-5 w-5 text-primary" />
+                        Step 3: Overflow Work & Capabilities (Optional)
                     </h3>
-                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="setupAddon"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormField
+                        control={form.control}
+                        name="wantsOutsourcedWork"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col space-y-3 rounded-md border p-4 bg-muted/20">
+                                <div className="flex flex-row items-start space-x-3">
                                     <FormControl>
                                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                     </FormControl>
                                     <div className="space-y-1 leading-none">
-                                        <FormLabel className="font-bold cursor-pointer text-primary">
-                                            Add "Done-For-You Onboarding" Setup? (R1,950 once-off)
+                                        <FormLabel className="font-bold cursor-pointer">
+                                            Apply for the Overflow Work Program?
                                         </FormLabel>
                                         <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                                            We will setup your re-branded landing page, link your custom domain, load your service pricing markups, and schedule a 1-on-1 CA training session.
+                                            We regularly have more work than our team can handle. If you are a member of a professional body, we can outsource overflow projects to your practice at wholesale rates.
                                         </p>
                                     </div>
-                                </FormItem>
-                            )}
-                        />
-                    </div>
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    {wantsOutsourcedWork && (
+                        <div className="space-y-6 pt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="cv"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs">Upload Professional CV (PDF)</FormLabel>
+                                            <FormControl>
+                                                <Input type="file" accept=".pdf" onChange={(e) => field.onChange(e.target.files)} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="certificate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs">Professional Certificate / Membership Proof</FormLabel>
+                                            <FormControl>
+                                                <Input type="file" accept=".pdf,.jpg,.png" onChange={(e) => field.onChange(e.target.files)} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            
+                            <FormField
+                                control={form.control}
+                                name="capableServices"
+                                render={({ field: parentField }) => (
+                                    <FormItem>
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">Service Expertise</FormLabel>
+                                            <p className="text-sm text-muted-foreground">
+                                                Select services you are qualified to handle for the network.
+                                            </p>
+                                        </div>
+                                        <div className="space-y-4 max-h-60 overflow-y-auto p-4 border rounded-lg bg-white">
+                                            {isServicesLoading ? (
+                                                <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                                            ) : (
+                                                categorizedServices.map(category => (
+                                                    <div key={category.id}>
+                                                        <h4 className="font-bold text-[10px] uppercase text-primary mb-3 tracking-widest">{category.name}</h4>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                                            {category.services.map((service) => (
+                                                                <div key={service.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                                                    <Checkbox
+                                                                        id={`check-${service.id}`}
+                                                                        checked={parentField.value?.includes(service.id)}
+                                                                        onCheckedChange={(checked) => {
+                                                                            const current = parentField.value || [];
+                                                                            const updated = checked
+                                                                                ? [...current, service.id]
+                                                                                : current.filter(val => val !== service.id);
+                                                                            parentField.onChange(updated);
+                                                                        }}
+                                                                    />
+                                                                    <Label htmlFor={`check-${service.id}`} className="font-normal text-xs cursor-pointer leading-tight">
+                                                                        {service.title}
+                                                                    </Label>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                    )}
                 </div>
+
                 <Separator />
 
                 <div className="space-y-4">
@@ -420,21 +516,15 @@ export default function PartnerSignupForm() {
                     <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <span className="font-bold text-sm">Growth Tier Monthly Subscription</span>
-                                <span className="font-black text-md text-primary">R950.00 /mo</span>
+                                <span className="font-bold text-sm">Partner Program Base Access</span>
+                                <span className="font-black text-md text-primary">Free / R0</span>
                             </div>
                             <div className="text-xs text-muted-foreground mb-2">
-                                Includes branded landing page, 1 Free AI Accountant company, 1 Free AI Payroll company, 3 staff seats, task board, and Partner Community Chat.
+                                Includes custom landing page, partner community chat, 10% wholesale discount, and outsourcing backend access.
                             </div>
-                            {setupAddon && (
-                                <div className="flex justify-between items-center border-t pt-2 mt-2">
-                                    <span className="font-medium text-xs">Done-For-You Setup (Once-off Add-on)</span>
-                                    <span className="font-bold text-xs text-primary">+ R1,950.00</span>
-                                </div>
-                            )}
                             <div className="flex justify-between items-center border-t border-primary/20 pt-2 font-bold text-sm">
                                 <span>Total Due Today</span>
-                                <span>R{(setupAddon ? 1950 : 0).toFixed(2)}</span>
+                                <span>R0.00</span>
                             </div>
                         </div>
                     </div>
@@ -451,7 +541,7 @@ export default function PartnerSignupForm() {
                                 </FormControl>
                                 <div className="space-y-1 leading-none">
                                     <FormLabel className="cursor-pointer font-medium text-xs">
-                                        I agree to the <Link href="/terms" className="underline font-bold" target="_blank">terms and conditions</Link> and approve the plan pricing.
+                                        I agree to the <Link href="/terms" className="underline font-bold" target="_blank">terms and conditions</Link> and approve the plan.
                                     </FormLabel>
                                 </div>
                             </div>
@@ -464,7 +554,7 @@ export default function PartnerSignupForm() {
                     <Button type="button" variant="outline" onClick={() => setStep(1)} className="w-1/3 h-12 font-bold" disabled={isLoading}>Back</Button>
                     <Button type="submit" className="w-2/3 h-12 text-lg font-black shadow-xl" disabled={isLoading}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isLoading ? 'Creating Account...' : 'Proceed to Checkout'}
+                        {isLoading ? 'Creating Account...' : 'Complete Registration'}
                     </Button>
                 </div>
             </div>

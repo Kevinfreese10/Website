@@ -83,10 +83,10 @@ service cloud.firestore {
     // Partner clients — scoped to the owning partner and their active staff
     match /partnerClients/{clientId} {
       allow read: if isAuthenticated() && (
+        resource == null ||
         isAdmin() ||
-        isPartnerOrStaff(resource.data.partnerId) ||
-        // Allow a client to read their own record from the client portal
-        request.auth.uid == clientId
+        request.auth.uid == clientId ||
+        isPartnerOrStaff(resource.data.partnerId)
       );
       allow create: if isAuthenticated() && (
         isAdmin() ||
@@ -119,6 +119,7 @@ service cloud.firestore {
     // ─── Orders ──────────────────────────────────────────────────────────────
     match /orders/{orderId} {
       allow read: if isAuthenticated() && (
+        resource == null ||
         isAdmin() ||
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
@@ -161,6 +162,7 @@ service cloud.firestore {
     // of the caller's own document in a rule without a get() call).
     match /tasks/{taskId} {
       allow read: if isAuthenticated() && (
+        resource == null ||
         isAdmin() ||
         request.auth.uid == resource.data.partnerId ||
         isPartnerStaffOf(resource.data.partnerId) ||

@@ -239,9 +239,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
     
     if (selectedService) {
         const basePrice = override?.price ?? selectedService.price;
-        const resellerPrice = isGrowthActive
-            ? (selectedService.resellerPrice || basePrice * 0.75)
-            : (basePrice * 0.95);
+        const resellerPrice = selectedService.resellerPrice || basePrice * 0.90;
         form.setValue(`items.${index}.description`, override?.title || selectedService.title);
         form.setValue(`items.${index}.price`, isGrowthActive ? basePrice : resellerPrice);
         form.setValue(`items.${index}.resellerPrice`, resellerPrice);

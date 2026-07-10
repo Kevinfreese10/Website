@@ -34,6 +34,18 @@ export async function saveDemoLead(data: Omit<DemoLead, 'id' | 'createdAt'>) {
     }
 }
 
+export async function checkSlugAvailability(slug: string) {
+    try {
+        const adminDb = getAdminDb();
+        const snap = await adminDb.collection('users').where('landingPage.slug', '==', slug.toLowerCase().trim()).get();
+        return { success: true, isAvailable: snap.empty };
+    } catch (e) {
+        console.error("Check slug availability failed:", e);
+        return { success: false, isAvailable: false };
+    }
+}
+
+
 export async function notifyStaffOfDocumentUpload({ orderId, clientName, assignedStaffName, assignedStaffEmail }: { orderId: string, clientName: string, assignedStaffName: string, assignedStaffEmail: string }) {
     const emailHtml = render(
         React.createElement(ClientDocumentUploadEmail, {

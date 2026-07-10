@@ -61,7 +61,7 @@ export async function sendStaffInvite({
       }
     });
 
-    const seatLimit = partnerData?.partnerSubscription?.staffSeatLimit ?? 3;
+    const seatLimit = partnerData?.partnerSubscription?.staffSeatLimit ?? 1;
     if (activeStaffCount + pendingInviteCount >= seatLimit) {
       return { success: false, error: 'Seat limit reached. Upgrade to add more staff.' };
     }
@@ -193,7 +193,7 @@ export async function reactivateStaffMember({
     });
 
     const partnerSnap = await adminDb.collection('users').doc(callerPartnerId).get();
-    const seatLimit = partnerSnap.data()?.partnerSubscription?.staffSeatLimit ?? 3;
+    const seatLimit = partnerSnap.data()?.partnerSubscription?.staffSeatLimit ?? 1;
 
     if (activeStaffCount + pendingInviteCount >= seatLimit) {
       return { success: false, error: 'Cannot reactivate. Seat limit reached.' };

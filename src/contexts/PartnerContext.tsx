@@ -140,32 +140,16 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     const sub = targetUser?.partnerSubscription;
     
     if (targetUser && (targetUser.role === 'partner' || targetUser.role === 'partner_staff' || targetUser.role === 'partner_admin' || targetUser.role === 'staff')) {
-      if (!targetUser?.partnerTier) {
-        // Legacy one-time R4,950 partner — grandfather treatment
-        isGrowthActive = true;
-      } else if (targetUser.partnerTier === 'growth' && sub) {
-        const grandfatheredUntil = sub.grandfatheredUntil?.toDate 
-          ? sub.grandfatheredUntil.toDate() 
-          : (sub.grandfatheredUntil ? new Date(sub.grandfatheredUntil) : null);
-        const periodEnd = sub.currentPeriodEnd?.toDate 
-          ? sub.currentPeriodEnd.toDate() 
-          : (sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null);
-        
-        if (grandfatheredUntil && !isPast(grandfatheredUntil)) {
-          isGrowthActive = true;
-        } else if ((sub.status === 'active' || sub.status === 'trialing' || sub.status === 'pending') && periodEnd && !isPast(periodEnd)) {
-          isGrowthActive = true;
-        }
-      }
+      // Joining is free, everyone has dashboard/growth active by default!
+      isGrowthActive = true;
     }
-    // free tier: isGrowthActive stays false
     
     const tier: PartnerTier = isGrowthActive ? 'growth' : (targetUser?.partnerTier ?? 'free');
     
     const limits = {
-      aiCompanies: isGrowthActive ? (sub?.aiCompanyLimit ?? 5) : 0,
-      aiPayroll: isGrowthActive ? (sub?.aiPayrollLimit ?? 5) : 0,
-      staffSeats: isGrowthActive ? (sub?.staffSeatLimit ?? 3) : 0,
+      aiCompanies: sub?.aiCompanyLimit ?? 0,
+      aiPayroll: sub?.aiPayrollLimit ?? 0,
+      staffSeats: sub?.staffSeatLimit ?? 1,
     };
 
     const usage = {
@@ -182,6 +166,9 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     };
     
     const canDo = (module: keyof StaffPermissions, level: 'view' | 'full'): boolean => {
+      if (module === 'tasks' && !sub?.hasTaskManager) {
+        return false;
+      }
       if (isOwner) return true; // owner can do everything
       if (!permissions) return false;
       const perm = permissions[module];

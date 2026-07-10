@@ -188,9 +188,7 @@ export default function PartnerOrdersPage() {
             selectedOrderForOutsource.items.forEach(item => {
                 const service = allServices.find(s => s.id === item.id);
                 const basePrice = service?.price || item.price;
-                const wholesalePrice = isGrowthActive 
-                    ? (service?.resellerPrice || basePrice * 0.75)
-                    : (basePrice * 0.95);
+                const wholesalePrice = service?.resellerPrice || basePrice * 0.90;
                 
                 cost += wholesalePrice * item.quantity;
             });
@@ -381,9 +379,7 @@ export default function PartnerOrdersPage() {
         selectedOrderForOutsource.items.forEach(item => {
             const service = allServices.find(s => s.id === item.id);
             const basePrice = service?.price || item.price;
-            const wholesalePrice = isGrowthActive 
-                ? (service?.resellerPrice || basePrice * 0.75)
-                : (basePrice * 0.95);
+            const wholesalePrice = service?.resellerPrice || basePrice * 0.90;
             cost += wholesalePrice * item.quantity;
         });
         return cost;
@@ -437,7 +433,7 @@ export default function PartnerOrdersPage() {
                             </div>
                             <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-1">
                                 <span>Discount Level:</span>
-                                <span className="font-bold">{isGrowthActive ? "25% Premium Discount" : "5% Free Discount"}</span>
+                                <span className="font-bold">10% Partner Discount</span>
                             </div>
                             <Separator className="my-2" />
                             <p className="text-[10px] text-muted-foreground italic leading-relaxed">

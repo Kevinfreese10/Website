@@ -9,6 +9,8 @@ import { CreateTaskDialog } from './CreateTaskDialog';
 import { TaskCard } from './TaskCard';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { AlertTriangle, Loader2, ListFilter, User } from 'lucide-react';
 import { Task } from '@/lib/types';
 
@@ -22,7 +24,7 @@ interface StaffMember {
 
 export default function TaskBoard() {
   const { user } = useAuth();
-  const { canDo, limits } = usePartner();
+  const { canDo, limits, isOwner } = usePartner();
   const { toast } = useToast();
 
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -142,10 +144,19 @@ export default function TaskBoard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
         <AlertTriangle className="h-12 w-12 text-yellow-500" />
-        <h2 className="text-xl font-bold">Access Restricted</h2>
+        <h2 className="text-xl font-bold">
+          {isOwner ? 'Activate Task & Workflow Manager' : 'Access Restricted'}
+        </h2>
         <p className="text-muted-foreground text-sm max-w-md text-center">
-          You do not have permission to view the Task Board. Please contact your practice administrator.
+          {isOwner 
+            ? 'The Task & Workflow Manager add-on is not active. Please activate the Task & Workflow Manager module (R200/month) in your settings to manage tasks and staff workflows.'
+            : 'You do not have permission to view the Task Board. Please contact your practice administrator.'}
         </p>
+        {isOwner && (
+          <Button asChild className="font-bold">
+            <Link href="/partner/profile">Go to Settings & Add-ons</Link>
+          </Button>
+        )}
       </div>
     );
   }

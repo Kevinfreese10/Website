@@ -322,6 +322,7 @@ export type PartnerSubscription = {
   /** Set when partner signs up during transition — 3 months free grandfather */
   grandfatheredUntil?: any;   // Firestore Timestamp
   cancelledAt?: any;          // Firestore Timestamp
+  hasTaskManager?: boolean;
 };
 
 export type PartnerInvite = {

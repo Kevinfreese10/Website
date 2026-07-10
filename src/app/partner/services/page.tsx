@@ -297,9 +297,7 @@ function ViewProductDialog({
         }).format(price);
     };
 
-    const cost = isGrowthActive 
-        ? (service.resellerPrice || service.price * 0.75)
-        : (service.price * 0.95);
+    const cost = service.resellerPrice || service.price * 0.90;
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -615,7 +613,7 @@ export default function PartnerServicesPage() {
                       </TableCell>
                     )}
                     <TableCell className="opacity-70 text-xs">
-                      {formatPrice(isGrowthActive ? (service.resellerPrice || service.price * 0.75) : (service.price * 0.95))}
+                      {formatPrice(service.resellerPrice || service.price * 0.90)}
                     </TableCell>
                     {isGrowthActive && (
                       <TableCell>

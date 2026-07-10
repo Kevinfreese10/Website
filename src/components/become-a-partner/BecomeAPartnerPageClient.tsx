@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Rocket, ShieldCheck, Wallet, Bot, Cpu, Briefcase, Users, FileText, GraduationCap, CheckCircle2, ArrowRight, LayoutDashboard, LifeBuoy, Percent, TrendingUp, ShieldAlert, ClipboardList, ShoppingBag, CheckCircle, Globe, Scale, Loader2, ExternalLink, BadgeDollarSign, XCircle } from 'lucide-react';
+import { Rocket, ShieldCheck, Wallet, Bot, Cpu, Briefcase, Users, FileText, GraduationCap, CheckCircle2, ArrowRight, LayoutDashboard, LifeBuoy, Percent, TrendingUp, ShieldAlert, ClipboardList, ShoppingBag, CheckCircle, Globe, Scale, Loader2, ExternalLink, BadgeDollarSign, XCircle, MessageSquare } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import dynamicImport from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -11,13 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { saveDemoLead } from '@/app/actions';
+
 import { getFirestore, collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Service } from '@/lib/types';
@@ -73,7 +67,7 @@ function PartnerPricingDialog() {
                         Wholesale Partner Pricing
                     </DialogTitle>
                     <DialogDescription>
-                        Practice members receive wholesale discounts: 5% off on Community Free, and 25% off on Growth.
+                        Practice members receive a 10% wholesale discount on all services.
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -91,7 +85,7 @@ function PartnerPricingDialog() {
                                         <TableRow>
                                             <TableHead className="w-[40%]">Service Description</TableHead>
                                             <TableHead className="text-right">Retail Price</TableHead>
-                                            <TableHead className="text-right text-primary">Partner Price (25% Off)</TableHead>
+                                            <TableHead className="text-right text-primary">Partner Price (10% Off)</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -99,7 +93,7 @@ function PartnerPricingDialog() {
                                             <TableRow key={service.id}>
                                                 <TableCell className="font-medium text-xs sm:text-sm">{service.title}</TableCell>
                                                 <TableCell className="text-right text-xs opacity-50 line-through">{formatPrice(service.price)}</TableCell>
-                                                <TableCell className="text-right font-bold text-primary text-xs sm:text-sm">{formatPrice(service.resellerPrice || service.price * 0.75)}</TableCell>
+                                                <TableCell className="text-right font-bold text-primary text-xs sm:text-sm">{formatPrice(service.resellerPrice || service.price * 0.90)}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -119,116 +113,63 @@ function PartnerPricingDialog() {
     );
 }
 
-const demoFormSchema = z.object({
-  name: z.string().min(2, "First name is required."),
-  surname: z.string().min(2, "Surname is required."),
-  email: z.string().email("A valid email is required."),
-  cell: z.string().min(10, "A valid cell number is required."),
-});
 
-function BookDemoDialog() {
-    const [isOpen, setIsOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const { toast } = useToast();
-    
-    const form = useForm<z.infer<typeof demoFormSchema>>({
-        resolver: zodResolver(demoFormSchema),
-        defaultValues: { name: '', surname: '', email: '', cell: '' },
-    });
-
-    const onSubmit = async (values: z.infer<typeof demoFormSchema>) => {
-        setIsLoading(true);
-        try {
-            const res = await saveDemoLead(values);
-            if (res.success) {
-                toast({ title: "Request Sent!", description: "A consultant will contact you shortly to schedule your demo." });
-                setIsOpen(false);
-                form.reset();
-            } else {
-                toast({ title: "Submission Failed", variant: "destructive" });
-            }
-        } catch (e) {
-            toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" size="lg" className="h-14 px-10 text-lg border-2 border-slate-200">
-                    Book a demo
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold">Book a Live Demo</DialogTitle>
-                    <DialogDescription>
-                        Enter your details and our team will reach out to schedule a personalized walkthrough of the BEI platform.
-                    </DialogDescription>
-                </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>First Name</FormLabel><FormControl><Input placeholder="John" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="surname" render={({ field }) => ( <FormItem><FormLabel>Surname</FormLabel><FormControl><Input placeholder="Doe" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        </div>
-                        <FormField control={form.control} name="email" render={({ field }) => ( <FormItem><FormLabel>Work Email</FormLabel><FormControl><Input type="email" placeholder="john@practice.co.za" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        <FormField control={form.control} name="cell" render={({ field }) => ( <FormItem><FormLabel>Cell Number</FormLabel><FormControl><Input placeholder="082 123 4567" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        
-                        <Button type="submit" className="w-full h-12 text-md font-bold mt-4" disabled={isLoading}>
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
-                            Request Demo
-                        </Button>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-    );
-}
 
 const featureBenefits = [
     {
         icon: Percent,
         feature: 'Wholesale Partner Discount',
-        benefit: 'Increase your profit margins instantly. Buy services at wholesale rates (25% discount) and sell at retail prices.',
+        benefit: 'Increase your profit margins instantly. Buy services at wholesale rates (10% discount) and sell at retail prices.',
         showPricing: true,
+        bgClass: 'bg-emerald-500/10',
+        borderClass: 'border-emerald-500/20',
+        iconClass: 'text-emerald-600 dark:text-emerald-400',
+        checkClass: 'text-emerald-600 dark:text-emerald-400',
     },
     {
         icon: LayoutDashboard,
         feature: 'White-Label Dashboard',
         benefit: 'Manage your entire practice, staff, and client workflows from a single secure portal that carries your branding, not ours.',
+        bgClass: 'bg-violet-500/10',
+        borderClass: 'border-violet-500/20',
+        iconClass: 'text-violet-600 dark:text-violet-400',
+        checkClass: 'text-violet-600 dark:text-violet-400',
     },
     {
         icon: Globe,
         feature: 'Custom Practice Landing Page',
         benefit: 'Get a 24/7 online store with 50+ re-branded services. Let your clients browse, order, and pay while you sleep.',
+        bgClass: 'bg-cyan-500/10',
+        borderClass: 'border-cyan-500/20',
+        iconClass: 'text-cyan-600 dark:text-cyan-400',
+        checkClass: 'text-cyan-600 dark:text-cyan-400',
     },
     {
         icon: Users,
         feature: 'Elastic Outsourcing Capacity',
         benefit: 'Never say "no" to a complex project again. Confidently scale your business capacity by leveraging our expert backend team.',
+        bgClass: 'bg-amber-500/10',
+        borderClass: 'border-amber-500/20',
+        iconClass: 'text-amber-600 dark:text-amber-400',
+        checkClass: 'text-amber-600 dark:text-amber-400',
     },
     {
         icon: GraduationCap,
         feature: 'Onboarding & Professional Support',
         benefit: 'Full setup, training, and direct access to senior Chartered Accountants and tax experts to help you navigate complex technical hurdles.',
-    },
-    {
-        icon: ClipboardList,
-        feature: 'Automated Compliance Roadmap',
-        benefit: 'Never miss a SARS or CIPC deadline again. The system automatically monitors your client requirements and creates tasks for your team.',
-    },
-    {
-        icon: FileText,
-        feature: 'Professional Template Library',
-        benefit: 'Save hundreds of hours with ready-to-use, legally compliant engagement letters, contracts, and pricing schedules.',
+        bgClass: 'bg-blue-500/10',
+        borderClass: 'border-blue-500/20',
+        iconClass: 'text-blue-600 dark:text-blue-400',
+        checkClass: 'text-blue-600 dark:text-blue-400',
     },
     {
         icon: Scale,
         feature: 'Flexible Pricing Control',
         benefit: 'Total control over your client-facing prices. Set your own markup on services while our underlying wholesale cost remains fixed.',
+        bgClass: 'bg-indigo-500/10',
+        borderClass: 'border-indigo-500/20',
+        iconClass: 'text-indigo-600 dark:text-indigo-400',
+        checkClass: 'text-indigo-600 dark:text-indigo-400',
     },
 ];
 
@@ -236,51 +177,77 @@ const challenges = [
     {
         title: 'Limited Service Range',
         description: 'Offering only bookkeeping services limits your earning potential. Sell our full suite — from company registration to VAT, COIDA, CIDB, NCR, and more.',
-        icon: Briefcase
+        icon: Briefcase,
+        bgClass: 'bg-blue-500/10',
+        borderClass: 'border-blue-100/80 dark:border-blue-900/30',
+        hoverBorderClass: 'hover:border-blue-500/30',
+        iconClass: 'text-blue-600 dark:text-blue-400',
+        barClass: 'bg-blue-500',
     },
     {
         title: 'Lack of Mentorship',
         description: 'Many bookkeepers work alone. We provide mentorship from senior accountants and industry experts who help you grow your capabilities.',
-        icon: GraduationCap
+        icon: GraduationCap,
+        bgClass: 'bg-amber-500/10',
+        borderClass: 'border-amber-100/80 dark:border-amber-900/30',
+        hoverBorderClass: 'hover:border-amber-500/30',
+        iconClass: 'text-amber-600 dark:text-amber-400',
+        barClass: 'bg-amber-500',
     },
     {
         title: 'Technology Gaps',
         description: 'Without proper systems, document management is messy. Get our cloud-based dashboard to manage and outsource client orders seamlessly.',
-        icon: Cpu
+        icon: Cpu,
+        bgClass: 'bg-violet-500/10',
+        borderClass: 'border-violet-100/80 dark:border-violet-900/30',
+        hoverBorderClass: 'hover:border-violet-500/30',
+        iconClass: 'text-violet-600 dark:text-violet-400',
+        barClass: 'bg-violet-500',
     },
     {
         title: 'Manual Sales & Quoting',
         description: 'Quoting manually and chasing EFTs is a time-sink. Your white-labeled online store automates sales, PayFast, and document collection.',
-        icon: ShoppingBag
+        icon: ShoppingBag,
+        bgClass: 'bg-emerald-500/10',
+        borderClass: 'border-emerald-100/80 dark:border-emerald-900/30',
+        hoverBorderClass: 'hover:border-emerald-500/30',
+        iconClass: 'text-emerald-600 dark:text-emerald-400',
+        barClass: 'bg-emerald-500',
     },
     {
         title: 'Capacity Constraints',
         description: 'Handling large clients alone isn’t easy. Our qualified team handles your overflow work securely, accurately, and on time.',
-        icon: Users
+        icon: Users,
+        bgClass: 'bg-cyan-500/10',
+        borderClass: 'border-cyan-100/80 dark:border-cyan-900/30',
+        hoverBorderClass: 'hover:border-cyan-500/30',
+        iconClass: 'text-cyan-600 dark:text-cyan-400',
+        barClass: 'bg-cyan-500',
     },
     {
         title: 'Compliance Overwhelm',
         description: 'Advanced statutory rules can be deterring. We provide ready-to-use templates and guides to help you stay compliant and confident.',
-        icon: ShieldAlert
+        icon: ShieldAlert,
+        bgClass: 'bg-rose-500/10',
+        borderClass: 'border-rose-100/80 dark:border-rose-900/30',
+        hoverBorderClass: 'hover:border-rose-500/30',
+        iconClass: 'text-rose-600 dark:text-rose-400',
+        barClass: 'bg-rose-500',
     }
 ];
 
 const faqs = [
     {
         question: "How does the outsourcing work?",
-        answer: "You can decide to complete the order yourself or outsource to us. The process is completely white-labeled, so your client doesn't know the work is being outsourced. We charge you a fixed wholesale price (25% discount), and you keep the markup."
+        answer: "You can decide to complete the order yourself or outsource to us directly through your Partner Portal. The process is completely white-labeled, and all communication is done strictly through your company — we never contact your clients directly. We act as your back-office team behind the scenes while you maintain 100% control of the client relationship. We charge you a fixed wholesale price (10% discount), and you keep the markup."
     },
     {
         question: "Is there a setup fee?",
-        answer: "No, there are no upfront setup fees — only the R950/month subscription. Plus, you get a 14-day free trial to test out the platform before your first payment."
+        answer: "No, there are no upfront setup fees — joining the Partner Program is completely free."
     },
     {
         question: "How much does the partner program cost?",
-        answer: "The Growth Partner program costs R950/month. This unlocks your custom practice landing page, task manager, staff seats with granular permissions, and full access to our outsourcing backend. Plus, if you outsource more than R5,000 of work to us in a given month, your R950 subscription is fully rebated!"
-    },
-    {
-        question: "What happens to existing R4,950 partners?",
-        answer: "Existing partners who previously paid the R4,950 once-off fee are grandfathered onto the Growth tier free of charge for 3 months. After that, they can transition to the partner-only subscription of R950/month."
+        answer: "Joining the Partner Program is free! You get your custom practice landing page and a 10% wholesale discount on all services. You can activate premium add-ons directly from your dashboard as you need them: AI Accountant (R950/mo), AI Payroll (R950/mo), Task & Workflow Manager (R200/mo), and additional staff seats (R50/seat/mo)."
     },
     {
         question: "Do I need to be a registered accountant?",
@@ -314,119 +281,188 @@ export default function BecomeAPartnerPageClient() {
         </div>
       </section>
 
-      <section className="py-24">
-        <div className="container mx-auto px-4">
-            <div className="text-center mb-16 space-y-4">
-                <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Pricing</Badge>
-                <h2 className="text-4xl md:text-5xl font-black leading-tight text-foreground">A Complete Practice Backend</h2>
-                <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-                    Start your 14-day free trial. Cancel anytime. 100% subscription rebate available when you outsource R5,000+ per month.
-                </p>
-            </div>
-            
-            <div className="max-w-md mx-auto">
-                <Card className="glass-card border-2 border-primary shadow-2xl overflow-hidden flex flex-col justify-between relative transform md:scale-105">
-                    <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-lg">
-                        Growth Partner
-                    </div>
-                    <div>
-                        <CardHeader className="bg-primary/5 border-b p-8 text-center">
-                            <CardTitle className="text-sm font-black uppercase tracking-widest text-primary font-bold">All-in-one practice backend</CardTitle>
-                            <div className="mt-4 flex items-baseline justify-center gap-1">
-                                <span className="text-2xl font-bold text-foreground">R</span>
-                                <span className="text-7xl font-black text-foreground">950</span>
-                                <span className="text-lg text-muted-foreground">/mo</span>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-8 space-y-4">
-                            <ul className="space-y-3">
-                                {[
-                                    'Custom Practice Landing Page (Domain linked)',
-                                    'Task & Workflow Manager',
-                                    '3 Staff Seats (Owner + 2 staff)',
-                                    'Granular staff permission controls',
-                                    'Partner Community Chat',
-                                    '25% Wholesale outsourcing discount',
-                                    '100% Subscription Rebate (R5,000+ outsourced)'
-                                ].map((item, i) => (
-                                    <li key={i} className="flex items-start gap-2 text-sm font-medium text-foreground/80">
-                                        <CheckCircle2 className="h-4.5 w-4.5 text-primary shrink-0 mt-0.5" />
-                                        {item === 'Custom Practice Landing Page (Domain linked)' ? (
-                                            <span>
-                                                Custom Practice Landing Page (Domain linked) - {' '}
-                                                <a href="https://www.myacc.co.za/p/interscope" target="_blank" rel="noreferrer" className="text-primary hover:underline font-semibold">
-                                                    Click here to view a demo page
-                                                </a>
-                                            </span>
-                                        ) : (
-                                            <span>{item}</span>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                            
-                            <div className="pt-4 mt-4 border-t border-slate-100">
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Included in Subscription & Trial</p>
-                                <ul className="space-y-2">
-                                    <li className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">1 Free</Badge> AI Accountant Company
-                                    </li>
-                                    <li className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">1 Free</Badge> AI Payroll Company (up to 3 employees)
-                                    </li>
-                                </ul>
-                                <p className="text-[10px] text-muted-foreground mt-3 italic">
-                                    *Additional companies: AI Accountant (R150/co), AI Payroll (R50/co + R30/employee).
-                                </p>
-                            </div>
-                        </CardContent>
-                    </div>
-                    <CardFooter className="p-8 bg-slate-50/50 border-t flex flex-col gap-3">
-                        <Button asChild size="lg" className="w-full h-12 text-md font-bold shadow-md">
-                            <Link href="/partner-signup?tier=growth">Start 14-Day Free Trial</Link>
-                        </Button>
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest text-center">Cancel anytime • Secure PayFast checkout</p>
-                    </CardFooter>
-                </Card>
-            </div>
-        </div>
-      </section>
-
       <div className="container mx-auto px-4">
         <TrustIndexWidget />
       </div>
 
-      <section className="container mx-auto px-4 scroll-m-20">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-            <div className="space-y-4">
-                <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Our Philosophy</Badge>
-                <h2 className="text-4xl font-bold leading-tight text-foreground">Our philosophy has always been simple</h2>
-                <p className="text-2xl font-bold text-foreground/90 italic">"A client referred to someone else is a client lost."</p>
+      <section className="py-24">
+        <div className="container mx-auto px-4">
+            <div className="text-center mb-16 space-y-4">
+                <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Pricing</Badge>
+                <h2 className="text-4xl md:text-5xl font-black leading-tight text-foreground">Free to Join Partner Program</h2>
+                <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+                    Get started today at no cost. Activate add-ons directly from your dashboard as your practice grows.
+                </p>
             </div>
             
-            <div className="space-y-6 text-lg text-muted-foreground leading-relaxed text-left sm:text-center">
-                <p>
-                    With the Bookkeeper Empowerment Initiative, you never have to send your client away because you lack capacity, specialised experience, or technical expertise.
-                </p>
-                <p>
-                    Instead, you can confidently outsource the service through us — discreetly and professionally — while maintaining your client relationship.
-                </p>
-                
-                <div className="flex flex-wrap justify-center gap-4 py-4">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full font-bold text-sm border border-green-100 shadow-sm">
-                        <CheckCircle2 className="h-4 w-4" /> You stay in control
-                    </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full font-bold text-sm border border-green-100 shadow-sm">
-                        <CheckCircle2 className="h-4 w-4" /> You keep the client
-                    </div>
-                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full font-bold text-sm border border-green-100 shadow-sm">
-                        <CheckCircle2 className="h-4 w-4" /> You protect your brand
+            <div className="max-w-md mx-auto">
+                <div className="relative p-[2px] rounded-2xl bg-gradient-to-r from-primary via-blue-500 to-violet-600 shadow-2xl hover:shadow-primary/20 transition-all duration-300 group md:scale-105">
+                    {/* Glowing background blob */}
+                    <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary to-violet-600 opacity-25 blur transition duration-1000 group-hover:opacity-40 group-hover:duration-200" />
+                    
+                    <div className="relative bg-white dark:bg-slate-900 rounded-[14px] overflow-hidden flex flex-col justify-between h-full">
+                        <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-lg z-20">
+                            Partner Plan
+                        </div>
+                        <div>
+                            <CardHeader className="bg-gradient-to-b from-primary/5 via-blue-50/10 to-transparent border-b border-slate-100 p-8 text-center">
+                                <CardTitle className="text-xs font-black uppercase tracking-widest text-primary/80">Standard Practice Access</CardTitle>
+                                <div className="mt-4 flex flex-col items-center justify-center gap-1">
+                                    <span className="text-xl text-muted-foreground line-through font-bold decoration-red-500/80 decoration-2">R950/mo</span>
+                                    <span className="text-6xl font-black bg-gradient-to-r from-primary via-indigo-600 to-rose-600 bg-clip-text text-transparent pb-1">Free</span>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-8">
+                                <ul className="space-y-4">
+                                    {[
+                                        {
+                                            id: 'landing',
+                                            text: 'Custom Practice Landing Page (Domain linked) - Included Free',
+                                            icon: Globe,
+                                            isDemo: true,
+                                            bgClass: 'bg-cyan-500/10',
+                                            textClass: 'text-cyan-600 dark:text-cyan-400',
+                                        },
+                                        {
+                                            id: 'collab',
+                                            text: 'Access outsourcing and collaboration opportunities',
+                                            icon: Users,
+                                            bgClass: 'bg-amber-500/10',
+                                            textClass: 'text-amber-600 dark:text-amber-400',
+                                        },
+                                        {
+                                            id: 'overflow',
+                                            text: 'Outsource overflow work securely',
+                                            icon: Briefcase,
+                                            bgClass: 'bg-indigo-500/10',
+                                            textClass: 'text-indigo-600 dark:text-indigo-400',
+                                        },
+                                        {
+                                            id: 'discount',
+                                            text: '10% Wholesale outsourcing discount',
+                                            icon: Percent,
+                                            bgClass: 'bg-emerald-500/10',
+                                            textClass: 'text-emerald-600 dark:text-emerald-400',
+                                        },
+                                        {
+                                            id: 'chat',
+                                            text: 'Partner Community Chat',
+                                            icon: MessageSquare,
+                                            bgClass: 'bg-rose-500/10',
+                                            textClass: 'text-rose-600 dark:text-rose-400',
+                                        }
+                                    ].map((item) => {
+                                        const Icon = item.icon;
+                                        return (
+                                            <li key={item.id} className="flex items-start gap-3 text-sm font-semibold text-foreground/80 hover:translate-x-1 transition-transform duration-200">
+                                                <div className={`flex items-center justify-center h-8 w-8 rounded-lg ${item.bgClass} ${item.textClass} shrink-0 mt-0.5`}>
+                                                    <Icon className="h-4 w-4" />
+                                                </div>
+                                                {item.isDemo ? (
+                                                    <span className="leading-tight pt-1">
+                                                        Custom Practice Landing Page (Domain linked) - {' '}
+                                                        <a href="https://www.myacc.co.za/p/interscope" target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold">
+                                                            Click here to view a demo page
+                                                        </a>
+                                                    </span>
+                                                ) : (
+                                                    <span className="leading-tight pt-1">{item.text}</span>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </CardContent>
+                        </div>
+                        <CardFooter className="p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col gap-3">
+                            <Button asChild size="lg" className="w-full h-14 text-lg font-black shadow-lg hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 text-white">
+                                <Link href="/partner-signup">Join Partner Program Free</Link>
+                            </Button>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-center">No credit card required to join</p>
+                        </CardFooter>
                     </div>
                 </div>
+            </div>
+        </div>
+      </section>
 
-                <p className="font-bold text-foreground text-center text-xl">
-                    We handle the complexity behind the scenes so your client never needs to move to another accountant.
-                </p>
+      <section className="container mx-auto px-4 scroll-m-20">
+        <div className="max-w-5xl mx-auto space-y-8">
+            <div className="text-center space-y-4">
+                <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Our Philosophy</Badge>
+                <h2 className="text-4xl font-black leading-tight text-foreground">Our philosophy has always been simple</h2>
+            </div>
+            
+            <div className="bg-gradient-to-br from-white via-slate-50/40 to-blue-50/20 border border-slate-200/80 shadow-2xl rounded-3xl overflow-hidden p-6 md:p-10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 h-40 w-40 bg-primary/5 rounded-full filter blur-3xl pointer-events-none" />
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                    {/* Left Column: Avatar & Credentials */}
+                    <div className="md:col-span-5 flex flex-col items-center text-center p-6 bg-slate-100/50 border border-slate-200/60 rounded-2xl shadow-sm">
+                        <img
+                            src="/kevin-freese.jpg"
+                            alt="Kevin Freese"
+                            className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md shrink-0 mb-4"
+                        />
+                        <h4 className="text-lg font-black text-slate-900">Kevin Freese</h4>
+                        <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director & Founder</p>
+                        
+                        <div className="mt-2.5 px-3 py-1 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-700 rounded-full font-bold text-[10px] uppercase tracking-wider border border-amber-500/20">
+                            20+ Years Experience
+                        </div>
+
+                        <div className="mt-5 w-full border-t border-slate-200 pt-4 space-y-3 text-xs font-semibold text-slate-500 text-left">
+                            <div className="flex justify-between items-center pb-2 border-b border-slate-200/50">
+                                <span className="text-slate-400 font-medium">SARS Tax ID</span>
+                                <span className="text-slate-800 font-mono font-bold">PR-0098553</span>
+                            </div>
+                            <div className="flex justify-between items-center pb-2 border-b border-slate-200/50">
+                                <span className="text-slate-400 font-medium">CIBA SBA</span>
+                                <span className="text-slate-800 font-mono font-bold">201509-5372</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-400 font-medium">SAIT Practitioner</span>
+                                <span className="text-slate-800 font-mono font-bold">47011519</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Quote & vision info */}
+                    <div className="md:col-span-7 space-y-6">
+                        <div>
+                            <p className="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight italic font-serif relative z-10">
+                                &quot;A client referred to someone else is a client lost.&quot;
+                            </p>
+                        </div>
+                        
+                        <div className="space-y-4 text-base md:text-lg text-slate-600/90 font-medium leading-relaxed">
+                            <p>
+                                With the Bookkeeper Empowerment Initiative, you never have to turn a client away or lose revenue because you lack capacity, specialised expertise, or time.
+                            </p>
+                            <p>
+                                You can easily submit, monitor, and manage outsourced tasks directly through your <strong className="font-bold text-slate-900">Partner Portal</strong>. All work is carried out discreetly in the background by our qualified specialists, acting as an extension of your own team.
+                            </p>
+                            <p>
+                                Crucially, <strong className="font-bold text-slate-900">all communication is done strictly through your company</strong>. We operate under a 100% white-label model — we never contact your clients directly, ensuring your brand stays front and center while you retain complete control over your client relationships.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 pt-2">
+                            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 rounded-full font-bold text-xs border border-emerald-100 shadow-sm">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" /> You stay in control
+                            </div>
+                            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 rounded-full font-bold text-xs border border-emerald-100 shadow-sm">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" /> You keep the client
+                            </div>
+                            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 rounded-full font-bold text-xs border border-emerald-100 shadow-sm">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" /> You protect your brand
+                            </div>
+                        </div>
+
+                        <p className="font-bold text-slate-900 text-sm md:text-base pt-4 border-t border-slate-200">
+                            We handle the complexity behind the scenes so your client never needs to move to another accountant.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
       </section>
@@ -441,10 +477,11 @@ export default function BecomeAPartnerPageClient() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {challenges.map((item, idx) => (
-                    <Card key={idx} className="border-none shadow-sm bg-white hover:shadow-md transition-shadow">
-                        <CardHeader className="text-center pb-2">
-                            <div className="mx-auto h-16 w-16 rounded-full bg-primary/5 border flex items-center justify-center mb-4">
-                                <item.icon className="h-8 w-8 text-primary" />
+                    <Card key={idx} className={`relative overflow-hidden border ${item.borderClass} ${item.hoverBorderClass} shadow-md bg-white dark:bg-slate-900 hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
+                        <div className={`h-1.5 w-full absolute top-0 left-0 ${item.barClass}`} />
+                        <CardHeader className="text-center pb-2 pt-6">
+                            <div className={`mx-auto h-16 w-16 rounded-full ${item.bgClass} border ${item.borderClass} flex items-center justify-center mb-4 shadow-sm`}>
+                                <item.icon className={`h-8 w-8 ${item.iconClass}`} />
                             </div>
                             <CardTitle className="text-xl font-bold text-foreground">{item.title}</CardTitle>
                         </CardHeader>
@@ -475,8 +512,8 @@ export default function BecomeAPartnerPageClient() {
                             <div className="p-6 md:border-r border-slate-100 space-y-2">
                                 <span className="md:hidden text-[10px] font-black uppercase text-primary tracking-widest block mb-2">Feature</span>
                                 <div className="flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-center shrink-0 shadow-sm">
-                                        <item.icon className="h-5 w-5 text-primary" />
+                                    <div className={`h-10 w-10 rounded-xl ${item.bgClass} border ${item.borderClass} flex items-center justify-center shrink-0 shadow-sm`}>
+                                        <item.icon className={`h-5 w-5 ${item.iconClass}`} />
                                     </div>
                                     <h3 className="font-bold text-lg text-foreground leading-tight">{item.feature}</h3>
                                 </div>
@@ -484,7 +521,7 @@ export default function BecomeAPartnerPageClient() {
                             <div className="p-6 bg-white group-hover:bg-transparent transition-colors flex flex-col justify-center items-start">
                                 <span className="md:hidden text-[10px] font-black uppercase text-green-600 tracking-widest block mb-2">The Benefit to You</span>
                                 <div className="flex items-start gap-3">
-                                    <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                                    <CheckCircle className={`h-5 w-5 ${item.checkClass} shrink-0 mt-0.5`} />
                                     <p className="text-sm text-muted-foreground font-medium leading-relaxed">{item.benefit}</p>
                                 </div>
                                 {item.showPricing && <PartnerPricingDialog />}
@@ -514,13 +551,12 @@ export default function BecomeAPartnerPageClient() {
         <div className="max-w-2xl mx-auto space-y-8">
             <h2 className="text-4xl font-bold tracking-tight text-foreground">Ready to Empower Your Practice?</h2>
             <p className="text-xl text-muted-foreground">
-                Choose the plan that fits your practice size and start onboarding today.
+                Get started today at no cost and start growing your practice.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex items-center justify-center">
                 <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-lg">
-                    <Link href="/partner-signup?tier=growth">Register Growth Plan</Link>
+                    <Link href="/partner-signup">Join Partner Program Free</Link>
                 </Button>
-                <BookDemoDialog />
             </div>
         </div>
       </section>
