@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Loader2, Download, CalendarDays } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parse, isValid } from 'date-fns';
 
@@ -240,6 +242,74 @@ export default function TwelveMonthSummaryReportPage() {
         XLSX.writeFile(wb, `${client?.name || 'Client'}_12MonthSummary.xlsx`);
     };
 
+    const handleExportPdf = () => {
+        if (!reportData.length) {
+            toast({ title: "No Data", description: "No finalized payslips available to export.", variant: "destructive" });
+            return;
+        }
+
+        const doc = new jsPDF('landscape');
+        
+        doc.setFontSize(16);
+        doc.text(`12-Month Payroll Summary - ${client?.name || 'Company'}`, 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${format(new Date(), 'dd MMM yyyy')}`, 14, 22);
+
+        const tableBody: any[][] = [];
+        
+        const catDefs = [
+            { key: 'gross', label: 'Gross Earnings' },
+            { key: 'paye', label: 'PAYE (Tax)' },
+            { key: 'uifEe', label: 'UIF (Employee)' },
+            { key: 'net', label: 'Net Pay' },
+            { key: 'uifEr', label: 'UIF (Employer)' },
+            { key: 'sdl', label: 'SDL' },
+            { key: 'totalCost', label: 'Total Company Cost' }
+        ];
+
+        if (!showTotalsOnly) {
+            allEmployeeIds.forEach(emp => {
+                tableBody.push([{ content: emp.name, colSpan: 14, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }]);
+                catDefs.forEach((cat) => {
+                    const row: any[] = [cat.label];
+                    let rowTotal = 0;
+                    twelveMonths.forEach((month, idx) => {
+                        const val = reportData[idx]?.employees[emp.id]?.[cat.key as keyof typeof reportData[0]] as number || 0;
+                        row.push(formatCurrency(val));
+                        rowTotal += val;
+                    });
+                    if (rowTotal === 0 && cat.key !== 'gross' && cat.key !== 'net') return;
+                    row.push(formatCurrency(rowTotal));
+                    tableBody.push(row);
+                });
+            });
+            tableBody.push([{ content: 'Company Totals', colSpan: 14, styles: { fontStyle: 'bold', fillColor: [220, 230, 240] } }]);
+        }
+
+        catDefs.forEach((cat) => {
+            const row: any[] = [cat.label + (showTotalsOnly ? '' : ' (Total)')];
+            let rowTotal = 0;
+            twelveMonths.forEach((month, idx) => {
+                const val = reportData[idx]?.[cat.key as keyof typeof reportData[0]] as number || 0;
+                row.push(formatCurrency(val));
+                rowTotal += val;
+            });
+            row.push(formatCurrency(rowTotal));
+            tableBody.push(row);
+        });
+
+        autoTable(doc, {
+            head: [['Category', ...twelveMonths, 'Total']],
+            body: tableBody,
+            startY: 28,
+            styles: { fontSize: 7, cellPadding: 2 },
+            headStyles: { fillColor: [60, 60, 60] },
+            theme: 'grid'
+        });
+
+        doc.save(`${client?.name || 'Client'}_12MonthSummary.pdf`);
+    };
+
     if (isLoading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
     const categories = [
@@ -264,6 +334,10 @@ export default function TwelveMonthSummaryReportPage() {
                         <Switch id="totals-mode" checked={showTotalsOnly} onCheckedChange={setShowTotalsOnly} />
                         <Label htmlFor="totals-mode" className="font-semibold text-sm text-slate-700 cursor-pointer">Only show totals</Label>
                     </div>
+                    <Button variant="outline" onClick={handleExportPdf} disabled={reportData.length === 0}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Export to PDF
+                    </Button>
                     <Button variant="outline" onClick={handleExportExcel} disabled={reportData.length === 0}>
                         <Download className="mr-2 h-4 w-4" />
                         Export to Excel
