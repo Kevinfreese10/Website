@@ -6,10 +6,11 @@ import { getFirestore, collection, query, orderBy, onSnapshot, doc } from 'fireb
 import { firebaseApp } from '@/lib/firebase';
 import { Payslip, User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import * as XLSX from 'xlsx';
 import { Loader2, Download, CalendarDays } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parse, isValid } from 'date-fns';
@@ -33,6 +34,7 @@ export default function TwelveMonthSummaryReportPage() {
     const [client, setClient] = useState<User | null>(null);
     const [payslips, setPayslips] = useState<Payslip[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [showTotalsOnly, setShowTotalsOnly] = useState(false);
 
     // Fetch Initial Data
     useEffect(() => {
@@ -132,23 +134,41 @@ export default function TwelveMonthSummaryReportPage() {
             let uifEr = 0;
             let sdl = 0;
             let net = 0;
+            
+            const employees: Record<string, any> = {};
 
             periodPayslips.forEach(ps => {
                 const deds = ps.deductions || [];
                 const contribs = ps.contributions || [];
-                gross += (ps.earnings || []).reduce((s, i) => s + i.amount, 0);
-                paye += deds.find(d => d.label.toLowerCase() === 'tax')?.amount || 0;
-                uifEe += deds.find(d => d.label.toLowerCase().includes('unemployment'))?.amount || 0;
-                uifEr += contribs.find(c => c.label.toLowerCase().includes('unemployment'))?.amount || 0;
-                sdl += contribs.find(c => c.label.toLowerCase().includes('skills'))?.amount || 0;
+                
+                const pGross = (ps.earnings || []).reduce((s, i) => s + i.amount, 0);
+                const pPaye = deds.find(d => d.label.toLowerCase() === 'tax')?.amount || 0;
+                const pUifEe = deds.find(d => d.label.toLowerCase().includes('unemployment'))?.amount || 0;
+                const pUifEr = contribs.find(c => c.label.toLowerCase().includes('unemployment'))?.amount || 0;
+                const pSdl = contribs.find(c => c.label.toLowerCase().includes('skills'))?.amount || 0;
+                const pTotalDed = deds.reduce((s, i) => s + i.amount, 0);
+                const pNet = pGross - pTotalDed;
+
+                employees[ps.employeeId] = {
+                    id: ps.employeeId,
+                    name: ps.employeeName,
+                    gross: pGross,
+                    paye: pPaye,
+                    uifEe: pUifEe,
+                    net: pNet,
+                    uifEr: pUifEr,
+                    sdl: pSdl,
+                    totalCost: pGross + pUifEr + pSdl
+                };
+
+                gross += pGross;
+                paye += pPaye;
+                uifEe += pUifEe;
+                uifEr += pUifEr;
+                sdl += pSdl;
             });
 
-            // Extra Deductions
-            let totalDed = 0;
-            periodPayslips.forEach(ps => {
-                totalDed += (ps.deductions || []).reduce((s, i) => s + i.amount, 0);
-            });
-            net = gross - totalDed;
+            net = gross - periodPayslips.reduce((s, ps) => s + (ps.deductions || []).reduce((a, i) => a + i.amount, 0), 0);
 
             return {
                 month,
@@ -158,10 +178,23 @@ export default function TwelveMonthSummaryReportPage() {
                 net,
                 uifEr,
                 sdl,
-                totalCost: gross + uifEr + sdl
+                totalCost: gross + uifEr + sdl,
+                employees
             };
         });
     }, [payslips, client, twelveMonths]);
+
+    const allEmployeeIds = useMemo(() => {
+        const ids = new Set<string>();
+        const map = new Map<string, string>();
+        reportData.forEach(rd => {
+            Object.values(rd.employees).forEach((emp: any) => {
+                ids.add(emp.id);
+                map.set(emp.id, emp.name);
+            });
+        });
+        return Array.from(ids).map(id => ({ id, name: map.get(id)! })).sort((a, b) => a.name.localeCompare(b.name));
+    }, [reportData]);
 
     const handleExportExcel = () => {
         if (!reportData.length) {
@@ -226,10 +259,16 @@ export default function TwelveMonthSummaryReportPage() {
                     <h2 className="text-xl font-bold tracking-tight">12-Month Payroll Summary</h2>
                     <p className="text-muted-foreground text-sm">Long-term overview of payroll totals over the last 12 active periods.</p>
                 </div>
-                <Button variant="outline" onClick={handleExportExcel} disabled={reportData.length === 0}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Export to Excel
-                </Button>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center space-x-2 bg-white px-3 py-2 border rounded-md shadow-sm">
+                        <Switch id="totals-mode" checked={showTotalsOnly} onCheckedChange={setShowTotalsOnly} />
+                        <Label htmlFor="totals-mode" className="font-semibold text-sm text-slate-700 cursor-pointer">Only show totals</Label>
+                    </div>
+                    <Button variant="outline" onClick={handleExportExcel} disabled={reportData.length === 0}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Export to Excel
+                    </Button>
+                </div>
             </div>
 
             <Card>
@@ -254,26 +293,34 @@ export default function TwelveMonthSummaryReportPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {categories.map(cat => {
-                                    let rowTotal = 0;
-                                    return (
-                                        <TableRow key={cat.key} className="hover:bg-slate-50">
-                                            <TableCell className="font-medium text-slate-700 border-r">{cat.label}</TableCell>
-                                            {twelveMonths.map((month, idx) => {
-                                                const val = reportData[idx]?.[cat.key as keyof typeof reportData[0]] as number || 0;
-                                                rowTotal += val;
-                                                return (
-                                                    <TableCell key={month} className="text-right text-slate-600">
-                                                        {formatCurrency(val)}
-                                                    </TableCell>
-                                                );
-                                            })}
-                                            <TableCell className="text-right font-bold bg-slate-50 text-slate-900">
-                                                {formatCurrency(rowTotal)}
+                                {categories.map((cat, idx) => (
+                                    <React.Fragment key={cat.key}>
+                                        <TableRow className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"}>
+                                            <TableCell className="font-semibold text-slate-900 border-r">{cat.label} (Total)</TableCell>
+                                            {twelveMonths.map((m, mIdx) => (
+                                                <TableCell key={mIdx} className="text-right whitespace-nowrap">
+                                                    {formatCurrency(reportData[mIdx]?.[cat.key as keyof typeof reportData[0]] as number || 0)}
+                                                </TableCell>
+                                            ))}
+                                            <TableCell className="text-right font-bold whitespace-nowrap bg-slate-50/50 border-l">
+                                                {formatCurrency(twelveMonths.reduce((sum, _, mIdx) => sum + (reportData[mIdx]?.[cat.key as keyof typeof reportData[0]] as number || 0), 0))}
                                             </TableCell>
                                         </TableRow>
-                                    );
-                                })}
+                                        {!showTotalsOnly && allEmployeeIds.map(emp => (
+                                            <TableRow key={`${cat.key}-${emp.id}`} className="bg-slate-50/5 text-muted-foreground">
+                                                <TableCell className="pl-6 border-r text-xs">- {emp.name}</TableCell>
+                                                {twelveMonths.map((m, mIdx) => (
+                                                    <TableCell key={mIdx} className="text-right whitespace-nowrap text-xs">
+                                                        {formatCurrency(reportData[mIdx]?.employees[emp.id]?.[cat.key as keyof typeof reportData[0]] as number || 0)}
+                                                    </TableCell>
+                                                ))}
+                                                <TableCell className="text-right font-medium whitespace-nowrap bg-slate-50/20 border-l text-xs">
+                                                    {formatCurrency(twelveMonths.reduce((sum, _, mIdx) => sum + (reportData[mIdx]?.employees[emp.id]?.[cat.key as keyof typeof reportData[0]] as number || 0), 0))}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
                             </TableBody>
                         </Table>
                     </div>
