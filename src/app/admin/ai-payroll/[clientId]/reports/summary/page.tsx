@@ -118,8 +118,20 @@ export default function PayrollSummaryReportPage() {
                 months.add(format(d, 'MMMM yyyy'));
             }
             payslips.forEach(ps => {
-                const d = ps.date?.toDate ? ps.date.toDate() : new Date(ps.date || Date.now());
-                months.add(format(d, 'MMMM yyyy'));
+                if (ps.period) {
+                    if (ps.period.includes('/')) {
+                        const parsed = parse(ps.period.split(' - ').pop()?.trim() || '', 'dd/MM/yyyy', new Date());
+                        if (isValid(parsed)) {
+                            months.add(format(parsed, 'MMMM yyyy'));
+                        }
+                    } else {
+                        const base = ps.period.split(' - ')[0];
+                        const parts = base.trim().split(' ');
+                        if (parts.length >= 2) {
+                            months.add(`${parts[0]} ${parts[1]}`);
+                        }
+                    }
+                }
             });
             return Array.from(months).sort((a, b) => {
                 const dateA = new Date(a);

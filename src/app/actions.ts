@@ -1068,7 +1068,11 @@ export async function bulkFinalizeDraftPayslipsAction({ clientId }: any) {
 
         const batch = adminDb.batch();
         payslipsSnap.docs.forEach(doc => {
-            batch.update(doc.ref, { status: 'finalized' });
+            batch.update(doc.ref, { 
+                status: 'finalized',
+                date: new Date().toISOString(),
+                updatedAt: new Date()
+            });
         });
         await batch.commit();
 

@@ -109,10 +109,22 @@ export default function Emp201ReportPage() {
             months.add(format(subMonths(now, i), 'MMMM yyyy'));
         }
         
-        // Also add any months that have historical payslips
+        // Also add any months that have historical payslips based on their period
         payslips.forEach(ps => {
-            const d = ps.date?.toDate ? ps.date.toDate() : new Date(ps.date || Date.now());
-            months.add(format(d, 'MMMM yyyy'));
+            if (ps.period) {
+                if (ps.period.includes('/')) {
+                    const parsed = parse(ps.period.split(' - ').pop()?.trim() || '', 'dd/MM/yyyy', new Date());
+                    if (isValid(parsed)) {
+                        months.add(format(parsed, 'MMMM yyyy'));
+                    }
+                } else {
+                    const base = ps.period.split(' - ')[0];
+                    const parts = base.trim().split(' ');
+                    if (parts.length >= 2) {
+                        months.add(`${parts[0]} ${parts[1]}`);
+                    }
+                }
+            }
         });
 
         function subMonths(date: Date, months: number) {
