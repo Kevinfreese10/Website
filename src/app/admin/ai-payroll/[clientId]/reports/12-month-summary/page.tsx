@@ -293,33 +293,55 @@ export default function TwelveMonthSummaryReportPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {categories.map((cat, idx) => (
-                                    <React.Fragment key={cat.key}>
-                                        <TableRow className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"}>
-                                            <TableCell className="font-semibold text-slate-900 border-r">{cat.label} (Total)</TableCell>
-                                            {twelveMonths.map((m, mIdx) => (
-                                                <TableCell key={mIdx} className="text-right whitespace-nowrap">
-                                                    {formatCurrency(reportData[mIdx]?.[cat.key as keyof typeof reportData[0]] as number || 0)}
-                                                </TableCell>
-                                            ))}
-                                            <TableCell className="text-right font-bold whitespace-nowrap bg-slate-50/50 border-l">
-                                                {formatCurrency(twelveMonths.reduce((sum, _, mIdx) => sum + (reportData[mIdx]?.[cat.key as keyof typeof reportData[0]] as number || 0), 0))}
+                                {!showTotalsOnly && allEmployeeIds.map(emp => (
+                                    <React.Fragment key={emp.id}>
+                                        <TableRow className="bg-slate-200/50">
+                                            <TableCell colSpan={14} className="font-bold text-slate-900 border-y py-3 text-sm">
+                                                {emp.name}
                                             </TableCell>
                                         </TableRow>
-                                        {!showTotalsOnly && allEmployeeIds.map(emp => (
-                                            <TableRow key={`${cat.key}-${emp.id}`} className="bg-slate-50/5 text-muted-foreground">
-                                                <TableCell className="pl-6 border-r text-xs">- {emp.name}</TableCell>
-                                                {twelveMonths.map((m, mIdx) => (
-                                                    <TableCell key={mIdx} className="text-right whitespace-nowrap text-xs">
-                                                        {formatCurrency(reportData[mIdx]?.employees[emp.id]?.[cat.key as keyof typeof reportData[0]] as number || 0)}
+                                        {categories.map((cat, idx) => {
+                                            const total = twelveMonths.reduce((sum, _, mIdx) => sum + (reportData[mIdx]?.employees[emp.id]?.[cat.key as keyof typeof reportData[0]] as number || 0), 0);
+                                            // Optional: Hide categories with 0 total for this employee to reduce clutter
+                                            if (total === 0 && cat.key !== 'gross' && cat.key !== 'net') return null;
+                                            
+                                            return (
+                                                <TableRow key={`${emp.id}-${cat.key}`} className={idx % 2 === 0 ? "bg-white text-xs" : "bg-slate-50/30 text-xs"}>
+                                                    <TableCell className="pl-6 font-medium text-slate-700 border-r">{cat.label}</TableCell>
+                                                    {twelveMonths.map((m, mIdx) => (
+                                                        <TableCell key={mIdx} className="text-right whitespace-nowrap">
+                                                            {formatCurrency(reportData[mIdx]?.employees[emp.id]?.[cat.key as keyof typeof reportData[0]] as number || 0)}
+                                                        </TableCell>
+                                                    ))}
+                                                    <TableCell className="text-right font-semibold whitespace-nowrap bg-slate-50/50 border-l">
+                                                        {formatCurrency(total)}
                                                     </TableCell>
-                                                ))}
-                                                <TableCell className="text-right font-medium whitespace-nowrap bg-slate-50/20 border-l text-xs">
-                                                    {formatCurrency(twelveMonths.reduce((sum, _, mIdx) => sum + (reportData[mIdx]?.employees[emp.id]?.[cat.key as keyof typeof reportData[0]] as number || 0), 0))}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
+                                                </TableRow>
+                                            );
+                                        })}
                                     </React.Fragment>
+                                ))}
+
+                                {!showTotalsOnly && (
+                                    <TableRow className="bg-primary/5">
+                                        <TableCell colSpan={14} className="font-black text-primary border-y py-4 text-sm uppercase tracking-widest">
+                                            Company Totals
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+
+                                {categories.map((cat, idx) => (
+                                    <TableRow key={`total-${cat.key}`} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"}>
+                                        <TableCell className="font-semibold text-slate-900 border-r">{cat.label}</TableCell>
+                                        {twelveMonths.map((m, mIdx) => (
+                                            <TableCell key={mIdx} className="text-right whitespace-nowrap">
+                                                {formatCurrency(reportData[mIdx]?.[cat.key as keyof typeof reportData[0]] as number || 0)}
+                                            </TableCell>
+                                        ))}
+                                        <TableCell className="text-right font-black whitespace-nowrap bg-slate-50/50 border-l">
+                                            {formatCurrency(twelveMonths.reduce((sum, _, mIdx) => sum + (reportData[mIdx]?.[cat.key as keyof typeof reportData[0]] as number || 0), 0))}
+                                        </TableCell>
+                                    </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
