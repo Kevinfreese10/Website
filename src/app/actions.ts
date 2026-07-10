@@ -1157,6 +1157,7 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
         .where('status', '==', 'Active')
         .get();
     
+    const { PayrollService } = await import('@/services/PayrollService');
     const batch = adminDb.batch();
     let created = 0;
 
@@ -1189,6 +1190,31 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
             batch.update(d.ref, { recurringItems: newRecurringItems });
         }
         
+        const freq = PayrollService.getFrequencyMultiplier(client.payrollFrequency || 'Monthly');
+        const baseValue = emp.payType === 'Hourly' ? (emp.hourlyRate || 0) : (emp.basicSalary || 0);
+        
+        // Add calculated earnings
+        const calcEarnings = PayrollService.calculateEarningsList(emp, baseValue, nextPeriod, freq);
+        calcEarnings.forEach(ce => {
+            if (!initialEarnings.find(ie => ie.label === ce.label)) {
+                initialEarnings.push(ce);
+            }
+        });
+        
+        const grossPay = initialEarnings.reduce((s, i) => s + i.amount, 0);
+        
+        // Add statutory deductions
+        const statutoryDeductions = PayrollService.getInitialDeductions(grossPay, nextPeriod, freq, emp.joinDate, emp.idNumber, emp.medicalAidMembers || 0, emp.medicalAidDependents || 0);
+        statutoryDeductions.forEach(sd => {
+            if (!initialDeductions.find(id => id.label === sd.label)) {
+                initialDeductions.push(sd);
+            }
+        });
+        
+        const contributions = PayrollService.getInitialContributions(grossPay, nextPeriod, freq, !!client.excludeSdl);
+        const totalDeductions = initialDeductions.reduce((s, i) => s + i.amount, 0);
+        const netPay = grossPay - totalDeductions;
+        
         batch.set(newPsRef, {
             employeeId: d.id,
             employeeName: `${emp.name} ${emp.surname}`,
@@ -1198,11 +1224,11 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
             date: new Date().toISOString(),
             earnings: initialEarnings,
             deductions: initialDeductions,
-            contributions: [],
+            contributions,
             fringeBenefits: [],
-            grossPay: 0,
-            totalDeductions: 0,
-            netPay: 0,
+            grossPay,
+            totalDeductions,
+            netPay,
             frequency: client.payrollFrequency || 'Monthly'
         });
         created++;
