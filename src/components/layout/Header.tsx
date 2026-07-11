@@ -23,6 +23,16 @@ import { cn } from '@/lib/utils';
 
 const navGroups = [
   {
+    label: 'Home',
+    href: '/',
+    items: []
+  },
+  {
+    label: 'Online Store',
+    href: '/services',
+    items: []
+  },
+  {
     label: 'Accounting',
     href: '/monthly-accounting',
     items: [
@@ -122,23 +132,29 @@ const Header = () => {
           {!isAuthPage && (
             <nav className="hidden items-center gap-2 lg:flex">
               {navGroups.map(group => (
-                <DropdownMenu key={group.label}>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-9 px-3 text-sm font-medium hover:bg-transparent hover:text-primary gap-1">
-                            {group.label}
-                            <ChevronDown className="h-3.5 w-3.5 opacity-50" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56">
-                        {group.items.map(item => (
-                            <DropdownMenuItem key={item.label} asChild>
-                                <Link href={item.href} className="w-full cursor-pointer">
-                                    {item.label}
-                                </Link>
-                            </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                group.items && group.items.length > 0 ? (
+                  <DropdownMenu key={group.label}>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-9 px-3 text-sm font-medium hover:bg-transparent hover:text-primary gap-1">
+                              {group.label}
+                              <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-56">
+                          {group.items.map(item => (
+                              <DropdownMenuItem key={item.label} asChild>
+                                  <Link href={item.href} className="w-full cursor-pointer">
+                                      {item.label}
+                                  </Link>
+                              </DropdownMenuItem>
+                          ))}
+                      </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Button key={group.label} variant="ghost" className="h-9 px-3 text-sm font-medium hover:bg-transparent hover:text-primary" asChild>
+                    <Link href={group.href}>{group.label}</Link>
+                  </Button>
+                )
               ))}
             </nav>
           )}
@@ -187,25 +203,33 @@ const Header = () => {
                   <ScrollArea className="flex-1 mt-4">
                     <Accordion type="single" collapsible className="w-full">
                         {navGroups.map((group, index) => (
-                            <AccordionItem key={group.label} value={`item-${index}`} className="border-none">
-                                <AccordionTrigger className="text-lg font-semibold py-3 hover:no-underline">
-                                    {group.label}
-                                </AccordionTrigger>
-                                <AccordionContent className="pb-4">
-                                    <div className="flex flex-col gap-3 pl-4 border-l-2 border-primary/15 ml-1">
-                                        {group.items.map(item => (
-                                            <Link 
-                                                key={item.label} 
-                                                href={item.href} 
-                                                className="text-base text-muted-foreground hover:text-primary transition-colors"
-                                                onClick={() => setMobileMenuOpen(false)}
-                                            >
-                                                {item.label}
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
+                            group.items && group.items.length > 0 ? (
+                              <AccordionItem key={group.label} value={`item-${index}`} className="border-none">
+                                  <AccordionTrigger className="text-lg font-semibold py-3 hover:no-underline">
+                                      {group.label}
+                                  </AccordionTrigger>
+                                  <AccordionContent className="pb-4">
+                                      <div className="flex flex-col gap-3 pl-4 border-l-2 border-primary/15 ml-1">
+                                          {group.items.map(item => (
+                                              <Link 
+                                                  key={item.label} 
+                                                  href={item.href} 
+                                                  className="text-base text-muted-foreground hover:text-primary transition-colors"
+                                                  onClick={() => setMobileMenuOpen(false)}
+                                              >
+                                                  {item.label}
+                                              </Link>
+                                          ))}
+                                      </div>
+                                  </AccordionContent>
+                              </AccordionItem>
+                            ) : (
+                              <div key={group.label} className="py-3 border-none flex flex-1 items-center justify-between font-semibold">
+                                <Link href={group.href} className="text-lg hover:text-primary transition-colors block w-full" onClick={() => setMobileMenuOpen(false)}>
+                                  {group.label}
+                                </Link>
+                              </div>
+                            )
                         ))}
                     </Accordion>
                   </ScrollArea>

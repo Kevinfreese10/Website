@@ -191,19 +191,14 @@ export default function HomePageClient() {
   }, [turnover, payrollEmployees, needsVat, needsPayroll]);
 
   const trustIndicators = [
-    { label: "Trusted by South African Businesses", icon: CheckCircle },
-    { label: "Professional Accounting & Compliance Support", icon: ShieldCheck },
-    { label: "Online Service Delivery Nationwide", icon: Globe },
-    { label: "Transparent Pricing", icon: Wallet },
-    { label: "Secure Document Submission", icon: ShieldCheck }
+    { label: "Trusted by South African Businesses", icon: CheckCircle, color: "text-blue-500" },
+    { label: "Professional Accounting & Compliance Support", icon: ShieldCheck, color: "text-emerald-500" },
+    { label: "Online Service Delivery Nationwide", icon: Globe, color: "text-purple-500" },
+    { label: "Transparent Pricing", icon: Wallet, color: "text-amber-500" },
+    { label: "Secure Document Submission", icon: ShieldCheck, color: "text-rose-500" }
   ];
 
-  const trustBlocks = [
-    { title: "Professional & Reliable", desc: "Our team focuses on practical accounting and compliance solutions designed specifically for South African businesses.", icon: ShieldCheck },
-    { title: "Nationwide Online Support", desc: "We assist clients throughout Johannesburg, Pretoria, Durban, Cape Town, Gauteng, and across South Africa.", icon: Globe },
-    { title: "Transparent Process", desc: "Our online system makes it easy to purchase services, upload documents, and track your compliance requirements.", icon: RefreshCw },
-    { title: "Business Compliance Specialists", desc: "We assist businesses with ongoing SARS, CIPC, payroll, and accounting compliance requirements.", icon: Landmark }
-  ];
+
 
   const faqData = [
     { q: "What accounting services do you provide for SMEs?", a: "We provide comprehensive bookkeeping, annual financial statements, management accounts, and outsourced CFO services tailored for South African SMEs." },
@@ -230,8 +225,8 @@ export default function HomePageClient() {
 
         <div className="container relative z-10 mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Column: Text Content */}
-            <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left">
+            {/* Center Column: Text Content */}
+            <div className="lg:col-span-12 flex flex-col items-center text-center max-w-4xl mx-auto">
               <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full glass neon-border text-xs font-semibold text-primary uppercase tracking-widest">
                 <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
                 AI-Powered Accounting Platform
@@ -239,108 +234,19 @@ export default function HomePageClient() {
               <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl xl:text-7xl font-headline leading-tight text-hero-gradient pb-2">
                 Online <span className="text-gradient">Accounting, Tax & Payroll</span> Services in South Africa
               </h1>
-              <div className="mb-10 max-w-2xl text-base font-medium text-muted-foreground md:text-lg leading-relaxed space-y-4">
-                <p>
-                  My Accountant helps South African businesses stay compliant with professional accounting, tax, payroll, SARS, and CIPC services — all through a simple online process.
-                </p>
-                <p className="hidden md:block">
-                  Whether you need company registration, VAT registration, bookkeeping, payroll, annual financial statements, tax compliance, or CIPC annual returns, our team assists businesses throughout Johannesburg, Randburg, Gauteng, and across South Africa.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center lg:justify-start">
+              
+              <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+                Streamline your business with our cloud-based accounting, payroll, and compliance solutions.
+                Built for South African entrepreneurs who demand efficiency and transparency.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
                 <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300">
                   <Link href="/contact">Book Free Consultation</Link>
                 </Button>
-              </div>
-            </div>
-
-            {/* Right Column: Interactive Dashboard Mockup */}
-            <div className="lg:col-span-5 w-full flex justify-center">
-              <div className="w-full max-w-md glass-card rounded-3xl border border-white/[0.08] p-5 shadow-2xl relative overflow-hidden neon-glow group transition-all duration-500 hover:border-primary/20">
-                {/* Header of Mockup */}
-                <div className="flex justify-between items-center pb-4 border-b border-white/[0.06] mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-                      <Calculator className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-foreground">My Accountant Portal</h4>
-                      <p className="text-[9px] text-muted-foreground">Acme South Africa Pty Ltd</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/10 border-none font-bold text-[9px] px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <CheckCircle2 className="h-2.5 w-2.5" /> Compliant
-                  </Badge>
-                </div>
-
-                {/* Body of Mockup */}
-                <div className="space-y-4">
-                  {/* Monthly stats */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-1">
-                      <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Bookkeeping Status</span>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-foreground">Reconciled</span>
-                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      </div>
-                    </div>
-                    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-1">
-                      <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">SARS VAT Period</span>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-foreground text-gradient font-headline">Period 04</span>
-                        <span className="text-[8px] text-muted-foreground">Due June 30</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tasks List */}
-                  <div className="space-y-2">
-                    <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">Compliance Checklist</span>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-white/[0.01] border border-white/[0.04] text-[10px]">
-                        <div className="flex items-center gap-2 text-foreground/85">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>CIPC Annual Return</span>
-                        </div>
-                        <span className="text-[9px] text-emerald-400 font-bold">Filed</span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-white/[0.01] border border-white/[0.04] text-[10px]">
-                        <div className="flex items-center gap-2 text-foreground/85">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>UIF/PAYE Submission</span>
-                        </div>
-                        <span className="text-[9px] text-emerald-400 font-bold">Compliant</span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 rounded-lg bg-white/[0.01] border border-white/[0.04] text-[10px]">
-                        <div className="flex items-center gap-2 text-foreground/85">
-                          <Clock className="h-3.5 w-3.5 text-amber-400" />
-                          <span>VAT Return Preparation</span>
-                        </div>
-                        <span className="text-[9px] text-amber-400 font-bold">In Progress</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Interactive AI Chat Mockup */}
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <BrainCircuit className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-[9px] text-primary font-bold uppercase tracking-wider">AI Compliance Assistant</span>
-                    </div>
-                    <div className="space-y-2 text-[10px]">
-                      <div className="flex justify-end">
-                        <div className="bg-primary/20 text-foreground px-2.5 py-1.5 rounded-2xl rounded-tr-none max-w-[85%] text-[9px] font-medium">
-                          When is my VAT return due?
-                        </div>
-                      </div>
-                      <div className="flex justify-start">
-                        <div className="bg-white/[0.04] text-muted-foreground px-2.5 py-1.5 rounded-2xl rounded-tl-none max-w-[90%] text-[9px] border border-white/[0.04] leading-relaxed font-medium">
-                          Your VAT return for Period 04/2026 is due by June 30th. I have prepared the return for review.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <Button asChild size="lg" variant="outline" className="h-14 px-8 text-base font-bold shadow-xl border-white/10 hover:bg-white/5 transition-all duration-300">
+                  <Link href="/services">Visit Our Online Store</Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -349,7 +255,7 @@ export default function HomePageClient() {
           <div className="mt-16 grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto border-t border-white/[0.06] pt-8">
               {trustIndicators.map((item, idx) => (
                   <div key={idx} className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <item.icon className="h-5 w-5 text-primary animate-glow-pulse" />
+                      <item.icon className={`h-5 w-5 ${item.color} animate-glow-pulse`} />
                       <span className="text-[10px] font-bold uppercase tracking-wider text-center leading-tight">{item.label}</span>
                   </div>
               ))}
@@ -366,7 +272,7 @@ export default function HomePageClient() {
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 opacity-60 hover:opacity-90 transition-opacity duration-300">
             {/* CIBA Badge */}
             <div className="flex items-center gap-2 text-foreground font-black tracking-tight text-sm">
-              <div className="h-7 w-7 rounded-md bg-white/[0.04] border border-white/10 flex items-center justify-center"><Building className="h-4 w-4 text-primary" /></div>
+              <div className="h-7 w-7 rounded-md bg-blue-500/10 border border-blue-500/20 flex items-center justify-center"><Building className="h-4 w-4 text-blue-500" /></div>
               <div className="flex flex-col text-left">
                 <span className="leading-none text-xs">CIBA Member</span>
                 <span className="text-[8px] text-muted-foreground font-medium">Biz Accountant</span>
@@ -374,7 +280,7 @@ export default function HomePageClient() {
             </div>
             {/* SAIT Badge */}
             <div className="flex items-center gap-2 text-foreground font-black tracking-tight text-sm">
-              <div className="h-7 w-7 rounded-md bg-white/[0.04] border border-white/10 flex items-center justify-center"><Landmark className="h-4 w-4 text-primary" /></div>
+              <div className="h-7 w-7 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center"><Landmark className="h-4 w-4 text-emerald-500" /></div>
               <div className="flex flex-col text-left">
                 <span className="leading-none text-xs">SAIT Member</span>
                 <span className="text-[8px] text-muted-foreground font-medium">Tax Practitioner</span>
@@ -382,7 +288,7 @@ export default function HomePageClient() {
             </div>
             {/* SAICA Badge */}
             <div className="flex items-center gap-2 text-foreground font-black tracking-tight text-sm">
-              <div className="h-7 w-7 rounded-md bg-white/[0.04] border border-white/10 flex items-center justify-center"><ShieldCheck className="h-4 w-4 text-primary" /></div>
+              <div className="h-7 w-7 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center"><ShieldCheck className="h-4 w-4 text-indigo-500" /></div>
               <div className="flex flex-col text-left">
                 <span className="leading-none text-xs">SAICA Affiliate</span>
                 <span className="text-[8px] text-muted-foreground font-medium">Chartered Accounting</span>
@@ -390,7 +296,7 @@ export default function HomePageClient() {
             </div>
             {/* SARS Badge */}
             <div className="flex items-center gap-2 text-foreground font-black tracking-tight text-sm">
-              <div className="h-7 w-7 rounded-md bg-white/[0.04] border border-white/10 flex items-center justify-center font-bold text-primary">S</div>
+              <div className="h-7 w-7 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center font-bold text-amber-500">S</div>
               <div className="flex flex-col text-left">
                 <span className="leading-none text-xs">SARS Registered</span>
                 <span className="text-[8px] text-muted-foreground font-medium">Tax Practitioners</span>
@@ -398,16 +304,16 @@ export default function HomePageClient() {
             </div>
             {/* CIPC Badge */}
             <div className="flex items-center gap-2 text-foreground font-black tracking-tight text-sm">
-              <div className="h-7 w-7 rounded-md bg-white/[0.04] border border-white/10 flex items-center justify-center"><Building className="h-4 w-4 text-primary" /></div>
+              <div className="h-7 w-7 rounded-md bg-purple-500/10 border border-purple-500/20 flex items-center justify-center"><Building className="h-4 w-4 text-purple-500" /></div>
               <div className="flex flex-col text-left">
                 <span className="leading-none text-xs">CIPC Agent</span>
                 <span className="text-[8px] text-muted-foreground font-medium">Company Registry</span>
               </div>
             </div>
             {/* Carte Blanche Badge */}
-            <div className="flex items-center gap-2 border-l border-white/10 pl-6 text-foreground font-black tracking-tight text-sm">
+            <div className="flex items-center gap-2 border-l border-cyan-500/20 pl-6 text-foreground font-black tracking-tight text-sm">
               <div className="flex flex-col text-left">
-                <span className="text-xs text-primary uppercase font-headline tracking-tighter">Carte Blanche</span>
+                <span className="text-xs text-cyan-500 uppercase font-headline tracking-tighter">Carte Blanche</span>
                 <span className="text-[8px] text-muted-foreground font-medium">Financial Management Partner</span>
               </div>
             </div>
@@ -518,22 +424,6 @@ export default function HomePageClient() {
                 From startups and small businesses to established companies operating across Johannesburg, Randburg, Gauteng, and throughout South Africa, My Accountant remains committed to helping businesses stay compliant, organised, and financially supported through every stage of growth.
               </p>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-12">
-                {trustBlocks.map((block, idx) => (
-                    <Card key={idx} className="border border-white/[0.06] shadow-none glass-card hover:border-primary/20 hover:shadow-[0_0_30px_rgba(0,229,255,0.06)] transition-all duration-300 text-center group">
-                        <CardHeader className="pb-2 flex flex-col items-center">
-                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-2 group-hover:neon-glow transition-all duration-300">
-                              <block.icon className="h-5 w-5 text-primary" />
-                            </div>
-                            <CardTitle className="text-base font-bold text-foreground">{block.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xs text-muted-foreground leading-relaxed">{block.desc}</p>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
           </div>
         </div>
       </section>
@@ -542,6 +432,16 @@ export default function HomePageClient() {
       <section className="py-20 bg-secondary/50 border-t border-b border-white/[0.06] relative overflow-hidden">
         <div className="aurora-blob aurora-violet w-[300px] h-[300px] -bottom-20 -right-20 animate-aurora-drift" style={{ animationDelay: '-7s' }} />
         <div className="container relative z-10 mx-auto px-4 max-w-6xl">
+          {/* Trust indicator badges */}
+          <div className="mb-16 grid grid-cols-2 md:grid-cols-5 gap-4 max-w-5xl mx-auto border-b border-primary/20 pb-8">
+              {trustIndicators.map((item, idx) => (
+                  <div key={idx} className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <item.icon className={`h-5 w-5 ${item.color} animate-glow-pulse`} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-center leading-tight">{item.label}</span>
+                  </div>
+              ))}
+          </div>
+
           <div className="text-center mb-16 space-y-4">
             <Badge variant="outline" className="px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary border-primary/20 bg-primary/5 rounded-full neon-border">
               Best Sellers
@@ -864,13 +764,13 @@ export default function HomePageClient() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   {/* Accounting Pillar */}
-                  <Card className="glass-card border border-white/[0.06] hover:border-primary/20 hover:shadow-[0_0_30px_rgba(0,229,255,0.06)] transition-all duration-300 group">
+                  <Card className="glass-card border-t-4 border-t-blue-500 border-x-white/[0.06] border-b-white/[0.06] hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-all duration-300 group">
                       <CardHeader className="pb-3">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:neon-glow transition-all duration-300">
+                          <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 mb-3 group-hover:scale-110 transition-transform duration-300">
                               <Calculator className="h-5 w-5" />
                           </div>
                           <CardTitle className="text-xl font-bold text-foreground">Accounting Services</CardTitle>
-                          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary">Core Compliance</CardDescription>
+                          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-blue-500">Core Compliance</CardDescription>
                       </CardHeader>
                       <CardContent>
                           <ul className="space-y-4">
@@ -903,13 +803,13 @@ export default function HomePageClient() {
                   </Card>
 
                   {/* Tax Pillar */}
-                  <Card className="glass-card border border-white/[0.06] hover:border-primary/20 hover:shadow-[0_0_30px_rgba(0,229,255,0.06)] transition-all duration-300 group">
+                  <Card className="glass-card border-t-4 border-t-emerald-500 border-x-white/[0.06] border-b-white/[0.06] hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] transition-all duration-300 group">
                       <CardHeader className="pb-3">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:neon-glow transition-all duration-300">
+                          <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-3 group-hover:scale-110 transition-transform duration-300">
                               <Landmark className="h-5 w-5" />
                           </div>
                           <CardTitle className="text-xl font-bold text-foreground">Tax Services</CardTitle>
-                          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary">SARS Specialists</CardDescription>
+                          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">SARS Specialists</CardDescription>
                       </CardHeader>
                       <CardContent>
                           <ul className="space-y-4">
@@ -948,18 +848,15 @@ export default function HomePageClient() {
                   </Card>
 
                   {/* Payroll Pillar */}
-                  <Card className="glass-card border border-white/[0.06] hover:border-primary/20 hover:shadow-[0_0_30px_rgba(0,229,255,0.06)] transition-all duration-300 group">
+                  <Card className="glass-card border-t-4 border-t-amber-500 border-x-white/[0.06] border-b-white/[0.06] hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] transition-all duration-300 group">
                       <CardHeader className="pb-3">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:neon-glow transition-all duration-300">
+                          <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 mb-3 group-hover:scale-110 transition-transform duration-300">
                               <Users className="h-5 w-5" />
                           </div>
                           <CardTitle className="text-xl font-bold text-foreground">Payroll Services</CardTitle>
-                          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary">Workforce Management</CardDescription>
+                          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-amber-500">Workforce Management</CardDescription>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                          <p className="text-[10px] text-muted-foreground font-medium uppercase leading-tight italic">
-                              Targeting Payroll Services South Africa, PAYE Submissions, and IRP5 Submissions.
-                          </p>
+                      <CardContent>
                           <ul className="space-y-4">
                               <li className="group/item">
                                   <Link href="/monthly-payroll" className="text-sm font-bold text-foreground/80 hover:text-primary transition-colors flex items-center gap-2">
@@ -990,13 +887,13 @@ export default function HomePageClient() {
                   </Card>
 
                   {/* CIPC Pillar */}
-                  <Card className="glass-card border border-white/[0.06] hover:border-primary/20 hover:shadow-[0_0_30px_rgba(0,229,255,0.06)] transition-all duration-300 group">
+                  <Card className="glass-card border-t-4 border-t-purple-500 border-x-white/[0.06] border-b-white/[0.06] hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] transition-all duration-300 group">
                       <CardHeader className="pb-3">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:neon-glow transition-all duration-300">
+                          <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500 mb-3 group-hover:scale-110 transition-transform duration-300">
                               <Building className="h-5 w-5" />
                           </div>
                           <CardTitle className="text-xl font-bold text-foreground">CIPC & Compliance</CardTitle>
-                          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary">Entity Maintenance</CardDescription>
+                          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-purple-500">Entity Maintenance</CardDescription>
                       </CardHeader>
                       <CardContent>
                           <ul className="space-y-4">
