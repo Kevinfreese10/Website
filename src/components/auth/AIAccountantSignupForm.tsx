@@ -131,6 +131,18 @@ export default function AIAccountantSignupForm() {
 
         await setDoc(newUserDocRef, finalData);
 
+        // Also create a master profile in 'users' collection to enable fast 1-read authentication
+        await setDoc(doc(db, "users", authUid), {
+            id: authUid,
+            uid: authUid,
+            name: `${values.name} ${values.surname}`,
+            email: values.email.toLowerCase().trim(),
+            contactNumber: values.cellNumber,
+            role: 'client',
+            source: 'AI Accountant',
+            createdAt: serverTimestamp(),
+        });
+
         // Send welcome email
         try {
             const emailHtml = render(<AIAccountantWelcomeEmail name={values.name} loginUrl={`${process.env.NEXT_PUBLIC_APP_URL}/login`} />);

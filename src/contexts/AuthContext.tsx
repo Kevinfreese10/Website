@@ -48,11 +48,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const updateUser = (updatedUser: User | null) => {
     setUser(updatedUser);
-    if (updatedUser) {
-        localStorage.setItem('my-accountant-user', JSON.stringify(updatedUser));
-    } else {
-        localStorage.removeItem('my-accountant-user');
-    }
   }
 
   const login = async (email: string, password?: string): Promise<User | 'invalid_role' | 'invalid_credentials' | 'subscription_lapsed' | undefined> => {
@@ -78,16 +73,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         try {
             const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
-            let foundUser: User | null = null;
             
-            for (const collectionName of collectionsToTry) {
+            // Execute queries in parallel to eliminate waterfall latency
+            const promises = collectionsToTry.map(async (collectionName) => {
                 const userDocRef = doc(db, collectionName, firebaseUser.uid);
                 const userDocSnap = await getDoc(userDocRef);
                 if (userDocSnap.exists()) {
-                    foundUser = { ...userDocSnap.data(), id: userDocSnap.id, uid: userDocSnap.id } as User;
-                    break;
+                    return { ...userDocSnap.data(), id: userDocSnap.id, uid: userDocSnap.id } as User;
                 }
-            }
+                return null;
+            });
+            
+            const results = await Promise.all(promises);
+            const foundUser = results.find((user) => user !== null) || null;
 
             if (foundUser) {
                 if (foundUser.source === 'AI Accountant' && foundUser.subscription) {
