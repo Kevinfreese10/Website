@@ -12,6 +12,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import * as XLSX from 'xlsx';
 import { Loader2, Download, Users, Calculator, FileText } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parse, isValid } from 'date-fns';
@@ -39,6 +41,8 @@ export default function Emp201ReportPage() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedMonth, setSelectedMonth] = useState<string>('');
+    const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
+    const [selectedBatchMonths, setSelectedBatchMonths] = useState<string[]>([]);
 
     // Fetch Initial Data
     useEffect(() => {
@@ -140,48 +144,41 @@ export default function Emp201ReportPage() {
         });
     }, [payslips, client]);
 
-    // Aggregation Logic: Find all payslips whose payroll period matches the selected month
-    const reportData = useMemo(() => {
-        if (!selectedMonth) return { breakdown: [], totals: { gross: 0, paye: 0, uif: 0, sdl: 0, payable: 0 } };
+    const getPeriodDate = (periodStr?: string): Date => {
+        if (!periodStr) return new Date();
+        
+        if (periodStr.includes('/')) {
+            const parts = periodStr.split(' - ');
+            const datePart = parts[parts.length - 1].trim();
+            const parsed = parse(datePart, 'dd/MM/yyyy', new Date());
+            return isValid(parsed) ? parsed : new Date();
+        }
 
-        const targetDate = parse(selectedMonth, 'MMMM yyyy', new Date());
+        const base = periodStr.split(' - ')[0];
+        const parts = base.trim().split(' ');
+        if (parts.length < 2) return new Date();
+        const monthName = parts[0];
+        const year = parseInt(parts[1]);
+        const months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        const monthIdx = months.indexOf(monthName);
+        return new Date(year, monthIdx !== -1 ? monthIdx : 0, 1);
+    };
+
+    const computeReportDataForMonth = (month: string) => {
+        if (!month) return { breakdown: [], totals: { gross: 0, paye: 0, uif: 0, sdl: 0, payable: 0 } };
+
+        const targetDate = parse(month, 'MMMM yyyy', new Date());
         const start = startOfMonth(targetDate);
         const end = endOfMonth(targetDate);
 
-        const getPeriodDate = (periodStr?: string): Date => {
-            if (!periodStr) return new Date();
-            
-            // Check if it's a date string (DD/MM/YYYY)
-            if (periodStr.includes('/')) {
-                // If it is a range, get the end date (last part)
-                const parts = periodStr.split(' - ');
-                const datePart = parts[parts.length - 1].trim();
-                const parsed = parse(datePart, 'dd/MM/yyyy', new Date());
-                return isValid(parsed) ? parsed : new Date();
-            }
-
-            const base = periodStr.split(' - ')[0];
-            const parts = base.trim().split(' ');
-            if (parts.length < 2) return new Date();
-            const monthName = parts[0];
-            const year = parseInt(parts[1]);
-            const months = [
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
-            ];
-            const monthIdx = months.indexOf(monthName);
-            return new Date(year, monthIdx !== -1 ? monthIdx : 0, 1);
-        };
-
-        // Filter for finalized payslips within the calendar month of the payroll period
         const periodPayslips = payslips.filter(ps => {
             if (ps.status !== 'finalized') return false;
             const psPeriodDate = getPeriodDate(ps.period);
-            const isWithin = isWithinInterval(psPeriodDate, { start, end });
-            console.log(`[EMP201 Debug] ps ${ps.employeeName}: period=${ps.period}, psPeriodDate=${psPeriodDate}, start=${start}, end=${end}, isWithin=${isWithin}`);
-            return isWithin;
+            return isWithinInterval(psPeriodDate, { start, end });
         });
-        console.log(`[EMP201 Debug] selectedMonth=${selectedMonth}, payslips total=${payslips.length}, periodPayslips=${periodPayslips.length}`);
         
         let totalPaye = 0;
         let totalUif = 0;
@@ -231,7 +228,10 @@ export default function Emp201ReportPage() {
                 payable: totalPaye + totalUif + totalSdl
             }
         };
-    }, [payslips, selectedMonth]);
+    };
+
+    // Aggregation Logic: Find all payslips whose payroll period matches the selected month
+    const reportData = useMemo(() => computeReportDataForMonth(selectedMonth), [payslips, selectedMonth]);
 
     const handleDownloadExcel = () => {
         if (!client || !reportData || !selectedMonth) return;
@@ -266,8 +266,8 @@ export default function Emp201ReportPage() {
         XLSX.writeFile(wb, `EMP201_${client.name.replace(/\s/g, '_')}_${selectedMonth.replace(/\s/g, '_')}.xlsx`);
     };
 
-    const handleDownloadPdf = () => {
-        if (!client || !reportData || !selectedMonth) return;
+    const generatePdf = (month: string, data: any) => {
+        if (!client) return;
 
         const doc = new jsPDF();
         
@@ -287,17 +287,17 @@ export default function Emp201ReportPage() {
         doc.setFont('helvetica', 'normal');
         doc.text(`Company: ${client.companyName || client.name}`, 15, 28);
         doc.text(`PAYE Ref: ${client.payeReference || "N/A"}`, 15, 34);
-        doc.text(`Declaration Month: ${selectedMonth}`, 15, 40);
+        doc.text(`Declaration Month: ${month}`, 15, 40);
 
         // Summary Table
         autoTable(doc, {
             startY: 46,
             head: [['Tax Code', 'Description', 'Amount (ZAR)']],
             body: [
-                ['4101', 'PAYE (Employees Tax)', formatCurr(reportData.totals.paye)],
-                ['4141', 'UIF (Unemployment Insurance Fund)', formatCurr(reportData.totals.uif)],
-                ['4142', 'SDL (Skills Development Levy)', formatCurr(reportData.totals.sdl)],
-                ['', 'TOTAL PAYABLE TO SARS', formatCurr(reportData.totals.payable)]
+                ['4101', 'PAYE (Employees Tax)', formatCurr(data.totals.paye)],
+                ['4141', 'UIF (Unemployment Insurance Fund)', formatCurr(data.totals.uif)],
+                ['4142', 'SDL (Skills Development Levy)', formatCurr(data.totals.sdl)],
+                ['', 'TOTAL PAYABLE TO SARS', formatCurr(data.totals.payable)]
             ],
             theme: 'striped',
             headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -306,11 +306,11 @@ export default function Emp201ReportPage() {
                 1: { cellWidth: 100 },
                 2: { cellWidth: 50, halign: 'right' }
             },
-            didParseCell: (data) => {
-                if (data.row.index === 3) {
-                    data.cell.styles.fontStyle = 'bold';
-                    if (data.column.index === 1) {
-                        data.cell.styles.halign = 'right';
+            didParseCell: (cellData) => {
+                if (cellData.row.index === 3) {
+                    cellData.cell.styles.fontStyle = 'bold';
+                    if (cellData.column.index === 1) {
+                        cellData.cell.styles.halign = 'right';
                     }
                 }
             }
@@ -327,7 +327,7 @@ export default function Emp201ReportPage() {
         autoTable(doc, {
             startY: summaryFinalY + 20,
             head: [['Staff Member', 'Runs', 'PAYE (ZAR)', 'UIF (ZAR)', 'SDL (ZAR)', 'Gross Total (ZAR)']],
-            body: reportData.breakdown.map(b => [
+            body: data.breakdown.map((b: any) => [
                 b.name,
                 String(b.runs),
                 formatCurr(b.paye),
@@ -348,8 +348,22 @@ export default function Emp201ReportPage() {
         });
 
         // Save
-        const fileName = `EMP201_${(client.companyName || client.name).replace(/\s/g, '_')}_${selectedMonth.replace(/\s/g, '_')}.pdf`;
+        const fileName = `EMP201_${(client.companyName || client.name).replace(/\s/g, '_')}_${month.replace(/\s/g, '_')}.pdf`;
         doc.save(fileName);
+    };
+
+    const handleDownloadPdf = () => {
+        if (!client || !reportData || !selectedMonth) return;
+        generatePdf(selectedMonth, reportData);
+    };
+
+    const handleBatchExportPdf = () => {
+        if (selectedBatchMonths.length === 0) return;
+        selectedBatchMonths.forEach(month => {
+            const data = computeReportDataForMonth(month);
+            generatePdf(month, data);
+        });
+        setIsBatchExportOpen(false);
     };
 
     if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
@@ -372,6 +386,12 @@ export default function Emp201ReportPage() {
                             ))}
                         </SelectContent>
                     </Select>
+                    <Button variant="outline" onClick={() => {
+                        setSelectedBatchMonths([]);
+                        setIsBatchExportOpen(true);
+                    }}>
+                        <FileText className="mr-2 h-4 w-4" /> Batch Export
+                    </Button>
                     <Button variant="outline" className="h-10 gap-2 font-bold" onClick={handleDownloadExcel}>
                         <Download className="h-4 w-4" /> Export Excel
                     </Button>
@@ -422,6 +442,36 @@ export default function Emp201ReportPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog open={isBatchExportOpen} onOpenChange={setIsBatchExportOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Batch Export EMP201s</DialogTitle>
+                        <DialogDescription>Select the months you want to download as individual PDFs.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 max-h-[50vh] overflow-y-auto p-4 border rounded-md">
+                        {availableMonths.map(m => (
+                            <div key={m} className="flex items-center space-x-3">
+                                <Checkbox 
+                                    id={`batch-${m}`} 
+                                    checked={selectedBatchMonths.includes(m)}
+                                    onCheckedChange={(checked) => {
+                                        if (checked) setSelectedBatchMonths(prev => [...prev, m]);
+                                        else setSelectedBatchMonths(prev => prev.filter(x => x !== m));
+                                    }}
+                                />
+                                <Label htmlFor={`batch-${m}`} className="cursor-pointer text-sm font-medium">{m}</Label>
+                            </div>
+                        ))}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsBatchExportOpen(false)}>Cancel</Button>
+                        <Button onClick={handleBatchExportPdf} disabled={selectedBatchMonths.length === 0}>
+                            Download {selectedBatchMonths.length} PDF(s)
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Card className="border-2 overflow-hidden">
                 <CardHeader className="bg-muted/30 border-b flex flex-row justify-between items-center">
