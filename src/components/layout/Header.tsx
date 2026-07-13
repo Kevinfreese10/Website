@@ -37,6 +37,10 @@ const navGroups = [
     href: '/monthly-accounting',
     items: [
         { label: 'Monthly Accounting', href: '/monthly-accounting' },
+        { label: 'SME Accounting', href: '/sme-accounting' },
+        { label: 'Bookkeeping', href: '/bookkeeping' },
+        { label: 'Financial Statements', href: '/financial-statements' },
+        { label: 'Financial Advisory', href: '/financial-advisory' },
         { label: 'Joburg Bookkeeping', href: '/bookkeeping-services-johannesburg' },
         { label: 'Fractional CFO Services', href: '/fractional-cfo-services-south-africa' },
         { label: 'Movie & Film Accounting', href: '/movie-film-production-accounting-south-africa' },
@@ -52,6 +56,7 @@ const navGroups = [
     href: '/monthly-payroll',
     items: [
         { label: 'Monthly Payroll', href: '/monthly-payroll' },
+        { label: 'Payroll Services', href: '/payroll-services' },
         { label: 'Outsourced Payroll Fees', href: '/outsourced-payroll-fees-sa' },
     ]
   },
@@ -59,10 +64,14 @@ const navGroups = [
     label: 'Tax',
     href: '/products#sars-services',
     items: [
+      { label: 'Tax Returns', href: '/tax-returns' },
+      { label: 'Tax Compliance', href: '/tax-compliance' },
+      { label: 'Tax Consulting', href: '/tax-consulting' },
+      { label: 'Tax Planning', href: '/tax-planning' },
+      { label: 'Provisional Tax', href: '/provisional-tax' },
+      { label: 'Tax Disputes', href: '/tax-disputes' },
       { label: 'Free Tax Refund Check', href: '/sars-tax-refund' },
-      { label: 'Tax Compliance', href: '/compliance' },
       { label: 'SARS Compromises', href: '/sars-compromise' },
-      { label: 'SARS Disputes', href: '/sars-disputes' },
       { label: 'Remission of Fines', href: '/remission-of-fines' },
     ],
   },
@@ -70,7 +79,10 @@ const navGroups = [
     label: 'Registrations',
     href: '/cipc-company-registration-online',
     items: [
-        { label: 'Company Registration', href: '/cipc-company-registration-online' },
+        { label: 'Company Registration', href: '/company-registration' },
+        { label: 'Compliance Services', href: '/compliance-services' },
+        { label: 'Trust Services', href: '/trust-services' },
+        { label: 'Specialist Services', href: '/specialist-services' },
         { label: 'Registration Pricing', href: '/register-company-south-africa-price' },
         { label: 'Voluntary Liquidations', href: '/liquidations' },
     ]
