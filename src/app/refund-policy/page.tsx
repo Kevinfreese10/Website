@@ -18,10 +18,10 @@ export default function RefundPolicyPage() {
     <div className="container mx-auto max-w-2xl px-4 py-12">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-3">
+          <h1 className="flex items-center gap-3 text-2xl font-semibold leading-none tracking-tight text-foreground">
             <AlertCircle className="h-6 w-6 text-primary" />
             Refund Policy
-          </CardTitle>
+          </h1>
         </CardHeader>
         <CardContent className="space-y-4">
             <p className="text-muted-foreground">Our refund policy for accounting and compliance services is as follows:</p>

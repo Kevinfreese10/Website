@@ -125,6 +125,26 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/about-us',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/contact-us',
+        destination: '/contact',
+        permanent: true,
+      },
+      {
+        source: '/advisory-services',
+        destination: '/products',
+        permanent: true,
+      },
+      {
+        source: '/compliance-check',
+        destination: '/compliance',
+        permanent: true,
+      },
+      {
         source: '/og-image.jpg',
         destination: GLOBAL_OG_URL,
         permanent: true,

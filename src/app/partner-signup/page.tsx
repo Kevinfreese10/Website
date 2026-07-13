@@ -17,7 +17,7 @@ export default function PartnerSignupPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4 sm:p-6 lg:p-8">
       <Card className="w-full max-w-3xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold tracking-tight">Become a Partner</CardTitle>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Become a Partner</h1>
           <CardDescription>Fill out the form below to join our partner program.</CardDescription>
         </CardHeader>
         <CardContent>
