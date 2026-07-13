@@ -153,7 +153,146 @@ const nextConfig: NextConfig = {
         source: '/opengraph-image.jpg',
         destination: GLOBAL_OG_URL,
         permanent: true,
-      }
+      },
+
+      // ===== SEO DEAD SLUG REDIRECTS (from 4xx crawl audit) =====
+      // --- Tax Compliance cluster → /tax-compliance ---
+      { source: '/products/tax-compliance', destination: '/tax-compliance', permanent: true },
+      { source: '/products/tax-compliance-services', destination: '/tax-compliance', permanent: true },
+      { source: '/products/tax-compliance-service', destination: '/tax-compliance', permanent: true },
+      { source: '/products/tax-compliance-consulting', destination: '/tax-compliance', permanent: true },
+      { source: '/products/tax-compliance-resolution', destination: '/tax-compliance', permanent: true },
+      { source: '/products/tax-compliance-review', destination: '/tax-compliance', permanent: true },
+      { source: '/products/tax-compliance-certificate-assistance', destination: '/products/tax-clearance-certificate', permanent: true },
+      { source: '/products/sars-compliance', destination: '/tax-compliance', permanent: true },
+      { source: '/products/sars-compliance-check', destination: '/tax-compliance', permanent: true },
+      { source: '/products/sars-compliance-checks', destination: '/tax-compliance', permanent: true },
+      { source: '/products/sars-compliance-service', destination: '/tax-compliance', permanent: true },
+      { source: '/products/sars-compliance-services', destination: '/tax-compliance', permanent: true },
+
+      // --- Tax Consulting cluster → /tax-consulting ---
+      { source: '/products/tax-consulting', destination: '/tax-consulting', permanent: true },
+      { source: '/products/tax-consulting-services', destination: '/tax-consulting', permanent: true },
+      { source: '/products/tax-consulting-and-compliance', destination: '/tax-consulting', permanent: true },
+      { source: '/products/tax-advisory-services', destination: '/tax-consulting', permanent: true },
+      { source: '/products/tax-consultation', destination: '/tax-consulting', permanent: true },
+      { source: '/products/tax-consultation-service', destination: '/tax-consulting', permanent: true },
+      { source: '/products/tax-consultation-services', destination: '/tax-consulting', permanent: true },
+
+      // --- Tax Returns cluster → /tax-returns ---
+      { source: '/products/tax-returns', destination: '/tax-returns', permanent: true },
+      { source: '/products/tax-return-submission-service', destination: '/tax-returns', permanent: true },
+      { source: '/products/tax-services', destination: '/tax-returns', permanent: true },
+      { source: '/products/individual-tax-returns', destination: '/products/individual-income-tax-return-itr12-simple', permanent: true },
+      { source: '/products/individual-tax-services', destination: '/products/individual-income-tax-return-itr12-simple', permanent: true },
+      { source: '/products/personal-tax-returns', destination: '/products/individual-income-tax-return-itr12-simple', permanent: true },
+      { source: '/products/personal-tax-services', destination: '/products/individual-income-tax-return-itr12-simple', permanent: true },
+      { source: '/products/company-tax-returns', destination: '/products/itr14-company-income-tax-return-trading-entities', permanent: true },
+      { source: '/products/company-tax-filing', destination: '/products/itr14-company-income-tax-return-trading-entities', permanent: true },
+      { source: '/products/company-tax-services', destination: '/products/itr14-company-income-tax-return-trading-entities', permanent: true },
+      { source: '/products/business-tax-services', destination: '/products/itr14-company-income-tax-return-trading-entities', permanent: true },
+
+      // --- Tax Planning cluster → /tax-planning ---
+      { source: '/products/tax-planning', destination: '/tax-planning', permanent: true },
+      { source: '/products/international-tax-planning', destination: '/tax-planning', permanent: true },
+      { source: '/products/tax-health-check', destination: '/tax-planning', permanent: true },
+
+      // --- Tax Disputes cluster → /tax-disputes ---
+      { source: '/products/sars-dispute-resolution', destination: '/sars-disputes', permanent: true },
+      { source: '/products/tax-dispute-resolution', destination: '/sars-disputes', permanent: true },
+      { source: '/products/tax-objections-appeals', destination: '/tax-disputes', permanent: true },
+      { source: '/products/sars-audit-support', destination: '/tax-disputes', permanent: true },
+
+      // --- Provisional Tax cluster → /provisional-tax ---
+      { source: '/products/provisional-tax', destination: '/provisional-tax', permanent: true },
+      { source: '/products/provisional-tax-assistance', destination: '/provisional-tax', permanent: true },
+      { source: '/products/provisional-tax-service', destination: '/provisional-tax', permanent: true },
+
+      // --- Payroll cluster → /payroll-services ---
+      { source: '/products/payroll', destination: '/payroll-services', permanent: true },
+      { source: '/products/payroll-services', destination: '/payroll-services', permanent: true },
+      { source: '/products/payroll-management', destination: '/payroll-services', permanent: true },
+      { source: '/products/payroll-outsourcing-service', destination: '/payroll-services', permanent: true },
+
+      // --- Bookkeeping cluster → /bookkeeping ---
+      { source: '/products/bookkeeping', destination: '/bookkeeping', permanent: true },
+      { source: '/products/bookkeeping-services', destination: '/bookkeeping', permanent: true },
+      { source: '/products/bookkeeping-payroll', destination: '/bookkeeping', permanent: true },
+
+      // --- Financial Statements cluster → /financial-statements ---
+      { source: '/products/financial-statements', destination: '/financial-statements', permanent: true },
+      { source: '/products/financial-reporting', destination: '/financial-statements', permanent: true },
+      { source: '/products/financial-reporting-services', destination: '/financial-statements', permanent: true },
+      { source: '/products/annual-financial-statements', destination: '/annual-financial-statements', permanent: true },
+
+      // --- Financial Advisory cluster → /financial-advisory ---
+      { source: '/products/financial-advisory', destination: '/financial-advisory', permanent: true },
+      { source: '/products/financial-advisory-services', destination: '/financial-advisory', permanent: true },
+      { source: '/products/financial-consulting', destination: '/financial-advisory', permanent: true },
+      { source: '/products/financial-planning', destination: '/financial-advisory', permanent: true },
+      { source: '/products/cfo-services', destination: '/fractional-cfo-services-south-africa', permanent: true },
+      { source: '/products/debt-restructuring-advisory', destination: '/financial-advisory', permanent: true },
+      { source: '/products/estate-planning', destination: '/financial-advisory', permanent: true },
+      { source: '/products/loan-application-support', destination: '/financial-advisory', permanent: true },
+
+      // --- Company Registration cluster → /company-registration ---
+      { source: '/products/company-registration-service', destination: '/products/private-company-registration', permanent: true },
+      { source: '/products/company-secretarial', destination: '/company-registration', permanent: true },
+      { source: '/products/company-secretarial-services', destination: '/company-registration', permanent: true },
+      { source: '/products/secretarial-services', destination: '/company-registration', permanent: true },
+      { source: '/products/company-profile-development', destination: '/company-registration', permanent: true },
+      { source: '/products/company-deregistration-reinstatement', destination: '/products/company-reinstatement', permanent: true },
+      { source: '/products/cipc-company-reinstatement-service', destination: '/products/company-reinstatement', permanent: true },
+      { source: '/products/cipc-compliance-services', destination: '/compliance-services', permanent: true },
+
+      // --- Compliance cluster → /compliance-services ---
+      { source: '/products/compliance', destination: '/compliance-services', permanent: true },
+      { source: '/products/compliance-services', destination: '/compliance-services', permanent: true },
+      { source: '/products/compliance-consultation', destination: '/compliance-services', permanent: true },
+      { source: '/products/compliance-consulting', destination: '/compliance-services', permanent: true },
+      { source: '/products/business-compliance', destination: '/compliance-services', permanent: true },
+
+      // --- SME Accounting cluster → /sme-accounting ---
+      { source: '/products/sme-accounting', destination: '/sme-accounting', permanent: true },
+      { source: '/products/sme-accounting-services', destination: '/sme-accounting', permanent: true },
+      { source: '/products/sme-solutions', destination: '/sme-accounting', permanent: true },
+      { source: '/products/sme-tax-advisory', destination: '/sme-accounting', permanent: true },
+      { source: '/products/sme-tax-services', destination: '/sme-accounting', permanent: true },
+      { source: '/products/sme-tax-solutions', destination: '/sme-accounting', permanent: true },
+      { source: '/products/small-business-accounting', destination: '/small-business-accounting-south-africa', permanent: true },
+      { source: '/products/small-business-accounting-services', destination: '/small-business-accounting-south-africa', permanent: true },
+      { source: '/products/small-business-tax-services', destination: '/sme-accounting', permanent: true },
+
+      // --- Trust Services cluster → /trust-services ---
+      { source: '/products/trust-registration', destination: '/trust-services', permanent: true },
+      { source: '/products/trust-registration-services', destination: '/trust-services', permanent: true },
+      { source: '/products/trust-formation', destination: '/trust-services', permanent: true },
+      { source: '/products/trust-administration', destination: '/trust-services', permanent: true },
+
+      // --- Specialist Services cluster → /specialist-services ---
+      { source: '/products/npo-financial-management', destination: '/specialist-services', permanent: true },
+      { source: '/products/csd-registration-support', destination: '/products/csd-registration', permanent: true },
+      { source: '/products/customs-clearance-support', destination: '/specialist-services', permanent: true },
+      { source: '/products/customs-consulting', destination: '/specialist-services', permanent: true },
+      { source: '/products/tender-consulting-services', destination: '/products/tender-ready-company-registration-package', permanent: true },
+      { source: '/products/bee-consulting', destination: '/products/bee-certificate', permanent: true },
+      { source: '/products/b-bbee-advisory-service', destination: '/products/bee-certificate', permanent: true },
+      { source: '/products/audit-services', destination: '/specialist-services', permanent: true },
+      { source: '/products/audit-assurance-services', destination: '/specialist-services', permanent: true },
+      { source: '/products/business-rescue', destination: '/liquidations', permanent: true },
+      { source: '/products/tax-representative-service', destination: '/products/tax-representative-appointment', permanent: true },
+      { source: '/products/vat-registration-service', destination: '/products/vat-registration', permanent: true },
+      { source: '/products/accounting-solutions', destination: '/accounting-services-south-africa', permanent: true },
+      { source: '/products/advisory', destination: '/financial-advisory', permanent: true },
+      { source: '/products/annual-return-filing', destination: '/products/annual-returns', permanent: true },
+      { source: '/products/annual-returns-service', destination: '/products/annual-returns', permanent: true },
+      { source: '/products/business-advisory', destination: '/financial-advisory', permanent: true },
+      { source: '/products/business-advisory-services', destination: '/financial-advisory', permanent: true },
+
+      // --- Top-level orphan redirects ---
+      { source: '/small-business-accounting', destination: '/small-business-accounting-south-africa', permanent: true },
+      { source: '/tax-consultation', destination: '/tax-consulting', permanent: true },
+      { source: '/articles/directors-duties', destination: '/blog', permanent: true },
     ];
   },
   webpack: (config, { isServer }) => {
