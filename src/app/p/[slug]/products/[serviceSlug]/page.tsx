@@ -30,6 +30,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: title,
     description: description,
+    robots: {
+      index: false,
+      follow: false,
+    },
     alternates: {
         canonical: `${SITE_URL}/p/${slug}/products/${serviceSlug}`,
     },
