@@ -57,8 +57,8 @@ export async function websiteQAndA(
   const authAdmin = getAdminAuth();
 
   const companyName = 'My Accountant';
-  const contactEmail = 'hello@myacc.co.za';
-  const contactPhone = '011 000 0000';
+  const contactEmail = 'info@myacc.co.za';
+  const contactPhone = '010 109 1625';
   let partnerData: any = null;
   if (input.partnerSlug) {
     const partnerSnap = await adminDb.collection('resellers').where('slug', '==', input.partnerSlug).get();
