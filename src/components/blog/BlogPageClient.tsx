@@ -19,7 +19,8 @@ import { BlogPost } from '@/lib/types';
 export default function BlogPageClient({ initialBlogPosts }: { initialBlogPosts?: BlogPost[] }) {
   const { blogPosts: contextPosts, isLoading } = useBlog();
   
-  const blogPosts = initialBlogPosts && initialBlogPosts.length > 0 ? initialBlogPosts : contextPosts;
+  const rawPosts = initialBlogPosts && initialBlogPosts.length > 0 ? initialBlogPosts : contextPosts;
+  const blogPosts = [...rawPosts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const showLoader = isLoading && (!initialBlogPosts || initialBlogPosts.length === 0);
 
   return (

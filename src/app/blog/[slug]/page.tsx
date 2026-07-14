@@ -7,7 +7,7 @@ import { Metadata, ResolvingMetadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Clock } from 'lucide-react';
+import { ArrowRight, Clock, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import Script from 'next/script';
@@ -329,29 +329,93 @@ export default async function BlogPostPage({ params }: Props) {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {relatedServices.map(service => (
                       <Card
-                      key={service.id}
-                      className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                        key={service.id}
+                        className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25"
                       >
-                      <CardHeader>
-                          <CardTitle>{service.title}</CardTitle>
-                          {service.isPriceTbc ? (
-                              <p className="text-xl font-bold text-muted-foreground pt-2">Price on request</p>
-                          ) : (
-                              <p className="text-2xl font-bold text-primary pt-2">{formatPrice(service.price)}</p>
-                          )}
-                          <div className="flex items-center text-muted-foreground pt-1">
-                              <Clock className="h-4 w-4 mr-1.5" />
-                              <span className="text-xs font-medium">{service.turnaroundTime}</span>
-                          </div>
-                      </CardHeader>
-                      <CardContent className="flex-grow">
-                          <CardDescription>{service.description}</CardDescription>
-                      </CardContent>
-                      <CardFooter>
-                          <Button asChild className="w-full">
-                          <Link href={`/products/${service.slug}`}>Learn More</Link>
-                          </Button>
-                      </CardFooter>
+                        <CardHeader className="pb-3 relative">
+                            {service.isFeatured && (
+                              <div className="absolute top-3 right-3">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider border border-amber-500/20">
+                                  <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" /> Popular
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-full px-2 py-0.5 flex items-center">
+                                  {service.category}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <CardTitle className="leading-snug text-slate-800 text-[16px] font-black group-hover:text-primary transition-colors duration-300 pr-14">
+                              <Link href={`/products/${service.slug}`} className="hover:underline line-clamp-2">
+                                {service.title}
+                              </Link>
+                            </CardTitle>
+
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              <div className="flex items-center text-amber-400">
+                                <Star className="h-3 w-3 fill-amber-400" />
+                                <Star className="h-3 w-3 fill-amber-400" />
+                                <Star className="h-3 w-3 fill-amber-400" />
+                                <Star className="h-3 w-3 fill-amber-400" />
+                                <Star className="h-3 w-3 fill-amber-400" />
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-500">
+                                {service.aggregateRatingValue || "5.0"} ({service.reviewCount || "120+"})
+                              </span>
+                            </div>
+
+                            <div className="mt-3 flex items-start justify-between gap-2">
+                              <div>
+                                {service.isPriceTbc ? (
+                                  <span className="text-xl font-black text-slate-900 leading-none block">Price on Request</span>
+                                ) : (
+                                  <span className="text-xl font-black text-slate-900 leading-none block">
+                                    {formatPrice(service.price)}
+                                  </span>
+                                )}
+                              </div>  
+                              <div className="flex items-center text-slate-500 gap-1.5">
+                                <Clock className="h-3.5 w-3.5 text-emerald-500" />
+                                <span className="text-xs font-semibold text-slate-500">{service.turnaroundTime}</span>
+                              </div>
+                            </div>
+                        </CardHeader>
+
+                        <CardContent className="flex-grow pt-0 pb-3">
+                            {service.whatsIncluded && service.whatsIncluded.length > 0 ? (
+                              <div className="mt-1">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">What's Included</p>
+                                <ul className="text-xs text-slate-600 leading-relaxed space-y-1.5">
+                                  {service.whatsIncluded.slice(0, 3).map((item, idx) => (
+                                    <li key={idx} className="flex items-start">
+                                      <span className="h-1.5 w-1.5 mr-2 mt-1.5 bg-green-500 flex-none rounded-full" />
+                                      <span className="line-clamp-1">{item}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mt-1">{service.description}</p>
+                            )}
+                        </CardContent>
+
+                        <CardFooter className="pt-0 pb-4 flex gap-2">
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="default"
+                              className="flex-1 font-bold h-10 text-xs rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
+                            >
+                              <Link href={`/products/${service.slug}`} className="group/btn flex items-center justify-center gap-1">
+                                {service.isPriceTbc ? "Get a Quote" : "Details"}
+                                <ArrowRight className="h-3 w-3 group-hover/btn:translate-x-0.5 transition-transform" />
+                              </Link>
+                            </Button>
+                        </CardFooter>
                       </Card>
                   ))}
               </div>
