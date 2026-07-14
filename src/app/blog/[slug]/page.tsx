@@ -11,6 +11,7 @@ import { ArrowRight, Clock, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import Script from 'next/script';
+import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 
 export const revalidate = 1800;
 
@@ -261,7 +262,11 @@ export default async function BlogPostPage({ params }: Props) {
         </div>
       </section>
 
-      <article className="container mx-auto max-w-4xl px-4 py-12">
+      <div className="w-full pt-4">
+        <TrustIndexWidget />
+      </div>
+
+      <article className="container mx-auto max-w-4xl px-4 pb-12">
         <div className="relative my-8 h-64 md:h-[450px] w-full">
           <Image
             src={post.imageUrl}
