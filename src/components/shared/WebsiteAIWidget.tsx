@@ -187,19 +187,8 @@ export default function WebsiteAIWidget() {
       console.error("Firestore onSnapshot error:", error);
     });
 
-    // Automatically open the widget as a popup in modal mode after a short delay of 1.5 seconds (only once ever per user)
-    const hasOpenedBefore = localStorage.getItem('myacc_chat_opened');
-    const timer = setTimeout(() => {
-      if (!hasOpenedBefore) {
-        setIsModal(true);
-        setIsOpen(true);
-        localStorage.setItem('myacc_chat_opened', 'true');
-      }
-    }, 1500);
-
     return () => {
       unsubscribe();
-      clearTimeout(timer);
     };
   }, []);
 

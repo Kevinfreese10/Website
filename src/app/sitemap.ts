@@ -61,6 +61,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/tax-compliance',
     '/tax-consulting',
     '/tax-returns',
+    '/individual-tax-returns',
     '/tax-planning',
     '/tax-disputes',
     '/provisional-tax',

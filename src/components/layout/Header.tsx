@@ -65,6 +65,7 @@ const navGroups = [
     href: '/products#sars-services',
     items: [
       { label: 'Tax Returns', href: '/tax-returns' },
+      { label: 'Individual Tax Returns', href: '/individual-tax-returns' },
       { label: 'Tax Compliance', href: '/tax-compliance' },
       { label: 'Tax Consulting', href: '/tax-consulting' },
       { label: 'Tax Planning', href: '/tax-planning' },
