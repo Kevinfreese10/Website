@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import Script from 'next/script';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
+import ShareWidget from '@/components/blog/ShareWidget';
 
 export const revalidate = 1800;
 
@@ -107,6 +108,13 @@ const formatPrice = (price: number) => {
       minimumFractionDigits: price % 1 === 0 ? 0 : 2,
       maximumFractionDigits: 2,
     }).format(price);
+};
+
+// Helper to estimate read time
+const calculateReadTime = (content: string | undefined) => {
+    if (!content) return 1;
+    const words = content.replace(/<[^>]*>?/gm, '').split(/\s+/).length;
+    return Math.max(1, Math.ceil(words / 200));
 };
 
 export default async function BlogPostPage({ params }: Props) {
@@ -238,65 +246,85 @@ export default async function BlogPostPage({ params }: Props) {
       />
       
       {/* DYNAMIC PREMIUM HERO SECTION */}
-      <section className="relative w-full overflow-hidden bg-slate-50 border-b pt-16 pb-20 text-center animate-in fade-in">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <Badge variant="secondary" className="mb-4 uppercase tracking-wider">Tax Tip Blog</Badge>
-          <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl leading-tight text-hero-gradient pb-2">
-            {firstPart} {secondPart && <span className="text-gradient">{secondPart}</span>}
-          </h1>
-          <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
-            {post.excerpt}
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-sm text-muted-foreground font-semibold">
-            <div className="text-center sm:text-left">
-              <p className="font-bold text-slate-900 leading-tight">
-                Kevin Freese (Chartered Business Accountant & Registered Tax Practitioner)
-              </p>
-              <p className="text-xs text-muted-foreground font-semibold mt-0.5">
-                CIBA (SBA Practitioner) | SAIT (General Tax Practitioner SA)
-              </p>
+      <section className="relative w-full bg-white border-b pt-20 pb-24 animate-in fade-in">
+        <div className="absolute inset-0 bg-grid-slate-100/[0.04] bg-[size:20px_20px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50/80" />
+        
+        <div className="container relative mx-auto px-4 max-w-4xl z-10">
+          
+          <div className="flex flex-col items-center text-center space-y-6">
+            <Badge variant="secondary" className="uppercase tracking-widest font-extrabold bg-blue-50 text-blue-700 px-3 py-1">Tax Tip Blog</Badge>
+            
+            <h1 className="text-4xl font-black tracking-tight md:text-5xl lg:text-6xl leading-tight text-slate-900">
+              {firstPart} {secondPart && <span className="text-gradient from-blue-600 to-indigo-600">{secondPart}</span>}
+            </h1>
+            
+            <p className="max-w-2xl text-lg font-medium text-slate-600 md:text-xl leading-relaxed">
+              {post.excerpt}
+            </p>
+            
+            {/* Author & Meta Block */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-8 pt-8 border-t border-slate-200/60 w-full max-w-2xl">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 rounded-full overflow-hidden shadow-md border-2 border-white">
+                  <Image src="https://ui-avatars.com/api/?name=Kevin+Freese&background=0D8ABC&color=fff" alt="Kevin Freese" width={56} height={56} className="object-cover h-full w-full" unoptimized />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-slate-900 leading-tight">Kevin Freese</p>
+                  <p className="text-xs font-semibold text-slate-500 mt-0.5">Chartered Accountant (CIBA, SAIT)</p>
+                </div>
+              </div>
+              
+              <div className="hidden sm:block h-10 w-px bg-slate-200" />
+              
+              <div className="flex items-center gap-4 text-sm font-semibold text-slate-600">
+                <span>{format(new Date(post.date), 'MMMM d, yyyy')}</span>
+                <span className="h-1 w-1 rounded-full bg-slate-300" />
+                <span className="flex items-center"><Clock className="h-4 w-4 mr-1.5 text-primary" /> {calculateReadTime(post.content)} min read</span>
+              </div>
             </div>
-            <span className="hidden sm:inline text-slate-300">|</span>
-            <span className="flex items-center"><Clock className="h-4 w-4 mr-1.5 text-primary" /> {format(new Date(post.date), 'dd/MM/yyyy')}</span>
           </div>
         </div>
       </section>
 
-      <div className="w-full pt-4">
+      <div className="w-full pt-8 pb-4">
         <TrustIndexWidget />
       </div>
 
-      <article className="container mx-auto max-w-4xl px-4 pb-12">
-        <div className="relative my-8 h-64 md:h-[450px] w-full">
+      <article className="container mx-auto max-w-4xl px-4 pb-12 mt-4">
+        {/* SHARE WIDGET */}
+        <ShareWidget postTitle={post.title} postSlug={post.slug} />
+
+        <div className="relative mb-12 h-64 md:h-[450px] w-full">
           <Image
             src={post.imageUrl}
             alt={post.title}
             fill
-            className="rounded-xl object-cover shadow-xl border"
+            className="rounded-2xl object-cover shadow-2xl border border-slate-200"
             data-ai-hint={post.imageHint}
             priority
           />
         </div>
 
         <div
-          className="prose prose-lg max-w-none prose-h3:font-headline prose-h3:text-xl prose-h3:font-semibold prose-p:text-foreground/80 prose-a:text-primary"
+          className="prose prose-lg md:prose-xl max-w-none prose-headings:font-headline prose-headings:font-black prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4 prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-primary prose-a:font-semibold hover:prose-a:text-primary/80 prose-li:text-slate-700 prose-li:marker:text-primary prose-ul:space-y-2 prose-ol:space-y-2 prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-slate-50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:font-medium prose-blockquote:text-slate-900 prose-img:rounded-2xl prose-img:shadow-lg"
           dangerouslySetInnerHTML={{ __html: post.content }}
           suppressHydrationWarning
         />
 
         {/* PROMINENT CTA BLOCK TO REDIRECT TRAFFIC */}
-        <div className="my-16 bg-primary/5 rounded-3xl p-8 md:p-12 border border-primary/10 shadow-sm text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-dot-grid opacity-30" />
+        <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
           <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-            <h2 className="text-3xl font-black tracking-tight text-foreground font-headline">Need Expert Accounting or Compliance Help?</h2>
-            <p className="text-lg text-muted-foreground font-medium">
-              Don't let SARS, CIPC, or complex accounting slow your business down. Our team of registered professionals is ready to handle it for you online.
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white font-headline">Need Expert Help?</h2>
+            <p className="text-lg text-slate-300 font-medium">
+              Don't let tax compliance slow you down. Book a free consultation today or browse our online store.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
+              <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-blue-600 hover:bg-blue-500 text-white transition-all duration-300 w-full sm:w-auto">
                 <Link href="/contact">Book Free Consultation</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="h-14 px-8 text-base font-bold bg-white hover:bg-slate-50 text-foreground transition-all duration-300 w-full sm:w-auto">
+              <Button asChild variant="outline" size="lg" className="h-14 px-8 text-base font-bold bg-white/10 hover:bg-white/20 border-white/20 text-white transition-all duration-300 w-full sm:w-auto backdrop-blur-md">
                 <Link href="/products">Visit Online Store</Link>
               </Button>
             </div>
