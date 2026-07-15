@@ -30,9 +30,19 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
       const doc = new jsPDF();
       const primaryColor: [number, number, number] = [33, 67, 146]; // #214392 in RGB
 
+      // Map currency code to symbol
+      const currencySymbolMap: Record<string, string> = {
+          'ZAR': 'R',
+          'USD': '$',
+          'EUR': '€',
+          'GBP': '£',
+          'AUD': '$'
+      };
+      const symbol = currencySymbolMap[invoice.currency || 'ZAR'] || 'R';
+
       // Helper for clean currency formatting using en-GB to ensure dot decimals
       const formatCurrency = (val: number) => {
-          return `R ${val.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          return `${symbol} ${val.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       };
 
       // 1. Branding / Title

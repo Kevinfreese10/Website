@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import Image from "next/image";
 import React from "react";
 
-const formatPrice = (price: number) => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(price);
+const formatPrice = (price: number, currency: string = 'ZAR') => new Intl.NumberFormat('en-ZA', { style: 'currency', currency: currency }).format(price);
 
 const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, client: User | null, customer: ClientCustomer | undefined }>(({ invoice, client, customer }, ref) => {
     if (!invoice || !client || !customer) return null;
@@ -126,9 +126,9 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                                 <tr key={index} className="border-b border-gray-200 text-xs">
                                     <td className="p-3 border">{item.description}</td>
                                     <td className="p-3 text-center border">{item.quantity}</td>
-                                    <td className="p-3 text-right border font-mono">{formatPrice(item.rate)}</td>
-                                    <td className="p-3 text-right border font-mono">{formatPrice(vatAmount)}</td>
-                                    <td className="p-3 text-right border font-semibold font-mono">{formatPrice(totalAmount)}</td>
+                                    <td className="p-3 text-right border font-mono">{formatPrice(item.rate, invoice.currency)}</td>
+                                    <td className="p-3 text-right border font-mono">{formatPrice(vatAmount, invoice.currency)}</td>
+                                    <td className="p-3 text-right border font-semibold font-mono">{formatPrice(totalAmount, invoice.currency)}</td>
                                 </tr>
                             )
                         })}
@@ -140,15 +140,15 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                 <div className="w-full max-w-sm space-y-2">
                     <div className="flex justify-between text-gray-600 text-sm">
                         <span>Subtotal (Excl)</span>
-                        <span className="font-mono">{formatPrice(invoice.subtotal)}</span>
+                        <span className="font-mono">{formatPrice(invoice.subtotal, invoice.currency)}</span>
                     </div>
                     <div className="flex justify-between text-gray-600 text-sm">
                         <span>Total VAT (15%)</span>
-                        <span className="font-mono">{formatPrice(invoice.vat)}</span>
+                        <span className="font-mono">{formatPrice(invoice.vat, invoice.currency)}</span>
                     </div>
                     <div className="flex justify-between text-xl font-bold text-gray-900 border-t pt-3 mt-3">
                         <span>Grand Total</span>
-                        <span className="font-mono">{formatPrice(invoice.total)}</span>
+                        <span className="font-mono">{formatPrice(invoice.total, invoice.currency)}</span>
                     </div>
                 </div>
             </section>

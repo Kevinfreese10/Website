@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,11 +49,18 @@ const invoiceFormSchema = z.object({
     dueDate: z.date({ required_error: "Due date is required." }),
     lineItems: z.array(lineItemSchema).min(1, "At least one line item is required."),
     notes: z.string().optional(),
+    currency: z.string().default('ZAR'),
 });
 
 type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
 
-const formatPrice = (price: number) => new Intl.NumberFormat('en-GB', { style: 'decimal', minimumFractionDigits: 2 }).format(price);
+const formatPrice = (price: number, currency: string = 'ZAR') => {
+  return new Intl.NumberFormat('en-ZA', { 
+    style: 'currency', 
+    currency: currency,
+    minimumFractionDigits: 2 
+  }).format(price);
+};
 
 // A new component to calculate and display totals
 function InvoiceTotals({ control, isVatRegistered }: { control: any, isVatRegistered: boolean | undefined }) {
@@ -64,10 +72,11 @@ function InvoiceTotals({ control, isVatRegistered }: { control: any, isVatRegist
   const totals = useMemo(() => {
     let subtotal = 0;
     let vat = 0;
-    watchedLines.forEach((line: any) => {
-      const lineSubtotal = (line.quantity || 0) * (line.rate || 0);
+    const linesToWatch = watchedLines || [];
+    linesToWatch.forEach((line: any) => {
+      const lineSubtotal = (line?.quantity || 0) * (line?.rate || 0);
       subtotal += lineSubtotal;
-      if (isVatRegistered && line.vatType === 'standard_rated_sales') {
+      if (isVatRegistered && line?.vatType === 'standard_rated_sales') {
         vat += lineSubtotal * 0.15;
       }
     });
@@ -75,11 +84,16 @@ function InvoiceTotals({ control, isVatRegistered }: { control: any, isVatRegist
     return { subtotal, vat, total };
   }, [watchedLines, isVatRegistered]);
 
+  const currency = useWatch({
+    control,
+    name: "currency",
+  }) || 'ZAR';
+
   return (
     <CardFooter className="p-4 bg-muted rounded-lg mt-4 flex flex-col items-end gap-2 max-w-sm ml-auto">
-        <div className="flex justify-between w-full text-sm"><span className="text-muted-foreground">Subtotal:</span><span>{formatPrice(totals.subtotal)}</span></div>
-        {isVatRegistered && <div className="flex justify-between w-full text-sm"><span className="text-muted-foreground">VAT (15%):</span><span>{formatPrice(totals.vat)}</span></div>}
-        <div className="flex justify-between w-full font-bold text-lg"><span >Total:</span><span>{formatPrice(totals.total)}</span></div>
+        <div className="flex justify-between w-full text-sm"><span className="text-muted-foreground">Subtotal:</span><span>{formatPrice(totals.subtotal, currency)}</span></div>
+        {isVatRegistered && <div className="flex justify-between w-full text-sm"><span className="text-muted-foreground">VAT (15%):</span><span>{formatPrice(totals.vat, currency)}</span></div>}
+        <div className="flex justify-between w-full font-bold text-lg"><span >Total:</span><span>{formatPrice(totals.total, currency)}</span></div>
     </CardFooter>
   );
 }
@@ -139,6 +153,7 @@ export default function InvoicesPage() {
             dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
             lineItems: [{ accountId: '', description: '', quantity: 1, rate: 0, vatType: 'standard_rated_sales' }],
             notes: '',
+            currency: 'ZAR',
         },
     });
 
@@ -286,7 +301,8 @@ export default function InvoicesPage() {
                 }
                 // If client is not VAT registered, default all lines to 'no_vat'
                 if (!clientData.isVatRegistered) {
-                    form.getValues('lineItems').forEach((_, index) => {
+                    const items = form.getValues('lineItems') || [];
+                    items.forEach((_, index) => {
                         form.setValue(`lineItems.${index}.vatType`, 'no_vat');
                     });
                 }
@@ -451,7 +467,8 @@ export default function InvoicesPage() {
                     <CardContent>
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                     <FormField control={form.control} name="currency" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel className="mb-1">Currency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="h-10"><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="ZAR">ZAR (R)</SelectItem><SelectItem value="USD">USD ($)</SelectItem><SelectItem value="EUR">EUR (€)</SelectItem><SelectItem value="GBP">GBP (£)</SelectItem><SelectItem value="AUD">AUD ($)</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
                                      <FormField
                                         control={form.control}
                                         name="customerId"
@@ -559,7 +576,7 @@ export default function InvoicesPage() {
                     <CardContent className="space-y-4">
                         <div className="flex flex-col md:flex-row gap-4 items-end">
                             <div className="space-y-2 flex-1">
-                                <FormLabel>Search</FormLabel>
+                                <Label className="mb-2 block font-medium text-sm">Search</Label>
                                 <Input 
                                     placeholder="Search by customer or invoice #" 
                                     value={searchQuery}
@@ -567,7 +584,7 @@ export default function InvoicesPage() {
                                 />
                             </div>
                             <div className="space-y-2 w-full md:w-48">
-                                <FormLabel>Status</FormLabel>
+                                <Label className="mb-2 block font-medium text-sm">Status</Label>
                                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="All Statuses" />
@@ -583,7 +600,7 @@ export default function InvoicesPage() {
                                 </Select>
                             </div>
                             <div className="space-y-2 w-full md:w-[350px]">
-                                <FormLabel>Date Range</FormLabel>
+                                <Label className="mb-2 block font-medium text-sm">Date Range</Label>
                                 <DateRangePicker onDateChange={setDateRange} value={dateRange} financialYearEnd={client?.yearEnd} />
                             </div>
                         </div>
@@ -631,9 +648,9 @@ export default function InvoicesPage() {
                                                         {invoice.status.toUpperCase()}
                                                     </span>
                                                 </TableCell>
-                                                <TableCell className="text-right">{formatPrice(invoice.total)}</TableCell>
-                                                <TableCell className="text-right text-muted-foreground">{formatPrice(invoice.amountPaid || 0)}</TableCell>
-                                                <TableCell className="text-right font-medium">{formatPrice(invoice.balanceDue !== undefined ? invoice.balanceDue : invoice.total)}</TableCell>
+                                                <TableCell className="text-right">{formatPrice(invoice.total, invoice.currency)}</TableCell>
+                                                <TableCell className="text-right text-muted-foreground">{formatPrice(invoice.amountPaid || 0, invoice.currency)}</TableCell>
+                                                <TableCell className="text-right font-medium">{formatPrice(invoice.balanceDue !== undefined ? invoice.balanceDue : invoice.total, invoice.currency)}</TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <InvoiceDownloadButton
@@ -715,7 +732,7 @@ export default function InvoicesPage() {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <FormLabel>Send To Email</FormLabel>
+                            <Label className="mb-2 block font-medium text-sm">Send To Email</Label>
                             <Input 
                                 value={emailAddress} 
                                 onChange={(e) => setEmailAddress(e.target.value)} 
@@ -740,7 +757,7 @@ export default function InvoicesPage() {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <FormLabel>Amount Received</FormLabel>
+                            <Label className="mb-2 block font-medium text-sm">Amount Received</Label>
                             <Input 
                                 type="number" 
                                 step="0.01" 
@@ -749,7 +766,7 @@ export default function InvoicesPage() {
                             />
                         </div>
                         <div className="space-y-2 flex flex-col">
-                            <FormLabel>Payment Date</FormLabel>
+                            <Label className="mb-2 block font-medium text-sm">Payment Date</Label>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-10", !paymentDate && "text-muted-foreground")}>
@@ -763,7 +780,7 @@ export default function InvoicesPage() {
                             </Popover>
                         </div>
                         <div className="space-y-2 flex flex-col">
-                            <FormLabel>Deposited To (Bank Account)</FormLabel>
+                            <Label className="mb-2 block font-medium text-sm">Deposited To (Bank Account)</Label>
                             <AccountSelector 
                                 client={client} 
                                 customers={customers} 
@@ -775,7 +792,7 @@ export default function InvoicesPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <FormLabel>Reference</FormLabel>
+                            <Label className="mb-2 block font-medium text-sm">Reference</Label>
                             <Input value={paymentReference} onChange={e => setPaymentReference(e.target.value)} />
                         </div>
                     </div>

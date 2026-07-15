@@ -168,6 +168,7 @@ export type Invoice = {
   balanceDue?: number;
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'final' | 'partial';
   createdAt: any;
+  currency?: string;
 };
 
 export type CreditNote = {
