@@ -29,7 +29,7 @@ export default function TaxReturnsPage() {
       title: "Complex Individual Tax Return (ITR12)",
       description: "Earn foreign income, rental income, capital gains, or freelance fees? Our complex ITR12 service covers all income sources, applicable deductions, and required schedules to ensure nothing is missed and your tax liability is correctly calculated.",
       icon: UserCog,
-      link: "/products/complex-individual-income-tax-return-itr12-filing",
+      link: "/products/complex-individual-income-tax-return-itr12",
     },
     {
       title: "Company Tax Return (ITR14)",
@@ -41,7 +41,7 @@ export default function TaxReturnsPage() {
       title: "Sole Proprietor Tax Return (ITR12)",
       description: "Sole proprietors have unique tax obligations including business income declarations, allowable business expenses, and wear-and-tear allowances. We prepare your ITR12 with the correct trade schedules to keep you compliant and tax-efficient.",
       icon: Briefcase,
-      link: "/products/income-tax-return-for-sole-proprietors-itr12",
+      link: "/products/sole-proprietor-income-tax-return-itr12",
     },
   ];
 

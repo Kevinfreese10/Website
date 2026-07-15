@@ -29,7 +29,7 @@ export default function TaxConsultingPage() {
       title: "Complex Individual Tax Returns",
       description: "Capital gains, foreign income, rental properties, share options, and crypto assets all require specialist knowledge. Our consultants ensure every deduction is claimed and every disclosure is accurate on your ITR12.",
       icon: UserCheck,
-      link: "/products/complex-individual-income-tax-return-itr12-filing",
+      link: "/products/complex-individual-income-tax-return-itr12",
     },
     {
       title: "Corporate Tax Advisory",
