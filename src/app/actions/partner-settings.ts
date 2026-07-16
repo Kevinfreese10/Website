@@ -33,3 +33,29 @@ export async function saveGeminiKey(apiKey: string) {
         return { success: false, error: 'Failed to save Gemini key' };
     }
 }
+
+export async function syncCustomDomainMapping(oldDomain: string | null, newDomain: string | null, slug: string) {
+    try {
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get('session')?.value;
+        if (!sessionCookie) return { success: false, error: 'Unauthorized' };
+        
+        await getAuth().verifySessionCookie(sessionCookie, true);
+        const adminDb = getAdminDb();
+        const batch = adminDb.batch();
+        
+        if (oldDomain && oldDomain !== newDomain) {
+            batch.delete(adminDb.collection('domainMappings').doc(oldDomain));
+        }
+        
+        if (newDomain) {
+            batch.set(adminDb.collection('domainMappings').doc(newDomain), { slug });
+        }
+        
+        await batch.commit();
+        return { success: true };
+    } catch (error) {
+        console.error("Error syncing custom domain:", error);
+        return { success: false, error: 'Failed to sync domain' };
+    }
+}

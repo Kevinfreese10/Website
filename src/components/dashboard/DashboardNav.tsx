@@ -160,7 +160,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
         // Staff always see Dashboard and Profile by default.
         if (item.label === 'Dashboard' || item.label === 'My Profile') return true;
         if (user.allowedModules && user.allowedModules.includes(item.label)) return true;
-        return item.roles.includes(user.role);
+        return false; // Strict check: MUST be in allowedModules
     }
     return item.roles.includes(user.role); // Other roles fallback
   };

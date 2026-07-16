@@ -281,6 +281,7 @@ export type PartnerLandingPageConfig = {
   googleAnalyticsId?: string;
   metaPixelId?: string;
   showCalculator?: boolean;
+  customDomain?: string;
 };
 
 // --- Partner Subscription & Staff Types ---
