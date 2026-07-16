@@ -12,7 +12,10 @@ export default function robots(): MetadataRoute.Robots {
           '/dashboard',
           '/cart',
           '/checkout',
-          '/admin'
+          '/admin',
+          '/p/',           // White-label partner storefronts — not canonical content
+          '/partner-invite/', // Partner invite flows — not indexable
+          '/reseller/',    // Reseller portal — not indexable
         ],
       },
     ],

@@ -9,8 +9,6 @@ import { Button } from '@/components/ui/button';
 import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Metadata } from 'next';
-import Script from 'next/script';
-import { generateStructuredData } from '@/lib/schema/productSchema';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string, serviceSlug: string }> }): Promise<Metadata> {
@@ -84,16 +82,8 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
       turnaroundTime: override.turnaroundTime || rawService.turnaroundTime,
   } : rawService;
 
-  const partnerProductUrl = `https://www.myacc.co.za/p/${slug}/products/${serviceSlug}`;
-  const jsonLd = generateStructuredData(service, partnerProductUrl);
-
   return (
     <>
-      <Script
-        id="partner-product-schema"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
       <div className="container mx-auto px-4 py-12">
         <Button variant="ghost" asChild className="mb-8 hover:partner-text">
           <Link href={`/p/${slug}`}>
