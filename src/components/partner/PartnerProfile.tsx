@@ -40,7 +40,8 @@ import {
   Undo2,
   Redo2,
   BarChart3,
-  Calculator
+  Calculator,
+  AlertCircle
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { getFirestore, doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
@@ -1021,20 +1022,24 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                 <div className="text-xs space-y-3">
                                     <div className="bg-muted/40 p-3 rounded-lg border border-border/60">
                                         <p className="font-semibold text-foreground mb-1">Step 1: Configure your DNS settings</p>
-                                        <p className="text-muted-foreground leading-relaxed mb-2">
-                                            Log in to your domain registrar (e.g., xneelo, GoDaddy, Cloudflare) and add the following CNAME record to your domain's DNS zone file:
+                                        <p className="text-muted-foreground leading-relaxed mb-3">
+                                            Log in to your domain registrar (e.g., xneelo, GoDaddy, Cloudflare) and add the following <span className="font-semibold text-foreground">CNAME</span> record to your domain's DNS zone file.
+                                            <br/><br/>
+                                            <span className="text-[11px] bg-primary/5 p-1.5 rounded border border-primary/10 block">
+                                                <strong className="text-primary">Note:</strong> You must map a subdomain (like <strong>www</strong>, <strong>app</strong>, or <strong>portal</strong>). Most registrars do not allow CNAME records on the "root" domain (the domain without www).
+                                            </span>
                                         </p>
-                                        <div className="grid grid-cols-3 gap-2 bg-background p-2 rounded border font-mono text-[10px] select-all">
+                                        <div className="grid grid-cols-3 gap-2 bg-background p-3 rounded border font-mono text-[11px] select-all">
                                             <div>
-                                                <span className="text-muted-foreground block text-[9px] uppercase tracking-wider">Type</span>
+                                                <span className="text-muted-foreground block text-[9px] uppercase tracking-wider mb-1">Type</span>
                                                 <span className="font-bold text-foreground">CNAME</span>
                                             </div>
                                             <div>
-                                                <span className="text-muted-foreground block text-[9px] uppercase tracking-wider">Host/Name</span>
-                                                <span className="font-bold text-foreground">www</span>
+                                                <span className="text-muted-foreground block text-[9px] uppercase tracking-wider mb-1">Host/Name</span>
+                                                <span className="font-bold text-foreground">www <span className="text-[9px] text-muted-foreground font-normal ml-1">(or app, etc.)</span></span>
                                             </div>
                                             <div>
-                                                <span className="text-muted-foreground block text-[9px] uppercase tracking-wider">Points To</span>
+                                                <span className="text-muted-foreground block text-[9px] uppercase tracking-wider mb-1">Points To / Target</span>
                                                 <span className="font-bold text-foreground">domains.myacc.co.za</span>
                                             </div>
                                         </div>
@@ -1042,8 +1047,13 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
 
                                     <div className="bg-muted/40 p-3 rounded-lg border border-border/60">
                                         <p className="font-semibold text-foreground mb-1">Step 2: Enter your domain</p>
-                                        <p className="text-muted-foreground leading-relaxed mb-3">
-                                            Once your CNAME record is configured, enter your domain below. The system will automatically map it to your storefront.
+                                        <p className="text-muted-foreground leading-relaxed mb-4">
+                                            Once your CNAME record is saved, enter the full domain you configured below (e.g. <span className="font-mono bg-muted/50 px-1 rounded text-[11px] text-foreground">www.interscopeadvisory.co.za</span>).
+                                            <br/><br/>
+                                            <span className="text-amber-600 text-[11px] font-medium flex items-start gap-1.5 bg-amber-500/10 p-2 rounded border border-amber-500/20">
+                                                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                                                <span>Enter exactly what you configured in your DNS (including the www. part). It may take up to 24 hours for global DNS propagation and SSL certificates to provision.</span>
+                                            </span>
                                         </p>
                                         <FormField control={form.control} name="landingPage.customDomain" render={({ field }) => (
                                             <FormItem>
