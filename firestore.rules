@@ -351,5 +351,13 @@ service cloud.firestore {
     match /emailSettings/{settingId} {
       allow read, write: if isAdminOrStaff();
     }
+
+    // ─── Custom Domains ──────────────────────────────────────────────────────
+    // Publicly readable so edge middleware can perform fast domain lookups
+    // Write access is handled exclusively by server actions using Admin SDK
+    match /domainMappings/{domain} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }

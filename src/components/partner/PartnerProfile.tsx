@@ -59,6 +59,7 @@ import { Label } from '../ui/label';
 import { User } from '@/lib/types';
 import { generateCopywritingCopy } from '@/app/actions/ai-copywriter';
 import { editLandingPageWithAI } from '@/app/actions/ai-landing-page';
+import { syncCustomDomainMapping } from '@/app/actions/partner-settings';
 import PartnerLandingPagePreview from './PartnerLandingPagePreview';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -145,6 +146,12 @@ const formSchema = z.object({
     googleAnalyticsId: z.string().optional().or(z.literal('')),
     metaPixelId: z.string().optional().or(z.literal('')),
     showCalculator: z.boolean().default(false),
+    customDomain: z.string()
+      .optional()
+      .or(z.literal(''))
+      .refine(val => !val || /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/.test(val), {
+        message: "Please enter a valid domain name (e.g. www.mycompany.co.za)"
+      }),
   })
 });
 
@@ -380,6 +387,7 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
         googleAnalyticsId: targetUser?.landingPage?.googleAnalyticsId || '',
         metaPixelId: targetUser?.landingPage?.metaPixelId || '',
         showCalculator: targetUser?.landingPage?.showCalculator || false,
+        customDomain: targetUser?.landingPage?.customDomain || '',
       }
     },
   });
@@ -776,6 +784,10 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
     if (!targetUser) return;
     setIsSaving(true);
     try {
+        const oldDomain = targetUser.landingPage?.customDomain || null;
+        const newDomain = values.landingPage.customDomain || null;
+        const slug = values.landingPage.slug;
+
         const userRef = doc(db, 'users', targetUser.uid);
         const updateData = {
             companyName: values.companyName,
@@ -786,6 +798,14 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
             landingPage: values.landingPage,
         };
         await updateDoc(userRef, updateData);
+        
+        if (oldDomain !== newDomain) {
+            const syncResult = await syncCustomDomainMapping(oldDomain, newDomain, slug);
+            if (!syncResult.success) {
+                console.error("Domain sync failed:", syncResult.error);
+                toast({ title: 'Domain Sync Failed', description: syncResult.error, variant: 'destructive' });
+            }
+        }
         
         // Update local auth context ONLY if we are editing our own profile
         if (!propPartner && authUser?.uid === targetUser.uid) {
@@ -1021,13 +1041,21 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                     </div>
 
                                     <div className="bg-muted/40 p-3 rounded-lg border border-border/60">
-                                        <p className="font-semibold text-foreground mb-1">Step 2: Submit mapping request</p>
-                                        <p className="text-muted-foreground leading-relaxed">
-                                            Once your CNAME record is configured, email our support team at <a href="mailto:support@myacc.co.za" className="font-semibold text-primary underline">support@myacc.co.za</a> with your domain and landing page slug (e.g., <span className="font-mono text-[11px] bg-background px-1 py-0.5 rounded border">/p/{landingPageSlug || 'your-slug'}</span>).
+                                        <p className="font-semibold text-foreground mb-1">Step 2: Enter your domain</p>
+                                        <p className="text-muted-foreground leading-relaxed mb-3">
+                                            Once your CNAME record is configured, enter your domain below. The system will automatically map it to your storefront.
                                         </p>
-                                        <p className="text-muted-foreground leading-relaxed mt-2">
-                                            We will complete the SSL certificate generation and domain provisioning within 24 hours.
-                                        </p>
+                                        <FormField control={form.control} name="landingPage.customDomain" render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Input placeholder="www.interscopeadvisory.co.za" {...field} className="font-mono text-sm" />
+                                                </FormControl>
+                                                <FormMessage />
+                                                <FormDescription className="text-[10px]">
+                                                    Enter exactly as you configured in your DNS (e.g. including www. if applicable). It may take up to 24 hours for SSL certificates to provision.
+                                                </FormDescription>
+                                            </FormItem>
+                                        )} />
                                     </div>
                                 </div>
                             </CardContent>
