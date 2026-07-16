@@ -202,8 +202,8 @@ export default function AdminDashboardPage() {
                         date = emailDate;
                     } else if (otherDate) {
                         date = otherDate;
-                    } else if (order.createdAt) {
-                        date = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+                    } else if (order.date) {
+                        date = order.date?.toDate ? order.date.toDate() : new Date(order.date);
                     }
                     
                     const id = `${doc.id}_${date.getTime()}`;
