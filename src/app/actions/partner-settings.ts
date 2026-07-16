@@ -2,18 +2,15 @@
 
 import { getAdminDb } from '@/lib/firebase-admin';
 import { encrypt } from '@/lib/encryption';
-import { cookies } from 'next/headers';
 import { getAuth } from 'firebase-admin/auth';
 
-export async function saveGeminiKey(apiKey: string) {
+export async function saveGeminiKey(idToken: string, apiKey: string) {
     try {
-        const cookieStore = await cookies();
-        const sessionCookie = cookieStore.get('session')?.value;
-        if (!sessionCookie) {
+        if (!idToken) {
             return { success: false, error: 'Unauthorized' };
         }
         
-        const decodedClaims = await getAuth().verifySessionCookie(sessionCookie, true);
+        const decodedClaims = await getAuth().verifyIdToken(idToken);
         const partnerId = decodedClaims.uid;
         const adminDb = getAdminDb();
         
@@ -34,13 +31,11 @@ export async function saveGeminiKey(apiKey: string) {
     }
 }
 
-export async function syncCustomDomainMapping(oldDomain: string | null, newDomain: string | null, slug: string) {
+export async function syncCustomDomainMapping(idToken: string, oldDomain: string | null, newDomain: string | null, slug: string) {
     try {
-        const cookieStore = await cookies();
-        const sessionCookie = cookieStore.get('session')?.value;
-        if (!sessionCookie) return { success: false, error: 'Unauthorized' };
+        if (!idToken) return { success: false, error: 'Unauthorized' };
         
-        await getAuth().verifySessionCookie(sessionCookie, true);
+        await getAuth().verifyIdToken(idToken);
         const adminDb = getAdminDb();
         const batch = adminDb.batch();
         

@@ -10,6 +10,8 @@ import { Loader2, Sparkles, Key, CheckCircle2 } from 'lucide-react';
 import { saveGeminiKey } from '@/app/actions/partner-settings';
 import { User } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/lib/firebase';
 
 export default function PartnerAISettings({ partner }: { partner: User }) {
     const { toast } = useToast();
@@ -21,7 +23,11 @@ export default function PartnerAISettings({ partner }: { partner: User }) {
         if (!partner?.uid) return;
         setIsSaving(true);
         try {
-            const res = await saveGeminiKey(apiKey);
+            const auth = getAuth(firebaseApp);
+            const idToken = await auth.currentUser?.getIdToken();
+            if (!idToken) throw new Error("Authentication required");
+            
+            const res = await saveGeminiKey(idToken, apiKey);
             if (res.success) {
                 toast({ title: 'AI Key Saved', description: 'Your Gemini API key has been securely encrypted and stored.' });
                 setApiKey(''); // Clear the input field for security

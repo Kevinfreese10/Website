@@ -46,6 +46,7 @@ import {
 import { useState, useEffect, useMemo } from 'react';
 import { getFirestore, doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { Switch } from '../ui/switch';
 import { Textarea } from '../ui/textarea';
@@ -801,7 +802,11 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
         await updateDoc(userRef, updateData);
         
         if (oldDomain !== newDomain) {
-            const syncResult = await syncCustomDomainMapping(oldDomain, newDomain, slug);
+            const auth = getAuth(firebaseApp);
+            const idToken = await auth.currentUser?.getIdToken();
+            if (!idToken) throw new Error("Authentication required to sync domain");
+            
+            const syncResult = await syncCustomDomainMapping(idToken, oldDomain, newDomain, slug);
             if (!syncResult.success) {
                 console.error("Domain sync failed:", syncResult.error);
                 toast({ title: 'Domain Sync Failed', description: syncResult.error, variant: 'destructive' });
