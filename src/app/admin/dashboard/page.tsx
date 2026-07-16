@@ -31,6 +31,7 @@ type RecentCommunication = {
     text: string;
     date: Date;
     subject?: string | null;
+    latestNote?: string;
 };
 
 const db = getFirestore(firebaseApp);
@@ -160,30 +161,62 @@ export default function AdminDashboardPage() {
                     const order = doc.data() as Order;
                     if (order.status !== 'Processing') return;
 
-                    if (Array.isArray(order.notes)) {
-                        const emailNotes = order.notes.filter(n => n.type === 'email');
-                        if (emailNotes.length > 0) {
-                            // Sort descending by date to find the single latest email for this order
-                            emailNotes.sort((a, b) => {
-                                const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
-                                const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
-                                return dateB.getTime() - dateA.getTime();
-                            });
-                            
-                            const latestNote = emailNotes[0];
-                            const date = latestNote.date?.toDate ? latestNote.date.toDate() : new Date(latestNote.date);
-                            const id = `${doc.id}_${date.getTime()}`;
-                            
-                            comms.push({
-                                id,
-                                orderId: doc.id,
-                                customerName: order.endCustomerName || order.customerName,
-                                text: latestNote.text,
-                                date,
-                                subject: latestNote.subject
-                            });
-                        }
+                    const emailNotes = Array.isArray(order.notes) ? order.notes.filter(n => n.type === 'email') : [];
+                    const otherNotes = Array.isArray(order.notes) ? order.notes.filter(n => n.type !== 'email') : [];
+                    
+                    emailNotes.sort((a, b) => {
+                        const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                        const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                        return dateB.getTime() - dateA.getTime();
+                    });
+                    
+                    otherNotes.sort((a, b) => {
+                        const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                        const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                        return dateB.getTime() - dateA.getTime();
+                    });
+                    
+                    const latestEmail = emailNotes.length > 0 ? emailNotes[0] : null;
+                    const latestOther = otherNotes.length > 0 ? otherNotes[0] : null;
+                    
+                    let emailDate = latestEmail ? (latestEmail.date?.toDate ? latestEmail.date.toDate() : new Date(latestEmail.date)) : null;
+                    let otherDate = latestOther ? (latestOther.date?.toDate ? latestOther.date.toDate() : new Date(latestOther.date)) : null;
+                    
+                    let date = new Date();
+                    let text = "No recent communications.";
+                    let subject = "Status: Processing";
+                    
+                    // Determine the main display content (prefer email for the main block, as it was originally "Recent Client Emails")
+                    if (latestEmail) {
+                        text = latestEmail.text;
+                        subject = latestEmail.subject || 'Client Email';
+                    } else if (latestOther) {
+                        text = latestOther.text;
+                        subject = 'Internal Note';
                     }
+                    
+                    // The date used for sorting and cache-busting (unarchiving) must be the absolute latest date across all notes
+                    if (emailDate && otherDate) {
+                        date = emailDate.getTime() > otherDate.getTime() ? emailDate : otherDate;
+                    } else if (emailDate) {
+                        date = emailDate;
+                    } else if (otherDate) {
+                        date = otherDate;
+                    } else if (order.createdAt) {
+                        date = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+                    }
+                    
+                    const id = `${doc.id}_${date.getTime()}`;
+                    
+                    comms.push({
+                        id,
+                        orderId: doc.id,
+                        customerName: order.endCustomerName || order.customerName,
+                        text,
+                        date,
+                        subject,
+                        latestNote: latestOther?.text
+                    });
                 });
                 comms.sort((a, b) => b.date.getTime() - a.date.getTime());
                 setRecentComms(comms.slice(0, 20)); // Keep more in case some are archived
@@ -763,6 +796,12 @@ export default function AdminDashboardPage() {
                                     <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                                         {comm.text}
                                     </p>
+                                    {comm.latestNote && (
+                                        <div className="mt-2 pt-2 border-t border-slate-100">
+                                            <p className="text-[10px] font-bold text-slate-400 mb-0.5">LATEST NOTE</p>
+                                            <p className="text-[11px] text-slate-600 line-clamp-2 italic">{comm.latestNote}</p>
+                                        </div>
+                                    )}
                                 </CardContent>
                                 <div className="p-2 border-t bg-slate-50/50 flex items-center justify-between gap-2 mt-auto">
                                     <Button variant="ghost" size="sm" className="h-7 text-[10px] text-slate-500 hover:text-slate-900 px-2" onClick={(e) => handleArchiveComm(e, comm.id)}>
