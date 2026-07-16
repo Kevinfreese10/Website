@@ -173,7 +173,7 @@ service cloud.firestore {
     match /tasks/{taskId} {
       allow read: if isAuthenticated() && (
         resource == null ||
-        isAdmin() ||
+        isAdminOrStaff() ||
         request.auth.uid == resource.data.partnerId ||
         isPartnerStaffOf(resource.data.partnerId) ||
         // Legacy tasks without a partnerId (admin tasks)
@@ -181,17 +181,17 @@ service cloud.firestore {
         !('partnerId' in resource.data)
       );
       allow create: if isAuthenticated() && (
-        isAdmin() ||
+        isAdminOrStaff() ||
         request.auth.uid == request.resource.data.partnerId ||
         isPartnerStaffOf(request.resource.data.partnerId)
       );
       allow update: if isAuthenticated() && (
-        isAdmin() ||
-        request.auth.uid == resource.data.partnerId ||
-        isPartnerStaffOf(resource.data.partnerId)
+        isAdminOrStaff() ||
+        request.auth.uid == resource.data.get('partnerId', null) ||
+        isPartnerStaffOf(resource.data.get('partnerId', null))
       );
       allow delete: if isAuthenticated() && (
-        isAdmin() ||
+        isAdminOrStaff() ||
         request.auth.uid == resource.data.partnerId
       );
     }

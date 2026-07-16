@@ -90,7 +90,6 @@ export default function DashboardNav({ user }: { user: UserType }) {
     { href: '/admin/orders', label: 'Manage Orders', icon: ShieldCheck, roles: ['admin', 'staff'] },
     { href: '/admin/ai-accountant/clients', label: 'AI Accountant', icon: Calculator, roles: ['admin', 'staff'] },
     { href: '/admin/ai-payroll/clients', label: 'AI Payroll', icon: Users, roles: ['admin', 'staff'] },
-    { href: '/admin/tools', label: 'Admin Tools', icon: Shapes, roles: ['admin', 'staff'] },
     { href: '/admin/pages', label: 'Pages', icon: FileText, roles: ['admin'] },
     { href: '/admin/demo-leads', label: 'Demo Leads', icon: Presentation, roles: ['admin'] },
     { href: '/admin/resellers', label: 'Manage Partners', icon: Users, roles: ['admin'] },

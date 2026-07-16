@@ -215,12 +215,15 @@ export default function AdminServicesPage() {
         resellerPrice: data.price * 0.75,
     };
     
+    // Strip undefined values to prevent Firestore errors
+    const cleanData = JSON.parse(JSON.stringify(finalData));
+    
     try {
         if (id) {
-            await setDoc(doc(db, "services", id), finalData, { merge: true });
+            await setDoc(doc(db, "services", id), cleanData, { merge: true });
             toast({ title: 'Product Updated', description: 'The product details have been saved.' });
         } else {
-            await addDoc(collection(db, "services"), { ...finalData, createdAt: serverTimestamp() });
+            await addDoc(collection(db, "services"), { ...cleanData, createdAt: serverTimestamp() });
             toast({ title: 'Product Created', description: 'The new product has been added successfully.' });
         }
         fetchServices();

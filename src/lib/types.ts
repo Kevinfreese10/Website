@@ -30,7 +30,9 @@ export type Service = {
   clientRequirements: string[];
   informationToProvide: {
     label: string;
-    type?: 'text' | 'pdf';
+    type?: 'text' | 'pdf' | 'excel';
+    isConditional?: boolean;
+    conditionalQuestion?: string;
   }[];
   attachmentUrl?: string;
   metaTitle?: string;

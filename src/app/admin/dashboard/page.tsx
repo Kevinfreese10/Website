@@ -5,14 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format, isPast, isSameDay, subDays } from 'date-fns';
-import { Task, User, Order } from '@/lib/types';
+import { Task, User, Order, DemoLead } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, Edit, CheckSquare, X, Filter, AlertOctagon, ArrowRight, CheckCircle2, LayoutGrid, List, MessageSquare, AlertTriangle, UserIcon, MoreHorizontal, ChevronDown, ChevronUp, Paperclip } from 'lucide-react';
+import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, Edit, CheckSquare, X, Filter, AlertOctagon, ArrowRight, CheckCircle2, LayoutGrid, List, MessageSquare, AlertTriangle, UserIcon, MoreHorizontal, ChevronDown, ChevronUp, Paperclip, Users } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where, onSnapshot, serverTimestamp, Timestamp, writeBatch, arrayUnion } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where, onSnapshot, serverTimestamp, Timestamp, writeBatch, arrayUnion, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { firebaseApp } from '@/lib/firebase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -73,6 +73,8 @@ export default function AdminDashboardPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [recentComms, setRecentComms] = useState<RecentCommunication[]>([]);
     const [archivedComms, setArchivedComms] = useState<string[]>([]);
+    const [demoLeads, setDemoLeads] = useState<DemoLead[]>([]);
+    const [archivedDemoLeads, setArchivedDemoLeads] = useState<string[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -94,9 +96,14 @@ export default function AdminDashboardPage() {
     const { toast } = useToast();
     
     useEffect(() => {
-        const savedArchived = localStorage.getItem('adminDashboardArchivedComms');
-        if (savedArchived) {
-            setArchivedComms(JSON.parse(savedArchived));
+        const savedArchivedComms = localStorage.getItem('adminDashboardArchivedComms');
+        if (savedArchivedComms) {
+            setArchivedComms(JSON.parse(savedArchivedComms));
+        }
+
+        const savedArchivedDemoLeads = localStorage.getItem('adminDashboardArchivedDemoLeads');
+        if (savedArchivedDemoLeads) {
+            setArchivedDemoLeads(JSON.parse(savedArchivedDemoLeads));
         }
 
         const savedBoardState = localStorage.getItem('adminDashboardTaskBoardOpen');
@@ -117,6 +124,14 @@ export default function AdminDashboardPage() {
         const newArchived = [...archivedComms, id];
         setArchivedComms(newArchived);
         localStorage.setItem('adminDashboardArchivedComms', JSON.stringify(newArchived));
+    };
+
+    const handleArchiveDemoLead = (e: React.MouseEvent, id: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const newArchived = [...archivedDemoLeads, id];
+        setArchivedDemoLeads(newArchived);
+        localStorage.setItem('adminDashboardArchivedDemoLeads', JSON.stringify(newArchived));
     };
 
     useEffect(() => {
@@ -175,15 +190,24 @@ export default function AdminDashboardPage() {
             });
         }
 
+        const demoLeadsUnsubscribe = onSnapshot(query(collection(db, 'demoLeads'), orderBy('createdAt', 'desc'), limit(10)), (snapshot) => {
+            setDemoLeads(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as DemoLead)));
+        });
+
         return () => {
             tasksUnsubscribe();
             ordersUnsubscribe();
+            demoLeadsUnsubscribe();
         };
     }, [user?.id]);
 
     const unarchivedComms = useMemo(() => {
         return recentComms.filter(c => !archivedComms.includes(c.id)).slice(0, 5);
     }, [recentComms, archivedComms]);
+
+    const unarchivedDemoLeads = useMemo(() => {
+        return demoLeads.filter(l => l.id && !archivedDemoLeads.includes(l.id)).slice(0, 5);
+    }, [demoLeads, archivedDemoLeads]);
 
     const overdueTasks = useMemo(() => {
         let filtered = tasks.filter(task => {
@@ -303,8 +327,9 @@ export default function AdminDashboardPage() {
             if (updates.status === 'Done' && originalTask.recurrence && originalTask.recurrence !== 'None') {
                 generateNextTaskOccurrence(originalTask.id);
             }
-        } catch (error) {
-            toast({ title: 'Update failed', variant: 'destructive' });
+        } catch (error: any) {
+            console.error("Task update failed:", error);
+            toast({ title: 'Update failed', description: error.message || 'An error occurred', variant: 'destructive' });
             // Revert on failure by triggering a re-fetch or relying on the snapshot listener
         }
     };
@@ -746,6 +771,47 @@ export default function AdminDashboardPage() {
                                     <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold px-3" asChild>
                                         <Link href={`/admin/orders/${comm.orderId}`}>
                                             View Order <ArrowRight className="h-3 w-3 ml-1" />
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* New Demo Leads */}
+            {unarchivedDemoLeads.length > 0 && (
+                <div className="space-y-4">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center gap-2 px-2">
+                        <Users className="h-4 w-4" /> New Demo Leads
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        {unarchivedDemoLeads.map((lead) => (
+                            <Card key={lead.id} className="border-primary/10 bg-white shadow-sm flex flex-col">
+                                <CardContent className="p-4 space-y-2 flex-1">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <span className="text-xs font-bold text-slate-800 line-clamp-1">{lead.name} {lead.surname}</span>
+                                        <span className="text-[10px] text-slate-400 font-semibold shrink-0">
+                                            {lead.createdAt ? (isSameDay(lead.createdAt.toDate ? lead.createdAt.toDate() : new Date(lead.createdAt), new Date()) ? format(lead.createdAt.toDate ? lead.createdAt.toDate() : new Date(lead.createdAt), 'HH:mm') : format(lead.createdAt.toDate ? lead.createdAt.toDate() : new Date(lead.createdAt), 'MMM d')) : ''}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] font-semibold text-slate-600 line-clamp-1 bg-slate-50 p-1 rounded border border-slate-100">
+                                        Demo Request
+                                    </p>
+                                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                                        {lead.email}
+                                        <br/>
+                                        {lead.cell}
+                                    </p>
+                                </CardContent>
+                                <div className="p-2 border-t bg-slate-50/50 flex items-center justify-between gap-2 mt-auto">
+                                    <Button variant="ghost" size="sm" className="h-7 text-[10px] text-slate-500 hover:text-slate-900 px-2" onClick={(e) => lead.id && handleArchiveDemoLead(e, lead.id)}>
+                                        <X className="h-3 w-3 mr-1" /> Hide
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold px-3" asChild>
+                                        <Link href={`/admin/demo-leads`}>
+                                            View Leads <ArrowRight className="h-3 w-3 ml-1" />
                                         </Link>
                                     </Button>
                                 </div>

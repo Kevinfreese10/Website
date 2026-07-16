@@ -47,12 +47,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { sendEmail } from '@/lib/email';
-import { render } from '@react-email/components';
+import { 
+  notifyStaffOfAssignment, 
+  sendDocumentRequestEmailAction, 
+  sendReviewRequestEmailAction, 
+  sendOrderStatusUpdateEmailAction 
+} from '@/app/actions/order-actions';
 import PaymentConfirmationEmail from '@/components/emails/PaymentConfirmationEmail';
-import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
-import ReviewRequestEmail from '@/components/emails/ReviewRequestEmail';
-import StaffAssignmentEmail from '@/components/emails/StaffAssignmentEmail';
-import OrderStatusUpdateEmail from '@/components/emails/OrderStatusUpdateEmail';
 import { Dialog } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -226,17 +227,8 @@ export default function AdminOrdersPage() {
 
         await batch.commit();
 
-        // Notify the assigned staff member
-        const staffMember = allStaff.find(s => s.id === staffId);
-        const orderToAssign = orders.find(o => o.id === orderId);
-        if (staffMember && staffMember.email && orderToAssign) {
-            const emailHtml = render(<StaffAssignmentEmail order={orderToAssign} staffName={staffMember.name.split(' ')[0]} />);
-            await sendEmail({
-                to: staffMember.email,
-                subject: `New Order Assigned: #${orderToAssign.originalOrderId || orderToAssign.id}`,
-                html: emailHtml,
-            }).catch(console.error);
-        }
+        // Notify the assigned staff member via Server Action
+        await notifyStaffOfAssignment(orderId, staffId);
 
         toast({
             title: 'Order Reassigned',
@@ -305,12 +297,7 @@ export default function AdminOrdersPage() {
 
                 // Send email to staff member
                 if (assignedStaffMember.email) {
-                    const emailHtml = render(<StaffAssignmentEmail order={orderToUpdate} staffName={assignedStaffMember.name.split(' ')[0]} />);
-                    sendEmail({
-                        to: assignedStaffMember.email,
-                        subject: `New Order Assigned: #${orderToUpdate.originalOrderId || orderToUpdate.id}`,
-                        html: emailHtml,
-                    }).catch(console.error);
+                    await notifyStaffOfAssignment(orderId, assignedStaffMember.id);
                 }
             }
         }
@@ -361,65 +348,36 @@ export default function AdminOrdersPage() {
         description: `Order ${orderId} has been marked as ${newStatus}.`,
       });
       
-      const reseller = orderToUpdate.resellerId ? allStaff.find(u => u.id === orderToUpdate.resellerId) : undefined;
-      const isOutsourced = !!orderToUpdate.resellerId;
-      const emailTo = isOutsourced && orderToUpdate.documentContact === 'client' ? orderToUpdate.endCustomerEmail : orderToUpdate.customerEmail;
-      const customerName = (isOutsourced && orderToUpdate.documentContact === 'client' ? orderToUpdate.endCustomerName : orderToUpdate.customerName) || '';
-      const emailOrder = {...orderToUpdate, status: newStatus, customerName, id: orderToUpdate.originalOrderId || orderToUpdate.id } as Order;
-      
-      if (newStatus === 'Processing' && emailTo && user.email) {
-        const subject = `Action Required for Your Order #${emailOrder.id}`;
-        const message = "Sent 'Request Documents' email to client.";
-
-        const itemsWithServices = orderToUpdate.items.map(item => {
-            const service = allServices.find(s => s.id === item.id);
-            return { ...item, service };
-        }).filter(item => item.service) as { service: Service }[];
-
-        const emailHtml = render(<DocumentRequestEmail order={emailOrder} items={itemsWithServices} reseller={reseller} replyTo={user.email} />);
+      if (newStatus === 'Processing' && user.email) {
+        const result = await sendDocumentRequestEmailAction(orderId, user.email, newStatus);
         
-        await sendEmail({
-            to: emailTo,
-            cc: ['winifred@myacc.co.za', 'kev@thinkestry.co.za'],
-            subject: subject,
-            html: emailHtml,
-            resellerId: orderToUpdate.resellerId,
-        });
-
-        await addEmailToHistory(orderToUpdate.id, subject, message);
-
-        toast({
-            title: 'Document Request Sent',
-            description: `An email has been sent to the client.`
-        });
-      }
-
-      if (newStatus === 'Completed' && emailTo) {
-        const emailHtml = render(<ReviewRequestEmail order={emailOrder} reseller={reseller} />);
-        await sendEmail({
-            to: emailTo,
-            subject: `We'd love your feedback on order #${emailOrder.id}`,
-            html: emailHtml,
-            resellerId: orderToUpdate.resellerId
-        });
-        toast({
-            title: 'Review Request Sent',
-            description: `An email has been sent to the client requesting a review.`
-        });
-      }
-
-      if ((newStatus === 'Cancelled' || newStatus === 'Pending Payment') && emailTo) {
-          const emailHtml = render(<OrderStatusUpdateEmail order={emailOrder} reseller={reseller} />);
-          await sendEmail({
-              to: emailTo,
-              subject: `Update on your Order #${emailOrder.id}`,
-              html: emailHtml,
-              resellerId: orderToUpdate.resellerId
-          });
+        if (result.success && result.subject) {
+          await addEmailToHistory(orderToUpdate.id, result.subject, "Sent 'Request Documents' email to client.");
           toast({
-              title: 'Status Update Email Sent',
-              description: `An email has been sent to the client regarding the new status.`
+              title: 'Document Request Sent',
+              description: `An email has been sent to the client.`
           });
+        }
+      }
+
+      if (newStatus === 'Completed') {
+        const result = await sendReviewRequestEmailAction(orderId);
+        if (result.success) {
+          toast({
+              title: 'Review Request Sent',
+              description: `An email has been sent to the client requesting a review.`
+          });
+        }
+      }
+
+      if (newStatus === 'Cancelled' || newStatus === 'Pending Payment') {
+          const result = await sendOrderStatusUpdateEmailAction(orderId, newStatus);
+          if (result.success) {
+            toast({
+                title: 'Status Update Email Sent',
+                description: `An email has been sent to the client regarding the new status.`
+            });
+          }
       }
 
     } catch (error) {

@@ -439,6 +439,26 @@ export async function POST(req: NextRequest) {
                           attachments: null,
                       })
                   });
+                  
+                  if (staffUser && staffUser.email) {
+                      try {
+                          await sendEmail({
+                              to: staffUser.email,
+                              subject: `New Order Assigned: #${orderId}`,
+                              html: `
+                                  <p>Hi ${staffName},</p>
+                                  <p>A new order (<strong>#${orderId}</strong>) has been automatically assigned to you based on your department (${department}).</p>
+                                  <p><strong>Customer:</strong> ${currentOrderData.customerName}</p>
+                                  <p>Please log in to the dashboard to review and fulfill the services.</p>
+                                  <br/>
+                                  <p>Best regards,<br/>My Accountant System</p>
+                              `
+                          });
+                          console.log(`Notification email sent to staff ${staffUser.email}`);
+                      } catch (emailErr) {
+                          console.error(`Failed to send assignment email to staff ${staffUser.email}:`, emailErr);
+                      }
+                  }
               } else {
                   console.warn(`No staff available for department ${department}. Order ${orderId} remains unassigned.`);
                   await orderRef.update({

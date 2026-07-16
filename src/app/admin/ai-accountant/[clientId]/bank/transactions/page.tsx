@@ -218,42 +218,128 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
     const [isUploading, setIsUploading] = useState(false);
     const { toast } = useToast();
 
+    const [actualBalance, setActualBalance] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
+    const filteredTransactions = useMemo(() => {
+        if (!parsedTransactions.length) return [];
+        return parsedTransactions.filter(tx => {
+            const txDate = tx.parsedDate || parse(tx.Date, 'dd/MM/yyyy', new Date());
+            if (isNaN(txDate.getTime())) return true;
+            if (startDate && txDate < new Date(startDate)) return false;
+            if (endDate && txDate > new Date(endDate)) return false;
+            return true;
+        });
+    }, [parsedTransactions, startDate, endDate]);
+
     const importTotal = useMemo(() => {
-        return parsedTransactions.reduce((sum, tx) => sum + tx.Amount, 0);
-    }, [parsedTransactions]);
+        return filteredTransactions.reduce((sum, tx) => sum + tx.Amount, 0);
+    }, [filteredTransactions]);
 
     const potentialBalance = currentBalance + importTotal;
+    const isValidBalance = actualBalance !== '' && Math.abs(potentialBalance - parseFloat(actualBalance)) < 0.01;
+
+    const parseOFX = (text: string) => {
+        const transactions: any[] = [];
+        const stmttrnRegex = /<STMTTRN>[\s\S]*?<\/STMTTRN>/g;
+        const matches = text.match(stmttrnRegex);
+        if (matches) {
+            matches.forEach(match => {
+                const trnamtMatch = match.match(/<TRNAMT>([\-\d.]+)/);
+                const dtpostedMatch = match.match(/<DTPOSTED>(\d{8})/);
+                const nameMatch = match.match(/<NAME>([^<]+)/);
+                const memoMatch = match.match(/<MEMO>([^<]+)/);
+
+                if (trnamtMatch && dtpostedMatch) {
+                    const amount = parseFloat(trnamtMatch[1]);
+                    const dateStr = dtpostedMatch[1]; // YYYYMMDD
+                    const year = dateStr.substring(0, 4);
+                    const month = dateStr.substring(4, 6);
+                    const day = dateStr.substring(6, 8);
+                    const parsedDate = new Date(`${year}-${month}-${day}T00:00:00`);
+                    
+                    const description = (nameMatch ? nameMatch[1] : (memoMatch ? memoMatch[1] : '')).trim().toUpperCase();
+                    
+                    transactions.push({
+                        Date: `${day}/${month}/${year}`,
+                        parsedDate,
+                        Description: description,
+                        Amount: amount
+                    });
+                }
+            });
+        }
+        return transactions;
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
             setIsParsing(true);
             setFile(selectedFile);
+            setActualBalance('');
             
-            Papa.parse(selectedFile, {
-                header: true,
-                skipEmptyLines: true,
-                complete: (results) => {
-                    const data = results.data as any[];
-                    const transactions = data.map(row => {
-                        const normalizedRow: any = {};
-                        Object.keys(row).forEach(k => normalizedRow[k.toLowerCase().trim()] = row[k]);
-                        return {
-                            Date: normalizedRow.date || '',
-                            Description: (normalizedRow.description || normalizedRow.desc || '').toUpperCase(),
-                            Amount: parseFloat(String(normalizedRow.amount || '').replace(/[^\d.-]/g, ''))
-                        };
-                    }).filter(tx => tx.Date && tx.Description && !isNaN(tx.Amount));
-                    
+            if (selectedFile.name.toLowerCase().endsWith('.ofx')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const text = event.target?.result as string;
+                    const transactions = parseOFX(text);
                     setParsedTransactions(transactions);
+                    
+                    if (transactions.length > 0) {
+                        const dates = transactions.map(tx => tx.parsedDate.getTime());
+                        const minDate = new Date(Math.min(...dates));
+                        const maxDate = new Date(Math.max(...dates));
+                        setStartDate(format(minDate, 'yyyy-MM-dd'));
+                        setEndDate(format(maxDate, 'yyyy-MM-dd'));
+                    }
                     setIsParsing(false);
-                }
-            });
+                };
+                reader.readAsText(selectedFile);
+            } else {
+                Papa.parse(selectedFile, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        const data = results.data as any[];
+                        const transactions = data.map(row => {
+                            const normalizedRow: any = {};
+                            Object.keys(row).forEach(k => normalizedRow[k.toLowerCase().trim()] = row[k]);
+                            
+                            let parsedDate = parse(normalizedRow.date || '', 'dd/MM/yyyy', new Date());
+                            if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() < 100) {
+                                parsedDate = parse(normalizedRow.date || '', 'dd/MM/yy', new Date());
+                            }
+                            if (isNaN(parsedDate.getTime())) parsedDate = new Date(normalizedRow.date || '');
+
+                            return {
+                                Date: normalizedRow.date || '',
+                                parsedDate: isNaN(parsedDate.getTime()) ? null : parsedDate,
+                                Description: (normalizedRow.description || normalizedRow.desc || '').toUpperCase(),
+                                Amount: parseFloat(String(normalizedRow.amount || '').replace(/[^\d.-]/g, ''))
+                            };
+                        }).filter(tx => tx.Date && tx.Description && !isNaN(tx.Amount));
+                        
+                        setParsedTransactions(transactions);
+                        
+                        if (transactions.length > 0) {
+                            const validDates = transactions.map(tx => tx.parsedDate?.getTime()).filter(Boolean) as number[];
+                            if (validDates.length > 0) {
+                                const minDate = new Date(Math.min(...validDates));
+                                const maxDate = new Date(Math.max(...validDates));
+                                setStartDate(format(minDate, 'yyyy-MM-dd'));
+                                setEndDate(format(maxDate, 'yyyy-MM-dd'));
+                            }
+                        }
+                        setIsParsing(false);
+                    }
+                });
+            }
         }
     };
-    
     const handleImport = async () => {
-        if (!client?.uid || !bankAccountId || parsedTransactions.length === 0) return;
+        if (!client?.uid || !bankAccountId || filteredTransactions.length === 0) return;
         setIsUploading(true);
         try {
             let allRules = [...(client.allocationRules || [])];
@@ -268,7 +354,7 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
             const batch = writeBatch(db);
             let matchCount = 0;
 
-            parsedTransactions.forEach((row) => {
+            filteredTransactions.forEach((row) => {
                 let parsedDate = parse(row.Date, 'dd/MM/yyyy', new Date());
                 
                 // If it parsed as a tiny year (e.g., 0026), it was likely a 2-digit year like 27/06/26
@@ -317,7 +403,7 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
             await batch.commit();
             toast({ 
                 title: "Import Successful", 
-                description: `${parsedTransactions.length} transactions imported. ${matchCount} expenses auto-allocated by rules.`
+                description: `${filteredTransactions.length} transactions imported. ${matchCount} expenses auto-allocated by rules.`
             });
             onImportComplete();
             setIsOpen(false);
@@ -358,41 +444,88 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
 
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent className="sm:max-w-xl">
-                    <DialogHeader><DialogTitle>Import CSV Bank Statement</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>Import CSV / OFX Bank Statement</DialogTitle></DialogHeader>
                     <div className="space-y-4 py-4">
-                        <input id="statement-file" type="file" accept=".csv" onChange={handleFileChange} />
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-sm font-medium">Select Statement File</label>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8"
+                                onClick={() => {
+                                    const csvContent = "data:text/csv;charset=utf-8,Date,Description,Amount\n25/08/2023,Sample Transaction,-150.00";
+                                    const encodedUri = encodeURI(csvContent);
+                                    const link = document.createElement("a");
+                                    link.setAttribute("href", encodedUri);
+                                    link.setAttribute("download", "bank_statement_template.csv");
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                }}
+                            >
+                                <Download className="h-3 w-3 mr-2" /> Template
+                            </Button>
+                        </div>
+                        <input id="statement-file" type="file" accept=".csv,.ofx" onChange={handleFileChange} className="w-full text-sm border p-2 rounded-md" />
                         {isParsing && <p className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 animate-spin"/> Parsing...</p>}
                         
                         {parsedTransactions.length > 0 && (
-                            <div className="bg-muted/50 p-4 rounded-lg border space-y-2 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Transactions Found:</span>
-                                    <span className="font-bold">{parsedTransactions.length}</span>
+                            <div className="bg-muted/50 p-4 rounded-lg border space-y-4 animate-in fade-in slide-in-from-top-2">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+                                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-8" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-muted-foreground">End Date</label>
+                                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-8" />
+                                    </div>
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Current Balance:</span>
-                                    <span className="font-semibold">{formatPrice(currentBalance)}</span>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Transactions in Range:</span>
+                                        <span className="font-bold">{filteredTransactions.length}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Current Balance:</span>
+                                        <span className="font-semibold">{formatPrice(currentBalance)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Import Total:</span>
+                                        <span className={cn("font-bold", importTotal < 0 ? "text-destructive" : "text-green-600")}>
+                                            {formatPrice(importTotal)}
+                                        </span>
+                                    </div>
+                                    <Separator />
+                                    <div className="flex justify-between text-sm pt-1 items-center">
+                                        <span className="text-muted-foreground font-semibold">New Potential Balance:</span>
+                                        <span className="font-bold text-primary text-lg">
+                                            {formatPrice(potentialBalance)}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Import Total:</span>
-                                    <span className={cn("font-bold", importTotal < 0 ? "text-destructive" : "text-green-600")}>
-                                        {formatPrice(importTotal)}
-                                    </span>
-                                </div>
-                                <Separator />
-                                <div className="flex justify-between text-sm pt-1">
-                                    <span className="text-muted-foreground font-semibold">New Potential Balance:</span>
-                                    <span className="font-bold text-primary text-lg">
-                                        {formatPrice(potentialBalance)}
-                                    </span>
+                                <div className="space-y-2 pt-2 border-t">
+                                    <label className="text-sm font-semibold">Verify Actual Bank Balance</label>
+                                    <p className="text-xs text-muted-foreground mb-2">Enter the closing balance from your bank statement for this period. It must match the potential balance above to proceed.</p>
+                                    <Input 
+                                        type="number" 
+                                        step="0.01" 
+                                        placeholder="0.00" 
+                                        value={actualBalance}
+                                        onChange={e => setActualBalance(e.target.value)}
+                                        className={cn(actualBalance && !isValidBalance ? "border-destructive focus-visible:ring-destructive" : "")}
+                                    />
+                                    {actualBalance && !isValidBalance && (
+                                        <p className="text-xs text-destructive flex items-center mt-1"><AlertTriangle className="h-3 w-3 mr-1" /> Balances do not match.</p>
+                                    )}
                                 </div>
                             </div>
                         )}
                     </div>
                     <DialogFooter>
-                        <Button type="button" onClick={handleImport} disabled={isUploading || isParsing || parsedTransactions.length === 0}>
+                        <Button type="button" onClick={handleImport} disabled={isUploading || isParsing || filteredTransactions.length === 0 || !isValidBalance}>
                             {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Save {parsedTransactions.length} Transactions
+                            Save {filteredTransactions.length} Transactions
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -56,9 +56,42 @@ export default function ClientOrderDetailsPage() {
   const { toast } = useToast();
   const [uploadingFiles, setUploadingFiles] = useState<{ [key: string]: number }>({});
   const [textInputs, setTextInputs] = useState<{ [key: string]: string }>({});
+  const [conditionalAnswers, setConditionalAnswers] = useState<Record<string, boolean>>({});
 
-
-   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
+  const handleConditionalAnswer = async (serviceId: string, requirementLabel: string, answer: boolean) => {
+      const uploadKey = `${serviceId}-${requirementLabel}`;
+      if (answer) {
+          setConditionalAnswers(prev => ({ ...prev, [uploadKey]: true }));
+      } else {
+          if (!currentUser || !order) return;
+          const newUpload: DocumentUpload = {
+              serviceId,
+              requirementLabel,
+              type: 'text',
+              textValue: 'N/A (No)',
+              uploadedAt: Timestamp.now(),
+              status: 'approved', // Mark as approved so it counts as completed
+          };
+          try {
+              const orderRef = doc(db, 'orders', order.id);
+              const currentUploads = order.documentUploads || [];
+              const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
+              let updatedUploads;
+              if (existingIndex > -1) {
+                  updatedUploads = [...currentUploads];
+                  updatedUploads[existingIndex] = newUpload;
+              } else {
+                  updatedUploads = [...currentUploads, newUpload];
+              }
+              await updateDoc(orderRef, { documentUploads: updatedUploads });
+              toast({ title: 'Information Saved', description: 'Your answer has been saved.' });
+              fetchOrderAndServices();
+          } catch (error) {
+              console.error("Error submitting answer:", error);
+              toast({ title: "Submission Failed", description: "Could not save.", variant: "destructive" });
+          }
+      }
+  };   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
     resolver: zodResolver(noteFormSchema),
     defaultValues: { noteText: "" },
   });
@@ -466,7 +499,39 @@ export default function ClientOrderDetailsPage() {
                                                         </div>
                                                     </div>
                                                 )}
-                                                {isRejected || isNotUploaded ? ( <> {isUploading ? ( <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin"/><p className="text-sm">Uploading... {Math.round(uploadingFiles[uploadKey])}%</p></div> ) : ( info.type === 'pdf' ? ( <Input type="file" accept="application/pdf" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} /> ) : ( <div className="flex items-center gap-2"><Input type="text" className="h-9" placeholder="Enter information here..." value={textInputs[info.label] || ''} onChange={(e) => handleTextChange(info.label, e.target.value)} /><Button size="sm" onClick={() => handleTextSubmit(item.service?.id || item.id, info.label)}>Save</Button></div> ) )} </> ) : ( <div className="p-2 bg-green-50 text-green-800 rounded-md border border-green-200 text-sm">{upload.type === 'file' ? `Submitted: ${upload.fileName}` : `Submitted: "${upload.textValue}"`}</div> )}
+                                                {isRejected || isNotUploaded ? (
+                                                    <>
+                                                        {info.isConditional && conditionalAnswers[uploadKey] === undefined && isNotUploaded ? (
+                                                            <div className="flex flex-col gap-2 p-4 bg-muted/50 rounded-lg border">
+                                                                <p className="text-sm font-medium">{info.conditionalQuestion || info.label}</p>
+                                                                <div className="flex gap-2">
+                                                                    <Button size="sm" onClick={() => handleConditionalAnswer(item.service?.id || item.id, info.label, true)}>Yes</Button>
+                                                                    <Button size="sm" variant="outline" onClick={() => handleConditionalAnswer(item.service?.id || item.id, info.label, false)}>No</Button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                {isUploading ? (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Loader2 className="h-4 w-4 animate-spin"/>
+                                                                        <p className="text-sm">Uploading... {Math.round(uploadingFiles[uploadKey])}%</p>
+                                                                    </div>
+                                                                ) : (
+                                                                    info.type === 'pdf' ? (
+                                                                        <Input type="file" accept="application/pdf" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} />
+                                                                    ) : info.type === 'excel' ? (
+                                                                        <Input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} />
+                                                                    ) : (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Input type="text" className="h-9" placeholder="Enter information here..." value={textInputs[info.label] || ''} onChange={(e) => handleTextChange(info.label, e.target.value)} />
+                                                                            <Button size="sm" onClick={() => handleTextSubmit(item.service?.id || item.id, info.label)}>Save</Button>
+                                                                        </div>
+                                                                    )
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </>
+                                                ) : ( <div className="p-2 bg-green-50 text-green-800 rounded-md border border-green-200 text-sm">{upload.type === 'file' ? `Submitted: ${upload.fileName}` : `Submitted: "${upload.textValue}"`}</div> )}
                                             </div>
                                         )})}
                                     </div>

@@ -62,7 +62,9 @@ const formSchema = z.object({
   clientRequirements: z.array(z.object({ value: z.string().min(1, 'This field cannot be empty.') })),
   informationToProvide: z.array(z.object({
     label: z.string().min(1, 'Label cannot be empty.'),
-    type: z.enum(['text', 'pdf']).optional(),
+    type: z.enum(['text', 'pdf', 'excel']).optional(),
+    isConditional: z.boolean().optional(),
+    conditionalQuestion: z.string().optional(),
   })),
   metaTitle: z.string().min(1, 'Meta Title is required.').max(59, 'Meta Title must be under 60 characters.'),
   metaDescription: z.string().max(160, 'Meta Description must be 160 characters or less.').optional().or(z.literal('')),
@@ -551,36 +553,64 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
             </div>
 
             {infoFields.map((field, index) => (
-              <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md">
-                 <FormField
-                    control={form.control}
-                    name={`informationToProvide.${index}.label`}
-                    render={({ field }) => (
-                        <FormItem className="flex-grow">
-                          <FormLabel>Field Label</FormLabel>
-                          <FormControl><Input {...field} /></FormControl>
-                          <FormMessage/>
-                        </FormItem>
+              <div key={field.id} className="flex flex-col gap-2 p-2 border rounded-md">
+                <div className="flex items-end gap-2">
+                    <FormField
+                        control={form.control}
+                        name={`informationToProvide.${index}.label`}
+                        render={({ field }) => (
+                            <FormItem className="flex-grow">
+                            <FormLabel>Field Label</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage/>
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name={`informationToProvide.${index}.type`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Field Type</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="text">Text Input</SelectItem>
+                                        <SelectItem value="pdf">File Upload (PDF)</SelectItem>
+                                        <SelectItem value="excel">File Upload (Excel/CSV)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <Button type="button" variant="destructive" size="icon" onClick={() => removeInfo(index)}><Trash className="h-4 w-4"/></Button>
+                </div>
+                <div className="flex items-center gap-4">
+                    <FormField
+                        control={form.control}
+                        name={`informationToProvide.${index}.isConditional`}
+                        render={({ field }) => (
+                            <FormItem className="flex items-center gap-2">
+                                <FormControl>
+                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="!mt-0">Conditional</FormLabel>
+                            </FormItem>
+                        )}
+                    />
+                    {form.watch(`informationToProvide.${index}.isConditional`) && (
+                        <FormField
+                            control={form.control}
+                            name={`informationToProvide.${index}.conditionalQuestion`}
+                            render={({ field }) => (
+                                <FormItem className="flex-grow">
+                                    <FormControl><Input placeholder="Question (e.g. Do you have previous financial statements?)" {...field} value={field.value || ''} /></FormControl>
+                                </FormItem>
+                            )}
+                        />
                     )}
-                />
-                <FormField
-                    control={form.control}
-                    name={`informationToProvide.${index}.type`}
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Field Type</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    <SelectItem value="text">Text Input</SelectItem>
-                                    <SelectItem value="pdf">File Upload (PDF)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <Button type="button" variant="destructive" size="icon" onClick={() => removeInfo(index)}><Trash className="h-4 w-4"/></Button>
+                </div>
               </div>
             ))}
             <Button type="button" variant="outline" size="sm" onClick={() => appendInfo({ label: '', type: 'text' })}>
