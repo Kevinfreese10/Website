@@ -820,7 +820,7 @@ export default function AdminDashboardPage() {
             )}
 
             {/* New Demo Leads */}
-            {unarchivedDemoLeads.length > 0 && (
+            {user?.role === 'admin' && unarchivedDemoLeads.length > 0 && (
                 <div className="space-y-4">
                     <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center gap-2 px-2">
                         <Users className="h-4 w-4" /> New Demo Leads
