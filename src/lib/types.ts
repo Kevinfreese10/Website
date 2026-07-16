@@ -433,6 +433,7 @@ export type User = {
   clientSource?: 'admin' | 'partner' | 'ai_accountant' | 'ai_payroll';
   department?: 'Accounting and Tax' | 'Administration' | 'CAP' | string;
   departments?: string[]; 
+  allowedModules?: string[];
   entityType?: 'Company' | 'Trust' | 'Individual';
   status?: 'Active' | 'Inactive' | 'Archived' | 'Pending Setup Payment';
   onboardingStep?: number;
@@ -584,6 +585,7 @@ export type Task = {
   dueMonthOffset?: number;
   dueDay?: number;
   department?: string;
+  attachments?: { name: string, url: string, path: string }[];
 };
 
 export type DemoLead = {

@@ -8,11 +8,12 @@ import { format, isPast, isSameDay, subDays } from 'date-fns';
 import { Task, User, Order } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, Edit, CheckSquare, X, Filter, AlertOctagon, ArrowRight, CheckCircle2, LayoutGrid, List, MessageSquare, AlertTriangle, UserIcon, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, Edit, CheckSquare, X, Filter, AlertOctagon, ArrowRight, CheckCircle2, LayoutGrid, List, MessageSquare, AlertTriangle, UserIcon, MoreHorizontal, ChevronDown, ChevronUp, Paperclip } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where, onSnapshot, serverTimestamp, Timestamp, writeBatch, arrayUnion } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { firebaseApp } from '@/lib/firebase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateNextTaskOccurrence } from '@/app/actions';
@@ -22,6 +23,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+
+type RecentCommunication = {
+    id: string;
+    orderId: string;
+    customerName: string;
+    text: string;
+    date: Date;
+    subject?: string | null;
+};
 
 const db = getFirestore(firebaseApp);
 
@@ -61,6 +71,8 @@ const taskTypeLabels: Record<string, string> = {
 export default function AdminDashboardPage() {
     const { user } = useAuth();
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [recentComms, setRecentComms] = useState<RecentCommunication[]>([]);
+    const [archivedComms, setArchivedComms] = useState<string[]>([]);
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -76,8 +88,37 @@ export default function AdminDashboardPage() {
     // View mode: 'list' or 'board' (Kanban)
     const [viewMode, setViewMode] = useState<'list' | 'board'>('board');
     
+    // Accordion state for Task Board
+    const [isTaskBoardOpen, setIsTaskBoardOpen] = useState(true);
+
     const { toast } = useToast();
     
+    useEffect(() => {
+        const savedArchived = localStorage.getItem('adminDashboardArchivedComms');
+        if (savedArchived) {
+            setArchivedComms(JSON.parse(savedArchived));
+        }
+
+        const savedBoardState = localStorage.getItem('adminDashboardTaskBoardOpen');
+        if (savedBoardState !== null) {
+            setIsTaskBoardOpen(savedBoardState === 'true');
+        }
+    }, []);
+
+    const toggleTaskBoard = () => {
+        const newState = !isTaskBoardOpen;
+        setIsTaskBoardOpen(newState);
+        localStorage.setItem('adminDashboardTaskBoardOpen', String(newState));
+    };
+
+    const handleArchiveComm = (e: React.MouseEvent, id: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const newArchived = [...archivedComms, id];
+        setArchivedComms(newArchived);
+        localStorage.setItem('adminDashboardArchivedComms', JSON.stringify(newArchived));
+    };
+
     useEffect(() => {
         setIsLoading(true);
         const usersRef = collection(db, "users");
@@ -91,10 +132,58 @@ export default function AdminDashboardPage() {
             setIsLoading(false);
         });
 
+        // Fetch recent communications from assigned orders
+        let ordersUnsubscribe = () => {};
+        if (user?.id) {
+            const ordersQ = query(
+                collection(db, 'orders'),
+                where('assignedTo', 'array-contains', user.id)
+            );
+            ordersUnsubscribe = onSnapshot(ordersQ, (snapshot) => {
+                const comms: RecentCommunication[] = [];
+                snapshot.docs.forEach(doc => {
+                    const order = doc.data() as Order;
+                    if (order.status !== 'Processing') return;
+
+                    if (Array.isArray(order.notes)) {
+                        const emailNotes = order.notes.filter(n => n.type === 'email');
+                        if (emailNotes.length > 0) {
+                            // Sort descending by date to find the single latest email for this order
+                            emailNotes.sort((a, b) => {
+                                const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                                const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                                return dateB.getTime() - dateA.getTime();
+                            });
+                            
+                            const latestNote = emailNotes[0];
+                            const date = latestNote.date?.toDate ? latestNote.date.toDate() : new Date(latestNote.date);
+                            const id = `${doc.id}_${date.getTime()}`;
+                            
+                            comms.push({
+                                id,
+                                orderId: doc.id,
+                                customerName: order.endCustomerName || order.customerName,
+                                text: latestNote.text,
+                                date,
+                                subject: latestNote.subject
+                            });
+                        }
+                    }
+                });
+                comms.sort((a, b) => b.date.getTime() - a.date.getTime());
+                setRecentComms(comms.slice(0, 20)); // Keep more in case some are archived
+            });
+        }
+
         return () => {
             tasksUnsubscribe();
+            ordersUnsubscribe();
         };
-    }, []);
+    }, [user?.id]);
+
+    const unarchivedComms = useMemo(() => {
+        return recentComms.filter(c => !archivedComms.includes(c.id)).slice(0, 5);
+    }, [recentComms, archivedComms]);
 
     const overdueTasks = useMemo(() => {
         let filtered = tasks.filter(task => {
@@ -254,7 +343,7 @@ export default function AdminDashboardPage() {
         }
     };
 
-    const handleFormSubmit = async (data: TaskFormValues) => {
+    const handleFormSubmit = async (data: TaskFormValues, files?: File[]) => {
         if (!user) return;
         setIsLoading(true);
         
@@ -267,10 +356,11 @@ export default function AdminDashboardPage() {
         };
 
         try {
-            if (selectedTask?.id) {
-                const taskRef = doc(db, 'tasks', selectedTask.id);
+            let taskId = selectedTask?.id;
+
+            if (taskId) {
+                const taskRef = doc(db, 'tasks', taskId);
                 await updateDoc(taskRef, taskData);
-                toast({ title: 'Task Updated', description: 'The task details have been saved.' });
             } else {
                 const newTask: Omit<Task, 'id'> = {
                     ...(taskData as any),
@@ -280,9 +370,28 @@ export default function AdminDashboardPage() {
                     comments: [],
                     priority: data.priority || 'Medium',
                 };
-                await addDoc(collection(db, 'tasks'), newTask);
-                toast({ title: 'Task Created', description: `Task assigned.` });
+                const docRef = await addDoc(collection(db, 'tasks'), newTask);
+                taskId = docRef.id;
             }
+
+            if (files && files.length > 0 && taskId) {
+                const storage = getStorage(firebaseApp);
+                const newAttachments = [];
+                for (const file of files) {
+                    const fileRef = ref(storage, `tasks/${taskId}/${Date.now()}_${file.name}`);
+                    await uploadBytes(fileRef, file);
+                    const url = await getDownloadURL(fileRef);
+                    newAttachments.push({ name: file.name, url, path: fileRef.fullPath });
+                }
+                if (newAttachments.length > 0) {
+                    const taskRef = doc(db, 'tasks', taskId);
+                    await updateDoc(taskRef, {
+                        attachments: arrayUnion(...newAttachments)
+                    });
+                }
+            }
+
+            toast({ title: selectedTask ? 'Task Updated' : 'Task Created', description: 'The task details have been saved.' });
             setIsFormOpen(false);
             setSelectedTask(null);
         } catch (error) {
@@ -426,6 +535,12 @@ export default function AdminDashboardPage() {
                                     <span>{task.comments?.length}</span>
                                 </div>
                             )}
+                            {(task.attachments?.length ?? 0) > 0 && (
+                                <div className="flex items-center gap-1 text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
+                                    <Paperclip className="h-3 w-3" />
+                                    <span>{task.attachments?.length}</span>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -499,26 +614,30 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
 
-            <Sheet open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto">
-                    <SheetHeader className="mb-6">
-                        <SheetTitle>{selectedTask ? 'Edit Task' : 'Create Task'}</SheetTitle>
-                        <SheetDescription>
-                            {selectedTask ? 'Update task details, change status, or leave comments.' : 'Assign a new task to your team.'}
-                        </SheetDescription>
-                    </SheetHeader>
-                    {isFormOpen && (
-                        <TaskForm 
-                            task={selectedTask} 
-                            allStaff={assignableStaff}
-                            staffByDept={staffByDept} 
-                            onSubmit={handleFormSubmit}
-                            onCancel={() => setIsFormOpen(false)}
-                            onCommentSubmit={handleCommentSubmit}
-                        />
-                    )}
-                </SheetContent>
-            </Sheet>
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogContent className="sm:max-w-xl w-full flex flex-col max-h-[90vh] bg-white p-0 overflow-hidden">
+                    <div className="p-6 border-b bg-gradient-to-r from-slate-900 to-slate-800 text-white relative">
+                        <DialogHeader className="text-left mb-0">
+                            <DialogTitle className="text-2xl font-black text-white leading-tight">{selectedTask ? 'Edit Task' : 'Create Task'}</DialogTitle>
+                            <DialogDescription className="text-slate-300 text-xs font-medium mt-1">
+                                {selectedTask ? 'Update task details, change status, or leave comments.' : 'Assign a new task to your team.'}
+                            </DialogDescription>
+                        </DialogHeader>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {isFormOpen && (
+                            <TaskForm 
+                                task={selectedTask} 
+                                allStaff={assignableStaff}
+                                staffByDept={staffByDept} 
+                                onSubmit={handleFormSubmit}
+                                onCancel={() => setIsFormOpen(false)}
+                                onCommentSubmit={handleCommentSubmit}
+                            />
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Practice Metrics & Performance Banner */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -597,16 +716,63 @@ export default function AdminDashboardPage() {
                     </CardContent>
                 </Card>
             )}
+            {/* Recent Communications */}
+            {unarchivedComms.length > 0 && (
+                <div className="space-y-4">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center gap-2 px-2">
+                        <MessageSquare className="h-4 w-4" /> Recent Client Emails
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        {unarchivedComms.map((comm) => (
+                            <Card key={comm.id} className="border-primary/10 bg-white shadow-sm flex flex-col">
+                                <CardContent className="p-4 space-y-2 flex-1">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <span className="text-xs font-bold text-slate-800 line-clamp-1">{comm.customerName}</span>
+                                        <span className="text-[10px] text-slate-400 font-semibold shrink-0">
+                                            {isSameDay(comm.date, new Date()) ? format(comm.date, 'HH:mm') : format(comm.date, 'MMM d')}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] font-semibold text-slate-600 line-clamp-1 bg-slate-50 p-1 rounded border border-slate-100">
+                                        {comm.subject || 'No Subject'}
+                                    </p>
+                                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                                        {comm.text}
+                                    </p>
+                                </CardContent>
+                                <div className="p-2 border-t bg-slate-50/50 flex items-center justify-between gap-2 mt-auto">
+                                    <Button variant="ghost" size="sm" className="h-7 text-[10px] text-slate-500 hover:text-slate-900 px-2" onClick={(e) => handleArchiveComm(e, comm.id)}>
+                                        <X className="h-3 w-3 mr-1" /> Archive
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold px-3" asChild>
+                                        <Link href={`/admin/orders/${comm.orderId}`}>
+                                            View Order <ArrowRight className="h-3 w-3 ml-1" />
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Kanban Board View */}
             {viewMode === 'board' ? (
                 <div className="space-y-6 bg-slate-50/70 p-6 rounded-3xl border border-slate-100 shadow-inner animate-in fade-in duration-300">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                            <LayoutGrid className="h-4 w-4" /> Interactive Task Board
-                        </h3>
+                        <div 
+                            className="flex items-center gap-2 cursor-pointer group select-none" 
+                            onClick={toggleTaskBoard}
+                        >
+                            <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center gap-2 group-hover:text-slate-800 transition-colors">
+                                <LayoutGrid className="h-4 w-4" /> Interactive Task Board
+                            </h3>
+                            {isTaskBoardOpen ? 
+                                <ChevronUp className="h-4 w-4 text-slate-400 group-hover:text-slate-800" /> : 
+                                <ChevronDown className="h-4 w-4 text-slate-400 group-hover:text-slate-800" />
+                            }
+                        </div>
                         
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className={cn("flex flex-wrap items-center gap-2 transition-opacity duration-300", !isTaskBoardOpen && "opacity-0 pointer-events-none")}>
                             <div className="bg-white p-0.5 rounded-md border flex items-center shadow-sm">
                                 <Button 
                                     variant="ghost" 
@@ -654,7 +820,8 @@ export default function AdminDashboardPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+                    {isTaskBoardOpen && (
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 animate-in fade-in slide-in-from-top-4 duration-300">
                         {/* COLUMN 1: To-Do */}
                         <div 
                             className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
@@ -731,15 +898,32 @@ export default function AdminDashboardPage() {
                             </ScrollArea>
                         </div>
                     </div>
+                    )}
                 </div>
             ) : (
                 /* Sleek List View */
                 <div className="space-y-8 animate-in fade-in duration-300">
-                    {/* My Upcoming Tasks */}
-                    <Card className="border rounded-2xl shadow-sm bg-white overflow-hidden">
-                        <CardHeader className="bg-slate-50/40 border-b pb-4">
-                            <CardTitle className="text-md flex items-center gap-2 text-slate-900 font-extrabold">
-                                <ClipboardList className="h-5 w-5 text-primary" />
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-2">
+                        <div 
+                            className="flex items-center gap-2 cursor-pointer group select-none" 
+                            onClick={toggleTaskBoard}
+                        >
+                            <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center gap-2 group-hover:text-slate-800 transition-colors">
+                                <List className="h-4 w-4" /> Task List View
+                            </h3>
+                            {isTaskBoardOpen ? 
+                                <ChevronUp className="h-4 w-4 text-slate-400 group-hover:text-slate-800" /> : 
+                                <ChevronDown className="h-4 w-4 text-slate-400 group-hover:text-slate-800" />
+                            }
+                        </div>
+                    </div>
+                    {isTaskBoardOpen && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                            {/* My Upcoming Tasks */}
+                            <Card className="border rounded-2xl shadow-sm bg-white overflow-hidden">
+                                <CardHeader className="bg-slate-50/40 border-b pb-4">
+                                    <CardTitle className="text-md flex items-center gap-2 text-slate-900 font-extrabold">
+                                        <ClipboardList className="h-5 w-5 text-primary" />
                                 My Upcoming Assigned Tasks
                             </CardTitle>
                         </CardHeader>
@@ -944,6 +1128,8 @@ export default function AdminDashboardPage() {
                             </Table>
                         </CardContent>
                     </Card>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -65,6 +65,7 @@ export default function AdminOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [assignedFilter, setAssignedFilter] = useState<string>('all');
   const [isReconciling, setIsReconciling] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -157,6 +158,25 @@ export default function AdminOrdersPage() {
     return () => unsubscribe();
   }, [user, toast]);
 
+  // Load saved filters on mount
+  useEffect(() => {
+    const savedAssigned = localStorage.getItem('adminOrdersAssignedFilter');
+    if (savedAssigned) setAssignedFilter(savedAssigned);
+    
+    const savedStatus = localStorage.getItem('adminOrdersStatusFilter');
+    if (savedStatus) setStatusFilter(savedStatus);
+  }, []);
+
+  const handleAssignedFilterChange = (value: string) => {
+    setAssignedFilter(value);
+    localStorage.setItem('adminOrdersAssignedFilter', value);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    localStorage.setItem('adminOrdersStatusFilter', value);
+  };
+
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
         // Status filter: Hide Completed by default when statusFilter is 'all'
@@ -164,6 +184,12 @@ export default function AdminOrdersPage() {
             if (order.status !== statusFilter) return false;
         } else {
             if (order.status === 'Completed') return false;
+        }
+
+        // Assigned filter
+        if (assignedFilter === 'mine') {
+            const currentUserId = user?.id || (user as any)?.uid;
+            if (!currentUserId || !order.assignedTo?.includes(currentUserId)) return false;
         }
 
         // Search term filter
@@ -179,7 +205,7 @@ export default function AdminOrdersPage() {
 
         return true;
     });
-  }, [orders, searchTerm, statusFilter]);
+  }, [orders, searchTerm, statusFilter, assignedFilter, user]);
 
    const handleAssignment = async (orderId: string, staffId: string) => {
     try {
@@ -339,7 +365,7 @@ export default function AdminOrdersPage() {
       const isOutsourced = !!orderToUpdate.resellerId;
       const emailTo = isOutsourced && orderToUpdate.documentContact === 'client' ? orderToUpdate.endCustomerEmail : orderToUpdate.customerEmail;
       const customerName = (isOutsourced && orderToUpdate.documentContact === 'client' ? orderToUpdate.endCustomerName : orderToUpdate.customerName) || '';
-      const emailOrder = {...orderToUpdate, customerName, id: orderToUpdate.originalOrderId || orderToUpdate.id } as Order;
+      const emailOrder = {...orderToUpdate, status: newStatus, customerName, id: orderToUpdate.originalOrderId || orderToUpdate.id } as Order;
       
       if (newStatus === 'Processing' && emailTo && user.email) {
         const subject = `Action Required for Your Order #${emailOrder.id}`;
@@ -509,7 +535,16 @@ export default function AdminOrdersPage() {
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                             <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <Select value={assignedFilter} onValueChange={handleAssignedFilterChange}>
+                                <SelectTrigger className="h-10 w-full sm:w-[150px] font-bold border-primary/10">
+                                    <SelectValue placeholder="All Orders" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Orders</SelectItem>
+                                    <SelectItem value="mine">My Orders</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                                 <SelectTrigger className="h-10 w-full sm:w-[200px] font-bold border-primary/10">
                                     <SelectValue placeholder="All Statuses" />
                                 </SelectTrigger>
@@ -532,7 +567,11 @@ export default function AdminOrdersPage() {
             ) : filteredOrders.length === 0 ? (
                 <div className="py-20 text-center space-y-4">
                     <p className="text-muted-foreground font-medium">No active orders matching your search or filters.</p>
-                    <Button variant="outline" onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}>Clear Filters</Button>
+                    <Button variant="outline" onClick={() => { 
+                        setSearchTerm(''); 
+                        handleStatusFilterChange('all'); 
+                        handleAssignedFilterChange('all'); 
+                    }}>Clear Filters</Button>
                 </div>
             ) : (
                 <Table>

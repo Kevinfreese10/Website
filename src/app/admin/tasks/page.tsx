@@ -3,8 +3,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, PlusCircle, Loader2, Calendar, ClipboardList, Edit, Check, Trash2 } from 'lucide-react';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { MoreHorizontal, PlusCircle, Loader2, Calendar, ClipboardList, Edit, Check, Trash2, Paperclip } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, arrayUnion, Timestamp, where, serverTimestamp } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { firebaseApp } from '@/lib/firebase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import TaskForm from '@/components/admin/TaskForm';
@@ -159,7 +160,7 @@ export default function AdminTasksPage() {
     }
   };
 
-  const handleFormSubmit = async (data: any) => {
+  const handleFormSubmit = async (data: any, files?: File[]) => {
     if (!user) return;
     setIsLoading(true);
     
@@ -169,10 +170,11 @@ export default function AdminTasksPage() {
     };
 
     try {
-        if (selectedTask?.id) {
-            const taskRef = doc(db, 'tasks', selectedTask.id);
+        let taskId = selectedTask?.id;
+        
+        if (taskId) {
+            const taskRef = doc(db, 'tasks', taskId);
             await updateDoc(taskRef, { ...taskData });
-            toast({ title: 'Task Updated', description: 'The task details have been saved.' });
         } else {
             const newTask: Omit<Task, 'id' | 'priority'> = {
                 ...taskData,
@@ -184,9 +186,28 @@ export default function AdminTasksPage() {
                 dueMonthOffset: 0,
                 dueDay: 1,
             };
-            await addDoc(collection(db, 'tasks'), newTask);
-            toast({ title: 'Task Created', description: `Task assigned.` });
+            const docRef = await addDoc(collection(db, 'tasks'), newTask);
+            taskId = docRef.id;
         }
+
+        if (files && files.length > 0 && taskId) {
+            const storage = getStorage(firebaseApp);
+            const newAttachments = [];
+            for (const file of files) {
+                const fileRef = ref(storage, `tasks/${taskId}/${Date.now()}_${file.name}`);
+                await uploadBytes(fileRef, file);
+                const url = await getDownloadURL(fileRef);
+                newAttachments.push({ name: file.name, url, path: fileRef.fullPath });
+            }
+            if (newAttachments.length > 0) {
+                const taskRef = doc(db, 'tasks', taskId);
+                await updateDoc(taskRef, {
+                    attachments: arrayUnion(...newAttachments)
+                });
+            }
+        }
+
+        toast({ title: selectedTask ? 'Task Updated' : 'Task Created', description: 'The task details have been saved.' });
         fetchTasks();
         setIsFormOpen(false);
         setSelectedTask(null);
@@ -337,9 +358,17 @@ export default function AdminTasksPage() {
                             </div>
                         </TableCell>
                         <TableCell className="py-4">
-                            <div className="flex items-center gap-1 text-xs text-slate-600 font-semibold">
-                                <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                                <span>{dueDate ? format(dueDate, 'dd/MM/yyyy') : 'N/A'}</span>
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1 text-xs text-slate-600 font-semibold">
+                                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                                    <span>{dueDate ? format(dueDate, 'dd/MM/yyyy') : 'N/A'}</span>
+                                </div>
+                                {(task.attachments?.length ?? 0) > 0 && (
+                                    <div className="flex items-center gap-1 text-xs text-slate-500 font-semibold w-fit bg-slate-50 border border-slate-100 rounded px-1.5 py-0.5 mt-0.5">
+                                        <Paperclip className="h-3 w-3" />
+                                        <span>{task.attachments?.length}</span>
+                                    </div>
+                                )}
                             </div>
                         </TableCell>
                         <TableCell className="py-4">
@@ -373,11 +402,11 @@ export default function AdminTasksPage() {
         </CardContent>
       </Card>
 
-      {/* Task Drawer Sheet */}
-      <Sheet open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setSelectedTask(null);}}>
-         <SheetContent className="sm:max-w-xl w-full flex flex-col h-full bg-white p-0 overflow-hidden">
+      {/* Task Modal */}
+      <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setSelectedTask(null);}}>
+         <DialogContent className="sm:max-w-xl w-full flex flex-col max-h-[90vh] bg-white p-0 overflow-hidden">
               <div className="p-6 border-b bg-gradient-to-r from-slate-900 to-slate-800 text-white relative">
-                  <SheetHeader className="text-left">
+                  <DialogHeader className="text-left">
                       <div className="flex justify-between items-center">
                           <Badge className="bg-primary hover:bg-primary text-[10px] uppercase font-black tracking-wide w-fit">Task Details</Badge>
                           {selectedTask && (
@@ -402,13 +431,13 @@ export default function AdminTasksPage() {
                               </AlertDialog>
                           )}
                       </div>
-                      <SheetTitle className="text-2xl font-black text-white mt-2 leading-tight">
+                      <DialogTitle className="text-2xl font-black text-white mt-2 leading-tight">
                           {selectedTask ? 'Update Task' : 'Create Task'}
-                      </SheetTitle>
-                      <SheetDescription className="text-slate-300 text-xs font-medium mt-1">
+                      </DialogTitle>
+                      <DialogDescription className="text-slate-300 text-xs font-medium mt-1">
                           {selectedTask ? 'Update fields or add logs to this compliance object.' : 'Fill out the form to add a new task.'}
-                      </SheetDescription>
-                  </SheetHeader>
+                      </DialogDescription>
+                  </DialogHeader>
               </div>
               <div className="flex-1 overflow-y-auto p-6">
                   <TaskForm 
@@ -420,8 +449,8 @@ export default function AdminTasksPage() {
                       staffByDept={staffByDept}
                   />
               </div>
-         </SheetContent>
-      </Sheet>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 }

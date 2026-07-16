@@ -22,20 +22,47 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const db = getFirestore(firebaseApp);
 
 const departments = ['Accounting and Tax', 'Administration', 'CAP'] as const;
 const roles = ['admin', 'staff', 'cap_staff', 'cap_supervisor'] as const;
 
+export const AVAILABLE_MODULES = [
+  { id: 'Manage Orders', label: 'Manage Orders' },
+  { id: 'AI Accountant', label: 'AI Accountant' },
+  { id: 'AI Payroll', label: 'AI Payroll' },
+  { id: 'Admin Tools', label: 'Admin Tools' },
+  { id: 'Pages', label: 'Pages' },
+  { id: 'Demo Leads', label: 'Demo Leads' },
+  { id: 'Manage Partners', label: 'Manage Partners' },
+  { id: 'Manage Clients', label: 'Manage Clients' },
+  { id: 'Manage Products', label: 'Manage Products' },
+  { id: 'Social Marketing', label: 'Social Marketing' },
+  { id: 'Community', label: 'Community' },
+  { id: 'Email Inbox', label: 'Email Inbox' },
+  { id: 'Manage Tasks', label: 'Manage Tasks' },
+  { id: 'Task Templates', label: 'Task Templates' },
+  { id: 'Manage Categories', label: 'Manage Categories' },
+  { id: 'Manage Blog', label: 'Manage Blog' },
+  { id: 'Manage Staff', label: 'Manage Staff' },
+  { id: 'Manage Users', label: 'Manage Users' },
+  { id: 'Manage Discounts', label: 'Manage Discounts' },
+  { id: 'Knowledge Base', label: 'Knowledge Base' },
+  { id: 'Chatbot History', label: 'Chatbot History' },
+  { id: 'Media', label: 'Media' },
+];
+
 const formSchema = z.object({
   uid: z.string().optional(),
   name: z.string().min(2, 'Name is required.'),
   email: z.string().email('A valid email is required.'),
-  password: z.string().min(6, 'Password must be at least 6 characters.').optional(),
+  password: z.string().optional().refine(val => !val || val.length >= 6, { message: 'Password must be at least 6 characters.' }),
   department: z.enum(departments),
   role: z.enum(roles),
   isActive: z.boolean().default(true),
+  allowedModules: z.array(z.string()).optional(),
 });
 
 function StaffForm({ staffMember, onSubmit, onCancel }: { staffMember: User | null, onSubmit: (data: any) => void, onCancel: () => void }) {
@@ -49,6 +76,7 @@ function StaffForm({ staffMember, onSubmit, onCancel }: { staffMember: User | nu
             department: (staffMember?.department as any) || 'Administration',
             role: (staffMember?.role as any) || 'staff',
             isActive: staffMember?.isActive !== false, // Default to true unless explicitly false
+            allowedModules: staffMember?.allowedModules || [],
         },
     });
 
@@ -61,6 +89,7 @@ function StaffForm({ staffMember, onSubmit, onCancel }: { staffMember: User | nu
                 role: (staffMember?.role as any) || 'staff',
                 password: '',
                 isActive: staffMember?.isActive !== false,
+                allowedModules: staffMember?.allowedModules || [],
             } as any);
         } else {
             form.reset({
@@ -71,6 +100,7 @@ function StaffForm({ staffMember, onSubmit, onCancel }: { staffMember: User | nu
                 department: 'Administration',
                 role: 'staff',
                 isActive: true,
+                allowedModules: [],
             });
         }
     }, [staffMember, isEditing, form]);
@@ -102,6 +132,59 @@ function StaffForm({ staffMember, onSubmit, onCancel }: { staffMember: User | nu
                 />
                  <FormField control={form.control} name="department" render={({ field }) => ( <FormItem><FormLabel>Department</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a department" /></SelectTrigger></FormControl><SelectContent>{departments.map(dep => <SelectItem key={dep} value={dep}>{dep}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )}/>
                  <FormField control={form.control} name="role" render={({ field }) => ( <FormItem><FormLabel>Role</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl><SelectContent>{roles.map(role => <SelectItem key={role} value={role} className="capitalize">{role.replace('_', ' ')}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )}/>
+                 
+                 {form.watch('role') !== 'admin' && (
+                     <FormField
+                        control={form.control}
+                        name="allowedModules"
+                        render={() => (
+                            <FormItem>
+                                <div className="mb-4">
+                                    <FormLabel className="text-base">Allowed Modules</FormLabel>
+                                    <FormDescription>
+                                        Select the modules this staff member is allowed to access. Dashboards are available by default.
+                                    </FormDescription>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {AVAILABLE_MODULES.map((module) => (
+                                        <FormField
+                                            key={module.id}
+                                            control={form.control}
+                                            name="allowedModules"
+                                            render={({ field }) => {
+                                                return (
+                                                    <FormItem
+                                                        key={module.id}
+                                                        className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3"
+                                                    >
+                                                        <FormControl>
+                                                            <Checkbox
+                                                                checked={field.value?.includes(module.id)}
+                                                                onCheckedChange={(checked) => {
+                                                                    return checked
+                                                                        ? field.onChange([...(field.value || []), module.id])
+                                                                        : field.onChange(
+                                                                            field.value?.filter(
+                                                                                (value) => value !== module.id
+                                                                            )
+                                                                        )
+                                                                }}
+                                                            />
+                                                        </FormControl>
+                                                        <FormLabel className="text-sm font-normal cursor-pointer w-full">
+                                                            {module.label}
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                )
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                 )}
                  
                  {isEditing && (
                     <FormField
@@ -337,7 +420,7 @@ export default function AdminStaffPage() {
                     New Staff Member
                 </Button>
            </DialogTrigger>
-           <DialogContent className="sm:max-w-[500px]">
+           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{selectedStaff ? 'Edit Staff Member' : 'Create New Staff Member'}</DialogTitle>
                     <DialogDescription>

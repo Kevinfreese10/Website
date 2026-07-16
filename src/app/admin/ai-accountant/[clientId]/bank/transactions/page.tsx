@@ -270,6 +270,12 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
 
             parsedTransactions.forEach((row) => {
                 let parsedDate = parse(row.Date, 'dd/MM/yyyy', new Date());
+                
+                // If it parsed as a tiny year (e.g., 0026), it was likely a 2-digit year like 27/06/26
+                if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() < 100) {
+                    parsedDate = parse(row.Date, 'dd/MM/yy', new Date());
+                }
+
                 if (isNaN(parsedDate.getTime())) parsedDate = new Date(row.Date);
                 if (isNaN(parsedDate.getTime())) return;
 
@@ -286,7 +292,8 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                     amount: row.Amount,
                     isExpense: isExpense,
                     bankAccountId: bankAccountId,
-                    status: (isExpense && match) ? 'reviewed' : 'new'
+                    status: (isExpense && match) ? 'reviewed' : 'new',
+                    createdAt: serverTimestamp()
                 };
 
                 if (isExpense && match) {

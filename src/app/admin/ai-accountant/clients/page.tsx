@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, Search, Building, Archive, PlusCircle, MoreHorizontal, Edit, Trash2, Copy, Sliders, BookOpen, Calculator, Settings, ArrowRightLeft, Percent, Plus } from 'lucide-react';
-import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, Timestamp, limit, getDoc, getDocs } from 'firebase/firestore';
+import { Loader2, ArrowRight, Search, Building, Archive, PlusCircle, MoreHorizontal, Edit, Trash2, Copy, Sliders, BookOpen, Calculator, Settings, ArrowRightLeft, Percent, Plus, UserPlus } from 'lucide-react';
+import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, Timestamp, limit, getDoc, getDocs, where, arrayUnion, arrayRemove, updateDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User, AllocationRule } from '@/lib/types';
 import Link from 'next/link';
@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { allVatTypes } from '@/lib/vat-types';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 const db = getFirestore(firebaseApp);
@@ -36,8 +37,11 @@ function LastImportDate({ clientId }: { clientId: string }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Prevent future dates (like typos parsing to 2027) from showing as the "Last Import"
+        const nowIso = new Date().toISOString();
         const q = query(
             collection(db, 'aiAccountantClients', clientId, 'transactions'),
+            where('date', '<=', nowIso),
             orderBy('date', 'desc'),
             limit(1)
         );
@@ -71,12 +75,18 @@ function LastImportDate({ clientId }: { clientId: string }) {
 }
 
 export default function AIAccountantClientsPage() {
+    const { user: currentUser } = useAuth();
     const [clients, setClients] = useState<User[]>([]);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState<User | null>(null);
     const { toast } = useToast();
+
+    // Access Management states
+    const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+    const [clientToShare, setClientToShare] = useState<User | null>(null);
 
     // Global Rules & Chart of Accounts states
     const [globalRules, setGlobalRules] = useState<AllocationRule[]>([]);
@@ -219,7 +229,14 @@ export default function AIAccountantClientsPage() {
     };
 
     useEffect(() => {
-        const q = query(collection(db, 'aiAccountantClients'), orderBy('name'));
+        if (!currentUser) return;
+
+        let q = query(collection(db, 'aiAccountantClients'), orderBy('name'));
+        
+        if (currentUser.role === 'staff') {
+            q = query(collection(db, 'aiAccountantClients'), where('sharedWith', 'array-contains', currentUser.uid), orderBy('name'));
+        }
+
         const unsubscribe = onSnapshot(q, (snap) => {
             const fetchedClients = snap.docs.map(d => ({ ...d.data(), id: d.id } as User));
             setClients(fetchedClients);
@@ -229,7 +246,33 @@ export default function AIAccountantClientsPage() {
             setIsLoading(false);
         });
         return () => unsubscribe();
+    }, [currentUser]);
+
+    useEffect(() => {
+        const usersRef = collection(db, 'users');
+        getDocs(usersRef).then(snap => {
+            const fetched = snap.docs.map(d => ({ ...d.data(), id: d.id, uid: d.id } as User));
+            setAllUsers(fetched);
+        }).catch(err => console.error("Error fetching users:", err));
     }, []);
+
+    const handleToggleShare = async (client: User, userToShareWith: User) => {
+        try {
+            const clientRef = doc(db, 'aiAccountantClients', client.id);
+            const isShared = client.sharedWith?.includes(userToShareWith.uid);
+            
+            if (isShared) {
+                await updateDoc(clientRef, { sharedWith: arrayRemove(userToShareWith.uid) });
+                toast({ title: 'Access Removed', description: `${userToShareWith.name} can no longer access ${client.companyName || client.name}.` });
+            } else {
+                await updateDoc(clientRef, { sharedWith: arrayUnion(userToShareWith.uid) });
+                toast({ title: 'Access Granted', description: `${userToShareWith.name} can now access ${client.companyName || client.name}.` });
+            }
+        } catch (error) {
+            console.error("Error updating access:", error);
+            toast({ title: 'Update Failed', description: 'Could not update access permissions.', variant: 'destructive' });
+        }
+    };
 
     useEffect(() => {
         const rulesRef = collection(db, 'allocationRules');
@@ -486,28 +529,37 @@ export default function AIAccountantClientsPage() {
                                             <DropdownMenuItem onClick={() => handleStartCopy(client)}>
                                                 <Copy className="mr-2 h-4 w-4" /> Copy Client
                                             </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete Client
-                                                    </DropdownMenuItem>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            This will permanently delete the AI Accountant profile for <strong>{client.companyName || client.name}</strong>. This action cannot be undone.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDelete(client.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                                            Permanently Delete
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                            {currentUser?.role !== 'staff' && (
+                                                <DropdownMenuItem onClick={() => { setClientToShare(client); setIsShareDialogOpen(true); }}>
+                                                    <UserPlus className="mr-2 h-4 w-4" /> Manage Access
+                                                </DropdownMenuItem>
+                                            )}
+                                            {currentUser?.role !== 'staff' && (
+                                                <>
+                                                    <DropdownMenuSeparator />
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete Client
+                                                            </DropdownMenuItem>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This will permanently delete the AI Accountant profile for <strong>{client.companyName || client.name}</strong>. This action cannot be undone.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => handleDelete(client.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                                    Permanently Delete
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
@@ -939,6 +991,56 @@ export default function AIAccountantClientsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* MANAGE ACCESS DIALOG */}
+            <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Manage Access</DialogTitle>
+                        <DialogDescription>
+                            Assign which staff members can access the AI Accountant profile for <strong>{clientToShare?.companyName || clientToShare?.name}</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+                        {allUsers.filter(u => u.role === 'staff' || u.role === 'partner_staff').map(staffUser => {
+                            const hasAccess = clientToShare?.sharedWith?.includes(staffUser.uid) || false;
+                            return (
+                                <div key={staffUser.id} className="flex items-center justify-between p-3 border rounded-xl bg-slate-50/50">
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-slate-800">{staffUser.name}</span>
+                                        <span className="text-xs text-slate-500">{staffUser.email}</span>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant={hasAccess ? "default" : "outline"}
+                                        onClick={async () => {
+                                            if (clientToShare) {
+                                                await handleToggleShare(clientToShare, staffUser);
+                                                // Optimistically update the local state for immediate UI feedback
+                                                setClientToShare(prev => {
+                                                    if (!prev) return prev;
+                                                    const newSharedWith = hasAccess 
+                                                        ? (prev.sharedWith || []).filter(uid => uid !== staffUser.uid)
+                                                        : [...(prev.sharedWith || []), staffUser.uid];
+                                                    return { ...prev, sharedWith: newSharedWith };
+                                                });
+                                            }
+                                        }}
+                                        className={hasAccess ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+                                    >
+                                        {hasAccess ? "Access Granted" : "Grant Access"}
+                                    </Button>
+                                </div>
+                            );
+                        })}
+                        {allUsers.filter(u => u.role === 'staff' || u.role === 'partner_staff').length === 0 && (
+                            <div className="text-center py-6 text-slate-500 text-sm">
+                                No staff members found.
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Tabs>
     );
 }

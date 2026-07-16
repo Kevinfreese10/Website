@@ -24,6 +24,13 @@ service cloud.firestore {
               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'cap_supervisor');
     }
 
+    function hasModule(moduleName) {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             'allowedModules' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+             moduleName in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.allowedModules;
+    }
+
     /** True when the caller is an active staff member of the given partner */
     function isPartnerStaffOf(partnerId) {
       return isAuthenticated() &&
@@ -113,7 +120,7 @@ service cloud.firestore {
     // ─── Services ────────────────────────────────────────────────────────────
     match /services/{serviceId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || hasModule('Manage Products');
     }
 
     // ─── Orders ──────────────────────────────────────────────────────────────
@@ -121,6 +128,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource == null ||
         isAdmin() ||
+        hasModule('Manage Orders') ||
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
         request.auth.uid == resource.data.clientId ||
@@ -131,10 +139,12 @@ service cloud.firestore {
       // Require authentication for order creation (fixes unauthenticated exploit)
       allow create: if isAuthenticated() && (
         request.resource.data.status == 'Pending Payment' ||
-        isAdmin()
+        isAdmin() ||
+        hasModule('Manage Orders')
       );
       allow update: if isAuthenticated() && (
         isAdmin() ||
+        hasModule('Manage Orders') ||
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
         request.auth.uid == resource.data.clientId ||
@@ -148,12 +158,12 @@ service cloud.firestore {
     // ─── Blog & Categories ────────────────────────────────────────────────────
     match /blogPosts/{postId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || hasModule('Manage Blog');
     }
 
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || hasModule('Manage Categories');
     }
 
     // ─── Tasks ───────────────────────────────────────────────────────────────
@@ -320,17 +330,17 @@ service cloud.firestore {
     // ─── SEO, Media, Knowledgebase ────────────────────────────────────────────
     match /staticSeo/{pageId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || hasModule('Pages');
     }
 
     match /media/{mediaId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || hasModule('Media');
     }
 
     match /knowledgeBase/{kbId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || hasModule('Knowledge Base');
     }
 
     // ─── Email Inbox ──────────────────────────────────────────────────────

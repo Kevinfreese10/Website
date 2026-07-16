@@ -4,6 +4,10 @@ import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { addMonths } from 'date-fns';
 import { User } from '@/lib/types';
+import { sendEmail } from '@/lib/email';
+import { render } from '@react-email/components';
+import React from 'react';
+import AdminStaffWelcomeEmail from '@/components/emails/AdminStaffWelcomeEmail';
 
 export async function reactivatePracticeSubscription({ userId }: { userId: string }) {
     const adminDb = getAdminDb();
@@ -93,6 +97,29 @@ export async function adminCreateUserAction({
     }
 
     await userDocRef.set(profileData, { merge: true });
+
+    // Send Welcome Email if created via Admin Portal (Staff Manager)
+    if (isNewUser && source === 'Admin Portal (Staff Manager)') {
+      try {
+        const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://myaccountant.co.za'}/login`;
+        const emailHtml = await render(
+          React.createElement(AdminStaffWelcomeEmail, {
+            staffName: name,
+            email: cleanEmail,
+            tempPassword: password,
+            loginUrl,
+          })
+        );
+        await sendEmail({
+          to: cleanEmail,
+          subject: 'Welcome to the My Accountant Team',
+          html: emailHtml,
+        });
+      } catch (emailErr) {
+        console.error('Error sending staff welcome email:', emailErr);
+        // Do not fail the user creation if email fails
+      }
+    }
 
     return {
       success: true,

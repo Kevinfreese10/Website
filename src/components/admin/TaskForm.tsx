@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MoreHorizontal, Check } from 'lucide-react';
+import { CalendarIcon, MoreHorizontal, Check, Paperclip, X } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -22,6 +22,7 @@ import { Separator } from '@/components/ui/separator';
 const taskRecurrences = ['None', 'Daily', 'Weekly', 'Monthly', 'Bi-Monthly', 'Semi-Annually', 'Annually'] as const;
 
 export const taskTypes: Record<string, string> = {
+    'GENERAL': 'General',
     'VAT201': 'VAT Submission (VAT201)',
     'EMP201': 'Monthly PAYE (EMP201)',
     'PAYROLL': 'Payroll Preparation',
@@ -61,7 +62,7 @@ export default function TaskForm({
     isSubmitting
 }: { 
     task: Partial<Task> | null, 
-    onSubmit: (data: any) => void, 
+    onSubmit: (data: any, files?: File[]) => void, 
     onCancel: () => void, 
     onCommentSubmit: (taskId: string, commentText: string) => void, 
     allStaff: User[], 
@@ -70,6 +71,7 @@ export default function TaskForm({
 }) {
     const { user } = useAuth();
     const [isCommenting, setIsCommenting] = useState(false);
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
     const getTaskDate = (task: Partial<Task>): Date => {
       if (!task?.dueDate) return new Date();
@@ -100,7 +102,7 @@ export default function TaskForm({
     });
 
     const handleSubmit = (values: TaskFormValues) => {
-        onSubmit(values);
+        onSubmit(values, pendingFiles);
     };
     
     const handleCommentSubmit = async () => {
@@ -314,6 +316,50 @@ export default function TaskForm({
                 <FormField control={form.control} name="orderId" render={({ field }) => (<FormItem><FormLabel>Related Order ID (Optional)</FormLabel><FormControl><Input {...field} placeholder="e.g. ORD-12345" /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="recurrence" render={({ field }) => (<FormItem><FormLabel>Recurrence</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select recurrence..." /></SelectTrigger></FormControl><SelectContent>{taskRecurrences.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                 
+                <div className="space-y-3 pt-2">
+                    <FormLabel>Attachments</FormLabel>
+                    
+                    {task?.attachments && task.attachments.length > 0 && (
+                        <div className="space-y-2 mb-4 bg-muted/50 p-3 rounded-md">
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">Existing Attachments</p>
+                            {task.attachments.map((file, i) => (
+                                <div key={i} className="flex items-center gap-2 text-sm bg-background p-2 rounded border">
+                                    <Paperclip className="h-4 w-4 text-primary" />
+                                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex-1 hover:underline truncate text-primary">{file.name}</a>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-4">
+                        <Input 
+                            type="file" 
+                            multiple 
+                            onChange={(e) => {
+                                if (e.target.files) {
+                                    setPendingFiles(Array.from(e.target.files));
+                                }
+                            }}
+                            className="flex-1"
+                        />
+                    </div>
+                    {pendingFiles.length > 0 && (
+                        <div className="space-y-2 mt-2">
+                            <p className="text-xs font-medium text-muted-foreground">Files to attach:</p>
+                            {pendingFiles.map((file, i) => (
+                                <div key={i} className="flex items-center justify-between bg-muted/30 p-2 rounded text-sm border">
+                                    <div className="flex items-center gap-2 truncate">
+                                        <Paperclip className="h-4 w-4 text-slate-400" />
+                                        <span className="truncate">{file.name}</span>
+                                    </div>
+                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-destructive" onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))}>
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
                 {task?.id && (
                     <>
                         <Separator />

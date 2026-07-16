@@ -153,9 +153,22 @@ export default function DashboardNav({ user }: { user: UserType }) {
   ];
 
   const visibleNavItems = navItems.filter(item => item.roles.includes(user.role));
-  const visibleAdminNavItems = adminNavItems.filter(item => item.roles.includes(user.role));
-  const visibleSettingsNavItems = settingsNavItems.filter(item => item.roles.includes(user.role));
   const visiblePartnerNavItems = partnerNavItems.filter(item => item.roles.includes(user.role));
+
+  const filterByAllowedModules = (item: any) => {
+    if (!item.roles.includes(user.role)) return false;
+    if (user.role === 'admin') return true; // Admins see everything
+    if (user.role === 'staff' || user.role === 'cap_staff') {
+        // Staff always see Dashboard and Profile by default.
+        if (item.label === 'Dashboard' || item.label === 'My Profile') return true;
+        if (!user.allowedModules || user.allowedModules.length === 0) return false;
+        return user.allowedModules.includes(item.label);
+    }
+    return true; // Other roles fallback
+  };
+
+  const visibleAdminNavItems = adminNavItems.filter(filterByAllowedModules);
+  const visibleSettingsNavItems = settingsNavItems.filter(filterByAllowedModules);
 
   return (
     <>

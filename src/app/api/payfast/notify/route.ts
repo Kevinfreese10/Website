@@ -419,47 +419,6 @@ export async function POST(req: NextRequest) {
                           assignedStaffId = staff.id;
                       }
                   });
-              } else {
-                  console.warn(`No staff found for department ${department}. Checking general active staff.`);
-                  const generalStaff = staffSnapshot.docs
-                      .map(doc => ({ id: doc.id, ...doc.data() } as User))
-                      .filter(staff => staff.status !== 'Inactive' && staff.status !== 'Archived');
-                  
-                  if (generalStaff.length > 0) {
-                      const processingOrdersSnapshot = await adminDb.collection('orders')
-                          .where('status', '==', 'Processing')
-                          .get();
-                      
-                      const workloadMap: { [userId: string]: number } = {};
-                      generalStaff.forEach(staff => {
-                          workloadMap[staff.id] = 0;
-                      });
-                      
-                      processingOrdersSnapshot.docs.forEach(doc => {
-                          const orderData = doc.data();
-                          const assigned = orderData.assignedTo;
-                          if (Array.isArray(assigned)) {
-                              assigned.forEach((staffId: string) => {
-                                  if (workloadMap[staffId] !== undefined) {
-                                      workloadMap[staffId]++;
-                                  }
-                              });
-                          } else if (typeof assigned === 'string') {
-                              if (workloadMap[assigned] !== undefined) {
-                                  workloadMap[assigned]++;
-                              }
-                          }
-                      });
-                      
-                      let minWorkload = Infinity;
-                      generalStaff.forEach(staff => {
-                          const workload = workloadMap[staff.id] || 0;
-                          if (workload < minWorkload) {
-                              minWorkload = workload;
-                              assignedStaffId = staff.id;
-                          }
-                      });
-                  }
               }
               
               if (assignedStaffId) {
@@ -480,33 +439,13 @@ export async function POST(req: NextRequest) {
                           attachments: null,
                       })
                   });
-                  
-                  const taskRef = adminDb.collection('tasks').doc();
-                  await taskRef.set({
-                      id: taskRef.id,
-                      title: `Order #${orderId} - Fulfill Services`,
-                      description: `Please fulfill the following services for ${currentOrderData.customerName}:\n` + 
-                          currentOrderData.items.map(item => `- ${item.title} (Qty: ${item.quantity})`).join('\n'),
-                      assignedTo: [assignedStaffId],
-                      createdBy: 'system',
-                      createdAt: FieldValue.serverTimestamp(),
-                      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                      priority: 'Medium',
-                      status: 'To-Do',
-                      orderId: orderId,
-                      clientId: currentOrderData.userId || null,
-                      clientSource: currentOrderData.source || 'Client',
-                      department: department,
-                      comments: []
-                  });
-                  
-                  console.log(`Task ${taskRef.id} successfully created and assigned to ${staffName}`);
               } else {
-                  console.warn(`No staff available at all. Order ${orderId} remains unassigned.`);
+                  console.warn(`No staff available for department ${department}. Order ${orderId} remains unassigned.`);
                   await orderRef.update({
+                      assignedTo: [],
                       department: department,
                       notes: FieldValue.arrayUnion({
-                          text: `Order set to department: ${department}. Could not assign staff (no active staff members found).`,
+                          text: `Order set to department: ${department}. Could not assign staff (no active staff members found in this department).`,
                           date: new Date(),
                           authorId: 'system',
                           type: 'note',
@@ -515,6 +454,27 @@ export async function POST(req: NextRequest) {
                       })
                   });
               }
+
+              const taskRef = adminDb.collection('tasks').doc();
+              await taskRef.set({
+                  id: taskRef.id,
+                  title: `Order #${orderId} - Fulfill Services`,
+                  description: `Please fulfill the following services for ${currentOrderData.customerName}:\n` + 
+                      currentOrderData.items.map(item => `- ${item.title} (Qty: ${item.quantity})`).join('\n'),
+                  assignedTo: assignedStaffId ? [assignedStaffId] : [],
+                  createdBy: 'system',
+                  createdAt: FieldValue.serverTimestamp(),
+                  dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                  priority: 'Medium',
+                  status: 'To-Do',
+                  orderId: orderId,
+                  clientId: currentOrderData.userId || null,
+                  clientSource: currentOrderData.source || 'Client',
+                  department: department,
+                  comments: []
+              });
+              
+              console.log(`Task ${taskRef.id} successfully created${assignedStaffId ? ` and assigned` : ` (unassigned)`}`);
           } catch (allocationError) {
               console.error(`Error during staff allocation/task creation for order ${orderId}:`, allocationError);
           }
