@@ -30,10 +30,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: description,
     robots: {
       index: false,
-      follow: false,
+      follow: true,
     },
     alternates: {
-        canonical: `${SITE_URL}/p/${slug}/products/${serviceSlug}`,
+      // Point canonical to the main product page — this makes the main page
+      // the authoritative source and consolidates all ranking signals there.
+      canonical: `${SITE_URL}/products/${serviceSlug}`,
     },
     openGraph: {
         title,
