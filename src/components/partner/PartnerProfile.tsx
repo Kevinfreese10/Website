@@ -150,7 +150,7 @@ const formSchema = z.object({
     customDomain: z.string()
       .optional()
       .or(z.literal(''))
-      .refine(val => !val || /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/.test(val), {
+      .refine(val => !val || /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/.test(val), {
         message: "Please enter a valid domain name (e.g. www.mycompany.co.za)"
       }),
   })
