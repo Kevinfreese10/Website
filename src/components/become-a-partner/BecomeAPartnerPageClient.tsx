@@ -251,7 +251,7 @@ const faqs = [
     },
     {
         question: "How much does the partner program cost?",
-        answer: "Joining the Partner Program is free! You get your custom practice landing page and a 10% wholesale discount on all services. You can activate premium add-ons directly from your dashboard as you need them: AI Accountant (R950/mo), AI Payroll (R950/mo), Task & Workflow Manager (R200/mo), and additional staff seats (R50/seat/mo)."
+        answer: "Joining the Partner Program is free! You get a 10% wholesale discount on all services. You can activate premium add-ons directly from your dashboard as you need them: Custom Practice Landing Page (R2450 once-off), AI Accountant (R950/mo), AI Payroll (R950/mo), Task & Workflow Manager (R200/mo), and additional staff seats (R50/seat/mo)."
     },
     {
         question: "Do I need to be a registered accountant?",
@@ -321,7 +321,7 @@ export default function BecomeAPartnerPageClient() {
                                     {[
                                         {
                                             id: 'landing',
-                                            text: 'Custom Practice Landing Page (Domain linked) - Included Free',
+                                            text: 'Custom Practice Landing Page (Domain linked) - Optional R2450 Add-on',
                                             icon: Globe,
                                             isDemo: true,
                                             bgClass: 'bg-cyan-500/10',
@@ -364,8 +364,8 @@ export default function BecomeAPartnerPageClient() {
                                                 </div>
                                                 {item.isDemo ? (
                                                     <span className="leading-tight pt-1">
-                                                        Custom Practice Landing Page (Domain linked) - {' '}
-                                                        <a href="https://www.myacc.co.za/p/interscope" target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold">
+                                                        Custom Practice Landing Page (Domain linked) - <span className="font-bold text-amber-600">Optional R2450 Add-on</span> <br/>
+                                                        <a href="https://www.myacc.co.za/p/interscope" target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold text-xs">
                                                             Click here to view a demo page
                                                         </a>
                                                     </span>

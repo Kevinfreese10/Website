@@ -22,7 +22,7 @@ import { Loader2, Briefcase, CheckCircle2, UserPlus, Wallet2, CreditCard, Sparkl
 import { useAuth } from '@/contexts/AuthContext';
 import { Service, Order } from '@/lib/types';
 import { sendEmail } from '@/lib/email';
-import { checkSlugAvailability, checkIfEmailExists } from '@/app/actions';
+import { checkIfEmailExists } from '@/app/actions';
 import { render } from '@react-email/components';
 import PartnerWelcomeEmail from '../emails/PartnerWelcomeEmail';
 import { getNextOrderId } from '@/lib/sequence';
@@ -39,10 +39,7 @@ const formSchema = z.object({
   email: z.string().email('Please enter a valid email.'),
   password: z.string().optional(),
   contactNumber: z.string().min(10, 'A valid contact number is required.'),
-  slug: z.string()
-    .min(3, 'Slug must be at least 3 characters.')
-    .max(30, 'Slug must be at most 30 characters.')
-    .regex(/^[a-z0-9\-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens.'),
+  slug: z.string().optional(),
   tier: z.literal('growth').default('growth'),
   wantsOutsourcedWork: z.boolean().default(false),
   cv: z.any().optional(),
@@ -80,10 +77,7 @@ export default function PartnerSignupForm() {
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [isServicesLoading, setIsServicesLoading] = useState(true);
 
-  // Slug states
-  const [checkingSlug, setCheckingSlug] = useState(false);
-  const [isSlugAvailable, setIsSlugAvailable] = useState<boolean | null>(null);
-  const [isSlugManual, setIsSlugManual] = useState(false);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -142,48 +136,6 @@ export default function PartnerSignupForm() {
 
   const selectedTier = form.watch('tier');
   const companyName = form.watch('companyName');
-  const currentSlug = form.watch('slug');
-  
-  // Auto-slugify company name
-  useEffect(() => {
-    if (!isSlugManual && companyName) {
-      const slugified = companyName
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '')
-        .replace(/\-\-+/g, '-');
-      form.setValue('slug', slugified, { shouldValidate: true });
-    }
-  }, [companyName, isSlugManual, form]);
-
-  // Check slug availability (debounced)
-  useEffect(() => {
-    if (!currentSlug || currentSlug.length < 3) {
-      setIsSlugAvailable(null);
-      return;
-    }
-
-    const checkSlug = async () => {
-      setCheckingSlug(true);
-      try {
-        const res = await checkSlugAvailability(currentSlug);
-        if (res.success) {
-          setIsSlugAvailable(res.isAvailable);
-        } else {
-          setIsSlugAvailable(null);
-        }
-      } catch (err) {
-        console.error("Error checking slug:", err);
-        setIsSlugAvailable(null);
-      } finally {
-        setCheckingSlug(false);
-      }
-    };
-
-    const timer = setTimeout(checkSlug, 500);
-    return () => clearTimeout(timer);
-  }, [currentSlug]);
 
   useEffect(() => {
     const fetchServicesAndCategories = async () => {
@@ -227,11 +179,6 @@ export default function PartnerSignupForm() {
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.tier === 'growth' && isSlugAvailable === false) {
-      toast({ title: 'Slug Unavailable', description: 'Please choose a different practice URL slug.', variant: 'destructive' });
-      return;
-    }
-
     setIsLoading(true);
     try {
         const { password, cv, certificate, ...partnerData } = values;
@@ -286,8 +233,8 @@ export default function PartnerSignupForm() {
             cvUrl: cvUrl,
             certificateUrl: certificateUrl,
             landingPage: {
-                enabled: true,
-                slug: values.slug.toLowerCase().trim(),
+                enabled: false,
+                slug: '',
                 companyName: values.companyName,
             },
             partnerSubscription: {
@@ -349,16 +296,11 @@ export default function PartnerSignupForm() {
   }
 
   const handleNextOrLogin = async () => {
-      const fieldsToValidate: any = ['companyName', 'name', 'surname', 'email', 'slug'];
+      const fieldsToValidate: any = ['companyName', 'name', 'surname', 'email'];
       if (!currentUser) fieldsToValidate.push('password', 'contactNumber');
       
       const isValid = await form.trigger(fieldsToValidate);
       if (isValid) {
-          if (selectedTier === 'growth' && isSlugAvailable === false) {
-              toast({ title: 'Slug Unavailable', description: 'Please select an available practice URL slug.', variant: 'destructive' });
-              return;
-          }
-
           if (emailExists && !currentUser) {
               // Perform Login
               setIsLoggingIn(true);
@@ -437,50 +379,7 @@ export default function PartnerSignupForm() {
                     )}
                 </div>
 
-                <Separator />
-
-                <div className="space-y-4">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Globe className="h-5 w-5 text-primary" />
-                        Step 2: Practice URL
-                    </h3>
-                    <FormField 
-                        control={form.control} 
-                        name="slug" 
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Practice Landing Page Address</FormLabel>
-                                <div className="flex items-center gap-1">
-                                    <span className="text-sm font-semibold text-muted-foreground bg-muted h-10 px-3 flex items-center border rounded-l-md border-r-0 select-none">
-                                        myacc.co.za/p/
-                                    </span>
-                                    <FormControl>
-                                        <Input 
-                                            placeholder="acme" 
-                                            className="rounded-l-none" 
-                                            {...field} 
-                                            onChange={(e) => {
-                                                setIsSlugManual(true);
-                                                field.onChange(e.target.value.toLowerCase().trim().replace(/[^a-z0-9\-]/g, ''));
-                                            }}
-                                        />
-                                    </FormControl>
-                                </div>
-                                <FormDescription className="text-amber-600 font-medium">
-                                    Warning: This URL cannot be changed later. Choose carefully!
-                                </FormDescription>
-                                <div className="text-xs mt-1">
-                                    {checkingSlug && <p className="text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Checking availability...</p>}
-                                    {isSlugAvailable === true && <p className="text-green-600 font-semibold">✓ Custom URL is available!</p>}
-                                    {isSlugAvailable === false && <p className="text-red-500 font-semibold">✗ This URL address is already in use.</p>}
-                                </div>
-                                <FormMessage />
-                            </FormItem>
-                        )} 
-                    />
-                </div>
-                
-                <Button type="button" onClick={handleNextOrLogin} disabled={checkingSlug || checkingEmail || isLoggingIn} className="w-full h-12 font-bold mt-4">
+                <Button type="button" onClick={handleNextOrLogin} disabled={checkingEmail || isLoggingIn} className="w-full h-12 font-bold mt-4">
                     {isLoggingIn ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
                     {emailExists && !currentUser ? 'Login & Continue' : 'Next: Overflow Work & Summary'}
                 </Button>
@@ -492,7 +391,7 @@ export default function PartnerSignupForm() {
                 <div className="space-y-4">
                     <h3 className="text-lg font-bold flex items-center gap-2">
                         <Briefcase className="h-5 w-5 text-primary" />
-                        Step 3: Overflow Work & Capabilities (Optional)
+                        Step 2: Overflow Work & Capabilities (Optional)
                     </h3>
                     <FormField
                         control={form.control}
@@ -661,7 +560,7 @@ export default function PartnerSignupForm() {
                                 <span className="font-black text-md text-primary">Free / R0</span>
                             </div>
                             <div className="text-xs text-muted-foreground mb-2">
-                                Includes custom landing page, partner community chat, 10% wholesale discount, and outsourcing backend access.
+                                Includes partner community chat, 10% wholesale discount, and outsourcing backend access.
                             </div>
                             <div className="flex justify-between items-center border-t border-primary/20 pt-2 font-bold text-sm">
                                 <span>Total Due Today</span>

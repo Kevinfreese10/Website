@@ -7,7 +7,7 @@ import { getFirestore, doc, getDoc, collection, getDocs, query, where, updateDoc
 import { firebaseApp } from '@/lib/firebase';
 import { User, ChartOfAccount, ImportedTransaction, AllocatedTransaction } from '@/lib/types';
 import { useParams } from 'next/navigation';
-import { Loader2, ArrowRight, Banknote, AlertCircle, PlusCircle, Sparkles, FileText } from 'lucide-react';
+import { Loader2, ArrowRight, Banknote, AlertCircle, PlusCircle, Sparkles, FileText, CheckCircle2, XCircle, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -108,6 +108,83 @@ function CreateAccountDialog({ client, onAccountCreated }: { client: User, onAcc
     );
 }
 
+
+const updateBankBalanceSchema = z.object({
+  bankBalance: z.number({ required_error: "Bank balance is required.", invalid_type_error: "Must be a number." }),
+});
+
+function UpdateBankBalanceDialog({ client, account, onUpdated }: { client: User, account: ChartOfAccount, onUpdated: () => void }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const { toast } = useToast();
+    const [isSaving, setIsSaving] = useState(false);
+    const form = useForm<z.infer<typeof updateBankBalanceSchema>>({
+        resolver: zodResolver(updateBankBalanceSchema),
+        defaultValues: { bankBalance: account.bankBalance || 0 },
+    });
+
+    const handleUpdate = async (values: z.infer<typeof updateBankBalanceSchema>) => {
+        setIsSaving(true);
+        try {
+            const updatedAccounts = client.chartOfAccounts?.map(acc => 
+                acc.id === account.id ? { ...acc, bankBalance: values.bankBalance } : acc
+            ) || [];
+
+            const clientRef = doc(db, 'aiAccountantClients', client.id);
+            await updateDoc(clientRef, {
+                chartOfAccounts: updatedAccounts
+            });
+
+            toast({ title: 'Success', description: 'Bank balance updated.' });
+            onUpdated();
+            setIsOpen(false);
+        } catch (error) {
+            console.error("Error updating bank balance:", error);
+            toast({ title: 'Error', description: 'Could not update bank balance.', variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 px-2 text-xs ml-2 border-primary/20 text-primary bg-primary/5 hover:bg-primary/10 transition-colors">
+                    <Pencil className="h-3 w-3 mr-1" /> Edit
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Update Bank Balance</DialogTitle>
+                    <DialogDescription>
+                        Set the actual bank balance for {account.description} to reconcile.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleUpdate)} className="space-y-4">
+                        <FormField control={form.control} name="bankBalance" render={({ field }) => ( 
+                            <FormItem>
+                                <FormLabel>Actual Bank Balance</FormLabel>
+                                <FormControl>
+                                    <Input 
+                                        type="number" 
+                                        step="0.01" 
+                                        {...field} 
+                                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <DialogFooter>
+                            <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
+                            <Button type="submit" disabled={isSaving}>{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save</Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export default function AIAccountantClientDashboardPage() {
     const [client, setClient] = useState<User | null>(null);
@@ -248,6 +325,8 @@ export default function AIAccountantClientDashboardPage() {
                                 <TableRow>
                                     <TableHead>Bank Account</TableHead>
                                     <TableHead className="text-right">Current Balance</TableHead>
+                                    <TableHead className="text-right">Bank Balance</TableHead>
+                                    <TableHead className="text-center">Reconciled</TableHead>
                                     <TableHead className="text-center">Unallocated</TableHead>
                                     <TableHead>Last Import</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
@@ -261,6 +340,25 @@ export default function AIAccountantClientDashboardPage() {
                                             <p className="text-xs text-muted-foreground font-mono">{acc.accountNumber}</p>
                                         </TableCell>
                                         <TableCell className="text-right font-mono">{formatPrice(acc.balance)}</TableCell>
+                                        <TableCell className="text-right font-mono text-muted-foreground">
+                                            <div className="flex items-center justify-end">
+                                                {acc.bankBalance !== undefined ? formatPrice(acc.bankBalance) : '-'}
+                                                <UpdateBankBalanceDialog client={client} account={acc as ChartOfAccount} onUpdated={fetchDashboardData} />
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            {acc.bankBalance !== undefined && Math.abs(acc.balance - acc.bankBalance) < 0.01 ? (
+                                                <div className="flex items-center justify-center text-green-600 font-semibold gap-1">
+                                                    <CheckCircle2 className="h-4 w-4" /> Yes
+                                                </div>
+                                            ) : acc.bankBalance !== undefined ? (
+                                                <div className="flex items-center justify-center text-red-500 font-semibold gap-1 text-xs" title={`Diff: ${formatPrice(acc.balance - acc.bankBalance)}`}>
+                                                    <XCircle className="h-4 w-4" /> {formatPrice(acc.balance - acc.bankBalance)}
+                                                </div>
+                                            ) : (
+                                                <span className="text-muted-foreground text-xs">No bank bal</span>
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-center">
                                             <div className="flex items-center justify-center gap-2">
                                                  {acc.unallocatedCount > 0 && <AlertCircle className="h-4 w-4 text-destructive" />}

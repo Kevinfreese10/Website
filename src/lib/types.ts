@@ -714,6 +714,7 @@ export type ChartOfAccount = {
   type?: 'Income' | 'Expense' | 'Asset' | 'Liability' | 'Equity' | string;
   description: string;
   section?: string;
+  bankBalance?: number;
 };
 
 export type VatType = 
