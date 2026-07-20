@@ -87,6 +87,16 @@ export default function TalentProfileForm() {
   const onSubmit = async (values: z.infer<typeof talentProfileSchema>) => {
     setIsSaving(true);
     try {
+      const fullProfile = {
+        isLookingForWork: values.isLookingForWork,
+        experience: values.experience || '',
+        preferences: user?.talentProfile?.preferences || [],
+        workType: values.workType,
+        locationPreference: values.locationPreference,
+        cvUrl: values.cvUrl,
+        supportingDocsUrls: user?.talentProfile?.supportingDocsUrls || [],
+      };
+
       const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
       let userRef = null;
 
@@ -94,7 +104,7 @@ export default function TalentProfileForm() {
         try {
           const tempRef = doc(db, col, user.uid);
           await updateDoc(tempRef, {
-            talentProfile: values
+            talentProfile: fullProfile
           });
           userRef = tempRef;
           break; 
@@ -106,7 +116,7 @@ export default function TalentProfileForm() {
         throw new Error('User document not found or could not be updated');
       }
 
-      updateUser({ ...user, talentProfile: values });
+      updateUser({ ...user, talentProfile: fullProfile });
       toast({ title: 'Profile Updated', description: 'Your talent profile has been saved successfully.' });
     } catch (error) {
       console.error("Error updating talent profile:", error);
