@@ -545,6 +545,27 @@ export type User = {
   solutionsCount?: number;
   portalStatus?: string;
   payrollClientId?: string;
+  talentProfile?: {
+    isLookingForWork: boolean;
+    preferences: string[];
+    experience: string;
+    cvUrl?: string;
+    supportingDocsUrls?: string[];
+    workType?: 'Full Time' | 'Part Time' | 'Contract' | 'Freelance';
+    locationPreference?: 'Remote' | 'On-site' | 'Hybrid';
+  };
+};
+
+export type Job = {
+  id: string;
+  title: string;
+  description: string;
+  type: 'Full Time' | 'Part Time' | 'Contract' | 'Freelance';
+  locationPreference: 'Remote' | 'On-site' | 'Hybrid';
+  companyName: string;
+  postedByUserId: string;
+  status: 'Open' | 'Closed';
+  createdAt: any;
 };
 
 export type DiscountCode = {

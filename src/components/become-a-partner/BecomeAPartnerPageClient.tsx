@@ -26,6 +26,10 @@ const CommunityCarouselWidget = dynamicImport(() => import('@/components/become-
   ssr: false,
 });
 
+const JobsBoardCarouselWidget = dynamicImport(() => import('@/components/become-a-partner/JobsBoardCarouselWidget'), {
+  ssr: false,
+});
+
 const db = getFirestore(firebaseApp);
 
 function PartnerPricingDialog() {
@@ -499,7 +503,8 @@ export default function BecomeAPartnerPageClient() {
       </section>
 
       <section className="py-12 bg-white">
-        <div className="container mx-auto px-4 max-w-7xl">
+        <JobsBoardCarouselWidget />
+        <div className="container mx-auto px-4 max-w-7xl mt-12">
           <CommunityCarouselWidget />
         </div>
       </section>

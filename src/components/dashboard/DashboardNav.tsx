@@ -149,6 +149,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
     ...(!isFreePartner ? [{ href: '/partner/outsourced-orders', label: 'Outsourced Orders', icon: FileText, roles: ['partner', 'partner_staff'] }] : []),
     { href: '/partner/profile', label: 'My Profile', icon: User, roles: ['partner', 'partner_staff'] },
     { href: '/partner/community', label: 'Community Q&A', icon: MessageSquare, roles: ['partner', 'partner_staff'] },
+    { href: '/partner/jobs', label: 'Jobs & Talent', icon: Briefcase, roles: ['partner', 'partner_staff'] },
   ];
 
   const visibleNavItems = navItems.filter(item => item.roles.includes(user.role));
