@@ -616,7 +616,7 @@ export default function AdminOrdersPage() {
                                      <Link href={`/admin/orders/${order.id}`}>View Order</Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                {user?.role === 'admin' && (
+                                {(user?.role === 'admin' || user?.role === 'staff') && (
                                     <>
                                         <DropdownMenuSub>
                                         <DropdownMenuSubTrigger>Assign To</DropdownMenuSubTrigger>
