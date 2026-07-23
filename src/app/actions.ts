@@ -196,3 +196,9 @@ export async function adminUpdateUserPasswordAction(params: any) {
 export async function createCheckoutOrderAction(params: any) {
   return checkoutCore.createCheckoutOrderAction(params);
 }
+
+// --- AI WEB SEARCH FLOW ---
+export async function suggestTransactionAllocationWeb(input: any) {
+  const { suggestTransactionAllocationWeb: flow } = await import('@/ai/flows/suggest-transaction-allocation-web');
+  return flow(input);
+}

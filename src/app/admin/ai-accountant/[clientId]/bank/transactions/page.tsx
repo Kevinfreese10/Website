@@ -10,11 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FileUp, Loader2, PlusCircle, Search, Settings, Trash2, Edit, ArrowRightLeft, BookOpen, Sparkles, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, CheckCheck, ChevronsUpDown, MoreHorizontal, RotateCcw, AlertTriangle, Download, BrainCircuit, Play, CheckCircle2, Clock, Undo2, RotateCw, History, Info, X, ArrowRight, MessageSquareQuote, Send, AlertCircle, StopCircle, GripVertical, Layers, FileSpreadsheet, Save, MessageSquare, RefreshCw, Calendar as CalendarIcon, Users } from 'lucide-react';
+import { FileUp, Loader2, PlusCircle, Search, Settings, Trash2, Edit, ArrowRightLeft, BookOpen, Sparkles, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, CheckCheck, ChevronsUpDown, MoreHorizontal, RotateCcw, AlertTriangle, Download, BrainCircuit, Play, CheckCircle2, Clock, Undo2, RotateCw, History, Info, X, ArrowRight, MessageSquareQuote, Send, AlertCircle, StopCircle, GripVertical, Layers, FileSpreadsheet, Save, MessageSquare, RefreshCw, Calendar as CalendarIcon, Users, Zap } from 'lucide-react';
 import Papa from 'papaparse';
 import { ImportedTransaction, ChartOfAccount, User, VatType, AllocatedTransaction, AllocationRule, ClientCustomer, Invoice, SmartAllocationResult, Supplier } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getFirestore, doc, updateDoc, arrayUnion, getDoc, collection, getDocs, query, orderBy, where, writeBatch, onSnapshot, Timestamp, deleteField, addDoc, limit, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, updateDoc, arrayUnion, getDoc, collection, getDocs, query, orderBy, where, writeBatch, onSnapshot, Timestamp, deleteField, addDoc, limit, serverTimestamp, deleteDoc, setDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { runAiAccountantAnalysis, prepareAiAccountantAnalysis, moveTransactionToNew, researchMerchantWithAi, updateGlobalMerchantDb, resetAiAccountantAnalysis, proposeRegroups, applyRegroups, proposeAiRegroups, analyzeClientCommentAndSuggest, bulkMoveTransactionsToNew, matchTransactionsToSuppliers, matchTransactionsToHistory, reanalyzeAndRegroupTransactions } from '@/app/actions';
+import { runAiAccountantAnalysis, prepareAiAccountantAnalysis, moveTransactionToNew, researchMerchantWithAi, updateGlobalMerchantDb, resetAiAccountantAnalysis, proposeRegroups, applyRegroups, proposeAiRegroups, analyzeClientCommentAndSuggest, bulkMoveTransactionsToNew, matchTransactionsToSuppliers, matchTransactionsToHistory, reanalyzeAndRegroupTransactions, suggestTransactionAllocationWeb } from '@/app/actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -596,10 +596,35 @@ function CreateRuleDialog({ client, onRuleCreated, open, onOpenChange, defaultVa
                 };
                 await updateDoc(doc(db, 'aiAccountantClients', client.uid), { allocationRules: arrayUnion(newRule) });
             }
-            toast({ title: 'Practice Rule Saved' });
+
+            // Sync keywords to global practice rules collection ('allocationRules')
+            if (values.accountId) {
+                const globalSnap = await getDocs(collection(db, 'allocationRules'));
+                const globalMatch = globalSnap.docs.find(d => d.data().accountId === values.accountId);
+                if (globalMatch) {
+                    const existingGlobalKws = globalMatch.data().keywords || [];
+                    const mergedKws = Array.from(new Set([...existingGlobalKws, ...keywordsArray]));
+                    await updateDoc(doc(db, 'allocationRules', globalMatch.id), { keywords: mergedKws });
+                } else {
+                    const newGlobalDocRef = doc(collection(db, 'allocationRules'));
+                    await setDoc(newGlobalDocRef, {
+                        description: values.description || `Rule for ${keywordsArray[0] || 'Account'}`,
+                        keywords: keywordsArray,
+                        accountId: values.accountId,
+                        vatType: values.vatType || 'no_vat',
+                        type: 'hard',
+                        scope: 'global',
+                        priority: 99,
+                        createdAt: serverTimestamp()
+                    });
+                }
+            }
+
+            toast({ title: 'Practice Rule Saved & Global Rules Updated' });
             onRuleCreated();
             onOpenChange(false);
         } catch(e) {
+            console.error("Error saving practice rule:", e);
             toast({ title: 'Error', variant: 'destructive'});
         }
     };
@@ -1281,6 +1306,480 @@ function SplitTransactionDialog({
 
 // #endregion
 
+interface SmartMatchResult {
+    transactionId: string;
+    description: string;
+    amount: number;
+    date: string;
+    merchantName: string;
+    merchantCategory: string;
+    suggestedAccountId: string;
+    suggestedAccountLabel: string;
+    vatType: VatType;
+    confidence: number;
+    suggestedKeyword: string;
+    existingRule?: AllocationRule;
+}
+
+interface SmartMatchQueueModalProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    selectedTransactions: ImportedTransaction[];
+    client: User;
+    globalRules?: AllocationRule[];
+    onRulesSaved: () => void;
+}
+
+function SmartMatchQueueModal({
+    open,
+    onOpenChange,
+    selectedTransactions,
+    client,
+    globalRules = [],
+    onRulesSaved
+}: SmartMatchQueueModalProps) {
+    const { toast } = useToast();
+    const [phase, setPhase] = useState<'idle' | 'running' | 'results' | 'saving'>('idle');
+    const [progress, setProgress] = useState<{ processed: number; total: number }>({ processed: 0, total: 0 });
+    const [results, setResults] = useState<SmartMatchResult[]>([]);
+    const [selectedForRules, setSelectedForRules] = useState<Set<string>>(new Set());
+    const [ruleEdits, setRuleEdits] = useState<Map<string, string>>(new Map());
+    const [accountEdits, setAccountEdits] = useState<Map<string, string>>(new Map());
+    const isAbortedRef = React.useRef(false);
+
+    const txIdsKey = useMemo(() => (selectedTransactions || []).map(t => t.id).join(','), [selectedTransactions]);
+
+    useEffect(() => {
+        if (!open) {
+            setPhase('idle');
+            return;
+        }
+
+        if (!selectedTransactions || selectedTransactions.length === 0) {
+            setPhase('idle');
+            return;
+        }
+
+        isAbortedRef.current = false;
+        setPhase('running');
+        setProgress({ processed: 0, total: selectedTransactions.length });
+        setResults([]);
+        setSelectedForRules(new Set());
+        setRuleEdits(new Map());
+        setAccountEdits(new Map());
+
+        const runSmartMatch = async () => {
+            const coaJson = JSON.stringify(
+                (client?.chartOfAccounts || []).map((a: ChartOfAccount) => ({
+                    id: a.id,
+                    accountNumber: a.accountNumber || a.code || a.id,
+                    description: a.description || a.name || ''
+                }))
+            );
+
+            const allRules = [...(client?.allocationRules || []), ...globalRules];
+            const matchedResults: SmartMatchResult[] = [];
+            const initialSelected = new Set<string>();
+            const initialEdits = new Map<string, string>();
+
+            for (let i = 0; i < selectedTransactions.length; i++) {
+                if (isAbortedRef.current) break;
+
+                const tx = selectedTransactions[i];
+                try {
+                    const output = await suggestTransactionAllocationWeb({
+                        description: tx.description,
+                        chartOfAccounts: coaJson,
+                        isVatRegistered: client?.isVatRegistered,
+                        apiKey: client?.geminiApiKey,
+                    });
+
+                    if (output && output.confidence >= 90) {
+                        const acc = client?.chartOfAccounts?.find((a: ChartOfAccount) => a.id === output.accountId);
+                        const accountLabel = acc ? `${acc.accountNumber || acc.id} - ${acc.description}` : output.accountId;
+                        const existingRule = allRules.find(r => r.accountId === output.accountId);
+
+                        const res: SmartMatchResult = {
+                            transactionId: tx.id,
+                            description: tx.description,
+                            amount: tx.amount,
+                            date: tx.date,
+                            merchantName: output.merchantName || 'Identified Merchant',
+                            merchantCategory: output.merchantCategory || 'General',
+                            suggestedAccountId: output.accountId,
+                            suggestedAccountLabel: accountLabel,
+                            vatType: (output.vatType as VatType) || 'no_vat',
+                            confidence: output.confidence,
+                            suggestedKeyword: (output.suggestedKeyword || tx.description).toUpperCase(),
+                            existingRule,
+                        };
+
+                        matchedResults.push(res);
+                        initialSelected.add(tx.id);
+                        initialEdits.set(tx.id, res.suggestedKeyword);
+                    }
+                } catch (err) {
+                    console.error(`Error in Smart Match analysis for tx ${tx.id}:`, err);
+                }
+
+                if (!isAbortedRef.current) {
+                    setProgress({ processed: i + 1, total: selectedTransactions.length });
+                }
+            }
+
+            if (!isAbortedRef.current) {
+                setResults(matchedResults);
+                setSelectedForRules(initialSelected);
+                setRuleEdits(initialEdits);
+                setPhase('results');
+            }
+        };
+
+        runSmartMatch();
+    }, [open, txIdsKey]);
+
+    const handleCancel = () => {
+        isAbortedRef.current = true;
+        setPhase('idle');
+        onOpenChange(false);
+    };
+
+    const handleToggleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedForRules(new Set(results.map(r => r.transactionId)));
+        } else {
+            setSelectedForRules(new Set());
+        }
+    };
+
+    const handleToggleSelectRow = (txId: string, checked: boolean) => {
+        setSelectedForRules(prev => {
+            const next = new Set(prev);
+            if (checked) {
+                next.add(txId);
+            } else {
+                next.delete(txId);
+            }
+            return next;
+        });
+    };
+
+    const handleKeywordEdit = (txId: string, value: string) => {
+        setRuleEdits(prev => {
+            const next = new Map(prev);
+            next.set(txId, value);
+            return next;
+        });
+    };
+
+    const handleAccountEdit = (txId: string, accountId: string) => {
+        setAccountEdits(prev => {
+            const next = new Map(prev);
+            next.set(txId, accountId);
+            return next;
+        });
+    };
+
+    const handleSaveRules = async () => {
+        if (!client?.uid || selectedForRules.size === 0) return;
+        setPhase('saving');
+
+        try {
+            const selectedResults = results.filter(r => selectedForRules.has(r.transactionId));
+
+            const clientDocRef = doc(db, 'aiAccountantClients', client.uid);
+            const clientSnap = await getDoc(clientDocRef);
+            const latestClientData = clientSnap.data();
+            let currentClientRules: AllocationRule[] = [...(latestClientData?.allocationRules || client.allocationRules || [])];
+
+            // Fetch current global rules from 'allocationRules' collection
+            const globalRulesSnap = await getDocs(collection(db, 'allocationRules'));
+            const globalRulesDocs = globalRulesSnap.docs.map(d => ({ docId: d.id, ...d.data() } as AllocationRule & { docId: string }));
+
+            let createdCount = 0;
+            let updatedCount = 0;
+
+            for (const result of selectedResults) {
+                const keyword = (ruleEdits.get(result.transactionId) || result.suggestedKeyword).trim().toUpperCase();
+                const accountId = accountEdits.get(result.transactionId) || result.suggestedAccountId;
+                
+                if (!keyword || !accountId) continue;
+
+                // 1. Update/create Client Level Rule
+                const existingRuleIndex = currentClientRules.findIndex(r => r.accountId === accountId);
+
+                if (existingRuleIndex !== -1) {
+                    const existingRule = currentClientRules[existingRuleIndex];
+                    const existingKeywords = existingRule.keywords || [];
+                    if (!existingKeywords.includes(keyword)) {
+                        currentClientRules[existingRuleIndex] = {
+                            ...existingRule,
+                            keywords: Array.from(new Set([...existingKeywords, keyword]))
+                        };
+                        updatedCount++;
+                    }
+                } else {
+                    const newRule: AllocationRule = {
+                        id: `rule_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                        description: `Auto-rule for ${keyword}`,
+                        keywords: [keyword],
+                        accountId: accountId,
+                        vatType: result.vatType || 'no_vat',
+                        type: 'hard',
+                        scope: 'client',
+                        priority: 99
+                    };
+                    currentClientRules.push(newRule);
+                    createdCount++;
+                }
+
+                // 2. Update/create Global Practice Level Rule in 'allocationRules' collection
+                const existingGlobal = globalRulesDocs.find(r => r.accountId === accountId);
+                if (existingGlobal) {
+                    const existingGlobalKeywords = existingGlobal.keywords || [];
+                    if (!existingGlobalKeywords.includes(keyword)) {
+                        const updatedGlobalKeywords = Array.from(new Set([...existingGlobalKeywords, keyword]));
+                        await updateDoc(doc(db, 'allocationRules', existingGlobal.docId), {
+                            keywords: updatedGlobalKeywords
+                        });
+                        existingGlobal.keywords = updatedGlobalKeywords;
+                    }
+                } else {
+                    const newGlobalDocRef = doc(collection(db, 'allocationRules'));
+                    const newGlobalRule = {
+                        description: result.merchantName ? `${result.merchantName}` : `Rule for ${keyword}`,
+                        keywords: [keyword],
+                        accountId: accountId,
+                        vatType: result.vatType || 'no_vat',
+                        type: 'hard',
+                        scope: 'global',
+                        priority: 99,
+                        createdAt: serverTimestamp()
+                    };
+                    await setDoc(newGlobalDocRef, newGlobalRule);
+                    globalRulesDocs.push({ ...newGlobalRule, id: newGlobalDocRef.id, docId: newGlobalDocRef.id });
+                }
+            }
+
+            await updateDoc(clientDocRef, { allocationRules: currentClientRules });
+
+            toast({
+                title: 'Rules Created & Global Rules Updated',
+                description: `${createdCount} client rule(s) created, ${updatedCount} updated. Global practice rules updated with new keywords.`
+            });
+
+            onRulesSaved();
+            onOpenChange(false);
+        } catch (err) {
+            console.error("Error saving rules:", err);
+            toast({
+                title: 'Error Saving Rules',
+                description: 'Could not save the allocation rules to Firestore.',
+                variant: 'destructive'
+            });
+            setPhase('results');
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-6 pb-4 border-b">
+                    <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+                        <Sparkles className="h-5 w-5 text-emerald-500" />
+                        AI Smart Match Queue
+                    </DialogTitle>
+                    <DialogDescription>
+                        Analyses selected transactions using AI web search grounding to identify merchants (≥90% confidence) and create allocation rules.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="p-6 flex-1 overflow-y-auto min-h-[320px]">
+                    {phase === 'running' && (
+                        <div className="flex flex-col items-center justify-center py-12 space-y-6 text-center">
+                            <div className="relative">
+                                <div className="h-16 w-16 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin flex items-center justify-center" />
+                                <Sparkles className="h-6 w-6 text-emerald-500 absolute inset-0 m-auto" />
+                            </div>
+                            <div className="space-y-2 max-w-sm">
+                                <h3 className="font-semibold text-lg">Analyzing Transactions...</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Searching web databases to identify merchants and match GL accounts.
+                                </p>
+                            </div>
+                            <div className="w-full max-w-md space-y-2">
+                                <Progress value={progress.total > 0 ? (progress.processed / progress.total) * 100 : 0} className="h-2" />
+                                <p className="text-xs text-muted-foreground font-mono">
+                                    Analysing {progress.processed} of {progress.total}...
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {phase === 'saving' && (
+                        <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
+                            <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
+                            <h3 className="font-semibold text-lg">Saving Rules to Client Database...</h3>
+                            <p className="text-sm text-muted-foreground">Updating allocation rules with selected keywords.</p>
+                        </div>
+                    )}
+
+                    {phase === 'results' && (
+                        <div className="space-y-4">
+                            {results.length === 0 ? (
+                                <div className="text-center py-12 space-y-3">
+                                    <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
+                                    <h3 className="font-semibold text-base">No High-Confidence Matches Found</h3>
+                                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                                        None of the selected transactions reached the 90%+ confidence threshold for automated rule creation.
+                                    </p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 p-3 rounded-lg border">
+                                        <span>Found <strong className="text-foreground">{results.length}</strong> high-confidence (≥90%) merchant match(es) from {selectedTransactions.length} analyzed transaction(s).</span>
+                                        <span className="font-medium text-emerald-600 dark:text-emerald-400">{selectedForRules.size} selected for rule creation</span>
+                                    </div>
+
+                                    <div className="border rounded-lg overflow-hidden">
+                                        <Table>
+                                            <TableHeader className="bg-muted/50">
+                                                <TableRow>
+                                                    <TableHead className="w-12">
+                                                        <Checkbox 
+                                                            checked={results.length > 0 && selectedForRules.size === results.length} 
+                                                            onCheckedChange={(c) => handleToggleSelectAll(!!c)} 
+                                                        />
+                                                    </TableHead>
+                                                    <TableHead>Transaction</TableHead>
+                                                    <TableHead>Merchant & Category</TableHead>
+                                                    <TableHead>Suggested GL Account</TableHead>
+                                                    <TableHead className="w-[90px] text-center">Confidence</TableHead>
+                                                    <TableHead className="w-[180px]">Rule Keyword</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {results.map(r => {
+                                                    const isChecked = selectedForRules.has(r.transactionId);
+                                                    const currentKeyword = ruleEdits.get(r.transactionId) ?? r.suggestedKeyword;
+                                                    const is100 = r.confidence === 100;
+
+                                                    return (
+                                                        <TableRow key={r.transactionId} className={cn(isChecked && "bg-emerald-500/5")}>
+                                                            <TableCell>
+                                                                <Checkbox 
+                                                                    checked={isChecked} 
+                                                                    onCheckedChange={(checked) => handleToggleSelectRow(r.transactionId, !!checked)} 
+                                                                />
+                                                            </TableCell>
+                                                            <TableCell className="max-w-[200px]">
+                                                                <div className="font-medium text-xs truncate" title={r.description}>
+                                                                    {r.description}
+                                                                </div>
+                                                                <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                                                    R {formatPrice(r.amount)} • {new Date(r.date).toLocaleDateString('en-GB')}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="font-semibold text-xs text-foreground">
+                                                                    {r.merchantName}
+                                                                </div>
+                                                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 mt-0.5 font-normal">
+                                                                    {r.merchantCategory}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Select
+                                                                    value={accountEdits.get(r.transactionId) || r.suggestedAccountId}
+                                                                    onValueChange={(val) => handleAccountEdit(r.transactionId, val)}
+                                                                >
+                                                                    <SelectTrigger className="h-8 text-xs font-medium w-full max-w-[250px] border-transparent hover:border-input bg-transparent hover:bg-muted/50 transition-colors">
+                                                                        <SelectValue placeholder="Select account" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {(client?.chartOfAccounts || []).map((acc: ChartOfAccount) => (
+                                                                            <SelectItem key={acc.id} value={acc.id} className="text-xs">
+                                                                                {acc.accountNumber || acc.id} - {acc.description}
+                                                                            </SelectItem>
+                                                                        ))}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                                {(() => {
+                                                                    const currentAccountId = accountEdits.get(r.transactionId) || r.suggestedAccountId;
+                                                                    const allRules = [...(client?.allocationRules || []), ...(globalRules || [])];
+                                                                    const matchingRule = allRules.find(rule => rule.accountId === currentAccountId);
+                                                                    if (matchingRule) {
+                                                                        return (
+                                                                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium mt-0.5 ml-2">
+                                                                                <Zap className="h-3 w-3 fill-emerald-500 text-emerald-500 inline shrink-0" />
+                                                                                <span>⚡ Adds to existing rule: {matchingRule.description || matchingRule.keywords.join(', ')}</span>
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                    return null;
+                                                                })()}
+                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                <Badge 
+                                                                    className={cn(
+                                                                        "font-bold text-[10px]",
+                                                                        is100 
+                                                                            ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300"
+                                                                            : "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300"
+                                                                    )}
+                                                                >
+                                                                    {r.confidence}%
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Input 
+                                                                    value={currentKeyword}
+                                                                    onChange={(e) => handleKeywordEdit(r.transactionId, e.target.value.toUpperCase())}
+                                                                    className="h-8 text-xs uppercase font-mono border-primary/30 focus:border-primary"
+                                                                    placeholder="KEYWORD"
+                                                                />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <DialogFooter className="p-4 bg-muted/30 border-t flex items-center justify-between sm:justify-between">
+                    <div>
+                        {phase === 'running' && (
+                            <Button variant="ghost" size="sm" onClick={handleCancel}>
+                                Cancel Analysis
+                            </Button>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {phase === 'results' && results.length > 0 && (
+                            <Button 
+                                onClick={handleSaveRules} 
+                                disabled={selectedForRules.size === 0}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                            >
+                                <Save className="mr-2 h-4 w-4" />
+                                Create Rules for Selected ({selectedForRules.size})
+                            </Button>
+                        )}
+                        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={phase === 'saving'}>
+                            {phase === 'results' ? 'Close' : 'Cancel'}
+                        </Button>
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 interface NewTransactionsTabProps {
   client: User;
   bankAccountId: string;
@@ -1318,6 +1817,11 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
     const [isRuleAllocating, setIsRuleAllocating] = useState(false);
     const [isSupplierMatching, setIsSupplierMatching] = useState(false);
     const [isSubmittingToWorkflow, setIsSubmittingToWorkflow] = useState(false);
+    const [isSmartMatchOpen, setIsSmartMatchOpen] = useState(false);
+
+    const smartMatchSelectedTxs = useMemo(() => {
+        return allTransactions.filter(tx => selectedTransactions.includes(tx.id));
+    }, [allTransactions, selectedTransactions]);
 
     type SortField = 'date' | 'description' | 'amount';
     const [sortField, setSortField] = useState<SortField>('date');
@@ -1752,6 +2256,15 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                                 {isSupplierMatching ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Users className="mr-2 h-4 w-4" />} Match Suppliers
                             </Button>
 
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setIsSmartMatchOpen(true)} 
+                                disabled={selectedTransactions.length === 0} 
+                                className="font-bold border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                            >
+                                <Sparkles className="mr-2 h-4 w-4 text-emerald-500" /> Smart Match Queue ({selectedTransactions.length})
+                            </Button>
+
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="outline" disabled={selectedTransactions.length === 0}>Actions ...</Button></DropdownMenuTrigger>
                                 <DropdownMenuContent><DropdownMenuItem className="text-destructive" onClick={handleBulkDelete}>Delete Selected</DropdownMenuItem></DropdownMenuContent>
@@ -1894,6 +2407,15 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                     <Button onClick={handleSaveAllocations} disabled={isSaving || Object.keys(allocations).length === 0}>Save Allocations</Button>
                 </CardFooter>
             </Card>
+
+            <SmartMatchQueueModal
+                open={isSmartMatchOpen}
+                onOpenChange={setIsSmartMatchOpen}
+                selectedTransactions={smartMatchSelectedTxs}
+                client={client}
+                globalRules={globalRules}
+                onRulesSaved={onAccountCreated}
+            />
         </div>
     );
 });
@@ -1922,6 +2444,14 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
     const [onlySelectedGroups, setOnlySelectedGroups] = useState(false);
     const [isSavingDrafts, setIsSavingDrafts] = useState(false);
     const [isHistoryMatching, setIsHistoryMatching] = useState(false);
+    const [isSmartMatchOpen, setIsSmartMatchOpen] = useState(false);
+
+    const smartMatchSelectedTxs = useMemo(() => {
+        if (selectedGroupKeys.length > 0) {
+            return groups.filter(g => selectedGroupKeys.includes(g.merchantKey)).flatMap(g => g.transactions);
+        }
+        return groups.flatMap(g => g.transactions);
+    }, [groups, selectedGroupKeys]);
     
     // Regroup states
     const [isRegrouping, setIsRegrouping] = useState(false);
@@ -2003,7 +2533,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         });
 
         return () => unsubscribe();
-    }, [client, bankAccountId]);
+    }, [client?.uid, bankAccountId]);
 
     const progressStats = useMemo(() => {
         const total = workflowTransactions.length;
@@ -2012,38 +2542,54 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         return { total, processed, percentage };
     }, [workflowTransactions]);
 
-    const handleRegroupRequest = async () => {
+    const handleCombinedRegroup = async () => {
         if (!client?.uid || !bankAccountId) return;
         setIsRegrouping(true);
-        try {
-            const proposals = await proposeRegroups({ clientId: client.uid, bankAccountId });
-            setProposedMerges(proposals);
-            setSelectedMerges(proposals.map(p => `${p.fromKey}::${p.toKey}`));
-            setIsMergeDialogOpen(true);
-        } catch (e) {
-            toast({ title: "Regroup Failed", variant: "destructive" });
-        } finally {
-            setIsRegrouping(false);
-        }
-    };
-
-    const handleAiSmartGroup = async () => {
-        if (!client?.uid || !bankAccountId) return;
         setIsAiRegrouping(true);
-        toast({ title: "Deep Search Started", description: "AI is analyzing merchant semantic relationships..." });
+        toast({ title: "Deep Search Started", description: "Analyzing merchant relationships..." });
         
         try {
-            const proposals = await proposeAiRegroups({ 
-                clientId: client.uid, 
-                bankAccountId,
-                selectedMerchantKeys: onlySelectedGroups ? selectedGroupKeys : undefined
+            const [standardProposals, aiProposals] = await Promise.all([
+                proposeRegroups({ clientId: client.uid, bankAccountId }),
+                proposeAiRegroups({ 
+                    clientId: client.uid, 
+                    bankAccountId,
+                    selectedMerchantKeys: onlySelectedGroups ? selectedGroupKeys : undefined
+                })
+            ]);
+
+            const combinedMap = new Map();
+            
+            // Standard proposals first
+            standardProposals.forEach((p: any) => {
+                combinedMap.set(`${p.fromKey}::${p.toKey}`, p);
             });
-            setProposedMerges(proposals);
-            setSelectedMerges(proposals.map(p => `${p.fromKey}::${p.toKey}`));
-            setIsMergeDialogOpen(true);
+            
+            // AI proposals add or merge txIds
+            aiProposals.forEach((p: any) => {
+                const key = `${p.fromKey}::${p.toKey}`;
+                if (combinedMap.has(key)) {
+                    const existing = combinedMap.get(key);
+                    const mergedTxIds = Array.from(new Set([...existing.fromTxIds, ...p.fromTxIds]));
+                    combinedMap.set(key, { ...p, fromTxIds: mergedTxIds });
+                } else {
+                    combinedMap.set(key, p);
+                }
+            });
+
+            const combinedProposals = Array.from(combinedMap.values());
+            setProposedMerges(combinedProposals);
+            setSelectedMerges(combinedProposals.map(p => `${p.fromKey}::${p.toKey}`));
+            
+            if (combinedProposals.length > 0) {
+                setIsMergeDialogOpen(true);
+            } else {
+                toast({ title: "No Merges Found", description: "No merchant merges were proposed." });
+            }
         } catch (e) {
-            toast({ title: "AI Deep Search Failed", variant: "destructive" });
+            toast({ title: "Smart Regroup Failed", variant: "destructive" });
         } finally {
+            setIsRegrouping(false);
             setIsAiRegrouping(false);
         }
     };
@@ -2583,13 +3129,18 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                     <Button variant="outline" onClick={handleDownloadExcel} disabled={groups.length === 0}>
                         <FileSpreadsheet className="mr-2 h-4 w-4" /> Download Excel
                     </Button>
-                    <Button variant="outline" onClick={handleRegroupRequest} disabled={isRegrouping || groups.length < 2}>
-                        {isRegrouping ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Layers className="mr-2 h-4 w-4" />}
-                        Smart Regroup
+                    <Button variant="outline" onClick={handleCombinedRegroup} disabled={isRegrouping || isAiRegrouping || groups.length < 2} className="border-primary/30 text-primary hover:bg-primary/5">
+                        {isRegrouping || isAiRegrouping ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Smart Regroup & Match
                     </Button>
-                    <Button variant="outline" onClick={handleAiSmartGroup} disabled={isAiRegrouping || groups.length < 2} className="border-primary/30 text-primary hover:bg-primary/5">
-                        {isAiRegrouping ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4" />}
-                        AI Smart Group
+                    <Button 
+                        variant="outline" 
+                        onClick={() => setIsSmartMatchOpen(true)} 
+                        disabled={groups.length === 0} 
+                        className="font-bold border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                    >
+                        <Sparkles className="mr-2 h-4 w-4 text-emerald-500" />
+                        Smart Match Queue {selectedGroupKeys.length > 0 ? `(${selectedGroupKeys.length} selected)` : `(${groups.length} groups)`}
                     </Button>
                     <Button variant="outline" onClick={handleMatchHistory} disabled={isHistoryMatching || groups.length === 0} className="border-primary/30 text-primary hover:bg-primary/5">
                         {isHistoryMatching ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <History className="mr-2 h-4 w-4" />}
@@ -2793,6 +3344,15 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                     </Card>
                 )})}
             </div>
+            {client && (
+                <SmartMatchQueueModal
+                    open={isSmartMatchOpen}
+                    onOpenChange={setIsSmartMatchOpen}
+                    selectedTransactions={smartMatchSelectedTxs}
+                    client={client}
+                    onRulesSaved={onAccountCreated}
+                />
+            )}
         </div>
     );
 };

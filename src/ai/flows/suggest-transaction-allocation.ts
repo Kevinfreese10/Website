@@ -31,19 +31,28 @@ export type SuggestTransactionAllocationOutput = z.infer<typeof SuggestTransacti
 export async function suggestTransactionAllocation(
   input: SuggestTransactionAllocationInput
 ): Promise<SuggestTransactionAllocationOutput> {
-  // If an API key is provided, we use a local genkit instance to perform the generation
-  if (input.apiKey) {
-    const { genkit } = await import('genkit');
-    const { googleAI } = await import('@genkit-ai/google-genai');
-    
-    const customAi = genkit({
-      plugins: [googleAI({ apiKey: input.apiKey })],
-    });
+  const fallbackOutput: SuggestTransactionAllocationOutput = {
+    accountId: '',
+    vatType: 'no_vat',
+    confidence: 0,
+    summary: 'AI research currently unavailable. Please try again.',
+    suggestedKeyword: (input.description || '').toUpperCase(),
+  };
 
-    const { output } = await customAi.generate({
-      model: 'googleai/gemini-2.5-flash',
-      output: { schema: SuggestTransactionAllocationOutputSchema },
-      prompt: `You are an experienced South African Chartered Accountant. Your task is to perform research on a bank transaction description and suggest the correct general ledger account and VAT type.
+  try {
+    // If an API key is provided, we use a local genkit instance to perform the generation
+    if (input.apiKey) {
+      const { genkit } = await import('genkit');
+      const { googleAI } = await import('@genkit-ai/google-genai');
+      
+      const customAi = genkit({
+        plugins: [googleAI({ apiKey: input.apiKey })],
+      });
+
+      const { output } = await customAi.generate({
+        model: 'googleai/gemini-2.5-flash',
+        output: { schema: SuggestTransactionAllocationOutputSchema },
+        prompt: `You are an experienced South African Chartered Accountant. Your task is to perform research on a bank transaction description and suggest the correct general ledger account and VAT type.
 
 Analyze the transaction description and choose the most appropriate account from the provided chart of accounts. Also, determine the correct VAT treatment.
 
@@ -72,12 +81,16 @@ Based on the description, provide:
 5. A high-impact "root" keyword for future matching.
 
 Use your vast knowledge of South African merchants (e.g., PNP, Checkers, Shell, Vodacom, Telkom, etc.) and global digital services (e.g., Google, Microsoft, AWS, Netflix) to provide accurate results.`,
-    });
+      });
 
-    return output!;
+      return output || fallbackOutput;
+    }
+
+    return await suggestTransactionAllocationFlow(input);
+  } catch (err) {
+    console.error("Error in suggestTransactionAllocation:", err);
+    return fallbackOutput;
   }
-
-  return suggestTransactionAllocationFlow(input);
 }
 
 const prompt = ai.definePrompt({
@@ -123,7 +136,24 @@ const suggestTransactionAllocationFlow = ai.defineFlow(
     outputSchema: SuggestTransactionAllocationOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
-    return output!;
+    try {
+      const { output } = await prompt(input);
+      return output || {
+        accountId: '',
+        vatType: 'no_vat',
+        confidence: 0,
+        summary: 'AI research currently unavailable.',
+        suggestedKeyword: (input.description || '').toUpperCase(),
+      };
+    } catch (err) {
+      console.error("Error executing suggestTransactionAllocationFlow prompt:", err);
+      return {
+        accountId: '',
+        vatType: 'no_vat',
+        confidence: 0,
+        summary: 'AI research currently unavailable due to network timeout.',
+        suggestedKeyword: (input.description || '').toUpperCase(),
+      };
+    }
   }
 );

@@ -189,32 +189,43 @@ export async function bulkMoveTransactionsToNew({ clientId, transactionIds }: { 
 }
 
 export async function researchMerchantWithAi({ clientId, transactionIds, description, chartOfAccounts, isVatRegistered, isExpense }: any) {
-    const { suggestTransactionAllocation } = await import('@/ai/flows/suggest-transaction-allocation');
-    const res = await suggestTransactionAllocation({
-        description,
-        chartOfAccounts,
-        isVatRegistered
-    });
-
-    if (clientId && transactionIds && transactionIds.length > 0) {
-        const adminDb = getAdminDb();
-        const batch = adminDb.batch();
-        transactionIds.forEach((id: string) => {
-            const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
-            batch.update(ref, {
-                smartAllocationResult: {
-                    accountId: res.accountId,
-                    vatType: res.vatType,
-                    confidence: res.confidence,
-                    summary: res.summary,
-                    suggestedKeyword: res.suggestedKeyword
-                }
-            });
+    try {
+        const { suggestTransactionAllocation } = await import('@/ai/flows/suggest-transaction-allocation');
+        const res = await suggestTransactionAllocation({
+            description,
+            chartOfAccounts,
+            isVatRegistered
         });
-        await batch.commit();
-    }
 
-    return res as SmartAllocationResult;
+        if (clientId && transactionIds && transactionIds.length > 0 && res && res.accountId) {
+            const adminDb = getAdminDb();
+            const batch = adminDb.batch();
+            transactionIds.forEach((id: string) => {
+                const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
+                batch.update(ref, {
+                    smartAllocationResult: {
+                        accountId: res.accountId,
+                        vatType: res.vatType,
+                        confidence: res.confidence,
+                        summary: res.summary,
+                        suggestedKeyword: res.suggestedKeyword
+                    }
+                });
+            });
+            await batch.commit();
+        }
+
+        return res as SmartAllocationResult;
+    } catch (err) {
+        console.error("Error in researchMerchantWithAi:", err);
+        return {
+            accountId: '',
+            vatType: 'no_vat',
+            confidence: 0,
+            summary: 'AI research is currently unavailable due to a network connection error.',
+            suggestedKeyword: (description || '').toUpperCase()
+        } as SmartAllocationResult;
+    }
 }
 
 export async function updateGlobalMerchantDb(data: any) {
