@@ -18,6 +18,7 @@ import { Loader2, Mail } from 'lucide-react';
 const contactFormSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
   email: z.string().email('A valid email is required.'),
+  phone: z.string().min(10, 'A valid cell number is required.'),
   message: z.string().min(10, 'Message must be at least 10 characters.'),
 });
 
@@ -26,7 +27,7 @@ export default function ContactPageClient() {
   const [isLoading, setIsLoading] = useState(false);
   const form = useForm<z.infer<typeof contactFormSchema>>({
     resolver: zodResolver(contactFormSchema),
-    defaultValues: { name: '', email: '', message: '' },
+    defaultValues: { name: '', email: '', phone: '', message: '' },
   });
 
   async function handleSubmit(values: z.infer<typeof contactFormSchema>) {
@@ -39,6 +40,7 @@ export default function ContactPageClient() {
         html: `
           <p><strong>Name:</strong> ${values.name}</p>
           <p><strong>Email:</strong> ${values.email}</p>
+          <p><strong>Cell Number:</strong> ${values.phone}</p>
           <hr />
           <p><strong>Message:</strong></p>
           <p>${values.message.replace(/\n/g, '<br>')}</p>
@@ -125,6 +127,17 @@ export default function ContactPageClient() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl><Input type="email" {...field} required className="bg-white" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cell Number</FormLabel>
+                      <FormControl><Input type="tel" {...field} required className="bg-white" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

@@ -16,6 +16,7 @@ import { sendEmail } from '@/lib/email';
 const formSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
   email: z.string().email('Invalid email address.'),
+  phone: z.string().min(10, 'A valid cell number is required.'),
   subject: z.string().min(5, 'Subject is required.'),
   message: z.string().min(20, 'Message must be at least 20 characters.'),
 });
@@ -26,7 +27,7 @@ export default function SupportForm() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', email: '', subject: '', message: '' },
+    defaultValues: { name: '', email: '', phone: '', subject: '', message: '' },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -39,6 +40,7 @@ export default function SupportForm() {
         html: `
           <p><strong>Name:</strong> ${values.name}</p>
           <p><strong>Email:</strong> ${values.email}</p>
+          <p><strong>Cell Number:</strong> ${values.phone}</p>
           <hr />
           <p><strong>Message:</strong></p>
           <p>${values.message.replace(/\n/g, '<br>')}</p>
@@ -99,6 +101,19 @@ export default function SupportForm() {
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cell Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="082 123 4567" type="tel" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="subject"
