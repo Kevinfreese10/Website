@@ -127,7 +127,7 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow read: if isAuthenticated() && (
         resource == null ||
-        isAdmin() ||
+        isAdminOrStaff() ||
         hasModule('Manage Orders') ||
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
@@ -139,11 +139,11 @@ service cloud.firestore {
       // Require authentication for order creation (fixes unauthenticated exploit)
       allow create: if isAuthenticated() && (
         request.resource.data.status == 'Pending Payment' ||
-        isAdmin() ||
+        isAdminOrStaff() ||
         hasModule('Manage Orders')
       );
       allow update: if isAuthenticated() && (
-        isAdmin() ||
+        isAdminOrStaff() ||
         hasModule('Manage Orders') ||
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
