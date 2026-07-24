@@ -2080,7 +2080,8 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
             const lockRes = await prepareAiAccountantAnalysis({ clientId: client.uid, bankAccountId });
             if (lockRes.count > 0) {
                 setActiveTab('ai-workflow');
-                runAiAccountantAnalysis({ clientId: client.uid, bankAccountId, initiatorEmail: user.email });
+                await runAiAccountantAnalysis({ clientId: client.uid, bankAccountId, initiatorEmail: user.email });
+                setIsSubmittingToWorkflow(false);
             } else { 
                 toast({ title: "No new expenses found to process." }); 
                 setIsSubmittingToWorkflow(false);

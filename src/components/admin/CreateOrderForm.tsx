@@ -104,25 +104,29 @@ export default function CreateOrderForm() {
                         where("email", "==", rawEmail.toLowerCase())
                     )
                 );
-                const snap = await getDocs(q);
-                
-                if (!snap.empty) {
-                    const userData = snap.docs[0].data();
-                    const fullName = userData.name || userData.companyName || 'Existing Client';
+                try {
+                    const snap = await getDocs(q);
                     
-                    setLinkedUser({ 
-                        name: fullName, 
-                        id: snap.docs[0].id 
-                    });
+                    if (!snap.empty) {
+                        const userData = snap.docs[0].data();
+                        const fullName = userData.name || userData.companyName || 'Existing Client';
+                        
+                        setLinkedUser({ 
+                            name: fullName, 
+                            id: snap.docs[0].id 
+                        });
 
-                    // Auto-populate fields
-                    const nameParts = fullName.split(' ');
-                    form.setValue('customerFirstName', nameParts[0] || '');
-                    form.setValue('customerLastName', nameParts.slice(1).join(' ') || '');
-                    form.setValue('customerPhone', userData.contactNumber || userData.cellNumber || userData.phone || '');
-                    form.trigger();
-                    found = true;
-                    break;
+                        // Auto-populate fields
+                        const nameParts = fullName.split(' ');
+                        form.setValue('customerFirstName', nameParts[0] || '');
+                        form.setValue('customerLastName', nameParts.slice(1).join(' ') || '');
+                        form.setValue('customerPhone', userData.contactNumber || userData.cellNumber || userData.phone || '');
+                        form.trigger();
+                        found = true;
+                        break;
+                    }
+                } catch (err) {
+                    console.warn(`Skipping ${colName} due to permission or other error`, err);
                 }
             }
 
@@ -209,10 +213,14 @@ export default function CreateOrderForm() {
             const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
             for (const colName of collectionsToTry) {
                 const q = query(collection(db, colName), or(where("email", "==", email), where("email", "==", values.customerEmail.trim())));
-                const snap = await getDocs(q);
-                if (!snap.empty) {
-                    finalUserId = snap.docs[0].id;
-                    break;
+                try {
+                    const snap = await getDocs(q);
+                    if (!snap.empty) {
+                        finalUserId = snap.docs[0].id;
+                        break;
+                    }
+                } catch (err) {
+                    console.warn(`Skipping ${colName} due to permission or other error`, err);
                 }
             }
         }

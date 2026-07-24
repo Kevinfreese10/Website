@@ -6,11 +6,11 @@ import { getAdminDb } from '../src/lib/firebase-admin';
 
 async function main() {
   const db = getAdminDb();
-  console.log("Fetching export-licence service...");
-  const snap = await db.collection('services').where('slug', '==', 'export-licence').get();
+  console.log("Fetching add-director service...");
+  const snap = await db.collection('services').where('slug', '==', 'add-director').get();
   
   if (snap.empty) {
-    console.log("No service found with slug export-licence!");
+    console.log("No service found with slug add-director!");
     return;
   }
   
