@@ -127,42 +127,40 @@ export function DateRangePicker({
   };
 
   return (
-    <div className={cn("grid gap-2", className)}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-end">
-            <Select value={preset} onValueChange={handlePresetChange}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select a date range" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Dates</SelectItem>
-                    <SelectItem value="this_month">This Month</SelectItem>
-                    <SelectItem value="this_year">This Financial Year</SelectItem>
-                    <SelectItem value="last_year">Last Financial Year</SelectItem>
-                    <SelectItem value="custom">Custom Dates</SelectItem>
-                </SelectContent>
-            </Select>
-            
-            {preset === "custom" && (
-                <div className="grid grid-cols-2 gap-2">
-                    <Input
-                        type="date"
-                        id="date-from"
-                        value={date?.from ? format(date.from, "yyyy-MM-dd") : ""}
-                        onChange={handleFromChange}
-                        placeholder="From"
-                        className={cn("w-full", !date?.from && "text-muted-foreground")}
-                    />
-                    <Input
-                        type="date"
-                        id="date-to"
-                        value={date?.to ? format(date.to, "yyyy-MM-dd") : ""}
-                        onChange={handleToChange}
-                        placeholder="To"
-                        className={cn("w-full", !date?.to && "text-muted-foreground")}
-                    />
-                </div>
-            )}
-        </div>
+    <div className={cn("flex flex-col gap-2 w-full", className)}>
+        <Select value={preset} onValueChange={handlePresetChange}>
+            <SelectTrigger className="h-10 w-full bg-white shadow-sm">
+                <SelectValue placeholder="Select a date range" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">All Dates</SelectItem>
+                <SelectItem value="this_month">This Month</SelectItem>
+                <SelectItem value="this_year">This Financial Year</SelectItem>
+                <SelectItem value="last_year">Last Financial Year</SelectItem>
+                <SelectItem value="custom">Custom Dates</SelectItem>
+            </SelectContent>
+        </Select>
+        
+        {preset === "custom" && (
+            <div className="grid grid-cols-2 gap-2 w-full animate-in fade-in slide-in-from-top-1 duration-200">
+                <Input
+                    type="date"
+                    id="date-from"
+                    value={date?.from ? format(date.from, "yyyy-MM-dd") : ""}
+                    onChange={handleFromChange}
+                    placeholder="From"
+                    className={cn("w-full h-10 bg-white text-sm shadow-sm", !date?.from && "text-muted-foreground")}
+                />
+                <Input
+                    type="date"
+                    id="date-to"
+                    value={date?.to ? format(date.to, "yyyy-MM-dd") : ""}
+                    onChange={handleToChange}
+                    placeholder="To"
+                    className={cn("w-full h-10 bg-white text-sm shadow-sm", !date?.to && "text-muted-foreground")}
+                />
+            </div>
+        )}
     </div>
   )
 }

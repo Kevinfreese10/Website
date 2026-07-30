@@ -47,13 +47,15 @@ function SearchResultsView({
     client, 
     onReallocate, 
     selectedTransactions,
-    onSelectionChange
+    onSelectionChange,
+    onBulkSelectionChange
 }: { 
     results: (ImportedTransaction | AllocatedTransaction)[], 
     client: User, 
     onReallocate: (txIds: string[], values: { accountId: string, vatType: VatType }) => void,
     selectedTransactions: string[],
-    onSelectionChange: (id: string, checked: boolean) => void
+    onSelectionChange: (id: string, checked: boolean) => void,
+    onBulkSelectionChange: (ids: string[], checked: boolean) => void
 }) {
     const [reallocateTo, setReallocateTo] = useState<{accountId: string, vatType: VatType} | null>(null);
     const [open, setOpen] = useState(false)
@@ -66,11 +68,11 @@ function SearchResultsView({
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Search Results ({results.length})</h3>
+                <h3 className="text-lg font-semibold text-slate-800">Search Results ({results.length})</h3>
                 <div className="flex items-center gap-2">
                     <Popover open={open} onOpenChange={setOpen}>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" aria-expanded={open} className="w-[200px] justify-between" disabled={selectedTransactions.length === 0}>
+                            <Button variant="outline" role="combobox" aria-expanded={open} className="w-[200px] justify-between shadow-sm bg-white" disabled={selectedTransactions.length === 0}>
                                 {reallocateTo ? client.chartOfAccounts?.find(acc => acc.id === reallocateTo.accountId)?.description : "Reallocate selected to..."}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
@@ -105,7 +107,7 @@ function SearchResultsView({
                             onValueChange={(value) => reallocateTo && setReallocateTo(prev => prev ? {...prev, vatType: value as VatType} : null)}
                             disabled={!reallocateTo}
                         >
-                            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Select VAT type" /></SelectTrigger>
+                            <SelectTrigger className="w-[180px] shadow-sm bg-white"><SelectValue placeholder="Select VAT type" /></SelectTrigger>
                             <SelectContent>
                                 {allVatTypes.map(vt => <SelectItem key={vt.name} value={vt.name}>{vt.label}</SelectItem>)}
                             </SelectContent>
@@ -122,19 +124,20 @@ function SearchResultsView({
                             }
                         }}
                         disabled={selectedTransactions.length === 0 || !reallocateTo}
+                        className="font-semibold shadow-sm"
                     >
                         Apply
                     </Button>
                 </div>
             </div>
-            <div className="max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto border rounded-lg shadow-inner bg-slate-50/50">
                 <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-slate-100/80 sticky top-0 z-10 backdrop-blur-sm">
                         <TableRow>
                             <TableHead className="w-12"><Checkbox 
-                                checked={selectedTransactions.length > 0 && selectedTransactions.length === results.length}
+                                checked={results.length > 0 && selectedTransactions.length === results.length}
                                 onCheckedChange={(checked) => {
-                                    results.forEach(tx => onSelectionChange(tx.id, !!checked))
+                                    onBulkSelectionChange(results.map(tx => tx.id), !!checked)
                                 }}
                             /></TableHead>
                             <TableHead>Date</TableHead>
@@ -146,17 +149,17 @@ function SearchResultsView({
                             <TableHead className="text-right">Amount</TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="bg-white">
                         {results.map(tx => (
-                            <TableRow key={tx.id}>
+                            <TableRow key={tx.id} className="hover:bg-slate-50/80">
                                 <TableCell><Checkbox checked={selectedTransactions.includes(tx.id)} onCheckedChange={(checked) => onSelectionChange(tx.id, !!checked)} /></TableCell>
-                                <TableCell>{new Date(tx.date).toLocaleDateString('en-ZA')}</TableCell>
-                                <TableCell>{tx.description}</TableCell>
+                                <TableCell className="whitespace-nowrap">{new Date(tx.date).toLocaleDateString('en-ZA')}</TableCell>
+                                <TableCell className="font-medium text-slate-900">{tx.description}</TableCell>
                                 <TableCell>{getAllocationDescription(tx)}</TableCell>
                                 <TableCell>{client.chartOfAccounts?.find(acc => acc.id === tx.bankAccountId)?.description}</TableCell>
-                                <TableCell>{tx.reference}</TableCell>
+                                <TableCell className="font-mono text-xs">{tx.reference}</TableCell>
                                 <TableCell><Badge variant={(tx.status as string) === 'allocated' ? 'success' : (tx.status as string) === 'new' ? 'secondary' : 'default'}>{tx.status}</Badge></TableCell>
-                                <TableCell className="text-right font-mono">{formatPrice(tx.amount)}</TableCell>
+                                <TableCell className={cn("text-right font-mono font-semibold", tx.amount < 0 ? "text-rose-600" : "text-emerald-600")}>{formatPrice(tx.amount)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -173,11 +176,27 @@ export default function TransactionSearchPage() {
     const [client, setClient] = useState<User | null>(null);
     const [transactions, setTransactions] = useState<(ImportedTransaction | AllocatedTransaction)[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [searchInputValue, setSearchInputValue] = useState('');
+    const [dateRangeValue, setDateRangeValue] = useState<DateRange | undefined>(undefined);
     const [searchTerm, setSearchTerm] = useState('');
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
     const [searchResults, setSearchResults] = useState<(ImportedTransaction | AllocatedTransaction)[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
     const { toast } = useToast();
+
+    const handleApplyFilters = () => {
+        setSearchTerm(searchInputValue);
+        setDateRange(dateRangeValue);
+    };
+
+    const handleClearFilters = () => {
+        setSearchInputValue('');
+        setDateRangeValue(undefined);
+        setSearchTerm('');
+        setDateRange(undefined);
+        setSelectedTransactions([]);
+    };
 
     const term = searchTerm.trim();
     const cleanTerm = term.replace(/R\s*/i, '').replace(/,/g, '').replace(/\s/g, '');
@@ -213,23 +232,52 @@ export default function TransactionSearchPage() {
         const isNumeric = cleanTerm !== '' && /^-?\d+(?:\.\d+)?$/.test(cleanTerm);
         const parsedAmount = isNumeric ? parseFloat(cleanTerm) : NaN;
 
-        if (searchTerm.length > 2 || (isNumeric && searchTerm.length > 0)) {
+        const hasSearchTerm = searchTerm.length > 2 || (isNumeric && searchTerm.length > 0);
+        const hasDateRange = !!(dateRange?.from || dateRange?.to);
+
+        if (hasSearchTerm || hasDateRange) {
             setIsSearching(true);
-            const results = transactions.filter(tx => {
-                const matchesDescription = tx.description.toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesAmount = isNumeric && !isNaN(parsedAmount) && Math.abs(Math.abs(tx.amount) - Math.abs(parsedAmount)) < 0.01;
-                return matchesDescription || matchesAmount;
-            });
-            
-            // Always sort by date descending (newest first)
-            results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            
-            setSearchResults(results);
-            setIsSearching(false);
+
+            const handler = setTimeout(() => {
+                const results = transactions.filter(tx => {
+                    // 1. Date Range filtering
+                    if (dateRange?.from || dateRange?.to) {
+                        const txDate = new Date(tx.date);
+                        if (dateRange.from) {
+                            const fromLimit = new Date(dateRange.from);
+                            fromLimit.setHours(0, 0, 0, 0);
+                            if (txDate < fromLimit) return false;
+                        }
+                        if (dateRange.to) {
+                            const toLimit = new Date(dateRange.to);
+                            toLimit.setHours(23, 59, 59, 999);
+                            if (txDate > toLimit) return false;
+                        }
+                    }
+
+                    // 2. Search Term filtering (optional if dateRange is selected)
+                    if (hasSearchTerm) {
+                        const matchesDescription = tx.description.toLowerCase().includes(searchTerm.toLowerCase());
+                        const matchesAmount = isNumeric && !isNaN(parsedAmount) && Math.abs(Math.abs(tx.amount) - Math.abs(parsedAmount)) < 0.01;
+                        return matchesDescription || matchesAmount;
+                    }
+
+                    return true;
+                });
+                
+                // Always sort by date descending (newest first)
+                results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                
+                setSearchResults(results);
+                setIsSearching(false);
+            }, 300);
+
+            return () => clearTimeout(handler);
         } else {
             setSearchResults([]);
+            setIsSearching(false);
         }
-    }, [searchTerm, transactions]);
+    }, [searchTerm, transactions, dateRange]);
 
     const handleSelectionChange = (id: string, checked: boolean) => {
         setSelectedTransactions(prev => {
@@ -237,6 +285,17 @@ export default function TransactionSearchPage() {
                 return [...prev, id];
             } else {
                 return prev.filter(txId => txId !== id);
+            }
+        });
+    };
+
+    const handleBulkSelectionChange = (ids: string[], checked: boolean) => {
+        setSelectedTransactions(prev => {
+            if (checked) {
+                const newIds = ids.filter(id => !prev.includes(id));
+                return [...prev, ...newIds];
+            } else {
+                return prev.filter(id => !ids.includes(id));
             }
         });
     };
@@ -275,24 +334,55 @@ export default function TransactionSearchPage() {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Transaction Search</CardTitle>
-                <CardDescription>Search for specific transactions by description and perform bulk actions.</CardDescription>
+        <Card className="border shadow-md">
+            <CardHeader className="bg-slate-50/50 border-b pb-4">
+                <CardTitle className="text-xl font-bold text-slate-800">Transaction Search & Bulk Reallocation</CardTitle>
+                <CardDescription>Filter transactions by date and/or search term to perform bulk reallocations.</CardDescription>
             </CardHeader>
-            <CardContent>
-                 <div className="flex w-full max-w-sm items-center space-x-2">
-                     <Input 
-                        type="text" 
-                        placeholder="Search by description or amount (e.g., 'Telkom' or '5000')" 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            <CardContent className="pt-6 space-y-6">
+                <div className="flex flex-col md:flex-row gap-4 items-end bg-slate-50/40 p-4 border rounded-xl shadow-sm">
+                    <div className="grid w-full md:max-w-md gap-1.5">
+                        <Label htmlFor="search-input" className="text-xs font-semibold text-slate-600">Search Term</Label>
+                        <Input 
+                            id="search-input"
+                            type="text" 
+                            placeholder="Search by description or amount (e.g., 'Telkom' or '5000')" 
+                            value={searchInputValue}
+                            onChange={(e) => setSearchInputValue(e.target.value)}
+                            className="bg-white shadow-sm h-10"
+                        />
+                    </div>
+                    <div className="grid w-full md:max-w-xs gap-1.5">
+                        <Label className="text-xs font-semibold text-slate-600">Date Range</Label>
+                        <DateRangePicker 
+                            value={dateRangeValue}
+                            onDateChange={setDateRangeValue}
+                            financialYearEnd={client?.yearEnd}
+                            className="w-full shadow-sm bg-white"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button 
+                            onClick={handleApplyFilters}
+                            className="h-10 font-bold gap-2 shadow-sm"
+                        >
+                            <Search className="h-4 w-4" /> Run Report
+                        </Button>
+                        {(searchInputValue || dateRangeValue || searchTerm || dateRange) && (
+                            <Button 
+                                variant="ghost" 
+                                onClick={handleClearFilters}
+                                className="h-10 text-slate-500 hover:text-slate-900 font-semibold"
+                            >
+                                Clear
+                            </Button>
+                        )}
+                    </div>
                 </div>
                 
                 <div className="mt-6">
                     {isSearching ? (
-                         <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin" /></div>
+                         <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                     ) : searchResults.length > 0 ? (
                         <SearchResultsView 
                             results={searchResults} 
@@ -300,11 +390,16 @@ export default function TransactionSearchPage() {
                             onReallocate={handleReallocate} 
                             selectedTransactions={selectedTransactions}
                             onSelectionChange={handleSelectionChange}
+                            onBulkSelectionChange={handleBulkSelectionChange}
                         />
-                    ) : (searchTerm.length > 2 || (isNumeric && searchTerm.length > 0)) ? (
-                        <p className="text-center text-muted-foreground py-8">No transactions found matching your search.</p>
+                    ) : (searchTerm.length > 2 || (isNumeric && searchTerm.length > 0) || dateRange?.from || dateRange?.to) ? (
+                        <p className="text-center text-muted-foreground py-12 border border-dashed rounded-lg bg-slate-50/30">No transactions found matching your search criteria.</p>
                     ) : (
-                         <p className="text-center text-muted-foreground py-8">Enter at least 3 characters (or any amount) to start searching.</p>
+                         <div className="text-center text-muted-foreground py-16 border border-dashed rounded-lg bg-slate-50/20 space-y-3">
+                             <Search className="h-10 w-10 mx-auto text-slate-300" />
+                             <p className="font-semibold text-slate-700">Retrieve Transactions</p>
+                             <p className="text-xs max-w-sm mx-auto text-slate-500">Enter a search term (at least 3 characters or an amount) or select a date range to filter and bulk reallocate transactions.</p>
+                         </div>
                     )}
                 </div>
             </CardContent>

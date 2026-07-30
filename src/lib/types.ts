@@ -173,6 +173,27 @@ export type Invoice = {
   currency?: string;
 };
 
+export type Quote = {
+  id: string;
+  customerId: string;
+  quoteDate: any;
+  expiryDate: any;
+  lineItems: { 
+    accountId: string;
+    description: string; 
+    quantity: number; 
+    rate: number;
+    vatType: string;
+  }[];
+  notes?: string;
+  subtotal: number;
+  vat: number;
+  total: number;
+  status: 'draft' | 'sent' | 'accepted' | 'declined' | 'invoiced';
+  createdAt: any;
+  currency?: string;
+};
+
 export type CreditNote = {
   id: string;
   customerId: string;
@@ -506,6 +527,7 @@ export type User = {
   logoUrl?: string;
   nextInvoiceNumber?: number;
   nextCreditNoteNumber?: number;
+  nextQuoteNumber?: number;
   archivedNotifications?: string[];
   emailSignature?: string;
   savedReports?: SavedReport[];

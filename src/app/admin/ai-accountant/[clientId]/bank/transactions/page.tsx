@@ -1636,9 +1636,39 @@ function SmartMatchQueueModal({
                                 </div>
                             ) : (
                                 <>
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 p-3 rounded-lg border">
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 p-3 rounded-lg border gap-4 flex-wrap">
                                         <span>Found <strong className="text-foreground">{results.length}</strong> high-confidence (≥90%) merchant match(es) from {selectedTransactions.length} analyzed transaction(s).</span>
-                                        <span className="font-medium text-emerald-600 dark:text-emerald-400">{selectedForRules.size} selected for rule creation</span>
+                                        <div className="flex items-center gap-4 flex-wrap">
+                                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{selectedForRules.size} selected for rule creation</span>
+                                            {selectedForRules.size > 0 && (
+                                                <Select
+                                                    onValueChange={(accountId) => {
+                                                        setAccountEdits(prev => {
+                                                            const next = new Map(prev);
+                                                            selectedForRules.forEach(txId => {
+                                                                next.set(txId, accountId);
+                                                            });
+                                                            return next;
+                                                        });
+                                                        toast({
+                                                            title: "Bulk Allocations Applied",
+                                                            description: `Allocated ${selectedForRules.size} selected items.`
+                                                        });
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="h-8 text-xs font-semibold w-[200px] bg-white border border-input shadow-sm">
+                                                        <SelectValue placeholder="Bulk allocate selected..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {(client?.chartOfAccounts || []).map((acc: ChartOfAccount) => (
+                                                            <SelectItem key={acc.id} value={acc.id} className="text-xs">
+                                                                {acc.accountNumber || acc.id} - {acc.description}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="border rounded-lg overflow-hidden">
@@ -2476,6 +2506,21 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         }
         return sorted;
     }, [groups, sortBy]);
+
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const PAGE_SIZE = 200;
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [sortBy, groups.length]);
+
+    const paginatedGroups = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return sortedGroups.slice(start, start + PAGE_SIZE);
+    }, [sortedGroups, currentPage]);
+
+    const totalPages = Math.ceil(sortedGroups.length / PAGE_SIZE);
     
     useEffect(() => {
         if (!client?.uid || !bankAccountId) return;
@@ -3107,6 +3152,72 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                         <Label htmlFor="only-selected" className="text-xs font-medium cursor-pointer">Analyze selected only</Label>
                     </div>
 
+                    {selectedGroupKeys.length > 0 && (
+                        <div className="flex items-center gap-2 mr-4 border-r pr-4 border-muted">
+                            <span className="text-xs font-semibold text-muted-foreground shrink-0">Bulk Allocate ({selectedGroupKeys.length}):</span>
+                            <AccountSelector 
+                                client={client}
+                                showAccounts={true}
+                                showCustomers={false}
+                                showSuppliers={false}
+                                value=""
+                                onChange={(selection) => {
+                                    setApprovalSettings((prev: any) => {
+                                        const newSettings = { ...prev };
+                                        selectedGroupKeys.forEach(key => {
+                                            newSettings[key] = {
+                                                ...newSettings[key],
+                                                accountId: selection.value
+                                            };
+                                        });
+                                        return newSettings;
+                                    });
+                                    toast({
+                                        title: "Bulk Allocation Set",
+                                        description: `Allocated ${selectedGroupKeys.length} selected groups.`
+                                    });
+                                }}
+                                placeholder="Select account..."
+                                className="w-[180px] h-8 text-xs bg-white"
+                            />
+                            {client?.isVatRegistered && (
+                                <Select 
+                                    value=""
+                                    onValueChange={(v) => {
+                                        setApprovalSettings((prev: any) => {
+                                            const newSettings = { ...prev };
+                                            selectedGroupKeys.forEach(key => {
+                                                newSettings[key] = {
+                                                    ...newSettings[key],
+                                                    vatType: v
+                                                };
+                                            });
+                                            return newSettings;
+                                        });
+                                        toast({
+                                            title: "Bulk VAT Set",
+                                            description: `Set VAT type for ${selectedGroupKeys.length} selected groups.`
+                                        });
+                                    }}
+                                >
+                                    <SelectTrigger className="h-8 text-xs font-semibold w-[120px] bg-white border">
+                                        <SelectValue placeholder="Set VAT..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {allVatTypes.map(vt => <SelectItem key={vt.name} value={vt.name}>{vt.label}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                            <Button
+                                onClick={() => handleApproveAllWithAllocations(true)}
+                                disabled={selectedGroupKeys.filter(key => approvalSettings[key]?.accountId).length === 0}
+                                className="h-8 text-xs font-bold bg-green-600 hover:bg-green-700 text-white shadow-sm ml-2 shrink-0"
+                            >
+                                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Approve Selected ({selectedGroupKeys.filter(key => approvalSettings[key]?.accountId).length})
+                            </Button>
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-1 mr-4 border-r pr-4 border-muted text-xs font-semibold">
                         <span className="text-muted-foreground mr-1.5">Sort:</span>
                         <Button
@@ -3172,7 +3283,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-                {sortedGroups.map((group) => {
+                {paginatedGroups.map((group) => {
                     const firstTx = group.transactions[0];
                     const sourceLabel = firstTx.allocationSource === 'history' ? 'HISTORY MATCH' : 
                                       firstTx.allocationSource === 'rule' ? 'RULE MATCH' :
@@ -3345,6 +3456,38 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                     </Card>
                 )})}
             </div>
+
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between bg-white border p-4 rounded-xl shadow-sm mt-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            setCurrentPage(p => Math.max(1, p - 1));
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        disabled={currentPage === 1}
+                        className="font-bold gap-2"
+                    >
+                        <ChevronLeft className="h-4 w-4" /> Previous
+                    </Button>
+                    <span className="text-sm font-bold text-slate-600">
+                        Page <strong className="text-primary">{currentPage}</strong> of <strong className="text-slate-900">{totalPages}</strong> ({sortedGroups.length} total groups)
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            setCurrentPage(p => Math.min(totalPages, p + 1));
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        disabled={currentPage === totalPages}
+                        className="font-bold gap-2"
+                    >
+                        Next <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
+            )}
             {client && (
                 <SmartMatchQueueModal
                     open={isSmartMatchOpen}

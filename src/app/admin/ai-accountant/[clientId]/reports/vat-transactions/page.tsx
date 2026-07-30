@@ -37,6 +37,12 @@ function VatTransactionsReport({ client, transactions: allTransactions, dateRang
     const [isUpdating, setIsUpdating] = useState(false);
     const [transactions, setTransactions] = useState(allTransactions);
 
+    const getAccountLabel = (allocatedTo: any) => {
+        if (!allocatedTo) return 'N/A';
+        const acc = client.chartOfAccounts?.find(a => a.id === allocatedTo.value);
+        return acc ? `${acc.accountNumber || acc.id} - ${acc.description}` : (allocatedTo.value || 'N/A');
+    };
+
     useEffect(() => {
         setTransactions(allTransactions);
     }, [allTransactions]);
@@ -86,6 +92,7 @@ function VatTransactionsReport({ client, transactions: allTransactions, dateRang
             'Date': format(new Date(tx.date), 'dd/MM/yyyy'),
             'Reference': tx.reference,
             'Description': tx.description,
+            'Account': getAccountLabel(tx.allocatedTo),
             'VAT Type': allVatTypes.find(v => v.name === tx.vatType)?.label || 'N/A',
             'Inclusive Amount': tx.inclusiveAmount,
             'Exclusive Amount': tx.exclusiveAmount,
@@ -96,6 +103,7 @@ function VatTransactionsReport({ client, transactions: allTransactions, dateRang
             'Date': 'Totals',
             'Reference': '',
             'Description': '',
+            'Account': '',
             'VAT Type': '',
             'Inclusive Amount': totals.inclusive,
             'Exclusive Amount': totals.exclusive,
@@ -103,10 +111,10 @@ function VatTransactionsReport({ client, transactions: allTransactions, dateRang
         });
 
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        worksheet['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 40 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+        worksheet['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 40 }, { wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
         
         Object.keys(worksheet).forEach(key => {
-             if (/[E-G]\d+/.test(key)) {
+             if (/[F-H]\d+/.test(key)) {
                 const cell = worksheet[key];
                 if (cell.v !== null && typeof cell.v === 'number') {
                     cell.t = 'n';
@@ -176,6 +184,7 @@ function VatTransactionsReport({ client, transactions: allTransactions, dateRang
                             <TableHead>Date</TableHead>
                             <TableHead>Description</TableHead>
                             <TableHead>Reference</TableHead>
+                            <TableHead>Account</TableHead>
                             <TableHead>VAT Type</TableHead>
                             <TableHead className="text-right">Total</TableHead>
                             <TableHead className="text-right">Exclusive</TableHead>
@@ -184,7 +193,7 @@ function VatTransactionsReport({ client, transactions: allTransactions, dateRang
                     </TableHeader>
                     <TableBody>
                         {vatTransactions.length === 0 ? (
-                            <TableRow><TableCell colSpan={8} className="text-center h-24 text-muted-foreground">No VAT transactions found for this period.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={9} className="text-center h-24 text-muted-foreground">No VAT transactions found for this period.</TableCell></TableRow>
                         ) : (
                             vatTransactions.map((tx, index) => (
                                 <TableRow key={index} data-state={selectedTransactions.includes(tx.id) && "selected"}>
@@ -201,6 +210,7 @@ function VatTransactionsReport({ client, transactions: allTransactions, dateRang
                                     <TableCell>{format(new Date(tx.date), 'dd/MM/yyyy')}</TableCell>
                                     <TableCell>{tx.description}</TableCell>
                                     <TableCell>{tx.reference}</TableCell>
+                                    <TableCell>{getAccountLabel(tx.allocatedTo)}</TableCell>
                                     <TableCell>{allVatTypes.find(v => v.name === tx.vatType)?.label || 'N/A'}</TableCell>
                                     <TableCell className="text-right font-mono">{formatPrice(tx.inclusiveAmount)}</TableCell>
                                     <TableCell className="text-right font-mono">{formatPrice(tx.exclusiveAmount)}</TableCell>
@@ -211,7 +221,7 @@ function VatTransactionsReport({ client, transactions: allTransactions, dateRang
                     </TableBody>
                     <TableFooterComponent>
                         <TableRow>
-                            <TableCell colSpan={5} className="font-bold">Totals</TableCell>
+                            <TableCell colSpan={6} className="font-bold">Totals</TableCell>
                             <TableCell className="text-right font-bold font-mono">{formatPrice(totals.inclusive)}</TableCell>
                             <TableCell className="text-right font-bold font-mono">{formatPrice(totals.exclusive)}</TableCell>
                             <TableCell className="text-right font-bold font-mono">{formatPrice(totals.vat)}</TableCell>
