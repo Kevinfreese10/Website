@@ -45,6 +45,7 @@ const quoteFormSchema = z.object({
     customerId: z.string().min(1, "Please select a customer."),
     quoteDate: z.date({ required_error: "Quote date is required." }),
     expiryDate: z.date({ required_error: "Expiry date is required." }),
+    description: z.string().min(1, "Quote description is required."),
     lineItems: z.array(lineItemSchema).min(1, "At least one line item is required."),
     notes: z.string().optional(),
     currency: z.string().default('ZAR'),
@@ -130,6 +131,7 @@ export default function QuotesPage() {
         defaultValues: {
             quoteDate: new Date(),
             expiryDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+            description: '',
             lineItems: [{ accountId: '', description: '', quantity: 1, rate: 0, vatType: 'standard_rated_sales' }],
             notes: '',
             currency: 'ZAR',
@@ -146,6 +148,7 @@ export default function QuotesPage() {
             customerId: quote.customerId,
             quoteDate: new Date(),
             expiryDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+            description: quote.description || '',
             lineItems: quote.lineItems,
             notes: quote.notes,
             currency: quote.currency || 'ZAR',
@@ -185,7 +188,7 @@ export default function QuotesPage() {
                 invoiceDate: new Date(), // Current date
                 dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
                 lineItems: quote.lineItems,
-                notes: quote.notes || '',
+                notes: quote.description ? `Subject: ${quote.description}\n\n${quote.notes || ''}` : (quote.notes || ''),
                 currency: quote.currency || 'ZAR',
                 status: 'final',
                 subtotal: quote.subtotal,
@@ -388,6 +391,7 @@ export default function QuotesPage() {
             form.reset({
                  quoteDate: new Date(),
                  expiryDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+                 description: '',
                  lineItems: [{ accountId: '', description: '', quantity: 1, rate: 0, vatType: client?.isVatRegistered ? 'standard_rated_sales' : 'no_vat' }],
                  notes: '',
             });
@@ -436,6 +440,19 @@ export default function QuotesPage() {
                                     <FormField control={form.control} name="quoteDate" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel className="mb-1">Quote Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-10",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "dd MMMM yyyy") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                     <FormField control={form.control} name="expiryDate" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel className="mb-1">Expiry Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-10",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "dd MMMM yyyy") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
                                 </div>
+                                <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Quote Description / Subject</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="e.g. Consulting services for Q3, Website development proposal..." {...field} className="h-10"/>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                                 <Separator />
                                 <div>
                                     <h3 className="text-lg font-medium mb-4">Line Items</h3>
@@ -542,6 +559,7 @@ export default function QuotesPage() {
                                     <TableRow>
                                         <TableHead>Quote #</TableHead>
                                         <TableHead>Customer</TableHead>
+                                        <TableHead>Description</TableHead>
                                         <TableHead>Date</TableHead>
                                         <TableHead>Expiry Date</TableHead>
                                         <TableHead className="text-right">Amount (Incl)</TableHead>
@@ -551,9 +569,9 @@ export default function QuotesPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {isLoading ? (
-                                        <TableRow><TableCell colSpan={7} className="text-center h-32"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary"/></TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={8} className="text-center h-32"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary"/></TableCell></TableRow>
                                     ) : filteredQuotes.length === 0 ? (
-                                        <TableRow><TableCell colSpan={7} className="text-center h-32 text-muted-foreground">No quotes found.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={8} className="text-center h-32 text-muted-foreground">No quotes found.</TableCell></TableRow>
                                     ) : (
                                         filteredQuotes.map((quote) => {
                                             const customer = customers.find(c => c.id === quote.customerId);
@@ -562,6 +580,7 @@ export default function QuotesPage() {
                                                 <TableRow key={quote.id}>
                                                     <TableCell className="font-semibold">QT-{quote.id}</TableCell>
                                                     <TableCell className="max-w-[150px] truncate">{customer?.name || 'N/A'}</TableCell>
+                                                    <TableCell className="max-w-[200px] truncate">{quote.description || 'N/A'}</TableCell>
                                                     <TableCell>{format(quote.quoteDate, 'dd MMM yyyy')}</TableCell>
                                                     <TableCell>{format(quote.expiryDate, 'dd MMM yyyy')}</TableCell>
                                                     <TableCell className="text-right font-mono font-semibold">{formatPrice(quote.total, currency)}</TableCell>

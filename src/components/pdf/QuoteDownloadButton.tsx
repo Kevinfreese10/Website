@@ -125,6 +125,17 @@ export default function QuoteDownloadButton({ quote, client, customer }: QuoteDo
       customerY = renderAddress(customer.address, customerY, 20);
       if (customer.vatNumber) {
           doc.text(`VAT Reg: ${customer.vatNumber}`, 20, customerY);
+          customerY += 6;
+      } else {
+          customerY += 6;
+      }
+
+      if (quote.description) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          doc.setTextColor(50);
+          doc.text(`Subject: ${quote.description}`, 20, customerY + 4);
+          customerY += 10;
       }
 
       // 5. Line Items Table

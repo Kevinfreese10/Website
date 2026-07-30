@@ -91,6 +91,13 @@ const QuotePreview = React.forwardRef<HTMLDivElement, { quote: Quote, client: Us
                 </div>
             </header>
 
+            {quote.description && (
+                <div className="mb-8 pb-4 border-b">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Subject / Description</p>
+                    <p className="text-lg font-semibold text-gray-900">{quote.description}</p>
+                </div>
+            )}
+
             <section className="mb-10">
                 <table className="w-full text-left border-collapse">
                     <thead>

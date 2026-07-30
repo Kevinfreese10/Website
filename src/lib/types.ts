@@ -178,6 +178,7 @@ export type Quote = {
   customerId: string;
   quoteDate: any;
   expiryDate: any;
+  description: string;
   lineItems: { 
     accountId: string;
     description: string; 

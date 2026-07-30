@@ -663,11 +663,9 @@ export default function InvoicesPage() {
                                                                 <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent>
-                                                                <DialogTrigger asChild>
-                                                                    <DropdownMenuItem onSelect={() => setViewingInvoice(invoice)}>
-                                                                        <Eye className="mr-2 h-4 w-4" />View Preview
-                                                                    </DropdownMenuItem>
-                                                                </DialogTrigger>
+                                                                <DropdownMenuItem onSelect={() => setViewingInvoice(invoice)}>
+                                                                    <Eye className="mr-2 h-4 w-4" />View Preview
+                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem onSelect={() => {
                                                                     setPaymentInvoice(invoice);
                                                                     setPaymentAmount(invoice.balanceDue !== undefined ? invoice.balanceDue : invoice.total);
