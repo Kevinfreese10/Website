@@ -276,13 +276,13 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
     toast({ title: 'Processing Order...', description: 'Checking user profile and creating order.' });
 
     try {
+        const email = values.customerEmail.toLowerCase().trim();
         let finalUserId: string | null = partnerId;
         let isNewUser = false;
         let generatedPassword = null;
 
         if (isGrowthActive) {
             finalUserId = linkedUser?.id || null;
-            const email = values.customerEmail.toLowerCase().trim();
 
             // Final verification check in case debounce didn't catch it
             if (!finalUserId) {
@@ -301,7 +301,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                 generatedPassword = nanoid();
                 
                 const createRes = await adminCreateUserAction({
-                    email: values.customerEmail,
+                    email: email,
                     password: generatedPassword,
                     name: `${values.customerFirstName} ${values.customerLastName}`,
                     role: 'client',
@@ -343,7 +343,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
             customerEmail: partner.email,
             customerPhone: partner.contactNumber,
             endCustomerName: customerFullName,
-            endCustomerEmail: values.customerEmail,
+            endCustomerEmail: email,
             documentContact: 'partner',
             date: Timestamp.now(),
             items: values.items.map(item => ({ 

@@ -154,7 +154,7 @@ export default function CreateOrderForm() {
   };
 
 
-  async function onSubmit(values: CreateOrderFormValues) {
+   async function onSubmit(values: CreateOrderFormValues) {
     if (!currentUser) return;
     
     setIsLoading(true);
@@ -164,6 +164,7 @@ export default function CreateOrderForm() {
     });
 
     try {
+        const email = values.customerEmail.toLowerCase().trim();
         const orderId = await getNextOrderId();
         const firstService = allServices.find(s => s.id === values.items[0]?.serviceId);
         const department = firstService?.department;
@@ -184,7 +185,7 @@ export default function CreateOrderForm() {
         id: orderId,
         userId: null, // No user account is created
         customerName: customerFullName,
-        customerEmail: values.customerEmail,
+        customerEmail: email,
         customerPhone: values.customerPhone,
         items: values.items.map(item => ({ 
             id: item.serviceId || item.description.toLowerCase().replace(/\s/g, '-'),
@@ -209,7 +210,7 @@ export default function CreateOrderForm() {
       
       const emailHtml = render(<OrderConfirmationEmail order={orderData} />);
       await sendEmail({
-        to: values.customerEmail,
+        to: email,
         bcc: ['kev@thinkestry.co.za', 'winifred@myacc.co.za'],
         subject: confirmationEmailSubject,
         html: emailHtml,

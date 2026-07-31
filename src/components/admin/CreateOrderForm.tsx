@@ -227,12 +227,12 @@ export default function CreateOrderForm() {
 
         let isNewUser = false;
         let generatedPassword = null;
-
         if (!finalUserId) {
             generatedPassword = nanoid();
+            isNewUser = true;
             
             const createRes = await adminCreateUserAction({
-                email: values.customerEmail,
+                email: email,
                 password: generatedPassword,
                 name: `${values.customerFirstName} ${values.customerLastName}`,
                 role: 'client',
@@ -243,18 +243,22 @@ export default function CreateOrderForm() {
             if (!createRes.success) {
                 if (createRes.error === 'auth/email-already-in-use') {
                     toast({
-                        title: 'Account Exists',
-                        description: 'A user account already exists with this email address. Please link the order to the existing user instead.',
+                        title: 'User Profile Mismatch',
+                        description: 'A user with this email already exists but could not be linked. Please search and select them first.',
                         variant: 'destructive',
                     });
                     setIsLoading(false);
                     return;
                 }
-                throw new Error(createRes.message || 'Failed to create user account');
+                toast({
+                    title: 'Failed to create user',
+                    description: createRes.message || 'There was a problem preparing the user profile.',
+                    variant: 'destructive',
+                });
+                setIsLoading(false);
+                return;
             }
-
-            finalUserId = createRes.uid!;
-            isNewUser = createRes.isNewUser!;
+            finalUserId = createRes.uid || null;
         }
 
         const orderId = await getNextOrderId();
@@ -266,7 +270,7 @@ export default function CreateOrderForm() {
             id: orderId,
             userId: finalUserId,
             customerName: customerFullName,
-            customerEmail: values.customerEmail,
+            customerEmail: email,
             customerPhone: values.customerPhone,
             items: values.items.map(item => ({ 
                 id: item.serviceId || item.description.toLowerCase().replace(/\s/g, '-'),

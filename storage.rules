@@ -26,6 +26,14 @@ service firebase.storage {
       );
     }
 
+    // Users path (e.g. logo, landing-page assets): Accessible by owner or admin
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && (
+        request.auth.uid == userId ||
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
     // Partners path (PartnerProfile logo/hero): Accessible by owner or admin
     match /partners/{userId}/{allPaths=**} {
       allow read, write: if request.auth != null && (

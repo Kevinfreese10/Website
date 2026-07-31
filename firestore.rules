@@ -136,12 +136,11 @@ service cloud.firestore {
         (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
         (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
       );
-      // Require authentication for order creation (fixes unauthenticated exploit)
-      allow create: if isAuthenticated() && (
-        request.resource.data.status == 'Pending Payment' ||
-        isAdminOrStaff() ||
-        hasModule('Manage Orders')
-      );
+       // Require authentication for order creation (fixes unauthenticated exploit) unless it's a Pending Payment order
+       allow create: if (
+         request.resource.data.status == 'Pending Payment' ||
+         (isAuthenticated() && (isAdminOrStaff() || hasModule('Manage Orders')))
+       );
       allow update: if isAuthenticated() && (
         isAdminOrStaff() ||
         hasModule('Manage Orders') ||
