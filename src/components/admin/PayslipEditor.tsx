@@ -24,6 +24,128 @@ const formatCurrency = (val: number) => {
     }).format(val);
 };
 
+const STANDARD_EARNINGS = ["Basic Salary", "Leave Paid", "Back Pay", "Annual Bonus / 13th Cheque", "Commission", "Travel Allowance", "Reimbursive Travel (Taxable)", "Reimbursive Travel (Non-Taxable)", "Subsistence Allowance (Non-Taxable)", "Cell Phone Allowance", "Work From Home Allowance"];
+const STANDARD_DEDUCTIONS = ["Advance Repayment", "Loan Repayment", "Garnishee Order", "Union Fee", "Unpaid Leave"];
+const STANDARD_FRINGE_BENEFITS = ["Company Car", "Medical Aid (Employer)", "Pension / Provident Fund"];
+
+const ItemRow = ({ 
+    item, 
+    index, 
+    type,
+    onUpdate,
+    onRemove
+}: { 
+    item: PayslipItem, 
+    index: number, 
+    type: 'earning' | 'deduction' | 'contribution' | 'fringe',
+    onUpdate: (index: number, field: 'label' | 'amount' | 'taxCategory' | 'durationMonths', value: any, type: 'earning' | 'deduction' | 'contribution' | 'fringe') => void,
+    onRemove: (index: number, type: 'earning' | 'deduction' | 'contribution' | 'fringe') => void
+}) => {
+    const isCalculatedItem = type === 'earning' && (
+        item.label.toLowerCase().includes('normal hours') ||
+        item.label.toLowerCase().includes('hourly rate') ||
+        item.label.toLowerCase().includes('overtime')
+    );
+
+    const isStandardLabel = type === 'earning' ? STANDARD_EARNINGS.includes(item.label) : type === 'deduction' ? STANDARD_DEDUCTIONS.includes(item.label) : type === 'fringe' ? STANDARD_FRINGE_BENEFITS.includes(item.label) : false;
+    const [isCustom, setIsCustom] = React.useState(!isStandardLabel && item.label !== 'New item');
+
+    return (
+        <div className="flex flex-col gap-1 py-2 px-2 border-b border-gray-100 last:border-0 hover:bg-slate-50/50 transition-colors">
+            <div className="flex items-center gap-2 group">
+                {(!isCalculatedItem && !item.isStatutory && (type === 'earning' || type === 'deduction' || type === 'fringe')) ? (
+                    <div className="flex-grow flex gap-2">
+                        {!isCustom ? (
+                            <Select 
+                                value={item.label === 'New item' ? '' : item.label} 
+                                onValueChange={(val) => {
+                                    if (val === 'Other') {
+                                        setIsCustom(true);
+                                        onUpdate(index, 'label', '', type);
+                                    } else {
+                                        onUpdate(index, 'label', val, type);
+                                        if (val === 'Annual Bonus / 13th Cheque' && type === 'earning') {
+                                            onUpdate(index, 'taxCategory', 'bonus', type);
+                                        } else if (val === 'Travel Allowance' || val === 'Company Car') {
+                                            onUpdate(index, 'taxCategory', '80-percent-taxable', type);
+                                        } else if (val === 'Reimbursive Travel (Non-Taxable)' || val === 'Subsistence Allowance (Non-Taxable)') {
+                                            onUpdate(index, 'taxCategory', 'non-taxable', type);
+                                        } else {
+                                            onUpdate(index, 'taxCategory', 'regular', type);
+                                        }
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="h-7 text-[11px] bg-transparent border-none shadow-none font-medium flex-grow p-0 focus:ring-0">
+                                    <SelectValue placeholder="Select type..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {(type === 'earning' ? STANDARD_EARNINGS : type === 'deduction' ? STANDARD_DEDUCTIONS : STANDARD_FRINGE_BENEFITS).map(opt => (
+                                        <SelectItem key={opt} value={opt} className="text-[11px]">{opt}</SelectItem>
+                                    ))}
+                                    <SelectItem value="Other" className="text-[11px] italic">Custom Option...</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Input 
+                                value={item.label} 
+                                onChange={(e) => onUpdate(index, 'label', e.target.value, type)}
+                                placeholder="Enter custom label..."
+                                className="h-7 text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 flex-grow font-medium"
+                                autoFocus
+                            />
+                        )}
+                    </div>
+                ) : (
+                    <Input 
+                        value={item.label} 
+                        onChange={(e) => onUpdate(index, 'label', e.target.value, type)}
+                        disabled={item.isStatutory || isCalculatedItem}
+                        className="h-7 text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 flex-grow font-medium"
+                    />
+                )}
+                <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground font-mono">R</span>
+                    <Input 
+                        type="number"
+                        step="0.01"
+                        value={item.amount}
+                        onChange={(e) => onUpdate(index, 'amount', e.target.value, type)}
+                        disabled={item.isStatutory || isCalculatedItem}
+                        className="h-7 w-24 text-right text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 font-mono font-bold"
+                    />
+                    {!item.isStatutory && !isCalculatedItem && (
+                        <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => onRemove(index, type)}>
+                            <Trash2 className="h-3 w-3" />
+                        </Button>
+                    )}
+                </div>
+            </div>
+            {(!isCalculatedItem && !item.isStatutory && (type === 'earning' || type === 'deduction')) && (
+                <div className="flex justify-between items-center pl-1 pr-7">
+                    <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Duration:</span>
+                    <Select 
+                        value={item.durationMonths?.toString() || '1'} 
+                        onValueChange={(val) => onUpdate(index, 'durationMonths', val === 'indefinite' ? 'indefinite' : parseInt(val), type)}
+                    >
+                        <SelectTrigger className="h-5 w-28 text-[9px] bg-transparent border-none shadow-none p-0 focus:ring-0 text-muted-foreground hover:text-foreground">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="1" className="text-[10px]">This Period Only</SelectItem>
+                            <SelectItem value="2" className="text-[10px]">2 Months</SelectItem>
+                            <SelectItem value="3" className="text-[10px]">3 Months</SelectItem>
+                            <SelectItem value="6" className="text-[10px]">6 Months</SelectItem>
+                            <SelectItem value="12" className="text-[10px]">12 Months</SelectItem>
+                            <SelectItem value="indefinite" className="text-[10px]">Indefinitely</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+        </div>
+    );
+};
+
 export default function PayslipEditor({ 
     payslip, 
     employee, 
@@ -405,115 +527,7 @@ export default function PayslipEditor({
         </div>
     );
 
-    const STANDARD_EARNINGS = ["Basic Salary", "Leave Paid", "Back Pay", "Annual Bonus / 13th Cheque", "Commission", "Travel Allowance", "Reimbursive Travel (Taxable)", "Reimbursive Travel (Non-Taxable)", "Subsistence Allowance (Non-Taxable)", "Cell Phone Allowance", "Work From Home Allowance"];
-    const STANDARD_DEDUCTIONS = ["Advance Repayment", "Loan Repayment", "Garnishee Order", "Union Fee", "Unpaid Leave"];
-    const STANDARD_FRINGE_BENEFITS = ["Company Car", "Medical Aid (Employer)", "Pension / Provident Fund"];
 
-    const ItemRow = ({ item, index, type }: { item: PayslipItem, index: number, type: 'earning' | 'deduction' | 'contribution' | 'fringe' }) => {
-        const isCalculatedItem = type === 'earning' && (
-            item.label.toLowerCase().includes('normal hours') ||
-            item.label.toLowerCase().includes('hourly rate') ||
-            item.label.toLowerCase().includes('overtime')
-        );
-
-        const isStandardLabel = type === 'earning' ? STANDARD_EARNINGS.includes(item.label) : type === 'deduction' ? STANDARD_DEDUCTIONS.includes(item.label) : type === 'fringe' ? STANDARD_FRINGE_BENEFITS.includes(item.label) : false;
-        const [isCustom, setIsCustom] = useState(!isStandardLabel && item.label !== 'New item');
-
-        return (
-            <div className="flex flex-col gap-1 py-2 px-2 border-b border-gray-100 last:border-0 hover:bg-slate-50/50 transition-colors">
-                <div className="flex items-center gap-2 group">
-                    {(!isCalculatedItem && !item.isStatutory && (type === 'earning' || type === 'deduction' || type === 'fringe')) ? (
-                        <div className="flex-grow flex gap-2">
-                            {!isCustom ? (
-                                <Select 
-                                    value={item.label === 'New item' ? '' : item.label} 
-                                    onValueChange={(val) => {
-                                        if (val === 'Other') {
-                                            setIsCustom(true);
-                                            handleUpdateItem(index, 'label', '', type);
-                                        } else {
-                                            handleUpdateItem(index, 'label', val, type);
-                                            if (val === 'Annual Bonus / 13th Cheque' && type === 'earning') {
-                                                handleUpdateItem(index, 'taxCategory', 'bonus', type);
-                                            } else if (val === 'Travel Allowance' || val === 'Company Car') {
-                                                handleUpdateItem(index, 'taxCategory', '80-percent-taxable', type);
-                                            } else if (val === 'Reimbursive Travel (Non-Taxable)' || val === 'Subsistence Allowance (Non-Taxable)') {
-                                                handleUpdateItem(index, 'taxCategory', 'non-taxable', type);
-                                            } else {
-                                                handleUpdateItem(index, 'taxCategory', 'regular', type);
-                                            }
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className="h-7 text-[11px] bg-transparent border-none shadow-none font-medium flex-grow p-0 focus:ring-0">
-                                        <SelectValue placeholder="Select type..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {(type === 'earning' ? STANDARD_EARNINGS : type === 'deduction' ? STANDARD_DEDUCTIONS : STANDARD_FRINGE_BENEFITS).map(opt => (
-                                            <SelectItem key={opt} value={opt} className="text-[11px]">{opt}</SelectItem>
-                                        ))}
-                                        <SelectItem value="Other" className="text-[11px] italic">Custom Option...</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            ) : (
-                                <Input 
-                                    value={item.label} 
-                                    onChange={(e) => handleUpdateItem(index, 'label', e.target.value, type)}
-                                    placeholder="Enter custom label..."
-                                    className="h-7 text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 flex-grow font-medium"
-                                    autoFocus
-                                />
-                            )}
-                        </div>
-                    ) : (
-                        <Input 
-                            value={item.label} 
-                            onChange={(e) => handleUpdateItem(index, 'label', e.target.value, type)}
-                            disabled={item.isStatutory || isCalculatedItem}
-                            className="h-7 text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 flex-grow font-medium"
-                        />
-                    )}
-                    <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground font-mono">R</span>
-                        <Input 
-                            type="number"
-                            step="0.01"
-                            value={item.amount}
-                            onChange={(e) => handleUpdateItem(index, 'amount', e.target.value, type)}
-                            disabled={item.isStatutory || isCalculatedItem}
-                            className="h-7 w-24 text-right text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 font-mono font-bold"
-                        />
-                        {!item.isStatutory && !isCalculatedItem && (
-                            <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => handleRemoveItem(index, type)}>
-                                <Trash2 className="h-3 w-3" />
-                            </Button>
-                        )}
-                    </div>
-                </div>
-                {(!isCalculatedItem && !item.isStatutory && (type === 'earning' || type === 'deduction')) && (
-                    <div className="flex justify-between items-center pl-1 pr-7">
-                        <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Duration:</span>
-                        <Select 
-                            value={item.durationMonths?.toString() || '1'} 
-                            onValueChange={(val) => handleUpdateItem(index, 'durationMonths', val === 'indefinite' ? 'indefinite' : parseInt(val), type)}
-                        >
-                            <SelectTrigger className="h-5 w-28 text-[9px] bg-transparent border-none shadow-none p-0 focus:ring-0 text-muted-foreground hover:text-foreground">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="1" className="text-[10px]">This Period Only</SelectItem>
-                                <SelectItem value="2" className="text-[10px]">2 Months</SelectItem>
-                                <SelectItem value="3" className="text-[10px]">3 Months</SelectItem>
-                                <SelectItem value="6" className="text-[10px]">6 Months</SelectItem>
-                                <SelectItem value="12" className="text-[10px]">12 Months</SelectItem>
-                                <SelectItem value="indefinite" className="text-[10px]">Indefinitely</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
-            </div>
-        );
-    };
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto pb-8">
@@ -600,7 +614,7 @@ export default function PayslipEditor({
                     <div className="flex flex-col min-h-[350px]">
                         <ColumnHeader title="Earnings" onAdd={() => handleAddItem('earning')} />
                         <div className="flex-grow bg-white">
-                            {earnings.map((item, i) => <ItemRow key={i} item={item} index={i} type="earning" />)}
+                            {earnings.map((item, i) => <ItemRow key={i} item={item} index={i} type="earning" onUpdate={handleUpdateItem} onRemove={handleRemoveItem} />)}
                         </div>
                         <div className="bg-[#F9F9F9] p-2 flex justify-between items-center border-t border-[#E5E5E5] text-[11px]">
                             <span className="font-bold text-[#666666]">Total</span>
@@ -611,7 +625,7 @@ export default function PayslipEditor({
                     <div className="flex flex-col min-h-[350px]">
                         <ColumnHeader title="Deductions" onAdd={() => handleAddItem('deduction')} />
                         <div className="flex-grow bg-white">
-                            {totals.updatedDeductions.map((item, i) => <ItemRow key={i} item={item} index={i} type="deduction" />)}
+                            {totals.updatedDeductions.map((item, i) => <ItemRow key={i} item={item} index={i} type="deduction" onUpdate={handleUpdateItem} onRemove={handleRemoveItem} />)}
                         </div>
                         <div className="bg-[#F9F9F9] p-2 flex justify-between items-center border-t border-[#E5E5E5] text-[11px]">
                             <span className="font-bold text-[#666666]">Total</span>
@@ -622,7 +636,7 @@ export default function PayslipEditor({
                     <div className="flex flex-col min-h-[350px]">
                         <ColumnHeader title="Company Contributions" onAdd={() => handleAddItem('contribution')} />
                         <div className="bg-white">
-                            {totals.updatedContributions.map((item, i) => <ItemRow key={i} item={item} index={i} type="contribution" />)}
+                            {totals.updatedContributions.map((item, i) => <ItemRow key={i} item={item} index={i} type="contribution" onUpdate={handleUpdateItem} onRemove={handleRemoveItem} />)}
                         </div>
                         <div className="bg-[#F9F9F9] p-2 flex justify-between items-center border-b border-[#E5E5E5] text-[11px]">
                             <span className="font-bold text-[#666666]">Total</span>
@@ -631,7 +645,7 @@ export default function PayslipEditor({
 
                         <ColumnHeader title="Fringe Benefits" onAdd={() => handleAddItem('fringe')} />
                         <div className="flex-grow bg-white">
-                            {fringeBenefits.map((item, i) => <ItemRow key={i} item={item} index={i} type="fringe" />)}
+                            {fringeBenefits.map((item, i) => <ItemRow key={i} item={item} index={i} type="fringe" onUpdate={handleUpdateItem} onRemove={handleRemoveItem} />)}
                         </div>
                         <div className="bg-[#F9F9F9] p-2 flex justify-between items-center border-t border-[#E5E5E5] text-[11px]">
                             <span className="font-bold text-[#666666]">Total</span>
