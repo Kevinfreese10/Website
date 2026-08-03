@@ -415,7 +415,7 @@ export type RecurringItem = {
   amount: number;
   type: 'earning' | 'deduction' | 'contribution' | 'fringe';
   remainingMonths: number | 'indefinite';
-  taxCategory?: 'regular' | 'bonus' | 'non-taxable';
+  taxCategory?: 'regular' | 'bonus' | 'non-taxable' | '80-percent-taxable';
   isStatutory?: boolean;
 };
 
@@ -423,7 +423,7 @@ export type PayslipItem = {
   label: string;
   amount: number;
   isStatutory?: boolean;
-  taxCategory?: 'regular' | 'bonus' | 'non-taxable';
+  taxCategory?: 'regular' | 'bonus' | 'non-taxable' | '80-percent-taxable';
   durationMonths?: number | 'indefinite';
 };
 

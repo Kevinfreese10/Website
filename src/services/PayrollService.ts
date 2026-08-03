@@ -234,6 +234,15 @@ export class PayrollService {
   }
 
   /**
+   * Calculates the taxable portion of a payslip item based on its tax category.
+   */
+  static calculateTaxableAmount(item: PayslipItem): number {
+    if (item.taxCategory === 'non-taxable') return 0;
+    if (item.taxCategory === '80-percent-taxable') return item.amount * 0.8;
+    return item.amount;
+  }
+
+  /**
    * Calculates PAYE based on earnings, age (rebates) and medical aid.
    */
   static calculatePaye(

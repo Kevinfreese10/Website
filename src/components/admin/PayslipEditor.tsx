@@ -190,8 +190,10 @@ export default function PayslipEditor({
     // Dynamic Recalculation logic
     const totals = useMemo(() => {
         const gross = earnings.reduce((sum, item) => sum + item.amount, 0);
-        const regularGross = earnings.filter(e => e.taxCategory !== 'bonus' && e.taxCategory !== 'non-taxable').reduce((s, i) => s + i.amount, 0);
-        const bonusGross = earnings.filter(e => e.taxCategory === 'bonus').reduce((s, i) => s + i.amount, 0);
+        const regularGross = earnings.reduce((sum, e) => sum + (e.taxCategory === 'bonus' ? 0 : PayrollService.calculateTaxableAmount(e)), 0) + 
+                             fringeBenefits.reduce((sum, f) => sum + PayrollService.calculateTaxableAmount(f), 0);
+        const bonusGross = earnings.reduce((sum, e) => sum + (e.taxCategory === 'bonus' ? PayrollService.calculateTaxableAmount(e) : 0), 0) +
+                           fringeBenefits.reduce((sum, f) => sum + (f.taxCategory === 'bonus' ? PayrollService.calculateTaxableAmount(f) : 0), 0);
         const period = client.firstProcessingMonth;
         
         const updatedDeductions = [...deductions];
@@ -403,8 +405,9 @@ export default function PayslipEditor({
         </div>
     );
 
-    const STANDARD_EARNINGS = ["Leave Paid", "Back Pay", "Annual Bonus", "Work From Home Allowance", "Commission"];
+    const STANDARD_EARNINGS = ["Basic Salary", "Leave Paid", "Back Pay", "Annual Bonus / 13th Cheque", "Commission", "Travel Allowance", "Reimbursive Travel (Taxable)", "Reimbursive Travel (Non-Taxable)", "Subsistence Allowance (Non-Taxable)", "Cell Phone Allowance", "Work From Home Allowance"];
     const STANDARD_DEDUCTIONS = ["Advance Repayment", "Loan Repayment", "Garnishee Order", "Union Fee", "Unpaid Leave"];
+    const STANDARD_FRINGE_BENEFITS = ["Company Car", "Medical Aid (Employer)", "Pension / Provident Fund"];
 
     const ItemRow = ({ item, index, type }: { item: PayslipItem, index: number, type: 'earning' | 'deduction' | 'contribution' | 'fringe' }) => {
         const isCalculatedItem = type === 'earning' && (
@@ -413,13 +416,13 @@ export default function PayslipEditor({
             item.label.toLowerCase().includes('overtime')
         );
 
-        const isStandardLabel = type === 'earning' ? STANDARD_EARNINGS.includes(item.label) : type === 'deduction' ? STANDARD_DEDUCTIONS.includes(item.label) : false;
+        const isStandardLabel = type === 'earning' ? STANDARD_EARNINGS.includes(item.label) : type === 'deduction' ? STANDARD_DEDUCTIONS.includes(item.label) : type === 'fringe' ? STANDARD_FRINGE_BENEFITS.includes(item.label) : false;
         const [isCustom, setIsCustom] = useState(!isStandardLabel && item.label !== 'New item');
 
         return (
             <div className="flex flex-col gap-1 py-2 px-2 border-b border-gray-100 last:border-0 hover:bg-slate-50/50 transition-colors">
                 <div className="flex items-center gap-2 group">
-                    {(!isCalculatedItem && !item.isStatutory && (type === 'earning' || type === 'deduction')) ? (
+                    {(!isCalculatedItem && !item.isStatutory && (type === 'earning' || type === 'deduction' || type === 'fringe')) ? (
                         <div className="flex-grow flex gap-2">
                             {!isCustom ? (
                                 <Select 
@@ -430,8 +433,14 @@ export default function PayslipEditor({
                                             handleUpdateItem(index, 'label', '', type);
                                         } else {
                                             handleUpdateItem(index, 'label', val, type);
-                                            if (val === 'Annual Bonus' && type === 'earning') {
+                                            if (val === 'Annual Bonus / 13th Cheque' && type === 'earning') {
                                                 handleUpdateItem(index, 'taxCategory', 'bonus', type);
+                                            } else if (val === 'Travel Allowance' || val === 'Company Car') {
+                                                handleUpdateItem(index, 'taxCategory', '80-percent-taxable', type);
+                                            } else if (val === 'Reimbursive Travel (Non-Taxable)' || val === 'Subsistence Allowance (Non-Taxable)') {
+                                                handleUpdateItem(index, 'taxCategory', 'non-taxable', type);
+                                            } else {
+                                                handleUpdateItem(index, 'taxCategory', 'regular', type);
                                             }
                                         }
                                     }}
@@ -440,7 +449,7 @@ export default function PayslipEditor({
                                         <SelectValue placeholder="Select type..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {(type === 'earning' ? STANDARD_EARNINGS : STANDARD_DEDUCTIONS).map(opt => (
+                                        {(type === 'earning' ? STANDARD_EARNINGS : type === 'deduction' ? STANDARD_DEDUCTIONS : STANDARD_FRINGE_BENEFITS).map(opt => (
                                             <SelectItem key={opt} value={opt} className="text-[11px]">{opt}</SelectItem>
                                         ))}
                                         <SelectItem value="Other" className="text-[11px] italic">Custom Option...</SelectItem>
