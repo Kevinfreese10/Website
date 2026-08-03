@@ -18,7 +18,7 @@ import { User, AllocatedTransaction, VatType, ChartOfAccount } from '@/lib/types
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { format, parse } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableFooterComponent } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
@@ -65,6 +65,22 @@ const editJournalFormSchema = z.object({
     lines: z.array(editJournalLineSchema),
 });
 
+const multiLegLineSchema = z.object({
+  accountId: z.string().min(1, "Account is required."),
+  effect: z.enum(['Debit', 'Credit']),
+  inclusiveAmount: z.number().min(0.01, "Amount required."),
+  exclusiveAmount: z.number().optional(),
+  vatAmount: z.number().optional(),
+  vatType: z.string().default('no_vat'),
+});
+
+const multiLegFormSchema = z.object({
+  date: z.date({ required_error: "Date is required." }),
+  reference: z.string().min(1, "Reference is required."),
+  description: z.string().min(1, "Description is required."),
+  lines: z.array(multiLegLineSchema).min(2, "At least 2 legs are required."),
+});
+
 // #endregion
 
 const formatPrice = (price: number | undefined) => {
@@ -82,6 +98,105 @@ const getInclusiveAmount = (amount: number, vatType?: string) => {
     }
     return absAmt;
 };
+
+interface KeyboardDatePickerProps {
+    value: Date | undefined;
+    onChange: (date: Date | undefined) => void;
+    placeholder?: string;
+    className?: string;
+    size?: "default" | "sm";
+}
+
+function KeyboardDatePicker({
+    value,
+    onChange,
+    placeholder = "DD/MM/YYYY",
+    className = "",
+    size = "default"
+}: KeyboardDatePickerProps) {
+    const [inputValue, setInputValue] = useState("");
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        if (value instanceof Date && isValid(value)) {
+            setInputValue(format(value, "dd/MM/yyyy"));
+        } else if (!value) {
+            setInputValue("");
+        }
+    }, [value]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setInputValue(val);
+
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+            const parsed = parse(val, "dd/MM/yyyy", new Date());
+            if (isValid(parsed)) {
+                onChange(parsed);
+            }
+        }
+    };
+
+    const handleBlur = () => {
+        if (!inputValue) {
+            onChange(undefined);
+            return;
+        }
+        const parsed = parse(inputValue, "dd/MM/yyyy", new Date());
+        if (isValid(parsed)) {
+            onChange(parsed);
+        } else {
+            if (value instanceof Date && isValid(value)) {
+                setInputValue(format(value, "dd/MM/yyyy"));
+            } else {
+                setInputValue("");
+                onChange(undefined);
+            }
+        }
+    };
+
+    return (
+        <div className="relative flex items-center w-full">
+            <Input
+                value={inputValue}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                placeholder={placeholder}
+                className={cn(
+                    className,
+                    size === "sm" ? "h-8 text-[11px] pl-2 pr-7" : "h-10 text-xs pr-10"
+                )}
+            />
+            <Popover open={isOpen} onOpenChange={setIsOpen}>
+                <PopoverTrigger asChild>
+                    <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => setIsOpen(true)}
+                        className={cn(
+                            "absolute hover:bg-transparent text-muted-foreground z-10",
+                            size === "sm" ? "h-6 w-6 right-0.5" : "h-8 w-8 right-1"
+                        )}
+                    >
+                        <CalendarIcon className={cn(size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4")} />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                        mode="single"
+                        selected={value}
+                        onSelect={(date) => {
+                            onChange(date);
+                            setIsOpen(false);
+                        }}
+                        initialFocus
+                    />
+                </PopoverContent>
+            </Popover>
+        </div>
+    );
+}
 
 function EditJournalDialog({ isOpen, onOpenChange, journalEntries, client, onSave }: { 
     isOpen: boolean, 
@@ -166,21 +281,14 @@ function EditJournalDialog({ isOpen, onOpenChange, journalEntries, client, onSav
                     <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <FormField control={form.control} name="date" render={({ field }) => (
-                                <FormItem className="flex flex-col">
+                                <FormItem>
                                     <FormLabel>Journal Date</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                                <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                    {field.value ? format(field.value, "dd/MM/yyyy") : <span>Pick a date</span>}
-                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                        </PopoverContent>
-                                    </Popover>
+                                    <FormControl>
+                                        <KeyboardDatePicker
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                        />
+                                    </FormControl>
                                 </FormItem>
                             )} />
                             <FormField control={form.control} name="reference" render={({ field }) => (
@@ -474,6 +582,7 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
     const [isCreateAccountOpen, setIsCreateAccountOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'post' | 'reviewed'>('post');
     const [searchQuery, setSearchQuery] = useState('');
+    const [postMode, setPostMode] = useState<'balanced' | 'multileg'>('balanced');
 
     const quickForm = useForm<z.infer<typeof quickFormSchema>>({
         resolver: zodResolver(quickFormSchema),
@@ -486,6 +595,34 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
         control: quickForm.control,
         name: "lines"
     });
+
+    const multiLegForm = useForm<z.infer<typeof multiLegFormSchema>>({
+        resolver: zodResolver(multiLegFormSchema),
+        defaultValues: {
+            date: new Date(),
+            reference: '',
+            description: '',
+            lines: [
+                { accountId: '', effect: 'Debit', inclusiveAmount: 0, exclusiveAmount: 0, vatAmount: 0, vatType: 'no_vat' },
+                { accountId: '', effect: 'Credit', inclusiveAmount: 0, exclusiveAmount: 0, vatAmount: 0, vatType: 'no_vat' },
+            ]
+        }
+    });
+
+    const { fields: multiFields, append: appendMulti, remove: removeMulti, replace: replaceMulti } = useFieldArray({
+        control: multiLegForm.control,
+        name: "lines"
+    });
+
+    const updateMultiAmounts = (index: number) => {
+        const line = multiLegForm.getValues(`lines.${index}`);
+        const isStandard = line.vatType === 'standard_rated_sales' || line.vatType === 'standard_rated_purchases' || line.vatType === 'capital_goods_purchases';
+        const inclusive = line.inclusiveAmount || 0;
+        const exclusive = isStandard ? inclusive / 1.15 : inclusive;
+        const vat = inclusive - exclusive;
+        multiLegForm.setValue(`lines.${index}.exclusiveAmount`, exclusive);
+        multiLegForm.setValue(`lines.${index}.vatAmount`, vat);
+    };
 
     const updateQuickAmounts = (index: number) => {
         const line = quickForm.getValues(`lines.${index}`);
@@ -613,6 +750,86 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
         } catch (e) { toast({ title: "Error Posting", variant: "destructive" }); } finally { setIsLoading(false); }
     };
 
+    const onMultiSubmit = async (data: z.infer<typeof multiLegFormSchema>) => {
+        if (!client) return;
+
+        const debits = data.lines.filter(l => l.effect === 'Debit').reduce((sum, l) => sum + (l.inclusiveAmount || 0), 0);
+        const credits = data.lines.filter(l => l.effect === 'Credit').reduce((sum, l) => sum + (l.inclusiveAmount || 0), 0);
+        const diff = Math.abs(debits - credits);
+
+        if (diff >= 0.01) {
+            toast({
+                title: "Out of Balance",
+                description: `Debits and Credits must balance. Difference is ${formatPrice(diff)}`,
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const batch = writeBatch(db);
+            const journalTimestamp = Timestamp.now();
+            const vatControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '7000-008')?.id;
+
+            for (const line of data.lines) {
+                const excl = line.exclusiveAmount || 0;
+                const vat = line.vatAmount || 0;
+                const multiplier = line.effect === 'Debit' ? 1 : -1;
+
+                const pRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
+                batch.set(pRef, {
+                    clientId: client.id,
+                    date: data.date.toISOString(),
+                    reference: data.reference,
+                    description: data.description,
+                    amount: excl * multiplier,
+                    isExpense: (excl * multiplier) < 0,
+                    bankAccountId: 'JOURNAL',
+                    allocatedTo: { value: line.accountId, type: 'account' },
+                    vatType: line.vatType as VatType,
+                    status: 'allocated',
+                    allocatedAt: journalTimestamp
+                });
+
+                if (vat !== 0 && vatControlAccount) {
+                    const vRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
+                    batch.set(vRef, {
+                        clientId: client.id,
+                        date: data.date.toISOString(),
+                        reference: data.reference,
+                        description: `VAT: ${data.description}`,
+                        amount: vat * multiplier,
+                        isExpense: (vat * multiplier) < 0,
+                        bankAccountId: 'JOURNAL',
+                        allocatedTo: { value: vatControlAccount, type: 'account' },
+                        vatType: 'no_vat',
+                        status: 'allocated',
+                        allocatedAt: journalTimestamp
+                    });
+                }
+            }
+
+            await batch.commit();
+            toast({ title: "Journal Posted Successfully" });
+            multiLegForm.reset({
+                date: new Date(),
+                reference: '',
+                description: '',
+                lines: [
+                    { accountId: '', effect: 'Debit', inclusiveAmount: 0, exclusiveAmount: 0, vatAmount: 0, vatType: 'no_vat' },
+                    { accountId: '', effect: 'Credit', inclusiveAmount: 0, exclusiveAmount: 0, vatAmount: 0, vatType: 'no_vat' },
+                ]
+            });
+            fetchClientAndJournals();
+            setActiveTab('reviewed');
+        } catch (e) {
+            toast({ title: "Error Posting", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const handleUpdateJournal = async (data: z.infer<typeof editJournalFormSchema>) => {
         if (!client) return;
         setIsLoading(true);
@@ -735,47 +952,318 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                     <div className="p-0">
                         {activeTab === 'post' && (
                             <div className="p-6 space-y-6">
-                                <Form {...quickForm}>
-                                    <form onSubmit={quickForm.handleSubmit(onQuickSubmit)} className="space-y-4">
-                                        <div className="border rounded-xl overflow-x-auto shadow-sm">
-                                            <Table>
-                                                <TableHeader className="bg-muted/50">
-                                                    <TableRow>
-                                                        <TableHead className="w-[120px] text-[10px] font-black uppercase">Date</TableHead>
-                                                        <TableHead className="w-[110px] text-[10px] font-black uppercase">Effect</TableHead>
-                                                        <TableHead className="w-[180px] text-[10px] font-black uppercase">Account</TableHead>
-                                                        <TableHead className="w-[100px] text-[10px] font-black uppercase">Reference</TableHead>
-                                                        <TableHead className="text-[10px] font-black uppercase">Description</TableHead>
-                                                        <TableHead className="w-[150px] text-[10px] font-black uppercase">VAT Type</TableHead>
-                                                        <TableHead className="w-[110px] text-[10px] font-black uppercase text-right">Amount (Incl)</TableHead>
-                                                        <TableHead className="w-[110px] text-[10px] font-black uppercase text-right">Excl. Amount</TableHead>
-                                                        <TableHead className="w-[100px] text-[10px] font-black uppercase text-right">VAT Amount</TableHead>
-                                                        <TableHead className="w-[180px] text-[10px] font-black uppercase">Affecting Account</TableHead>
-                                                        <TableHead className="w-10"></TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {quickFields.map((field, index) => (
-                                                        <TableRow key={field.id} className="hover:bg-muted/5">
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.date`} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant="outline" className={cn("w-full pl-3 text-left font-normal h-8 text-[11px]", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "dd/MM/yyyy") : <span>Date</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover> )} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.effect`} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8 text-[11px] font-bold"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Debit">Debit</SelectItem><SelectItem value="Credit">Credit</SelectItem></SelectContent></Select> )} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.accountId`} render={({ field }) => ( <AccountSelector client={client} showAccounts={true} showCustomers={false} showSuppliers={false} value={field.value ? { value: field.value, type: "account" } : null} onChange={(selection) => field.onChange(selection.value)} size="sm" placeholder="Select account..." /> )} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.reference`} render={({ field }) => <Input className="h-8 text-[11px] font-mono" {...field} />} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.description`} render={({ field }) => <Input className="h-8 text-[11px]" {...field} />} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.vatType`} render={({ field }) => ( <Select onValueChange={(v) => { field.onChange(v); updateQuickAmounts(index); }} value={field.value}><FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent>{allVatTypes.map(vt => <SelectItem key={vt.name} value={vt.name} className="text-xs">{vt.label}</SelectItem>)}</SelectContent></Select> )} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.inclusiveAmount`} render={({ field }) => ( <Input type="number" step="0.01" className="h-8 text-right font-mono font-bold text-[11px]" {...field} onChange={(e) => { field.onChange(parseFloat(e.target.value) || 0); updateQuickAmounts(index); }} /> )} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.exclusiveAmount`} render={({ field }) => ( <Input readOnly className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" value={formatPrice(field.value)} /> )} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.vatAmount`} render={({ field }) => ( <Input readOnly className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" value={formatPrice(field.value)} /> )} /></TableCell>
-                                                            <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.affectingAccountId`} render={({ field }) => ( <AccountSelector client={client} showAccounts={true} showCustomers={false} showSuppliers={false} value={field.value ? { value: field.value, type: "account" } : null} onChange={(selection) => field.onChange(selection.value)} size="sm" placeholder="Select account..." /> )} /></TableCell>
-                                                            <TableCell className="p-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeQuick(index)} disabled={quickFields.length === 1} className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5"/></Button></TableCell>
+                                <div className="flex gap-2 p-1 bg-muted rounded-lg max-w-xs">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setPostMode('balanced')} 
+                                        className={cn(
+                                            "flex-1 py-1.5 text-xs font-bold rounded-md transition-all",
+                                            postMode === 'balanced' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        Balanced Mode
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setPostMode('multileg')} 
+                                        className={cn(
+                                            "flex-1 py-1.5 text-xs font-bold rounded-md transition-all",
+                                            postMode === 'multileg' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        Multi-Leg Mode
+                                    </button>
+                                </div>
+
+                                {postMode === 'balanced' ? (
+                                    <Form {...quickForm}>
+                                        <form onSubmit={quickForm.handleSubmit(onQuickSubmit)} className="space-y-4">
+                                            <div className="border rounded-xl overflow-x-auto shadow-sm">
+                                                <Table>
+                                                    <TableHeader className="bg-muted/50">
+                                                        <TableRow>
+                                                            <TableHead className="w-[135px] text-[10px] font-black uppercase">Date</TableHead>
+                                                            <TableHead className="w-[95px] text-[10px] font-black uppercase">Effect</TableHead>
+                                                            <TableHead className="w-[180px] text-[10px] font-black uppercase">Account</TableHead>
+                                                            <TableHead className="w-[100px] text-[10px] font-black uppercase">Reference</TableHead>
+                                                            <TableHead className="text-[10px] font-black uppercase">Description</TableHead>
+                                                            <TableHead className="w-[150px] text-[10px] font-black uppercase">VAT Type</TableHead>
+                                                            <TableHead className="w-[110px] text-[10px] font-black uppercase text-right">Amount (Incl)</TableHead>
+                                                            <TableHead className="w-[110px] text-[10px] font-black uppercase text-right">Excl. Amount</TableHead>
+                                                            <TableHead className="w-[100px] text-[10px] font-black uppercase text-right">VAT Amount</TableHead>
+                                                            <TableHead className="w-[180px] text-[10px] font-black uppercase">Affecting Account</TableHead>
+                                                            <TableHead className="w-10"></TableHead>
                                                         </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                        <div className="flex justify-between items-center"><Button type="button" variant="outline" size="sm" onClick={() => appendQuick({ date: new Date(), effect: 'Debit', accountId: '', reference: '', description: '', vatType: 'no_vat', inclusiveAmount: 0, affectingAccountId: '' })} className="font-bold gap-2"><Plus className="h-4 w-4" /> Add Balanced Entry</Button><Button type="submit" disabled={isLoading} className="font-black px-12 gap-2 h-11">{isLoading ? <Loader2 className="animate-spin" /> : <Calculator className="h-5 w-5" />}Post Journals</Button></div>
-                                    </form>
-                                </Form>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {quickFields.map((field, index) => (
+                                                            <TableRow key={field.id} className="hover:bg-muted/5">
+                                                                <TableCell className="p-2">
+                                                                     <FormField 
+                                                                         control={quickForm.control} 
+                                                                         name={`lines.${index}.date`} 
+                                                                         render={({ field }) => (
+                                                                             <FormControl>
+                                                                                 <KeyboardDatePicker
+                                                                                     value={field.value}
+                                                                                     onChange={field.onChange}
+                                                                                     size="sm"
+                                                                                     placeholder="Date"
+                                                                                 />
+                                                                             </FormControl>
+                                                                         )} 
+                                                                     />
+                                                                </TableCell>
+                                                                <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.effect`} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-8 text-[11px] font-bold"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="Debit">Debit</SelectItem><SelectItem value="Credit">Credit</SelectItem></SelectContent></Select> )} /></TableCell>
+                                                                <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.accountId`} render={({ field }) => ( <AccountSelector client={client} showAccounts={true} showCustomers={false} showSuppliers={false} value={field.value ? { value: field.value, type: "account" } : null} onChange={(selection) => field.onChange(selection.value)} size="sm" placeholder="Select account..." /> )} /></TableCell>
+                                                                <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.reference`} render={({ field }) => <Input className="h-8 text-[11px] font-mono" {...field} />} /></TableCell>
+                                                                <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.description`} render={({ field }) => <Input className="h-8 text-[11px]" {...field} />} /></TableCell>
+                                                                <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.vatType`} render={({ field }) => ( <Select onValueChange={(v) => { field.onChange(v); updateQuickAmounts(index); }} value={field.value}><FormControl><SelectTrigger className="h-8 text-[10px]"><SelectValue /></SelectTrigger></FormControl><SelectContent>{allVatTypes.map(vt => <SelectItem key={vt.name} value={vt.name} className="text-xs">{vt.label}</SelectItem>)}</SelectContent></Select> )} /></TableCell>
+                                                                <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.inclusiveAmount`} render={({ field }) => ( <Input type="number" step="0.01" className="h-8 text-right font-mono font-bold text-[11px]" {...field} onChange={(e) => { field.onChange(parseFloat(e.target.value) || 0); updateQuickAmounts(index); }} /> )} /></TableCell>
+                                                                <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.exclusiveAmount`} render={({ field }) => ( <Input readOnly className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" value={formatPrice(field.value)} /> )} /></TableCell>
+                                                                <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.vatAmount`} render={({ field }) => ( <Input readOnly className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" value={formatPrice(field.value)} /> )} /></TableCell>
+                                                                <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.affectingAccountId`} render={({ field }) => ( <AccountSelector client={client} showAccounts={true} showCustomers={false} showSuppliers={false} value={field.value ? { value: field.value, type: "account" } : null} onChange={(selection) => field.onChange(selection.value)} size="sm" placeholder="Select account..." /> )} /></TableCell>
+                                                                <TableCell className="p-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeQuick(index)} disabled={quickFields.length === 1} className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5"/></Button></TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                            <div className="flex justify-between items-center"><Button type="button" variant="outline" size="sm" onClick={() => appendQuick({ date: new Date(), effect: 'Debit', accountId: '', reference: '', description: '', vatType: 'no_vat', inclusiveAmount: 0, exclusiveAmount: 0, vatAmount: 0, affectingAccountId: '' })} className="font-bold gap-2"><Plus className="h-4 w-4" /> Add Balanced Entry</Button><Button type="submit" disabled={isLoading} className="font-black px-12 gap-2 h-11">{isLoading ? <Loader2 className="animate-spin" /> : <Calculator className="h-5 w-5" />}Post Journals</Button></div>
+                                        </form>
+                                    </Form>
+                                ) : (
+                                    <Form {...multiLegForm}>
+                                        <form onSubmit={multiLegForm.handleSubmit(onMultiSubmit)} className="space-y-4">
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <FormField control={multiLegForm.control} name="date" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs font-bold text-muted-foreground uppercase">Journal Date</FormLabel>
+                                                        <FormControl>
+                                                            <KeyboardDatePicker
+                                                                value={field.value}
+                                                                onChange={field.onChange}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={multiLegForm.control} name="reference" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs font-bold text-muted-foreground uppercase">Reference</FormLabel>
+                                                        <FormControl>
+                                                            <Input className="h-10 text-xs font-mono" placeholder="e.g. GJ001" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={multiLegForm.control} name="description" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs font-bold text-muted-foreground uppercase">General Description</FormLabel>
+                                                        <FormControl>
+                                                            <Input className="h-10 text-xs" placeholder="e.g. Month-end adjustments" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+
+                                            <div className="border rounded-xl overflow-x-auto shadow-sm">
+                                                <Table>
+                                                    <TableHeader className="bg-muted/50">
+                                                        <TableRow>
+                                                            <TableHead className="w-[220px] text-[10px] font-black uppercase">Account</TableHead>
+                                                            <TableHead className="w-[120px] text-[10px] font-black uppercase">Effect (Dr/Cr)</TableHead>
+                                                            <TableHead className="w-[160px] text-[10px] font-black uppercase">VAT Type</TableHead>
+                                                            <TableHead className="w-[130px] text-[10px] font-black uppercase text-right">Amount (Incl)</TableHead>
+                                                            <TableHead className="w-[130px] text-[10px] font-black uppercase text-right">Excl. Amount</TableHead>
+                                                            <TableHead className="w-[110px] text-[10px] font-black uppercase text-right">VAT Amount</TableHead>
+                                                            <TableHead className="w-10"></TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {multiFields.map((field, index) => (
+                                                            <TableRow key={field.id} className="hover:bg-muted/5">
+                                                                <TableCell className="p-2">
+                                                                    <FormField 
+                                                                        control={multiLegForm.control} 
+                                                                        name={`lines.${index}.accountId`} 
+                                                                        render={({ field }) => (
+                                                                            <AccountSelector 
+                                                                                client={client} 
+                                                                                showAccounts={true} 
+                                                                                showCustomers={false} 
+                                                                                showSuppliers={false} 
+                                                                                value={field.value ? { value: field.value, type: "account" } : null} 
+                                                                                onChange={(selection) => field.onChange(selection.value)} 
+                                                                                size="sm" 
+                                                                                placeholder="Select account..." 
+                                                                            />
+                                                                        )} 
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="p-2">
+                                                                    <FormField 
+                                                                        control={multiLegForm.control} 
+                                                                        name={`lines.${index}.effect`} 
+                                                                        render={({ field }) => (
+                                                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                                                <FormControl>
+                                                                                    <SelectTrigger className="h-8 text-[11px] font-bold">
+                                                                                        <SelectValue />
+                                                                                    </SelectTrigger>
+                                                                                </FormControl>
+                                                                                <SelectContent>
+                                                                                    <SelectItem value="Debit">Debit</SelectItem>
+                                                                                    <SelectItem value="Credit">Credit</SelectItem>
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                        )} 
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="p-2">
+                                                                    <FormField 
+                                                                        control={multiLegForm.control} 
+                                                                        name={`lines.${index}.vatType`} 
+                                                                        render={({ field }) => (
+                                                                            <Select 
+                                                                                onValueChange={(v) => { field.onChange(v); updateMultiAmounts(index); }} 
+                                                                                value={field.value}
+                                                                            >
+                                                                                <FormControl>
+                                                                                    <SelectTrigger className="h-8 text-[10px]">
+                                                                                        <SelectValue />
+                                                                                    </SelectTrigger>
+                                                                                </FormControl>
+                                                                                <SelectContent>
+                                                                                    {allVatTypes.map(vt => (
+                                                                                        <SelectItem key={vt.name} value={vt.name} className="text-xs">
+                                                                                            {vt.label}
+                                                                                        </SelectItem>
+                                                                                    ))}
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                        )} 
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="p-2">
+                                                                    <FormField 
+                                                                        control={multiLegForm.control} 
+                                                                        name={`lines.${index}.inclusiveAmount`} 
+                                                                        render={({ field }) => (
+                                                                            <Input 
+                                                                                type="number" 
+                                                                                step="0.01" 
+                                                                                className="h-8 text-right font-mono font-bold text-[11px]" 
+                                                                                {...field} 
+                                                                                onChange={(e) => { 
+                                                                                    field.onChange(parseFloat(e.target.value) || 0); 
+                                                                                    updateMultiAmounts(index); 
+                                                                                }} 
+                                                                            />
+                                                                        )} 
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="p-2">
+                                                                    <FormField 
+                                                                        control={multiLegForm.control} 
+                                                                        name={`lines.${index}.exclusiveAmount`} 
+                                                                        render={({ field }) => (
+                                                                            <Input 
+                                                                                readOnly 
+                                                                                className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" 
+                                                                                value={formatPrice(field.value)} 
+                                                                            />
+                                                                        )} 
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="p-2">
+                                                                    <FormField 
+                                                                        control={multiLegForm.control} 
+                                                                        name={`lines.${index}.vatAmount`} 
+                                                                        render={({ field }) => (
+                                                                            <Input 
+                                                                                readOnly 
+                                                                                className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" 
+                                                                                value={formatPrice(field.value)} 
+                                                                            />
+                                                                        )} 
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="p-2">
+                                                                    <Button 
+                                                                        type="button" 
+                                                                        variant="ghost" 
+                                                                        size="icon" 
+                                                                        onClick={() => removeMulti(index)} 
+                                                                        disabled={multiFields.length <= 2} 
+                                                                        className="h-8 w-8 text-destructive"
+                                                                    >
+                                                                        <Trash2 className="h-3.5 w-3.5"/>
+                                                                    </Button>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+
+                                            <div className="flex justify-between items-center bg-muted/20 p-4 rounded-xl border border-dashed">
+                                                <div className="flex gap-6 text-xs">
+                                                    <div>
+                                                        <span className="text-muted-foreground font-semibold">Total Debits: </span>
+                                                        <span className="font-mono font-bold text-primary">
+                                                            R {formatPrice(multiLegForm.watch('lines')?.filter(l => l.effect === 'Debit').reduce((sum, l) => sum + (l.inclusiveAmount || 0), 0))}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-muted-foreground font-semibold">Total Credits: </span>
+                                                        <span className="font-mono font-bold text-primary">
+                                                            R {formatPrice(multiLegForm.watch('lines')?.filter(l => l.effect === 'Credit').reduce((sum, l) => sum + (l.inclusiveAmount || 0), 0))}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-muted-foreground font-semibold">Difference: </span>
+                                                        <span className={cn(
+                                                            "font-mono font-bold",
+                                                            Math.abs((multiLegForm.watch('lines')?.filter(l => l.effect === 'Debit').reduce((sum, l) => sum + (l.inclusiveAmount || 0), 0) || 0) - (multiLegForm.watch('lines')?.filter(l => l.effect === 'Credit').reduce((sum, l) => sum + (l.inclusiveAmount || 0), 0) || 0)) < 0.01
+                                                                ? "text-green-600"
+                                                                : "text-destructive"
+                                                        )}>
+                                                            R {formatPrice(Math.abs((multiLegForm.watch('lines')?.filter(l => l.effect === 'Debit').reduce((sum, l) => sum + (l.inclusiveAmount || 0), 0) || 0) - (multiLegForm.watch('lines')?.filter(l => l.effect === 'Credit').reduce((sum, l) => sum + (l.inclusiveAmount || 0), 0) || 0)))}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        onClick={() => appendMulti({ accountId: '', effect: 'Debit', inclusiveAmount: 0, exclusiveAmount: 0, vatAmount: 0, vatType: 'no_vat' })} 
+                                                        className="font-bold gap-2"
+                                                    >
+                                                        <Plus className="h-4 w-4" /> Add Leg
+                                                    </Button>
+                                                    <Button 
+                                                        type="submit" 
+                                                        disabled={
+                                                            isLoading || 
+                                                            Math.abs(
+                                                                (multiLegForm.watch('lines')?.filter(l => l.effect === 'Debit').reduce((sum, l) => sum + (l.inclusiveAmount || 0), 0) || 0) - 
+                                                                (multiLegForm.watch('lines')?.filter(l => l.effect === 'Credit').reduce((sum, l) => sum + (l.inclusiveAmount || 0), 0) || 0)
+                                                            ) >= 0.01
+                                                        } 
+                                                        className="font-black px-12 gap-2 h-9"
+                                                    >
+                                                        {isLoading ? <Loader2 className="animate-spin" /> : <Calculator className="h-4 w-4" />}
+                                                        Post Journal
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </Form>
+                                )}
                             </div>
                         )}
 

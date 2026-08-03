@@ -21,14 +21,18 @@ export async function prepareAiAccountantAnalysis({ clientId, bankAccountId }: {
     const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
         .where('bankAccountId', '==', bankAccountId)
         .where('status', '==', 'new')
-        .where('isExpense', '==', true)
         .get();
     
-    if (snap.empty) return { count: 0 };
+    const docs = snap.docs.filter(d => {
+        const data = d.data();
+        return data.isExpense === true || data.amount < 0;
+    });
+
+    if (docs.length === 0) return { count: 0 };
 
     const chunks = [];
-    for (let i = 0; i < snap.docs.length; i += 450) {
-        chunks.push(snap.docs.slice(i, i + 450));
+    for (let i = 0; i < docs.length; i += 450) {
+        chunks.push(docs.slice(i, i + 450));
     }
     for (const chunk of chunks) {
         const batch = adminDb.batch();
@@ -36,7 +40,7 @@ export async function prepareAiAccountantAnalysis({ clientId, bankAccountId }: {
         await batch.commit();
     }
 
-    return { count: snap.size };
+    return { count: docs.length };
 }
 
 export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiatorEmail }: { clientId: string, bankAccountId: string, initiatorEmail: string }) {
@@ -455,13 +459,17 @@ export async function matchTransactionsToSuppliers({ clientId, bankAccountId }: 
     const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
         .where('bankAccountId', '==', bankAccountId)
         .where('status', 'in', ['new', 'ai_review'])
-        .where('isExpense', '==', true)
         .get();
+
+    const docs = snap.docs.filter(d => {
+        const data = d.data();
+        return data.isExpense === true || data.amount < 0;
+    });
 
     const batch = adminDb.batch();
     let count = 0;
 
-    snap.docs.forEach(d => {
+    docs.forEach(d => {
         const tx = d.data() as ImportedTransaction;
         const match = suppliers.find(s => tx.description.toUpperCase().includes(s.name) || BankCleaner.getSimilarity(tx.description, s.name).score > 0.9);
         if (match) {
