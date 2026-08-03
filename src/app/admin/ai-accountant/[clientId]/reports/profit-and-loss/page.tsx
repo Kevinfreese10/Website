@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Loader2, Download, Calculator } from "lucide-react";
 
 const db = getFirestore(firebaseApp);
@@ -65,6 +66,7 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
     const [isTaxDialogOpen, setIsTaxDialogOpen] = useState(false);
     const [taxMode, setTaxMode] = useState<'standard' | 'sbc'>('standard');
     const [taxYear, setTaxYear] = useState<string>('2026');
+    const [assessedLossBf, setAssessedLossBf] = useState<number>(0);
     
     const reportData = useMemo(() => {
         const balances = new Map<string, number>();
@@ -145,16 +147,21 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
     }, [client, dateRange, transactions]);
     
     const taxCalculation = useMemo(() => {
-        const taxableIncome = reportData.netProfit > 0 ? reportData.netProfit : 0;
+        const baseTaxable = reportData.netProfit > 0 ? reportData.netProfit : 0;
+        const taxableIncome = Math.max(0, baseTaxable - assessedLossBf);
         let taxAmount = 0;
         let taxRateLabel = '';
         let calculationBreakdown = '';
         
+        const lossAppliedText = assessedLossBf > 0 
+            ? `Net Profit: ${formatPrice(baseTaxable)}\nLess Assessed Loss B/Fwd: (${formatPrice(assessedLossBf)})\nTaxable Income: ${formatPrice(taxableIncome)}\n\n`
+            : '';
+
         if (taxMode === 'standard') {
             const rate = taxYear === '2023' ? 0.28 : 0.27;
             taxAmount = taxableIncome * rate;
             taxRateLabel = `${(rate * 100).toFixed(0)}%`;
-            calculationBreakdown = `${formatPrice(taxableIncome)} × ${(rate * 100).toFixed(0)}% = ${formatPrice(taxAmount)}`;
+            calculationBreakdown = lossAppliedText + `${formatPrice(taxableIncome)} × ${(rate * 100).toFixed(0)}% = ${formatPrice(taxAmount)}`;
         } else {
             // SBC Brackets
             let bracket1 = 95750, bracket2 = 365000, bracket3 = 550000;
@@ -171,19 +178,19 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
             if (taxableIncome <= bracket1) {
                 taxAmount = 0;
                 taxRateLabel = '0% (SBC)';
-                calculationBreakdown = `R0 – ${formatPrice(bracket1)} bracket (0%) = R 0.00`;
+                calculationBreakdown = lossAppliedText + `R0 – ${formatPrice(bracket1)} bracket (0%) = R 0.00`;
             } else if (taxableIncome <= bracket2) {
                 taxAmount = (taxableIncome - bracket1) * rate2;
                 taxRateLabel = `${(rate2 * 100).toFixed(0)}% (SBC)`;
-                calculationBreakdown = `${formatPrice(taxableIncome)} - ${formatPrice(bracket1)} = ${formatPrice(taxableIncome - bracket1)}\n${formatPrice(taxableIncome - bracket1)} × ${(rate2 * 100).toFixed(0)}% = ${formatPrice(taxAmount)}`;
+                calculationBreakdown = lossAppliedText + `${formatPrice(taxableIncome)} - ${formatPrice(bracket1)} = ${formatPrice(taxableIncome - bracket1)}\n${formatPrice(taxableIncome - bracket1)} × ${(rate2 * 100).toFixed(0)}% = ${formatPrice(taxAmount)}`;
             } else if (taxableIncome <= bracket3) {
                 taxAmount = base3 + (taxableIncome - bracket2) * rate3;
                 taxRateLabel = 'SBC Brackets';
-                calculationBreakdown = `Base: ${formatPrice(base3)}\nPlus: (${formatPrice(taxableIncome)} - ${formatPrice(bracket2)}) × ${(rate3 * 100).toFixed(0)}%\n= ${formatPrice(base3)} + ${formatPrice((taxableIncome - bracket2) * rate3)}\n= ${formatPrice(taxAmount)}`;
+                calculationBreakdown = lossAppliedText + `Base: ${formatPrice(base3)}\nPlus: (${formatPrice(taxableIncome)} - ${formatPrice(bracket2)}) × ${(rate3 * 100).toFixed(0)}%\n= ${formatPrice(base3)} + ${formatPrice((taxableIncome - bracket2) * rate3)}\n= ${formatPrice(taxAmount)}`;
             } else {
                 taxAmount = base4 + (taxableIncome - bracket3) * rate4;
                 taxRateLabel = 'SBC Brackets';
-                calculationBreakdown = `Base: ${formatPrice(base4)}\nPlus: (${formatPrice(taxableIncome)} - ${formatPrice(bracket3)}) × ${(rate4 * 100).toFixed(0)}%\n= ${formatPrice(base4)} + ${formatPrice((taxableIncome - bracket3) * rate4)}\n= ${formatPrice(taxAmount)}`;
+                calculationBreakdown = lossAppliedText + `Base: ${formatPrice(base4)}\nPlus: (${formatPrice(taxableIncome)} - ${formatPrice(bracket3)}) × ${(rate4 * 100).toFixed(0)}%\n= ${formatPrice(base4)} + ${formatPrice((taxableIncome - bracket3) * rate4)}\n= ${formatPrice(taxAmount)}`;
             }
         }
         
@@ -199,7 +206,7 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
             amountPayable,
             netProfitAfterTax: reportData.netProfit - taxAmount,
         };
-    }, [reportData.netProfit, reportData.provisionalTaxPaid, taxMode, taxYear]);
+    }, [reportData.netProfit, reportData.provisionalTaxPaid, taxMode, taxYear, assessedLossBf]);
 
      const handleDownloadExcel = () => {
         let excelData: any[] = [
@@ -326,7 +333,25 @@ function ProfitAndLossReport({ client, transactions, dateRange, onPostJournal }:
                                 </Select>
                             </div>
                             <Separator />
-                            <div className="flex justify-between items-center"><span className="text-muted-foreground">Net Profit Before Tax:</span><span className="font-semibold">{formatPrice(taxCalculation.taxableIncome)}</span></div>
+                            <div className="flex justify-between items-center"><span className="text-muted-foreground">Net Profit Before Tax:</span><span className="font-semibold">{formatPrice(reportData.netProfit)}</span></div>
+                            
+                            <div className="grid grid-cols-[180px_1fr] items-center gap-4">
+                                <span className="text-sm font-semibold text-muted-foreground">Assessed Loss B/Fwd:</span>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">R</span>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={assessedLossBf === 0 ? '' : assessedLossBf}
+                                        onChange={(e) => setAssessedLossBf(Math.max(0, parseFloat(e.target.value) || 0))}
+                                        className="pl-7 h-10 text-xs font-mono"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center"><span className="text-muted-foreground">Taxable Income:</span><span className="font-semibold">{formatPrice(taxCalculation.taxableIncome)}</span></div>
                             <div className="flex justify-between items-center"><span className="text-muted-foreground">Effective Scheme:</span><span className="font-semibold">{taxCalculation.taxRateLabel}</span></div>
                             
                             <div className="bg-muted p-3 rounded-md text-xs font-mono whitespace-pre-line text-muted-foreground mt-2 border">
