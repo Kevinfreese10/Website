@@ -444,11 +444,11 @@ export default function PayslipEditor({
 
     const handleUpdateItem = (index: number, field: 'label' | 'amount' | 'taxCategory' | 'durationMonths', value: any, type: 'earning' | 'deduction' | 'contribution' | 'fringe') => {
         const setter = type === 'earning' ? setEarnings : type === 'deduction' ? setDeductions : type === 'contribution' ? setContributions : setFringeBenefits;
-        const list = type === 'earning' ? earnings : type === 'deduction' ? deductions : type === 'contribution' ? contributions : fringeBenefits;
-        
-        const updated = [...list];
-        updated[index] = { ...updated[index], [field]: field === 'amount' ? (parseFloat(value) || 0) : value };
-        setter(updated);
+        setter(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: field === 'amount' ? (parseFloat(value) || 0) : value };
+            return updated;
+        });
     };
 
     const handleSave = async () => {
