@@ -878,12 +878,34 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
 
     const allAccounts = useMemo(() => client?.chartOfAccounts?.sort((a,b) => a.description.localeCompare(b.description)) || [], [client]);
 
-    const handleDeleteJournal = async (ref: string) => {
-      if (!client) return;
+    const getJournalGroupKey = (tx: AllocatedTransaction) => {
+        let dateStr = 'no-date';
+        if (tx.date) {
+            const d = (tx.date as any)?.toDate ? (tx.date as any).toDate() : new Date(tx.date);
+            if (!isNaN(d.getTime())) {
+                dateStr = d.toISOString().split('T')[0];
+            }
+        }
+        const refStr = (tx.reference || tx.description || 'NO_REF').trim();
+        let allocStr = '';
+        if (tx.allocatedAt) {
+            const ad = (tx.allocatedAt as any)?.toDate ? (tx.allocatedAt as any).toDate() : new Date(tx.allocatedAt as any);
+            if (!isNaN(ad.getTime())) {
+                allocStr = `_${ad.getTime()}`;
+            }
+        }
+        return `${dateStr}_${refStr}${allocStr}`;
+    };
+
+    const handleDeleteJournalGroup = async (entries: AllocatedTransaction[]) => {
+      if (!client || !entries || entries.length === 0) return;
       try {
-        const snap = await getDocs(query(collection(db, "aiAccountantClients", client.id, "transactions"), where("reference", "==", ref)));
         const batch = writeBatch(db);
-        snap.forEach(d => batch.delete(d.ref));
+        entries.forEach(e => {
+          if (e.id) {
+            batch.delete(doc(db, "aiAccountantClients", client.id, "transactions", e.id));
+          }
+        });
         await batch.commit();
         toast({ title: 'Journal Deleted' });
         fetchClientAndJournals();
@@ -893,7 +915,7 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
     const groupedJournals = useMemo(() => {
         const grouped = new Map<string, AllocatedTransaction[]>();
         allJournals.forEach(tx => {
-            const key = tx.reference || '';
+            const key = getJournalGroupKey(tx);
             if (!grouped.has(key)) grouped.set(key, []);
             grouped.get(key)?.push(tx);
         });
@@ -1313,7 +1335,8 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                                             ) : filteredFlatJournals.map((tx, i) => {
                                                 const isDebit = tx.amount > 0;
                                                 const isCredit = tx.amount < 0;
-                                                const groupEntries = allJournals.filter(j => j.reference === tx.reference);
+                                                const groupKey = getJournalGroupKey(tx);
+                                                const groupEntries = allJournals.filter(j => getJournalGroupKey(j) === groupKey);
                                                 
                                                 return (
                                                     <TableRow key={tx.id || i} className="hover:bg-muted/5">
@@ -1352,7 +1375,7 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                                                                         </AlertDialogHeader>
                                                                         <AlertDialogFooter>
                                                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                            <AlertDialogAction onClick={() => handleDeleteJournal(tx.reference || '')} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                                                                            <AlertDialogAction onClick={() => handleDeleteJournalGroup(groupEntries)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
                                                                         </AlertDialogFooter>
                                                                     </AlertDialogContent>
                                                                 </AlertDialog>
