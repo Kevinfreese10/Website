@@ -121,7 +121,7 @@ export default function AdminOrderDetailsPage() {
             id: docSnap.id,
             date: data.date?.toDate ? data.date.toDate().toISOString() : new Date().toISOString(),
             notes: (data.notes || []).map((note: any) => ({...note, date: note.date?.toDate ? note.date.toDate() : new Date(note.date), subject: note.subject || null, attachments: note.attachments || null})),
-            documentUploads: (data.documentUploads || []).map((doc: any) => ({...doc, uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : new Date().toISOString()})),
+            documentUploads: (data.documentUploads || []).map((doc: any) => ({...doc, uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : (doc.uploadedAt ? (typeof doc.uploadedAt === 'string' ? doc.uploadedAt : new Date(doc.uploadedAt).toISOString()) : new Date().toISOString())})),
           } as Order;
           
           if (fetchedOrder.originalOrderId) {
@@ -135,7 +135,7 @@ export default function AdminOrderDetailsPage() {
                     }
                     fetchedOrder.documentUploads = (originalOrderData.documentUploads || []).map((doc: any) => ({
                         ...doc,
-                        uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : new Date().toISOString()
+                        uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : (doc.uploadedAt ? (typeof doc.uploadedAt === 'string' ? doc.uploadedAt : new Date(doc.uploadedAt).toISOString()) : new Date().toISOString())
                     }));
                 }
           }

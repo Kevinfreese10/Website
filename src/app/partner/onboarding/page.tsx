@@ -128,13 +128,15 @@ export default function PartnerOnboardingPage() {
     setIsUploadingLogo(true);
     try {
       const storage = getStorage(firebaseApp);
-      const storageRef = ref(storage, `users/${user.uid}/landing-page/logo_${Date.now()}`);
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storageRef = ref(storage, `users/${user.uid}/landing-page/logo_${Date.now()}_${safeName}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       setLogoUrl(url);
       toast({ title: 'Logo Uploaded', description: 'Your logo has been successfully uploaded.' });
-    } catch (error) {
-      toast({ title: 'Upload Failed', description: 'Could not upload logo.', variant: 'destructive' });
+    } catch (error: any) {
+      console.error('Logo upload error:', error);
+      toast({ title: 'Upload Failed', description: error.message || 'Could not upload logo.', variant: 'destructive' });
     } finally {
       setIsUploadingLogo(false);
     }

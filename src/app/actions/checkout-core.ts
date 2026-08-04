@@ -71,10 +71,20 @@ export async function createCheckoutOrderAction({
     }
 
     let resellerData: any = undefined;
+    let resellerIdToSet = partnerId || undefined;
+
     if (partnerId) {
       const partnerSnap = await adminDb.collection('users').doc(partnerId).get();
       if (partnerSnap.exists) {
         resellerData = { ...partnerSnap.data(), id: partnerSnap.id };
+      }
+    } else if (finalUserId) {
+      const userSnap = await adminDb.collection('users').doc(finalUserId).get();
+      if (userSnap.exists) {
+        const uData = userSnap.data();
+        if (uData?.role === 'partner' || uData?.role === 'partner_staff') {
+          resellerIdToSet = finalUserId;
+        }
       }
     }
 
@@ -98,7 +108,7 @@ export async function createCheckoutOrderAction({
       date: new Date(),
       source: partnerId ? 'Partner Landing Page' : 'Client',
       originalOrderId: null,
-      ...(partnerId ? { resellerId: partnerId } : {}),
+      ...(resellerIdToSet ? { resellerId: resellerIdToSet } : {}),
     };
 
     await adminDb.collection('orders').doc(orderId).set(orderData);

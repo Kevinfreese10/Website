@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { getFirestore, collection, getDocs, orderBy, query, where, doc, updateDoc, arrayUnion, getDoc, Timestamp, addDoc, writeBatch, onSnapshot, setDoc, serverTimestamp, increment } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, orderBy, query, where, doc, updateDoc, arrayUnion, getDoc, Timestamp, addDoc, writeBatch, onSnapshot, setDoc, serverTimestamp, increment, or } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Order, User, Service, OrderNote, Task, ItnLog } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -142,7 +142,16 @@ export default function PartnerOrdersPage() {
     });
 
     const ordersRef = collection(db, 'orders');
-    const q = query(ordersRef, where('resellerId', '==', partnerId));
+    const q = user?.email
+      ? query(
+          ordersRef,
+          or(
+            where('resellerId', '==', partnerId),
+            where('userId', '==', partnerId),
+            where('customerEmail', '==', user.email)
+          )
+        )
+      : query(ordersRef, where('resellerId', '==', partnerId));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const fetchedOrders = snapshot.docs.map(doc => {

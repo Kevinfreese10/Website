@@ -764,7 +764,8 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
       else setIsUploadingServicesHero(true);
 
       try {
-          const path = `partners/${targetUser.uid}/${type}/${Date.now()}-${file.name}`;
+          const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const path = `partners/${targetUser.uid}/${type}/${Date.now()}-${safeName}`;
           const storageRef = ref(storage, path);
           await uploadBytes(storageRef, file);
           const url = await getDownloadURL(storageRef);
@@ -772,9 +773,10 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
           if (type === 'logo') setValue('landingPage.logoUrl', url, { shouldDirty: true });
           else if (type === 'hero') setValue('landingPage.heroImageUrl', url, { shouldDirty: true });
           else setValue('landingPage.servicesHeroImageUrl', url, { shouldDirty: true });
-          toast({ title: 'Upload Successful' });
-      } catch (e) {
-          toast({ title: 'Upload Failed', variant: 'destructive' });
+          toast({ title: 'Upload Successful', description: 'File uploaded and applied to profile.' });
+      } catch (e: any) {
+          console.error('File upload error:', e);
+          toast({ title: 'Upload Failed', description: e.message || 'Could not upload file.', variant: 'destructive' });
       } finally {
           if (type === 'logo') setIsUploadingLogo(false); 
           else if (type === 'hero') setIsUploadingHero(false);

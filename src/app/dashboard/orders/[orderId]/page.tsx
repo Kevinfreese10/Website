@@ -126,7 +126,7 @@ export default function ClientOrderDetailsPage() {
             id: docSnap.id,
             date: data.date?.toDate ? data.date.toDate().toISOString() : new Date().toISOString(),
             notes: (data.notes || []).map((note: any) => ({...note, date: note.date?.toDate ? note.date.toDate() : new Date(note.date), attachments: note.attachments || null })),
-            documentUploads: (data.documentUploads || []).map((doc: any) => ({...doc, uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : new Date().toISOString()})),
+            documentUploads: (data.documentUploads || []).map((doc: any) => ({...doc, uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : (doc.uploadedAt ? (typeof doc.uploadedAt === 'string' ? doc.uploadedAt : new Date(doc.uploadedAt).toISOString()) : new Date().toISOString())})),
           } as Order);
         } else {
           notFound();
@@ -146,7 +146,8 @@ export default function ClientOrderDetailsPage() {
   const handleFileUpload = (file: File, serviceId: string, requirementLabel: string) => {
     if (!currentUser || !order) return;
     
-    const uniqueFileName = `${Date.now()}-${file.name}`;
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const uniqueFileName = `${Date.now()}-${sanitizedFileName}`;
     const storageRef = ref(storage, `orders/${order.id}/${uniqueFileName}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
     
@@ -160,7 +161,7 @@ export default function ClientOrderDetailsPage() {
         },
         (error) => {
             console.error("Upload failed:", error);
-            toast({ title: 'Upload Failed', description: 'Could not upload your file.', variant: 'destructive'});
+            toast({ title: 'Upload Failed', description: error.message || 'Could not upload your file.', variant: 'destructive'});
             setUploadingFiles(prev => {
                 const newUploading = { ...prev };
                 delete newUploading[uploadKey];

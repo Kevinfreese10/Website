@@ -41,7 +41,7 @@ import {
 import Image from 'next/image';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Order, Service, User, OrderNote, ImportedTransaction } from '@/lib/types';
-import { getFirestore, doc, getDoc, collection, getDocs, orderBy, query, where, updateDoc, setDoc, Timestamp, onSnapshot, arrayUnion, increment } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, getDocs, orderBy, query, where, updateDoc, setDoc, Timestamp, onSnapshot, arrayUnion, increment, or } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -265,7 +265,16 @@ export default function PartnerDashboardPage() {
 
       const ordersRef = collection(db, 'orders');
       
-      const clientOrdersQuery = query(ordersRef, where('resellerId', '==', partnerId));
+      const clientOrdersQuery = user?.email
+        ? query(
+            ordersRef,
+            or(
+              where('resellerId', '==', partnerId),
+              where('userId', '==', partnerId),
+              where('customerEmail', '==', user.email)
+            )
+          )
+        : query(ordersRef, where('resellerId', '==', partnerId));
       const unsubClientOrders = onSnapshot(clientOrdersQuery, (snapshot) => {
           let clientOrders = snapshot.docs.map(doc => {
             const data = doc.data();

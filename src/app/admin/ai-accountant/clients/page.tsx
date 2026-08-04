@@ -490,7 +490,6 @@ export default function AIAccountantClientsPage() {
                 <TableHeader className="bg-muted/10">
                     <TableRow>
                         <TableHead className="font-bold">Client / Company</TableHead>
-                        <TableHead className="font-bold">Last Bank Import</TableHead>
                         <TableHead className="text-right font-bold">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -504,9 +503,6 @@ export default function AIAccountantClientsPage() {
                                         <span className="text-[10px] text-muted-foreground font-medium">{client.name}</span>
                                     )}
                                 </div>
-                            </TableCell>
-                            <TableCell>
-                                <LastImportDate clientId={client.id} />
                             </TableCell>
                             <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-2">
