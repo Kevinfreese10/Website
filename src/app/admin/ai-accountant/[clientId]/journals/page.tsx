@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Plus, Trash2, Eye, Calculator, ArrowRightLeft, X, ListTree, History, CheckCircle2, FileUp, Download, AlertCircle, FileWarning, Edit, Save, Calendar as CalendarIcon, Search, ChevronsUpDown, Check } from 'lucide-react';
+import { Loader2, Plus, Trash2, Eye, Calculator, ArrowRightLeft, X, ListTree, History, CheckCircle2, FileUp, Download, AlertCircle, FileWarning, Edit, Save, Calendar as CalendarIcon, Search, ChevronsUpDown, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getFirestore, doc, collection, writeBatch, Timestamp, query, where, orderBy, getDocs, updateDoc, arrayUnion, serverTimestamp, getDoc, deleteField, onSnapshot } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -698,6 +698,20 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
         });
     }, [groupedJournals, searchTerm, actors, journalType]);
 
+    const PAGE_SIZE = 100;
+    const [currentPage, setCurrentPage] = useState(1);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, journalType]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredGroupedJournals.length / PAGE_SIZE));
+
+    const paginatedGroupedJournals = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return filteredGroupedJournals.slice(start, start + PAGE_SIZE);
+    }, [filteredGroupedJournals, currentPage]);
+
     const allGLAccounts = useMemo(() => client?.chartOfAccounts?.sort((a,b) => a.description.localeCompare(b.description)) || [], [client]);
 
     return (
@@ -775,15 +789,26 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
                         </div>
                     ) : (
                         <div className="p-0">
-                            <div className="p-4 border-b bg-muted/5">
-                                <div className="relative max-w-sm">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <div className="p-4 border-b bg-muted/5 flex items-center justify-between gap-4">
+                                <div className="relative w-full max-w-sm">
+                                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         placeholder="Search reference or description..."
-                                        className="pl-8"
+                                        className="pl-9 h-9 border-primary/10 text-xs"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
+                                    {searchTerm && (
+                                        <button 
+                                            onClick={() => setSearchTerm('')}
+                                            className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="text-xs text-muted-foreground font-medium shrink-0">
+                                    Showing {filteredGroupedJournals.length > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0} - {Math.min(currentPage * PAGE_SIZE, filteredGroupedJournals.length)} of {filteredGroupedJournals.length} journals
                                 </div>
                             </div>
                             <Table>
@@ -797,9 +822,9 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredGroupedJournals.length === 0 ? (
+                                    {paginatedGroupedJournals.length === 0 ? (
                                         <TableRow><TableCell colSpan={5} className="text-center py-20 text-muted-foreground italic">No journals found.</TableCell></TableRow>
-                                    ) : filteredGroupedJournals.map((entries, i) => {
+                                    ) : paginatedGroupedJournals.map((entries, i) => {
                                         const ref = entries[0].reference;
                                         const total = entries.reduce((s, e) => s + (e.amount > 0 ? e.amount : 0), 0);
                                         const date = entries[0].date?.toDate ? entries[0].date.toDate() : new Date(entries[0].date);
@@ -834,6 +859,34 @@ function JournalManager({ clientId, client, journalType, fetchAllData, allJourna
                                     })}
                                 </TableBody>
                             </Table>
+
+                            {totalPages > 1 && (
+                                <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/5">
+                                    <div className="text-xs text-muted-foreground">
+                                        Page <span className="font-bold text-foreground">{currentPage}</span> of <span className="font-bold text-foreground">{totalPages}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 text-xs font-semibold gap-1"
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                        >
+                                            <ChevronLeft className="h-4 w-4" /> Previous
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 text-xs font-semibold gap-1"
+                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                            disabled={currentPage === totalPages}
+                                        >
+                                            Next <ChevronRight className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardContent>

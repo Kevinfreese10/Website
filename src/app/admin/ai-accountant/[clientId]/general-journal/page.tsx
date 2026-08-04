@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Plus, Trash2, Eye, Calculator, ArrowRightLeft, X, ListTree, History, CheckCircle2, FileUp, Download, AlertCircle, FileWarning, Edit, Save, Calendar as CalendarIcon, Search } from 'lucide-react';
+import { Loader2, Plus, Trash2, Eye, Calculator, ArrowRightLeft, X, ListTree, History, CheckCircle2, FileUp, Download, AlertCircle, FileWarning, Edit, Save, Calendar as CalendarIcon, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getFirestore, doc, collection, writeBatch, Timestamp, query, where, orderBy, getDocs, updateDoc, arrayUnion, serverTimestamp, getDoc, deleteField } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useParams } from 'next/navigation';
@@ -943,6 +943,20 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
         );
     }, [flatJournals, searchQuery]);
 
+    const PAGE_SIZE = 100;
+    const [currentPage, setCurrentPage] = useState(1);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredFlatJournals.length / PAGE_SIZE));
+
+    const paginatedFlatJournals = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return filteredFlatJournals.slice(start, start + PAGE_SIZE);
+    }, [filteredFlatJournals, currentPage]);
+
 
     return (
         <div className="space-y-8">
@@ -1310,7 +1324,7 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                                         )}
                                     </div>
                                     <div className="text-xs text-muted-foreground font-medium shrink-0">
-                                        Showing {filteredFlatJournals.length} transaction lines
+                                        Showing {filteredFlatJournals.length > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0} - {Math.min(currentPage * PAGE_SIZE, filteredFlatJournals.length)} of {filteredFlatJournals.length} transaction lines
                                     </div>
                                 </div>
                                 <div className="overflow-x-auto">
@@ -1326,13 +1340,13 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {filteredFlatJournals.length === 0 ? (
+                                            {paginatedFlatJournals.length === 0 ? (
                                                 <TableRow>
                                                     <TableCell colSpan={6} className="text-center py-20 text-muted-foreground italic">
                                                         No journals found.
                                                     </TableCell>
                                                 </TableRow>
-                                            ) : filteredFlatJournals.map((tx, i) => {
+                                            ) : paginatedFlatJournals.map((tx, i) => {
                                                 const isDebit = tx.amount > 0;
                                                 const isCredit = tx.amount < 0;
                                                 const groupKey = getJournalGroupKey(tx);
@@ -1387,6 +1401,34 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                                         </TableBody>
                                     </Table>
                                 </div>
+
+                                {totalPages > 1 && (
+                                    <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/5">
+                                        <div className="text-xs text-muted-foreground">
+                                            Page <span className="font-bold text-foreground">{currentPage}</span> of <span className="font-bold text-foreground">{totalPages}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-xs font-semibold gap-1"
+                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                                disabled={currentPage === 1}
+                                            >
+                                                <ChevronLeft className="h-4 w-4" /> Previous
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-xs font-semibold gap-1"
+                                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                                disabled={currentPage === totalPages}
+                                            >
+                                                Next <ChevronRight className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
