@@ -26,6 +26,8 @@ import { checkIfEmailExists } from '@/app/actions';
 import { render } from '@react-email/components';
 import PartnerWelcomeEmail from '../emails/PartnerWelcomeEmail';
 import { getNextOrderId } from '@/lib/sequence';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 
 const auth = getAuth(firebaseApp);
@@ -42,6 +44,7 @@ const formSchema = z.object({
   slug: z.string().optional(),
   tier: z.literal('growth').default('growth'),
   wantsOutsourcedWork: z.boolean().default(false),
+  includeStore: z.boolean().default(false),
   cv: z.any().optional(),
   certificate: z.any().optional(),
   agreeTerms: z.boolean().refine(val => val === true, {
@@ -91,6 +94,7 @@ export default function PartnerSignupForm() {
       slug: '',
       tier: 'growth',
       wantsOutsourcedWork: false,
+      includeStore: false,
       agreeTerms: false,
       capableServices: [],
     },
@@ -171,6 +175,7 @@ export default function PartnerSignupForm() {
   }, [allCategories, allServices]);
 
   const wantsOutsourcedWork = form.watch('wantsOutsourcedWork');
+  const includeStore = form.watch('includeStore');
 
   const uploadFile = async (file: File, path: string): Promise<string> => {
     const fileRef = ref(storage, path);
@@ -274,6 +279,65 @@ export default function PartnerSignupForm() {
             title: 'Welcome to My Accountant!',
             description: `Your partner account has been created successfully.`,
         });
+
+        if (values.includeStore) {
+            toast({ title: 'Redirecting to PayFast...', description: 'Initiating your once-off platform fee payment.' });
+
+            const orderId = await getNextOrderId();
+            const platformOrder: Order = {
+                id: orderId,
+                userId: authUid,
+                customerName: values.companyName || contactPersonFullName,
+                customerEmail: values.email,
+                items: [{
+                    id: 'partner_platform_fee',
+                    title: 'Partner Platform Access Fee',
+                    price: 1950,
+                    quantity: 1,
+                }],
+                total: 1950,
+                discountCode: null,
+                discountAmount: null,
+                status: 'Pending Payment',
+                date: Timestamp.now(),
+                source: 'Partner',
+                resellerId: authUid,
+                originalOrderId: null,
+            };
+
+            await setDoc(doc(db, 'orders', orderId), platformOrder);
+
+            const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
+            const payfastForm = document.createElement('form');
+            payfastForm.method = 'POST';
+            payfastForm.action = payfastUrl;
+
+            const data = {
+                merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
+                merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
+                return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/partner/onboarding?platform_success=true`,
+                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/partner/onboarding`,
+                notify_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/api/payfast/notify`,
+                name_first: values.name,
+                name_last: values.surname,
+                email_address: values.email,
+                m_payment_id: orderId,
+                amount: '1950.00',
+                item_name: 'Partner Platform Access Fee',
+            };
+
+            for (const key in data) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = (data as any)[key];
+                payfastForm.appendChild(input);
+            }
+            document.body.appendChild(payfastForm);
+            payfastForm.submit();
+            return;
+        }
+
         router.push('/partner/dashboard');
 
     } catch (error: any) {
@@ -551,22 +615,65 @@ export default function PartnerSignupForm() {
                 <div className="space-y-4">
                     <h3 className="text-lg font-bold flex items-center gap-2 text-slate-900">
                         <CreditCard className="h-5 w-5 text-primary" />
-                        Plan Summary
+                        Plan Summary & Options
                     </h3>
-                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                                <span className="font-bold text-sm">Partner Program Base Access</span>
-                                <span className="font-black text-md text-primary">Free / R0</span>
-                            </div>
-                            <div className="text-xs text-muted-foreground mb-2">
-                                Includes partner community chat, 20% wholesale discount, and outsourcing backend access.
-                            </div>
-                            <div className="flex justify-between items-center border-t border-primary/20 pt-2 font-bold text-sm">
-                                <span>Total Due Today</span>
-                                <span>R0.00</span>
-                            </div>
+                    
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-sm text-slate-900">Partner Program Base Access</span>
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold">Free / R0</Badge>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                            Includes partner community chat, 20% wholesale discount, and outsourcing backend access.
+                        </p>
+                    </div>
+
+                    <FormField
+                        control={form.control}
+                        name="includeStore"
+                        render={({ field }) => (
+                            <FormItem className="space-y-0">
+                                <label 
+                                    htmlFor="includeStore"
+                                    className={cn(
+                                        "flex items-start gap-3.5 p-4 rounded-xl border-2 transition-all cursor-pointer select-none",
+                                        field.value 
+                                            ? "bg-primary/5 border-primary shadow-sm" 
+                                            : "bg-white border-slate-200 hover:border-slate-300"
+                                    )}
+                                >
+                                    <FormControl>
+                                        <Checkbox
+                                            id="includeStore"
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            className="mt-0.5"
+                                        />
+                                    </FormControl>
+                                    <div className="space-y-1 flex-1">
+                                        <div className="flex justify-between items-center gap-2">
+                                            <span className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                                                <Globe className="h-4 w-4 text-primary shrink-0" />
+                                                Client-Facing Online Storefront
+                                            </span>
+                                            <span className="font-black text-sm text-primary shrink-0">
+                                                R1,950 <span className="text-[10px] font-normal text-muted-foreground">once-off</span>
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                            Unlocks your branded online store (`/p/[slug]`), custom domain linking, service markup control, automated doc collection, setup assistance & 1-on-1 training.
+                                        </p>
+                                    </div>
+                                </label>
+                            </FormItem>
+                        )}
+                    />
+
+                    <div className="p-4 rounded-xl bg-slate-900 text-white flex justify-between items-center font-bold text-base shadow-inner">
+                        <span>Total Due Today</span>
+                        <span className="text-xl text-emerald-400 font-black">
+                            {includeStore ? 'R1,950.00' : 'R0.00'}
+                        </span>
                     </div>
                 </div>
 
