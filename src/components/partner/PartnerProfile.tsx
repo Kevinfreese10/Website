@@ -1051,7 +1051,16 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                 <FormField control={form.control} name="landingPage.slug" render={({ field }) => ( 
                                     <FormItem className="mt-4">
                                         <FormLabel className="text-xs">Custom Slug</FormLabel>
-                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormControl>
+                                            <Input 
+                                                {...field} 
+                                                onChange={(e) => {
+                                                    const sanitized = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+                                                    field.onChange(sanitized);
+                                                }}
+                                                placeholder="my-practice"
+                                            />
+                                        </FormControl>
                                         <FormDescription className="text-[10px]">
                                             Must be unique, lowercase, no spaces. Avoid reserved keywords like 'admin', 'api', or 'login'.
                                             <span className="block mt-1 text-amber-600 font-bold text-[11px]">Warning: This URL cannot be changed later. Choose carefully!</span>

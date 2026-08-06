@@ -20,7 +20,7 @@ import { CheckCircle2, Sparkles, Banknote, Building, Briefcase, Loader2, ArrowRi
 import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { getNextOrderId } from '@/lib/sequence';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Order } from '@/lib/types';
 
 const db = getFirestore(firebaseApp);
@@ -47,6 +47,8 @@ export default function PartnerOnboardingPage() {
   const { isGrowthActive, hasPlatformFee } = usePartner();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPlatformSuccess = searchParams.get('platform_success') === 'true';
 
   const [activeStep, setActiveStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -429,6 +431,29 @@ export default function PartnerOnboardingPage() {
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto py-6">
+      {isPlatformSuccess && (
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 p-6 rounded-2xl shadow-lg animate-in fade-in zoom-in-95">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-emerald-600 text-white rounded-xl shadow-md shrink-0">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                  🎉 Storefront Access Unlocked!
+                </h3>
+                <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                  Your once-off R1,950 platform access fee has been received. Your client-facing storefront (`/p/[slug]`), service markup controls, custom domain settings, and automated document collection are now fully active.
+                </p>
+              </div>
+            </div>
+            <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shrink-0 shadow-md">
+              <Link href="/partner/profile">Configure Storefront Profile <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Practice Setup Wizard</h1>
         <p className="text-muted-foreground">Follow these simple steps to customize and launch your accounting practice.</p>

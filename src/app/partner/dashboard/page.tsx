@@ -196,7 +196,7 @@ function TopUpDialog({ partner }: { partner: User }) {
 
 export default function PartnerDashboardPage() {
   const { user, updateUser } = useAuth();
-  const { isGrowthActive } = usePartner();
+  const { isGrowthActive, hasPlatformFee } = usePartner();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [outsourcedOrders, setOutsourcedOrders] = useState<Order[]>([]);
@@ -602,20 +602,20 @@ export default function PartnerDashboardPage() {
                 </div>
 
                 <div className="lg:col-span-4 space-y-8">
-                    {!isGrowthActive && (
+                    {!hasPlatformFee && (
                       <Card className="border-2 border-dashed border-primary/45 bg-primary/5 shadow-md animate-in fade-in">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-900">
                                 <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                                Upgrade to Growth Plan
+                                Unlock Client-Facing Storefront
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 pb-4">
                             <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-                                Get your custom practice landing page, 5 AI accountant companies, tasks, and 3 staff seats.
+                                Get your branded online practice store (`/p/[slug]`), set custom service markups, link custom domains, and automate client document collection.
                             </p>
                             <Button asChild size="sm" className="w-full font-bold shadow-sm">
-                                <Link href="/become-a-partner">Upgrade Plan for R950/mo</Link>
+                                <Link href="/partner/onboarding">Unlock Storefront — R1,950</Link>
                             </Button>
                         </CardContent>
                       </Card>
