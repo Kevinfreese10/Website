@@ -190,7 +190,7 @@ export default function PartnerOrderDetailsPage() {
       try {
         const uploadPromises = Array.from(files).map(async (file: any) => {
             const uniqueFileName = `${Date.now()}-${file.name}`;
-            const storageRef = ref(storage, `orders/${order.id}/notes/${uniqueFileName}`);
+            const storageRef = ref(storage, `uploads/${currentUser.uid}/orders/${order.id}/notes/${uniqueFileName}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
             const snapshot = await uploadTask;
             const downloadURL = await getDownloadURL(snapshot.ref);
@@ -423,7 +423,7 @@ export default function PartnerOrderDetailsPage() {
 
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const uniqueFileName = `${Date.now()}-${sanitizedFileName}`;
-    const storageRef = ref(storage, `orders/${order.id}/${uniqueFileName}`);
+    const storageRef = ref(storage, `uploads/${currentUser.uid}/orders/${order.id}/${uniqueFileName}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     const uploadKey = `${serviceId}-${requirementLabel}`;

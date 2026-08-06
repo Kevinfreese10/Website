@@ -41,7 +41,9 @@ import {
   Redo2,
   BarChart3,
   Calculator,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  ArrowRight
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { getFirestore, doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
@@ -312,6 +314,7 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
   
   // Use the provided partner prop if available, otherwise fallback to the logged-in user
   const targetUser = propPartner || authUser;
+  const hasPlatformFee = !!(targetUser?.platformFeePaid);
   const isTargetGrowth = !targetUser?.partnerTier || targetUser?.partnerTier === 'growth';
   
   const { toast } = useToast();
@@ -799,7 +802,10 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
             address: values.address,
             bankingDetails: values.bankingDetails,
             name: `${values.name} ${values.surname}`,
-            landingPage: values.landingPage,
+            landingPage: {
+                ...values.landingPage,
+                enabled: hasPlatformFee ? values.landingPage.enabled : false,
+            },
         };
         await updateDoc(userRef, updateData);
         
@@ -829,7 +835,7 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
     }
   }
 
-  const landingPageEnabled = watch('landingPage.enabled');
+  const landingPageEnabled = hasPlatformFee && watch('landingPage.enabled');
   const landingPageSlug = watch('landingPage.slug');
 
   const handleCopyLandingLink = () => {
@@ -972,7 +978,23 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                 <div className="flex items-center justify-between">
                     <h3 className="text-xl font-bold flex items-center gap-2"><Globe className="h-5 w-5 text-primary" /> White-Label Landing Page</h3>
                     <div className="flex items-center gap-2">
-                        <FormField control={form.control} name="landingPage.enabled" render={({ field }) => ( <FormItem className="flex items-center space-x-2 space-y-0"><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="text-xs uppercase font-bold text-muted-foreground">Enabled</FormLabel></FormItem> )} />
+                        <FormField control={form.control} name="landingPage.enabled" render={({ field }) => ( 
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <Switch 
+                                checked={hasPlatformFee && field.value} 
+                                disabled={!hasPlatformFee} 
+                                onCheckedChange={(val) => {
+                                  if (!hasPlatformFee) return;
+                                  field.onChange(val);
+                                }} 
+                              />
+                            </FormControl>
+                            <FormLabel className="text-xs uppercase font-bold text-muted-foreground">
+                              {hasPlatformFee ? "Enabled" : "Locked"}
+                            </FormLabel>
+                          </FormItem> 
+                        )} />
                         {landingPageEnabled && (
                           <div className="ml-4 flex border rounded-md overflow-hidden shrink-0">
                             <Button type="button" variant={previewMode === 'edit' ? 'default' : 'ghost'} size="xs" className="rounded-none h-7 px-2.5 font-bold" onClick={() => setPreviewMode('edit')}>
@@ -985,6 +1007,31 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                         )}
                     </div>
                 </div>
+
+                {!hasPlatformFee && (
+                    <Card className="border-amber-200 bg-amber-50/50 p-6 rounded-xl space-y-4">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-amber-100 rounded-lg text-amber-700 shrink-0">
+                                <Lock className="h-6 w-6" />
+                            </div>
+                            <div className="space-y-1 flex-1">
+                                <h4 className="font-bold text-slate-900 text-base">
+                                    Storefront Access Locked (R1,950 Platform Access Fee Required)
+                                </h4>
+                                <p className="text-xs text-slate-600 leading-relaxed">
+                                    Your client-facing online storefront (`/p/[slug]`), custom domain linking, service markups, and automated document collection are available exclusively to partners who have paid the once-off R1,950 platform access fee.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="pt-2 flex justify-end">
+                            <Button asChild className="font-bold gap-2">
+                                <Link href="/partner/onboarding">
+                                    Unlock Storefront — R1,950 <ArrowRight className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </div>
+                    </Card>
+                )}
 
                 {landingPageEnabled && (
                     <div className={cn("grid grid-cols-1 gap-6 animate-in fade-in zoom-in-95 duration-300", previewMode === 'split' && "lg:grid-cols-12 max-w-[1450px] mx-auto")}>

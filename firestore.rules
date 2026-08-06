@@ -154,8 +154,10 @@ service cloud.firestore {
         hasModule('Manage Orders') ||
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
+        (resource != null && 'partnerId' in resource.data && request.auth.uid == resource.data.partnerId) ||
         request.auth.uid == resource.data.clientId ||
         (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
+        (resource != null && 'partnerId' in resource.data && isPartnerStaffOf(resource.data.partnerId)) ||
         (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
         (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
       );
@@ -167,8 +169,10 @@ service cloud.firestore {
         hasModule('Manage Orders') ||
         request.auth.uid == resource.data.userId ||
         request.auth.uid == resource.data.resellerId ||
+        (resource != null && 'partnerId' in resource.data && request.auth.uid == resource.data.partnerId) ||
         request.auth.uid == resource.data.clientId ||
         (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
+        (resource != null && 'partnerId' in resource.data && isPartnerStaffOf(resource.data.partnerId)) ||
         (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
         (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
       );
