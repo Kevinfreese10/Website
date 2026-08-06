@@ -61,10 +61,16 @@ const lineItemSchema = z.object({
 });
 
 const formSchema = z.object({
-  customerFirstName: z.string().min(2, "Client's first name is required."),
-  customerLastName: z.string().min(2, "Client's last name is required."),
-  customerEmail: z.string().email('A valid client email is required.'),
-  customerPhone: z.string().min(10, 'A valid client phone number is required.'),
+  customerFirstName: z.string().optional(),
+  customerLastName: z.string().optional(),
+  customerEmail: z.string().optional(),
+  customerPhone: z.string().optional(),
+  agreeRefundPolicy: z.boolean().refine(val => val === true, {
+    message: 'You must accept the refund policy.',
+  }),
+  confirmRequirements: z.boolean().refine(val => val === true, {
+    message: 'You must confirm that you have gathered all necessary document requirements.',
+  }),
   items: z.array(lineItemSchema).min(1, 'At least one line item is required.'),
 });
 
@@ -131,6 +137,8 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
       customerLastName: '',
       customerEmail: '',
       customerPhone: '',
+      agreeRefundPolicy: false,
+      confirmRequirements: false,
       items: [{ serviceId: '', description: '', quantity: 1, price: 0, discountType: 'fixed', discountValue: 0, resellerPrice: 0, retailFloorPrice: 0 }],
     },
     mode: 'onChange',
@@ -281,18 +289,25 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
     toast({ title: 'Processing Order...', description: 'Creating order.' });
 
     try {
-        const email = values.customerEmail.toLowerCase().trim();
+        const rawEmail = values.customerEmail?.trim();
+        const email = rawEmail ? rawEmail.toLowerCase() : partner.email;
         let finalUserId: string | null = partnerId;
         let isNewUser = false;
         let generatedPassword = null;
 
         if (hasPlatformFee) {
+            if (!values.customerEmail || !values.customerFirstName || !values.customerLastName) {
+                toast({ title: 'Missing Details', description: 'Please complete all client information fields.', variant: 'destructive' });
+                setIsLoading(false);
+                return;
+            }
+
             finalUserId = linkedUser?.id || null;
 
             if (!finalUserId) {
                 const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
                 for (const colName of collectionsToTry) {
-                    const q = query(collection(db, colName), or(where("email", "==", email), where("email", "==", values.customerEmail.trim())));
+                    const q = query(collection(db, colName), or(where("email", "==", email), where("email", "==", values.customerEmail?.trim() || '')));
                     const snap = await getDocs(q);
                     if (!snap.empty) {
                         finalUserId = snap.docs[0].id;
@@ -310,7 +325,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                     name: `${values.customerFirstName} ${values.customerLastName}`,
                     role: 'client',
                     source: `Partner Order (${partner.companyName || partner.name})`,
-                    contactNumber: values.customerPhone,
+                    contactNumber: values.customerPhone || partner.contactNumber || '0820000000',
                 });
 
                 if (!createRes.success) {
@@ -332,7 +347,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
         }
 
         const orderId = await getNextOrderId();
-        const customerFullName = `${values.customerFirstName} ${values.customerLastName}`;
+        const customerFullName = hasPlatformFee ? `${values.customerFirstName} ${values.customerLastName}` : (partner.companyName || partner.name);
         
         const resellerTotal = values.items.reduce((acc, item) => {
             const resellerBase = item.resellerPrice || item.price;
@@ -390,6 +405,8 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
             }
             onOrderCreated();
         } else {
+            toast({ title: 'Redirecting to PayFast...', description: 'Initiating wholesale payment.' });
+
             const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
             const payfastForm = document.createElement('form');
             payfastForm.method = 'POST';
@@ -399,11 +416,11 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
             const payfastData: { [key: string]: string } = {
                 merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
                 merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-                return_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success/${orderId}`,
-                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/orders`,
-                notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
-                name_first: nameParts[0],
-                name_last: nameParts.slice(1).join(' ') || 'Partner',
+                return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/payment-success/${orderId}`,
+                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/partner/orders`,
+                notify_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/api/payfast/notify`,
+                name_first: nameParts[0] || 'Partner',
+                name_last: nameParts.slice(1).join(' ') || 'User',
                 email_address: partner.email,
                 m_payment_id: orderId,
                 amount: resellerTotal.toFixed(2),
@@ -587,6 +604,47 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                 <p className="text-sm text-muted-foreground">{hasPlatformFee ? "Practice Total (Client Facing)" : "Wholesale Total (20% Off)"}</p>
                 <p className="text-2xl font-bold text-primary">{formatPrice(total)}</p>
             </div>
+        </div>
+
+        <div className="space-y-3 pt-2">
+            <FormField
+                control={form.control}
+                name="agreeRefundPolicy"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                            <FormLabel className="cursor-pointer text-xs font-medium text-slate-700">
+                                I understand and agree to the{' '}
+                                <Link href="/refund-policy" target="_blank" className="underline font-bold text-primary">
+                                    Refund Policy
+                                </Link>.
+                            </FormLabel>
+                            <FormMessage />
+                        </div>
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={form.control}
+                name="confirmRequirements"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                            <FormLabel className="cursor-pointer text-xs font-medium text-slate-700">
+                                I confirm that I have gathered all necessary document requirements for the selected service(s).
+                            </FormLabel>
+                            <FormMessage />
+                        </div>
+                    </FormItem>
+                )}
+            />
         </div>
 
         <Button type="submit" className="w-full" size="lg" disabled={isLoading || !form.formState.isValid || total === 0}>
