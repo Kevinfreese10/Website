@@ -119,7 +119,6 @@ export default function DashboardNav({ user }: { user: UserType }) {
   const partnerNavItems = [
     { href: '/partner/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['partner', 'partner_staff'] },
     ...(!isFreePartner ? [
-      { href: '/partner/clients', label: 'Manage Clients', icon: Briefcase, roles: ['partner', 'partner_staff'] },
       ...(limits.aiCompanies > 0 ? [{ 
         href: '/partner/ai-accountant', 
         label: 'AI Accountant', 
@@ -140,7 +139,6 @@ export default function DashboardNav({ user }: { user: UserType }) {
           { href: '/partner/ai-payroll/clients', label: 'Manage Clients' }
         ]
       }] : []),
-      { href: '/partner/staff', label: 'Staff Management', icon: UserPlus, roles: ['partner', 'partner_staff'] },
       ...(user?.partnerSubscription?.hasTaskManager ? [{ href: '/partner/tasks', label: 'Task Manager', icon: ClipboardCheck, roles: ['partner', 'partner_staff'] }] : []),
       { href: '/partner/leads', label: 'Practice Leads', icon: MessageSquare, roles: ['partner', 'partner_staff'] },
     ] : []),

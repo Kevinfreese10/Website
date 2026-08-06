@@ -35,25 +35,47 @@ const lineItemSchema = z.object({
   quantity: z.preprocess(val => Number(val), z.number().min(1, 'Quantity must be at least 1.')),
   price: z.preprocess(val => Number(val), z.number().min(0, 'Price cannot be negative.')),
   discountType: z.enum(['fixed', 'percentage']).default('fixed'),
-  discountValue: z.preprocess(val => Number(val) || 0, z.number().min(0, 'Discount cannot be negative.').max(100, 'Discount percentage cannot exceed 100%.').optional()),
+  discountValue: z.preprocess(val => (val === '' || val === undefined || val === null ? 0 : Number(val)), z.number().min(0, 'Discount cannot be negative.').optional()),
   resellerPrice: z.preprocess(val => Number(val), z.number().min(0).optional()),
   retailFloorPrice: z.preprocess(val => Number(val), z.number().min(0).optional()),
-}).refine((data) => {
+}).superRefine((data, ctx) => {
     const quantity = data.quantity || 1;
     const lineItemTotal = data.price * quantity;
+    const discountVal = data.discountValue || 0;
+
+    if (data.discountType === 'percentage' && discountVal > 100) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Percentage cannot exceed 100%.',
+            path: ['discountValue'],
+        });
+    }
+
+    if (data.discountType === 'fixed' && discountVal > lineItemTotal) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Discount exceeds item total.',
+            path: ['discountValue'],
+        });
+    }
+
     let discountAmount = 0;
     if (data.discountType === 'percentage') {
-        discountAmount = lineItemTotal * (Math.min(data.discountValue || 0, 100) / 100);
+        discountAmount = lineItemTotal * (Math.min(discountVal, 100) / 100);
     } else {
-        discountAmount = (data.discountValue || 0) * quantity;
+        discountAmount = discountVal * quantity;
     }
+
     const netTotal = lineItemTotal - discountAmount;
     const minCostTotal = (data.resellerPrice || 0) * quantity;
 
-    return netTotal >= minCostTotal;
-}, {
-    message: "Selling price cannot be lower than wholesale cost.",
-    path: ["price"]
+    if (netTotal < minCostTotal) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Selling price cannot be lower than wholesale cost.',
+            path: ['price'],
+        });
+    }
 });
 
 const formSchema = z.object({
@@ -520,7 +542,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                     
                     return (
                     <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-x-3 gap-y-2 p-3 border rounded-md relative items-start">
-                         <div className={hasPlatformFee ? "md:col-span-4 space-y-2" : "md:col-span-8 space-y-2"}>
+                         <div className={hasPlatformFee ? "md:col-span-3 space-y-2" : "md:col-span-8 space-y-2"}>
                             <FormField
                                 control={form.control}
                                 name={`items.${index}.serviceId`}
@@ -562,7 +584,13 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Discount</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <Select 
+                                                    onValueChange={(val) => {
+                                                        field.onChange(val);
+                                                        form.trigger(`items.${index}`);
+                                                    }} 
+                                                    value={field.value}
+                                                >
                                                     <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         <SelectItem value="fixed">Fixed (R)</SelectItem>
@@ -573,14 +601,14 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                                         )}
                                         />
                                  </div>
-                                 <div className="md:col-span-1">
-                                     <FormField control={form.control} name={`items.${index}.discountValue`} render={({ field }) => ( <FormItem><FormLabel>Value</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                 <div className="md:col-span-2">
+                                     <FormField control={form.control} name={`items.${index}.discountValue`} render={({ field }) => ( <FormItem><FormLabel>Value</FormLabel><FormControl><Input type="number" step="0.01" className="px-3" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                  </div>
                             </>
                         )}
-                         <div className={hasPlatformFee ? "md:col-span-1 flex flex-col items-end justify-center h-full pt-8" : "md:col-span-2 flex flex-col items-end justify-center h-full pt-8"}>
-                            <p className="text-right w-full font-semibold text-sm">{formatPrice(getLineItemTotal(lineItem))}</p>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive" disabled={fields.length === 1}><Trash className="h-4 w-4" /></Button>
+                         <div className={hasPlatformFee ? "md:col-span-2 flex items-center justify-end gap-3 pt-7" : "md:col-span-2 flex items-center justify-end gap-3 pt-7"}>
+                            <p className="text-right font-bold text-sm text-slate-900 shrink-0">{formatPrice(getLineItemTotal(lineItem))}</p>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive shrink-0" disabled={fields.length === 1}><Trash className="h-4 w-4" /></Button>
                          </div>
                     </div>
                 )})}
