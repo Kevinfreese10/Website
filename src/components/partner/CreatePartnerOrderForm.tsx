@@ -48,15 +48,11 @@ const lineItemSchema = z.object({
         discountAmount = (data.discountValue || 0) * quantity;
     }
     const netTotal = lineItemTotal - discountAmount;
-    
-    // Selling price after discount cannot be less than My Accountant's retail price
-    const minRetailTotal = (data.retailFloorPrice || 0) * quantity;
-    const costTotal = (data.resellerPrice || 0) * quantity;
-    const floor = minRetailTotal > 0 ? minRetailTotal : costTotal;
+    const minCostTotal = (data.resellerPrice || 0) * quantity;
 
-    return netTotal >= floor;
+    return netTotal >= minCostTotal;
 }, {
-    message: "Selling price after discount cannot be lower than My Accountant's standard retail price.",
+    message: "Selling price cannot be lower than wholesale cost.",
     path: ["price"]
 });
 
