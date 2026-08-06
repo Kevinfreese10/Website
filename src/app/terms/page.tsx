@@ -58,7 +58,29 @@ export default function TermsAndConditionsPage() {
                     <p>All service fees are payable in full before work commences. We use secure third-party payment gateways for all online transactions.</p>
                 </section>
                 <section>
-                    <h2 className="text-xl font-semibold text-foreground mb-2">5. Governing Law</h2>
+                    <h2 className="text-xl font-semibold text-foreground mb-2">5. Partner Program (Bookkeeper Empowerment Initiative)</h2>
+                    <p>Partners participating in the Bookkeeper Empowerment Initiative (BEI) agree to the following additional terms:</p>
+                    <div className="space-y-3 mt-3 text-sm">
+                        <div>
+                            <strong className="text-foreground">5.1 Partner Tiers & Storefront Access:</strong>
+                            <ul className="list-disc pl-5 mt-1 space-y-1">
+                                <li><strong>Free Partner Tier:</strong> Grants free access to the Partner Portal, internal client order management, and wholesale outsourcing at a 20% discount off retail rates. Free partners do not receive a client-facing storefront.</li>
+                                <li><strong>Client-Facing Storefront:</strong> Partners may activate a branded client-facing online storefront (`/p/[slug]`) with custom domain linking, custom pricing markups, and automated client document collection by paying a once-off, non-refundable platform access fee of <strong>R1,950</strong>.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong className="text-foreground">5.2 Wallet Payment System & Order Fulfillment:</strong>
+                            <ul className="list-disc pl-5 mt-1 space-y-1">
+                                <li>Order processing fees (royalty or outsourcing wholesale costs) are debited from the partner’s prepaid wallet credit balance.</li>
+                                <li><strong>Platform Royalty Fee:</strong> When a partner with a paid storefront chooses to fulfill a client order internally, a 10% platform royalty fee based on order total (subject to a minimum of R100 and maximum of R500 per order) is debited from their wallet upon changing the order status to Processing.</li>
+                                <li><strong>Outsourcing to My Accountant:</strong> When outsourcing an order to My Accountant, the published wholesale cost (20% discount off retail) is debited from the partner's wallet, and My Accountant fulfills the work as a white-label back-office team.</li>
+                                <li>Partners may view and receive incoming client orders with a R0 balance, but confirming order processing requires sufficient wallet funds.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+                <section>
+                    <h2 className="text-xl font-semibold text-foreground mb-2">6. Governing Law</h2>
                     <p>These Terms are governed by the laws of the <strong>Republic of South Africa</strong>.</p>
                 </section>
             </CardContent>

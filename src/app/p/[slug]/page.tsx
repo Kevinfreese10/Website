@@ -52,7 +52,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
       return {
           ...s,
           title: override.title || s.title,
-          price: override.price ?? s.price,
+          price: override.price != null ? Math.max(override.price, s.price) : s.price,
           description: override.description || s.description,
           longDescription: override.longDescription || s.longDescription,
           turnaroundTime: override.turnaroundTime || s.turnaroundTime,

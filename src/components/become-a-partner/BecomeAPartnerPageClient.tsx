@@ -75,7 +75,7 @@ function PartnerPricingDialog() {
                         Wholesale Partner Pricing
                     </DialogTitle>
                     <DialogDescription>
-                        Practice members receive a 10% wholesale discount on all services.
+                        Practice members receive a 20% wholesale discount on all services.
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -93,7 +93,7 @@ function PartnerPricingDialog() {
                                         <TableRow>
                                             <TableHead className="w-[40%]">Service Description</TableHead>
                                             <TableHead className="text-right">Retail Price</TableHead>
-                                            <TableHead className="text-right text-primary">Partner Price (10% Off)</TableHead>
+                                            <TableHead className="text-right text-primary">Partner Price (20% Off)</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -127,7 +127,7 @@ const featureBenefits = [
     {
         icon: Percent,
         feature: 'Wholesale Partner Discount',
-        benefit: 'Increase your profit margins instantly. Buy services at wholesale rates (10% discount) and sell at retail prices.',
+        benefit: 'Increase your profit margins instantly. Buy services at wholesale rates (20% discount) and sell at retail prices.',
         showPricing: true,
         bgClass: 'bg-emerald-500/10',
         borderClass: 'border-emerald-500/20',
@@ -246,20 +246,24 @@ const challenges = [
 
 const faqs = [
     {
-        question: "How does the outsourcing work?",
-        answer: "You can decide to complete the order yourself or outsource to us directly through your Partner Portal. The process is completely white-labeled, and all communication is done strictly through your company — we never contact your clients directly. We act as your back-office team behind the scenes while you maintain 100% control of the client relationship. We charge you a fixed wholesale price (10% discount), and you keep the markup."
+        question: "How does outsourcing work?",
+        answer: "You can complete client orders yourself or outsource them to My Accountant directly through your Partner Portal. When outsourcing, our team acts as your white-label back office — we work in the background while you retain 100% control of the client relationship. You pay the wholesale price (20% discount off retail) from your partner wallet and keep your full markup."
     },
     {
-        question: "Is there a setup fee?",
-        answer: "No, there are no upfront setup fees — joining the Partner Program is completely free."
+        question: "Is there a cost to join the Partner Program?",
+        answer: "Joining the Partner Program as a Referral / Outsource Partner is completely free. You get access to the partner dashboard, wholesale pricing (20% discount), and internal order management at no cost."
     },
     {
-        question: "How much does the partner program cost?",
-        answer: "Joining the Partner Program is free! You get a 10% wholesale discount on all services. You can activate premium add-ons directly from your dashboard as you need them: Custom Practice Landing Page (R2450 once-off), AI Accountant (R950/mo), AI Payroll (R950/mo), Task & Workflow Manager (R200/mo), and additional staff seats (R50/seat/mo)."
+        question: "How much is the Client-Facing Storefront?",
+        answer: "To unlock your own white-label client-facing online store (where your clients can browse services, place orders, and upload documents under your branding on your custom domain), there is a once-off platform access fee of R1,950."
+    },
+    {
+        question: "How do platform royalty fees work?",
+        answer: "When you have a paid storefront and choose to complete a client order yourself rather than outsourcing it, a 10% platform royalty fee is debited from your partner wallet when you mark the order as Processing (min R100, max R500 per order). If you outsource the order to us instead, you only pay the wholesale outsourcing price from your wallet (no royalty fee)."
     },
     {
         question: "Do I need to be a registered accountant?",
-        answer: "Anyone can join the Bookkeeper Empowerment Initiative to use the software and manage their own clients. While being registered with a professional body is beneficial, it is not a strict requirement to use our backend and outsource work to us."
+        answer: "No. Anyone can join the Bookkeeper Empowerment Initiative to scale their practice and manage clients. While professional body registration is beneficial, it is not a strict requirement to use our platform and outsource work to our team."
     }
 ];
 
@@ -296,97 +300,99 @@ export default function BecomeAPartnerPageClient() {
       <section className="py-24">
         <div className="container mx-auto px-4">
             <div className="text-center mb-16 space-y-4">
-                <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Pricing</Badge>
-                <h2 className="text-4xl md:text-5xl font-black leading-tight text-foreground">Free to Join Partner Program</h2>
+                <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-none px-4 py-1 text-xs font-bold uppercase tracking-widest">Partner Plans</Badge>
+                <h2 className="text-4xl md:text-5xl font-black leading-tight text-foreground">Flexible Partner Plans</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-                    Get started today at no cost. Activate add-ons directly from your dashboard as your practice grows.
+                    Start free as an outsource partner, or upgrade to a full white-label client storefront.
                 </p>
             </div>
             
-            <div className="max-w-md mx-auto">
-                <div className="relative p-[2px] rounded-2xl bg-gradient-to-r from-primary via-blue-500 to-violet-600 shadow-2xl hover:shadow-primary/20 transition-all duration-300 group md:scale-105">
-                    {/* Glowing background blob */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                {/* Plan 1: Free Partner */}
+                <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 shadow-xl overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <CardHeader className="bg-slate-50 border-b border-slate-100 p-8 text-center">
+                            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Free Partner Tier</CardTitle>
+                            <div className="mt-4 flex flex-col items-center justify-center gap-1">
+                                <span className="text-5xl font-black text-slate-900">Free</span>
+                                <span className="text-xs text-muted-foreground font-semibold">No credit card required</span>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-8">
+                            <ul className="space-y-4">
+                                <li className="flex items-start gap-3 text-sm font-semibold text-foreground/80">
+                                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0 mt-0.5"><Percent className="h-4 w-4" /></div>
+                                    <span className="leading-tight pt-1"><strong>20% Wholesale Discount</strong> on all outsourced services</span>
+                                </li>
+                                <li className="flex items-start gap-3 text-sm font-semibold text-foreground/80">
+                                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-amber-500/10 text-amber-600 shrink-0 mt-0.5"><Briefcase className="h-4 w-4" /></div>
+                                    <span className="leading-tight pt-1"><strong>Elastic Backend Outsourcing</strong> to My Accountant team</span>
+                                </li>
+                                <li className="flex items-start gap-3 text-sm font-semibold text-foreground/80">
+                                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-violet-500/10 text-violet-600 shrink-0 mt-0.5"><LayoutDashboard className="h-4 w-4" /></div>
+                                    <span className="leading-tight pt-1"><strong>Partner Dashboard</strong> for order & client tracking</span>
+                                </li>
+                                <li className="flex items-start gap-3 text-sm font-semibold text-foreground/80">
+                                    <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-rose-500/10 text-rose-600 shrink-0 mt-0.5"><MessageSquare className="h-4 w-4" /></div>
+                                    <span className="leading-tight pt-1"><strong>Partner Community Access</strong></span>
+                                </li>
+                            </ul>
+                        </CardContent>
+                    </div>
+                    <CardFooter className="p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col gap-3">
+                        <Button asChild size="lg" variant="outline" className="w-full h-14 text-base font-bold shadow-sm">
+                            <Link href="/partner-signup">Join Free Partner Program</Link>
+                        </Button>
+                    </CardFooter>
+                </div>
+
+                {/* Plan 2: White-Label Practice Storefront */}
+                <div className="relative p-[2px] rounded-2xl bg-gradient-to-r from-primary via-blue-500 to-violet-600 shadow-2xl hover:shadow-primary/20 transition-all duration-300 group">
                     <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary to-violet-600 opacity-25 blur transition duration-1000 group-hover:opacity-40 group-hover:duration-200" />
                     
                     <div className="relative bg-white dark:bg-slate-900 rounded-[14px] overflow-hidden flex flex-col justify-between h-full">
                         <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-lg z-20">
-                            Partner Plan
+                            Recommended
                         </div>
                         <div>
                             <CardHeader className="bg-gradient-to-b from-primary/5 via-blue-50/10 to-transparent border-b border-slate-100 p-8 text-center">
-                                <CardTitle className="text-xs font-black uppercase tracking-widest text-primary/80">Standard Practice Access</CardTitle>
+                                <CardTitle className="text-xs font-black uppercase tracking-widest text-primary">Full White-Label Storefront</CardTitle>
                                 <div className="mt-4 flex flex-col items-center justify-center gap-1">
-                                    <span className="text-xl text-muted-foreground line-through font-bold decoration-red-500/80 decoration-2">R950/mo</span>
-                                    <span className="text-6xl font-black bg-gradient-to-r from-primary via-indigo-600 to-rose-600 bg-clip-text text-transparent pb-1">Free</span>
+                                    <span className="text-5xl font-black bg-gradient-to-r from-primary via-indigo-600 to-rose-600 bg-clip-text text-transparent pb-1">R1,950</span>
+                                    <span className="text-xs text-muted-foreground font-semibold">Once-Off Platform Access Fee</span>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-8">
                                 <ul className="space-y-4">
-                                    {[
-                                        {
-                                            id: 'landing',
-                                            text: 'Custom Practice Landing Page (Domain linked) - Optional R2450 Add-on',
-                                            icon: Globe,
-                                            isDemo: true,
-                                            bgClass: 'bg-cyan-500/10',
-                                            textClass: 'text-cyan-600 dark:text-cyan-400',
-                                        },
-                                        {
-                                            id: 'collab',
-                                            text: 'Access outsourcing and collaboration opportunities',
-                                            icon: Users,
-                                            bgClass: 'bg-amber-500/10',
-                                            textClass: 'text-amber-600 dark:text-amber-400',
-                                        },
-                                        {
-                                            id: 'overflow',
-                                            text: 'Outsource overflow work securely',
-                                            icon: Briefcase,
-                                            bgClass: 'bg-indigo-500/10',
-                                            textClass: 'text-indigo-600 dark:text-indigo-400',
-                                        },
-                                        {
-                                            id: 'discount',
-                                            text: '10% Wholesale outsourcing discount',
-                                            icon: Percent,
-                                            bgClass: 'bg-emerald-500/10',
-                                            textClass: 'text-emerald-600 dark:text-emerald-400',
-                                        },
-                                        {
-                                            id: 'chat',
-                                            text: 'Partner Community Chat',
-                                            icon: MessageSquare,
-                                            bgClass: 'bg-rose-500/10',
-                                            textClass: 'text-rose-600 dark:text-rose-400',
-                                        }
-                                    ].map((item) => {
-                                        const Icon = item.icon;
-                                        return (
-                                            <li key={item.id} className="flex items-start gap-3 text-sm font-semibold text-foreground/80 hover:translate-x-1 transition-transform duration-200">
-                                                <div className={`flex items-center justify-center h-8 w-8 rounded-lg ${item.bgClass} ${item.textClass} shrink-0 mt-0.5`}>
-                                                    <Icon className="h-4 w-4" />
-                                                </div>
-                                                {item.isDemo ? (
-                                                    <span className="leading-tight pt-1">
-                                                        Custom Practice Landing Page (Domain linked) - <span className="font-bold text-amber-600">Optional R2450 Add-on</span> <br/>
-                                                        <a href="https://www.myacc.co.za/p/interscope" target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold text-xs">
-                                                            Click here to view a demo page
-                                                        </a>
-                                                    </span>
-                                                ) : (
-                                                    <span className="leading-tight pt-1">{item.text}</span>
-                                                )}
-                                            </li>
-                                        );
-                                    })}
+                                    <li className="flex items-start gap-3 text-sm font-semibold text-foreground/80">
+                                        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-cyan-500/10 text-cyan-600 shrink-0 mt-0.5"><Globe className="h-4 w-4" /></div>
+                                        <span className="leading-tight pt-1">
+                                            <strong>Client-Facing Online Storefront</strong> (`/p/[slug]`) with custom domain linking <br/>
+                                            <a href="https://www.myacc.co.za/p/interscope" target="_blank" rel="noreferrer" className="text-primary hover:underline font-bold text-xs">
+                                                View live demo storefront
+                                            </a>
+                                        </span>
+                                    </li>
+                                    <li className="flex items-start gap-3 text-sm font-semibold text-foreground/80">
+                                        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-indigo-500/10 text-indigo-600 shrink-0 mt-0.5"><Scale className="h-4 w-4" /></div>
+                                        <span className="leading-tight pt-1"><strong>Service Pricing Control</strong> — set custom markups on all 50+ services</span>
+                                    </li>
+                                    <li className="flex items-start gap-3 text-sm font-semibold text-foreground/80">
+                                        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0 mt-0.5"><CheckCircle2 className="h-4 w-4" /></div>
+                                        <span className="leading-tight pt-1"><strong>Automated Document Collection</strong> directly from your clients</span>
+                                    </li>
+                                    <li className="flex items-start gap-3 text-sm font-semibold text-foreground/80">
+                                        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-500/10 text-blue-600 shrink-0 mt-0.5"><Percent className="h-4 w-4" /></div>
+                                        <span className="leading-tight pt-1"><strong>Flexible Fulfillment</strong> — complete internally (10% royalty, R100-R500 cap) or outsource to us</span>
+                                    </li>
                                 </ul>
                             </CardContent>
                         </div>
                         <CardFooter className="p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col gap-3">
                             <Button asChild size="lg" className="w-full h-14 text-lg font-black shadow-lg hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 text-white">
-                                <Link href="/partner-signup">Join Partner Program Free</Link>
+                                <Link href="/partner-signup">Get Started with Storefront</Link>
                             </Button>
-                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-center">No credit card required to join</p>
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest text-center">R1,950 once-off platform access</p>
                         </CardFooter>
                     </div>
                 </div>

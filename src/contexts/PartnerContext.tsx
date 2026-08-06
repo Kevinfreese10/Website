@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 interface PartnerContextType {
   tier: PartnerTier;
   isGrowthActive: boolean; // true if on growth tier AND subscription is active/grandfathered
+  hasPlatformFee: boolean; // true if partner has paid the R1,950 platform fee
   limits: {
     aiCompanies: number;   // 0 or 5
     aiPayroll: number;     // 0 or 5
@@ -145,6 +146,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     }
     
     const tier: PartnerTier = isGrowthActive ? 'growth' : (targetUser?.partnerTier ?? 'free');
+    const hasPlatformFee = !!(targetUser?.platformFeePaid);
     
     const limits = {
       aiCompanies: sub?.aiCompanyLimit ?? 0,
@@ -177,7 +179,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
       return false;
     };
     
-    return { tier, isGrowthActive, limits, usage, isAtLimit, permissions, isOwner, canDo, partnerProfile };
+    return { tier, isGrowthActive, hasPlatformFee, limits, usage, isAtLimit, permissions, isOwner, canDo, partnerProfile };
   }, [user, partnerProfile, aiCompaniesCount, aiPayrollCount, staffSeatsCount]);
 
   if (loading) {

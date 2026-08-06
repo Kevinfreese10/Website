@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { checkExistingUserByEmail } from './auth-checks';
 import { sendOrderConfirmationEmailAction } from './notifications';
 import { Order } from '@/lib/types';
+import { checkRateLimit } from '@/lib/rate-limiter';
 
 export async function createCheckoutOrderAction({
   firstName,
@@ -28,7 +29,17 @@ export async function createCheckoutOrderAction({
   userId?: string | null;
 }) {
   try {
+    const rateLimit = await checkRateLimit('checkout', 5, 60000); // max 5 orders per minute per IP
+    if (!rateLimit.success) {
+      return {
+        success: false,
+        error: 'rate-limit-exceeded',
+        message: 'Too many order attempts from your connection. Please wait a minute before trying again.',
+      };
+    }
+
     const adminDb = getAdminDb();
+
     const adminAuth = getAdminAuth();
     const cleanEmail = email.toLowerCase().trim();
 
@@ -93,14 +104,55 @@ export async function createCheckoutOrderAction({
     const { getNextOrderId } = await import('@/lib/sequence');
     const orderId = await getNextOrderId();
 
+    // Validate and re-calculate prices server-side to prevent client-side price tampering
+    let calculatedTotal = 0;
+    const validatedItems = await Promise.all(
+      items.map(async (item) => {
+        const serviceSnap = await adminDb.collection('services').doc(item.id).get();
+        if (!serviceSnap.exists) {
+          throw new Error(`Service ${item.id} not found.`);
+        }
+        const serviceData = serviceSnap.data()!;
+        const retailFloor = serviceData.price || 0;
+        let finalUnitPrice = retailFloor;
+
+        if (partnerId) {
+          const overrideSnap = await adminDb
+            .collection('users')
+            .doc(partnerId)
+            .collection('serviceOverrides')
+            .doc(item.id)
+            .get();
+
+          if (overrideSnap.exists) {
+            const overrideData = overrideSnap.data()!;
+            if (typeof overrideData.price === 'number') {
+              // Ensure price never falls below retail floor
+              finalUnitPrice = Math.max(overrideData.price, retailFloor);
+            }
+          }
+        }
+
+        const qty = item.quantity && item.quantity > 0 ? item.quantity : 1;
+        calculatedTotal += finalUnitPrice * qty;
+
+        return {
+          id: item.id,
+          title: serviceData.title || item.title,
+          price: finalUnitPrice,
+          quantity: qty,
+        };
+      })
+    );
+
     const orderData = {
       id: orderId,
       userId: finalUserId,
       customerName: `${firstName} ${lastName}`,
       customerEmail: cleanEmail,
       customerPhone: phone,
-      items,
-      total,
+      items: validatedItems,
+      total: calculatedTotal,
       discountCode: null,
       discountAmount: null,
       paymentMethod: finalPaymentMethod,

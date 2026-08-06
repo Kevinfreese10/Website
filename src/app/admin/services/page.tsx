@@ -548,19 +548,19 @@ export default function AdminServicesPage() {
                         <AlertDialogTrigger asChild>
                             <Button variant="outline" disabled={isUpdatingDefaults}>
                                 {isUpdatingDefaults ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                Sync 10% Discount
+                                Sync 20% Discount
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Apply 10% Partner Discount?</AlertDialogTitle>
+                                <AlertDialogTitle>Apply 20% Partner Discount?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This will scan all products and update the `resellerPrice` to 90% of the public price. It also ensures availability is "in_stock" and condition is "new".
+                                    This will scan all products and update the `resellerPrice` to 80% of the public price. It also ensures availability is "in_stock" and condition is "new".
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleUpdateDefaults(10)}>Yes, Apply 10%</AlertDialogAction>
+                                <AlertDialogAction onClick={() => handleUpdateDefaults(20)}>Yes, Apply 20%</AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>

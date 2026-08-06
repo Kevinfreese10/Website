@@ -275,8 +275,8 @@ export async function POST(req: NextRequest) {
                 const service = allServices.find(s => s.id === item.id);
                 const basePrice = service?.price || item.price;
                 const wholesalePrice = isGrowthActive 
-                    ? (service?.resellerPrice || basePrice * 0.75)
-                    : (basePrice * 0.95);
+                    ? (service?.resellerPrice || basePrice * 0.80)
+                    : (basePrice * 0.80);
                 cost += wholesalePrice * item.quantity;
             }
             orderTotal = parseFloat(cost.toFixed(2));
@@ -318,6 +318,14 @@ export async function POST(req: NextRequest) {
           if (currentOrderData.userId && currentOrderData.items && currentOrderData.items.some(item => item.id === 'partner_dfy_setup')) {
               await adminDb.collection('users').doc(currentOrderData.userId).update({ setupAddon: true });
               console.log(`Paid Done-For-You Setup Add-on. Marked partner ${currentOrderData.userId} setupAddon as true.`);
+          }
+
+          if (currentOrderData.userId && currentOrderData.items && currentOrderData.items.some(item => item.id === 'partner_platform_fee')) {
+              await adminDb.collection('users').doc(currentOrderData.userId).update({
+                  platformFeePaid: true,
+                  status: 'Active'
+              });
+              console.log(`[Partner Platform Fee] Set platformFeePaid=true for user ${currentOrderData.userId}`);
           }
           
           if (currentOrderData.originalOrderId) {

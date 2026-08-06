@@ -557,6 +557,10 @@ export type User = {
   /** Tier this partner is on. Undefined = legacy R4,950 one-time partner (treated as growth) */
   partnerTier?: PartnerTier;
   partnerSubscription?: PartnerSubscription;
+  /** True when the partner has paid the R1,950 once-off platform access fee — unlocks the client-facing storefront */
+  platformFeePaid?: boolean;
+  /** True when the partner purchased the Done-For-You onboarding add-on (separate from platform fee) */
+  setupAddon?: boolean;
   // --- Staff fields (present on partner_staff role users) ---
   /** false = deactivated by owner. Account preserved for audit trail. */
   isActive?: boolean;

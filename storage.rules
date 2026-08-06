@@ -54,29 +54,48 @@ service firebase.storage {
       );
     }
 
-    // Orders path: Accessible by any authenticated user (bypasses cross-service firestore.get lookup restrictions)
+    // Orders path: Accessible by owner or admin
     match /orders/{orderId}/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && (
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        (firestore.exists(/databases/(default)/documents/orders/$(orderId)) && (
+          firestore.get(/databases/(default)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
+          firestore.get(/databases/(default)/documents/orders/$(orderId)).data.resellerId == request.auth.uid
+        ))
+      );
     }
 
-    // VAT audit docs: Accessible by any authenticated user (bypasses cross-service firestore.get lookup restrictions)
+    // VAT audit docs: Accessible by client owner or admin
     match /vat-audit-docs/{clientId}/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && (
+        request.auth.uid == clientId ||
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
     }
 
-    // Supporting documents: Accessible by any authenticated user (used in CAP)
+    // Supporting documents: Accessible by admin or staff
     match /supporting-documents/{invoiceId}/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && (
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'staff', 'cap_staff', 'cap_supervisor']
+      );
     }
 
-    // AI Payroll path: Accessible by any authenticated user
+    // AI Payroll path: Accessible by client owner or admin
     match /ai-payroll/{clientId}/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && (
+        request.auth.uid == clientId ||
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
     }
 
-    // Invoices path: Accessible by authenticated users only
+    // Invoices path: Accessible by admin or staff
     match /invoices/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && (
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'staff', 'cap_staff', 'cap_supervisor']
+      );
     }
   }
 }
+

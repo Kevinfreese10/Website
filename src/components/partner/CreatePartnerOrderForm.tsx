@@ -35,23 +35,28 @@ const lineItemSchema = z.object({
   quantity: z.preprocess(val => Number(val), z.number().min(1, 'Quantity must be at least 1.')),
   price: z.preprocess(val => Number(val), z.number().min(0, 'Price cannot be negative.')),
   discountType: z.enum(['fixed', 'percentage']).default('fixed'),
-  discountValue: z.preprocess(val => Number(val) || 0, z.number().min(0, 'Discount cannot be negative.').optional()),
+  discountValue: z.preprocess(val => Number(val) || 0, z.number().min(0, 'Discount cannot be negative.').max(100, 'Discount percentage cannot exceed 100%.').optional()),
   resellerPrice: z.preprocess(val => Number(val), z.number().min(0).optional()),
+  retailFloorPrice: z.preprocess(val => Number(val), z.number().min(0).optional()),
 }).refine((data) => {
     const quantity = data.quantity || 1;
     const lineItemTotal = data.price * quantity;
     let discountAmount = 0;
     if (data.discountType === 'percentage') {
-        discountAmount = lineItemTotal * ((data.discountValue || 0) / 100);
+        discountAmount = lineItemTotal * (Math.min(data.discountValue || 0, 100) / 100);
     } else {
         discountAmount = (data.discountValue || 0) * quantity;
     }
     const netTotal = lineItemTotal - discountAmount;
-    const costTotal = (data.resellerPrice || 0) * quantity;
     
-    return netTotal >= costTotal;
+    // Selling price after discount cannot be less than My Accountant's retail price
+    const minRetailTotal = (data.retailFloorPrice || 0) * quantity;
+    const costTotal = (data.resellerPrice || 0) * quantity;
+    const floor = minRetailTotal > 0 ? minRetailTotal : costTotal;
+
+    return netTotal >= floor;
 }, {
-    message: "Selling price after discount cannot be less than your wholesale cost.",
+    message: "Selling price after discount cannot be lower than My Accountant's standard retail price.",
     path: ["price"]
 });
 
@@ -126,7 +131,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
       customerLastName: '',
       customerEmail: '',
       customerPhone: '',
-      items: [{ serviceId: '', description: '', quantity: 1, price: 0, discountType: 'fixed', discountValue: 0, resellerPrice: 0 }],
+      items: [{ serviceId: '', description: '', quantity: 1, price: 0, discountType: 'fixed', discountValue: 0, resellerPrice: 0, retailFloorPrice: 0 }],
     },
     mode: 'onChange',
   });
@@ -238,11 +243,13 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
     const override = serviceOverrides[serviceId];
     
     if (selectedService) {
-        const basePrice = override?.price ?? selectedService.price;
-        const resellerPrice = selectedService.resellerPrice || basePrice * 0.90;
+        const retailPrice = selectedService.price;
+        const basePrice = Math.max(override?.price ?? retailPrice, retailPrice);
+        const resellerPrice = selectedService.resellerPrice || retailPrice * 0.80;
         form.setValue(`items.${index}.description`, override?.title || selectedService.title);
         form.setValue(`items.${index}.price`, isGrowthActive ? basePrice : resellerPrice);
         form.setValue(`items.${index}.resellerPrice`, resellerPrice);
+        form.setValue(`items.${index}.retailFloorPrice`, retailPrice);
         form.setValue(`items.${index}.discountType`, 'fixed');
         form.setValue(`items.${index}.discountValue`, 0);
         form.trigger(`items.${index}`);
@@ -570,7 +577,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                 )})}
             </div>
             <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ serviceId: '', description: '', quantity: 1, price: 0, discountType: 'fixed', discountValue: 0, resellerPrice: 0 })}>
+                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ serviceId: '', description: '', quantity: 1, price: 0, discountType: 'fixed', discountValue: 0, resellerPrice: 0, retailFloorPrice: 0 })}>
                     <Plus className="mr-2 h-4 w-4" /> Add Line Item
                 </Button>
                 <Button type="button" variant="secondary" size="sm" className="mt-4" onClick={() => form.trigger()}><RefreshCw className="mr-2 h-4 w-4" /> Update Totals</Button>

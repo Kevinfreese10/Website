@@ -560,7 +560,7 @@ export default function PartnerSignupForm() {
                                 <span className="font-black text-md text-primary">Free / R0</span>
                             </div>
                             <div className="text-xs text-muted-foreground mb-2">
-                                Includes partner community chat, 10% wholesale discount, and outsourcing backend access.
+                                Includes partner community chat, 20% wholesale discount, and outsourcing backend access.
                             </div>
                             <div className="flex justify-between items-center border-t border-primary/20 pt-2 font-bold text-sm">
                                 <span>Total Due Today</span>

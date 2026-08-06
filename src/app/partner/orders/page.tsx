@@ -54,6 +54,8 @@ import { sendEmail } from '@/lib/email';
 import { getNextOrderId } from '@/lib/sequence';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { ProcessOrderModal } from '@/components/partner/ProcessOrderModal';
+import { completeOrderWithRoyalty, outsourceOrderFromWallet } from '@/app/actions/wallet-actions';
 
 
 const db = getFirestore(firebaseApp);
@@ -64,20 +66,11 @@ export default function PartnerOrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isGrowthActive } = usePartner();
+  const { isGrowthActive, hasPlatformFee } = usePartner();
   const [allStaff, setAllStaff] = useState<User[]>([]);
-  const [outsourceOptionsOpen, setOutsourceOptionsOpen] = useState(false);
+  const [processModalOpen, setProcessModalOpen] = useState(false);
   const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
-  const [selectedOrderForOutsource, setSelectedOrderForOutsource] = useState<Order | null>(null);
-  const [docContactPreference, setDocContactPreference] = useState<'reseller' | 'client'>('reseller');
-  const [isProcessingOutsource, setIsProcessingOutsource] = useState(false);
-
-  // Free partners can only use 'reseller' contact preference
-  useEffect(() => {
-    if (!isGrowthActive) {
-      setDocContactPreference('reseller');
-    }
-  }, [isGrowthActive]);
+  const [selectedOrderForProcess, setSelectedOrderForProcess] = useState<Order | null>(null);
   
   const staffCounters = useRef<{ [key: string]: number }>({});
   const router = useRouter();
@@ -178,89 +171,18 @@ export default function PartnerOrdersPage() {
     return () => unsubscribe();
   }, [user?.uid, partnerId]);
 
-    const handleOutsource = async () => {
-        if (!user || !selectedOrderForOutsource || !partnerId) return;
-        
-        setIsProcessingOutsource(true);
-        toast({
-            title: 'Processing Outsourcing Request...',
-            description: `Submitting order ${selectedOrderForOutsource.id} to My Accountant.`
-        });
-    
-        try {
-            const partnerRef = doc(db, 'users', partnerId);
-            const partnerSnap = await getDoc(partnerRef);
-            const partnerProfile = partnerSnap.data() as User;
 
-            // Calculate cost based on tier
-            let cost = 0;
-            selectedOrderForOutsource.items.forEach(item => {
-                const service = allServices.find(s => s.id === item.id);
-                const basePrice = service?.price || item.price;
-                const wholesalePrice = service?.resellerPrice || basePrice * 0.90;
-                
-                cost += wholesalePrice * item.quantity;
-            });
-
-            const firstServiceId = selectedOrderForOutsource.items[0]?.id;
-            const serviceDetails = allServices.find(s => s.id === firstServiceId);
-            const department = serviceDetails?.department || null;
-            const documentContact = (!isGrowthActive || docContactPreference === 'reseller') ? 'partner' : 'client';
-
-            // 1. Update the document contact preference & department on the original order before payment
-            const orderRef = doc(db, 'orders', selectedOrderForOutsource.id);
-            await updateDoc(orderRef, {
-                documentContact,
-                department
-            });
-
-            // 2. Redirect to PayFast
-            const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = payfastUrl;
-
-            const outsourcePaymentId = `OUTSOURCE-${selectedOrderForOutsource.id}`;
-
-            const payfastData: { [key: string]: string } = {
-                merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-                merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-                return_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success/${selectedOrderForOutsource.id}`,
-                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/orders`,
-                notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
-                name_first: partnerProfile.name.split(' ')[0],
-                name_last: partnerProfile.name.split(' ').slice(1).join(' ') || 'Partner',
-                email_address: partnerProfile.email,
-                m_payment_id: outsourcePaymentId,
-                amount: cost.toFixed(2),
-                item_name: `Outsource Order #${selectedOrderForOutsource.id}`,
-            };
-
-            for (const key in payfastData) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = payfastData[key];
-                form.appendChild(input);
-            }
-            
-            document.body.appendChild(form);
-            form.submit();
-    
-        } catch (error) {
-            console.error('Error outsourcing order: ', error);
-            toast({
-                title: 'Outsourcing Failed',
-                description: 'There was a problem submitting your order. Please try again.',
-                variant: 'destructive',
-            });
-            setIsProcessingOutsource(false);
-        }
-    };
 
     const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
     const orderToUpdate = orders.find(o => o.id === orderId);
     if (!orderToUpdate || !user || !partnerId) return;
+
+    // Intercept: show modal for Processing (wallet payment required)
+    if (newStatus === 'Processing' && !orderToUpdate.isOutsourced) {
+      setSelectedOrderForProcess(orderToUpdate);
+      setProcessModalOpen(true);
+      return;
+    }
 
     try {
       const orderRef = doc(db, 'orders', orderId);
@@ -382,83 +304,44 @@ export default function PartnerOrdersPage() {
         setIsCreateOrderOpen(false);
     };
 
-    const costToOutsource = useMemo(() => {
-        if (!selectedOrderForOutsource) return 0;
-        let cost = 0;
-        selectedOrderForOutsource.items.forEach(item => {
-            const service = allServices.find(s => s.id === item.id);
-            const basePrice = service?.price || item.price;
-            const wholesalePrice = service?.resellerPrice || basePrice * 0.90;
-            cost += wholesalePrice * item.quantity;
-        });
-        return cost;
-    }, [selectedOrderForOutsource, isGrowthActive]);
+    const handleProcessOrderConfirm = async (choice: 'complete' | 'outsource', documentContact?: 'partner' | 'client') => {
+      if (!selectedOrderForProcess || !partnerId) return;
+      
+      try {
+        if (choice === 'complete') {
+          const result = await completeOrderWithRoyalty(selectedOrderForProcess.id, partnerId);
+          if ('error' in result) {
+            toast({ title: 'Failed', description: result.error === 'INSUFFICIENT_FUNDS' ? 'Insufficient wallet balance. Please top up.' : result.error, variant: 'destructive' });
+            return;
+          }
+          toast({ title: 'Order Processing', description: `Royalty of R${result.royalty.toFixed(2)} deducted from your wallet.` });
+        } else {
+          const result = await outsourceOrderFromWallet(selectedOrderForProcess.id, partnerId, documentContact || 'partner');
+          if ('error' in result) {
+            toast({ title: 'Failed', description: result.error === 'INSUFFICIENT_FUNDS' ? 'Insufficient wallet balance. Please top up.' : result.error, variant: 'destructive' });
+            return;
+          }
+          toast({ title: 'Order Outsourced', description: `R${result.cost.toFixed(2)} deducted from your wallet. My Accountant will begin work immediately.` });
+        }
+        setProcessModalOpen(false);
+        setSelectedOrderForProcess(null);
+      } catch (err) {
+        console.error('Process order failed:', err);
+        toast({ title: 'Error', description: 'Something went wrong. Please try again.', variant: 'destructive' });
+      }
+    };
 
     return (
         <div className="space-y-8">
-             <Dialog open={outsourceOptionsOpen} onOpenChange={setOutsourceOptionsOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Outsource Order #{selectedOrderForOutsource?.id}</DialogTitle>
-                        <DialogDescription>
-                            Confirm your document contact preference before submitting to My Accountant.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4 space-y-6">
-                        <div className="space-y-3">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Document Contact Preference</Label>
-                            <RadioGroup 
-                                value={docContactPreference} 
-                                onValueChange={(v) => setDocContactPreference(v as 'reseller' | 'client')}
-                                className="space-y-2"
-                            >
-                                <div className="flex items-start space-x-3 border rounded-md p-3 hover:bg-muted/50 cursor-pointer">
-                                    <RadioGroupItem value="reseller" id="contact-reseller" className="mt-1" />
-                                    <Label htmlFor="contact-reseller" className="cursor-pointer">
-                                        <p className="font-semibold text-sm">Contact Me (The Partner)</p>
-                                        <p className="text-[10px] text-muted-foreground">Communication and document requests will be sent to your email.</p>
-                                    </Label>
-                                </div>
-                                <div className={cn("flex items-start space-x-3 border rounded-md p-3 hover:bg-muted/50 cursor-pointer", !isGrowthActive && "opacity-50 cursor-not-allowed")}>
-                                    <RadioGroupItem value="client" id="contact-client" className="mt-1" disabled={!isGrowthActive} />
-                                    <Label htmlFor="contact-client" className={cn("cursor-pointer", !isGrowthActive && "pointer-events-none")}>
-                                        <p className="font-semibold text-sm flex items-center gap-1.5">
-                                            Contact My Client Directly
-                                            {!isGrowthActive && <Badge className="text-[8px] px-1 py-0 bg-primary/10 text-primary uppercase font-bold border-none">Growth Only</Badge>}
-                                        </p>
-                                        <p className="text-[10px] text-muted-foreground">We will contact your client directly via white-label email.</p>
-                                    </Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-
-                        <div className="p-4 rounded-lg border space-y-2 text-sm bg-primary/5 border-primary/10">
-                            <h4 className="font-bold text-xs uppercase tracking-wider mb-2 text-primary">
-                                Billing Summary
-                            </h4>
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground text-xs">Wholesale Outsourcing Cost:</span>
-                                <span className="font-semibold text-primary">{formatPrice(costToOutsource)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-1">
-                                <span>Discount Level:</span>
-                                <span className="font-bold">10% Partner Discount</span>
-                            </div>
-                            <Separator className="my-2" />
-                            <p className="text-[10px] text-muted-foreground italic leading-relaxed">
-                                You will be redirected to PayFast to process payment of <strong>{formatPrice(costToOutsource)}</strong>. My Accountant will begin work immediately after payment is confirmed.
-                            </p>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setOutsourceOptionsOpen(false)}>Cancel</Button>
-                        <Button onClick={handleOutsource} disabled={isProcessingOutsource}>
-                            {isProcessingOutsource && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Proceed to PayFast
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+             <ProcessOrderModal
+                open={processModalOpen}
+                onOpenChange={setProcessModalOpen}
+                order={selectedOrderForProcess}
+                walletBalance={user?.creditBalance ?? 0}
+                allServices={allServices}
+                hasPlatformFee={hasPlatformFee}
+                onConfirm={handleProcessOrderConfirm}
+            />
 
              <Card>
                 <CardHeader>
@@ -544,33 +427,20 @@ export default function PartnerOrdersPage() {
                                     <Link href={`/partner/orders/${order.id}`}>View Details</Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                {isGrowthActive && (
-                                    <>
-                                        <DropdownMenuSub>
-                                            <DropdownMenuSubTrigger disabled={order.isOutsourced}>Change Status</DropdownMenuSubTrigger>
-                                            <DropdownMenuSubContent>
-                                                {orderStatuses.map(status => (
-                                                    <DropdownMenuItem 
-                                                        key={status} 
-                                                        onClick={() => handleUpdateStatus(order.id, status)} 
-                                                        disabled={order.status === status}
-                                                    >
-                                                        Mark as {status}
-                                                    </DropdownMenuItem>
-                                                ))}
-                                            </DropdownMenuSubContent>
-                                        </DropdownMenuSub>
-                                        <DropdownMenuItem 
-                                            disabled={order.isOutsourced || order.status === 'Pending Payment'}
-                                            onSelect={() => {
-                                                setSelectedOrderForOutsource(order);
-                                                setOutsourceOptionsOpen(true);
-                                            }}
-                                        >
-                                            Outsource to My Accountant
-                                        </DropdownMenuItem>
-                                    </>
-                                )}
+                                <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger disabled={order.isOutsourced}>Change Status</DropdownMenuSubTrigger>
+                                    <DropdownMenuSubContent>
+                                        {orderStatuses.map(status => (
+                                            <DropdownMenuItem
+                                                key={status}
+                                                onClick={() => handleUpdateStatus(order.id, status)}
+                                                disabled={order.status === status}
+                                            >
+                                                Mark as {status}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuSubContent>
+                                </DropdownMenuSub>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                             </TableCell>

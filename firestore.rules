@@ -62,7 +62,8 @@ service cloud.firestore {
       );
       match /serviceOverrides/{overrideId} {
         allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isPartnerStaffOf(userId));
-        allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+        // Write access handled exclusively by server actions using Admin SDK to enforce retail price floor
+        allow write: if false;
       }
       match /walletLogs/{logId} {
         allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
@@ -84,7 +85,7 @@ service cloud.firestore {
 
     // ─── Clients & Partners ──────────────────────────────────────────────────
     match /adminClients/{clientId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAdminOrStaff();
     }
 
     // Partner clients — scoped to the owning partner and their active staff
@@ -107,14 +108,36 @@ service cloud.firestore {
     }
 
     match /aiPayrollClients/{clientId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        request.auth.uid == clientId ||
+        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+      );
+      allow write: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        (request.resource != null && isPartnerOrStaff(request.resource.data.partnerId)) ||
+        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+      );
       match /{document=**} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthenticated() && (
+          isAdminOrStaff() ||
+          request.auth.uid == clientId ||
+          isPartnerOrStaff(get(/databases/$(database)/documents/aiPayrollClients/$(clientId)).data.partnerId)
+        );
       }
     }
 
     match /clients/{clientId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        request.auth.uid == clientId ||
+        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+      );
+      allow write: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        request.auth.uid == clientId ||
+        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+      );
     }
 
     // ─── Services ────────────────────────────────────────────────────────────
@@ -136,11 +159,9 @@ service cloud.firestore {
         (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
         (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
       );
-       // Require authentication for order creation (fixes unauthenticated exploit) unless it's a Pending Payment order
-       allow create: if (
-         request.resource.data.status == 'Pending Payment' ||
-         (isAuthenticated() && (isAdminOrStaff() || hasModule('Manage Orders')))
-       );
+      // Order creation is handled securely via Server Actions (Firebase Admin SDK).
+      // Direct client SDK creation is restricted to Admins/Staff.
+      allow create: if isAuthenticated() && (isAdminOrStaff() || hasModule('Manage Orders'));
       allow update: if isAuthenticated() && (
         isAdminOrStaff() ||
         hasModule('Manage Orders') ||
@@ -203,67 +224,106 @@ service cloud.firestore {
 
     // ─── Discounts ───────────────────────────────────────────────────────────
     match /discounts/{discountId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrStaff() || hasModule('Manage Discounts');
     }
 
     // ─── Compliance Requests ─────────────────────────────────────────────────
     match /complianceRequests/{requestId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        request.auth.uid == resource.data.userId ||
+        isPartnerOrStaff(resource.data.partnerId)
+      );
+      allow write: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        request.auth.uid == request.resource.data.userId ||
+        isPartnerOrStaff(request.resource.data.partnerId)
+      );
     }
 
     // ─── AI Accountant / Numera Clients ──────────────────────────────────────
     match /aiAccountantClients/{clientId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        request.auth.uid == clientId ||
+        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+      );
+      allow write: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        (request.resource != null && isPartnerOrStaff(request.resource.data.partnerId)) ||
+        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+      );
       match /{document=**} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthenticated() && (
+          isAdminOrStaff() ||
+          request.auth.uid == clientId ||
+          isPartnerOrStaff(get(/databases/$(database)/documents/aiAccountantClients/$(clientId)).data.partnerId)
+        );
       }
     }
 
     match /numeraClients/{clientId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        request.auth.uid == clientId ||
+        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+      );
+      allow write: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        (request.resource != null && isPartnerOrStaff(request.resource.data.partnerId)) ||
+        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+      );
       match /{document=**} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if isAuthenticated() && (
+          isAdminOrStaff() ||
+          request.auth.uid == clientId ||
+          isPartnerOrStaff(get(/databases/$(database)/documents/numeraClients/$(clientId)).data.partnerId)
+        );
       }
     }
 
     // ─── Extracted Invoices & Email Processing ────────────────────────────────
-    // These contain financial data — require authentication
+    // Sensitive financial data — strictly admin/staff or owning partner
     match /extractedInvoices/{invoiceId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAdminOrStaff();
     }
 
     match /processedEmails/{emailId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAdminOrStaff();
     }
 
     match /inboxEmails/{emailId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAdminOrStaff();
     }
 
     // ─── Allocation Rules ─────────────────────────────────────────────────────
     match /allocationRules/{ruleId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAdminOrStaff();
     }
 
     // ─── Unanswered Questions ─────────────────────────────────────────────────
     match /unansweredQuestions/{questionId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAdminOrStaff();
     }
 
     // ─── Leads ────────────────────────────────────────────────────────────────
     match /cvLeads/{leadId} {
-      allow read: if isAuthenticated();
-      allow write: if true;
+      allow read: if isAdminOrStaff();
+      allow create: if true;
+      allow update, delete: if isAdminOrStaff();
     }
 
     match /demoLeads/{leadId} {
-      allow read: if isAuthenticated();
-      allow write: if true;
+      allow read: if isAdminOrStaff();
+      allow create: if true;
+      allow update, delete: if isAdminOrStaff();
     }
 
     match /partnerLeads/{leadId} {
       allow read: if isAuthenticated() && (resource.data.partnerId == request.auth.uid || isAdmin());
-      allow write: if true;
+      allow create: if true;
+      allow update, delete: if isAdminOrStaff();
     }
 
     // ─── Jobs ─────────────────────────────────────────────────────────────────
@@ -319,11 +379,12 @@ service cloud.firestore {
 
     // ─── Commissions & Data (CAP) ─────────────────────────────────────────────
     match /commissionData/{docId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAdminOrStaff();
     }
 
     match /commissions/{commissionId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && (isAdminOrStaff() || request.auth.uid == resource.data.partnerId);
+      allow write: if isAdminOrStaff();
     }
 
     // ─── Partner Refunds ──────────────────────────────────────────────────────
@@ -368,3 +429,4 @@ service cloud.firestore {
     }
   }
 }
+

@@ -35,7 +35,7 @@ export function PendingSetupScreen({ user }: { user: User }) {
             
             for (const doc of snap.docs) {
                 const data = doc.data() as Order;
-                if (data.items.some(i => i.id === 'partner_setup_fee')) {
+            if (data.items.some(i => i.id === 'partner_setup_fee' || i.id === 'partner_platform_fee')) {
                     setupOrder = { ...data, id: doc.id };
                     break;
                 }
@@ -68,7 +68,7 @@ export function PendingSetupScreen({ user }: { user: User }) {
                 email_address: user.email,
                 m_payment_id: setupOrder.id,
                 amount: setupOrder.total.toFixed(2),
-                item_name: `BEI Practice Activation & Setup`,
+                item_name: 'Partner Platform Access Fee',
             };
 
             for (const key in data) {
@@ -93,9 +93,9 @@ export function PendingSetupScreen({ user }: { user: User }) {
         <Card className="max-w-lg w-full border-primary/20 shadow-xl overflow-hidden">
             <CardHeader className="bg-primary/5 border-b border-primary/10 text-center py-8">
                 <Badge className="w-fit mx-auto mb-4 bg-primary text-white uppercase font-black text-[10px] tracking-widest">Action Required</Badge>
-                <CardTitle className="text-3xl font-black text-slate-900">Activate Your Practice</CardTitle>
+                <CardTitle className="text-3xl font-black text-slate-900">Unlock Your Storefront</CardTitle>
                 <CardDescription className="text-base mt-2">
-                    Complete your setup payment to unlock the BEI dashboard.
+                    Pay the once-off platform access fee to activate your client-facing white-label storefront.
                 </CardDescription>
             </CardHeader>
             
@@ -103,10 +103,10 @@ export function PendingSetupScreen({ user }: { user: User }) {
                 <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 space-y-4">
                     <h3 className="font-bold flex items-center gap-2 text-slate-900">
                         <Wallet2 className="h-5 w-5 text-primary" />
-                        R1,950 Setup & Onboarding
+                        R1,950 Platform Access Fee
                     </h3>
                     <div className="space-y-2 text-sm text-muted-foreground leading-relaxed text-left">
-                        <p>To begin using the Bookkeeper Empowerment Initiative, a <strong>R1,950</strong> setup fee is required for your Done-For-You Onboarding. This includes:</p>
+                        <p>A once-off <strong>R1,950</strong> platform fee unlocks your client-facing storefront. This includes:</p>
                         <ul className="space-y-2 mt-4">
                             <li className="flex items-start gap-2">
                                 <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
@@ -131,7 +131,7 @@ export function PendingSetupScreen({ user }: { user: User }) {
                         className="w-full h-14 text-lg font-bold shadow-lg"
                     >
                         {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-5 w-5" />}
-                        Complete Setup & Pay R1,950
+                        Pay R1,950 — Unlock Storefront
                     </Button>
                     <p className="text-center text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
                         Secure Payment via PayFast

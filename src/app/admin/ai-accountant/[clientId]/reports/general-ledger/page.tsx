@@ -8,7 +8,7 @@ import React, { useState, useEffect, useMemo, ReactNode } from "react";
 import { User, ChartOfAccount, AllocatedTransaction, ImportedTransaction, VatType, Supplier, ClientCustomer } from "@/lib/types";
 import { getFirestore, doc, getDoc, collection, query, onSnapshot, updateDoc, writeBatch, deleteDoc, where, getDocs, deleteField, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { Loader2, Download, Eye, Trash2, Search, Scale, ChevronsUpDown, CheckCheck } from "lucide-react";
+import { Loader2, Download, Eye, Trash2, Search, Scale, ChevronsUpDown, CheckCheck, FileText } from "lucide-react";
 import { useParams, useSearchParams, usePathname } from 'next/navigation';
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableFooterComponent } from "@/components/ui/table";
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -449,6 +451,203 @@ function GeneralLedgerReport({ client, transactions, dateRange, fromAccount, toA
         XLSX.writeFile(workbook, fileName);
     };
 
+    const handleDownloadPdf = () => {
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
+
+        // Theme palette
+        const primaryNavy: [number, number, number] = [33, 67, 146];
+        const accountHeaderBg: [number, number, number] = [238, 242, 255];
+        const totalsBg: [number, number, number] = [241, 245, 249];
+        const textDark: [number, number, number] = [30, 41, 59];
+        const textMuted: [number, number, number] = [100, 116, 139];
+
+        // Format period string
+        let periodText = `as at ${format(new Date(), "dd MMMM yyyy")}`;
+        if (dateRange?.from && dateRange?.to) {
+            periodText = `for the period ${format(dateRange.from, "dd/MM/yyyy")} to ${format(dateRange.to, "dd/MM/yyyy")}`;
+        } else if (dateRange?.from) {
+            periodText = `from ${format(dateRange.from, "dd/MM/yyyy")}`;
+        } else if (dateRange?.to) {
+            periodText = `up to ${format(dateRange.to, "dd/MM/yyyy")}`;
+        }
+
+        const companyName = client.companyName || client.name || 'Company';
+
+        // 1. Initial Page Header
+        let yPos = 18;
+
+        // Company Name (Left Aligned)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.setTextColor(...primaryNavy);
+        doc.text(companyName, 14, yPos);
+        yPos += 6;
+
+        // Report Name (Left Aligned below Company Name)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...textDark);
+        doc.text('GENERAL LEDGER REPORT', 14, yPos);
+        yPos += 5.5;
+
+        // Period (Left Aligned)
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...textMuted);
+        doc.text(`Period: ${periodText}`, 14, yPos);
+        yPos += 5;
+
+        let metaLeft = [];
+        if (client.registrationNumber) metaLeft.push(`Reg No: ${client.registrationNumber}`);
+        if (client.isVatRegistered && client.vatNumber) metaLeft.push(`VAT No: ${client.vatNumber}`);
+        if (metaLeft.length > 0) {
+            doc.text(metaLeft.join('   |   '), 14, yPos);
+            yPos += 5;
+        }
+
+        // Top Header Accent Line
+        doc.setDrawColor(...primaryNavy);
+        doc.setLineWidth(0.8);
+        doc.line(14, yPos, pageWidth - 14, yPos);
+        yPos += 8;
+
+        const formatPdfAmount = (num: number) => {
+            if (num === 0) return 'R 0.00';
+            return new Intl.NumberFormat('en-ZA', {
+                style: 'currency',
+                currency: 'ZAR',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(num);
+        };
+
+        // Render Accounts
+        groupedTransactions.forEach((group) => {
+            // Ensure space for account header banner (approx 20mm)
+            if (yPos > pageHeight - 35) {
+                doc.addPage();
+                yPos = 22;
+            }
+
+            // Account Header Banner Box
+            doc.setFillColor(...accountHeaderBg);
+            doc.rect(14, yPos - 4, pageWidth - 28, 8, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9.5);
+            doc.setTextColor(...primaryNavy);
+            doc.text(`${group.account.accountNumber} - ${group.account.description}`, 16, yPos + 1.5);
+            yPos += 7;
+
+            // Build Table Data (Ref column removed)
+            const tableHead = [['Date', 'Description', 'Debit', 'Credit', 'Balance']];
+            const tableBody = group.transactions.map((tx: any) => [
+                format(tx.date, 'dd/MM/yyyy'),
+                tx.description || '',
+                tx.debit > 0 ? formatPdfAmount(tx.debit) : '-',
+                tx.credit > 0 ? formatPdfAmount(tx.credit) : '-',
+                formatPdfAmount(tx.balance)
+            ]);
+
+            const endingBalance = group.transactions.length > 0 ? group.transactions[group.transactions.length - 1].balance : 0;
+            const tableFoot = [[
+                `Totals for ${group.account.accountNumber}`,
+                '',
+                formatPdfAmount(group.totalDebit),
+                formatPdfAmount(group.totalCredit),
+                formatPdfAmount(endingBalance)
+            ]];
+
+            autoTable(doc, {
+                head: tableHead,
+                body: tableBody,
+                foot: tableFoot,
+                startY: yPos,
+                margin: { top: 22, bottom: 20, left: 14, right: 14 },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    textColor: textDark,
+                    font: 'helvetica',
+                    valign: 'middle',
+                },
+                headStyles: {
+                    fillColor: primaryNavy,
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 8,
+                },
+                footStyles: {
+                    fillColor: totalsBg,
+                    textColor: textDark,
+                    fontStyle: 'bold',
+                    fontSize: 8,
+                },
+                columnStyles: {
+                    0: { cellWidth: 24 }, // Date
+                    1: { cellWidth: 'auto' }, // Description
+                    2: { cellWidth: 28, halign: 'right' }, // Debit
+                    3: { cellWidth: 28, halign: 'right' }, // Credit
+                    4: { cellWidth: 30, halign: 'right' }, // Balance
+                },
+                theme: 'grid',
+                didDrawPage: (data) => {
+                    yPos = data.cursor ? data.cursor.y + 6 : yPos + 10;
+                }
+            });
+
+            yPos += 4;
+        });
+
+        // 2. Loop Page Overlay (Headers / Footers / Page X of Y / Colors)
+        const totalPages = doc.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+
+            // Top Primary Color Bar
+            doc.setFillColor(...primaryNavy);
+            doc.rect(0, 0, pageWidth, 3.5, 'F');
+
+            // Bottom Footer Separator Line
+            doc.setDrawColor(226, 232, 240);
+            doc.setLineWidth(0.4);
+            doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
+
+            // Footer Text
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(...textMuted);
+
+            // Footer Left: Company Name & Report Name
+            doc.text(`${companyName}  —  General Ledger`, 14, pageHeight - 6);
+
+            // Footer Right: Page X of Y
+            doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 6, { align: 'right' });
+
+            // Running Header for Pages 2+
+            if (i > 1) {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(8);
+                doc.setTextColor(...primaryNavy);
+                doc.text(companyName, 14, 11);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(...textMuted);
+                doc.text(`General Ledger   |   ${periodText}`, pageWidth - 14, 11, { align: 'right' });
+
+                doc.setDrawColor(226, 232, 240);
+                doc.line(14, 14, pageWidth - 14, 14);
+            }
+        }
+
+        // Save generated PDF
+        const safeCompanyName = companyName.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        doc.save(`${safeCompanyName}_General_Ledger_${todayStr}.pdf`);
+    };
+
     if (accountsToDisplay.length === 0) {
         return (
             <div className="py-12 text-center text-muted-foreground text-sm font-semibold">
@@ -566,10 +765,14 @@ function GeneralLedgerReport({ client, transactions, dateRange, fromAccount, toA
                     </div>
                 )})}
             </div>
-             <DialogFooter className="mt-4">
+             <DialogFooter className="mt-4 flex flex-col sm:flex-row justify-end gap-2">
                 <Button variant="outline" onClick={handleDownloadExcel}>
                     <Download className="mr-2 h-4 w-4" />
                     Download Excel
+                </Button>
+                <Button onClick={handleDownloadPdf} className="bg-[#214392] hover:bg-[#1a3575] text-white font-bold">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Download PDF
                 </Button>
             </DialogFooter>
         </>

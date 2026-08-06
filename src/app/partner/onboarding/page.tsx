@@ -44,7 +44,7 @@ const themePresets = [
 
 export default function PartnerOnboardingPage() {
   const { user, updateUser } = useAuth();
-  const { isGrowthActive } = usePartner();
+  const { isGrowthActive, hasPlatformFee } = usePartner();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -106,22 +106,110 @@ export default function PartnerOnboardingPage() {
     }
   }, [user]);
 
-  if (!isGrowthActive) {
+  const handleBuyPlatformFee = async () => {
+    if (!user) return;
+    setIsProcessingDFY(true);
+    try {
+      const orderId = await getNextOrderId();
+      const platformOrder: Order = {
+        id: orderId,
+        userId: user.uid,
+        customerName: user.companyName || user.name,
+        customerEmail: user.email,
+        items: [{
+          id: 'partner_platform_fee',
+          title: 'Partner Platform Access Fee',
+          price: 1950,
+          quantity: 1,
+        }],
+        total: 1950,
+        discountCode: null,
+        discountAmount: null,
+        status: 'Pending Payment',
+        date: Timestamp.now(),
+        source: 'Partner',
+        resellerId: user.uid,
+        originalOrderId: null,
+      };
+
+      await setDoc(doc(db, 'orders', orderId), platformOrder);
+
+      const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = payfastUrl;
+
+      const data = {
+        merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
+        merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
+        return_url: process.env.NEXT_PUBLIC_APP_URL + '/partner/onboarding?platform_success=true',
+        cancel_url: process.env.NEXT_PUBLIC_APP_URL + '/partner/onboarding',
+        notify_url: process.env.NEXT_PUBLIC_APP_URL + '/api/payfast/notify',
+        name_first: user.name.split(' ')[0],
+        name_last: user.name.split(' ').slice(1).join(' ') || 'Partner',
+        email_address: user.email,
+        m_payment_id: orderId,
+        amount: '1950.00',
+        item_name: 'Partner Platform Access Fee',
+      };
+
+      for (const key in data) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = (data as any)[key];
+        form.appendChild(input);
+      }
+      document.body.appendChild(form);
+      form.submit();
+    } catch (e) {
+      console.error('Platform fee payment error:', e);
+      toast({ title: 'Error', description: 'Could not initiate payment. Please try again.', variant: 'destructive' });
+      setIsProcessingDFY(false);
+    }
+  };
+
+  if (!hasPlatformFee) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 space-y-4">
-        <Settings className="h-16 w-16 text-muted-foreground animate-spin" />
-        <h2 className="text-2xl font-bold">Onboarding is a Premium Feature</h2>
-        <p className="text-muted-foreground max-w-md">
-          Upgrade to the Growth tier to configure your white-label practice landing page, custom pricing, and banking credentials.
-        </p>
-        <Button asChild>
-          <Link href="/become-a-partner">Upgrade Plan</Link>
-        </Button>
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="max-w-lg w-full border border-primary/20 shadow-xl rounded-2xl overflow-hidden bg-card">
+          <div className="bg-primary/5 border-b border-primary/10 text-center py-8 px-6">
+            <div className="inline-flex items-center gap-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-4">
+              <ShieldCheck className="h-3 w-3" /> One-Time Fee
+            </div>
+            <h2 className="text-3xl font-black text-slate-900">Unlock Your Storefront</h2>
+            <p className="text-base text-muted-foreground mt-2">
+              Pay the once-off R1,950 platform access fee to activate your client-facing white-label storefront.
+            </p>
+          </div>
+          <div className="py-8 px-6 space-y-6">
+            <div className="bg-primary/5 p-5 rounded-xl border border-primary/10 space-y-3">
+              <h3 className="font-bold flex items-center gap-2 text-slate-900">
+                <Briefcase className="h-5 w-5 text-primary" /> What you get:
+              </h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" /><span><strong>Branded storefront</strong> — your clients can place orders directly on your page.</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" /><span><strong>Custom domain</strong> — link your own domain to your storefront.</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" /><span><strong>Service pricing control</strong> — set your own markup on all services.</span></li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" /><span><strong>Automated document collection</strong> — clients submit docs directly in the platform.</span></li>
+              </ul>
+            </div>
+            <Button
+              onClick={handleBuyPlatformFee}
+              disabled={isProcessingDFY}
+              className="w-full h-14 text-lg font-bold shadow-lg"
+            >
+              {isProcessingDFY ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Banknote className="mr-2 h-5 w-5" />}
+              Pay R1,950 — Unlock Storefront
+            </Button>
+            <p className="text-center text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Secure Once-Off Payment via PayFast</p>
+          </div>
+        </div>
       </div>
     );
   }
 
-  
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;

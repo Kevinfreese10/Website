@@ -82,6 +82,9 @@ function PartnerProfileDialog({
                             <Badge variant={partner.status === 'Active' ? 'success' : 'secondary'} className="uppercase font-bold w-fit">
                                 {partner.status}
                             </Badge>
+                            <Badge variant={partner.platformFeePaid ? 'default' : 'outline'} className={cn("uppercase font-bold w-fit text-[10px]", partner.platformFeePaid ? "bg-emerald-600 text-white border-none" : "bg-amber-50 text-amber-700 border-amber-200")}>
+                                {partner.platformFeePaid ? 'Storefront Unlocked (R1,950 Paid)' : 'Free Outsource Only'}
+                            </Badge>
                             {partner.wantsOutsourcedWork && (
                                 partner.overflowApproved ? (
                                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-[10px] w-fit font-bold">
@@ -520,6 +523,29 @@ export default function AdminPartnersPage() {
     }
   };
 
+  const handleTogglePlatformFee = async (partner: User) => {
+    const isPaid = !!partner.platformFeePaid;
+    const newStatus = !isPaid;
+    
+    setIsLoading(true);
+    try {
+        const userRef = doc(db, 'users', partner.id);
+        await updateDoc(userRef, {
+            platformFeePaid: newStatus,
+            ...(!newStatus ? { 'landingPage.enabled': false } : {})
+        });
+        toast({
+            title: newStatus ? 'Storefront Access Granted' : 'Storefront Access Revoked',
+            description: `Successfully updated platform fee status for ${partner.companyName || partner.name}.`
+        });
+    } catch (err) {
+        console.error("Error toggling platform fee:", err);
+        toast({ title: 'Operation Failed', variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
@@ -786,8 +812,8 @@ export default function AdminPartnersPage() {
                           <Badge variant={partner.status === 'Active' ? 'success' : 'secondary'} className="text-[10px] uppercase font-bold w-fit">
                               {partner.status}
                           </Badge>
-                          <Badge variant={partner.partnerTier === 'growth' || !partner.partnerTier ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold w-fit bg-primary/10 text-primary border-primary/20">
-                              {partner.partnerTier === 'growth' || !partner.partnerTier ? 'Premium' : 'Freemium'}
+                          <Badge variant={partner.platformFeePaid ? 'default' : 'outline'} className={cn("text-[10px] uppercase font-bold w-fit", partner.platformFeePaid ? "bg-emerald-600 text-white border-none" : "bg-amber-50 text-amber-700 border-amber-200")}>
+                              {partner.platformFeePaid ? 'Storefront Unlocked' : 'Outsource Only'}
                           </Badge>
                           {partner.wantsOutsourcedWork && (
                               partner.overflowApproved ? (
@@ -831,6 +857,15 @@ export default function AdminPartnersPage() {
                             <DropdownMenuItem onClick={() => { setSelectedPartnerIdForHistory(partner.id); setIsHistoryDialogOpen(true); }}>
                                 <FileText className="mr-2 h-4 w-4" /> Wallet History
                             </DropdownMenuItem>
+                             {partner.platformFeePaid ? (
+                                 <DropdownMenuItem onClick={() => handleTogglePlatformFee(partner)}>
+                                     <XCircle className="mr-2 h-4 w-4 text-amber-600" /> Revoke Storefront Access
+                                 </DropdownMenuItem>
+                             ) : (
+                                 <DropdownMenuItem onClick={() => handleTogglePlatformFee(partner)}>
+                                     <Award className="mr-2 h-4 w-4 text-emerald-600" /> Grant Storefront Access (R1,950 Paid)
+                                 </DropdownMenuItem>
+                             )}
                             {partner.partnerTier === 'free' ? (
                                 <>
                                     <DropdownMenuItem onClick={() => handleToggleTier(partner)}>

@@ -25,7 +25,11 @@ import { Label } from '@/components/ui/label';
 import { allVatTypes } from '@/lib/vat-types';
 import Link from 'next/link';
 
+import { saveServiceOverrideAction, deleteServiceOverrideAction, bulkUpdateServiceOverridesAction } from '@/app/actions/service-overrides';
+import { getAuth } from 'firebase/auth';
+
 const db = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);
 
 function BulkPriceIncreaseDialog({ 
     servicesCount, 
@@ -105,7 +109,7 @@ function EditServiceDialog({
 
     const overrideSchema = z.object({
       title: z.string().min(3, "Title is required"),
-      price: z.preprocess(val => Number(val), z.number().min(service.price, `Public price cannot be lower than the main store minimum of R${service.price.toFixed(2)}`)),
+      price: z.preprocess(val => Number(val), z.number().min(service.price, `Public selling price cannot be lower than My Accountant's retail price of R${service.price.toFixed(2)}. Partners must sell at or above standard rates.`)),
       description: z.string().min(10, "Short description is required"),
       longDescription: z.string().min(20, "Long description is required"),
       turnaroundTime: z.string().min(1, "Turnaround time is required"),
@@ -145,19 +149,39 @@ function EditServiceDialog({
     const handleSave = async (values: z.infer<typeof overrideSchema>) => {
         setIsSaving(true);
         try {
-            const finalValues = {
-                ...values,
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+              toast({ title: "Unauthorized", description: "Please log in to update service details.", variant: "destructive" });
+              return;
+            }
+            const idToken = await currentUser.getIdToken();
+
+            const res = await saveServiceOverrideAction({
+              idToken,
+              serviceId: service.id,
+              overrideData: {
+                title: values.title,
+                price: values.price,
+                description: values.description,
+                longDescription: values.longDescription,
+                turnaroundTime: values.turnaroundTime,
                 whatsIncluded: values.whatsIncluded.map(v => v.value),
                 clientRequirements: values.clientRequirements.map(v => v.value),
+                metaTitle: values.metaTitle,
+                metaDescription: values.metaDescription,
                 metaKeywords: values.metaKeywords?.map(v => v.value) || [],
-            };
-            const overrideRef = doc(db, 'users', partnerId, 'serviceOverrides', service.id);
-            await setDoc(overrideRef, finalValues);
-            toast({ title: "Service Updated", description: "Changes will reflect on your public landing page." });
-            onSuccess();
-            setIsOpen(false);
-        } catch (e) {
-            toast({ title: "Error", description: "Failed to save overrides.", variant: "destructive" });
+              },
+            });
+
+            if (res.success) {
+              toast({ title: "Service Updated", description: "Changes will reflect on your public landing page." });
+              onSuccess();
+              setIsOpen(false);
+            } else {
+              toast({ title: "Save Failed", description: res.error || "Failed to save overrides.", variant: "destructive" });
+            }
+        } catch (e: any) {
+            toast({ title: "Error", description: e.message || "Failed to save overrides.", variant: "destructive" });
         } finally {
             setIsSaving(false);
         }
@@ -166,13 +190,27 @@ function EditServiceDialog({
     const handleReset = async () => {
         setIsSaving(true);
         try {
-            const overrideRef = doc(db, 'users', partnerId, 'serviceOverrides', service.id);
-            await deleteDoc(overrideRef);
-            toast({ title: "Reset Successful", description: "Reverted to global default settings." });
-            onSuccess();
-            setIsOpen(false);
-        } catch (e) {
-            toast({ title: "Error", description: "Failed to reset.", variant: "destructive" });
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+              toast({ title: "Unauthorized", description: "Please log in to reset service details.", variant: "destructive" });
+              return;
+            }
+            const idToken = await currentUser.getIdToken();
+
+            const res = await deleteServiceOverrideAction({
+              idToken,
+              serviceId: service.id,
+            });
+
+            if (res.success) {
+              toast({ title: "Reset Successful", description: "Reverted to global default settings." });
+              onSuccess();
+              setIsOpen(false);
+            } else {
+              toast({ title: "Reset Failed", description: res.error || "Failed to reset.", variant: "destructive" });
+            }
+        } catch (e: any) {
+            toast({ title: "Error", description: e.message || "Failed to reset.", variant: "destructive" });
         } finally {
             setIsSaving(false);
         }
@@ -297,7 +335,7 @@ function ViewProductDialog({
         }).format(price);
     };
 
-    const cost = service.resellerPrice || service.price * 0.90;
+    const cost = service.resellerPrice || service.price * 0.80;
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -415,15 +453,20 @@ export default function PartnerServicesPage() {
   const handleBulkSearchReplace = async () => {
     if (!partnerId || !user) return;
     const practiceName = user.companyName || user.name;
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      toast({ title: 'Unauthorized', description: 'Please log in to update branding.', variant: 'destructive' });
+      return;
+    }
     
     setIsApplyingBranding(true);
     toast({ title: 'Applying Branding...', description: `Updating all services to display "${practiceName}" branding.` });
 
     try {
-        const batch = writeBatch(db);
+        const idToken = await currentUser.getIdToken();
         const regex = /My Accountant/gi;
 
-        services.forEach(service => {
+        const updates = services.map(service => {
             const currentOverride = overrides[service.id] || {};
             
             const title = currentOverride.title || service.title;
@@ -432,28 +475,36 @@ export default function PartnerServicesPage() {
             const metaTitle = currentOverride.metaTitle || service.metaTitle || `${title} | My Accountant`;
             const metaDesc = currentOverride.metaDescription || service.metaDescription || desc;
 
-            const newValues = {
+            const proposedPrice = currentOverride.price ?? service.price;
+            const safePrice = Math.max(proposedPrice, service.price);
+
+            return {
+              serviceId: service.id,
+              overrideData: {
                 title: title.replace(regex, practiceName),
                 description: desc.replace(regex, practiceName),
                 longDescription: longDesc.replace(regex, practiceName),
                 metaTitle: metaTitle.replace(regex, practiceName),
                 metaDescription: metaDesc.replace(regex, practiceName),
-                price: currentOverride.price ?? service.price,
+                price: safePrice,
                 turnaroundTime: currentOverride.turnaroundTime ?? service.turnaroundTime,
                 whatsIncluded: currentOverride.whatsIncluded || service.whatsIncluded || [],
                 clientRequirements: currentOverride.clientRequirements || service.clientRequirements || [],
                 metaKeywords: currentOverride.metaKeywords || service.metaKeywords || [],
+              }
             };
-
-            const overrideRef = doc(db, 'users', partnerId, 'serviceOverrides', service.id);
-            batch.set(overrideRef, newValues, { merge: true });
         });
 
-        await batch.commit();
-        toast({ title: 'Branding Applied', description: `Successfully white-labeled all ${services.length} services.` });
-    } catch (e) {
+        const res = await bulkUpdateServiceOverridesAction({ idToken, updates });
+
+        if (res.success) {
+          toast({ title: 'Branding Applied', description: `Successfully white-labeled all ${services.length} services.` });
+        } else {
+          toast({ title: 'Branding Failed', description: res.error || 'Could not apply bulk branding.', variant: 'destructive' });
+        }
+    } catch (e: any) {
         console.error(e);
-        toast({ title: 'Branding Failed', description: 'Could not apply bulk branding.', variant: 'destructive' });
+        toast({ title: 'Branding Failed', description: e.message || 'Could not apply bulk branding.', variant: 'destructive' });
     } finally {
         setIsApplyingBranding(false);
     }
@@ -461,17 +512,27 @@ export default function PartnerServicesPage() {
 
   const handleBulkPriceIncrease = async (amount: number) => {
     if (!partnerId) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      toast({ title: 'Unauthorized', description: 'Please log in to update prices.', variant: 'destructive' });
+      return;
+    }
+
     setIsApplyingBranding(true);
     toast({ title: 'Updating Prices...', description: `Increasing all service prices by R${amount}.` });
 
     try {
-        const batch = writeBatch(db);
-        services.forEach(service => {
+        const idToken = await currentUser.getIdToken();
+
+        const updates = services.map(service => {
             const currentOverride = overrides[service.id] || {};
             const currentPrice = currentOverride.price ?? service.price;
-            const newPrice = Math.max(0, currentPrice + amount);
+            // Ensure price never drops below retail floor
+            const newPrice = Math.max(service.price, currentPrice + amount);
 
-            const newValues = {
+            return {
+              serviceId: service.id,
+              overrideData: {
                 ...currentOverride,
                 price: newPrice,
                 title: currentOverride.title || service.title,
@@ -480,17 +541,20 @@ export default function PartnerServicesPage() {
                 turnaroundTime: currentOverride.turnaroundTime || service.turnaroundTime,
                 whatsIncluded: currentOverride.whatsIncluded || service.whatsIncluded || [],
                 clientRequirements: currentOverride.clientRequirements || service.clientRequirements || [],
+              }
             };
-
-            const overrideRef = doc(db, 'users', partnerId, 'serviceOverrides', service.id);
-            batch.set(overrideRef, newValues, { merge: true });
         });
 
-        await batch.commit();
-        toast({ title: 'Prices Updated', description: `Successfully adjusted prices for ${services.length} services.` });
-    } catch (e) {
+        const res = await bulkUpdateServiceOverridesAction({ idToken, updates });
+
+        if (res.success) {
+          toast({ title: 'Prices Updated', description: `Successfully adjusted prices for ${services.length} services.` });
+        } else {
+          toast({ title: 'Adjustment Failed', description: res.error || 'Failed to adjust prices.', variant: 'destructive' });
+        }
+    } catch (e: any) {
         console.error(e);
-        toast({ title: 'Adjustment Failed', variant: 'destructive' });
+        toast({ title: 'Adjustment Failed', description: e.message || 'Failed to adjust prices.', variant: 'destructive' });
     } finally {
         setIsApplyingBranding(false);
     }
@@ -613,7 +677,7 @@ export default function PartnerServicesPage() {
                       </TableCell>
                     )}
                     <TableCell className="opacity-70 text-xs">
-                      {formatPrice(service.resellerPrice || service.price * 0.90)}
+                      {formatPrice(service.resellerPrice || service.price * 0.80)}
                     </TableCell>
                     {isGrowthActive && (
                       <TableCell>

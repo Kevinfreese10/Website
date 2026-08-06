@@ -57,7 +57,7 @@
     "price": 1200,
     "description": "An Accountant's Letter from My Accountant provides official verification of your financial standing, income, or business details, often required for loan applications, visa processes, property rentals, or business registrations in South Africa. Our qualified accountants prepare these letters with accuracy and compliance, offering a reliable and credible document to support your applications and ensure smooth processing, saving you time and stress.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\accountants-letter.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "7nS0js8dXyXMIrQnAxF6",
@@ -67,7 +67,7 @@
     "price": 700,
     "description": "Has your company been deregistered by CIPC, preventing you from trading or managing assets? Our Company Reinstatement service is designed for South African businesses that need to revive their legal entity. We expertly navigate the complex CIPC processes to restore your company's active status, allowing you to regain compliance, resume operations, access bank accounts, and transact legally. This service ensures your business can continue its vital role in the economy without prolonged interruption, protecting your assets and maintaining your business continuity.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\company-reinstatement.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "8CcMPMv2GEzPR7mKVOiy",
@@ -77,7 +77,7 @@
     "price": 550,
     "description": "The Companies and Intellectual Property Commission (CIPC) in South Africa now mandates all registered companies and close corporations to declare their beneficial owners. This service is crucial for businesses aiming to maintain compliance, avoid penalties, and enhance transparency in their corporate structure. My Accountant simplifies this complex process, ensuring your declarations are accurately prepared and timeously submitted, safeguarding your business against non-compliance and fostering trust with stakeholders.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\beneficial-ownership-declaration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "8UzHG7lVg7COH4rBMkDP",
@@ -87,7 +87,7 @@
     "price": 600,
     "description": "The Compensation for Occupational Injuries and Diseases Act (COIDA) is crucial for South African businesses, providing compensation to employees for occupational injuries, diseases, or death. Annual COIDA renewal is mandatory to maintain your 'Letter of Good Standing', which is often required for tenders and contracts. Our expert service ensures a seamless renewal process, helping your business avoid penalties, ensure employee protection, and maintain full compliance with South African labour legislation. This service is ideal for any South African business employing staff, ensuring their legal obligations are met without hassle.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\coida-renewal.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "9TrFE99XEJOOeRAAeRae",
@@ -97,7 +97,7 @@
     "price": 650,
     "description": "Our Private Company Registration service simplifies the process of establishing your new business entity in South Africa. Designed for entrepreneurs and growing businesses, we handle all the necessary filings with the Companies and Intellectual Property Commission (CIPC), ensuring your company is legally compliant from day one. This service saves you time and stress, allowing you to focus on building your venture while we manage the administrative complexities, ensuring a smooth and compliant start for your operations.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\private-company-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "9r3qhr7Z4PJWh4EaHgAy",
@@ -107,7 +107,7 @@
     "price": 650,
     "description": "The CIDB (Construction Industry Development Board) Annual Renewal service is essential for all registered contractors in South Africa to maintain their grading and tender eligibility. This service is designed for construction companies and contractors who need to renew their CIDB registration annually to comply with regulatory requirements. By handling the complex renewal process on your behalf, My Accountant ensures uninterrupted operation, allowing you to focus on your projects without the burden of administrative tasks. We guarantee accurate submission and timely follow-up, helping you avoid penalties and maintain your competitive edge in the South African construction sector.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\cidb-annual-renewal.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "9rlbSVRpQvdx2EwZEelS",
@@ -117,7 +117,7 @@
     "price": 1000,
     "description": "VAT Deregistration is the official process of removing your business from the Value-Added Tax (VAT) register with the South African Revenue Service (SARS). This service is essential for businesses that no longer meet the minimum turnover threshold, have ceased trading, or have undergone a significant change in ownership or structure. By correctly deregistering, you ensure ongoing compliance with SARS regulations, avoid unnecessary VAT filings, and reduce your administrative burden, allowing you to focus on your business without compliance worries.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\vat-deregistration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "CnDHoUTGRIXNSmypQQMy",
@@ -127,7 +127,7 @@
     "price": 200,
     "description": "This service is designed for South African businesses and individuals who are registered for VAT but have had no taxable transactions (supplies or acquisitions) within a specific VAT period. Submitting a VAT201 Nil Return is crucial for maintaining compliance with SARS, even when no VAT is due or reclaimable. Our expert team handles the accurate preparation and electronic submission of your nil return, preventing potential penalties, fines, or de-registration due to non-compliance, allowing you to focus on your core business.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\vat201-return-submission-nil.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "CuTY31jG9sN2eItwbbKi",
@@ -137,7 +137,7 @@
     "price": 1150,
     "description": "CIDB Registration is essential for all contractors operating in the South African construction industry, enabling businesses to bid on public sector projects and demonstrate credibility. Our service is designed for both new and established construction companies seeking to navigate the complex application process without hassle. We ensure your business complies with all regulatory requirements, helping you unlock new opportunities and grow your enterprise with confidence and a valid CIDB grading.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\cidb-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "D0nfSezLRim55XkPSCYZ",
@@ -147,7 +147,7 @@
     "price": 450,
     "description": "Our comprehensive Annual Returns service ensures your registered company or close corporation in South Africa remains fully compliant with the Companies and Intellectual Property Commission (CIPC). This essential filing confirms your entity's active status, updates its information, and prevents potential deregistration or penalties. By entrusting us with your Annual Returns, you safeguard your company's good standing, allowing you to focus on growth while we handle the regulatory complexities efficiently and accurately.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\annual-returns.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "D3Hj4yhS2DEX4YIQfVcH",
@@ -157,7 +157,7 @@
     "price": 550,
     "description": "The Central Supplier Database (CSD) is crucial for any business wishing to provide goods or services to South African government entities. Our CSD Profile Updates service ensures your company's information on this national database is always current, accurate, and compliant with the latest regulations. This prevents tender disqualifications, reduces administrative burden, and ensures your business is always prepared to seize new public sector opportunities. We handle all necessary amendments, from basic contact details to banking and B-BBEE status, so you can focus on growing your business with confidence.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\csd-profile-updates.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "DExXq3CCX3MSvromXCLq",
@@ -167,7 +167,7 @@
     "price": 450,
     "description": "A Broad-Based Black Economic Empowerment (B-BBEE) Certificate is vital for South African businesses committed to economic transformation and social upliftment. This service assists enterprises, particularly those exempt from full verification (EMEs and QSEs with certain turnovers), in obtaining their B-BBEE certificate to demonstrate compliance with national legislation. By securing your certificate, you unlock significant opportunities, including eligibility for government tenders and corporate procurement, enhancing your business's competitive edge and demonstrating your commitment to inclusive economic growth in South Africa.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\bee-certificate.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "DMPz0z8NWUUeRigMGep0",
@@ -177,7 +177,7 @@
     "price": 650,
     "description": "This service handles the comprehensive preparation and accurate submission of your ITR14 Company Income Tax Return, specifically tailored for trading entities operating in South Africa. We ensure full compliance with SARS regulations, relieving you of the complex and time-consuming task of corporate tax filing. Our expert accountants meticulously review your financial data, calculate your tax liabilities, and ensure all necessary disclosures are made, helping you avoid penalties and maintain good standing with the tax authority. This service is ideal for businesses focused on trading activities that need professional assurance for their annual tax obligations.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\itr14-company-income-tax-return-trading-entities.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "DbCc38uq0dMfCIWbmmcx",
@@ -187,7 +187,7 @@
     "price": 950,
     "description": "Our Non-Profit Company Registration service simplifies the process of establishing your NPC, allowing you to focus on your organisation's mission. This service is ideal for charitable organisations, community projects, cultural groups, and any entity operating for public benefit rather than private financial gain in South Africa. We ensure all statutory requirements are met, providing your NPC with a legal identity, enhancing its credibility, and paving the way for easier access to funding and tax exemptions.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\non-profit-company-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "EZANZ4uSbVE1HKPAwq2q",
@@ -197,7 +197,7 @@
     "price": 200,
     "description": "Our EMP501 Nil Return Submission service ensures your business remains compliant with SARS, even when there's been no payroll activity during the tax year. The EMP501 Annual Reconciliation is a crucial annual submission, and if your business was registered for PAYE but paid no remuneration, a Nil return is required to avoid penalties. This service is ideal for dormant businesses, start-ups yet to employ, or those with temporary cessation of payroll, providing peace of mind that your tax obligations are met without delay.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\emp501-return-submission-nil.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "GQ3zzxRGW0MEFJNnqqNO",
@@ -207,7 +207,7 @@
     "price": 250,
     "description": "Our SARS Auto Assessment Review service provides a thorough examination of your pre-populated income tax assessment from the South African Revenue Service. Designed for individuals who have received an auto-assessment, this service ensures that all income, deductions, and credits are accurately reflected, helping you avoid overpaying tax or facing future compliance issues. We meticulously compare SARS's assessment against your financial records to identify any discrepancies or opportunities for optimisation, providing you with clarity and peace of mind.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\sars-auto-assessment-review.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "GVuEOIndMBYsuF5d6EVf",
@@ -217,7 +217,7 @@
     "price": 450,
     "description": "Our IRP6 Provisional Tax Return Filing service for Trading Entities is designed to help businesses in South Africa meet their tax obligations efficiently and accurately. Provisional tax is a method of paying income tax in advance, ensuring that taxpayers do not have a large tax debt on assessment. This service is crucial for all companies, close corporations, and other trading entities that earn taxable income. We meticulously calculate your estimated taxable income and prepare your IRP6 forms, ensuring compliance with SARS regulations and helping you avoid penalties and interest.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\irp6-provisional-tax-return-filing-for-trading-entities.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "GYmHD2cIX0z7xXNRua73",
@@ -227,7 +227,7 @@
     "price": 1200,
     "description": "The Remover of Goods in Bond Licence is essential for businesses involved in the transportation of dutiable goods between various customs-controlled areas within South Africa, without immediate payment of duties and taxes. This service is designed for transporters, logistics companies, and importers/exporters who need to move goods under bond. Our expert assistance streamlines the complex application process with SARS, helping you navigate the stringent requirements and secure your licence efficiently, thereby facilitating smoother operations and compliance in your supply chain.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\remover-of-goods-in-bond-licence-application.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "Gep0mXM6phvt0Zsx5Rsa",
@@ -237,7 +237,7 @@
     "price": 350,
     "description": "The Tax Clearance Certificate PIN, also known as a Tax Compliance Status PIN, is an essential document issued by the South African Revenue Service (SARS) that confirms an individual or entity's tax compliance status. This service is crucial for businesses bidding on tenders, individuals requiring financing, or anyone needing to demonstrate good standing with SARS. We streamline the application process, ensuring all your tax affairs are up-to-date, allowing you to obtain your PIN swiftly and hassle-free, thereby unlocking new opportunities and providing peace of mind.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\tax-clearance-certificate.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "HxbCre4dn6zshCaAP1Hj",
@@ -247,7 +247,7 @@
     "price": 1900,
     "description": "NCCA Registration is a vital step for businesses operating within specific regulated sectors in South Africa. This service is designed for entities seeking to legally operate and maintain compliance with NCCA standards. My Accountant streamlines the entire registration process, from preparing and submitting your application to liaising with the relevant authorities on your behalf. By entrusting us with your NCCA registration, you avoid common pitfalls, save valuable time, and ensure your business is fully compliant, allowing you to focus on your core operations with peace of mind.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\ncca-registration-services.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "IHthLO8QN4f9cWGkyH2a",
@@ -257,7 +257,7 @@
     "price": 1150,
     "description": "This service is specifically designed for individuals in South Africa facing complex tax situations, such as multiple income streams, substantial investments, foreign income, capital gains, or business income from sole proprietorships. Our expert team at My Accountant meticulously reviews all your financial data to ensure accurate calculation of your tax liability or refund, full compliance with SARS regulations, and optimisation of your tax position. We handle all complexities, providing peace of mind and freeing you from the burden of intricate tax declarations.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\complex-individual-income-tax-return-itr12.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "KwjNc95lgnOiL0JviIrN",
@@ -267,7 +267,7 @@
     "price": 1200,
     "description": "An Import Licence is a crucial document required by businesses and individuals in South Africa to legally import specific goods into the country. This service is designed for importers who need to comply with SARS and ITAC regulations, ensuring smooth customs clearance and avoiding penalties. We simplify the complex application process, assisting you with documentation, submission, and follow-ups to obtain your licence efficiently, allowing you to focus on your core business operations with peace of mind and full compliance.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\import-licence.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "LIvEC0PrAhfPRORJe7Tn",
@@ -277,7 +277,7 @@
     "price": 1400,
     "description": "Our Co-operative Society service provides comprehensive support for individuals and groups looking to form or manage a co-operative in South Africa. This service is ideal for communities, farmers, workers, or consumers aiming to pool resources and operate for the mutual benefit of their members. We guide you through the complexities of registration, ensuring your society adheres to all legal and regulatory requirements, fostering a sustainable and compliant operational framework for collective economic participation.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\co-operative-society.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "LvDQhiBfEJOdlbqFxY21",
@@ -287,7 +287,7 @@
     "price": 750,
     "description": "If your South African business employs staff, registering for PAYE (Pay As You Earn) with SARS is a mandatory requirement to ensure proper tax deductions and contributions. Our comprehensive PAYE registration service streamlines this crucial process, ensuring your business remains fully compliant with all relevant payroll tax legislation. We handle the entire application, freeing you to focus on your core operations while avoiding penalties and ensuring your employees' contributions are correctly managed from the outset.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\paye-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "MP4D0exEiLpgO6GkBo5F",
@@ -297,7 +297,7 @@
     "price": 1400,
     "description": "The COIDA Nature of Business Change service is essential for South African businesses whose operational activities have evolved since their initial registration with the Compensation Fund. Whether you've diversified, streamlined, or simply need to correct an outdated classification, accurately updating your 'Nature of Business' is crucial for compliance. This service is designed for employers who want to ensure their employees are covered correctly and that their assessment rates are fair and accurate, thereby avoiding potential penalties and ensuring proper benefits in case of workplace injury or illness.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\coida-nature-of-business-change.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "NYxujBcjPsVR6LuxMsWQ",
@@ -307,7 +307,7 @@
     "price": 1600,
     "description": "A Personal Liability Company (PLC) is a unique business structure in South Africa where directors are jointly and severally liable for the company's debts and liabilities. This structure is often chosen by professionals such as attorneys, accountants, and doctors, as it reinforces accountability and professionalism, which can enhance client trust. My Accountant provides comprehensive registration services, guiding you through the CIPC requirements and ensuring your PLC is established correctly and efficiently, allowing you to focus on your professional practice with full legal compliance.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\personal-liability-company-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "Q3BZOg3h9UE3SJYUOgxN",
@@ -317,7 +317,7 @@
     "price": 650,
     "description": "Our Company Name Change service is designed for existing South African companies looking to legally update their registered business name. Whether you're rebranding, correcting a name, or undergoing a merger, our experts handle the entire process efficiently. We ensure all necessary documentation is correctly prepared and submitted to CIPC, saving you time and preventing potential delays. Benefit from a hassle-free transition, maintaining your company's legal standing and allowing you to focus on your business's future.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\company-name-change.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "QYEKK5Wu4RC084J8IWoI",
@@ -327,7 +327,7 @@
     "price": 1150,
     "description": "Our CIPC Company Deregistration service assists businesses in South Africa with the formal process of closing down a company. This service is ideal for companies that are no longer trading, have no assets or liabilities, or are dormant and wish to avoid ongoing compliance costs. By formally deregistering with CIPC, directors can mitigate future legal and financial risks associated with inactive entities, ensuring a clean exit and compliance with South African corporate laws. We handle all necessary documentation and submissions, making the process efficient and stress-free for you.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\cipc-company-deregistration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "Rc1Oa1zDwzLk40JplTjM",
@@ -337,7 +337,7 @@
     "price": 2950,
     "description": "Our Sole Proprietor Income Tax Return (ITR12) service is specifically designed for self-employed individuals and small business owners in South Africa operating as sole proprietors. We meticulously prepare and submit your annual ITR12 to SARS, ensuring all your income, expenses, and allowable deductions are correctly accounted for. This service helps you comply with tax regulations, maximise your tax efficiencies, avoid penalties, and provides complete peace of mind, allowing you to focus on your business.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\sole-proprietor-income-tax-return-itr12.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "SGGudvWwMnSoJ2ysreiR",
@@ -347,7 +347,7 @@
     "price": 750,
     "description": "A well-maintained Share Register is crucial for any company in South Africa, ensuring legal compliance, transparent ownership records, and smooth corporate governance. This service is designed for both new and established businesses that need to accurately track share allotments, transfers, and ownership details as required by CIPC. By entrusting My Accountant with your Share Register, you benefit from meticulous record-keeping, peace of mind regarding compliance, and readily available, up-to-date shareholder information essential for audits, investor relations, and statutory filings.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\share-register.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "Slc1x2GWdGu9rMne4J86",
@@ -357,7 +357,7 @@
     "price": 1600,
     "description": "Our Company Registration Package simplifies the complex process of establishing a new business in South Africa. Designed for entrepreneurs, startups, and small to medium enterprises (SMEs), this service ensures your company is legally registered with the Companies and Intellectual Property Commission (CIPC). We handle all the necessary paperwork and submissions, providing you with a fully compliant entity ready to trade. Benefit from a hassle-free experience, expert guidance, and the peace of mind that your business foundation is solid, allowing you to focus on growth and operations.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\tender-ready-company-registration-package.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "TFnJoFqAe5cI7eTrkFjx",
@@ -367,7 +367,7 @@
     "price": 1200,
     "description": "UIF Registration is a crucial step for all South African employers to ensure compliance with the Unemployment Insurance Fund Act and provide essential social security benefits for their employees. This service is designed for businesses of all sizes that employ staff and need to legally register with the Department of Labour to contribute to the UIF. By registering, you not only meet your statutory obligations but also enable your employees to claim benefits during periods of unemployment, maternity leave, illness, or adoption leave. We streamline the often-complex registration process, handling all paperwork and submissions to ensure your business is fully compliant and your employees are covered without hassle.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\uif-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "Tb4u78rLkcRceFy1rKxv",
@@ -377,7 +377,7 @@
     "price": 1500,
     "description": "Our Periodic VAT Calculation and Submission service provides comprehensive support for South African businesses in managing their Value Added Tax obligations. We meticulously calculate your input and output VAT, perform necessary reconciliations, and handle the accurate submission of your VAT returns to the South African Revenue Service (SARS) for each filing period. This essential service is designed for VAT-registered businesses aiming to ensure compliance, minimise risks of penalties, and free up valuable time by entrusting their complex VAT responsibilities to our experienced professionals.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\periodic-vat-calculation-and-submission.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "TcoAGJ4BtWKMP9Vn4NTA",
@@ -387,7 +387,7 @@
     "price": 350,
     "description": "A Tax Clearance Certificate (TCC) - now officially issued as a digital Tax Compliance Status (TCS) PIN by SARS - is a crucial document confirming your tax compliance. This service is essential for individuals, businesses, and trusts in South Africa who need to tender for contracts, emigrate, apply for foreign investment allowances, or engage in other transactions requiring proof of good tax standing. We streamline the eFiling application process, ensure your tax affairs are fully in order, and retrieve your active TCS PIN without unnecessary delays, allowing you to proceed with your important plans confidently.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\tax-clearance-pin.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "UvvUtdR33HTFJNZpWbk5",
@@ -397,7 +397,7 @@
     "price": 7500,
     "description": "For VAT-registered businesses in South Africa, submitting accurate annual financial statements is crucial for SARS compliance and informed decision-making. Our expert service provides meticulously prepared financial statements, tailored to meet all regulatory requirements, giving you a clear financial overview and peace of mind. This service helps business owners understand their financial health, streamline tax submissions, and meet their statutory obligations efficiently, freeing up valuable time to focus on growth.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\annual-financial-statements-for-vat-registered-businesses.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "VUznJOHCTORCAUx5Epqe",
@@ -407,7 +407,7 @@
     "price": 1950,
     "description": "Navigating the regulatory landscape for credit providers in South Africa requires meticulous attention to detail. Our NCR Form 40 Application & Compliance service is designed for registered credit providers who need to submit their annual compliance report to the National Credit Regulator (NCR). This essential service ensures your business meets its statutory obligations under the National Credit Act, maintaining good standing and avoiding potential penalties. We handle the intricacies of data collation, form completion, and accurate submission, giving you peace of mind and allowing you to focus on your core business operations. Our expertise guarantees accuracy, timeliness, and full adherence to the latest NCR guidelines, safeguarding your compliance status.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\ncr-form-40-application--compliance.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "YDz8BQsJ2QeM6VtSx3wv",
@@ -417,7 +417,7 @@
     "price": 4950,
     "description": "Our BEI Setup & Demonstration service ensures your South African business is correctly set up with its essential Business Entity Identifier. This service is designed for new and established businesses that need to accurately identify themselves in various financial and regulatory systems. We handle the technical setup and provide a comprehensive demonstration, empowering you to navigate compliance, streamline transactions, and avoid potential penalties, ultimately ensuring your operations are compliant and efficient from the outset.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\bei-setup-demonstration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "ZcTUdYjTqKGkF8IM3k4n",
@@ -427,7 +427,7 @@
     "price": 1200,
     "description": "Facing unexpected interest or penalties from SARS can be stressful and financially burdensome. Our service is designed to help you formally apply for the reduction or waiver of these charges, provided there are valid reasons recognized by SARS. This service is ideal for taxpayers who have incurred penalties or interest due to administrative errors, unforeseen financial difficulties, or other reasonable circumstances. We handle the complex application process, ensuring all required documentation and motivations are professionally prepared and submitted, helping to alleviate your tax burden and ensure compliance.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\remission-of-sars-interest-and-penalties.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "Zrtk9kKQgjOVzKc4Xpmi",
@@ -437,7 +437,7 @@
     "price": 1600,
     "description": "Our Trust Income Tax Registration service ensures your trust is legally registered with the South African Revenue Service (SARS) for income tax purposes. This crucial service is designed for trustees, beneficiaries, and individuals in South Africa establishing a trust for estate planning, asset protection, or managing various assets. By formally registering your trust, you ensure full compliance with South African tax laws, avoid potential penalties, and facilitate transparent financial management and reporting, laying a solid foundation for the trust's financial operations.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\trust-income-tax-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "aB3sBqTw9X1THHOimdKL",
@@ -447,7 +447,7 @@
     "price": 3000,
     "description": "Our Annual Financial Statements (AFS) drafting service provides professional preparation of your business's financial health report. This service is ideal for small to medium enterprises (SMEs), sole proprietors, and companies in South Africa that need to submit accurate and compliant financial statements to SARS, CIPC, or other stakeholders. By entrusting us with the drafting, you ensure accuracy, adherence to IFRS for SMEs or relevant standards, and free up your time to focus on core business operations, avoiding potential penalties and ensuring transparent financial reporting.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\annual-financial-statements-draft-and-sign-off-only.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "axdOkw4ih9ZZwxM6llgp",
@@ -457,7 +457,7 @@
     "price": 450,
     "description": "Our Accountant Appointment Letter service provides you with a legally sound, professionally drafted document to formally appoint your chosen accountant or accounting firm. This service is ideal for businesses, individuals, trusts, and non-profit organisations in South Africa who require a clear, written agreement for accounting services, ensuring compliance with regulatory bodies like CIPC and SARS. It establishes a clear scope of work, responsibilities, and terms, fostering a transparent and professional relationship from the outset.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\accountant-appointment-letter.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "bJcEEaJUlz3up4LzOF20",
@@ -467,7 +467,7 @@
     "price": 350,
     "description": "Navigating provisional tax for your trading entity can be complex. Our Provisional Tax Return (IRP6) service is designed for South African businesses, including companies, trusts, and sole proprietors, who earn income other than a salary. We ensure accurate and timely submission of your IRP6 returns to SARS, calculating your estimated taxable income and tax liability to help you avoid penalties and interest. With My Accountant, you gain peace of mind knowing your business remains compliant and your tax obligations are managed efficiently, allowing you to focus on growing your operations.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\provisional-tax-return-irp6-for-trading-entities.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "c9fINj7coxAI1XlediNq",
@@ -477,7 +477,7 @@
     "price": 550,
     "description": "A Tax Directive is a crucial document issued by SARS that authorises an employer or fund to deduct income tax at a specific rate, different from the standard PAYE tables. This service is essential for individuals receiving specific types of income, such as retirement fund withdrawals, lump sums from provident or pension funds, severance packages, or certain annuity payments, where standard tax rates may not apply. By securing a Tax Directive through My Accountant, you ensure accurate tax deductions, prevent over or under-payment, and maintain full compliance with SARS regulations, saving you potential future headaches and administrative burden.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\tax-directive-application.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "d7tkxTkp5hxzPu7LYjYQ",
@@ -487,7 +487,7 @@
     "price": 1000,
     "description": "Our Income Tax Deregistration service assists individuals and entities in South Africa to formally cease their income tax obligations with the South African Revenue Service (SARS). This service is ideal for those who are no longer earning taxable income, deceased estates, companies or trusts that have become dormant, or individuals permanently emigrating. By officially deregistering, you can avoid the administrative burden of filing unnecessary tax returns, prevent potential penalties for non-compliance, and maintain a clear tax status with SARS.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\income-tax-deregistrations.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "dc1NQSthVqAEAZ4NS302",
@@ -497,7 +497,7 @@
     "price": 1950,
     "description": "Operating a foreign business in South Africa requires formal registration as an external company with the Companies and Intellectual Property Commission (CIPC). This service is designed for international businesses looking to establish a legal presence and conduct operations within South Africa, ensuring full compliance with local corporate laws. We handle the intricate registration process, allowing you to focus on your core business expansion while we navigate the regulatory landscape. This ensures your business can legally enter the South African market, benefit from local opportunities, and avoid potential penalties.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\external-company-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "dm7CVbkmccQlurYX2Fel",
@@ -507,7 +507,7 @@
     "price": 200,
     "description": "This service is designed for provisional taxpayers, including individuals, companies, and trusts in South Africa, who are required to submit an IRP6 Provisional Tax Return but have no taxable income to declare for the period. Our expert team ensures your 'nil' return is accurately prepared and timeously submitted to SARS, preventing potential penalties and maintaining your tax compliance without the stress. It's the ideal solution for those who need to fulfill their provisional tax obligations even when no tax is payable.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\irp6-provisional-tax-return-nil.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "ePXg4RtNWdzfZ7XBOuV4",
@@ -517,7 +517,7 @@
     "price": 100,
     "description": "CIPC annual returns are mandatory for all registered companies and close corporations in South Africa, ensuring compliance with the Companies Act. Our CIPC Annual Fees service is designed to help businesses, from SMEs to larger corporations, seamlessly fulfill their statutory obligations. We handle the submission of your annual returns and the payment of associated CIPC fees, preventing penalties, deregistration, and maintaining your company's good standing. Avoid the hassle and potential pitfalls of late submissions, ensuring your business stays compliant and operational without interruption.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\cipc-annual-fees.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "eiVENszgiQaDcgYC6ZVc",
@@ -527,7 +527,7 @@
     "price": 1400,
     "description": "The National Credit Regulator (NCR) Registration is essential for any individual or business in South Africa offering credit, credit facilities, or acting as a credit bureau, debt counsellor, or payment distribution agent. This service is designed to help you navigate the complexities of the National Credit Act (NCA) and secure your mandatory registration. By obtaining your NCR Registration through My Accountant, you ensure legal compliance, avoid penalties, and establish credibility with your clients, allowing you to operate your credit-providing business confidently and lawfully.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\ncr-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "fZnuRec18mQ7IBivhuPw",
@@ -537,7 +537,7 @@
     "price": 350,
     "description": "The VAT201 form is essential for all VAT-registered trading companies in South Africa, declaring your Value-Added Tax to SARS. Our expert service ensures your VAT201 returns are meticulously prepared and submitted on time, preventing costly penalties and ensuring full compliance with South African tax regulations. We handle the complexities of VAT calculations, input and output tax, and any necessary adjustments, allowing you to focus on growing your business with the confidence that your VAT obligations are professionally managed.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\vat201-for-trading-companies.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "g4ZEzUHvCSah7A16NBA8",
@@ -547,7 +547,7 @@
     "price": 1350,
     "description": "Our Clearing Agent Licence service is designed for businesses in South Africa looking to operate legally and efficiently as customs clearing agents. This licence is essential for companies involved in importing, exporting, freight forwarding, or logistics that wish to handle customs declarations and processes on behalf of clients. We streamline the often complex application process, ensuring your business meets all South African Revenue Service (SARS) Customs requirements, allowing you to avoid delays, fines, and operational disruptions while enhancing your professional credibility in the trade industry.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\clearing-agent-licence.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "irHPclbTh9T4R2TTrwlM",
@@ -557,7 +557,7 @@
     "price": 200,
     "description": "For employers registered for PAYE, UIF, and SDL, submitting a monthly EMP201 return to SARS is mandatory, even if there was no payroll activity or liability in a specific month. Our EMP201 Nil Return Submission service ensures that your business remains fully compliant with SARS regulations, preventing potential penalties for non-submission. This service is essential for businesses experiencing quiet periods or those with no employees for a particular month, ensuring your tax records are accurately maintained and your good standing with SARS is preserved without hassle.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\emp201-return-submission-nil.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "kf510Lcf0sfkjljS3jgJ",
@@ -567,7 +567,7 @@
     "price": 650,
     "description": "This service is designed for South African companies needing to officially remove a director from their CIPC records. Whether due to resignation, retirement, or other reasons, our expert team ensures a smooth, compliant, and hassle-free process. We handle all necessary CIPC filings, ensuring your company's director details are accurately updated, protecting your business from potential legal and administrative issues, and maintaining good standing with regulatory bodies. This service is ideal for businesses looking for professional assistance in managing their corporate governance and compliance efficiently.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\remove-director.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "lZQy7u2MMAj4XnuTGJdl",
@@ -577,7 +577,7 @@
     "price": 550,
     "description": "Our Company Address Change service is designed for existing South African companies looking to legally update their registered business address. Whether you're rebranding, correcting a name, or undergoing a merger, our experts handle the entire process efficiently. We ensure all necessary documentation is correctly prepared and submitted to CIPC, saving you time and preventing potential delays. Benefit from a hassle-free transition, maintaining your company's legal standing and allowing you to focus on your business's future.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\company-address-change.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "mgPZrHAbRSxpBcKEwcDQ",
@@ -587,7 +587,7 @@
     "price": 550,
     "description": "The NBC Provident Fund is a crucial benefit for employees in South Africa, offering a structured savings and insurance solution for retirement and unforeseen events. Our service simplifies the often-complex registration process for employers, ensuring all necessary documentation is correctly submitted and processed with the National Bargaining Council. This service is ideal for businesses looking to comply with industry regulations, enhance employee benefits, and provide a secure financial future for their workforce without the administrative burden.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\nbc-provident-fund-company-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "p7Mk5I4CCCsN79Sk11zO",
@@ -597,7 +597,7 @@
     "price": 350,
     "description": "The EMP201 declaration is crucial for South African trading companies that employ staff, as it reports and reconciles your Pay-As-You-Earn (PAYE), Unemployment Insurance Fund (UIF), and Skills Development Levy (SDL) liabilities to SARS. This service is designed to help trading businesses maintain strict compliance with tax regulations, accurately calculate their monthly obligations, and submit declarations timeously, thereby avoiding penalties and interest. By entrusting your EMP201 submissions to My Accountant, you gain peace of mind knowing your payroll tax compliance is handled efficiently and expertly, allowing you to focus on your core business operations.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\emp201-submission-for-trading-companies.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "qTwBDm18HOcJez1m7L3X",
@@ -607,7 +607,7 @@
     "price": 1800,
     "description": "My Accountant specialises in assisting South African contractors and construction companies with their CIDB grading upgrades. Whether you're looking to move from Grade 2 to Grade 9, our expert team navigates the complex requirements of the Construction Industry Development Board to ensure a smooth and successful application. A higher CIDB grading significantly enhances your company's capacity to bid on and secure more substantial government and private sector projects, thereby boosting your growth potential and competitive edge in the market.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\cidb-upgrades-grades-2-9.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "r4HuAtPQePYaCYwMbEOw",
@@ -617,7 +617,7 @@
     "price": 350,
     "description": "A share certificate serves as crucial legal proof of ownership for shares in a company. This service is essential for directors and shareholders of private companies in South Africa who need to formalise or update their shareholdings. My Accountant ensures accurate preparation and issuance of share certificates, providing clarity on company ownership, facilitating future transactions like share transfers, and ensuring compliance with the Companies Act. This document is vital for maintaining proper corporate governance and investor confidence.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\share-certificate.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "s63fNm5jWPH3HKYEuiCG",
@@ -627,7 +627,7 @@
     "price": 1800,
     "description": "PBO Registration is essential for non-profit organisations (NPOs), trusts, and companies in South Africa that conduct public benefit activities and wish to receive tax exemptions from SARS. This status allows your organisation to be exempt from income tax, donations tax, and potentially other taxes, significantly boosting your ability to channel resources directly into your charitable or social impact initiatives. Furthermore, obtaining PBO status and Section 18A approval enables your organisation to issue tax-deductible receipts to donors, encouraging greater financial support. Our service guides you through the entire application process, ensuring your organisation meets all SARS requirements for this crucial tax-exempt status, allowing you to focus on making a difference.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\pbo-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "spxnYsCmB6hXK0VcmN4O",
@@ -637,7 +637,7 @@
     "price": 5000,
     "description": "Our Annual Financial Statements service is meticulously designed for South African businesses that are not registered for VAT. These essential statements are vital for evaluating your business's financial health, supporting loan applications, and ensuring full compliance with local financial regulations. We meticulously compile your income statements, balance sheets, and cash flow statements, providing a clear and accurate overview of your financial performance and position. This empowers you to make informed decisions, maintain good financial standing, and confidently meet your reporting obligations.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\annual-financial-statements-non-vat-registered.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "uOv7o5tv6NFW1kANqJFf",
@@ -647,7 +647,7 @@
     "price": 550,
     "description": "The EMP501 Annual Reconciliation is a mandatory declaration for all South African employers, including trading companies, to submit to SARS. This vital submission reconciles your monthly PAYE, UIF, and SDL contributions (declared via EMP201s) with the IRP5/IT3(a) certificates issued to your employees for the tax year. Our service ensures your trading company's EMP501 submission is accurate, complete, and submitted on time, helping you avoid penalties, maintain good standing with SARS, and provide correct tax certificates to your staff with confidence.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\emp501-annual-reconciliation-for-trading-companies.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "uvkujgUBTIbIwXLdE4Tu",
@@ -657,7 +657,7 @@
     "price": 1400,
     "description": "Ensure your business complies with SARS requirements by registering for VAT seamlessly. Our VAT Registration service is ideal for businesses in South Africa exceeding or expecting to exceed the R1 million turnover threshold in a 12-month period, or those that voluntarily choose to register for strategic reasons. We handle the entire application process, from document preparation to submission and follow-up, freeing you to focus on your core operations while avoiding penalties and ensuring legitimate tax compliance.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\vat-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "wHxe0OnfBPbDdLJemVQy",
@@ -667,7 +667,7 @@
     "price": 1200,
     "description": "For South African businesses looking to expand their reach into global markets, obtaining an Export Licence is a crucial step to legally and smoothly export goods. This service is designed to guide you through the complex application process, ensuring all necessary documentation is correctly prepared and submitted to the relevant authorities. My Accountant helps you navigate regulations, minimizing delays and allowing you to focus on your core business while we ensure your export operations are fully compliant, facilitating seamless international trade and unlocking new growth opportunities for your enterprise.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\export-licence.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "x1SPV4bLK73lzfk90Nem",
@@ -677,7 +677,7 @@
     "price": 5000,
     "description": "Our Management Accounts service provides detailed, customised financial reports beyond standard statutory requirements, designed specifically for South African SMEs and growing businesses. These accounts empower decision-makers with a clear, up-to-date view of their financial health, enabling better strategic planning, performance monitoring, and identification of key trends. By transforming raw data into actionable insights, we help you make informed decisions to optimise cash flow, control costs, and drive sustainable growth for your enterprise.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\management-accounts.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "xC72zwb29G4nIsP6mAkT",
@@ -687,7 +687,7 @@
     "price": 1400,
     "description": "COIDA (Compensation for Occupational Injuries and Diseases Act) registration is crucial for any employer in South Africa to ensure their employees are covered in case of work-related injuries, illnesses, or death. Our comprehensive COIDA Registration service streamlines the entire process, from submitting the necessary documentation to obtaining your letter of good standing. This service is designed for all businesses, regardless of size, that employ one or more individuals, protecting both your business from potential liabilities and your employees with essential benefits. By registering, you fulfill a legal obligation and contribute to a safer, more secure working environment, ensuring peace of mind and compliance with South African labour laws.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\coida-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "y9todL8dDtgBhZXZcZOh",
@@ -697,7 +697,7 @@
     "price": 650,
     "description": "This service is designed for South African businesses needing to formally amend information related to their company directors, such as changes in residential addresses, appointment of new directors, resignation of existing directors, or other personal detail updates. Ensuring your company's director records are current with the Companies and Intellectual Property Commission (CIPC) is crucial for legal compliance, maintaining good standing, and avoiding potential penalties. Our expert team at My Accountant handles the entire amendment process efficiently, allowing you to focus on your core business operations while we ensure all regulatory requirements are met accurately.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\director-amendment.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "yDT0LbUqByvxmY3w5FjC",
@@ -707,7 +707,7 @@
     "price": 950,
     "description": "Our CSD Registration service helps South African businesses comply with mandatory government procurement requirements. The Central Supplier Database (CSD) is a crucial online platform where all suppliers wishing to do business with any government institution – be it national, provincial, or local – must register. This registration is a prerequisite for tendering and securing contracts, ensuring transparency and efficiency in public sector procurement. By leveraging our expertise, you can navigate the complexities of the CSD system effortlessly, ensuring your business is fully compliant and positioned to bid for lucrative government contracts without delay.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\csd-registration.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "ydjOv9vPsc1w6nbynlAN",
@@ -717,7 +717,7 @@
     "price": 350,
     "description": "Our ITR14 Company Income Tax Return (Nil) filing service is designed for South African companies registered for income tax that had no taxable income, dormant status, or no business activity during a specific tax year. Even without taxable income, SARS requires all registered companies to submit an annual ITR14 return to maintain compliance and avoid penalties. This service ensures your company fulfils its statutory obligations accurately and on time, preventing fines and safeguarding its good standing with SARS. We handle the entire submission process, providing peace of mind and freeing up your time to focus on your business.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\itr14-company-income-tax-return-nil.png",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "id": "yfpVUflmLZFBYNOWrhRU",
@@ -727,6 +727,6 @@
     "price": 1200,
     "description": "Our NPO Registration service guides you through the entire process of establishing a Non-Profit Organisation in South Africa. This service is ideal for individuals or groups looking to formalise their charitable, cultural, educational, or social welfare initiatives, enabling them to operate legally, apply for funding, and gain public trust. We handle all the necessary paperwork and submissions to ensure your organisation complies with the Department of Social Development requirements, allowing you to focus on your mission with confidence and peace of mind.",
     "localImagePath": "c:\\myacc\\scratch\\product-images\\npo-registration.png",
-    "status": "pending"
+    "status": "completed"
   }
 ]
