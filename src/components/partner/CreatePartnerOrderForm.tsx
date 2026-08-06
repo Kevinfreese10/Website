@@ -82,7 +82,7 @@ const formatPrice = (price: number) => {
 export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCreated: () => void }) {
   const router = useRouter();
   const { user: partner } = useAuth();
-  const { isGrowthActive } = usePartner();
+  const { isGrowthActive, hasPlatformFee } = usePartner();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -439,14 +439,14 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
     }
   }
 
-  if (isGrowthActive && !hasBankingDetails) {
+  if (hasPlatformFee && !hasBankingDetails) {
       return (
           <div className="py-8 text-center space-y-4">
               <Alert variant="destructive" className="text-left">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Action Required</AlertTitle>
                   <AlertDescription>
-                      You must configure your <strong>Practice Banking Details</strong> in your profile before you can create client orders.
+                      You must configure your <strong>Practice Banking Details</strong> in your profile before you can create client orders on your storefront.
                   </AlertDescription>
               </Alert>
               <Button asChild variant="outline"><Link href="/partner/profile">Update Banking Details</Link></Button>
