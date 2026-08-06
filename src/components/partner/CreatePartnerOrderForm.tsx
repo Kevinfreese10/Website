@@ -82,7 +82,7 @@ const formatPrice = (price: number) => {
 export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCreated: () => void }) {
   const router = useRouter();
   const { user: partner } = useAuth();
-  const { isGrowthActive, hasPlatformFee } = usePartner();
+  const { hasPlatformFee } = usePartner();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -137,7 +137,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
   });
 
   useEffect(() => {
-    if (partner && !isGrowthActive) {
+    if (partner && !hasPlatformFee) {
         const nameParts = (partner.name || '').split(' ');
         const fName = nameParts[0] || 'Partner';
         const lName = nameParts.slice(1).join(' ') || 'Owner';
@@ -146,7 +146,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
         form.setValue('customerEmail', partner.email || '');
         form.setValue('customerPhone', partner.contactNumber || '0820000000');
     }
-  }, [partner, isGrowthActive, form]);
+  }, [partner, hasPlatformFee, form]);
 
   const watchedEmail = form.watch('customerEmail');
 
@@ -164,7 +164,6 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
             let found = false;
 
             for (const colName of collectionsToTry) {
-                // Perform case-insensitive search using OR for exact and lowercase versions
                 const q = query(
                     collection(db, colName), 
                     or(
@@ -183,7 +182,6 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                         id: snap.docs[0].id 
                     });
 
-                    // Auto-populate fields
                     const nameParts = fullName.split(' ');
                     form.setValue('customerFirstName', nameParts[0] || '');
                     form.setValue('customerLastName', nameParts.slice(1).join(' ') || '');
@@ -247,7 +245,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
         const basePrice = Math.max(override?.price ?? retailPrice, retailPrice);
         const resellerPrice = selectedService.resellerPrice || retailPrice * 0.80;
         form.setValue(`items.${index}.description`, override?.title || selectedService.title);
-        form.setValue(`items.${index}.price`, isGrowthActive ? basePrice : resellerPrice);
+        form.setValue(`items.${index}.price`, hasPlatformFee ? basePrice : resellerPrice);
         form.setValue(`items.${index}.resellerPrice`, resellerPrice);
         form.setValue(`items.${index}.retailFloorPrice`, retailPrice);
         form.setValue(`items.${index}.discountType`, 'fixed');
@@ -274,13 +272,13 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
   async function onSubmit(values: CreatePartnerOrderFormValues) {
     if (!partner || !partnerId) return;
 
-    if (isGrowthActive && !hasBankingDetails) {
+    if (hasPlatformFee && !hasBankingDetails) {
         toast({ title: 'Banking Details Missing', description: 'Please complete your practice banking details in your profile.', variant: 'destructive'});
         return;
     }
 
     setIsLoading(true);
-    toast({ title: 'Processing Order...', description: 'Checking user profile and creating order.' });
+    toast({ title: 'Processing Order...', description: 'Creating order.' });
 
     try {
         const email = values.customerEmail.toLowerCase().trim();
@@ -288,10 +286,9 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
         let isNewUser = false;
         let generatedPassword = null;
 
-        if (isGrowthActive) {
+        if (hasPlatformFee) {
             finalUserId = linkedUser?.id || null;
 
-            // Final verification check in case debounce didn't catch it
             if (!finalUserId) {
                 const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
                 for (const colName of collectionsToTry) {
@@ -366,7 +363,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
             clientTotal: total,
             status: 'Pending Payment',
             originalOrderId: null,
-            isOutsourced: !isGrowthActive,
+            isOutsourced: !hasPlatformFee,
             discountAmount: null,
             discountCode: null,
             source: 'Partner',
@@ -374,7 +371,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
 
         await setDoc(doc(db, 'orders', orderId), orderData);
 
-        if (isGrowthActive) {
+        if (hasPlatformFee) {
             try {
                 await sendOrderConfirmationEmailAction({
                     orderData: JSON.parse(JSON.stringify(orderData)),
@@ -393,7 +390,6 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
             }
             onOrderCreated();
         } else {
-            // For Free Tier: Redirect immediately to PayFast!
             const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
             const payfastForm = document.createElement('form');
             payfastForm.method = 'POST';
@@ -457,7 +453,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-1 pr-4">
-        {isGrowthActive ? (
+        {hasPlatformFee ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2 space-y-2">
                     <FormField control={form.control} name="customerEmail" render={({ field }) => ( 
@@ -490,12 +486,12 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                 <FormField control={form.control} name="customerPhone" render={({ field }) => ( <FormItem><FormLabel>Client's Phone</FormLabel><FormControl><Input placeholder="0821234567" {...field} /></FormControl><FormMessage /></FormItem> )} />
             </div>
         ) : (
-            <div className="p-4 bg-muted/40 rounded-lg border text-sm text-slate-700 space-y-1">
+            <div className="p-4 bg-slate-50 rounded-xl border text-sm text-slate-700 space-y-1">
                 <p className="font-bold flex items-center gap-2 text-primary">
                     <CheckCircle2 className="h-4 w-4 text-primary" /> Ordering for Practice Account
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                    As a Free Partner, your orders are placed directly under your practice details: <strong>{partner?.companyName || partner?.name} ({partner?.email})</strong>.
+                    As a Free Partner, orders are placed at <strong>20% wholesale discount</strong> directly under your practice account: <strong>{partner?.companyName || partner?.name} ({partner?.email})</strong>.
                 </p>
             </div>
         )}
@@ -511,7 +507,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                     
                     return (
                     <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-x-3 gap-y-2 p-3 border rounded-md relative items-start">
-                         <div className={isGrowthActive ? "md:col-span-4 space-y-2" : "md:col-span-8 space-y-2"}>
+                         <div className={hasPlatformFee ? "md:col-span-4 space-y-2" : "md:col-span-8 space-y-2"}>
                             <FormField
                                 control={form.control}
                                 name={`items.${index}.serviceId`}
@@ -529,10 +525,10 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                                 )}
                             />
                          </div>
-                        <div className={isGrowthActive ? "md:col-span-1" : "md:col-span-2"}>
+                        <div className={hasPlatformFee ? "md:col-span-1" : "md:col-span-2"}>
                              <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => ( <FormItem><FormLabel>Qty</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
                          </div>
-                        {isGrowthActive && (
+                        {hasPlatformFee && (
                             <>
                                 <div className="md:col-span-2">
                                      <FormField control={form.control} name={`items.${index}.price`} render={({ field }) => ( 
@@ -569,7 +565,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                                  </div>
                             </>
                         )}
-                         <div className={isGrowthActive ? "md:col-span-1 flex flex-col items-end justify-center h-full pt-8" : "md:col-span-2 flex flex-col items-end justify-center h-full pt-8"}>
+                         <div className={hasPlatformFee ? "md:col-span-1 flex flex-col items-end justify-center h-full pt-8" : "md:col-span-2 flex flex-col items-end justify-center h-full pt-8"}>
                             <p className="text-right w-full font-semibold text-sm">{formatPrice(getLineItemTotal(lineItem))}</p>
                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive" disabled={fields.length === 1}><Trash className="h-4 w-4" /></Button>
                          </div>
@@ -588,14 +584,14 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
         
         <div className="flex justify-end items-start gap-8">
             <div className="text-right">
-                <p className="text-sm text-muted-foreground">{isGrowthActive ? "Practice Total (Client Facing)" : "Total Price"}</p>
+                <p className="text-sm text-muted-foreground">{hasPlatformFee ? "Practice Total (Client Facing)" : "Wholesale Total (20% Off)"}</p>
                 <p className="text-2xl font-bold text-primary">{formatPrice(total)}</p>
             </div>
         </div>
 
         <Button type="submit" className="w-full" size="lg" disabled={isLoading || !form.formState.isValid || total === 0}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? 'Creating Order...' : (isGrowthActive ? 'Create Order & Send for Payment' : 'Create Order & Pay Now')}
+            {isLoading ? 'Creating Order...' : (hasPlatformFee ? 'Create Order & Send for Payment' : 'Create Order & Pay Now')}
         </Button>
       </form>
     </Form>
