@@ -43,13 +43,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: title,
     description: description,
     robots: {
-      index: false,
+      index: true,
       follow: true,
     },
     alternates: {
-      // Point canonical to main site — partner storefronts are white-label
-      // copies; the main site is the authoritative source.
-      canonical: SITE_URL,
+      canonical: `${SITE_URL}/p/${slug}`,
     },
     openGraph: {
       title: title,
