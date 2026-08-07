@@ -326,6 +326,45 @@ export async function POST(req: NextRequest) {
                   status: 'Active'
               });
               console.log(`[Partner Platform Fee] Set platformFeePaid=true for user ${currentOrderData.userId}`);
+
+              // Send Storefront Unlocked Welcome Email
+              try {
+                  const partnerSnap = await adminDb.collection('users').doc(currentOrderData.userId).get();
+                  if (partnerSnap.exists) {
+                      const partnerUser = partnerSnap.data() as User;
+                      const storefrontUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://myacc.co.za'}/p/${(partnerUser as any).practiceSlug || partnerUser.id}`;
+                      const emailHtml = `
+                          <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                              <h2 style="color: #214392; margin-top: 0;">🎉 Practice Storefront Unlocked!</h2>
+                              <p>Dear ${partnerUser.name || 'Partner'},</p>
+                              <p>Thank you for completing your Platform Access payment. Your digital accounting practice storefront is now <strong>Active & Live</strong>!</p>
+                              
+                              <div style="background-color: #f1f5f9; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                                  <p style="margin: 0 0 8px 0;"><strong>Your Practice Link:</strong></p>
+                                  <a href="${storefrontUrl}" style="color: #214392; font-weight: bold; word-break: break-all;">${storefrontUrl}</a>
+                              </div>
+
+                              <h4 style="color: #0f172a; margin-bottom: 8px;">What you can do now:</h4>
+                              <ul>
+                                  <li>Set custom service retail prices & markups in your Partner Portal</li>
+                                  <li>Share your white-labeled client storefront link with prospective clients</li>
+                                  <li>Fulfill orders yourself or outsource directly to My Accountant at wholesale rates</li>
+                              </ul>
+
+                              <p style="margin-top: 24px;">Need help setting up custom domains or pricing? Log into your portal to get started.</p>
+                              
+                              <p style="margin-top: 30px; font-size: 13px; color: #64748b;">Warm regards,<br/><strong>The My Accountant Team</strong></p>
+                          </div>
+                      `;
+                      await sendEmail({
+                          to: partnerUser.email,
+                          subject: '🎉 Your Practice Storefront is Now Active & Unlocked!',
+                          html: emailHtml,
+                      });
+                  }
+              } catch (e) {
+                  console.error('[Partner Platform Fee] Failed to send storefront activation email:', e);
+              }
           }
           
           if (currentOrderData.originalOrderId) {

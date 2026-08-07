@@ -221,8 +221,8 @@ export default function AdminOrderDetailsPage() {
 
       const isOutsourced = !!order.resellerId;
       const isToClient = !(isOutsourced && order.documentContact === 'partner');
-      const emailTo = isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail;
-      const recipientName = (isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName) || 'Client';
+      const emailTo = (isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
+      const recipientName = (isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName) || order.customerName || 'Client';
 
       if (emailTo) {
           notifyOfNewNote({
@@ -410,8 +410,8 @@ export default function AdminOrderDetailsPage() {
         if (!order || !order.documentUploads) return;
         
         const isOutsourced = !!order.resellerId;
-        const emailTo = isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail;
-        const clientName = isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName;
+        const emailTo = (isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
+        const clientName = (isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName) || order.customerName;
 
         if (!emailTo || !clientName) {
             toast({ title: "Cannot send feedback", description: "Missing client contact details.", variant: "destructive" });
@@ -458,8 +458,8 @@ export default function AdminOrderDetailsPage() {
         if (!order) return;
         
         const isOutsourced = !!order.resellerId;
-        const emailTo = isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail;
-        const clientName = isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName;
+        const emailTo = (isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
+        const clientName = (isOutsourced && order.documentContact === 'client' ? order.endCustomerName : order.customerName) || order.customerName;
 
         if (!emailTo || !clientName) {
             toast({ title: "Cannot send reminder", description: "Missing client contact details.", variant: "destructive" });

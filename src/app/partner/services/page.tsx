@@ -4,7 +4,7 @@ import { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Search, Edit3, RotateCcw, Save, Plus, Trash2, RefreshCw, Calculator, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
+import { Loader2, Search, Edit3, RotateCcw, Save, Plus, Trash2, RefreshCw, Calculator, Link as LinkIcon, CheckCircle2, Percent, BadgeDollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { getFirestore, collection, query, orderBy, getDocs, doc, setDoc, onSnapshot, deleteDoc, writeBatch } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -24,7 +24,7 @@ import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { allVatTypes } from '@/lib/vat-types';
 import Link from 'next/link';
-
+import { cn } from '@/lib/utils';
 import { saveServiceOverrideAction, deleteServiceOverrideAction, bulkUpdateServiceOverridesAction } from '@/app/actions/service-overrides';
 import { getAuth } from 'firebase/auth';
 
@@ -37,16 +37,17 @@ function BulkPriceIncreaseDialog({
     isLoading 
 }: { 
     servicesCount: number, 
-    onUpdate: (amount: number) => Promise<void>, 
+    onUpdate: (amount: number, type: 'fixed' | 'percent') => Promise<void>, 
     isLoading: boolean 
 }) {
     const [amount, setAmount] = useState<string>('');
+    const [type, setType] = useState<'fixed' | 'percent'>('percent');
     const [isOpen, setIsOpen] = useState(false);
 
     const handleApply = async () => {
         const num = parseFloat(amount);
-        if (isNaN(num) || num === 0) return;
-        await onUpdate(num);
+        if (isNaN(num) || num <= 0) return;
+        await onUpdate(num, type);
         setIsOpen(false);
         setAmount('');
     };
@@ -60,31 +61,78 @@ function BulkPriceIncreaseDialog({
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Bulk Price Increase</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+                        <Calculator className="h-5 w-5 text-primary" />
+                        Bulk Price Increase
+                    </DialogTitle>
                     <DialogDescription>
-                        Increase your selling price for all <strong>{servicesCount}</strong> services by a fixed amount.
+                        Increase your selling prices for all <strong>{servicesCount}</strong> services by a percentage markup or fixed Rand amount.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
+                    {/* Method Selector: % vs R */}
                     <div className="space-y-2">
-                        <Label htmlFor="adj-amount">Increase Amount (ZAR)</Label>
-                        <Input 
-                            id="adj-amount"
-                            type="number"
-                            placeholder="e.g. 100"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                        />
-                        <p className="text-[10px] text-muted-foreground italic">
-                            Enter the amount to ADD to your current selling prices.
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Increase Method</Label>
+                        <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-lg border">
+                            <button
+                                type="button"
+                                onClick={() => setType('percent')}
+                                className={cn(
+                                    "py-2 px-3 text-xs font-bold rounded-md transition-all flex items-center justify-center gap-1.5",
+                                    type === 'percent'
+                                        ? "bg-background text-primary shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                <Percent className="h-3.5 w-3.5" /> Percentage Markup (%)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setType('fixed')}
+                                className={cn(
+                                    "py-2 px-3 text-xs font-bold rounded-md transition-all flex items-center justify-center gap-1.5",
+                                    type === 'fixed'
+                                        ? "bg-background text-primary shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                <BadgeDollarSign className="h-3.5 w-3.5" /> Fixed Amount (R)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="adj-amount" className="text-sm font-semibold">
+                            {type === 'percent' ? 'Markup Percentage (%)' : 'Increase Amount (ZAR)'}
+                        </Label>
+                        <div className="relative">
+                            <Input 
+                                id="adj-amount"
+                                type="number"
+                                min="0.1"
+                                step={type === 'percent' ? '1' : '10'}
+                                placeholder={type === 'percent' ? 'e.g. 15' : 'e.g. 100'}
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                className="pr-8"
+                            />
+                            <span className="absolute right-3 top-2.5 text-xs font-bold text-muted-foreground">
+                                {type === 'percent' ? '%' : 'R'}
+                            </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-snug">
+                            {type === 'percent' 
+                                ? 'Applies the entered percentage markup to your current selling prices across all services.'
+                                : 'Adds the entered fixed Rand amount to your current selling prices across all services.'
+                            }
                         </p>
                     </div>
                 </div>
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => setIsOpen(false)}>Cancel</Button>
-                    <Button onClick={handleApply} disabled={isLoading || !amount}>
+                    <Button onClick={handleApply} disabled={isLoading || !amount || parseFloat(amount) <= 0} className="font-bold">
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Apply Increase
+                        Apply {type === 'percent' ? `${amount || 0}% Markup` : `+R${amount || 0} Increase`}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -510,7 +558,7 @@ export default function PartnerServicesPage() {
     }
   };
 
-  const handleBulkPriceIncrease = async (amount: number) => {
+  const handleBulkPriceIncrease = async (amount: number, type: 'fixed' | 'percent') => {
     if (!partnerId) return;
     const currentUser = auth.currentUser;
     if (!currentUser) {
@@ -519,7 +567,8 @@ export default function PartnerServicesPage() {
     }
 
     setIsApplyingBranding(true);
-    toast({ title: 'Updating Prices...', description: `Increasing all service prices by R${amount}.` });
+    const label = type === 'percent' ? `${amount}% markup` : `+R${amount} increase`;
+    toast({ title: 'Updating Prices...', description: `Applying ${label} to all services.` });
 
     try {
         const idToken = await currentUser.getIdToken();
@@ -527,8 +576,17 @@ export default function PartnerServicesPage() {
         const updates = services.map(service => {
             const currentOverride = overrides[service.id] || {};
             const currentPrice = currentOverride.price ?? service.price;
+            
+            // Calculate new price based on percentage vs fixed increase
+            let calculatedPrice = currentPrice;
+            if (type === 'percent') {
+                calculatedPrice = Math.round(currentPrice * (1 + amount / 100));
+            } else {
+                calculatedPrice = currentPrice + amount;
+            }
+
             // Ensure price never drops below retail floor
-            const newPrice = Math.max(service.price, currentPrice + amount);
+            const newPrice = Math.max(service.price, calculatedPrice);
 
             return {
               serviceId: service.id,
@@ -548,7 +606,7 @@ export default function PartnerServicesPage() {
         const res = await bulkUpdateServiceOverridesAction({ idToken, updates });
 
         if (res.success) {
-          toast({ title: 'Prices Updated', description: `Successfully adjusted prices for ${services.length} services.` });
+          toast({ title: 'Prices Updated', description: `Successfully applied ${label} across all ${services.length} services.` });
         } else {
           toast({ title: 'Adjustment Failed', description: res.error || 'Failed to adjust prices.', variant: 'destructive' });
         }

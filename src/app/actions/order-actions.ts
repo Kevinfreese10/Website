@@ -59,8 +59,8 @@ export async function sendDocumentRequestEmailAction(orderId: string, replyToEma
         
         const reseller = orderData.resellerId ? await fetchStaffData(adminDb, orderData.resellerId) : undefined;
         const isOutsourced = !!orderData.resellerId;
-        const emailTo = isOutsourced && orderData.documentContact === 'client' ? orderData.endCustomerEmail : orderData.customerEmail;
-        const customerName = (isOutsourced && orderData.documentContact === 'client' ? orderData.endCustomerName : orderData.customerName) || '';
+        const emailTo = (isOutsourced && orderData.documentContact === 'client' ? orderData.endCustomerEmail : orderData.customerEmail) || orderData.customerEmail;
+        const customerName = ((isOutsourced && orderData.documentContact === 'client' ? orderData.endCustomerName : orderData.customerName) || orderData.customerName) || '';
         
         if (!emailTo) return { success: false, error: 'No client email found' };
         
@@ -95,8 +95,8 @@ export async function sendReviewRequestEmailAction(orderId: string) {
         const orderData = await fetchOrderData(adminDb, orderId);
         const reseller = orderData.resellerId ? await fetchStaffData(adminDb, orderData.resellerId) : undefined;
         const isOutsourced = !!orderData.resellerId;
-        const emailTo = isOutsourced && orderData.documentContact === 'client' ? orderData.endCustomerEmail : orderData.customerEmail;
-        const customerName = (isOutsourced && orderData.documentContact === 'client' ? orderData.endCustomerName : orderData.customerName) || '';
+        const emailTo = (isOutsourced && orderData.documentContact === 'client' ? orderData.endCustomerEmail : orderData.customerEmail) || orderData.customerEmail;
+        const customerName = ((isOutsourced && orderData.documentContact === 'client' ? orderData.endCustomerName : orderData.customerName) || orderData.customerName) || '';
         
         if (!emailTo) return { success: false, error: 'No client email found' };
         
@@ -121,21 +121,29 @@ export async function sendOrderStatusUpdateEmailAction(orderId: string, newStatu
     try {
         const adminDb = getAdminDb();
         const orderData = await fetchOrderData(adminDb, orderId);
-        const reseller = orderData.resellerId ? await fetchStaffData(adminDb, orderData.resellerId) : undefined;
-        const isOutsourced = !!orderData.resellerId;
-        const emailTo = isOutsourced && orderData.documentContact === 'client' ? orderData.endCustomerEmail : orderData.customerEmail;
-        const customerName = (isOutsourced && orderData.documentContact === 'client' ? orderData.endCustomerName : orderData.customerName) || '';
+        const resellerId = orderData.resellerId || orderData.partnerId;
+        const reseller = resellerId ? await fetchStaffData(adminDb, resellerId) : undefined;
         
-        if (!emailTo) return { success: false, error: 'No client email found' };
+        // Always prioritize actual client email (endCustomerEmail), fallback to customerEmail
+        const clientEmail = orderData.endCustomerEmail || orderData.customerEmail;
         
+        // If order was created by partner on behalf of client, CC partner email so partner stays in loop
+        const partnerCcEmail = (orderData.endCustomerEmail && orderData.customerEmail && orderData.customerEmail !== orderData.endCustomerEmail) 
+            ? orderData.customerEmail 
+            : undefined;
+        
+        if (!clientEmail) return { success: false, error: 'No client email found' };
+        
+        const customerName = orderData.endCustomerName || orderData.customerName || '';
         const emailOrder = { ...orderData, status: newStatus, customerName, id: orderData.originalOrderId || orderData.id };
         const emailHtml = render(React.createElement(OrderStatusUpdateEmail, { order: emailOrder, reseller }));
         
         await sendEmail({
-            to: emailTo,
-            subject: `Update on your Order #${emailOrder.id}`,
+            to: clientEmail,
+            cc: partnerCcEmail ? [partnerCcEmail] : undefined,
+            subject: `Update on your Order #${emailOrder.id} - ${newStatus}`,
             html: emailHtml,
-            resellerId: orderData.resellerId
+            resellerId: resellerId
         });
         
         return { success: true };

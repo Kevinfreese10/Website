@@ -52,17 +52,32 @@ export function ProcessOrderModal({
   const [docContactPreference, setDocContactPreference] = useState<'partner' | 'client'>('partner');
 
   // --- Cost & Profit calculations ---
-  const clientTotal = order?.total ?? 0;
-  const royalty = Math.max(100, Math.min(500, clientTotal * 0.10));
-
   const wholesaleCost = (order?.items ?? []).reduce((sum, item) => {
     const matchedService = allServices.find((s) => s.id === item.id);
     const unitCost = matchedService?.resellerPrice ?? item.price * 0.80;
-    return sum + unitCost * item.quantity;
+    return sum + unitCost * (item.quantity || 1);
   }, 0);
 
-  const partnerProfit = Math.max(0, clientTotal - wholesaleCost);
-  const profitMargin = clientTotal > 0 ? Math.round((partnerProfit / clientTotal) * 100) : 0;
+  // Calculate retail/client selling price total for all items in the order
+  const calculatedRetailTotal = (order?.items ?? []).reduce((sum, item) => {
+    const matchedService = allServices.find((s) => s.id === item.id);
+    const wholesaleUnitPrice = matchedService?.resellerPrice ?? item.price * 0.80;
+    // If item.price is greater than wholesale price, use item.price; otherwise fallback to matchedService.price or item.price / 0.80
+    let retailUnitPrice = item.price;
+    if (!retailUnitPrice || retailUnitPrice <= wholesaleUnitPrice) {
+      retailUnitPrice = matchedService?.price ?? (wholesaleUnitPrice > 0 ? wholesaleUnitPrice / 0.80 : 0);
+    }
+    return sum + retailUnitPrice * (item.quantity || 1);
+  }, 0);
+
+  const clientSellingTotal = Math.max(order?.total ?? 0, calculatedRetailTotal);
+  const royalty = Math.max(100, Math.min(500, clientSellingTotal * 0.10));
+
+  const partnerProfit = Math.max(0, clientSellingTotal - wholesaleCost);
+  const profitMargin = clientSellingTotal > 0 ? Math.round((partnerProfit / clientSellingTotal) * 100) : 0;
+
+  const selfProfit = Math.max(0, clientSellingTotal - royalty);
+  const selfProfitMargin = clientSellingTotal > 0 ? Math.round((selfProfit / clientSellingTotal) * 100) : 0;
 
   // --- Balance shortfall helpers ---
   const royaltyShortfall = Math.max(0, royalty - walletBalance);
@@ -142,6 +157,22 @@ export function ProcessOrderModal({
                     {formatZAR(royalty)}
                   </Badge>
                 </div>
+                {clientSellingTotal > 0 && (
+                  <div className="pt-2 border-t flex flex-col gap-1.5 text-xs">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Client Retail Value:</span>
+                      <span className="font-semibold text-slate-900">{formatZAR(clientSellingTotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-dashed">
+                      <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                        <TrendingUp className="h-3.5 w-3.5 text-emerald-600 shrink-0" /> Your Net Profit:
+                      </span>
+                      <span className="text-emerald-700 font-black text-sm">
+                        {formatZAR(selfProfit)} <span className="text-[10px] font-semibold text-emerald-600 font-mono">({selfProfitMargin}% margin)</span>
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="pt-2 border-t text-[11px] text-muted-foreground leading-snug space-y-1">
                   <p className="font-semibold text-slate-700 flex items-center gap-1">
                     <Info className="h-3.5 w-3.5 text-primary shrink-0" /> Fee Allocation Rules:
@@ -204,14 +235,20 @@ export function ProcessOrderModal({
                   {formatZAR(wholesaleCost)}
                 </Badge>
               </div>
-              {clientTotal > 0 && (
-                <div className="pt-2 border-t flex items-center justify-between text-xs">
-                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                    <TrendingUp className="h-3.5 w-3.5 text-emerald-600 shrink-0" /> Your Net Profit:
-                  </span>
-                  <span className="text-emerald-700 font-black text-sm">
-                    {formatZAR(partnerProfit)} <span className="text-[10px] font-semibold text-emerald-600 font-mono">({profitMargin}% margin)</span>
-                  </span>
+              {clientSellingTotal > 0 && (
+                <div className="pt-2 border-t flex flex-col gap-1.5 text-xs">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Client Retail Value:</span>
+                    <span className="font-semibold text-slate-900">{formatZAR(clientSellingTotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-dashed">
+                    <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                      <TrendingUp className="h-3.5 w-3.5 text-emerald-600 shrink-0" /> Your Net Profit:
+                    </span>
+                    <span className="text-emerald-700 font-black text-sm">
+                      {formatZAR(partnerProfit)} <span className="text-[10px] font-semibold text-emerald-600 font-mono">({profitMargin}% margin)</span>
+                    </span>
+                  </div>
                 </div>
               )}
             </div>

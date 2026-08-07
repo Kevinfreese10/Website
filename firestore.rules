@@ -117,18 +117,18 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         isAdminOrStaff() ||
         request.auth.uid == clientId ||
-        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+        (resource != null && isPartnerOrStaff(resource.data.get('partnerId', '')))
       );
       allow write: if isAuthenticated() && (
         isAdminOrStaff() ||
-        (request.resource != null && isPartnerOrStaff(request.resource.data.partnerId)) ||
-        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+        (request.resource != null && isPartnerOrStaff(request.resource.data.get('partnerId', ''))) ||
+        (resource != null && isPartnerOrStaff(resource.data.get('partnerId', '')))
       );
       match /{document=**} {
         allow read, write: if isAuthenticated() && (
           isAdminOrStaff() ||
           request.auth.uid == clientId ||
-          isPartnerOrStaff(get(/databases/$(database)/documents/aiPayrollClients/$(clientId)).data.partnerId)
+          isPartnerOrStaff(get(/databases/$(database)/documents/aiPayrollClients/$(clientId)).data.get('partnerId', ''))
         );
       }
     }

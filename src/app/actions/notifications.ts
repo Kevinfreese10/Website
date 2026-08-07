@@ -229,8 +229,18 @@ export async function sendOrderConfirmationEmailAction({
     ? (Array.isArray(bcc) ? [...bcc, ...defaultBcc] : [bcc, ...defaultBcc])
     : defaultBcc;
 
+  // Primary recipient: endCustomerEmail (actual client) if present, fallback to customerEmail
+  const targetEmail = (orderData as any).endCustomerEmail || orderData.customerEmail;
+
+  // If order was created on behalf of a client and reseller email differs from client email, CC the reseller
+  const ccList: string[] = [];
+  if ((orderData as any).endCustomerEmail && orderData.customerEmail && (orderData as any).endCustomerEmail !== orderData.customerEmail) {
+    ccList.push(orderData.customerEmail);
+  }
+
   await sendEmail({
-    to: orderData.customerEmail,
+    to: targetEmail,
+    cc: ccList.length > 0 ? ccList : undefined,
     bcc: finalBcc,
     subject: `Order Confirmation #${orderData.id}`,
     html: emailHtml,
@@ -243,7 +253,7 @@ export async function sendDocumentRequestEmailAction({
   recipientEmail,
 }: {
   orderId: string;
-  recipientEmail: string;
+  recipientEmail?: string;
 }) {
   const adminDb = getAdminDb();
   const orderRef = adminDb.collection('orders').doc(orderId);
@@ -255,6 +265,26 @@ export async function sendDocumentRequestEmailAction({
   
   const orderData = { ...orderSnap.data(), id: orderSnap.id } as Order;
   
+  // Resolve target recipient dynamically
+  let targetEmail = recipientEmail;
+  const ccEmails: string[] = [];
+
+  if (!targetEmail) {
+    if (orderData.documentContact === 'client' && (orderData as any).endCustomerEmail) {
+      targetEmail = (orderData as any).endCustomerEmail;
+      if (orderData.customerEmail && orderData.customerEmail !== targetEmail) {
+        ccEmails.push(orderData.customerEmail);
+      }
+    } else if (orderData.documentContact === 'partner') {
+      targetEmail = orderData.customerEmail;
+      if ((orderData as any).endCustomerEmail && (orderData as any).endCustomerEmail !== targetEmail) {
+        ccEmails.push((orderData as any).endCustomerEmail);
+      }
+    } else {
+      targetEmail = (orderData as any).endCustomerEmail || orderData.customerEmail;
+    }
+  }
+
   let resellerData: User | undefined;
   if (orderData.resellerId) {
     const resellerSnap = await adminDb.collection('users').doc(orderData.resellerId).get();
@@ -285,8 +315,9 @@ export async function sendDocumentRequestEmailAction({
     }));
 
   await sendEmail({
-    to: recipientEmail,
-    subject: `Action Required for Your Order #${orderId}`,
+    to: targetEmail!,
+    cc: ccEmails.length > 0 ? ccEmails : undefined,
+    subject: `Action Required for Your Order #${orderData.originalOrderId || orderId}`,
     html: emailHtml,
     attachments: attachments,
     resellerId: orderData.resellerId || undefined,

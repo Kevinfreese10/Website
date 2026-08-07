@@ -2,6 +2,7 @@
 
 import { getAdminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { sendEmail } from '@/lib/email';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -216,7 +217,7 @@ export async function outsourceOrderFromWallet(
     }
 
     // -----------------------------------------------------------------------
-    // Post-transaction writes – wallet log + order note
+    // Post-transaction writes – wallet log + order note + email notification
     // -----------------------------------------------------------------------
     await Promise.all([
       // Wallet audit log
@@ -240,6 +241,43 @@ export async function outsourceOrderFromWallet(
         }),
       }),
     ]);
+
+    // Send email notification to partner practice owner
+    try {
+      const partnerSnap = await partnerRef.get();
+      if (partnerSnap.exists) {
+        const partnerData = partnerSnap.data()!;
+        const remainingBalance = partnerData.creditBalance ?? 0;
+        const partnerEmail = partnerData.email;
+
+        if (partnerEmail) {
+          const emailHtml = `
+            <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;">
+              <h2 style="color: #214392; margin-top: 0;">Order #${orderId} Outsourced</h2>
+              <p>Hi ${partnerData.name || 'Partner'},</p>
+              <p>Your order <strong>#${orderId}</strong> has been successfully outsourced to <strong>My Accountant</strong> for fulfillment.</p>
+              
+              <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #214392;">
+                <p style="margin: 4px 0;"><strong>Wholesale Cost Deducted:</strong> R${cost.toFixed(2)}</p>
+                <p style="margin: 4px 0;"><strong>Remaining Wallet Balance:</strong> R${remainingBalance.toFixed(2)}</p>
+                <p style="margin: 4px 0;"><strong>Document Contact Preference:</strong> ${documentContact === 'client' ? 'Contact client directly' : 'Contact partner practice'}</p>
+              </div>
+
+              <p>Our team will review the requirements and begin processing work immediately.</p>
+              <p style="margin-top: 30px; font-size: 13px; color: #64748b;">My Accountant Operations Team</p>
+            </div>
+          `;
+
+          await sendEmail({
+            to: partnerEmail,
+            subject: `Confirmation: Order #${orderId} Outsourced to My Accountant`,
+            html: emailHtml,
+          });
+        }
+      }
+    } catch (emailErr) {
+      console.error('[wallet-actions] Failed to send outsource confirmation email:', emailErr);
+    }
 
     return { success: true, cost };
   } catch (err: unknown) {

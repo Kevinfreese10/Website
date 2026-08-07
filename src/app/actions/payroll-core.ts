@@ -231,17 +231,22 @@ export async function updatePayslipAction({ clientId, payslipId, data, employeeI
     try {
         const adminDb = getAdminDb();
         const batch = adminDb.batch();
-        const psRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc(payslipId);
-        batch.update(psRef, { ...data, status: 'finalized', updatedAt: new Date() });
+        const isNew = !payslipId || payslipId === 'new';
+        const psRef = isNew
+          ? adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc()
+          : adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc(payslipId);
+
+        batch.set(psRef, { ...data, status: 'finalized', updatedAt: new Date() }, { merge: true });
 
         if (employeeId && recurringItems) {
             const empRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc(employeeId);
-            batch.update(empRef, { recurringItems });
+            batch.set(empRef, { recurringItems }, { merge: true });
         }
 
         await batch.commit();
-        return { success: true };
+        return { success: true, id: psRef.id };
     } catch (e: any) {
+        console.error('updatePayslipAction error:', e);
         return { success: false, error: e.message };
     }
 }
