@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getFirestore, collection, getDocs, query, orderBy, where } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
 import { Job, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +10,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
-const db = getFirestore(firebaseApp);
+import { getPublicJobsAction, getPublicTalentAction } from '@/app/actions/jobs-actions';
 
 export default function JobsBoardPage() {
   const { user } = useAuth();
@@ -22,30 +20,24 @@ export default function JobsBoardPage() {
   const [showAllJobs, setShowAllJobs] = useState(false);
   const [showAllTalent, setShowAllTalent] = useState(false);
 
-  const fetchJobs = async () => {
+  const loadData = async () => {
+    setIsLoading(true);
     try {
-      const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
-      const snap = await getDocs(q);
-      const jobsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Job));
+      const [jobsData, talentData] = await Promise.all([
+        getPublicJobsAction(),
+        getPublicTalentAction()
+      ]);
       setJobs(jobsData);
-    } catch (error) {
-      console.error("Error fetching jobs:", error);
-    }
-  };
-
-  const fetchTalent = async () => {
-    try {
-      const q = query(collection(db, 'users'), where('talentProfile.isLookingForWork', '==', true));
-      const snap = await getDocs(q);
-      const talentData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
       setTalent(talentData);
-    } catch (error) {
-      console.error("Error fetching talent:", error);
+    } catch (err) {
+      console.error("Error loading jobs and talent:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    Promise.all([fetchJobs(), fetchTalent()]).finally(() => setIsLoading(false));
+    loadData();
   }, []);
 
   return (
