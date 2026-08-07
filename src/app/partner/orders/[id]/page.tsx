@@ -119,7 +119,15 @@ export default function PartnerOrderDetailsPage() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           
-          if (data.resellerId !== (currentUser.partnerId || currentUser.uid)) {
+          const targetPartnerId = currentUser.partnerId || currentUser.uid;
+          const isAuthorized = 
+            data.resellerId === targetPartnerId ||
+            data.partnerId === targetPartnerId ||
+            data.userId === targetPartnerId ||
+            data.userId === currentUser.uid ||
+            (currentUser.email && data.customerEmail === currentUser.email);
+
+          if (!isAuthorized) {
              notFound();
              return;
           }
@@ -223,8 +231,8 @@ export default function PartnerOrderDetailsPage() {
       });
 
       const isToClient = order.documentContact === 'client';
-      const emailTo = isToClient ? order.endCustomerEmail : order.customerEmail;
-      const recipientName = (isToClient ? order.endCustomerName : order.customerName) || 'Client';
+      const emailTo = (isToClient ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
+      const recipientName = ((isToClient ? order.endCustomerName : order.customerName) || order.customerName) || 'Client';
 
       if (emailTo && emailTo !== currentUser.email) {
           notifyOfNewNote({
@@ -274,7 +282,7 @@ export default function PartnerOrderDetailsPage() {
   };
 
   const generateNoteTemplate = (type: 'docs' | 'payment' | 'review') => {
-      const contactName = order?.documentContact === 'client' ? order?.endCustomerName : order?.customerName;
+      const contactName = (order?.documentContact === 'client' ? order?.endCustomerName : order?.customerName) || order?.customerName;
       let text = `Hi ${contactName?.split(' ')[0]},\n\n`;
       const orderId = order?.originalOrderId || order?.id;
 
@@ -291,7 +299,7 @@ export default function PartnerOrderDetailsPage() {
 
   const handleGenerateDiscount = async () => {
     if (!order) return;
-    const contactName = order?.documentContact === 'client' ? order?.endCustomerName : order?.customerName;
+    const contactName = (order?.documentContact === 'client' ? order?.endCustomerName : order?.customerName) || order?.customerName;
     
     if (order.discountCode) {
       toast({ title: 'Discount Already Generated', description: `This order already has a discount code: ${order.discountCode}`, variant: 'destructive' });
@@ -548,8 +556,8 @@ export default function PartnerOrderDetailsPage() {
 
   const handleSendFeedback = async () => {
     if (!order || !order.documentUploads) return;
-    const emailTo = order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail;
-    const clientName = order.documentContact === 'client' ? order.endCustomerName : order.customerName;
+    const emailTo = (order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
+    const clientName = (order.documentContact === 'client' ? order.endCustomerName : order.customerName) || order.customerName;
 
     if (!emailTo || !clientName) {
         toast({ title: "Cannot send feedback", description: "Missing client contact details.", variant: "destructive" });
@@ -592,8 +600,8 @@ export default function PartnerOrderDetailsPage() {
 
   const handleSendFollowUp = async () => {
     if (!order) return;
-    const emailTo = order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail;
-    const clientName = order.documentContact === 'client' ? order.endCustomerName : order.customerName;
+    const emailTo = (order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
+    const clientName = (order.documentContact === 'client' ? order.endCustomerName : order.customerName) || order.customerName;
 
     if (!emailTo || !clientName) {
         toast({ title: "Cannot send reminder", description: "Missing client contact details.", variant: "destructive" });
