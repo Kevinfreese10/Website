@@ -46,3 +46,33 @@ export async function getPublicTalentAction(): Promise<User[]> {
     return [];
   }
 }
+
+export async function getGlobalSkillsAction(): Promise<string[]> {
+  try {
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('system_settings').doc('talent_skills').get();
+    if (snap.exists) {
+      return snap.data()?.skills || [];
+    }
+    return [];
+  } catch (err) {
+    console.error('[jobs-actions] Error fetching global skills:', err);
+    return [];
+  }
+}
+
+export async function addCustomSkillAction(skill: string): Promise<boolean> {
+  try {
+    const trimmed = skill.trim();
+    if (!trimmed) return false;
+    const adminDb = getAdminDb();
+    const { FieldValue } = await import('firebase-admin/firestore');
+    await adminDb.collection('system_settings').doc('talent_skills').set({
+      skills: FieldValue.arrayUnion(trimmed)
+    }, { merge: true });
+    return true;
+  } catch (err) {
+    console.error('[jobs-actions] Error adding custom skill:', err);
+    return false;
+  }
+}

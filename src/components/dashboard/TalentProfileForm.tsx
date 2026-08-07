@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { getGlobalSkillsAction, addCustomSkillAction } from '@/app/actions/jobs-actions';
 
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
@@ -139,14 +140,12 @@ export default function TalentProfileForm() {
     (user?.talentProfile?.professionalBody ? [user.talentProfile.professionalBody] : []);
   const [selectedBodies, setSelectedBodies] = useState<string[]>(initialBodies);
 
-  // Fetch global custom skills from Firestore on mount
+  // Fetch global custom skills from Server Action on mount
   useEffect(() => {
     const fetchGlobalSkills = async () => {
       try {
-        const skillsDocRef = doc(db, 'system_settings', 'talent_skills');
-        const snap = await getDoc(skillsDocRef);
-        if (snap.exists()) {
-          const globalSkills: string[] = snap.data().skills || [];
+        const globalSkills = await getGlobalSkillsAction();
+        if (globalSkills && globalSkills.length > 0) {
           const merged = Array.from(new Set([...DEFAULT_SKILLS, ...globalSkills]));
           setAvailableSkills(merged);
         }
@@ -170,16 +169,13 @@ export default function TalentProfileForm() {
       setSelectedSkills(prev => [...prev, skillToAdd]);
     }
 
-    // 2. If completely new, add to available skills list & persist globally in Firestore
+    // 2. If completely new, add to available skills list & persist globally via Server Action
     if (!availableSkills.includes(skillToAdd)) {
       const newAvailable = [...availableSkills, skillToAdd];
       setAvailableSkills(newAvailable);
-      try {
-        const skillsDocRef = doc(db, 'system_settings', 'talent_skills');
-        await setDoc(skillsDocRef, { skills: arrayUnion(skillToAdd) }, { merge: true });
-      } catch (err) {
+      addCustomSkillAction(skillToAdd).catch(err => {
         console.error("Error saving global skill:", err);
-      }
+      });
     }
 
     setCustomSkillInput('');

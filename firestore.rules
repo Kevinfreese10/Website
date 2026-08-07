@@ -437,6 +437,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // ─── System Settings ──────────────────────────────────────────────────────
+    match /system_settings/{settingId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
   }
 }
 
