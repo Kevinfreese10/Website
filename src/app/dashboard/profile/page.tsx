@@ -16,7 +16,6 @@ import { Loader2, User as UserIcon, Building, MapPin, CreditCard, Lock, Save } f
 import { Separator } from '@/components/ui/separator';
 import { getAuth, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import TalentProfileForm from '@/components/dashboard/TalentProfileForm';
 import { Briefcase } from 'lucide-react';
 
 const db = getFirestore(firebaseApp);
@@ -187,12 +186,11 @@ export default function ClientProfilePage() {
       </div>
 
       <Tabs defaultValue="personal" className="w-full space-y-6">
-        <TabsList className="grid grid-cols-5 w-full lg:max-w-4xl bg-muted/60 p-1 rounded-xl">
+        <TabsList className="grid grid-cols-4 w-full lg:max-w-4xl bg-muted/60 p-1 rounded-xl">
           <TabsTrigger value="personal" className="rounded-lg transition-all"><UserIcon className="h-4 w-4 mr-2" />Personal</TabsTrigger>
           <TabsTrigger value="company" className="rounded-lg transition-all"><Building className="h-4 w-4 mr-2" />Company</TabsTrigger>
           <TabsTrigger value="billing" className="rounded-lg transition-all"><CreditCard className="h-4 w-4 mr-2" />Finance</TabsTrigger>
           <TabsTrigger value="security" className="rounded-lg transition-all"><Lock className="h-4 w-4 mr-2" />Security</TabsTrigger>
-          <TabsTrigger value="talent" className="rounded-lg transition-all"><Briefcase className="h-4 w-4 mr-2" />Career</TabsTrigger>
         </TabsList>
 
         <Form {...form}>
@@ -561,10 +559,6 @@ export default function ClientProfilePage() {
               </Form>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="talent" className="space-y-6 outline-none">
-           <TalentProfileForm />
         </TabsContent>
       </Tabs>
     </div>

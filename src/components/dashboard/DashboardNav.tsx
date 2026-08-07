@@ -83,6 +83,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
        { href: `/dashboard/ai-payroll/${user.payrollClientId}/dashboard`, label: 'Payroll Portal', icon: Users, roles: ['client'] }
      ] : []),
      { href: '/dashboard/profile', label: 'My Profile', icon: User, roles: ['client'] },
+     { href: '/dashboard/talent-profile', label: 'Talent Profile', icon: UserPlus, roles: ['client'] },
   ];
 
   const adminNavItems = [
@@ -148,6 +149,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
     { href: '/partner/profile', label: 'My Profile', icon: User, roles: ['partner', 'partner_staff'] },
     { href: '/partner/community', label: 'Community Q&A', icon: MessageSquare, roles: ['partner', 'partner_staff'] },
     { href: '/partner/jobs', label: 'Jobs & Talent', icon: Briefcase, roles: ['partner', 'partner_staff'] },
+    { href: '/partner/talent-profile', label: 'Talent Profile', icon: UserPlus, roles: ['partner', 'partner_staff'] },
   ];
 
   const visibleNavItems = navItems.filter(item => item.roles.includes(user.role));
