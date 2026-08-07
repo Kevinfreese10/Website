@@ -24,6 +24,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { sendEmail } from '@/lib/email';
 import PartnerProfile from '@/components/partner/PartnerProfile';
+import React from 'react';
+import { render } from '@react-email/components';
+import PartnerOnboardingEmail from '@/components/emails/PartnerOnboardingEmail';
 
 const db = getFirestore(firebaseApp);
 
@@ -53,6 +56,30 @@ function PartnerProfileDialog({
                 overflowApproved: approved,
                 overflowApprovedAt: serverTimestamp()
             });
+
+            if (approved && partner.email) {
+                try {
+                    const partnerName = partner.contactPerson || partner.name || 'Partner';
+                    const practiceName = partner.companyName || partner.name || 'Practice';
+                    const emailHtml = `
+                        <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                            <h2 style="color: #059669; margin-top: 0;">🎉 Approved for Network Overflow Program!</h2>
+                            <p>Hi ${partnerName},</p>
+                            <p>Great news! Your practice <strong>${practiceName}</strong> has been officially approved for the <strong>My Accountant Network Overflow Program</strong>.</p>
+                            <p>Our operations team will assign client overflow jobs matching your certified skill sets directly to your practice dashboard.</p>
+                            <p style="margin-top: 30px; font-size: 13px; color: #64748b;">My Accountant Network Operations</p>
+                        </div>
+                    `;
+                    await sendEmail({
+                        to: partner.email,
+                        subject: '🎉 Approved: My Accountant Network Overflow Program',
+                        html: emailHtml,
+                    });
+                } catch (emailErr) {
+                    console.error('Failed to send overflow approval email:', emailErr);
+                }
+            }
+
             toast({
                 title: approved ? "Partner Approved" : "Approval Revoked",
                 description: `Successfully updated overflow program status for ${partner.companyName || partner.name}.`
@@ -287,6 +314,33 @@ function ManualCreditDialog({ partner, onUpdate, open, onOpenChange }: { partner
                 description: type === 'add' ? 'Manual credit allocation by Admin' : 'Manual credit deduction by Admin',
                 date: serverTimestamp()
             });
+
+            if (type === 'add' && partner.email) {
+                try {
+                    const partnerName = partner.contactPerson || partner.name || 'Partner';
+                    const practiceName = partner.companyName || partner.name || 'Practice';
+                    const newTotalBalance = (partner.creditBalance || 0) + numericAmount;
+                    const emailHtml = `
+                        <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                            <h2 style="color: #214392; margin-top: 0;">Wallet Credit Allocation Receipt</h2>
+                            <p>Hi ${partnerName},</p>
+                            <p>A manual credit top-up has been allocated to your practice account <strong>${practiceName}</strong>.</p>
+                            <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #214392;">
+                                <p style="margin: 4px 0;"><strong>Credit Added:</strong> R${numericAmount.toFixed(2)}</p>
+                                <p style="margin: 4px 0;"><strong>New Wallet Balance:</strong> R${newTotalBalance.toFixed(2)}</p>
+                            </div>
+                            <p style="margin-top: 30px; font-size: 13px; color: #64748b;">My Accountant Partner Team</p>
+                        </div>
+                    `;
+                    await sendEmail({
+                        to: partner.email,
+                        subject: `Credit Allocation Receipt (R${numericAmount.toFixed(2)})`,
+                        html: emailHtml
+                    });
+                } catch (emailErr) {
+                    console.error('Failed to send wallet topup receipt email:', emailErr);
+                }
+            }
 
             toast({ title: 'Balance Updated', description: `Successfully ${type === 'add' ? 'added' : 'deducted'} ${new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(numericAmount)}.` });
             onUpdate();
@@ -534,6 +588,27 @@ export default function AdminPartnersPage() {
             platformFeePaid: newStatus,
             ...(!newStatus ? { 'landingPage.enabled': false } : {})
         });
+
+        if (newStatus && partner.email) {
+            try {
+                const partnerName = partner.contactPerson || partner.name || 'Partner';
+                const loginUrl = 'https://myacc.co.za/partner/onboarding';
+                const emailHtml = render(React.createElement(PartnerOnboardingEmail, {
+                    partnerName,
+                    email: partner.email,
+                    creditAmount: partner.creditBalance || 0,
+                    loginUrl
+                }));
+                await sendEmail({
+                    to: partner.email,
+                    subject: '🎉 Your Practice Storefront & Landing Page is Unlocked!',
+                    html: emailHtml,
+                });
+            } catch (emailErr) {
+                console.error('Failed to send storefront welcome email:', emailErr);
+            }
+        }
+
         toast({
             title: newStatus ? 'Storefront Access Granted' : 'Storefront Access Revoked',
             description: `Successfully updated platform fee status for ${partner.companyName || partner.name}.`
