@@ -7,12 +7,9 @@ import { Job, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Briefcase, MapPin, Building, Calendar, UserIcon, FileText, Lock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
-// PostJobDialog moved to partner dashboard
-// Removed duplicate header and footer imports
 import Link from 'next/link';
 
 const db = getFirestore(firebaseApp);
@@ -22,6 +19,8 @@ export default function JobsBoardPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [talent, setTalent] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showAllJobs, setShowAllJobs] = useState(false);
+  const [showAllTalent, setShowAllTalent] = useState(false);
 
   const fetchJobs = async () => {
     try {
@@ -35,7 +34,6 @@ export default function JobsBoardPage() {
   };
 
   const fetchTalent = async () => {
-    if (!user) return; // Only fetch if authenticated
     try {
       const q = query(collection(db, 'users'), where('talentProfile.isLookingForWork', '==', true));
       const snap = await getDocs(q);
@@ -46,140 +44,196 @@ export default function JobsBoardPage() {
     }
   };
 
-  // Fetch jobs immediately (public)
   useEffect(() => {
-    fetchJobs().finally(() => setIsLoading(false));
+    Promise.all([fetchJobs(), fetchTalent()]).finally(() => setIsLoading(false));
   }, []);
 
-  // Fetch talent only when user is authenticated
-  useEffect(() => {
-    if (user) {
-      fetchTalent();
-    }
-  }, [user]);
-
   return (
-    <div className="bg-slate-50 flex flex-col">
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+    <div className="bg-slate-50/60 min-h-screen py-8">
+      <main className="container mx-auto px-4 max-w-6xl space-y-8">
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 mb-2">Partner Jobs Board</h1>
-            <p className="text-lg text-slate-600">Find talent or your next opportunity within the network.</p>
+            <h1 className="text-3xl font-black tracking-tight text-slate-900">Partner Jobs & Talent Board</h1>
+            <p className="text-sm text-slate-600 mt-1 font-medium">Explore open career opportunities and certified network talent.</p>
           </div>
           {user?.role === 'partner' || user?.role === 'admin' ? (
-            <Button asChild>
+            <Button asChild className="font-extrabold">
               <Link href="/partner/jobs">Manage Jobs</Link>
             </Button>
           ) : !user ? (
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" className="font-extrabold border-slate-300">
               <Link href="/login">Login to Post a Job</Link>
             </Button>
           ) : null}
         </div>
 
-        <Tabs defaultValue="jobs" className="w-full">
-          <TabsList className="mb-6 h-12">
-            <TabsTrigger value="jobs" className="text-base px-6 h-10"><Briefcase className="mr-2 h-4 w-4" /> Open Jobs</TabsTrigger>
-            <TabsTrigger value="talent" className="text-base px-6 h-10"><UserIcon className="mr-2 h-4 w-4" /> Talent Directory</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="jobs" className="space-y-4">
+        {/* SECTION 1: OPEN JOBS CARD */}
+        <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+          <CardHeader className="border-b bg-slate-50/50 p-6 flex flex-row items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-2xl font-black text-slate-850 flex items-center gap-2">
+                <Briefcase className="h-6 w-6 text-primary" /> Open Jobs
+              </CardTitle>
+              <CardDescription className="text-sm text-slate-500 font-medium">
+                Active opportunities posted by firms within the network ({jobs.length} total)
+              </CardDescription>
+            </div>
+            {user?.role === 'partner' || user?.role === 'admin' ? (
+              <Button asChild size="sm" variant="outline" className="font-bold">
+                <Link href="/partner/jobs">+ Post Job</Link>
+              </Button>
+            ) : null}
+          </CardHeader>
+          <CardContent className="p-6">
             {isLoading ? (
               <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : jobs.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-                  <Briefcase className="h-12 w-12 mb-4 opacity-20" />
-                  <p>No jobs posted yet. Check back soon!</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {jobs.map(job => (
-                  <Card key={job.id} className="hover:shadow-md transition-shadow flex flex-col">
-                    <CardHeader>
-                      <div className="flex justify-between items-start mb-2">
-                        <Badge variant="secondary">{job.type}</Badge>
-                        <Badge variant={job.locationPreference === 'Remote' ? 'default' : 'outline'} className="bg-emerald-500 text-white hover:bg-emerald-600">
-                          {job.locationPreference}
-                        </Badge>
-                      </div>
-                      <CardTitle className="line-clamp-2 text-lg">{job.title}</CardTitle>
-                      <CardDescription className="flex items-center mt-2">
-                        <Building className="h-4 w-4 mr-1" /> {job.companyName}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                      <p className="text-sm text-slate-600 line-clamp-3 mb-4">{job.description}</p>
-                    </CardContent>
-                    <CardFooter className="flex justify-between items-center text-xs text-muted-foreground border-t pt-4">
-                      <span className="flex items-center"><Calendar className="h-3 w-3 mr-1" /> {job.createdAt ? formatDistanceToNow(job.createdAt.toDate(), { addSuffix: true }) : 'Just now'}</span>
-                      <Button size="sm" variant="ghost" asChild>
-                        <a href={`mailto:?subject=Application for ${job.title}`}>Apply Now</a>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+              <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+                <Briefcase className="h-12 w-12 mb-4 opacity-20" />
+                <p className="font-semibold text-slate-600">No jobs posted yet. Check back soon!</p>
               </div>
-            )}
-          </TabsContent>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {(showAllJobs ? jobs : jobs.slice(0, 6)).map(job => (
+                    <Card key={job.id} className="hover:shadow-md transition-shadow flex flex-col border-slate-200">
+                      <CardHeader className="p-5">
+                        <div className="flex justify-between items-start mb-2 gap-2">
+                          <Badge variant="secondary" className="font-bold text-xs">{job.type}</Badge>
+                          <Badge variant={job.locationPreference === 'Remote' ? 'default' : 'outline'} className="bg-emerald-600 text-white font-bold text-xs">
+                            {job.locationPreference}
+                          </Badge>
+                        </div>
+                        <CardTitle className="line-clamp-2 text-base font-extrabold text-slate-850">{job.title}</CardTitle>
+                        <CardDescription className="flex items-center mt-2 text-xs font-semibold text-slate-500">
+                          <Building className="h-3.5 w-3.5 mr-1 text-slate-400" /> {job.companyName}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="px-5 pb-4 flex-1">
+                        <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{job.description}</p>
+                      </CardContent>
+                      <CardFooter className="flex justify-between items-center text-xs text-muted-foreground border-t p-4 bg-slate-50/50">
+                        <span className="flex items-center text-[11px] font-medium text-slate-400">
+                          <Calendar className="h-3 w-3 mr-1" /> {job.createdAt ? formatDistanceToNow(job.createdAt.toDate ? job.createdAt.toDate() : new Date(job.createdAt), { addSuffix: true }) : 'Just now'}
+                        </span>
+                        <Button size="sm" variant="ghost" className="font-bold text-xs text-primary hover:text-primary hover:bg-primary/5" asChild>
+                          <a href={`mailto:?subject=Application for ${job.title}`}>Apply Now</a>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
 
-          <TabsContent value="talent" className="space-y-6">
-            {(!user || (user.role !== 'partner' && user.role !== 'admin')) ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center p-12 text-center">
-                  <Lock className="h-12 w-12 mb-4 text-slate-300" />
-                  <h3 className="text-xl font-bold mb-2">Access Restricted</h3>
-                  <p className="text-muted-foreground mb-6">The talent directory is only visible to registered partners and admins.</p>
-                  {!user && <Button asChild><Link href="/login">Login to View Talent</Link></Button>}
-                </CardContent>
-              </Card>
-            ) : isLoading ? (
+                {jobs.length > 6 && (
+                  <div className="flex justify-center mt-8 pt-4 border-t border-slate-100">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowAllJobs(!showAllJobs)}
+                      className="font-extrabold text-slate-700 hover:bg-slate-100 px-8"
+                    >
+                      {showAllJobs ? 'Show Less Jobs' : `View More Jobs (${jobs.length - 6} more)`}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SECTION 2: TALENT DIRECTORY CARD */}
+        <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+          <CardHeader className="border-b bg-slate-50/50 p-6 flex flex-row items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-2xl font-black text-slate-850 flex items-center gap-2">
+                <UserIcon className="h-6 w-6 text-indigo-600" /> Talent Directory
+              </CardTitle>
+              <CardDescription className="text-sm text-slate-500 font-medium">
+                Certified accounting & tax professionals available for hire ({talent.length} registered)
+              </CardDescription>
+            </div>
+            {!user && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs font-bold px-3 py-1">
+                🔒 Login required for full CV & Contact details
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent className="p-6">
+            {isLoading ? (
               <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : talent.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-                  <UserIcon className="h-12 w-12 mb-4 opacity-20" />
-                  <p>No candidates are currently looking for work.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {talent.map(t => (
-                  <Card key={t.id} className="hover:shadow-md transition-shadow flex flex-col">
-                    <CardHeader>
-                      <div className="flex justify-between items-start mb-2">
-                        <Badge variant="secondary">{t.talentProfile?.workType || 'Any'}</Badge>
-                        <Badge variant="outline">{t.talentProfile?.locationPreference || 'Any'}</Badge>
-                      </div>
-                      <CardTitle className="text-lg">{t.name} {t.surname}</CardTitle>
-                      <CardDescription className="flex items-center mt-2">
-                        <MapPin className="h-4 w-4 mr-1" /> {t.address?.city || t.address?.province || 'South Africa'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                      <p className="text-sm text-slate-600 line-clamp-3 mb-4">
-                        {t.talentProfile?.experience || 'No experience summary provided.'}
-                      </p>
-                    </CardContent>
-                    <CardFooter className="flex gap-2 border-t pt-4">
-                      {t.talentProfile?.cvUrl ? (
-                        <Button size="sm" variant="default" className="w-full flex-1" asChild>
-                          <a href={t.talentProfile.cvUrl} target="_blank" rel="noreferrer"><FileText className="h-4 w-4 mr-2" /> View CV</a>
-                        </Button>
-                      ) : (
-                         <Button size="sm" variant="secondary" className="w-full flex-1" disabled>No CV Uploaded</Button>
-                      )}
-                      <Button size="sm" variant="outline" asChild>
-                        <a href={`mailto:${t.email}`}>Contact</a>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+              <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
+                <UserIcon className="h-12 w-12 mb-4 opacity-20" />
+                <p className="font-semibold text-slate-600">No candidates are currently listed in the directory.</p>
               </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {(showAllTalent ? talent : talent.slice(0, 6)).map(t => {
+                    const isFullyAuthorized = user && (user.role === 'partner' || user.role === 'admin');
+                    return (
+                      <Card key={t.id} className="hover:shadow-md transition-shadow flex flex-col border-slate-200">
+                        <CardHeader className="p-5">
+                          <div className="flex justify-between items-start mb-2 gap-2">
+                            <Badge variant="secondary" className="font-bold text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
+                              {t.talentProfile?.workType || 'Accounting Professional'}
+                            </Badge>
+                            <Badge variant="outline" className="font-bold text-xs">
+                              {t.talentProfile?.locationPreference || 'South Africa'}
+                            </Badge>
+                          </div>
+                          <CardTitle className="text-base font-extrabold text-slate-850">
+                            {t.name} {t.surname ? t.surname[0] + '.' : ''}
+                          </CardTitle>
+                          <CardDescription className="flex items-center mt-2 text-xs font-semibold text-slate-500">
+                            <MapPin className="h-3.5 w-3.5 mr-1 text-slate-400" /> {t.address?.city || t.address?.province || 'South Africa'}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="px-5 pb-4 flex-1">
+                          <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+                            {t.talentProfile?.experience || 'Professional experienced in accounting, SARS tax compliance, and financial administration.'}
+                          </p>
+                        </CardContent>
+                        <CardFooter className="flex gap-2 border-t p-4 bg-slate-50/50">
+                          {isFullyAuthorized ? (
+                            <>
+                              {t.talentProfile?.cvUrl ? (
+                                <Button size="sm" variant="default" className="w-full flex-1 font-bold text-xs" asChild>
+                                  <a href={t.talentProfile.cvUrl} target="_blank" rel="noreferrer"><FileText className="h-3.5 w-3.5 mr-1.5" /> View CV</a>
+                                </Button>
+                              ) : (
+                                <Button size="sm" variant="secondary" className="w-full flex-1 font-bold text-xs" disabled>No CV Uploaded</Button>
+                              )}
+                              <Button size="sm" variant="outline" className="font-bold text-xs" asChild>
+                                <a href={`mailto:${t.email}`}>Contact</a>
+                              </Button>
+                            </>
+                          ) : (
+                            <Button size="sm" variant="outline" className="w-full font-extrabold text-xs text-indigo-700 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100" asChild>
+                              <Link href="/login"><Lock className="h-3.5 w-3.5 mr-1.5 text-indigo-600" /> Login to View CV & Contact</Link>
+                            </Button>
+                          )}
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {talent.length > 6 && (
+                  <div className="flex justify-center mt-8 pt-4 border-t border-slate-100">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowAllTalent(!showAllTalent)}
+                      className="font-extrabold text-slate-700 hover:bg-slate-100 px-8"
+                    >
+                      {showAllTalent ? 'Show Less Talent' : `View More Talent (${talent.length - 6} more)`}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
-          </TabsContent>
-        </Tabs>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
