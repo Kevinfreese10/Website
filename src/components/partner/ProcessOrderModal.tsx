@@ -20,6 +20,8 @@ import {
   Store,
   AlertCircle,
   Loader2,
+  TrendingUp,
+  Info,
 } from 'lucide-react';
 import { Order, Service } from '@/lib/types';
 
@@ -48,14 +50,18 @@ export function ProcessOrderModal({
   const [isConfirming, setIsConfirming] = useState(false);
   const [docContactPreference, setDocContactPreference] = useState<'partner' | 'client'>('partner');
 
-  // --- Cost calculations ---
-  const royalty = Math.max(100, Math.min(500, (order?.total ?? 0) * 0.10));
+  // --- Cost & Profit calculations ---
+  const clientTotal = order?.total ?? 0;
+  const royalty = Math.max(100, Math.min(500, clientTotal * 0.10));
 
   const wholesaleCost = (order?.items ?? []).reduce((sum, item) => {
     const matchedService = allServices.find((s) => s.id === item.id);
     const unitCost = matchedService?.resellerPrice ?? item.price * 0.80;
     return sum + unitCost * item.quantity;
   }, 0);
+
+  const partnerProfit = Math.max(0, clientTotal - wholesaleCost);
+  const profitMargin = clientTotal > 0 ? Math.round((partnerProfit / clientTotal) * 100) : 0;
 
   // --- Balance shortfall helpers ---
   const royaltyShortfall = Math.max(0, royalty - walletBalance);
@@ -128,11 +134,21 @@ export function ProcessOrderModal({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-lg bg-background px-3 py-2.5 text-sm">
-                <span className="text-muted-foreground">Platform Royalty</span>
-                <Badge variant={canComplete ? 'default' : 'secondary'} className="tabular-nums">
-                  {formatZAR(royalty)}
-                </Badge>
+              <div className="space-y-2 rounded-lg bg-background p-3 text-xs border">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground font-medium">Platform Royalty</span>
+                  <Badge variant={canComplete ? 'default' : 'secondary'} className="tabular-nums font-bold">
+                    {formatZAR(royalty)}
+                  </Badge>
+                </div>
+                <div className="pt-2 border-t text-[11px] text-muted-foreground leading-snug space-y-1">
+                  <p className="font-semibold text-slate-700 flex items-center gap-1">
+                    <Info className="h-3.5 w-3.5 text-primary shrink-0" /> Fee Allocation Rules:
+                  </p>
+                  <p className="text-[10px] text-slate-600">
+                    10% per order (min R100, max R500 cap). Contributes toward cloud hosting, system maintenance, support & automated document collection.
+                  </p>
+                </div>
               </div>
 
               {!canComplete && (
@@ -143,7 +159,7 @@ export function ProcessOrderModal({
               )}
 
               <Button
-                className="mt-auto w-full"
+                className="mt-auto w-full font-bold"
                 disabled={!canComplete || isConfirming}
                 onClick={() => handleConfirm('complete')}
               >
@@ -177,14 +193,26 @@ export function ProcessOrderModal({
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg bg-background px-3 py-2.5 text-sm">
-              <span className="text-muted-foreground">Wholesale Cost</span>
-              <Badge
-                variant={canOutsource ? 'outline' : 'secondary'}
-                className="tabular-nums border-amber-500/60 text-amber-700 dark:text-amber-400"
-              >
-                {formatZAR(wholesaleCost)}
-              </Badge>
+            <div className="space-y-2.5 rounded-lg bg-background p-3 text-xs border">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground font-medium">Wholesale Cost</span>
+                <Badge
+                  variant={canOutsource ? 'outline' : 'secondary'}
+                  className="tabular-nums border-amber-500/60 text-amber-700 dark:text-amber-400 font-bold"
+                >
+                  {formatZAR(wholesaleCost)}
+                </Badge>
+              </div>
+              {clientTotal > 0 && (
+                <div className="pt-2 border-t flex items-center justify-between text-xs">
+                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                    <TrendingUp className="h-3.5 w-3.5 text-emerald-600 shrink-0" /> Your Net Profit:
+                  </span>
+                  <span className="text-emerald-700 font-black text-sm">
+                    {formatZAR(partnerProfit)} <span className="text-[10px] font-semibold text-emerald-600 font-mono">({profitMargin}% margin)</span>
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Document Contact — paid partners get radio, free partners get hardcoded note */}
