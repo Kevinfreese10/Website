@@ -10,8 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import { getFirestore, doc, updateDoc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { getFirestore, doc, updateDoc, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { firebaseApp } from '@/lib/firebase';
 import { Loader2, Briefcase, UploadCloud, MapPin, Eye, ExternalLink, CheckCircle2, Award, Clock, DollarSign, FileText, Check } from 'lucide-react';
@@ -23,7 +23,7 @@ import Link from 'next/link';
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
 
-const AVAILABLE_SKILLS = [
+const DEFAULT_SKILLS = [
   'SARS Income Tax (ITR12/14)',
   'VAT Submissions (201)',
   'CIPC Annual Returns',
@@ -129,6 +129,8 @@ export default function TalentProfileForm() {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [availableSkills, setAvailableSkills] = useState<string[]>(DEFAULT_SKILLS);
+  const [customSkillInput, setCustomSkillInput] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<string[]>(
     user?.talentProfile?.skills || []
   );
@@ -136,6 +138,53 @@ export default function TalentProfileForm() {
   const initialBodies = user?.talentProfile?.professionalBodies || 
     (user?.talentProfile?.professionalBody ? [user.talentProfile.professionalBody] : []);
   const [selectedBodies, setSelectedBodies] = useState<string[]>(initialBodies);
+
+  // Fetch global custom skills from Firestore on mount
+  useEffect(() => {
+    const fetchGlobalSkills = async () => {
+      try {
+        const skillsDocRef = doc(db, 'system_settings', 'talent_skills');
+        const snap = await getDoc(skillsDocRef);
+        if (snap.exists()) {
+          const globalSkills: string[] = snap.data().skills || [];
+          const merged = Array.from(new Set([...DEFAULT_SKILLS, ...globalSkills]));
+          setAvailableSkills(merged);
+        }
+      } catch (err) {
+        console.error("Error fetching global talent skills:", err);
+      }
+    };
+    fetchGlobalSkills();
+  }, []);
+
+  const handleAddCustomSkill = async () => {
+    const trimmed = customSkillInput.trim();
+    if (!trimmed) return;
+
+    // Check if skill already exists case-insensitively
+    const existing = availableSkills.find(s => s.toLowerCase() === trimmed.toLowerCase());
+    const skillToAdd = existing || trimmed;
+
+    // 1. Add to user's selected skills if not already selected
+    if (!selectedSkills.includes(skillToAdd)) {
+      setSelectedSkills(prev => [...prev, skillToAdd]);
+    }
+
+    // 2. If completely new, add to available skills list & persist globally in Firestore
+    if (!availableSkills.includes(skillToAdd)) {
+      const newAvailable = [...availableSkills, skillToAdd];
+      setAvailableSkills(newAvailable);
+      try {
+        const skillsDocRef = doc(db, 'system_settings', 'talent_skills');
+        await setDoc(skillsDocRef, { skills: arrayUnion(skillToAdd) }, { merge: true });
+      } catch (err) {
+        console.error("Error saving global skill:", err);
+      }
+    }
+
+    setCustomSkillInput('');
+    toast({ title: 'Skill Added', description: `"${skillToAdd}" added to profile and saved for future candidates!` });
+  };
 
   const form = useForm<z.infer<typeof talentProfileSchema>>({
     resolver: zodResolver(talentProfileSchema),
@@ -529,10 +578,16 @@ export default function TalentProfileForm() {
                   </div>
 
                   {/* Core Competencies Tag Selector */}
-                  <div className="space-y-2 pt-2 border-t">
-                    <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600">Core Competencies & Software Skills</FormLabel>
+                  <div className="space-y-3 pt-2 border-t">
+                    <div>
+                      <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600">Core Competencies & Software Skills</FormLabel>
+                      <FormDescription className="text-xs text-slate-500 mt-0.5">
+                        Select from existing skill badges or type a new custom skill below to add it globally for all candidates.
+                      </FormDescription>
+                    </div>
+
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {AVAILABLE_SKILLS.map(skill => {
+                      {availableSkills.map(skill => {
                         const isSelected = selectedSkills.includes(skill);
                         return (
                           <Button
@@ -548,6 +603,31 @@ export default function TalentProfileForm() {
                           </Button>
                         );
                       })}
+                    </div>
+
+                    {/* Add Custom Skill Input Box */}
+                    <div className="flex gap-2 items-center pt-2 max-w-md">
+                      <Input
+                        placeholder="Add custom skill (e.g. Sage 50, CaseWare Cloud...)"
+                        value={customSkillInput}
+                        onChange={(e) => setCustomSkillInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddCustomSkill();
+                          }
+                        }}
+                        className="h-9 text-xs border-purple-200 focus-visible:ring-purple-500 bg-white"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleAddCustomSkill}
+                        className="font-bold text-xs shrink-0 bg-purple-100 text-purple-700 hover:bg-purple-200"
+                      >
+                        + Add Skill
+                      </Button>
                     </div>
                   </div>
 
