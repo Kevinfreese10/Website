@@ -8,7 +8,7 @@ import { format, isPast, isSameDay, subDays } from 'date-fns';
 import { Task, User, Order, DemoLead } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, Edit, CheckSquare, X, Filter, AlertOctagon, ArrowRight, CheckCircle2, LayoutGrid, List, MessageSquare, AlertTriangle, UserIcon, MoreHorizontal, ChevronDown, ChevronUp, Paperclip, Users } from 'lucide-react';
+import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, Edit, CheckSquare, X, Filter, AlertOctagon, ArrowRight, CheckCircle2, LayoutGrid, List, MessageSquare, AlertTriangle, UserIcon, MoreHorizontal, ChevronDown, ChevronUp, Paperclip, Users, ShieldCheck } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -135,18 +135,41 @@ export default function AdminDashboardPage() {
         localStorage.setItem('adminDashboardArchivedDemoLeads', JSON.stringify(newArchived));
     };
 
+    // Central Command Center State
+    const [pendingPosts, setPendingPosts] = useState<any[]>([]);
+    const [allOrdersList, setAllOrdersList] = useState<Order[]>([]);
+    const [cvLeadsList, setCvLeadsList] = useState<any[]>([]);
+
     useEffect(() => {
         setIsLoading(true);
         const usersRef = collection(db, "users");
         getDocs(usersRef).then(usersSnapshot => {
             const fetchedUsers = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, uid: doc.id } as User));
-            setAllUsers(fetchedUsers.sort((a,b) => a.name.localeCompare(b.name)));
+            setAllUsers(fetchedUsers.sort((a,b) => (a.name || '').localeCompare(b.name || '')));
         });
 
         const tasksUnsubscribe = onSnapshot(query(collection(db, 'tasks'), orderBy('dueDate', 'asc')), (snapshot) => {
             setTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
             setIsLoading(false);
         });
+
+        // 1. Listen for Pending Community Posts
+        const postsQ = query(collection(db, 'community_posts'), where('status', '==', 'pending'));
+        const postsUnsub = onSnapshot(postsQ, (snap) => {
+            setPendingPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }, (err) => console.log('[CommandCenter] community_posts listener:', err));
+
+        // 2. Listen for All Orders
+        const ordersAllQ = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(50));
+        const ordersAllUnsub = onSnapshot(ordersAllQ, (snap) => {
+            setAllOrdersList(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)));
+        }, (err) => console.log('[CommandCenter] orders listener:', err));
+
+        // 3. Listen for CV Leads
+        const cvQ = query(collection(db, 'cvLeads'), orderBy('createdAt', 'desc'), limit(10));
+        const cvUnsub = onSnapshot(cvQ, (snap) => {
+            setCvLeadsList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }, (err) => console.log('[CommandCenter] cvLeads listener:', err));
 
         // Fetch recent communications from assigned orders
         let ordersUnsubscribe = () => {};
@@ -231,8 +254,46 @@ export default function AdminDashboardPage() {
             tasksUnsubscribe();
             ordersUnsubscribe();
             demoLeadsUnsubscribe();
+            postsUnsub();
+            ordersAllUnsub();
+            cvUnsub();
         };
     }, [user?.id]);
+
+    const handleApprovePost = async (postId: string) => {
+        try {
+            await updateDoc(doc(db, 'community_posts', postId), { status: 'published', approvedAt: serverTimestamp() });
+            toast({ title: 'Post Approved', description: 'Post is now live in the community forum.' });
+        } catch (err) {
+            toast({ title: 'Approval Failed', variant: 'destructive' });
+        }
+    };
+
+    const handleRejectPost = async (postId: string) => {
+        try {
+            await updateDoc(doc(db, 'community_posts', postId), { status: 'rejected' });
+            toast({ title: 'Post Rejected' });
+        } catch (err) {
+            toast({ title: 'Action Failed', variant: 'destructive' });
+        }
+    };
+
+    const handleAssignStaffToOrder = async (orderId: string, staffId: string) => {
+        try {
+            await updateDoc(doc(db, 'orders', orderId), { assignedTo: [staffId] });
+            toast({ title: 'Staff Assigned', description: 'Order assigned successfully.' });
+        } catch (err) {
+            toast({ title: 'Assignment Failed', variant: 'destructive' });
+        }
+    };
+
+    const unassignedOutsourcedOrders = useMemo(() => {
+        return allOrdersList.filter(o => o.isOutsourced && (!o.assignedTo || o.assignedTo.length === 0));
+    }, [allOrdersList]);
+
+    const partnerPractices = useMemo(() => {
+        return allUsers.filter(u => u.role === 'partner' || u.role === 'partner_admin');
+    }, [allUsers]);
 
     const unarchivedComms = useMemo(() => {
         return recentComms.filter(c => !archivedComms.includes(c.id)).slice(0, 5);
@@ -696,6 +757,162 @@ export default function AdminDashboardPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* CENTRAL COMMAND HUB: Real-Time Operational Action Banners */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Metric 1: Community Moderation */}
+                <Card className="border-slate-100 bg-white shadow-sm hover:shadow-md transition-all">
+                    <CardContent className="p-4 flex items-center justify-between">
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-extrabold uppercase text-amber-600 tracking-wider flex items-center gap-1">
+                                <ShieldCheck className="h-3.5 w-3.5" /> Moderation Queue
+                            </span>
+                            <div className="text-2xl font-black text-slate-850">{pendingPosts.length}</div>
+                            <p className="text-[11px] text-slate-400 font-medium">Pending Posts & Flagged Items</p>
+                        </div>
+                        <Badge variant={pendingPosts.length > 0 ? "default" : "outline"} className={cn("px-2.5 py-1 text-xs font-bold", pendingPosts.length > 0 ? "bg-amber-500 hover:bg-amber-600 text-white" : "text-slate-400")}>
+                            {pendingPosts.length > 0 ? 'Needs Action' : 'Clear'}
+                        </Badge>
+                    </CardContent>
+                </Card>
+
+                {/* Metric 2: Unassigned Outsourced Orders */}
+                <Card className="border-slate-100 bg-white shadow-sm hover:shadow-md transition-all">
+                    <CardContent className="p-4 flex items-center justify-between">
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-extrabold uppercase text-blue-600 tracking-wider flex items-center gap-1">
+                                <ClipboardList className="h-3.5 w-3.5" /> Outsourced Orders
+                            </span>
+                            <div className="text-2xl font-black text-slate-850">{unassignedOutsourcedOrders.length}</div>
+                            <p className="text-[11px] text-slate-400 font-medium">Unassigned Partner Orders</p>
+                        </div>
+                        <Badge variant={unassignedOutsourcedOrders.length > 0 ? "destructive" : "outline"} className="px-2.5 py-1 text-xs font-bold">
+                            {unassignedOutsourcedOrders.length > 0 ? 'Unassigned' : 'All Set'}
+                        </Badge>
+                    </CardContent>
+                </Card>
+
+                {/* Metric 3: Active Partner Practices */}
+                <Card className="border-slate-100 bg-white shadow-sm hover:shadow-md transition-all">
+                    <CardContent className="p-4 flex items-center justify-between">
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-extrabold uppercase text-indigo-600 tracking-wider flex items-center gap-1">
+                                <Users className="h-3.5 w-3.5" /> Partner Practices
+                            </span>
+                            <div className="text-2xl font-black text-slate-850">{partnerPractices.length}</div>
+                            <p className="text-[11px] text-slate-400 font-medium">Registered Practices</p>
+                        </div>
+                        <Badge variant="outline" className="px-2.5 py-1 text-xs font-bold text-indigo-600 border-indigo-200 bg-indigo-50">
+                            Resellers
+                        </Badge>
+                    </CardContent>
+                </Card>
+
+                {/* Metric 4: CV Candidates */}
+                <Card className="border-slate-100 bg-white shadow-sm hover:shadow-md transition-all">
+                    <CardContent className="p-4 flex items-center justify-between">
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-extrabold uppercase text-emerald-600 tracking-wider flex items-center gap-1">
+                                <UserIcon className="h-3.5 w-3.5" /> Candidate Applications
+                            </span>
+                            <div className="text-2xl font-black text-slate-850">{cvLeadsList.length}</div>
+                            <p className="text-[11px] text-slate-400 font-medium">CV Submissions</p>
+                        </div>
+                        <Badge variant="outline" className="px-2.5 py-1 text-xs font-bold text-emerald-600 border-emerald-200 bg-emerald-50">
+                            Recruiting
+                        </Badge>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* ACTION SECTION: Community Moderation & Outsourced Orders Queues */}
+            {(pendingPosts.length > 0 || unassignedOutsourcedOrders.length > 0) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    {/* Community Moderation Quick Queue */}
+                    {pendingPosts.length > 0 && (
+                        <Card className="border-amber-200 bg-gradient-to-br from-amber-50/50 to-white shadow-sm">
+                            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-base font-black text-slate-850 flex items-center gap-2">
+                                        <ShieldCheck className="h-4 w-4 text-amber-600" /> Community Moderation Queue
+                                    </CardTitle>
+                                    <CardDescription className="text-xs text-slate-500 font-medium">
+                                        {pendingPosts.length} post(s) awaiting approval before publishing.
+                                    </CardDescription>
+                                </div>
+                                <Button variant="outline" size="sm" asChild className="text-xs font-bold">
+                                    <Link href="/admin/community">View All</Link>
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-3">
+                                {pendingPosts.slice(0, 3).map(post => (
+                                    <div key={post.id} className="p-3 bg-white border border-amber-200/80 rounded-xl space-y-2 shadow-xs">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <h5 className="text-xs font-bold text-slate-800 line-clamp-1">{post.title || 'Untitled Post'}</h5>
+                                            <Badge variant="outline" className="text-[9px] bg-amber-50 text-amber-700 border-amber-200">Pending</Badge>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 line-clamp-2">{post.content}</p>
+                                        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                                            <span className="text-[10px] text-slate-400 font-medium">{post.authorName || 'Anonymous'}</span>
+                                            <div className="flex gap-1.5">
+                                                <Button size="xs" variant="destructive" className="h-6 text-[10px] px-2 font-bold" onClick={() => handleRejectPost(post.id)}>Reject</Button>
+                                                <Button size="xs" className="h-6 text-[10px] px-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleApprovePost(post.id)}>Approve</Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Unassigned Outsourced Orders Queue */}
+                    {unassignedOutsourcedOrders.length > 0 && (
+                        <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-white shadow-sm">
+                            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-base font-black text-slate-850 flex items-center gap-2">
+                                        <ClipboardList className="h-4 w-4 text-blue-600" /> Outsourced Orders Needing Staff Assignment
+                                    </CardTitle>
+                                    <CardDescription className="text-xs text-slate-500 font-medium">
+                                        {unassignedOutsourcedOrders.length} order(s) outsourced by partners.
+                                    </CardDescription>
+                                </div>
+                                <Button variant="outline" size="sm" asChild className="text-xs font-bold">
+                                    <Link href="/admin/orders">Manage Orders</Link>
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-3">
+                                {unassignedOutsourcedOrders.slice(0, 3).map(ord => (
+                                    <div key={ord.id} className="p-3 bg-white border border-blue-200/80 rounded-xl space-y-2 shadow-xs">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div>
+                                                <span className="text-xs font-black text-primary">Order #{ord.originalOrderId || ord.id}</span>
+                                                <p className="text-[11px] text-slate-600 font-medium">{ord.customerName}</p>
+                                            </div>
+                                            <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-700 border-blue-200 font-bold">Unassigned</Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 gap-2">
+                                            <Select onValueChange={(staffId) => handleAssignStaffToOrder(ord.id, staffId)}>
+                                                <SelectTrigger className="h-7 text-[11px] font-medium w-48">
+                                                    <SelectValue placeholder="Assign Staff Member..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {assignableStaff.map(s => (
+                                                        <SelectItem key={s.id} value={s.id} className="text-xs font-medium">{s.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Button size="xs" variant="ghost" asChild className="h-7 text-[10px] font-bold">
+                                                <Link href={`/admin/orders/${ord.id}`}>View Details</Link>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            )}
 
             {/* Practice Metrics & Performance Banner */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
