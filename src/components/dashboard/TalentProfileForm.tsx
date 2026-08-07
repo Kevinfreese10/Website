@@ -46,7 +46,7 @@ const talentProfileSchema = z.object({
   expectedRate: z.string().optional(),
   availabilityHours: z.string().optional(),
   professionalBody: z.string().optional(),
-  registrationNumber: z.string().optional(),
+  yearsExperience: z.string().optional(),
   cvUrl: z.string().optional(),
 });
 
@@ -69,7 +69,7 @@ export default function TalentProfileForm() {
       expectedRate: user?.talentProfile?.expectedRate || '',
       availabilityHours: user?.talentProfile?.availabilityHours || '',
       professionalBody: user?.talentProfile?.professionalBody || 'SARS Tax Practitioner',
-      registrationNumber: user?.talentProfile?.registrationNumber || '',
+      yearsExperience: user?.talentProfile?.yearsExperience || '3 - 5 Years',
       cvUrl: user?.talentProfile?.cvUrl || '',
     },
   });
@@ -130,7 +130,7 @@ export default function TalentProfileForm() {
         expectedRate: values.expectedRate || '',
         availabilityHours: values.availabilityHours || '',
         professionalBody: values.professionalBody || '',
-        registrationNumber: values.registrationNumber || '',
+        yearsExperience: values.yearsExperience || '',
         cvUrl: values.cvUrl,
         preferences: user?.talentProfile?.preferences || [],
         supportingDocsUrls: user?.talentProfile?.supportingDocsUrls || [],
@@ -397,13 +397,26 @@ export default function TalentProfileForm() {
                     />
                     <FormField
                       control={form.control}
-                      name="registrationNumber"
+                      name="yearsExperience"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600">PR / Registration Number</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g. PR-0098712" {...field} />
-                          </FormControl>
+                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1">
+                            <Briefcase className="h-3.5 w-3.5 text-slate-400" /> Years of Experience
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select experience" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="< 1 Year">&lt; 1 Year (Junior / Graduate)</SelectItem>
+                              <SelectItem value="1 - 3 Years">1 - 3 Years</SelectItem>
+                              <SelectItem value="3 - 5 Years">3 - 5 Years</SelectItem>
+                              <SelectItem value="5 - 10 Years">5 - 10 Years</SelectItem>
+                              <SelectItem value="10+ Years">10+ Years (Senior / Director)</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
