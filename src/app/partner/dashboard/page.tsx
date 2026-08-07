@@ -160,9 +160,9 @@ function TopUpDialog({ partner }: { partner: User }) {
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button size="xs" variant="outline" className="h-7 px-2 text-[10px]">
-                    <PlusCircle className="mr-1 h-3 w-3" />
-                    Top Up
+                <Button size="sm" className="font-bold shadow-sm h-8 px-3.5">
+                    <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
+                    Top Up Wallet
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
@@ -488,6 +488,100 @@ export default function PartnerDashboardPage() {
                         <p className="text-lg text-muted-foreground">{user?.companyName || 'Practice Member'}</p>
                     </div>
                 </div>
+            </div>
+
+            {/* Wallet & Stats Overview Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* 1. Wallet Balance & Top Up Card */}
+                <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-blue-50/20 to-white shadow-md relative overflow-hidden">
+                    <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                    <Wallet2 className="h-4 w-4 text-primary" />
+                                    Partner Wallet Balance
+                                </CardTitle>
+                                <div className="text-3xl font-black text-slate-900 tracking-tight pt-1">
+                                    R{(user?.creditBalance ?? 0).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                            </div>
+                            <div className="p-2.5 bg-primary/10 rounded-xl text-primary shrink-0">
+                                <Wallet2 className="h-5 w-5" />
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <p className="text-[11px] text-muted-foreground font-medium">
+                            Used for outsourcing orders & platform royalties
+                        </p>
+                    </CardContent>
+                    <CardFooter className="pt-2 pb-4 bg-primary/5 border-t border-primary/10 flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-600">Instant PayFast Credit</span>
+                        {user && <TopUpDialog partner={user} />}
+                    </CardFooter>
+                </Card>
+
+                {/* 2. Active Orders Summary Card */}
+                <Card className="border border-slate-200 shadow-sm relative overflow-hidden">
+                    <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                    <Briefcase className="h-4 w-4 text-primary" />
+                                    Practice Orders
+                                </CardTitle>
+                                <div className="text-3xl font-black text-slate-900 tracking-tight pt-1">
+                                    {orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length}
+                                </div>
+                            </div>
+                            <div className="p-2.5 bg-slate-100 rounded-xl text-slate-700 shrink-0">
+                                <Briefcase className="h-5 w-5" />
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <p className="text-[11px] text-muted-foreground font-medium">
+                            {orders.length} total orders across your practice
+                        </p>
+                    </CardContent>
+                    <CardFooter className="pt-2 pb-4 border-t border-slate-100 flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-600">Active Workflows</span>
+                        <Button size="xs" variant="ghost" asChild className="h-7 text-xs font-bold text-primary">
+                            <Link href="/partner/orders">Manage Orders <ArrowRight className="ml-1 h-3 w-3" /></Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+
+                {/* 3. Wholesale Rates Card */}
+                <Card className="border border-slate-200 shadow-sm relative overflow-hidden">
+                    <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                    <BadgeDollarSign className="h-4 w-4 text-emerald-600" />
+                                    Wholesale Discount
+                                </CardTitle>
+                                <div className="text-3xl font-black text-emerald-600 tracking-tight pt-1">
+                                    20% OFF
+                                </div>
+                            </div>
+                            <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 shrink-0">
+                                <BadgeDollarSign className="h-5 w-5" />
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                        <p className="text-[11px] text-muted-foreground font-medium">
+                            20% off retail pricing on 70+ services
+                        </p>
+                    </CardContent>
+                    <CardFooter className="pt-2 pb-4 border-t border-slate-100 flex justify-between items-center">
+                        <span className="text-[10px] font-bold text-slate-600">Wholesale Catalog</span>
+                        <Button size="xs" variant="ghost" asChild className="h-7 text-xs font-bold text-primary">
+                            <Link href="/partner/services">View Rates <ArrowRight className="ml-1 h-3 w-3" /></Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
