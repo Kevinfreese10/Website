@@ -3,6 +3,7 @@
 import { getAdminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail } from '@/lib/email';
+import { notifyStaffOfAssignment, sendDocumentRequestEmailAction } from './order-actions';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -277,6 +278,65 @@ export async function outsourceOrderFromWallet(
       }
     } catch (emailErr) {
       console.error('[wallet-actions] Failed to send outsource confirmation email:', emailErr);
+    }
+
+    // -----------------------------------------------------------------------
+    // Post-transaction automation – staff allocation + doc request email + parent order sync
+    // -----------------------------------------------------------------------
+    try {
+      const orderSnap = await orderRef.get();
+      const orderData = orderSnap.data();
+
+      if (orderData) {
+        // 1. Sync originalOrderId if present
+        if (orderData.originalOrderId) {
+          try {
+            const origRef = db.collection('orders').doc(orderData.originalOrderId);
+            await origRef.update({
+              isOutsourced: true,
+              status: 'Processing',
+              documentContact,
+              notes: FieldValue.arrayUnion({
+                text: 'Order outsourced to My Accountant by reseller.',
+                authorId: 'system',
+                date: new Date(),
+                type: 'note',
+                subject: null,
+                attachments: null,
+              })
+            });
+          } catch (origErr) {
+            console.error('[wallet-actions] Failed to sync original order:', origErr);
+          }
+        }
+
+        // 2. Auto-allocate staff member based on department
+        try {
+          const staffSnap = await db.collection('users').where('role', '==', 'staff').get();
+          const staffMembers = staffSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+          if (staffMembers.length > 0) {
+            const targetStaff = staffMembers[0];
+            if (targetStaff) {
+              await orderRef.update({ assignedTo: [targetStaff.id] });
+              await notifyStaffOfAssignment(orderId, targetStaff.id);
+              console.log(`[wallet-actions] Auto-assigned staff ${targetStaff.id} to order #${orderId}`);
+            }
+          }
+        } catch (staffErr) {
+          console.error('[wallet-actions] Failed staff auto-allocation:', staffErr);
+        }
+
+        // 3. Trigger document request email
+        try {
+          await sendDocumentRequestEmailAction(orderId, 'info@myacc.co.za', 'Processing');
+          console.log(`[wallet-actions] Triggered document request email for order #${orderId}`);
+        } catch (docEmailErr) {
+          console.error('[wallet-actions] Failed document request email trigger:', docEmailErr);
+        }
+      }
+    } catch (automationErr) {
+      console.error('[wallet-actions] Post-outsource automation error:', automationErr);
     }
 
     return { success: true, cost };

@@ -124,13 +124,18 @@ export async function sendOrderStatusUpdateEmailAction(orderId: string, newStatu
         const resellerId = orderData.resellerId || orderData.partnerId;
         const reseller = resellerId ? await fetchStaffData(adminDb, resellerId) : undefined;
         
-        // Always prioritize actual client email (endCustomerEmail), fallback to customerEmail
-        const clientEmail = orderData.endCustomerEmail || orderData.customerEmail;
+        const isOutsourced = !!(orderData.resellerId || orderData.partnerId);
+        const contactPreference = orderData.documentContact || 'partner';
         
-        // If order was created by partner on behalf of client, CC partner email so partner stays in loop
-        const partnerCcEmail = (orderData.endCustomerEmail && orderData.customerEmail && orderData.customerEmail !== orderData.endCustomerEmail) 
-            ? orderData.customerEmail 
-            : undefined;
+        let clientEmail = orderData.endCustomerEmail || orderData.customerEmail;
+        let partnerCcEmail: string | undefined = undefined;
+
+        if (isOutsourced && contactPreference === 'partner') {
+            clientEmail = orderData.customerEmail;
+        } else if (orderData.endCustomerEmail && orderData.customerEmail && orderData.customerEmail !== orderData.endCustomerEmail) {
+            clientEmail = orderData.endCustomerEmail;
+            partnerCcEmail = orderData.customerEmail;
+        }
         
         if (!clientEmail) return { success: false, error: 'No client email found' };
         
