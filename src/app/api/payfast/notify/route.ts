@@ -552,22 +552,37 @@ export async function POST(req: NextRequest) {
           
           if (isSetup || isTopup) {
               const partnerId = currentOrderData.resellerId || currentOrderData.userId;
-              if (partnerId) {
-                  const partnerRef = adminDb.collection('users').doc(partnerId);
-                  // Setup logic: R4950 setup adds R2475 (50%) to wallet
-                  const creditAmount = isSetup ? 2475 : currentOrderData.total;
-                  await partnerRef.update({
-                      creditBalance: FieldValue.increment(creditAmount),
-                      status: 'Active'
-                  });
+              const pfPaymentId = data.pf_payment_id || currentOrderData.id;
+              
+              if (partnerId && pfPaymentId) {
+                  const paymentLockRef = adminDb.collection('processedPayments').doc(`topup_${pfPaymentId}`);
+                  const lockSnap = await paymentLockRef.get();
+                  
+                  if (lockSnap.exists) {
+                      console.log(`[PayFast ITN] Payment topup_${pfPaymentId} already processed. Skipping duplicate wallet credit.`);
+                  } else {
+                      await paymentLockRef.set({
+                          processedAt: FieldValue.serverTimestamp(),
+                          partnerId,
+                          amount: isSetup ? 2475 : currentOrderData.total,
+                          pfPaymentId
+                      });
 
-                  const walletLogRef = partnerRef.collection('walletLogs').doc();
-                  await walletLogRef.set({
-                      amount: creditAmount,
-                      type: isSetup ? 'setup_bonus' : 'deposit',
-                      description: isSetup ? 'Setup fee credit allocation (50%)' : 'Wallet top-up via PayFast',
-                      date: new Date()
-                  });
+                      const partnerRef = adminDb.collection('users').doc(partnerId);
+                      // Setup logic: R4950 setup adds R2475 (50%) to wallet
+                      const creditAmount = isSetup ? 2475 : currentOrderData.total;
+                      await partnerRef.update({
+                          creditBalance: FieldValue.increment(creditAmount),
+                          status: 'Active'
+                      });
+
+                      const walletLogRef = partnerRef.collection('walletLogs').doc();
+                      await walletLogRef.set({
+                          amount: creditAmount,
+                          type: isSetup ? 'setup_bonus' : 'deposit',
+                          description: isSetup ? 'Setup fee credit allocation (50%)' : 'Wallet top-up via PayFast',
+                          date: new Date()
+                      });
 
                   if (isSetup) {
                       try {
@@ -607,6 +622,7 @@ export async function POST(req: NextRequest) {
                           }
                       } catch (emailErr) {
                           console.error("Error sending BEI partner onboarding email:", emailErr);
+                      }
                       }
                   }
               }

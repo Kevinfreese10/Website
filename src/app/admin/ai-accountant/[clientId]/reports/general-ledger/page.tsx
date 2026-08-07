@@ -857,37 +857,43 @@ export default function GeneralLedgerPage() {
     }, [accountIdFromQuery]);
 
 
-    const fetchAllData = async () => {
-        if (!clientId) return;
-        setIsLoading(true);
-        try {
-            const clientRef = doc(db, 'aiAccountantClients', clientId);
-            const clientSnap = await getDoc(clientRef);
-            if (clientSnap.exists()) {
-                const clientData = { id: clientSnap.id, ...clientSnap.data() } as User;
-                setClient(clientData);
-            }
-
-            const supSnap = await getDocs(collection(db, `aiAccountantClients/${clientId}/suppliers`));
-            setSuppliers(supSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
-
-            const custSnap = await getDocs(collection(db, `aiAccountantClients/${clientId}/customers`));
-            setCustomers(custSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ClientCustomer)));
-
-             const transUnsubscribe = onSnapshot(query(collection(db, 'aiAccountantClients', clientId, 'transactions')), snapshot => {
-                const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as (ImportedTransaction | AllocatedTransaction)));
-                setTransactions(fetched);
-            });
-
-        } catch (error) {
-            console.error("Error fetching client data:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
     useEffect(() => {
+        let unsubscribe: (() => void) | undefined;
+        
+        const fetchAllData = async () => {
+            if (!clientId) return;
+            setIsLoading(true);
+            try {
+                const clientRef = doc(db, 'aiAccountantClients', clientId);
+                const clientSnap = await getDoc(clientRef);
+                if (clientSnap.exists()) {
+                    const clientData = { id: clientSnap.id, ...clientSnap.data() } as User;
+                    setClient(clientData);
+                }
+
+                const supSnap = await getDocs(collection(db, `aiAccountantClients/${clientId}/suppliers`));
+                setSuppliers(supSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
+
+                const custSnap = await getDocs(collection(db, `aiAccountantClients/${clientId}/customers`));
+                setCustomers(custSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ClientCustomer)));
+
+                unsubscribe = onSnapshot(query(collection(db, 'aiAccountantClients', clientId, 'transactions')), snapshot => {
+                    const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as (ImportedTransaction | AllocatedTransaction)));
+                    setTransactions(fetched);
+                });
+
+            } catch (error) {
+                console.error("Error fetching client data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
         fetchAllData();
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, [clientId]);
     
     const accounts = useMemo(() => client?.chartOfAccounts?.sort((a,b) => a.accountNumber.localeCompare(b.accountNumber)) || [], [client]);

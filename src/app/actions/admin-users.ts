@@ -8,8 +8,15 @@ import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
 import React from 'react';
 import AdminStaffWelcomeEmail from '@/components/emails/AdminStaffWelcomeEmail';
+import { getAuthContext } from '@/lib/server-auth';
 
-export async function reactivatePracticeSubscription({ userId }: { userId: string }) {
+export async function reactivatePracticeSubscription({ userId, requestorId }: { userId: string; requestorId?: string }) {
+    if (requestorId) {
+        const authCtx = await getAuthContext(requestorId);
+        if (!authCtx?.isAdmin) {
+            return { success: false, error: 'Unauthorized: Admin privileges required.' };
+        }
+    }
     const adminDb = getAdminDb();
     const userRef = adminDb.collection('users').doc(userId);
     await userRef.update({
