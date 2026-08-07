@@ -51,8 +51,14 @@ service cloud.firestore {
 
     // ─── Users ──────────────────────────────────────────────────────────────
     match /users/{userId} {
-      // Any authenticated user can read profiles (needed for name lookups in dashboards)
-      allow read: if isAuthenticated();
+      // Scoped read access: self, admins/staff, partner practice owners & staff
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        isAdminOrStaff() ||
+        (resource != null && resource.data.get('partnerId', null) == request.auth.uid) ||
+        isPartnerStaffOf(userId) ||
+        resource == null
+      );
       allow write: if isAuthenticated() && (
         request.auth.uid == userId ||
         isAdmin() ||

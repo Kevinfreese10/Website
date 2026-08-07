@@ -62,7 +62,11 @@ service firebase.storage {
         (firestore.exists(/databases/(default)/documents/orders/$(orderId)) && (
           firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('userId', '') == request.auth.uid ||
           firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('resellerId', '') == request.auth.uid ||
-          firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('partnerId', '') == request.auth.uid
+          firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('partnerId', '') == request.auth.uid ||
+          (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+           firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') != '' &&
+           (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') == firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('resellerId', '') ||
+            firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') == firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('partnerId', '')))
         ))
       );
     }
