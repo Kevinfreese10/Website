@@ -429,7 +429,9 @@ export default function TalentProfileForm() {
                       name="workType"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600">Preferred Work Type</FormLabel>
+                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1.5 h-5">
+                            <Briefcase className="h-3.5 w-3.5 text-slate-400" /> Preferred Work Type
+                          </FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
@@ -452,7 +454,9 @@ export default function TalentProfileForm() {
                       name="locationPreference"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600">Location Preference</FormLabel>
+                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1.5 h-5">
+                            <MapPin className="h-3.5 w-3.5 text-slate-400" /> Location Preference
+                          </FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
@@ -474,8 +478,8 @@ export default function TalentProfileForm() {
                       name="yearsExperience"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1">
-                            <Briefcase className="h-3.5 w-3.5 text-slate-400" /> Years of Experience
+                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1.5 h-5">
+                            <Award className="h-3.5 w-3.5 text-slate-400" /> Years of Experience
                           </FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -504,7 +508,7 @@ export default function TalentProfileForm() {
                       name="expectedRate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1">
+                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1.5 h-5">
                             <DollarSign className="h-3.5 w-3.5 text-slate-400" /> Expected Rate / Compensation
                           </FormLabel>
                           <FormControl>
@@ -519,7 +523,7 @@ export default function TalentProfileForm() {
                       name="availabilityHours"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1">
+                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1.5 h-5">
                             <Clock className="h-3.5 w-3.5 text-slate-400" /> Weekly Availability / Notice Period
                           </FormLabel>
                           <FormControl>
