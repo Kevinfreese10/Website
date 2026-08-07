@@ -22,6 +22,7 @@ import {
   Loader2,
   TrendingUp,
   Info,
+  Sparkles,
 } from 'lucide-react';
 import { Order, Service } from '@/lib/types';
 
@@ -145,8 +146,8 @@ export function ProcessOrderModal({
                   <p className="font-semibold text-slate-700 flex items-center gap-1">
                     <Info className="h-3.5 w-3.5 text-primary shrink-0" /> Fee Allocation Rules:
                   </p>
-                  <p className="text-[10px] text-slate-600">
-                    10% per order (min R100, max R500 cap). Contributes toward cloud hosting, system maintenance, support & automated document collection.
+                  <p className="text-[10px] text-slate-600 leading-relaxed">
+                    10% per order (min R100, max R500 cap). Contributes toward cloud hosting, system maintenance, support, automated document collection, and keeping this platform awesome! <Sparkles className="inline h-3 w-3 text-amber-500 ml-0.5" />
                   </p>
                 </div>
               </div>
