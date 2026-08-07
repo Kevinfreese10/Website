@@ -576,6 +576,11 @@ export type User = {
     isLookingForWork: boolean;
     preferences: string[];
     experience: string;
+    skills?: string[];
+    expectedRate?: string;
+    availabilityHours?: string;
+    professionalBody?: string;
+    registrationNumber?: string;
     cvUrl?: string;
     supportingDocsUrls?: string[];
     workType?: 'Full Time' | 'Part Time' | 'Contract' | 'Freelance';

@@ -208,8 +208,22 @@ export default function JobsBoardPage() {
                             <MapPin className="h-3.5 w-3.5 mr-1 text-slate-400" /> {t.address?.city || t.address?.province || 'South Africa'}
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="px-5 pb-4 flex-1">
+                        <CardContent className="px-5 pb-4 flex-1 space-y-3">
                           <ExpandableText text={t.talentProfile?.experience || 'Professional experienced in accounting, SARS tax compliance, and financial administration.'} maxChars={110} />
+                          {t.talentProfile?.skills && t.talentProfile.skills.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {t.talentProfile.skills.slice(0, 3).map(skill => (
+                                <Badge key={skill} variant="outline" className="text-[10px] bg-slate-50 font-semibold text-slate-700">
+                                  {skill}
+                                </Badge>
+                              ))}
+                              {t.talentProfile.skills.length > 3 && (
+                                <Badge variant="outline" className="text-[10px] bg-slate-50 font-semibold text-slate-400">
+                                  +{t.talentProfile.skills.length - 3} more
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </CardContent>
                         <CardFooter className="flex gap-2 border-t p-4 bg-slate-50/50">
                           {isFullyAuthorized ? (
