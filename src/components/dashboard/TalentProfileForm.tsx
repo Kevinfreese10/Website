@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { firebaseApp } from '@/lib/firebase';
-import { Loader2, Briefcase, UploadCloud, MapPin, Eye, ExternalLink, CheckCircle2, Award, Clock, DollarSign, FileText } from 'lucide-react';
+import { Loader2, Briefcase, UploadCloud, MapPin, Eye, ExternalLink, CheckCircle2, Award, Clock, DollarSign, FileText, Check } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,81 @@ const AVAILABLE_SKILLS = [
   'COIDA Return of Earnings',
 ];
 
+const PROFESSIONAL_BODIES = [
+  {
+    id: 'SAICA',
+    name: 'South African Institute of Chartered Accountants (SAICA)',
+    designations: 'CA(SA), AGA(SA), AT(SA)',
+    focus: 'Chartered Accountants, auditing, financial reporting, taxation, advisory'
+  },
+  {
+    id: 'SAIPA',
+    name: 'South African Institute of Professional Accountants (SAIPA)',
+    designations: 'Professional Accountant (SA), Professional Tax Practitioner (SA)',
+    focus: 'Accounting, taxation, SMEs, independent practice'
+  },
+  {
+    id: 'CIBA',
+    name: 'Chartered Institute for Business Accountants (CIBA)',
+    designations: 'CBAP®, CBA®, BAP(SA), FP(SA)',
+    focus: 'Business accountants, accountants in practice, financial professionals'
+  },
+  {
+    id: 'SAIT',
+    name: 'South African Institute of Taxation (SAIT)',
+    designations: 'Master Tax Practitioner (SA), Tax Practitioner (SA)',
+    focus: 'Tax practitioners, tax consultants, tax specialists'
+  },
+  {
+    id: 'IAC',
+    name: 'Institute of Accounting and Commerce (IAC)',
+    designations: 'Independent Accounting Professional (IAP), Financial Accountant (FAP), CTP',
+    focus: 'Accounting and taxation'
+  },
+  {
+    id: 'ACCA',
+    name: 'Association of Chartered Certified Accountants (ACCA South Africa)',
+    designations: 'ACCA',
+    focus: 'International accounting qualification'
+  },
+  {
+    id: 'CIMA',
+    name: 'Chartered Institute of Management Accountants (CIMA)',
+    designations: 'CGMA',
+    focus: 'Management accounting, finance, strategy'
+  },
+  {
+    id: 'ICBA',
+    name: 'Institute of Certified Bookkeepers and Accountants (ICBA)',
+    designations: 'Certified Bookkeeper, Certified Accountant',
+    focus: 'Bookkeeping and accounting'
+  },
+  {
+    id: 'IRBA',
+    name: 'Independent Regulatory Board for Auditors (IRBA)',
+    designations: 'Registered Auditor (RA)',
+    focus: 'Regulation of auditors and audit firms'
+  },
+  {
+    id: 'CGISA',
+    name: 'Chartered Governance Institute of Southern Africa (CGISA)',
+    designations: 'Chartered Secretary (CGP)',
+    focus: 'Corporate governance, company secretarial'
+  },
+  {
+    id: 'FPI',
+    name: 'Financial Planning Institute of Southern Africa (FPI)',
+    designations: 'CFP®',
+    focus: 'Financial planning and wealth management'
+  },
+  {
+    id: 'LPC',
+    name: 'Legal Practice Council (LPC)',
+    designations: 'Attorney, Advocate',
+    focus: 'Recognised by SARS for tax practitioners where applicable'
+  }
+];
+
 const talentProfileSchema = z.object({
   isLookingForWork: z.boolean(),
   experience: z.string().optional(),
@@ -45,7 +120,6 @@ const talentProfileSchema = z.object({
   locationPreference: z.enum(['Remote', 'On-site', 'Hybrid']).optional(),
   expectedRate: z.string().optional(),
   availabilityHours: z.string().optional(),
-  professionalBody: z.string().optional(),
   yearsExperience: z.string().optional(),
   cvUrl: z.string().optional(),
 });
@@ -59,6 +133,10 @@ export default function TalentProfileForm() {
     user?.talentProfile?.skills || []
   );
 
+  const initialBodies = user?.talentProfile?.professionalBodies || 
+    (user?.talentProfile?.professionalBody ? [user.talentProfile.professionalBody] : []);
+  const [selectedBodies, setSelectedBodies] = useState<string[]>(initialBodies);
+
   const form = useForm<z.infer<typeof talentProfileSchema>>({
     resolver: zodResolver(talentProfileSchema),
     defaultValues: {
@@ -68,7 +146,6 @@ export default function TalentProfileForm() {
       locationPreference: user?.talentProfile?.locationPreference || 'Remote',
       expectedRate: user?.talentProfile?.expectedRate || '',
       availabilityHours: user?.talentProfile?.availabilityHours || '',
-      professionalBody: user?.talentProfile?.professionalBody || 'SARS Tax Practitioner',
       yearsExperience: user?.talentProfile?.yearsExperience || '3 - 5 Years',
       cvUrl: user?.talentProfile?.cvUrl || '',
     },
@@ -79,6 +156,12 @@ export default function TalentProfileForm() {
   const toggleSkill = (skill: string) => {
     setSelectedSkills(prev =>
       prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
+    );
+  };
+
+  const toggleBody = (bodyId: string) => {
+    setSelectedBodies(prev =>
+      prev.includes(bodyId) ? prev.filter(b => b !== bodyId) : [...prev, bodyId]
     );
   };
 
@@ -129,7 +212,8 @@ export default function TalentProfileForm() {
         locationPreference: values.locationPreference,
         expectedRate: values.expectedRate || '',
         availabilityHours: values.availabilityHours || '',
-        professionalBody: values.professionalBody || '',
+        professionalBodies: selectedBodies,
+        professionalBody: selectedBodies.join(', '),
         yearsExperience: values.yearsExperience || '',
         cvUrl: values.cvUrl,
         preferences: user?.talentProfile?.preferences || [],
@@ -168,6 +252,7 @@ export default function TalentProfileForm() {
   const watchWorkType = form.watch('workType');
   const watchLocation = form.watch('locationPreference');
   const watchExp = form.watch('experience');
+  const watchYearsExp = form.watch('yearsExperience');
 
   return (
     <div className="space-y-8">
@@ -213,14 +298,24 @@ export default function TalentProfileForm() {
             <CardTitle className="text-base font-extrabold text-slate-850">
               {user.name} {user.surname ? user.surname[0] + '.' : ''}
             </CardTitle>
-            <CardDescription className="flex items-center mt-2 text-xs font-semibold text-slate-500">
-              <MapPin className="h-3.5 w-3.5 mr-1 text-slate-400" /> {user.address?.city || user.address?.province || 'South Africa'}
+            <CardDescription className="flex items-center justify-between mt-2 text-xs font-semibold text-slate-500">
+              <span className="flex items-center"><MapPin className="h-3.5 w-3.5 mr-1 text-slate-400" /> {user.address?.city || user.address?.province || 'South Africa'}</span>
+              {watchYearsExp && <span className="text-indigo-600 font-bold text-[11px] bg-indigo-50 px-2 py-0.5 rounded">{watchYearsExp} Exp</span>}
             </CardDescription>
           </CardHeader>
           <CardContent className="px-5 pb-4">
             <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-3">
               {watchExp || 'Your professional experience summary will be shown here...'}
             </p>
+            {selectedBodies.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {selectedBodies.map(body => (
+                  <Badge key={body} variant="secondary" className="text-[9px] bg-purple-50 text-purple-700 border-purple-200 font-bold">
+                    <Award className="h-2.5 w-2.5 mr-1" /> {body}
+                  </Badge>
+                ))}
+              </div>
+            )}
             {selectedSkills.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {selectedSkills.slice(0, 3).map(skill => (
@@ -253,7 +348,7 @@ export default function TalentProfileForm() {
           <CardTitle className="text-lg font-bold flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-purple-600" /> Talent Profile Settings
           </CardTitle>
-          <CardDescription>Configure your candidate visibility, skills, rates, and CV file.</CardDescription>
+          <CardDescription>Configure your candidate visibility, professional affiliations, skills, rates, and CV file.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -282,8 +377,8 @@ export default function TalentProfileForm() {
 
               {form.watch('isLookingForWork') && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                  {/* Work Type & Location */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Work Type, Location & Experience */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
                       name="workType"
@@ -329,6 +424,32 @@ export default function TalentProfileForm() {
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={form.control}
+                      name="yearsExperience"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1">
+                            <Briefcase className="h-3.5 w-3.5 text-slate-400" /> Years of Experience
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select experience" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="< 1 Year">&lt; 1 Year (Junior / Graduate)</SelectItem>
+                              <SelectItem value="1 - 3 Years">1 - 3 Years</SelectItem>
+                              <SelectItem value="3 - 5 Years">3 - 5 Years</SelectItem>
+                              <SelectItem value="5 - 10 Years">5 - 10 Years</SelectItem>
+                              <SelectItem value="10+ Years">10+ Years (Senior / Director)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
                   {/* Expected Rate & Availability */}
@@ -365,66 +486,50 @@ export default function TalentProfileForm() {
                     />
                   </div>
 
-                  {/* Professional Body Credentials */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="professionalBody"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1">
-                            <Award className="h-3.5 w-3.5 text-slate-400" /> Professional Body
-                          </FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select body" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="SARS Tax Practitioner">SARS Tax Practitioner</SelectItem>
-                              <SelectItem value="SAICA">SAICA (CA / AGA)</SelectItem>
-                              <SelectItem value="SAIPA">SAIPA (Professional Accountant)</SelectItem>
-                              <SelectItem value="CIMA">CIMA / CGMA</SelectItem>
-                              <SelectItem value="IAC">IAC</SelectItem>
-                              <SelectItem value="AAT">AAT(SA)</SelectItem>
-                              <SelectItem value="Other">Other / Unaffiliated</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="yearsExperience"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1">
-                            <Briefcase className="h-3.5 w-3.5 text-slate-400" /> Years of Experience
-                          </FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select experience" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="< 1 Year">&lt; 1 Year (Junior / Graduate)</SelectItem>
-                              <SelectItem value="1 - 3 Years">1 - 3 Years</SelectItem>
-                              <SelectItem value="3 - 5 Years">3 - 5 Years</SelectItem>
-                              <SelectItem value="5 - 10 Years">5 - 10 Years</SelectItem>
-                              <SelectItem value="10+ Years">10+ Years (Senior / Director)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  {/* Multi-Select Professional Bodies */}
+                  <div className="space-y-3 pt-2 border-t">
+                    <div>
+                      <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                        <Award className="h-4 w-4 text-purple-600" /> Professional Bodies & Affiliations (Select all that apply)
+                      </FormLabel>
+                      <FormDescription className="text-xs text-slate-500 mt-0.5">
+                        Choose your registered SA accounting, auditing, and tax professional bodies.
+                      </FormDescription>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {PROFESSIONAL_BODIES.map(body => {
+                        const isSelected = selectedBodies.includes(body.id);
+                        return (
+                          <div
+                            key={body.id}
+                            onClick={() => toggleBody(body.id)}
+                            className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                              isSelected
+                                ? 'border-purple-600 bg-purple-50/60 shadow-xs ring-1 ring-purple-600/30'
+                                : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-slate-50/50'
+                            }`}
+                          >
+                            <div className={`h-5 w-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                              isSelected ? 'bg-purple-600 text-white' : 'border border-slate-300 bg-white'
+                            }`}>
+                              {isSelected && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                            </div>
+                            <div className="space-y-1 flex-1">
+                              <p className="font-bold text-xs text-slate-900 leading-snug">{body.name}</p>
+                              <Badge variant="outline" className="text-[10px] bg-white font-semibold text-purple-700 border-purple-200">
+                                {body.designations}
+                              </Badge>
+                              <p className="text-[11px] text-slate-500 leading-tight pt-0.5">{body.focus}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Core Competencies Tag Selector */}
-                  <div className="space-y-2">
+                  <div className="space-y-2 pt-2 border-t">
                     <FormLabel className="font-bold text-xs uppercase tracking-wider text-slate-600">Core Competencies & Software Skills</FormLabel>
                     <div className="flex flex-wrap gap-2 pt-1">
                       {AVAILABLE_SKILLS.map(skill => {

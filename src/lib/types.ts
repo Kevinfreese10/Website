@@ -580,6 +580,7 @@ export type User = {
     expectedRate?: string;
     availabilityHours?: string;
     professionalBody?: string;
+    professionalBodies?: string[];
     yearsExperience?: string;
     registrationNumber?: string;
     cvUrl?: string;
