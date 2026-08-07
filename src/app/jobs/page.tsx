@@ -12,6 +12,33 @@ import Link from 'next/link';
 
 import { getPublicJobsAction, getPublicTalentAction } from '@/app/actions/jobs-actions';
 
+function ExpandableText({ text, maxChars = 110 }: { text: string; maxChars?: number }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!text) return null;
+  if (text.length <= maxChars) {
+    return <p className="text-xs text-slate-600 leading-relaxed">{text}</p>;
+  }
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs text-slate-600 leading-relaxed">
+        {isExpanded ? text : `${text.slice(0, maxChars).trim()}...`}
+      </p>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsExpanded(!isExpanded);
+        }}
+        className="text-[11px] font-extrabold text-primary hover:underline focus:outline-none flex items-center gap-0.5"
+      >
+        {isExpanded ? 'Show less' : 'View more'}
+      </button>
+    </div>
+  );
+}
+
 export default function JobsBoardPage() {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -103,7 +130,7 @@ export default function JobsBoardPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="px-5 pb-4 flex-1">
-                        <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{job.description}</p>
+                        <ExpandableText text={job.description} maxChars={110} />
                       </CardContent>
                       <CardFooter className="flex justify-between items-center text-xs text-muted-foreground border-t p-4 bg-slate-50/50">
                         <span className="flex items-center text-[11px] font-medium text-slate-400">
@@ -182,9 +209,7 @@ export default function JobsBoardPage() {
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="px-5 pb-4 flex-1">
-                          <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                            {t.talentProfile?.experience || 'Professional experienced in accounting, SARS tax compliance, and financial administration.'}
-                          </p>
+                          <ExpandableText text={t.talentProfile?.experience || 'Professional experienced in accounting, SARS tax compliance, and financial administration.'} maxChars={110} />
                         </CardContent>
                         <CardFooter className="flex gap-2 border-t p-4 bg-slate-50/50">
                           {isFullyAuthorized ? (
