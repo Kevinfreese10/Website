@@ -46,10 +46,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/sars-tax-refund',
     '/industries/sme',
     '/industries/construction',
-    '/industries/film',
-    '/industries/freelancer',
-    '/industries/hospitality',
-    '/industries/retail',
+    '/monthly-accounting',
+    '/annual-financial-statements',
+    '/management-accounts',
+    '/monthly-payroll',
+    '/paye-compliance',
+    '/uif-compliance',
+    '/payroll-administration',
     '/accounting-services-south-africa',
     '/tax-services-south-africa',
     '/small-business-accounting-south-africa',
@@ -117,9 +120,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Error fetching blog posts for sitemap:", error);
   }
 
-  return [
-    ...staticRoutes,
-    ...serviceRoutes,
-    ...blogPostRoutes,
-  ];
+  // Combine all routes and deduplicate by URL
+  const allRoutes = [...staticRoutes, ...serviceRoutes, ...blogPostRoutes];
+  const uniqueRoutes = Array.from(new Map(allRoutes.map(r => [r.url, r])).values());
+  return uniqueRoutes;
 }

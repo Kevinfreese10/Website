@@ -49,6 +49,11 @@ const navGroups = [
         { label: 'Sage Accountant', href: '/sage-accountant-south-africa' },
         { label: 'Zoho Accountant', href: '/zoho-accountant-south-africa' },
         { label: 'Pastel Accountant', href: '/pastel-accountant-south-africa' },
+        { label: 'Accountant Johannesburg', href: '/accountant-johannesburg' },
+        { label: 'Accountant Pretoria', href: '/accountant-pretoria' },
+        { label: 'Accountant Cape Town', href: '/accountant-cape-town' },
+        { label: 'Accountant Durban', href: '/accountant-durban' },
+        { label: 'Accountant Randburg', href: '/accountant-randburg' },
     ]
   },
   {

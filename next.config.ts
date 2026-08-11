@@ -295,6 +295,12 @@ const nextConfig: NextConfig = {
       { source: '/articles/directors-duties', destination: '/blog', permanent: true },
     ];
   },
+  async rewrites() {
+    return [
+      // Map SEO-friendly /accountant-<city> URLs to the dynamic route /accountant/[city]
+      { source: '/accountant-:city', destination: '/accountant/:city' },
+    ];
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
