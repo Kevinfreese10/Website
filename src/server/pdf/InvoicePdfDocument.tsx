@@ -391,25 +391,25 @@ export function InvoicePdfDocument({
 
             <View>
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
-                <Text style={{ color: '#777', marginRight: 10 }}>Invoice #:</Text>
-                <Text style={{ fontWeight: 'bold' }}>{invoiceId}</Text>
+                <Text style={{ color: '#777', width: '35%', textAlign: 'right', paddingRight: 8 }}>Invoice #:</Text>
+                <Text style={{ fontWeight: 'bold', width: '65%', textAlign: 'right' }}>{invoiceId}</Text>
               </View>
 
               {invoice?.reference ? (
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
-                  <Text style={{ color: '#777', marginRight: 10 }}>Reference:</Text>
-                  <Text style={{ fontWeight: 'bold' }}>{safeText(invoice.reference)}</Text>
+                  <Text style={{ color: '#777', width: '35%', textAlign: 'right', paddingRight: 8 }}>Reference:</Text>
+                  <Text style={{ fontWeight: 'bold', width: '65%', textAlign: 'right' }}>{safeText(invoice.reference)}</Text>
                 </View>
               ) : null}
 
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
-                <Text style={{ color: '#777', marginRight: 10 }}>Date:</Text>
-                <Text>{safeFormatDate(invoice?.invoiceDate)}</Text>
+                <Text style={{ color: '#777', width: '35%', textAlign: 'right', paddingRight: 8 }}>Date:</Text>
+                <Text style={{ width: '65%', textAlign: 'right' }}>{safeFormatDate(invoice?.invoiceDate)}</Text>
               </View>
 
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                <Text style={{ color: '#777', marginRight: 10 }}>Due Date:</Text>
-                <Text>{safeFormatDate(invoice?.dueDate)}</Text>
+                <Text style={{ color: '#777', width: '35%', textAlign: 'right', paddingRight: 8 }}>Due Date:</Text>
+                <Text style={{ width: '65%', textAlign: 'right' }}>{safeFormatDate(invoice?.dueDate)}</Text>
               </View>
             </View>
           </View>

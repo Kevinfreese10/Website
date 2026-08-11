@@ -99,18 +99,18 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
       doc.setTextColor(100);
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.text(`Invoice Number:`, 140, 35);
+      doc.text(`Invoice Number:`, 120, 35);
       
       let headerY = 40;
       let refLines: string[] = [];
       if (invoice.reference) {
         refLines = doc.splitTextToSize(invoice.reference, 45);
-        doc.text(`Reference:`, 140, headerY);
+        doc.text(`Reference:`, 120, headerY);
         headerY += (refLines.length * 5);
       }
-      doc.text(`Date:`, 140, headerY);
+      doc.text(`Date:`, 120, headerY);
       headerY += 5;
-      doc.text(`Due Date:`, 140, headerY);
+      doc.text(`Due Date:`, 120, headerY);
 
       doc.setFont('helvetica', 'normal');
       doc.text(invoice.id, 190, 35, { align: 'right' });

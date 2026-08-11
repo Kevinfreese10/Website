@@ -103,16 +103,31 @@ export default function QuoteDownloadButton({ quote, client, customer }: QuoteDo
       const quoteDateObj = quote.quoteDate instanceof Date ? quote.quoteDate : (quote.quoteDate?.toDate ? quote.quoteDate.toDate() : new Date(quote.quoteDate));
       const expiryDateObj = quote.expiryDate instanceof Date ? quote.expiryDate : (quote.expiryDate?.toDate ? quote.expiryDate.toDate() : new Date(quote.expiryDate));
 
-      doc.text(`Quote Number: ${quote.id}`, 190, 32, { align: 'right' });
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Quote Number:`, 120, 32);
+      doc.setFont('helvetica', 'normal');
+      doc.text(quote.id, 190, 32, { align: 'right' });
+
       let qY = 37;
       if (quote.reference) {
-        const refLines = doc.splitTextToSize(`Reference: ${quote.reference}`, 60);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Reference:`, 120, qY);
+        doc.setFont('helvetica', 'normal');
+        const refLines = doc.splitTextToSize(quote.reference, 45);
         doc.text(refLines, 190, qY, { align: 'right' });
         qY += (refLines.length * 5);
       }
-      doc.text(`Date: ${format(quoteDateObj, 'dd/MM/yyyy')}`, 190, qY, { align: 'right' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Date:`, 120, qY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(format(quoteDateObj, 'dd/MM/yyyy'), 190, qY, { align: 'right' });
       qY += 5;
-      doc.text(`Expiry Date: ${format(expiryDateObj, 'dd/MM/yyyy')}`, 190, qY, { align: 'right' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Expiry Date:`, 120, qY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(format(expiryDateObj, 'dd/MM/yyyy'), 190, qY, { align: 'right' });
 
       // 4. Client / Bill To Info
       const startInfoY = Math.max(leftY, 50);
