@@ -4,6 +4,7 @@ import * as imapSimple from 'imap-simple';
 import { simpleParser } from 'mailparser';
 import { triageEmail } from '@/ai/flows/triage-email';
 import { summarizeEmail } from '@/ai/flows/summarize-email';
+import { extractEmailActions } from '@/ai/flows/extract-email-actions';
 import type { EmailContact, EmailAttachment } from '@/lib/types';
 
 export async function syncEmailsInternal(): Promise<{ success: boolean; count?: number; totalProcessed?: number; error?: string }> {
@@ -52,6 +53,10 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
 
     // 3. Open INBOX
     await connection.openBox('INBOX');
+    
+    // Fetch auto-archive rules
+    const rulesDoc = await adminDb.collection('emailSettings').doc('rules').get();
+    const autoArchiveSenders: string[] = rulesDoc.exists ? (rulesDoc.data()?.autoArchiveSenders || []) : [];
 
     // 4. Search for emails since last sync (or last week if first sync)
     const searchDate = lastSyncDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -184,6 +189,8 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
         }
 
         // 8. Store in Firestore
+        const isAutoArchived = fromContact?.email && autoArchiveSenders.includes(fromContact.email.toLowerCase());
+        
         const emailDoc = {
           messageId,
           threadId,
@@ -196,11 +203,13 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
           date: parsed.date ? new Date(parsed.date) : new Date(),
           receivedAt: FieldValue.serverTimestamp(),
           attachments,
-          status: 'unread' as const,
+          status: (isAutoArchived ? 'archived' : 'unread') as 'unread' | 'archived',
           isStarred: false,
         };
 
-        const docRef = await adminDb.collection('emails').add(emailDoc);
+        const safeDocId = messageId.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const docRef = adminDb.collection('emails').doc(safeDocId);
+        await docRef.set(emailDoc, { merge: true });
         newEmailCount++;
 
         // Add to AI background tasks queue
@@ -243,54 +252,72 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
       }
     }
 
-    // 13. Run inline AI triage, summarization, and automation rule engine
-    const { runEmailAutomation } = await import('@/lib/email-automation-engine');
-    
+    // 13. Run AI triage, summarization, and automation rule engine in the background
     if (aiTasks.length > 0) {
-      console.log(`[Email Sync API] Running inline AI processing for ${aiTasks.length} emails.`);
-      for (const task of aiTasks) {
-        try {
-          const emailId = task.docRef.id;
-          console.log(`[Email Sync API] Running triage/summarize for emailId: ${emailId}`);
-          
-          const [triageResult, summaryResult] = await Promise.all([
-            runWithRetry(() => triageEmail({
-              subject: task.emailDoc.subject,
-              body: task.emailDoc.bodyText,
-              senderEmail: task.fromContact.email,
-              senderName: task.fromContact.name || task.fromContact.email,
-            })),
-            runWithRetry(() => summarizeEmail({
-              subject: task.emailDoc.subject,
-              body: task.emailDoc.bodyText,
-              senderName: task.fromContact.name || task.fromContact.email,
-            })),
-          ]);
+      console.log(`[Email Sync API] Starting background AI processing for ${aiTasks.length} emails.`);
+      // Run asynchronously without awaiting so the sync returns immediately
+      const processAiTasks = async () => {
+        const { runEmailAutomation } = await import('@/lib/email-automation-engine');
+        for (const task of aiTasks) {
+          try {
+            const emailId = task.docRef.id;
+            console.log(`[Email Sync API] Running triage/summarize for emailId: ${emailId}`);
+            
+            const [triageResult, summaryResult, actionsResult] = await Promise.all([
+              runWithRetry(() => triageEmail({
+                subject: task.emailDoc.subject,
+                body: task.emailDoc.bodyText,
+                senderEmail: task.fromContact.email,
+                senderName: task.fromContact.name || task.fromContact.email,
+              })),
+              runWithRetry(() => summarizeEmail({
+                subject: task.emailDoc.subject,
+                body: task.emailDoc.bodyText,
+                senderName: task.fromContact.name || task.fromContact.email,
+              })),
+              runWithRetry(() => extractEmailActions({
+                subject: task.emailDoc.subject,
+                body: task.emailDoc.bodyText,
+                senderEmail: task.fromContact.email,
+                senderName: task.fromContact.name || task.fromContact.email,
+              })),
+            ]);
 
-          const aiUpdate: Record<string, any> = {};
+            const aiUpdate: Record<string, any> = {};
 
-          if (triageResult.success && triageResult.data) {
-            if (triageResult.data.category) aiUpdate.aiCategory = triageResult.data.category;
-            if (triageResult.data.priority) aiUpdate.aiPriority = triageResult.data.priority;
-            if (triageResult.data.sentiment) aiUpdate.aiSentiment = triageResult.data.sentiment;
+            if (triageResult.success && triageResult.data) {
+              if (triageResult.data.category) aiUpdate.aiCategory = triageResult.data.category;
+              if (triageResult.data.priority) aiUpdate.aiPriority = triageResult.data.priority;
+              if (triageResult.data.sentiment) aiUpdate.aiSentiment = triageResult.data.sentiment;
+            }
+
+            if (summaryResult.success && summaryResult.data) {
+              if (summaryResult.data.summary) aiUpdate.aiSummary = summaryResult.data.summary;
+            }
+
+            if (actionsResult.success && actionsResult.data) {
+              const formattedActions = actionsResult.data.actionItems.map(
+                (item: any) => `[${item.type.replace('_', ' ').toUpperCase()}] (${item.priority.toUpperCase()}) ${item.description}${item.suggestedDueDate ? ` (Due: ${item.suggestedDueDate})` : ''}`
+              );
+              if (formattedActions.length > 0) aiUpdate.aiActionItems = formattedActions;
+            }
+
+            if (Object.keys(aiUpdate).length > 0) {
+              await task.docRef.update(aiUpdate);
+            }
+
+            // Trigger automation rules (auto-archive, auto-task, auto-draft)
+            await runEmailAutomation(emailId);
+            
+          } catch (aiError: any) {
+            console.error(`[Email Sync API] Failed processing AI for ${task.messageId}:`, aiError.message);
           }
-
-          if (summaryResult.success && summaryResult.data) {
-            if (summaryResult.data.summary) aiUpdate.aiSummary = summaryResult.data.summary;
-          }
-
-          if (Object.keys(aiUpdate).length > 0) {
-            await task.docRef.update(aiUpdate);
-          }
-
-          // Trigger automation rules (auto-archive, auto-task, auto-draft)
-          await runEmailAutomation(emailId);
-          
-        } catch (aiError: any) {
-          console.error(`[Email Sync API] Failed processing AI for ${task.messageId}:`, aiError.message);
         }
-      }
-      console.log(`[Email Sync API] Inline AI processing complete.`);
+        console.log(`[Email Sync API] Background AI processing complete.`);
+      };
+      
+      // Fire and forget
+      processAiTasks().catch(err => console.error('[Email Sync API] Background processing error:', err));
     }
 
     console.log(`[Email Sync] Complete. ${newEmailCount} new emails synced.`);

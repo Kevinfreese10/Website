@@ -482,11 +482,23 @@ export async function saveEmailSettings(settings: {
 
 // ─── 15. Get Emails List ──────────────────────────────────────────────────────
 
-export async function getEmailsList(): Promise<{ success: boolean; emails?: Email[]; error?: string }> {
+export async function getEmailsList(limitCount: number = 50, startAfterDate?: string): Promise<{ success: boolean; emails?: Email[]; hasMore?: boolean; error?: string }> {
   try {
     const adminDb = getAdminDb();
-    const snap = await adminDb.collection('emails').orderBy('date', 'desc').get();
-    const emails: Email[] = snap.docs.map(doc => {
+    let query = adminDb.collection('emails').orderBy('date', 'desc');
+    
+    if (startAfterDate) {
+      const startAfterTimestamp = new Date(startAfterDate);
+      query = query.startAfter(startAfterTimestamp);
+    }
+    
+    // Fetch limitCount + 1 to check if there are more
+    const snap = await query.limit(limitCount + 1).get();
+    
+    const hasMore = snap.docs.length > limitCount;
+    const docsToProcess = hasMore ? snap.docs.slice(0, limitCount) : snap.docs;
+
+    const emails: Email[] = docsToProcess.map(doc => {
       const data = doc.data();
       const dateVal = data.date?.toDate?.() || (data.date ? new Date(data.date) : new Date());
       const receivedAtVal = data.receivedAt?.toDate?.() || (data.receivedAt ? new Date(data.receivedAt) : new Date());
@@ -499,7 +511,7 @@ export async function getEmailsList(): Promise<{ success: boolean; emails?: Emai
       };
     }) as any[];
 
-    return { success: true, emails };
+    return { success: true, emails, hasMore };
   } catch (error: any) {
     console.error('[getEmailsList] Error:', error);
     return { success: false, error: error.message };
@@ -581,6 +593,37 @@ export async function deleteEmail(emailId: string): Promise<{ success: boolean; 
     return { success: true };
   } catch (error: any) {
     console.error('[deleteEmail] Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ─── 18. Auto-Archive Rules ──────────────────────────────────────────────────
+
+export async function addAutoArchiveRule(senderEmail: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const adminDb = getAdminDb();
+    // Add to an array in emailSettings/rules
+    await adminDb.collection('emailSettings').doc('rules').set({
+      autoArchiveSenders: FieldValue.arrayUnion(senderEmail.toLowerCase())
+    }, { merge: true });
+    
+    // Retroactively archive any existing unread emails from this sender
+    const emailsSnap = await adminDb.collection('emails')
+      .where('from.email', '==', senderEmail)
+      .where('status', '==', 'unread')
+      .get();
+      
+    if (!emailsSnap.empty) {
+      const batch = adminDb.batch();
+      emailsSnap.docs.forEach(doc => {
+        batch.update(doc.ref, { status: 'archived' });
+      });
+      await batch.commit();
+    }
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('[addAutoArchiveRule] Error:', error);
     return { success: false, error: error.message };
   }
 }

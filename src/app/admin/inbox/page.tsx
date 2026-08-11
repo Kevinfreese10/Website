@@ -58,11 +58,16 @@ import {
   ChevronUp,
   Settings,
   Forward,
+  X,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Email, EmailCategory } from '@/lib/types';
+import { getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { firebaseApp } from '@/lib/firebase';
+import type { User as AppUser, Task } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   syncEmails,
   markEmailRead,
@@ -79,15 +84,20 @@ import {
   getEmailsList,
   forwardEmail,
   deleteEmail,
+  addAutoArchiveRule,
 } from '@/app/actions/email-actions';
+
+import { ToastAction } from '@/components/ui/toast';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-type FilterTab = 'all' | 'archived' | EmailCategory;
+type FilterTab = 'all' | 'archived' | 'priority_urgent' | 'priority_high' | EmailCategory;
 
 const FILTER_TABS: { value: FilterTab; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'urgent_deadline', label: 'Urgent' },
+  { value: 'priority_urgent', label: 'Urgent' },
+  { value: 'priority_high', label: 'Important' },
+  { value: 'urgent_deadline', label: 'Urgent Deadline' },
   { value: 'client_query', label: 'Client Queries' },
   { value: 'sars_correspondence', label: 'SARS' },
   { value: 'document_submission', label: 'Documents' },
@@ -211,8 +221,10 @@ export default function AdminInboxPage() {
   // ─── State ───────────────────────────────────────────────────────────
   const [mounted, setMounted] = useState(false);
   const [emails, setEmails] = useState<Email[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
 
@@ -275,18 +287,75 @@ export default function AdminInboxPage() {
   });
 
   const { toast } = useToast();
+  const { user } = useAuth();
+  
+  const [staffMembers, setStaffMembers] = useState<AppUser[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const fetchStaff = async () => {
+      try {
+        const db = getFirestore(firebaseApp);
+        const q = query(
+          collection(db, 'users'),
+          where('role', 'in', ['admin', 'staff', 'cap_staff', 'cap_supervisor'])
+        );
+        const snapshot = await getDocs(q);
+        const staff = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as AppUser));
+        setStaffMembers(staff.sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (e) {
+        console.error("Failed to fetch staff", e);
+      }
+    };
+
+    const fetchTasks = async () => {
+      if (!user?.uid) return;
+      try {
+        const db = getFirestore(firebaseApp);
+        const q = query(collection(db, 'tasks'), orderBy('dueDate', 'asc'));
+        const snapshot = await getDocs(q);
+        const fetchedTasks = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task));
+        
+        // Do not show system generated tasks unless created through the email create a task function
+        // Only show 'To-Do' tasks
+        const filteredTasks = fetchedTasks.filter(t => 
+          ((t.createdBy === user.uid) || (t.type === 'Email Follow-up')) &&
+          (t.status === 'To-Do')
+        );
+        setTasks(filteredTasks);
+      } catch (e) {
+        console.error("Failed to fetch tasks", e);
+      }
+    };
+
+    fetchStaff();
+    fetchTasks();
+  }, [user?.uid]);
+
+  const handleMarkTaskDone = async (taskId: string) => {
+    try {
+      const db = getFirestore(firebaseApp);
+      await updateDoc(doc(db, 'tasks', taskId), {
+        status: 'Done',
+        updatedAt: new Date()
+      });
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+      toast({ title: 'Task Completed', description: 'The task has been marked as done.' });
+    } catch (error) {
+      console.error("Error marking task as done:", error);
+      toast({ title: 'Error', description: 'Could not mark task as done.', variant: 'destructive' });
+    }
+  };
 
   // ─── Fetch Emails Loader ─────────────────────────────────────────────
   const fetchEmails = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await getEmailsList();
+      const res = await getEmailsList(50);
       if (res.success && res.emails) {
         setEmails(res.emails);
+        setHasMore(!!res.hasMore);
       } else {
         toast({
           title: 'Error',
@@ -306,25 +375,50 @@ export default function AdminInboxPage() {
     }
   }, [toast]);
 
+  const loadMoreEmails = useCallback(async () => {
+    if (isLoadingMore || !hasMore || emails.length === 0) return;
+    setIsLoadingMore(true);
+    try {
+      const lastEmailDate = emails[emails.length - 1].date;
+      const res = await getEmailsList(50, lastEmailDate);
+      if (res.success && res.emails) {
+        setEmails(prev => [...prev, ...(res.emails || [])]);
+        setHasMore(!!res.hasMore);
+      } else {
+        toast({
+          title: 'Error',
+          description: res.error || 'Could not load more emails.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err: any) {
+      console.error('Error loading more emails:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [toast, emails, isLoadingMore, hasMore]);
+
   useEffect(() => {
     fetchEmails();
   }, [fetchEmails]);
 
   // ─── Derived state ──────────────────────────────────────────────────
-  const filteredEmails = useMemo(() => {
-    return emails.filter((email) => {
-      // If active filter is "archived", only show archived emails.
-      // Otherwise, hide archived emails from all other tabs.
+  const groupedThreadEmails = useMemo(() => {
+    const filtered = emails.filter((email) => {
       if (activeFilter === 'archived') {
         if (email.status !== 'archived') return false;
       } else {
         if (email.status === 'archived') return false;
       }
 
-      // Filter by category tab
-      if (activeFilter !== 'all' && activeFilter !== 'archived' && email.aiCategory !== activeFilter) return false;
+      if (activeFilter === 'priority_urgent') {
+        if (email.aiPriority !== 'urgent') return false;
+      } else if (activeFilter === 'priority_high') {
+        if (email.aiPriority !== 'high' && email.aiPriority !== 'urgent') return false;
+      } else if (activeFilter !== 'all' && activeFilter !== 'archived') {
+        if (email.aiCategory !== activeFilter) return false;
+      }
 
-      // Filter by search term
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const matchesSearch =
@@ -337,23 +431,41 @@ export default function AdminInboxPage() {
 
       return true;
     });
+
+    const threads = new Map<string, Email[]>();
+    for (const email of filtered) {
+      const threadId = email.threadId || email.id;
+      if (!threads.has(threadId)) {
+        threads.set(threadId, []);
+      }
+      threads.get(threadId)!.push(email);
+    }
+
+    return Array.from(threads.values())
+      .map(threadEmails => {
+        const sortedThread = [...threadEmails].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const displayEmail = sortedThread[sortedThread.length - 1];
+        
+        return {
+          ...displayEmail,
+          threadCount: sortedThread.length,
+          threadEmails: sortedThread,
+          displayThreadId: displayEmail.threadId || displayEmail.id
+        };
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [emails, activeFilter, searchTerm]);
 
-  const selectedEmail = useMemo(
-    () => emails.find((e) => e.id === selectedEmailId) || null,
-    [emails, selectedEmailId]
-  );
-
-  const threadEmails = useMemo(() => {
-    if (!selectedEmail || !selectedEmail.threadId) return [];
+  const selectedThreadEmails = useMemo(() => {
+    if (!selectedThreadId) return [];
     return emails
-      .filter((e) => e.threadId === selectedEmail.threadId)
-      .sort((a, b) => {
-        const aDate = parseEmailDate(a.date);
-        const bDate = parseEmailDate(b.date);
-        return aDate.getTime() - bDate.getTime(); // Oldest first
-      });
-  }, [emails, selectedEmail]);
+      .filter(e => (e.threadId || e.id) === selectedThreadId)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [emails, selectedThreadId]);
+
+  const selectedEmail = selectedThreadEmails.length > 0 ? selectedThreadEmails[selectedThreadEmails.length - 1] : null;
+
+  const threadEmails = selectedThreadEmails;
 
   const unreadCount = useMemo(
     () => emails.filter((e) => e.status === 'unread').length,
@@ -362,37 +474,37 @@ export default function AdminInboxPage() {
 
   // ─── Handlers ────────────────────────────────────────────────────────
   const handleSelectEmail = useCallback(
-    async (email: Email) => {
-      setSelectedEmailId(email.id);
+    async (email: any) => {
+      const threadId = email.displayThreadId || email.threadId || email.id;
+      setSelectedThreadId(threadId);
+      
+      const latestEmail = email;
+
       setShowDetail(true);
       // Reset or load pre-generated AI draft reply
-      if (email.aiDraftReply) {
-        setAiDraft(email.aiDraftReply);
-        setAiDraftSubject(email.aiDraftReplySubject || '');
-        setReplyText(email.aiDraftReply);
+      if (latestEmail.aiDraftReply) {
+        setAiDraft(latestEmail.aiDraftReply);
+        setAiDraftSubject(latestEmail.aiDraftReplySubject || '');
+        setReplyText(latestEmail.aiDraftReply);
       } else {
         setAiDraft('');
         setAiDraftSubject('');
         setReplyText('');
       }
       setDraftInstructions('');
-      setAiActionItems(email.aiActionItems || []);
+      setAiActionItems(latestEmail.aiActionItems || []);
       setCheckedActions({});
       setInsightsExpanded(true);
 
-      // Auto mark as read
-      if (email.status === 'unread') {
-        setEmails((prev) =>
-          prev.map((e) => (e.id === email.id ? { ...e, status: 'read' as const } : e))
-        );
-        try {
-          await markEmailRead(email.id);
-        } catch (err) {
-          console.error('Failed to mark email read:', err);
+      if (latestEmail.status === 'unread') {
+        const unreadInThread = email.threadEmails ? email.threadEmails.filter((e: any) => e.status === 'unread') : (latestEmail.status === 'unread' ? [latestEmail] : []);
+        
+        unreadInThread.forEach((uEmail: any) => {
+          markEmailRead(uEmail.id).catch(console.error);
           setEmails((prev) =>
-            prev.map((e) => (e.id === email.id ? { ...e, status: 'unread' as const } : e))
+            prev.map((e) => (e.id === uEmail.id ? { ...e, status: 'read' as const } : e))
           );
-        }
+        });
       }
     },
     []
@@ -450,19 +562,40 @@ export default function AdminInboxPage() {
   );
 
   const handleArchive = useCallback(async () => {
-    if (!selectedEmailId) return;
+    if (!selectedEmail) return;
+    const targetId = selectedEmail.id;
     const originalEmails = [...emails];
-    setEmails((prev) => prev.filter((email) => email.id !== selectedEmailId));
+    setEmails((prev) => prev.filter((email) => email.id !== targetId));
     try {
-      await archiveEmail(selectedEmailId);
-      setSelectedEmailId(null);
+      await archiveEmail(targetId);
+      setSelectedThreadId(null);
       setShowDetail(false);
-      toast({ title: 'Archived', description: 'Email has been archived.' });
+      
+      const senderEmail = selectedEmail.from?.email;
+      toast({ 
+        title: 'Archived', 
+        description: 'Email has been archived.',
+        action: senderEmail ? (
+          <ToastAction 
+            altText="Always archive this sender" 
+            onClick={async () => {
+              const res = await addAutoArchiveRule(senderEmail);
+              if (res.success) {
+                toast({ title: 'Rule Added', description: `Future emails from ${senderEmail} will be automatically archived.` });
+                // Also update local state to hide existing ones
+                setEmails(prev => prev.map(e => e.from?.email === senderEmail ? { ...e, status: 'archived' } : e));
+              }
+            }}
+          >
+            Always Archive Sender
+          </ToastAction>
+        ) : undefined
+      });
     } catch {
       setEmails(originalEmails);
       toast({ title: 'Error', description: 'Could not archive email.', variant: 'destructive' });
     }
-  }, [selectedEmailId, emails, toast]);
+  }, [selectedEmail, emails, toast]);
 
   const handleToggleRead = useCallback(async () => {
     if (!selectedEmail) return;
@@ -490,10 +623,10 @@ export default function AdminInboxPage() {
   }, [selectedEmail, toast]);
 
   const handleGenerateDraft = useCallback(async () => {
-    if (!selectedEmailId) return;
+    if (!selectedEmail) return;
     setIsGeneratingDraft(true);
     try {
-      const result = await getAiDraftReply(selectedEmailId, draftInstructions || undefined);
+      const result = await getAiDraftReply(selectedEmail.id, draftInstructions || undefined);
       if (result.success && result.draft) {
         setAiDraft(result.draft);
         setAiDraftSubject(result.subject || '');
@@ -511,20 +644,20 @@ export default function AdminInboxPage() {
     } finally {
       setIsGeneratingDraft(false);
     }
-  }, [selectedEmailId, draftInstructions, toast]);
+  }, [selectedEmail, draftInstructions, toast]);
 
   const handleExtractActions = useCallback(async () => {
-    if (!selectedEmailId) return;
+    if (!selectedEmail) return;
     setIsExtractingActions(true);
     try {
-      const result = await getAiActionItems(selectedEmailId);
+      const result = await getAiActionItems(selectedEmail.id);
       if (result.success && result.data) {
         setAiActionItems(result.data);
         setCheckedActions({});
         // Update local state
         setEmails((prev) =>
           prev.map((email) =>
-            email.id === selectedEmailId ? { ...email, aiActionItems: result.data } : email
+            email.id === selectedEmail.id ? { ...email, aiActionItems: result.data } : email
           )
         );
         toast({ title: 'Actions Extracted', description: `Found ${result.data.length} action items.` });
@@ -540,15 +673,14 @@ export default function AdminInboxPage() {
     } finally {
       setIsExtractingActions(false);
     }
-  }, [selectedEmailId, toast]);
+  }, [selectedEmail, toast]);
 
   const handleSendReply = useCallback(async () => {
-    if (!selectedEmailId || !replyText.trim()) return;
+    if (!selectedEmail || !replyText.trim()) return;
     setIsSendingReply(true);
     try {
-      const selectedEmail = emails.find((e) => e.id === selectedEmailId);
-      const result = await sendEmailReply(selectedEmailId, replyText, aiDraftSubject || undefined);
-      if (result.success && selectedEmail) {
+      const result = await sendEmailReply(selectedEmail.id, replyText, aiDraftSubject || undefined);
+      if (result.success) {
         toast({ title: 'Reply Sent', description: 'Your reply has been sent successfully.' });
         const threadId = selectedEmail.threadId || selectedEmail.id;
         const newReplyObj = {
@@ -572,7 +704,7 @@ export default function AdminInboxPage() {
 
         setEmails((prev) => {
           const updated = prev.map((e) =>
-            e.id === selectedEmailId
+            e.id === selectedEmail.id
               ? { ...e, status: 'replied' as const, threadId, aiDraftReply: undefined, aiDraftReplySubject: undefined }
               : e
           );
@@ -581,7 +713,7 @@ export default function AdminInboxPage() {
 
         setDraftEdits((prev) => {
           const next = { ...prev };
-          delete next[selectedEmailId];
+          delete next[selectedEmail.id];
           return next;
         });
 
@@ -597,7 +729,7 @@ export default function AdminInboxPage() {
     } finally {
       setIsSendingReply(false);
     }
-  }, [selectedEmailId, replyText, aiDraftSubject, emails, toast]);
+  }, [selectedEmail, replyText, aiDraftSubject, toast]);
 
   const handleCopyDraft = useCallback(() => {
     if (replyText) {
@@ -607,7 +739,7 @@ export default function AdminInboxPage() {
   }, [replyText, toast]);
 
   const handleCreateTask = useCallback(async () => {
-    if (!selectedEmailId || !taskTitle.trim()) return;
+    if (!selectedEmail || !taskTitle.trim()) return;
     setIsCreatingTask(true);
     try {
       let mappedPriority: 'High' | 'Medium' | 'Low' = 'Medium';
@@ -620,59 +752,57 @@ export default function AdminInboxPage() {
       const assignees = taskAssignee ? [taskAssignee] : [];
 
       const result = await createTaskFromEmail(
-        selectedEmailId,
+        selectedEmail.id,
         taskTitle,
         taskDescription,
         mappedPriority,
         assignees
       );
-      if (result.success) {
-        // Update local state
-        setEmails((prev) =>
-          prev.map((email) =>
-            email.id === selectedEmailId ? { ...email, linkedTaskId: result.taskId } : email
-          )
-        );
-        toast({ title: 'Task Created', description: 'Task has been created from this email.' });
+
+      if (result.success && result.taskId) {
+        toast({ title: 'Task Created', description: 'Task linked to this email.' });
         setShowCreateTask(false);
         setTaskTitle('');
         setTaskDescription('');
-        setTaskPriority('medium');
-        setTaskAssignee('');
-      } else {
-        toast({ title: 'Error', description: 'Could not create task.', variant: 'destructive' });
-      }
-    } catch {
-      toast({ title: 'Error', description: 'Failed to create task.', variant: 'destructive' });
-    } finally {
-      setIsCreatingTask(false);
-    }
-  }, [selectedEmailId, taskTitle, taskDescription, taskPriority, taskAssignee, toast]);
-
-  const handleAddNote = useCallback(async () => {
-    if (!selectedEmailId || !noteText.trim()) return;
-    setIsSavingNote(true);
-    try {
-      const result = await addEmailNote(selectedEmailId, noteText);
-      if (result.success) {
+        
         // Update local state
         setEmails((prev) =>
           prev.map((email) =>
-            email.id === selectedEmailId ? { ...email, notes: noteText } : email
+            email.id === selectedEmail.id ? { ...email, linkedTaskId: result.taskId } : email
           )
         );
-        toast({ title: 'Note Added', description: 'Note saved to this email.' });
-        setShowAddNote(false);
-        setNoteText('');
       } else {
-        toast({ title: 'Error', description: 'Could not save note.', variant: 'destructive' });
+        toast({ title: 'Failed', description: result.error || 'Could not create task.', variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'Error', description: 'Failed to save note.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Could not create task.', variant: 'destructive' });
+    } finally {
+      setIsCreatingTask(false);
+    }
+  }, [selectedEmail, taskTitle, taskDescription, taskPriority, taskAssignee, toast]);
+
+  const handleSaveNote = useCallback(async () => {
+    if (!selectedEmail || !noteText.trim()) return;
+    setIsSavingNote(true);
+    try {
+      const result = await addEmailNote(selectedEmail.id, noteText);
+      if (result.success) {
+        toast({ title: 'Note Added', description: 'Internal note saved.' });
+        setShowAddNote(false);
+        setEmails((prev) =>
+          prev.map((email) =>
+            email.id === selectedEmail.id ? { ...email, notes: noteText } : email
+          )
+        );
+      } else {
+        toast({ title: 'Failed', description: result.error || 'Could not save note.', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Could not save internal note.', variant: 'destructive' });
     } finally {
       setIsSavingNote(false);
     }
-  }, [selectedEmailId, noteText, toast]);
+  }, [selectedEmail, noteText, toast]);
 
   const handleOpenCreateTask = useCallback(() => {
     if (selectedEmail) {
@@ -683,9 +813,9 @@ export default function AdminInboxPage() {
     setShowCreateTask(true);
   }, [selectedEmail]);
 
-  const handleOpenCreateTaskForEmail = useCallback((email: Email, e?: React.MouseEvent) => {
+  const handleOpenCreateTaskForEmail = useCallback((email: any, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setSelectedEmailId(email.id);
+    setSelectedThreadId(email.threadId || email.id);
     setTaskTitle(`Follow up: ${email.subject}`);
     setTaskDescription(email.aiSummary || email.bodyText?.substring(0, 200) || '');
     setTaskPriority(email.aiPriority === 'urgent' || email.aiPriority === 'high' ? 'high' : 'medium');
@@ -717,6 +847,18 @@ export default function AdminInboxPage() {
     }
   }, [toast]);
 
+  const handleBackToList = useCallback(() => {
+    setSelectedThreadId(null);
+    setShowDetail(false);
+    setAiDraft('');
+    setReplyText('');
+    setDraftEdits({});
+    setAiActionItems([]);
+    if (window.innerWidth < 1024) {
+      document.body.style.overflow = '';
+    }
+  }, []);
+
   const handleSaveSettings = useCallback(async () => {
     setIsSavingSettings(true);
     try {
@@ -745,9 +887,47 @@ export default function AdminInboxPage() {
     }
   }, [connectionSettings, toast]);
 
-  const handleBackToList = useCallback(() => {
-    setShowDetail(false);
-  }, []);
+  const handleCheckAction = useCallback(async (emailId: string, itemIdx: number, itemText: string) => {
+    try {
+      setCheckedActions(prev => ({ ...prev, [itemIdx]: true }));
+      const targetEmail = emails.find(e => e.id === emailId);
+      if (targetEmail && targetEmail.aiActionItems) {
+        const newActions = [...targetEmail.aiActionItems];
+        newActions[itemIdx] = itemText + ' (COMPLETED)';
+        setEmails(prev => prev.map(e => e.id === emailId ? { ...e, aiActionItems: newActions } : e));
+        if (selectedEmail && selectedEmail.id === emailId) {
+          setAiActionItems(newActions);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Could not mark action complete', variant: 'destructive' });
+      setCheckedActions(prev => ({ ...prev, [itemIdx]: false }));
+    }
+  }, [emails, selectedEmail, toast]);
+
+  const handleClearAction = useCallback(async (emailId: string, itemIdx: number) => {
+    try {
+      setCheckedActions(prev => {
+        const next = { ...prev };
+        delete next[itemIdx];
+        return next;
+      });
+      const targetEmail = emails.find(e => e.id === emailId);
+      if (targetEmail && targetEmail.aiActionItems) {
+        const newActions = [...targetEmail.aiActionItems];
+        newActions[itemIdx] = newActions[itemIdx].replace(' (COMPLETED)', '');
+        setEmails(prev => prev.map(e => e.id === emailId ? { ...e, aiActionItems: newActions } : e));
+        
+        if (selectedEmail && selectedEmail.id === emailId) {
+          setAiActionItems(newActions);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Could not clear action', variant: 'destructive' });
+    }
+  }, [emails, selectedEmail, toast]);
 
   const handleForward = useCallback(async () => {
     if (!emailToForward || !forwardEmailAddress.trim()) return;
@@ -787,9 +967,28 @@ export default function AdminInboxPage() {
     try {
       const res = await archiveEmail(emailId);
       if (res.success) {
-        toast({ title: 'Archived', description: 'Email archived successfully.' });
-        if (selectedEmailId === emailId) {
-          setSelectedEmailId(null);
+        const archivedEmail = originalEmails.find(e => e.id === emailId);
+        const senderEmail = archivedEmail?.from?.email;
+        toast({ 
+          title: 'Archived', 
+          description: 'Email archived successfully.',
+          action: senderEmail ? (
+            <ToastAction 
+              altText="Always archive this sender" 
+              onClick={async () => {
+                const ruleRes = await addAutoArchiveRule(senderEmail);
+                if (ruleRes.success) {
+                  toast({ title: 'Rule Added', description: `Future emails from ${senderEmail} will be automatically archived.` });
+                  setEmails(prev => prev.map(e => e.from?.email === senderEmail ? { ...e, status: 'archived' } : e));
+                }
+              }}
+            >
+              Always Archive Sender
+            </ToastAction>
+          ) : undefined
+        });
+        if (selectedEmail?.id === emailId) {
+          setSelectedThreadId(null);
           setShowDetail(false);
         }
       } else {
@@ -800,7 +999,7 @@ export default function AdminInboxPage() {
       setEmails(originalEmails);
       toast({ title: 'Error', description: 'Failed to archive email.', variant: 'destructive' });
     }
-  }, [emails, selectedEmailId, toast]);
+  }, [emails, selectedEmail, toast]);
 
   const handleQuickDelete = useCallback(async (e: React.MouseEvent, emailId: string) => {
     e.stopPropagation();
@@ -810,8 +1009,8 @@ export default function AdminInboxPage() {
       const res = await deleteEmail(emailId);
       if (res.success) {
         toast({ title: 'Deleted', description: 'Email deleted permanently.' });
-        if (selectedEmailId === emailId) {
-          setSelectedEmailId(null);
+        if (selectedEmail?.id === emailId) {
+          setSelectedThreadId(null);
           setShowDetail(false);
         }
       } else {
@@ -822,7 +1021,7 @@ export default function AdminInboxPage() {
       setEmails(originalEmails);
       toast({ title: 'Error', description: 'Failed to delete email.', variant: 'destructive' });
     }
-  }, [emails, selectedEmailId, toast]);
+  }, [emails, selectedEmail, toast]);
 
   const handleOpenForwardDialog = useCallback((e: React.MouseEvent, email: Email) => {
     e.stopPropagation();
@@ -970,14 +1169,9 @@ export default function AdminInboxPage() {
 
         {/* ─── Main Split Pane ──────────────────────────────────────── */}
         <div className="flex gap-4 h-[calc(100vh-220px)] min-h-[500px]">
-          {/* ─── Left Panel: Email List ─────────────────────────────── */}
-          <div
-            className={cn(
-              'w-full flex-col',
-              showDetail ? 'hidden' : 'flex'
-            )}
-          >
-            <Card className="flex flex-col h-full border border-slate-200/80 shadow-sm bg-white rounded-2xl overflow-hidden">
+          {/* ─── Left Panel: Email List & Tasks ─────────────────────────────── */}
+          <div className="w-full flex flex-col lg:flex-row gap-4">
+            <Card className="flex flex-col h-full border border-slate-200/80 shadow-sm bg-white rounded-2xl overflow-hidden flex-1 min-w-0">
               {/* Search */}
               <div className="p-3 border-b border-slate-100">
                 <div className="relative">
@@ -998,7 +1192,7 @@ export default function AdminInboxPage() {
                     <Loader2 className="h-7 w-7 animate-spin text-[#1877F2]" />
                     <p className="text-xs font-semibold">Loading emails...</p>
                   </div>
-                ) : filteredEmails.length === 0 ? (
+                ) : groupedThreadEmails.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-24 text-center text-slate-400 p-4">
                     <Inbox className="h-10 w-10 text-slate-300 mb-3" />
                     <p className="text-sm font-bold text-slate-500">No emails found</p>
@@ -1010,8 +1204,8 @@ export default function AdminInboxPage() {
                   </div>
                 ) : (
                   <div className="p-2 space-y-1">
-                    {filteredEmails.map((email) => {
-                      const isSelected = selectedEmailId === email.id;
+                    {groupedThreadEmails.map((email) => {
+                      const isSelected = selectedThreadId === email.displayThreadId;
                       const isUnread = email.status === 'unread';
                       const firstLetter = email.from?.name?.[0] || '?';
 
@@ -1060,9 +1254,16 @@ export default function AdminInboxPage() {
                                   &lt;{email.from?.email}&gt;
                                 </span>
                               </div>
-                              <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap shrink-0">
-                                {formatTimestamp(email.date)}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                {email.threadCount && email.threadCount > 1 && (
+                                  <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-slate-100/50 text-slate-500 rounded-sm">
+                                    {email.threadCount}
+                                  </Badge>
+                                )}
+                                <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap shrink-0">
+                                  {formatTimestamp(email.date)}
+                                </span>
+                              </div>
                             </div>
 
                             <p
@@ -1288,116 +1489,199 @@ export default function AdminInboxPage() {
                         </div>
                       );
                     })}
+                    {hasMore && (
+                      <div className="flex justify-center pt-2 pb-6">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={loadMoreEmails}
+                          disabled={isLoadingMore}
+                          className="rounded-full px-6 shadow-sm border-slate-200"
+                        >
+                          {isLoadingMore ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            'Load Older Emails'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </ScrollArea>
+            </Card>
+
+            {/* ─── Tasks Panel ─────────────────────────────────────────────── */}
+            <Card className="flex-col h-full border border-slate-200/80 shadow-sm bg-white rounded-2xl overflow-hidden w-full lg:w-[400px] shrink-0 hidden lg:flex">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="font-bold text-slate-900 leading-tight">Inbox Tasks</h3>
+                  <p className="text-[11px] text-slate-500">Your created & email follow-up tasks</p>
+                </div>
+                <Badge variant="secondary" className="font-bold text-xs">{tasks.length}</Badge>
+              </div>
+              <ScrollArea className="flex-1 p-0">
+                {tasks.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-center text-slate-400 p-4">
+                    <ClipboardList className="h-8 w-8 text-slate-300 mb-2" />
+                    <p className="text-xs font-semibold text-slate-500">No active tasks</p>
+                  </div>
+                ) : (
+                  <div className="p-3 space-y-2">
+                    {tasks.filter(t => t.status === 'To-Do').map((task) => (
+                      <div key={task.id} className="border border-slate-100 bg-slate-50/50 rounded-xl p-3 hover:bg-slate-50 transition-colors group">
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <h4 className="text-sm font-bold text-slate-800 line-clamp-2">{task.title}</h4>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {task.priority && (
+                              <Badge className={cn('text-[10px] font-bold px-1.5 py-0', PRIORITY_STYLES[task.priority.toLowerCase()] || 'bg-slate-100 text-slate-600 border-slate-200')}>
+                                {task.priority}
+                              </Badge>
+                            )}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-5 w-5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                  onClick={() => handleMarkTaskDone(task.id)}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Mark as done</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                        {task.description && (
+                          <p className="text-xs text-slate-500 line-clamp-2 mb-3">{task.description}</p>
+                        )}
+                        <div className="flex justify-between items-center text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                          <span className={task.status === 'Done' ? 'text-emerald-500' : ''}>{task.status}</span>
+                          {task.dueDate && <span>Due: {formatDate(task.dueDate, 'MMM d')}</span>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </ScrollArea>
             </Card>
           </div>
 
-          {/* ─── Right Panel: Email Detail ──────────────────────────── */}
-          <div
-            className={cn(
-              'w-full flex-col min-w-0',
-              !showDetail ? 'hidden' : 'flex'
-            )}
+          {/* ─── Email Detail Modal ──────────────────────────── */}
+          <Dialog 
+            open={showDetail && !!selectedEmail} 
+            onOpenChange={(open) => {
+              if (!open) handleBackToList();
+            }}
           >
-            {selectedEmail ? (
-              <Card className="flex flex-col h-full border border-slate-200/80 shadow-sm bg-white rounded-2xl overflow-hidden">
+            <DialogContent hideCloseButton className="max-w-[1000px] w-[95vw] h-[90vh] p-0 border-0 flex flex-col bg-white overflow-hidden sm:rounded-2xl gap-0 shadow-2xl">
+              {selectedEmail && (
+                <>
                 {/* Detail Header */}
-                <div className="p-4 border-b border-slate-100 shrink-0 space-y-3">
+                <DialogHeader className="p-4 border-b border-slate-200 shrink-0 space-y-3 text-left bg-slate-50/50">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
-                      {/* Back button */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={handleBackToList}
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                      </Button>
-
                       <div className="min-w-0 space-y-1">
-                        <h2 className="text-lg font-bold text-slate-900 leading-tight">
+                        <DialogTitle className="text-lg font-bold text-slate-900 leading-tight">
                           {selectedEmail.subject || '(No subject)'}
-                        </h2>
-                        <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500">
-                          <span className="font-semibold text-slate-700">
+                        </DialogTitle>
+                        <div className="flex items-center gap-2 flex-wrap text-xs text-slate-600">
+                          <span className="font-semibold text-slate-800">
                             {selectedEmail.from?.name || 'Unknown'}
                           </span>
-                          <span className="text-slate-400">
+                          <span className="text-slate-500">
                             &lt;{selectedEmail.from?.email}&gt;
                           </span>
                           <span className="text-slate-300">•</span>
-                          <span>{formatDate(selectedEmail.date)}</span>
+                          <span className="text-slate-500">{formatDate(selectedEmail.date)}</span>
                         </div>
                         {selectedEmail.to?.length > 0 && (
-                          <p className="text-[11px] text-slate-400">
-                            To: {selectedEmail.to.map((t) => t.name || t.email).join(', ')}
+                          <p className="text-[11px] text-slate-500">
+                            <span className="font-medium text-slate-400">To:</span> {selectedEmail.to.map((t) => t.name || t.email).join(', ')}
                           </p>
                         )}
                         {selectedEmail.cc && selectedEmail.cc.length > 0 && (
-                          <p className="text-[11px] text-slate-400">
-                            CC: {selectedEmail.cc.map((c) => c.name || c.email).join(', ')}
+                          <p className="text-[11px] text-slate-500">
+                            <span className="font-medium text-slate-400">CC:</span> {selectedEmail.cc.map((c) => c.name || c.email).join(', ')}
                           </p>
                         )}
                       </div>
                     </div>
 
                     {/* Quick Action Buttons */}
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 pl-2">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleToggleRead}>
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-slate-200 text-slate-600 hover:text-[#1877F2] hover:bg-[#1877F2]/5 hover:border-[#1877F2]/30" onClick={handleToggleRead}>
                             {selectedEmail.status === 'unread' ? (
-                              <Eye className="h-4 w-4 text-slate-500" />
+                              <Eye className="h-4 w-4" />
                             ) : (
-                              <EyeOff className="h-4 w-4 text-slate-500" />
+                              <EyeOff className="h-4 w-4" />
                             )}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent side="bottom">
                           {selectedEmail.status === 'unread' ? 'Mark as Read' : 'Mark as Unread'}
                         </TooltipContent>
                       </Tooltip>
 
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleArchive}>
-                            <Archive className="h-4 w-4 text-slate-500" />
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-slate-200 text-slate-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200" onClick={handleArchive}>
+                            <Archive className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Archive</TooltipContent>
+                        <TooltipContent side="bottom">Archive</TooltipContent>
                       </Tooltip>
 
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleOpenCreateTask}>
-                            <ClipboardList className="h-4 w-4 text-slate-500" />
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-slate-200 text-slate-600 hover:text-purple-600 hover:bg-purple-50 hover:border-purple-200" onClick={handleOpenCreateTask}>
+                            <ClipboardList className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Create Task</TooltipContent>
+                        <TooltipContent side="bottom">Create Task</TooltipContent>
                       </Tooltip>
 
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 border-slate-200 text-slate-600 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200"
                             onClick={() => {
                               setNoteText(selectedEmail.notes || '');
                               setShowAddNote(true);
                             }}
                           >
-                            <StickyNote className="h-4 w-4 text-slate-500" />
+                            <StickyNote className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Add Note</TooltipContent>
+                        <TooltipContent side="bottom">Add Note</TooltipContent>
+                      </Tooltip>
+
+                      <div className="h-5 w-[1px] bg-slate-200 mx-1"></div>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-200" 
+                            onClick={handleBackToList}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Close Email</TooltipContent>
                       </Tooltip>
                     </div>
                   </div>
-                </div>
+                </DialogHeader>
 
                 {/* Scrollable Content */}
                 <ScrollArea className="flex-1">
@@ -1728,22 +2012,10 @@ export default function AdminInboxPage() {
                     </Card>
                   </div>
                 </ScrollArea>
-              </Card>
-            ) : (
-              /* No email selected */
-              <Card className="flex flex-col h-full items-center justify-center border border-slate-200/80 shadow-sm bg-white rounded-2xl p-6 text-center select-none">
-                <div className="h-16 w-16 bg-[#1877F2]/5 border border-[#1877F2]/10 text-[#1877F2] rounded-2xl flex items-center justify-center mb-4">
-                  <Mail className="h-8 w-8" />
-                </div>
-                <CardTitle className="text-lg font-bold text-slate-800">
-                  Select an email to view
-                </CardTitle>
-                <CardDescription className="max-w-xs mt-2 text-sm text-slate-500">
-                  Choose an email from the list to read its content, view AI insights, and compose replies.
-                </CardDescription>
-              </Card>
-            )}
-          </div>
+                </>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* ─── Create Task Dialog ──────────────────────────────────── */}
@@ -1803,12 +2075,21 @@ export default function AdminInboxPage() {
                   <label className="text-xs font-semibold text-slate-700 mb-1 block">
                     Assign To
                   </label>
-                  <Input
+                  <Select
                     value={taskAssignee}
-                    onChange={(e) => setTaskAssignee(e.target.value)}
-                    className="text-xs h-9"
-                    placeholder="Name or email..."
-                  />
+                    onValueChange={setTaskAssignee}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="Select staff..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {staffMembers.map((staff) => (
+                        <SelectItem key={staff.id} value={staff.id}>
+                          {staff.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
@@ -1861,7 +2142,7 @@ export default function AdminInboxPage() {
               <Button
                 size="sm"
                 className="bg-amber-600 hover:bg-amber-700 text-white"
-                onClick={handleAddNote}
+                onClick={handleSaveNote}
                 disabled={!noteText.trim() || isSavingNote}
               >
                 {isSavingNote ? (
