@@ -1,5 +1,5 @@
-import { generateBlogPostSeo } from './src/ai/flows/generate-blog-post-seo';
-import { getAdminDb } from './src/lib/firebase-admin';
+import { generateBlogPostSeo } from '../src/ai/flows/generate-blog-post-seo';
+import { getAdminDb } from '../src/lib/firebase-admin';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
