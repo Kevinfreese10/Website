@@ -646,7 +646,7 @@ export default function QuotesPage() {
                                                 <TableRow key={quote.id}>
                                                     <TableCell className="font-semibold">QT-{quote.id}</TableCell>
                                                     <TableCell className="max-w-[150px] truncate">{customer?.name || 'N/A'}</TableCell>
-                                                    <TableCell className="text-muted-foreground font-mono text-xs">{quote.reference || '-'}</TableCell>
+                                                    <TableCell className="text-muted-foreground font-mono text-xs max-w-[140px] truncate" title={quote.reference || ''}>{quote.reference || '-'}</TableCell>
                                                     <TableCell className="max-w-[200px] truncate">{quote.description || 'N/A'}</TableCell>
                                                     <TableCell>{format(quote.quoteDate, 'dd MMM yyyy')}</TableCell>
                                                     <TableCell>{format(quote.expiryDate, 'dd MMM yyyy')}</TableCell>

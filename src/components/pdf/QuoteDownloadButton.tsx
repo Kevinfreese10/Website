@@ -106,8 +106,9 @@ export default function QuoteDownloadButton({ quote, client, customer }: QuoteDo
       doc.text(`Quote Number: ${quote.id}`, 190, 32, { align: 'right' });
       let qY = 37;
       if (quote.reference) {
-        doc.text(`Reference: ${quote.reference}`, 190, qY, { align: 'right' });
-        qY += 5;
+        const refLines = doc.splitTextToSize(`Reference: ${quote.reference}`, 60);
+        doc.text(refLines, 190, qY, { align: 'right' });
+        qY += (refLines.length * 5);
       }
       doc.text(`Date: ${format(quoteDateObj, 'dd/MM/yyyy')}`, 190, qY, { align: 'right' });
       qY += 5;

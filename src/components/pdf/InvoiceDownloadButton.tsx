@@ -102,9 +102,11 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
       doc.text(`Invoice Number:`, 140, 35);
       
       let headerY = 40;
+      let refLines: string[] = [];
       if (invoice.reference) {
+        refLines = doc.splitTextToSize(invoice.reference, 45);
         doc.text(`Reference:`, 140, headerY);
-        headerY += 5;
+        headerY += (refLines.length * 5);
       }
       doc.text(`Date:`, 140, headerY);
       headerY += 5;
@@ -114,8 +116,8 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
       doc.text(invoice.id, 190, 35, { align: 'right' });
       let valY = 40;
       if (invoice.reference) {
-        doc.text(invoice.reference, 190, valY, { align: 'right' });
-        valY += 5;
+        doc.text(refLines, 190, valY, { align: 'right' });
+        valY += (refLines.length * 5);
       }
       doc.text(format(new Date(invoice.invoiceDate), 'dd/MM/yyyy'), 190, valY, { align: 'right' });
       valY += 5;

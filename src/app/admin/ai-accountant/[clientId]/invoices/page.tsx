@@ -717,7 +717,7 @@ export default function InvoicesPage() {
                                             <TableRow key={invoice.id}>
                                                 <TableCell className="font-mono">{invoice.id}</TableCell>
                                                 <TableCell>{customers.find(c => c.id === invoice.customerId)?.name}</TableCell>
-                                                <TableCell className="text-muted-foreground font-mono text-xs">{invoice.reference || '-'}</TableCell>
+                                                <TableCell className="text-muted-foreground font-mono text-xs max-w-[140px] truncate" title={invoice.reference || ''}>{invoice.reference || '-'}</TableCell>
                                                 <TableCell>{format(invoice.invoiceDate, "dd/MM/yyyy")}</TableCell>
                                                 <TableCell>
                                                     <span className={cn(
