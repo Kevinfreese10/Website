@@ -41,7 +41,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from "@/components/ui/progress";
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import AIStatementImportDialog from '@/components/admin/AIStatementImportDialog';
 import { Calendar } from '@/components/ui/calendar';
 import { AccountSelector } from '@/components/accounting/AccountSelector';

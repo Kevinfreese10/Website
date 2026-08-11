@@ -79,7 +79,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/specialist-services',
   ].map((route) => ({
     url: `${BASE_URL}${route}`,
-    lastModified: new Date(),
   }));
   
   let serviceRoutes: MetadataRoute.Sitemap = [];
@@ -87,10 +86,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const db = getAdminDb();
     const servicesSnapshot = await db.collection("services").orderBy("title").get();
     const services = servicesSnapshot.docs.map(doc => serializeDbData(doc.data()) as Service);
-    serviceRoutes = services.map((service) => ({
-      url: `${BASE_URL}/products/${service.slug}`,
-      lastModified: new Date(),
-    }));
+    serviceRoutes = services.map((service: any) => {
+      let lastModifiedDate = undefined;
+      const dateField = service.updatedAt || service.createdAt;
+      if (dateField) {
+        lastModifiedDate = typeof dateField === 'object' && 'toDate' in dateField ? dateField.toDate() : new Date(dateField);
+      }
+      return {
+        url: `${BASE_URL}/products/${service.slug}`,
+        ...(lastModifiedDate && { lastModified: lastModifiedDate })
+      };
+    });
   } catch (error) {
     console.error("Error fetching services for sitemap:", error);
   }

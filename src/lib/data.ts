@@ -13,7 +13,7 @@ export const users: Omit<User, 'uid'>[] = [
         host: 'mail.myacc.co.za',
         port: '465',
         user: 'info@myacc.co.za',
-        pass: 'Thinkestry10$',
+        pass: '',
     }
   },
   {
@@ -47,7 +47,7 @@ export const users: Omit<User, 'uid'>[] = [
         host: 'mail.thinkestry.co.za',
         port: '465',
         user: 'no-reply@thinkestry.co.za',
-        pass: 'Thinkestry10$',
+        pass: '',
     }
   },
 ];

@@ -47,7 +47,7 @@ async function fetchPayFastTransactionsForDate(dateStr: string): Promise<any[]> 
 export async function POST(req: NextRequest) {
     // Simple admin guard — only allow if caller passes the admin secret header
     const adminSecret = req.headers.get('x-admin-secret');
-    if (adminSecret !== process.env.ADMIN_SECRET && process.env.ADMIN_SECRET) {
+    if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Loader2, Download, Users, Calculator, FileText } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parse, isValid } from 'date-fns';
 import jsPDF from 'jspdf';

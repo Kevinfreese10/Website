@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 
 export async function POST(req: Request) {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+    
     try {
+        await getAdminAuth().verifyIdToken(idToken);
         const body = await req.json();
         const { to, subject, html } = body;
 
@@ -11,7 +18,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // We assume the user has authorization - you could add admin auth checking here if needed
+
         await sendEmail({
             to,
             subject,

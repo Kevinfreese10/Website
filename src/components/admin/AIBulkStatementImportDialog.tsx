@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { extractStatementChunk } from '@/app/actions';
 import { PDFDocument } from 'pdf-lib';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Progress } from '@/components/ui/progress';
 
 const db = getFirestore(firebaseApp);

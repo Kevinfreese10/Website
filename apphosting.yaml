@@ -46,21 +46,6 @@ env:
     availability:
       - BUILD
       - RUNTIME
-  - variable: GEMINI_API_KEY
-    value: "AIzaSyCA6NIJNhxhweEMkQIn8rj4dBDz4YIr4W0"
-    availability:
-      - BUILD
-      - RUNTIME
-  - variable: PAYFAST_PASSPHRASE
-    value: "KhaiFreese11"
-    availability:
-      - BUILD
-      - RUNTIME
-  - variable: SMTP_PASS
-    value: "_CJajo8NICcFY=9H"
-    availability:
-      - BUILD
-      - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
     value: "https://www.myacc.co.za"
     availability:

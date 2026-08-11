@@ -43,7 +43,15 @@ function summarizePayload(invoice: any, client: any, customer: any) {
 }
 
 export async function POST(req: Request, context: { params: Promise<{ invoiceId: string }> }) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const idToken = authHeader.split('Bearer ')[1];
+  
   try {
+    const { getAdminAuth } = await import('@/lib/firebase-admin');
+    await getAdminAuth().verifyIdToken(idToken);
     const { invoice, client, customer } = await req.json();
     const { invoiceId } = await context.params;
 

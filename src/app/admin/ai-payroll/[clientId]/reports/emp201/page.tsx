@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Loader2, Download, Users, Calculator, FileText } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parse, isValid } from 'date-fns';
 import jsPDF from 'jspdf';

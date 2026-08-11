@@ -13,7 +13,7 @@ import { firebaseApp } from '@/lib/firebase';
 import { Loader2, Download, Eye, Calculator } from "lucide-react";
 import { useParams, useRouter } from 'next/navigation';
 import { format, startOfMonth, endOfMonth, subMonths, getMonth, parseISO } from 'date-fns';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableFooterComponent } from "@/components/ui/table";

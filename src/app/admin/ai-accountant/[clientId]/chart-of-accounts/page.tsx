@@ -23,7 +23,7 @@ import { chartOfAccounts as masterChartOfAccounts } from "@/lib/chart-of-account
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandGroup, CommandList, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 

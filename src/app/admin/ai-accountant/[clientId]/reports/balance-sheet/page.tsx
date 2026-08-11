@@ -30,7 +30,7 @@ import {
 import { format, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import Link from "next/link";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";

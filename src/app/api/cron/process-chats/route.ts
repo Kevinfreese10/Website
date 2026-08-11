@@ -6,13 +6,18 @@ import { google } from '@ai-sdk/google';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export async function GET(request: Request) {
+  const cronSecret = request.headers.get('x-cron-secret');
+  if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const adminDb = getAdminDb();
     const now = new Date();
     // 5 minutes ago
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
-    const snapshot = await adminDb.collection('chatbotConversations').get();
+    const snapshot = await adminDb.collection('chatbotConversations').limit(50).get();
     let processedCount = 0;
     
     for (const doc of snapshot.docs) {

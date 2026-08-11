@@ -22,7 +22,7 @@ import {
   Sparkles,
   MessageSquare
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { analyzeSpreadsheetAllocationsAction, applySpreadsheetAllocationsAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
 

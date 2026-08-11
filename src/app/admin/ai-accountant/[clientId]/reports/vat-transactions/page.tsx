@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { allVatTypes } from "@/lib/vat-types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";

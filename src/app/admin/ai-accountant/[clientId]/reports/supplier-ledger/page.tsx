@@ -17,7 +17,7 @@ import { DateRange } from "react-day-picker";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as TableFooterComponent } from "@/components/ui/table";
 import { format } from 'date-fns';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from "@/lib/utils";

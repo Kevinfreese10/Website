@@ -1,7 +1,11 @@
 import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-secret-key-must-be-32-chars!'.padEnd(32, 'X').substring(0, 32);
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY) {
+    throw new Error('ENCRYPTION_KEY environment variable is not set. It must be a 32-character string.');
+}
+
 const IV_LENGTH = 16;
 
 export function encrypt(text: string): string {
