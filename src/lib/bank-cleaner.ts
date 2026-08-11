@@ -228,11 +228,14 @@ export class BankCleaner {
 
         let finalScore = score;
         if (firstTokenMatch && firstToken1 && !GENERIC_FIRST_TOKENS.has(firstToken1)) {
-            // Boost score to cross the 0.85 threshold for non-generic first-word matches
-            const boostScore = (key2.startsWith(key1) || key1.startsWith(key2)) ? 0.88 : 0.86;
-            if (finalScore < boostScore) {
-                finalScore = boostScore;
-                reason = `First word match on "${firstToken1}" (boosted)`;
+            const isSubstringMatch = key2.startsWith(key1) || key1.startsWith(key2);
+            // Only boost if one key is a full prefix of the other OR token overlap is high (>= 50%)
+            if (isSubstringMatch || jaccard >= 0.5) {
+                const boostScore = isSubstringMatch ? 0.88 : 0.86;
+                if (finalScore < boostScore) {
+                    finalScore = boostScore;
+                    reason = `First word match on "${firstToken1}" (boosted)`;
+                }
             }
         }
 

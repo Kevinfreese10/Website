@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FileUp, Loader2, PlusCircle, Search, Settings, Trash2, Edit, ArrowRightLeft, BookOpen, Sparkles, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, CheckCheck, ChevronsUpDown, MoreHorizontal, RotateCcw, AlertTriangle, Download, BrainCircuit, Play, CheckCircle2, Clock, Undo2, RotateCw, History, Info, X, ArrowRight, MessageSquareQuote, Send, AlertCircle, StopCircle, GripVertical, Layers, FileSpreadsheet, Save, MessageSquare, RefreshCw, Calendar as CalendarIcon, Users, Zap } from 'lucide-react';
+import { FileUp, Loader2, PlusCircle, Search, Settings, Trash2, Edit, ArrowRightLeft, BookOpen, Sparkles, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, CheckCheck, ChevronsUpDown, MoreHorizontal, RotateCcw, AlertTriangle, Download, BrainCircuit, Play, CheckCircle2, Clock, Undo2, RotateCw, History, Info, X, ArrowRight, MessageSquareQuote, Send, AlertCircle, StopCircle, GripVertical, Layers, FileSpreadsheet, Save, MessageSquare, RefreshCw, Calendar as CalendarIcon, Users, Zap, Unlink, Split } from 'lucide-react';
 import Papa from 'papaparse';
 import { ImportedTransaction, ChartOfAccount, User, VatType, AllocatedTransaction, AllocationRule, ClientCustomer, Invoice, SmartAllocationResult, Supplier } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -2900,8 +2900,17 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         setIsMovingBack(txId);
         try {
             await moveTransactionToNew({ clientId: client.uid, transactionId: txId });
-            toast({ title: "Transaction Moved" });
+            toast({ title: "Transaction Moved to Individual Group" });
         } catch (e) { toast({ title: "Failed to move", variant: "destructive" }); } finally { setIsMovingBack(null); }
+    };
+
+    const handleSplitGroupToNew = async (txIds: string[]) => {
+        if (!client?.uid || !txIds.length) return;
+        try {
+            await bulkMoveTransactionsToNew({ clientId: client.uid, transactionIds: txIds });
+            toast({ title: `Split ${txIds.length} transactions into individual merchant groups` });
+            setViewingGroup(null);
+        } catch (e) { toast({ title: "Failed to split group", variant: "destructive" }); }
     };
 
     const handleResearchWithAi = async (group: TransactionGroup) => {
@@ -3038,7 +3047,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
     return (
         <div className="space-y-6 p-4">
             <CreateGeneralAccountDialog client={client} onAccountCreated={() => {}} open={isCreateGeneralAccountOpen} onOpenChange={setIsCreateGeneralAccountOpen} />
-            <GroupTransactionsDialog open={!!viewingGroup} onOpenChange={(o) => !o && setViewingGroup(null)} group={viewingGroup} onMoveToNew={handleMoveSingleTransactionToNew} />
+            <GroupTransactionsDialog open={!!viewingGroup} onOpenChange={(o) => !o && setViewingGroup(null)} group={viewingGroup} onMoveToNew={handleMoveSingleTransactionToNew} onSplitGroup={handleSplitGroupToNew} />
             
             {/* Regroup Proposals Dialog */}
             <Dialog open={isMergeDialogOpen} onOpenChange={setIsMergeDialogOpen}>
@@ -4433,21 +4442,40 @@ export default function BankTransactionsPage() {
     );
 }
 
-function GroupTransactionsDialog({ open, onOpenChange, group, onMoveToNew }: { 
+function GroupTransactionsDialog({ open, onOpenChange, group, onMoveToNew, onSplitGroup }: { 
     open: boolean, 
     onOpenChange: (open: boolean) => void, 
     group: TransactionGroup | null,
-    onMoveToNew: (txId: string) => Promise<void>
+    onMoveToNew: (txId: string) => Promise<void>,
+    onSplitGroup: (txIds: string[]) => Promise<void>
 }) {
     const [isMoving, setIsMoving] = useState<string | null>(null);
+    const [isSplitting, setIsSplitting] = useState(false);
     if (!group) return null;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>Transactions for: {group.merchantKey}</DialogTitle>
-                    <DialogDescription>Review individual transactions in this group.</DialogDescription>
+                <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pr-6">
+                    <div>
+                        <DialogTitle>Transactions for: {group.merchantKey}</DialogTitle>
+                        <DialogDescription>Review individual transactions in this group.</DialogDescription>
+                    </div>
+                    {group.transactions.length > 1 && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs text-amber-700 border-amber-300 hover:bg-amber-50"
+                            disabled={isSplitting}
+                            onClick={() => {
+                                setIsSplitting(true);
+                                onSplitGroup(group.transactions.map(t => t.id)).finally(() => setIsSplitting(false));
+                            }}
+                        >
+                            {isSplitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Unlink className="h-3.5 w-3.5 mr-1.5 text-amber-600" />}
+                            Split Group into Individual Merchants
+                        </Button>
+                    )}
                 </DialogHeader>
                 <div className="max-h-[60vh] overflow-y-auto">
                     <Table>

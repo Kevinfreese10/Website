@@ -157,36 +157,48 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
 export async function moveTransactionToNew({ clientId, transactionId }: { clientId: string, transactionId: string }) {
     const adminDb = getAdminDb();
     const txRef = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(transactionId);
+    const snap = await txRef.get();
+    if (!snap.exists) return;
+    const data = snap.data();
+    const processed = BankCleaner.process(data?.description || '');
+
     await txRef.update({
         status: 'new',
         allocatedTo: FieldValue.delete(),
         vatType: FieldValue.delete(),
         smartAllocationResult: FieldValue.delete(),
         allocationSource: FieldValue.delete(),
-        merchantKey: FieldValue.delete(),
-        cleanDescription: FieldValue.delete(),
-        rawDescription: FieldValue.delete()
+        merchantKey: processed.merchantKey,
+        cleanDescription: processed.cleanDescription,
     });
 }
 
 export async function bulkMoveTransactionsToNew({ clientId, transactionIds }: { clientId: string, transactionIds: string[] }) {
     const adminDb = getAdminDb();
     const chunks = [];
-    for (let i = 0; i < transactionIds.length; i += 450) {
-        chunks.push(transactionIds.slice(i, i + 450));
+    for (let i = 0; i < transactionIds.length; i += 400) {
+        chunks.push(transactionIds.slice(i, i + 400));
     }
     for (const chunk of chunks) {
         const batch = adminDb.batch();
-        chunk.forEach(id => {
-            const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
-            batch.update(ref, {
+        const refs = chunk.map(id => adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id));
+        const snaps = await adminDb.getAll(...refs);
+
+        snaps.forEach(snap => {
+            if (!snap.exists) return;
+            const data = snap.data();
+            const processed = BankCleaner.process(data?.description || '');
+            batch.update(snap.ref, {
                 status: 'new',
                 allocatedTo: FieldValue.delete(),
                 vatType: FieldValue.delete(),
                 smartAllocationResult: FieldValue.delete(),
-                allocationSource: FieldValue.delete()
+                allocationSource: FieldValue.delete(),
+                merchantKey: processed.merchantKey,
+                cleanDescription: processed.cleanDescription,
             });
         });
+
         await batch.commit();
     }
     return { count: transactionIds.length };
