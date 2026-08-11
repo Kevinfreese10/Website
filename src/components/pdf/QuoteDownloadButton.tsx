@@ -104,8 +104,14 @@ export default function QuoteDownloadButton({ quote, client, customer }: QuoteDo
       const expiryDateObj = quote.expiryDate instanceof Date ? quote.expiryDate : (quote.expiryDate?.toDate ? quote.expiryDate.toDate() : new Date(quote.expiryDate));
 
       doc.text(`Quote Number: ${quote.id}`, 190, 32, { align: 'right' });
-      doc.text(`Date: ${format(quoteDateObj, 'dd/MM/yyyy')}`, 190, 37, { align: 'right' });
-      doc.text(`Expiry Date: ${format(expiryDateObj, 'dd/MM/yyyy')}`, 190, 42, { align: 'right' });
+      let qY = 37;
+      if (quote.reference) {
+        doc.text(`Reference: ${quote.reference}`, 190, qY, { align: 'right' });
+        qY += 5;
+      }
+      doc.text(`Date: ${format(quoteDateObj, 'dd/MM/yyyy')}`, 190, qY, { align: 'right' });
+      qY += 5;
+      doc.text(`Expiry Date: ${format(expiryDateObj, 'dd/MM/yyyy')}`, 190, qY, { align: 'right' });
 
       // 4. Client / Bill To Info
       const startInfoY = Math.max(leftY, 50);

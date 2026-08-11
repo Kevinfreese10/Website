@@ -75,6 +75,12 @@ const QuotePreview = React.forwardRef<HTMLDivElement, { quote: Quote, client: Us
                          <div className="grid grid-cols-[auto_1fr] gap-x-4 text-sm justify-end">
                             <span className="font-semibold text-gray-600 text-right">Quote Number:</span>
                             <span className="text-left ml-2">{quote.id}</span>
+                            {quote.reference && (
+                                <>
+                                    <span className="font-semibold text-gray-600 text-right">Reference:</span>
+                                    <span className="text-left ml-2">{quote.reference}</span>
+                                </>
+                            )}
                             <span className="font-semibold text-gray-600 text-right">Date:</span>
                             <span className="text-left ml-2">{format(quoteDateObj, 'dd/MM/yyyy')}</span>
                             <span className="font-semibold text-gray-600 text-right">Expiry Date:</span>

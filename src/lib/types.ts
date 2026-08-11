@@ -153,6 +153,7 @@ export type Order = {
 export type Invoice = {
   id: string;
   customerId: string;
+  reference?: string;
   invoiceDate: any; // Firestore Timestamp
   dueDate: any; // Firestore Timestamp
   lineItems: { 
@@ -176,6 +177,7 @@ export type Invoice = {
 export type Quote = {
   id: string;
   customerId: string;
+  reference?: string;
   quoteDate: any;
   expiryDate: any;
   description: string;

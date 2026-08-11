@@ -395,6 +395,13 @@ export function InvoicePdfDocument({
                 <Text style={{ fontWeight: 'bold' }}>{invoiceId}</Text>
               </View>
 
+              {invoice?.reference ? (
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
+                  <Text style={{ color: '#777', marginRight: 10 }}>Reference:</Text>
+                  <Text style={{ fontWeight: 'bold' }}>{safeText(invoice.reference)}</Text>
+                </View>
+              ) : null}
+
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
                 <Text style={{ color: '#777', marginRight: 10 }}>Date:</Text>
                 <Text>{safeFormatDate(invoice?.invoiceDate)}</Text>

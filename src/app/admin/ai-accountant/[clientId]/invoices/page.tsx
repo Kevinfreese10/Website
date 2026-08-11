@@ -45,6 +45,7 @@ const lineItemSchema = z.object({
 
 const invoiceFormSchema = z.object({
     customerId: z.string().min(1, "Please select a customer."),
+    reference: z.string().optional(),
     invoiceDate: z.date({ required_error: "Invoice date is required." }),
     dueDate: z.date({ required_error: "Due date is required." }),
     lineItems: z.array(lineItemSchema).min(1, "At least one line item is required."),
@@ -130,7 +131,8 @@ export default function InvoicesPage() {
             const customer = customers.find(c => c.id === invoice.customerId);
             const matchesSearch = !searchQuery || 
                 customer?.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                invoice.id.toLowerCase().includes(searchQuery.toLowerCase());
+                invoice.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (invoice.reference && invoice.reference.toLowerCase().includes(searchQuery.toLowerCase()));
             
             const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
 
@@ -149,6 +151,7 @@ export default function InvoicesPage() {
     const form = useForm<InvoiceFormValues>({
         resolver: zodResolver(invoiceFormSchema),
         defaultValues: {
+            reference: '',
             invoiceDate: new Date(),
             dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
             lineItems: [{ accountId: '', description: '', quantity: 1, rate: 0, vatType: 'standard_rated_sales' }],
@@ -165,6 +168,7 @@ export default function InvoicesPage() {
     const handleDuplicateInvoice = (invoice: Invoice) => {
         form.reset({
             customerId: invoice.customerId,
+            reference: invoice.reference || '',
             invoiceDate: new Date(),
             dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
             lineItems: invoice.lineItems,
@@ -443,6 +447,7 @@ export default function InvoicesPage() {
 
             toast({ title: isDraft ? 'Draft Saved' : 'Invoice Finalized', description: isDraft ? 'The invoice has been saved as a draft.' : 'The invoice has been created and posted to the general ledger.' });
             form.reset({
+                 reference: '',
                  invoiceDate: new Date(),
                  dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
                  lineItems: [{ accountId: '', description: '', quantity: 1, rate: 0, vatType: client?.isVatRegistered ? 'standard_rated_sales' : 'no_vat' }],
@@ -467,7 +472,7 @@ export default function InvoicesPage() {
                     <CardContent>
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                                      <FormField control={form.control} name="currency" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel className="mb-1">Currency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="h-10"><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="ZAR">ZAR (R)</SelectItem><SelectItem value="USD">USD ($)</SelectItem><SelectItem value="EUR">EUR (€)</SelectItem><SelectItem value="GBP">GBP (£)</SelectItem><SelectItem value="AUD">AUD ($)</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
                                      <FormField
                                         control={form.control}
@@ -488,6 +493,19 @@ export default function InvoicesPage() {
                                             />
                                             <FormMessage />
                                         </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="reference"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-col">
+                                                <FormLabel className="mb-1">Reference / PO #</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. PO-12345 or Ref" {...field} className="h-10" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
                                         )}
                                     />
                                     <FormField control={form.control} name="invoiceDate" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel className="mb-1">Invoice Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-10",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "dd MMMM yyyy") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
@@ -615,6 +633,7 @@ export default function InvoicesPage() {
                                     <TableRow>
                                         <TableHead>Invoice #</TableHead>
                                         <TableHead>Customer</TableHead>
+                                        <TableHead>Reference</TableHead>
                                         <TableHead>Date</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead className="text-right">Total</TableHead>
@@ -626,7 +645,7 @@ export default function InvoicesPage() {
                                 <TableBody>
                                     {filteredInvoices.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                            <TableCell colSpan={9} className="text-center h-24 text-muted-foreground">
                                                 No invoices created yet.
                                             </TableCell>
                                         </TableRow>
@@ -635,6 +654,7 @@ export default function InvoicesPage() {
                                             <TableRow key={invoice.id}>
                                                 <TableCell className="font-mono">{invoice.id}</TableCell>
                                                 <TableCell>{customers.find(c => c.id === invoice.customerId)?.name}</TableCell>
+                                                <TableCell className="text-muted-foreground font-mono text-xs">{invoice.reference || '-'}</TableCell>
                                                 <TableCell>{format(invoice.invoiceDate, "dd/MM/yyyy")}</TableCell>
                                                 <TableCell>
                                                     <span className={cn(

@@ -43,6 +43,7 @@ const lineItemSchema = z.object({
 
 const quoteFormSchema = z.object({
     customerId: z.string().min(1, "Please select a customer."),
+    reference: z.string().optional(),
     quoteDate: z.date({ required_error: "Quote date is required." }),
     expiryDate: z.date({ required_error: "Expiry date is required." }),
     description: z.string().min(1, "Quote description is required."),
@@ -118,7 +119,8 @@ export default function QuotesPage() {
             const customer = customers.find(c => c.id === quote.customerId);
             const matchesSearch = !searchQuery || 
                 customer?.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                quote.id.toLowerCase().includes(searchQuery.toLowerCase());
+                quote.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (quote.reference && quote.reference.toLowerCase().includes(searchQuery.toLowerCase()));
             
             const matchesStatus = statusFilter === "all" || quote.status === statusFilter;
 
@@ -129,6 +131,7 @@ export default function QuotesPage() {
     const form = useForm<QuoteFormValues>({
         resolver: zodResolver(quoteFormSchema),
         defaultValues: {
+            reference: '',
             quoteDate: new Date(),
             expiryDate: new Date(new Date().setDate(new Date().getDate() + 30)),
             description: '',
@@ -146,6 +149,7 @@ export default function QuotesPage() {
     const handleDuplicateQuote = (quote: Quote) => {
         form.reset({
             customerId: quote.customerId,
+            reference: quote.reference || '',
             quoteDate: new Date(),
             expiryDate: new Date(new Date().setDate(new Date().getDate() + 30)),
             description: quote.description || '',
@@ -185,6 +189,7 @@ export default function QuotesPage() {
             
             const invoiceData = {
                 customerId: quote.customerId,
+                reference: quote.reference || '',
                 invoiceDate: new Date(), // Current date
                 dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
                 lineItems: quote.lineItems,
@@ -389,6 +394,7 @@ export default function QuotesPage() {
 
             toast({ title: isDraft ? 'Draft Saved' : 'Quote Created', description: `Quote QT-${quoteId} has been successfully saved.` });
             form.reset({
+                 reference: '',
                  quoteDate: new Date(),
                  expiryDate: new Date(new Date().setDate(new Date().getDate() + 30)),
                  description: '',
@@ -414,7 +420,7 @@ export default function QuotesPage() {
                     <CardContent>
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                                      <FormField control={form.control} name="currency" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel className="mb-1">Currency</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="h-10"><SelectValue/></SelectTrigger></FormControl><SelectContent><SelectItem value="ZAR">ZAR (R)</SelectItem><SelectItem value="USD">USD ($)</SelectItem><SelectItem value="EUR">EUR (€)</SelectItem><SelectItem value="GBP">GBP (£)</SelectItem><SelectItem value="AUD">AUD ($)</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
                                      <FormField
                                         control={form.control}
@@ -435,6 +441,19 @@ export default function QuotesPage() {
                                             />
                                             <FormMessage />
                                         </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="reference"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-col">
+                                                <FormLabel className="mb-1">Reference / PO #</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. PO-12345 or Ref" {...field} className="h-10" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
                                         )}
                                     />
                                     <FormField control={form.control} name="quoteDate" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel className="mb-1">Quote Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-10",!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "dd MMMM yyyy") : <span>Pick a date</span>}</Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>)}/>
@@ -559,6 +578,7 @@ export default function QuotesPage() {
                                     <TableRow>
                                         <TableHead>Quote #</TableHead>
                                         <TableHead>Customer</TableHead>
+                                        <TableHead>Reference</TableHead>
                                         <TableHead>Description</TableHead>
                                         <TableHead>Date</TableHead>
                                         <TableHead>Expiry Date</TableHead>
@@ -569,9 +589,9 @@ export default function QuotesPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {isLoading ? (
-                                        <TableRow><TableCell colSpan={8} className="text-center h-32"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary"/></TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={9} className="text-center h-32"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary"/></TableCell></TableRow>
                                     ) : filteredQuotes.length === 0 ? (
-                                        <TableRow><TableCell colSpan={8} className="text-center h-32 text-muted-foreground">No quotes found.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={9} className="text-center h-32 text-muted-foreground">No quotes found.</TableCell></TableRow>
                                     ) : (
                                         filteredQuotes.map((quote) => {
                                             const customer = customers.find(c => c.id === quote.customerId);
@@ -580,6 +600,7 @@ export default function QuotesPage() {
                                                 <TableRow key={quote.id}>
                                                     <TableCell className="font-semibold">QT-{quote.id}</TableCell>
                                                     <TableCell className="max-w-[150px] truncate">{customer?.name || 'N/A'}</TableCell>
+                                                    <TableCell className="text-muted-foreground font-mono text-xs">{quote.reference || '-'}</TableCell>
                                                     <TableCell className="max-w-[200px] truncate">{quote.description || 'N/A'}</TableCell>
                                                     <TableCell>{format(quote.quoteDate, 'dd MMM yyyy')}</TableCell>
                                                     <TableCell>{format(quote.expiryDate, 'dd MMM yyyy')}</TableCell>

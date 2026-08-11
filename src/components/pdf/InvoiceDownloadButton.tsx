@@ -100,16 +100,29 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       doc.text(`Invoice Number:`, 140, 35);
-      doc.text(`Date:`, 140, 40);
-      doc.text(`Due Date:`, 140, 45);
+      
+      let headerY = 40;
+      if (invoice.reference) {
+        doc.text(`Reference:`, 140, headerY);
+        headerY += 5;
+      }
+      doc.text(`Date:`, 140, headerY);
+      headerY += 5;
+      doc.text(`Due Date:`, 140, headerY);
 
       doc.setFont('helvetica', 'normal');
       doc.text(invoice.id, 190, 35, { align: 'right' });
-      doc.text(format(new Date(invoice.invoiceDate), 'dd/MM/yyyy'), 190, 40, { align: 'right' });
-      doc.text(format(new Date(invoice.dueDate), 'dd/MM/yyyy'), 190, 45, { align: 'right' });
+      let valY = 40;
+      if (invoice.reference) {
+        doc.text(invoice.reference, 190, valY, { align: 'right' });
+        valY += 5;
+      }
+      doc.text(format(new Date(invoice.invoiceDate), 'dd/MM/yyyy'), 190, valY, { align: 'right' });
+      valY += 5;
+      doc.text(format(new Date(invoice.dueDate), 'dd/MM/yyyy'), 190, valY, { align: 'right' });
 
       // 4. Bill To (Right) - Positioned below the due date details on the right
-      let rightY = 55;
+      let rightY = Math.max(55, valY + 10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(100);
       doc.text('BILL TO:', 140, rightY);

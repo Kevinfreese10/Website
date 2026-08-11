@@ -75,6 +75,12 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                          <div className="grid grid-cols-[auto_1fr] gap-x-4 text-sm justify-end">
                             <span className="font-semibold text-gray-600 text-right">Invoice Number:</span>
                             <span className="text-left ml-2">{invoice.id}</span>
+                            {invoice.reference && (
+                                <>
+                                    <span className="font-semibold text-gray-600 text-right">Reference:</span>
+                                    <span className="text-left ml-2">{invoice.reference}</span>
+                                </>
+                            )}
                             <span className="font-semibold text-gray-600 text-right">Date:</span>
                             <span className="text-left ml-2">{format(invoice.invoiceDate, 'dd/MM/yyyy')}</span>
                             <span className="font-semibold text-gray-600 text-right">Due Date:</span>
