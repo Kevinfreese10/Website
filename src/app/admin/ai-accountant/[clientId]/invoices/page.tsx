@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Plus, Trash2, CalendarIcon, PlusCircle, MoreHorizontal, Eye, Copy, FileText, Mail, Download, CheckCircle, ChevronsUpDown, CheckCheck } from 'lucide-react';
-import { getFirestore, doc, addDoc, getDoc, collection, query, orderBy, getDocs, updateDoc, writeBatch, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Loader2, Plus, Trash2, CalendarIcon, PlusCircle, MoreHorizontal, Eye, Copy, FileText, Mail, Download, CheckCircle, ChevronsUpDown, CheckCheck, Pencil, X } from 'lucide-react';
+import { getFirestore, doc, addDoc, getDoc, collection, query, orderBy, getDocs, updateDoc, writeBatch, setDoc, serverTimestamp, where } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useParams, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -165,7 +165,40 @@ export default function InvoicesPage() {
         name: "lineItems",
     });
 
+    const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+
+    const handleEditInvoice = (invoice: Invoice) => {
+        setEditingInvoice(invoice);
+        const invDate = invoice.invoiceDate instanceof Date ? invoice.invoiceDate : (invoice.invoiceDate?.toDate ? invoice.invoiceDate.toDate() : new Date(invoice.invoiceDate));
+        const dueDate = invoice.dueDate instanceof Date ? invoice.dueDate : (invoice.dueDate?.toDate ? invoice.dueDate.toDate() : new Date(invoice.dueDate));
+        
+        form.reset({
+            customerId: invoice.customerId,
+            reference: invoice.reference || '',
+            invoiceDate: invDate,
+            dueDate: dueDate,
+            lineItems: invoice.lineItems && invoice.lineItems.length > 0 ? invoice.lineItems : [{ accountId: '', description: '', quantity: 1, rate: 0, vatType: client?.isVatRegistered ? 'standard_rated_sales' : 'no_vat' }],
+            notes: invoice.notes || '',
+            currency: invoice.currency || 'ZAR',
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast({ title: `Editing Invoice #${invoice.id}`, description: 'Form populated with invoice details.' });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingInvoice(null);
+        form.reset({
+            reference: '',
+            invoiceDate: new Date(),
+            dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+            lineItems: [{ accountId: '', description: '', quantity: 1, rate: 0, vatType: client?.isVatRegistered ? 'standard_rated_sales' : 'no_vat' }],
+            notes: client?.defaultInvoiceMessage || '',
+            currency: 'ZAR',
+        });
+    };
+
     const handleDuplicateInvoice = (invoice: Invoice) => {
+        setEditingInvoice(null);
         form.reset({
             customerId: invoice.customerId,
             reference: invoice.reference || '',
@@ -354,29 +387,44 @@ export default function InvoicesPage() {
         });
         const total = subtotal + vat;
 
-        const nextInvoiceNumber = client.nextInvoiceNumber || 9000;
-        const invoiceId = String(nextInvoiceNumber);
+        const isEditing = Boolean(editingInvoice);
+        const invoiceId = isEditing ? editingInvoice!.id : String(client.nextInvoiceNumber || 9000);
         
         try {
             const batch = writeBatch(db);
             const invoiceRef = doc(db, `aiAccountantClients/${clientId}/invoices`, invoiceId);
 
             const isDraft = submitMode.current === 'draft';
+            const amountPaid = isEditing ? (editingInvoice!.amountPaid || 0) : 0;
+            const balanceDue = Math.max(0, total - amountPaid);
+
+            let status: Invoice['status'] = isDraft ? 'draft' : 'final';
+            if (isEditing) {
+                if (balanceDue === 0 && amountPaid > 0) {
+                    status = 'paid';
+                } else if (amountPaid > 0) {
+                    status = 'partial';
+                } else {
+                    status = isDraft ? 'draft' : (editingInvoice!.status === 'draft' ? 'final' : editingInvoice!.status);
+                }
+            }
 
             batch.set(invoiceRef, {
                 ...data,
-                status: isDraft ? 'draft' : 'final',
+                status,
                 subtotal: subtotal,
                 vat: vat,
                 total: total,
-                amountPaid: 0,
-                balanceDue: total,
-                createdAt: serverTimestamp(),
-            });
+                amountPaid,
+                balanceDue,
+                ...(isEditing ? { updatedAt: serverTimestamp() } : { createdAt: serverTimestamp() })
+            }, { merge: true });
 
-            // Increment invoice number on client profile
-            const clientRef = doc(db, 'aiAccountantClients', clientId);
-            batch.update(clientRef, { nextInvoiceNumber: nextInvoiceNumber + 1 });
+            if (!isEditing) {
+                // Increment invoice number on client profile
+                const clientRef = doc(db, 'aiAccountantClients', clientId);
+                batch.update(clientRef, { nextInvoiceNumber: (client.nextInvoiceNumber || 9000) + 1 });
+            }
 
             if (!isDraft) {
                 const customerControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '8000-001')?.id;
@@ -385,67 +433,77 @@ export default function InvoicesPage() {
                 if (!customerControlAccount || (client.isVatRegistered && !vatControlAccount)) {
                     throw new Error("Control accounts not found in Chart of Accounts.");
                 }
+
+                if (isEditing) {
+                    const existingTxQuery = query(collection(db, 'aiAccountantClients', clientId, 'transactions'), where('reference', '==', `INV-${invoiceId}`));
+                    const existingTxDocs = await getDocs(existingTxQuery);
+                    existingTxDocs.forEach(d => batch.delete(d.ref));
+                }
                 
                 // 1. Debit Customer Control
-            const debitTxRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
-            batch.set(debitTxRef, {
-                clientId: client.id,
-                date: data.invoiceDate.toISOString(),
-                reference: `INV-${invoiceId}`,
-                description: `Invoice to ${customers.find(c => c.id === data.customerId)?.name}`,
-                amount: total,
-                isExpense: total < 0,
-                bankAccountId: 'JOURNAL',
-                allocatedTo: { value: customerControlAccount, type: 'account' },
-                vatType: 'no_vat',
-                vatAmount: 0,
-                status: 'allocated',
-                allocatedAt: serverTimestamp(),
-            });
-
-            // 2. Credit Sales Accounts
-            data.lineItems.forEach(line => {
-                const lineTotal = line.quantity * line.rate;
-                const salesCreditRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
-                batch.set(salesCreditRef, {
+                const debitTxRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
+                batch.set(debitTxRef, {
                     clientId: client.id,
                     date: data.invoiceDate.toISOString(),
                     reference: `INV-${invoiceId}`,
-                    description: line.description,
-                    amount: -lineTotal,
-                    isExpense: -lineTotal < 0,
+                    description: `Invoice to ${customers.find(c => c.id === data.customerId)?.name}`,
+                    amount: total,
+                    isExpense: total < 0,
                     bankAccountId: 'JOURNAL',
-                    allocatedTo: { value: line.accountId, type: 'account' },
-                    vatType: line.vatType as any,
-                    vatAmount: 0,
-                    status: 'allocated',
-                    allocatedAt: serverTimestamp(),
-                });
-            });
-            
-            // 3. Credit VAT Control
-            if (vat > 0 && vatControlAccount) {
-                 const vatCreditRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
-                batch.set(vatCreditRef, {
-                    clientId: client.id,
-                    date: data.invoiceDate.toISOString(),
-                    reference: `INV-${invoiceId}`,
-                    description: `VAT on Invoice`,
-                    amount: -vat,
-                    isExpense: -vat < 0,
-                    bankAccountId: 'JOURNAL',
-                    allocatedTo: { value: vatControlAccount, type: 'account' },
+                    allocatedTo: { value: customerControlAccount, type: 'account' },
                     vatType: 'no_vat',
                     vatAmount: 0,
                     status: 'allocated',
                     allocatedAt: serverTimestamp(),
                 });
-            }
+
+                // 2. Credit Sales Accounts
+                data.lineItems.forEach(line => {
+                    const lineTotal = line.quantity * line.rate;
+                    const salesCreditRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
+                    batch.set(salesCreditRef, {
+                        clientId: client.id,
+                        date: data.invoiceDate.toISOString(),
+                        reference: `INV-${invoiceId}`,
+                        description: line.description,
+                        amount: -lineTotal,
+                        isExpense: -lineTotal < 0,
+                        bankAccountId: 'JOURNAL',
+                        allocatedTo: { value: line.accountId, type: 'account' },
+                        vatType: line.vatType as any,
+                        vatAmount: 0,
+                        status: 'allocated',
+                        allocatedAt: serverTimestamp(),
+                    });
+                });
+                
+                // 3. Credit VAT Control
+                if (vat > 0 && vatControlAccount) {
+                    const vatCreditRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
+                    batch.set(vatCreditRef, {
+                        clientId: client.id,
+                        date: data.invoiceDate.toISOString(),
+                        reference: `INV-${invoiceId}`,
+                        description: `VAT on Invoice`,
+                        amount: -vat,
+                        isExpense: -vat < 0,
+                        bankAccountId: 'JOURNAL',
+                        allocatedTo: { value: vatControlAccount, type: 'account' },
+                        vatType: 'no_vat',
+                        vatAmount: 0,
+                        status: 'allocated',
+                        allocatedAt: serverTimestamp(),
+                    });
+                }
             }
 
             await batch.commit();
 
-            toast({ title: isDraft ? 'Draft Saved' : 'Invoice Finalized', description: isDraft ? 'The invoice has been saved as a draft.' : 'The invoice has been created and posted to the general ledger.' });
+            toast({ 
+                title: isEditing ? `Invoice #${invoiceId} Updated` : (isDraft ? 'Draft Saved' : 'Invoice Finalized'), 
+                description: isEditing ? 'The invoice changes have been saved.' : (isDraft ? 'The invoice has been saved as a draft.' : 'The invoice has been created and posted to the general ledger.')
+            });
+            setEditingInvoice(null);
             form.reset({
                  reference: '',
                  invoiceDate: new Date(),
@@ -455,7 +513,7 @@ export default function InvoicesPage() {
             });
             fetchData();
         } catch (error) {
-            toast({ title: 'Error', description: 'Failed to create invoice.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Failed to save invoice.', variant: 'destructive' });
             console.error(error);
         }
     };
@@ -467,7 +525,7 @@ export default function InvoicesPage() {
             <div className="space-y-8">
                  <Card>
                     <CardHeader>
-                        <CardTitle>Create New Invoice</CardTitle>
+                        <CardTitle>{editingInvoice ? `Edit Invoice #${editingInvoice.id}` : 'Create New Invoice'}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Form {...form}>
@@ -574,11 +632,16 @@ export default function InvoicesPage() {
                                 />
                                 <InvoiceTotals control={form.control} isVatRegistered={client?.isVatRegistered} />
                                 <div className="flex justify-end gap-2 pt-4">
+                                  {editingInvoice && (
+                                    <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                                      <X className="mr-2 h-4 w-4" /> Cancel Editing
+                                    </Button>
+                                  )}
                                   <Button type="submit" variant="secondary" onClick={() => submitMode.current = 'draft'} disabled={isLoading}>
-                                    {isLoading && submitMode.current === 'draft' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Saving...</> : "Save as Draft"}
+                                    {isLoading && submitMode.current === 'draft' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Saving...</> : (editingInvoice ? "Save Draft Updates" : "Save as Draft")}
                                   </Button>
                                   <Button type="submit" onClick={() => submitMode.current = 'final'} disabled={isLoading}>
-                                    {isLoading && submitMode.current === 'final' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Finalizing...</> : "Finalize & Post Invoice"}
+                                    {isLoading && submitMode.current === 'final' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Finalizing...</> : (editingInvoice ? "Update & Post Invoice" : "Finalize & Post Invoice")}
                                   </Button>
                                 </div>
                             </form>
@@ -685,6 +748,9 @@ export default function InvoicesPage() {
                                                             <DropdownMenuContent>
                                                                 <DropdownMenuItem onSelect={() => setViewingInvoice(invoice)}>
                                                                     <Eye className="mr-2 h-4 w-4" />View Preview
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onSelect={() => handleEditInvoice(invoice)}>
+                                                                    <Pencil className="mr-2 h-4 w-4" />Edit Invoice
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onSelect={() => {
                                                                     setPaymentInvoice(invoice);

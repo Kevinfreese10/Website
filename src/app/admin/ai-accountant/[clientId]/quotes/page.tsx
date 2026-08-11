@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Plus, Trash2, CalendarIcon, PlusCircle, MoreHorizontal, Eye, Copy, FileText, CheckCircle, ArrowRight, Ban, HelpCircle, Check, ChevronsUpDown } from 'lucide-react';
+import { Loader2, Plus, Trash2, CalendarIcon, PlusCircle, MoreHorizontal, Eye, Copy, FileText, CheckCircle, ArrowRight, Ban, HelpCircle, Check, ChevronsUpDown, Pencil, X } from 'lucide-react';
 import { getFirestore, doc, addDoc, getDoc, collection, query, orderBy, getDocs, updateDoc, writeBatch, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useParams, useRouter } from 'next/navigation';
@@ -146,7 +146,42 @@ export default function QuotesPage() {
         name: "lineItems",
     });
 
+    const [editingQuote, setEditingQuote] = useState<Quote | null>(null);
+
+    const handleEditQuote = (quote: Quote) => {
+        setEditingQuote(quote);
+        const qDate = quote.quoteDate instanceof Date ? quote.quoteDate : (quote.quoteDate?.toDate ? quote.quoteDate.toDate() : new Date(quote.quoteDate));
+        const expDate = quote.expiryDate instanceof Date ? quote.expiryDate : (quote.expiryDate?.toDate ? quote.expiryDate.toDate() : new Date(quote.expiryDate));
+
+        form.reset({
+            customerId: quote.customerId,
+            reference: quote.reference || '',
+            quoteDate: qDate,
+            expiryDate: expDate,
+            description: quote.description || '',
+            lineItems: quote.lineItems && quote.lineItems.length > 0 ? quote.lineItems : [{ accountId: '', description: '', quantity: 1, rate: 0, vatType: client?.isVatRegistered ? 'standard_rated_sales' : 'no_vat' }],
+            notes: quote.notes || '',
+            currency: quote.currency || 'ZAR',
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast({ title: `Editing Quote QT-${quote.id}`, description: 'Form populated with quote details.' });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingQuote(null);
+        form.reset({
+            reference: '',
+            quoteDate: new Date(),
+            expiryDate: new Date(new Date().setDate(new Date().getDate() + 30)),
+            description: '',
+            lineItems: [{ accountId: '', description: '', quantity: 1, rate: 0, vatType: client?.isVatRegistered ? 'standard_rated_sales' : 'no_vat' }],
+            notes: '',
+            currency: 'ZAR',
+        });
+    };
+
     const handleDuplicateQuote = (quote: Quote) => {
+        setEditingQuote(null);
         form.reset({
             customerId: quote.customerId,
             reference: quote.reference || '',
@@ -367,9 +402,8 @@ export default function QuotesPage() {
         });
         const total = subtotal + vat;
 
-        // Fetch / increment next quote number
-        const nextQuoteNumber = client.nextQuoteNumber || 1000;
-        const quoteId = String(nextQuoteNumber);
+        const isEditing = Boolean(editingQuote);
+        const quoteId = isEditing ? editingQuote!.id : String(client.nextQuoteNumber || 1000);
         
         try {
             const batch = writeBatch(db);
@@ -379,20 +413,23 @@ export default function QuotesPage() {
 
             batch.set(quoteRef, {
                 ...data,
-                status: isDraft ? 'draft' : 'sent',
+                status: isDraft ? 'draft' : (isEditing ? editingQuote!.status : 'sent'),
                 subtotal: subtotal,
                 vat: vat,
                 total: total,
-                createdAt: serverTimestamp(),
-            });
+                ...(isEditing ? { updatedAt: serverTimestamp() } : { createdAt: serverTimestamp() })
+            }, { merge: true });
 
-            // Increment quote number on client profile
-            const clientRef = doc(db, 'aiAccountantClients', clientId);
-            batch.update(clientRef, { nextQuoteNumber: nextQuoteNumber + 1 });
+            if (!isEditing) {
+                // Increment quote number on client profile
+                const clientRef = doc(db, 'aiAccountantClients', clientId);
+                batch.update(clientRef, { nextQuoteNumber: (client.nextQuoteNumber || 1000) + 1 });
+            }
 
             await batch.commit();
 
-            toast({ title: isDraft ? 'Draft Saved' : 'Quote Created', description: `Quote QT-${quoteId} has been successfully saved.` });
+            toast({ title: isEditing ? `Quote QT-${quoteId} Updated` : (isDraft ? 'Draft Saved' : 'Quote Created'), description: isEditing ? 'Quote details updated.' : `Quote QT-${quoteId} has been successfully saved.` });
+            setEditingQuote(null);
             form.reset({
                  reference: '',
                  quoteDate: new Date(),
@@ -403,7 +440,7 @@ export default function QuotesPage() {
             });
             fetchData();
         } catch (error) {
-            toast({ title: 'Error', description: 'Failed to create quote.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Failed to save quote.', variant: 'destructive' });
             console.error(error);
         }
     };
@@ -415,7 +452,7 @@ export default function QuotesPage() {
             <div className="space-y-8">
                  <Card>
                     <CardHeader>
-                        <CardTitle>Create New Quote</CardTitle>
+                        <CardTitle>{editingQuote ? `Edit Quote QT-${editingQuote.id}` : 'Create New Quote'}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <Form {...form}>
@@ -541,8 +578,17 @@ export default function QuotesPage() {
                                     <QuoteTotals control={form.control} isVatRegistered={client?.isVatRegistered} />
                                 </div>
                                 <div className="flex gap-3 justify-end">
-                                    <Button type="submit" variant="secondary" onClick={() => { submitMode.current = 'draft'; }}>Save Draft</Button>
-                                    <Button type="submit" onClick={() => { submitMode.current = 'sent'; }}>Create & Send Quote</Button>
+                                    {editingQuote && (
+                                        <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                                            <X className="mr-2 h-4 w-4" /> Cancel Editing
+                                        </Button>
+                                    )}
+                                    <Button type="submit" variant="secondary" onClick={() => { submitMode.current = 'draft'; }}>
+                                        {editingQuote ? 'Save Draft Updates' : 'Save Draft'}
+                                    </Button>
+                                    <Button type="submit" onClick={() => { submitMode.current = 'sent'; }}>
+                                        {editingQuote ? 'Update Quote' : 'Create & Send Quote'}
+                                    </Button>
                                 </div>
                             </form>
                         </Form>
@@ -624,6 +670,9 @@ export default function QuotesPage() {
                                                              <DropdownMenuContent align="end">
                                                                  <DropdownMenuItem onClick={() => setViewingQuote(quote)}>
                                                                      <Eye className="mr-2 h-3.5 w-3.5" /> View / Download
+                                                                 </DropdownMenuItem>
+                                                                 <DropdownMenuItem onClick={() => handleEditQuote(quote)}>
+                                                                     <Pencil className="mr-2 h-3.5 w-3.5" /> Edit Quote
                                                                  </DropdownMenuItem>
                                                                  <DropdownMenuItem onClick={() => handleDuplicateQuote(quote)}>
                                                                      <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
