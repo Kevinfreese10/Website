@@ -98,30 +98,35 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
 
       doc.setTextColor(100);
       doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Invoice Number:`, 120, 35);
       
-      let headerY = 40;
-      let refLines: string[] = [];
+      let headerY = 35;
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Invoice Number:`, 135, headerY, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.text(invoice.id, 139, headerY);
+      headerY += 5;
+      
       if (invoice.reference) {
-        refLines = doc.splitTextToSize(invoice.reference, 45);
-        doc.text(`Reference:`, 120, headerY);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Reference:`, 135, headerY, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        const refLines = doc.splitTextToSize(invoice.reference, 55);
+        doc.text(refLines, 139, headerY);
         headerY += (refLines.length * 5);
       }
-      doc.text(`Date:`, 120, headerY);
-      headerY += 5;
-      doc.text(`Due Date:`, 120, headerY);
 
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Date:`, 135, headerY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
-      doc.text(invoice.id, 190, 35, { align: 'right' });
-      let valY = 40;
-      if (invoice.reference) {
-        doc.text(refLines, 190, valY, { align: 'right' });
-        valY += (refLines.length * 5);
-      }
-      doc.text(format(new Date(invoice.invoiceDate), 'dd/MM/yyyy'), 190, valY, { align: 'right' });
-      valY += 5;
-      doc.text(format(new Date(invoice.dueDate), 'dd/MM/yyyy'), 190, valY, { align: 'right' });
+      doc.text(format(new Date(invoice.invoiceDate), 'dd/MM/yyyy'), 139, headerY);
+      headerY += 5;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Due Date:`, 135, headerY, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.text(format(new Date(invoice.dueDate), 'dd/MM/yyyy'), 139, headerY);
+
+      let valY = headerY;
 
       // 4. Bill To (Right) - Positioned below the due date details on the right
       let rightY = Math.max(55, valY + 10);

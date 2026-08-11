@@ -72,25 +72,19 @@ const QuotePreview = React.forwardRef<HTMLDivElement, { quote: Quote, client: Us
                 <div className="w-1/2 text-right space-y-6">
                     <div className="space-y-4">
                         <h2 className="text-4xl font-extrabold uppercase text-gray-400">Quote</h2>
-                        <div className="space-y-1 text-sm">
-                            <div className="flex justify-end gap-x-3">
-                                <span className="font-semibold text-gray-600 text-right w-1/3">Quote Number:</span>
-                                <span className="font-mono text-gray-900 text-right w-2/3">{quote.id}</span>
-                            </div>
+                        <div className="inline-grid grid-cols-[auto_auto] gap-x-3 gap-y-1.5 text-sm ml-auto text-left items-start">
+                            <span className="font-semibold text-gray-600 text-right">Quote Number:</span>
+                            <span className="font-mono text-gray-900 text-left">{quote.id}</span>
                             {quote.reference && (
-                                <div className="flex justify-end gap-x-3">
-                                    <span className="font-semibold text-gray-600 text-right w-1/3 shrink-0">Reference:</span>
-                                    <span className="font-medium text-gray-900 text-right w-2/3 break-words">{quote.reference}</span>
-                                </div>
+                                <>
+                                    <span className="font-semibold text-gray-600 text-right">Reference:</span>
+                                    <span className="font-medium text-gray-900 text-left break-words max-w-[220px]">{quote.reference}</span>
+                                </>
                             )}
-                            <div className="flex justify-end gap-x-3">
-                                <span className="font-semibold text-gray-600 text-right w-1/3">Date:</span>
-                                <span className="text-gray-900 text-right w-2/3">{format(quoteDateObj, 'dd/MM/yyyy')}</span>
-                            </div>
-                            <div className="flex justify-end gap-x-3">
-                                <span className="font-semibold text-gray-600 text-right w-1/3">Expiry Date:</span>
-                                <span className="text-gray-900 text-right w-2/3">{format(expiryDateObj, 'dd/MM/yyyy')}</span>
-                            </div>
+                            <span className="font-semibold text-gray-600 text-right">Date:</span>
+                            <span className="text-gray-900 text-left">{format(quoteDateObj, 'dd/MM/yyyy')}</span>
+                            <span className="font-semibold text-gray-600 text-right">Expiry Date:</span>
+                            <span className="text-gray-900 text-left">{format(expiryDateObj, 'dd/MM/yyyy')}</span>
                         </div>
                     </div>
 

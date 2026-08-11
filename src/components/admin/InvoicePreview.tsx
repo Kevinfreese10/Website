@@ -72,25 +72,19 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                 <div className="w-1/2 text-right space-y-6">
                     <div className="space-y-4">
                         <h2 className="text-4xl font-extrabold uppercase text-gray-400">Tax Invoice</h2>
-                        <div className="space-y-1 text-sm">
-                            <div className="flex justify-end gap-x-3">
-                                <span className="font-semibold text-gray-600 text-right w-1/3">Invoice Number:</span>
-                                <span className="font-mono text-gray-900 text-right w-2/3">{invoice.id}</span>
-                            </div>
+                        <div className="inline-grid grid-cols-[auto_auto] gap-x-3 gap-y-1.5 text-sm ml-auto text-left items-start">
+                            <span className="font-semibold text-gray-600 text-right">Invoice Number:</span>
+                            <span className="font-mono text-gray-900 text-left">{invoice.id}</span>
                             {invoice.reference && (
-                                <div className="flex justify-end gap-x-3">
-                                    <span className="font-semibold text-gray-600 text-right w-1/3 shrink-0">Reference:</span>
-                                    <span className="font-medium text-gray-900 text-right w-2/3 break-words">{invoice.reference}</span>
-                                </div>
+                                <>
+                                    <span className="font-semibold text-gray-600 text-right">Reference:</span>
+                                    <span className="font-medium text-gray-900 text-left break-words max-w-[220px]">{invoice.reference}</span>
+                                </>
                             )}
-                            <div className="flex justify-end gap-x-3">
-                                <span className="font-semibold text-gray-600 text-right w-1/3">Date:</span>
-                                <span className="text-gray-900 text-right w-2/3">{format(invoice.invoiceDate, 'dd/MM/yyyy')}</span>
-                            </div>
-                            <div className="flex justify-end gap-x-3">
-                                <span className="font-semibold text-gray-600 text-right w-1/3">Due Date:</span>
-                                <span className="text-gray-900 text-right w-2/3">{format(invoice.dueDate, 'dd/MM/yyyy')}</span>
-                            </div>
+                            <span className="font-semibold text-gray-600 text-right">Date:</span>
+                            <span className="text-gray-900 text-left">{format(invoice.invoiceDate, 'dd/MM/yyyy')}</span>
+                            <span className="font-semibold text-gray-600 text-right">Due Date:</span>
+                            <span className="text-gray-900 text-left">{format(invoice.dueDate, 'dd/MM/yyyy')}</span>
                         </div>
                     </div>
 

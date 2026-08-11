@@ -389,27 +389,27 @@ export function InvoicePdfDocument({
           <View style={styles.invoiceDetails}>
             <Text style={styles.invoiceTitle}>TAX INVOICE</Text>
 
-            <View>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
-                <Text style={{ color: '#777', width: '35%', textAlign: 'right', paddingRight: 8 }}>Invoice #:</Text>
-                <Text style={{ fontWeight: 'bold', width: '65%', textAlign: 'right' }}>{invoiceId}</Text>
+            <View style={{ alignItems: 'flex-end' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 }}>
+                <Text style={{ color: '#777', fontWeight: 'bold', marginRight: 8, textAlign: 'right' }}>Invoice #:</Text>
+                <Text style={{ fontWeight: 'bold', textAlign: 'left', width: 140 }}>{invoiceId}</Text>
               </View>
 
               {invoice?.reference ? (
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
-                  <Text style={{ color: '#777', width: '35%', textAlign: 'right', paddingRight: 8 }}>Reference:</Text>
-                  <Text style={{ fontWeight: 'bold', width: '65%', textAlign: 'right' }}>{safeText(invoice.reference)}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 }}>
+                  <Text style={{ color: '#777', fontWeight: 'bold', marginRight: 8, textAlign: 'right' }}>Reference:</Text>
+                  <Text style={{ fontWeight: 'bold', textAlign: 'left', width: 140 }}>{safeText(invoice.reference)}</Text>
                 </View>
               ) : null}
 
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
-                <Text style={{ color: '#777', width: '35%', textAlign: 'right', paddingRight: 8 }}>Date:</Text>
-                <Text style={{ width: '65%', textAlign: 'right' }}>{safeFormatDate(invoice?.invoiceDate)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 }}>
+                <Text style={{ color: '#777', fontWeight: 'bold', marginRight: 8, textAlign: 'right' }}>Date:</Text>
+                <Text style={{ textAlign: 'left', width: 140 }}>{safeFormatDate(invoice?.invoiceDate)}</Text>
               </View>
 
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-                <Text style={{ color: '#777', width: '35%', textAlign: 'right', paddingRight: 8 }}>Due Date:</Text>
-                <Text style={{ width: '65%', textAlign: 'right' }}>{safeFormatDate(invoice?.dueDate)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                <Text style={{ color: '#777', fontWeight: 'bold', marginRight: 8, textAlign: 'right' }}>Due Date:</Text>
+                <Text style={{ textAlign: 'left', width: 140 }}>{safeFormatDate(invoice?.dueDate)}</Text>
               </View>
             </View>
           </View>
