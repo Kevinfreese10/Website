@@ -42,7 +42,7 @@ env:
       - BUILD
       - RUNTIME
   - variable: SMTP_USER
-    value: "info@myacc.co.za"
+    value: "no_reply@myacc.co.za"
     availability:
       - BUILD
       - RUNTIME
