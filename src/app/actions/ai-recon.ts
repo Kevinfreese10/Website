@@ -1,11 +1,20 @@
 'use server';
+import { getAuthContext } from '@/lib/server-auth';
 
 import { getAdminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { ImportedTransaction, AllocationRule, SmartAllocationResult, User } from '@/lib/types';
 import { BankCleaner } from '@/lib/bank-cleaner';
 
-export async function extractStatementChunk({ chunkBase64 }: { chunkBase64: string }) {
+export async function extractStatementChunk({ chunkBase64 ,
+    requestorId
+}: { chunkBase64: string ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     try {
         const { extractStatementData } = await import('@/ai/flows/extract-statement-data');
         const result = await extractStatementData({ statementFile: chunkBase64 });
@@ -16,7 +25,15 @@ export async function extractStatementChunk({ chunkBase64 }: { chunkBase64: stri
     }
 }
 
-export async function prepareAiAccountantAnalysis({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
+export async function prepareAiAccountantAnalysis({ clientId, bankAccountId ,
+    requestorId
+}: { clientId: string, bankAccountId: string ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
         .where('bankAccountId', '==', bankAccountId)
@@ -43,7 +60,15 @@ export async function prepareAiAccountantAnalysis({ clientId, bankAccountId }: {
     return { count: docs.length };
 }
 
-export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiatorEmail }: { clientId: string, bankAccountId: string, initiatorEmail: string }) {
+export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiatorEmail ,
+    requestorId
+}: { clientId: string, bankAccountId: string, initiatorEmail: string ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
         .where('bankAccountId', '==', bankAccountId)
@@ -154,7 +179,15 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
     }
 }
 
-export async function moveTransactionToNew({ clientId, transactionId }: { clientId: string, transactionId: string }) {
+export async function moveTransactionToNew({ clientId, transactionId ,
+    requestorId
+}: { clientId: string, transactionId: string ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     const txRef = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(transactionId);
     const snap = await txRef.get();
@@ -173,7 +206,15 @@ export async function moveTransactionToNew({ clientId, transactionId }: { client
     });
 }
 
-export async function bulkMoveTransactionsToNew({ clientId, transactionIds }: { clientId: string, transactionIds: string[] }) {
+export async function bulkMoveTransactionsToNew({ clientId, transactionIds ,
+    requestorId
+}: { clientId: string, transactionIds: string[] ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     const chunks = [];
     for (let i = 0; i < transactionIds.length; i += 400) {
@@ -248,7 +289,15 @@ export async function updateGlobalMerchantDb(data: any) {
     console.log("Global DB Update:", data);
 }
 
-export async function resetAiAccountantAnalysis({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
+export async function resetAiAccountantAnalysis({ clientId, bankAccountId ,
+    requestorId
+}: { clientId: string, bankAccountId: string ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
         .where('bankAccountId', '==', bankAccountId)
@@ -270,7 +319,15 @@ export async function resetAiAccountantAnalysis({ clientId, bankAccountId }: { c
     return { count: snap.size };
 }
 
-export async function reanalyzeAndRegroupTransactions({ clientId, bankAccountId, initiatorEmail }: { clientId: string, bankAccountId: string, initiatorEmail: string }) {
+export async function reanalyzeAndRegroupTransactions({ clientId, bankAccountId, initiatorEmail ,
+    requestorId
+}: { clientId: string, bankAccountId: string, initiatorEmail: string ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
         .where('bankAccountId', '==', bankAccountId)
@@ -302,7 +359,15 @@ export async function reanalyzeAndRegroupTransactions({ clientId, bankAccountId,
     return { count: snap.size };
 }
 
-export async function proposeRegroups({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
+export async function proposeRegroups({ clientId, bankAccountId ,
+    requestorId
+}: { clientId: string, bankAccountId: string ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
         .where('bankAccountId', '==', bankAccountId)
@@ -383,7 +448,15 @@ export async function proposeRegroups({ clientId, bankAccountId }: { clientId: s
     return proposals;
 }
 
-export async function applyRegroups({ clientId, merges, userId }: { clientId: string, merges: any[], userId: string }) {
+export async function applyRegroups({ clientId, merges, userId ,
+    requestorId
+}: { clientId: string, merges: any[], userId: string ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     const batch = adminDb.batch();
     merges.forEach(m => {
@@ -463,7 +536,15 @@ export async function analyzeClientCommentAndSuggest({ clientId, transactionIds,
     return res;
 }
 
-export async function matchTransactionsToSuppliers({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
+export async function matchTransactionsToSuppliers({ clientId, bankAccountId ,
+    requestorId
+}: { clientId: string, bankAccountId: string ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     const supSnap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('suppliers').get();
     const suppliers = supSnap.docs.map(d => ({ id: d.id, name: d.data().name.toUpperCase() }));
@@ -516,10 +597,16 @@ export async function finalizeChatAllocation({ clientId, transactionId, accountI
 export async function analyzeSpreadsheetAllocationsAction({
     clientId,
     spreadsheetData,
+    requestorId
 }: {
     clientId: string;
     spreadsheetData: string;
+    requestorId?: string
 }) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     try {
         const adminDb = getAdminDb();
 
@@ -576,6 +663,7 @@ export async function analyzeSpreadsheetAllocationsAction({
 export async function applySpreadsheetAllocationsAction({
     clientId,
     allocations,
+    requestorId
 }: {
     clientId: string;
     allocations: {
@@ -585,7 +673,12 @@ export async function applySpreadsheetAllocationsAction({
         vatType: string;
         explanation: string;
     }[];
+    requestorId?: string
 }) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     try {
         const adminDb = getAdminDb();
         const batch = adminDb.batch();
@@ -614,7 +707,15 @@ export async function applySpreadsheetAllocationsAction({
     }
 }
 
-export async function matchTransactionsToHistory({ clientId, bankAccountId }: { clientId: string, bankAccountId: string }) {
+export async function matchTransactionsToHistory({ clientId, bankAccountId ,
+    requestorId
+}: { clientId: string, bankAccountId: string ,
+    requestorId?: string
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     
     const activeSnap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')

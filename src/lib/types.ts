@@ -699,7 +699,7 @@ export type ImportedTransaction = {
   date: any;
   description: string;
   amount: number;
-  status: 'new' | 'ai_processing' | 'ai_review' | 'reviewed';
+  status: 'new' | 'ai_processing' | 'ai_review' | 'reviewed' | 'ready' | 'server_researching';
   isExpense: boolean;
   allocatedTo?: {
     value: string;

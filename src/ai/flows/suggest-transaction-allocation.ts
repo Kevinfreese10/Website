@@ -16,6 +16,7 @@ const SuggestTransactionAllocationInputSchema = z.object({
   chartOfAccounts: z.string().describe('A JSON string of the chart of accounts, with "id", "accountNumber", and "description" fields.'),
   isVatRegistered: z.boolean().describe('Whether the client is registered for VAT.'),
   apiKey: z.string().optional().describe('An optional Google AI API key to use for this specific suggestion.'),
+  contextualEvidence: z.string().optional().describe('Text from relevant uploaded invoices or past ledger entries retrieved via RAG.'),
 });
 export type SuggestTransactionAllocationInput = z.infer<typeof SuggestTransactionAllocationInputSchema>;
 
@@ -68,15 +69,18 @@ If the transaction description is generic (e.g., "CASH", "TRANSFER", "DEBIT ORDE
 
 **Transaction Description**: ${input.description}
 
+**Contextual Evidence (from past ledger or invoices)**:
+${input.contextualEvidence || "No extra context available."}
+
 **Chart of Accounts**:
 \`\`\`json
 ${input.chartOfAccounts}
 \`\`\`
 
-Based on the description, provide:
+Based on the description and any contextual evidence, provide:
 1. The most likely Account ID.
 2. The correct VAT type.
-3. A confidence score.
+3. A confidence score. (If contextual evidence strongly links this transaction to an invoice or past entry, give it a high confidence >85).
 4. A brief CA summary of the transaction nature.
 5. A high-impact "root" keyword for future matching.
 
@@ -113,15 +117,22 @@ If the transaction description is generic (e.g., "CASH", "TRANSFER", "DEBIT ORDE
 
 **Transaction Description**: {{{description}}}
 
+**Contextual Evidence (from past ledger or invoices)**:
+{{#if contextualEvidence}}
+{{contextualEvidence}}
+{{else}}
+No extra context available.
+{{/if}}
+
 **Chart of Accounts**:
 \`\`\`json
 {{{chartOfAccounts}}}
 \`\`\`
 
-Based on the description, provide:
+Based on the description and any contextual evidence, provide:
 1. The most likely Account ID.
 2. The correct VAT type.
-3. A confidence score.
+3. A confidence score. (If contextual evidence strongly links this transaction to an invoice or past entry, give it a high confidence >85).
 4. A brief CA summary of the transaction nature.
 5. A high-impact "root" keyword for future matching.
 
