@@ -53,7 +53,16 @@ const navGroups = [
         { label: 'Accountant Pretoria', href: '/accountant-pretoria' },
         { label: 'Accountant Cape Town', href: '/accountant-cape-town' },
         { label: 'Accountant Durban', href: '/accountant-durban' },
-        { label: 'Accountant Randburg', href: '/accountant-randburg' },
+                { label: 'Accountant Randburg', href: '/accountant-randburg' },
+        { label: 'Accountant Sandton', href: '/accountant/sandton' },
+        { label: 'Accountant Fourways', href: '/accountant/fourways' },
+        { label: 'Accountant Bryanston', href: '/accountant/bryanston' },
+        { label: 'Accountant Centurion', href: '/accountant/centurion' },
+        { label: 'Accountant Port Elizabeth', href: '/accountant/port-elizabeth-gqeberha' },
+        { label: 'Accountant Bloemfontein', href: '/accountant/bloemfontein' },
+        { label: 'Accountant East London', href: '/accountant/east-london' },
+        { label: 'Accountant Nelspruit', href: '/accountant/nelspruit' },
+        { label: 'Accountant Stellenbosch', href: '/accountant/stellenbosch' },
     ]
   },
   {
@@ -78,7 +87,10 @@ const navGroups = [
       { label: 'Tax Disputes', href: '/tax-disputes' },
       { label: 'Free Tax Refund Check', href: '/sars-tax-refund' },
       { label: 'SARS Compromises', href: '/sars-compromise' },
-      { label: 'Remission of Fines', href: '/remission-of-fines' },
+            { label: 'Remission of Fines', href: '/remission-of-fines' },
+      { label: 'Freelancer Tax Hub', href: '/freelancer-gig-economy-tax-hub' },
+      { label: 'Tax Deadlines 2026', href: '/tax-deadlines-calendar-2026' },
+      { label: 'Tax Glossary', href: '/tax-glossary' },
     ],
   },
   {
@@ -102,7 +114,12 @@ const navGroups = [
         { label: 'SBC Tax Estimator', href: '/calculators/sbc-tax-estimator' },
         { label: 'Cost to Employer (TCOE)', href: '/calculators/total-cost-to-employer' },
         { label: 'NCR Registration Fee', href: '/calculators/ncr-registration-fee' },
-        { label: 'CIDB Fee & Grade', href: '/calculators/cidb-fee-and-grade' },
+                { label: 'CIDB Fee & Grade', href: '/calculators/cidb-fee-and-grade' },
+        { label: 'VAT Calculator', href: '/calculators/vat-calculator' },
+        { label: 'Provisional Tax', href: '/calculators/provisional-tax-estimator' },
+        { label: 'Capital Gains Tax', href: '/calculators/capital-gains-tax-calculator' },
+        { label: 'UIF / COIDA Calculator', href: '/calculators/uif-coida-calculator' },
+        { label: 'BEE Scorecard', href: '/calculators/bee-scorecard-estimator' },
     ]
   },
   {

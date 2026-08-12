@@ -267,7 +267,7 @@ export default async function BlogPostPage({ params }: Props) {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-8 pt-8 border-t border-slate-200/60 w-full max-w-2xl">
               <div className="flex items-center gap-4">
                 <div className="h-14 w-14 rounded-full overflow-hidden shadow-md border-2 border-white">
-                  <Image src="https://ui-avatars.com/api/?name=Kevin+Freese&background=0D8ABC&color=fff" alt="Kevin Freese" width={56} height={56} className="object-cover h-full w-full" unoptimized />
+                  <Image src="/images/kevin.jpeg" alt="Kevin Freese" width={56} height={56} className="object-cover h-full w-full" unoptimized />
                 </div>
                 <div className="text-left">
                   <p className="font-bold text-slate-900 leading-tight">Kevin Freese</p>

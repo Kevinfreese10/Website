@@ -89,7 +89,7 @@ export default function BlogPageClient({ initialBlogPosts }: { initialBlogPosts?
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-slate-200 overflow-hidden flex-shrink-0">
                       {/* Avatar placeholder for Kevin */}
-                      <Image src="https://ui-avatars.com/api/?name=Kevin+Freese&background=0D8ABC&color=fff" alt="Kevin Freese" width={40} height={40} className="object-cover h-full w-full" unoptimized />
+                      <Image src="/images/kevin.jpeg" alt="Kevin Freese" width={40} height={40} className="object-cover h-full w-full" unoptimized />
                     </div>
                     <div>
                       <p className="text-sm font-bold text-slate-900">Kevin Freese</p>
@@ -131,7 +131,7 @@ export default function BlogPageClient({ initialBlogPosts }: { initialBlogPosts?
                       <CardFooter className="px-6 pb-6 pt-0 mt-auto border-t border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-2 mt-4">
                           <div className="h-6 w-6 rounded-full overflow-hidden">
-                            <Image src="https://ui-avatars.com/api/?name=Kevin+Freese&background=0D8ABC&color=fff" alt="Kevin Freese" width={24} height={24} className="object-cover h-full w-full" unoptimized />
+                            <Image src="/images/kevin.jpeg" alt="Kevin Freese" width={24} height={24} className="object-cover h-full w-full" unoptimized />
                           </div>
                           <span className="text-xs font-bold text-slate-700">Kevin Freese</span>
                         </div>
