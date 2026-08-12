@@ -14,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
           '/checkout',
           '/admin',
           '/reseller/',    // Reseller portal — not indexable
+          '/p/',           // Partner/vendor pages — not indexable
         ],
       },
     ],
