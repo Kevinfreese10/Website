@@ -93,6 +93,38 @@ const navGroups = [
       { label: 'Tax Deadlines 2026', href: '/tax-deadlines-calendar-2026' },
       { label: 'Tax Glossary', href: '/tax-glossary' },
     ],
+  {
+    label: 'SARS Services',
+    href: '/sars-online-query-system-guide',
+    items: [
+      { label: 'SOQS Master Guide', href: '/sars-online-query-system-guide' },
+      { label: 'Find Tax Reference Number', href: '/sars-tax-number-query' },
+      { label: 'Request TCS PIN', href: '/sars-tax-compliance-status-pin' },
+      { label: 'Verify TCS PIN', href: '/sars-verify-tax-compliance-status' },
+      { label: 'Notice of Registration (IT150)', href: '/sars-notice-of-registration-it150' },
+      { label: 'Statement of Account', href: '/sars-statement-of-account-request' },
+      { label: 'Auto-Assessment Status', href: '/sars-auto-assessment-status-check' },
+      { label: 'Tax Return Dashboard', href: '/sars-tax-return-status-dashboard' },
+      { label: 'Payment Reference (PRN)', href: '/sars-payment-reference-number-prn' },
+      { label: 'Tax Directive Status', href: '/sars-tax-directive-status' },
+      { label: 'Outstanding Debt Query', href: '/sars-outstanding-debt-query' },
+      { label: 'Outstanding Returns', href: '/sars-outstanding-returns-query' },
+      { label: 'Upload Audit Documents', href: '/sars-supporting-documents-upload-guide' },
+      { label: 'Payment Allocation Query', href: '/sars-payment-allocation-query' },
+      { label: 'Register Trust Online', href: '/sars-trust-registration-online' },
+      { label: 'Report Deceased Estate', href: '/sars-deceased-estate-reporting' },
+      { label: 'Appoint Tax Representative', href: '/sars-tax-representative-appointment' },
+      { label: 'Customs Code Request', href: '/sars-customs-code-request' },
+      { label: 'Customs RLA Status', href: '/sars-customs-rla-status' },
+      { label: 'Customs RLA Documents', href: '/sars-customs-rla-supporting-documents' },
+      { label: 'Diesel Refund Scheme', href: '/sars-diesel-refund-scheme-registration' },
+      { label: 'Large Business (LBI) Query', href: '/sars-large-business-lbi-query' },
+      { label: 'Donations Tax (IT144)', href: '/sars-donations-tax-it144-declaration' },
+      { label: 'Royalties Tax (WTR01)', href: '/sars-withholding-tax-royalties-wtr01' },
+      { label: 'VAT Vendor Search', href: '/sars-vat-vendor-search-verification' },
+      { label: 'Report Digital Fraud', href: '/sars-report-digital-fraud' },
+      { label: 'Report SARS Corruption', href: '/sars-report-employee-corruption' },
+    ]
   },
   {
     label: 'Registrations',
@@ -179,7 +211,7 @@ const Header = () => {
                               <ChevronDown className="h-3.5 w-3.5 opacity-50" />
                           </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuContent align="start" className="w-64 max-h-[80vh] overflow-y-auto">
                           {group.items.map(item => (
                               <DropdownMenuItem key={item.label} asChild>
                                   <Link href={item.href} className="w-full cursor-pointer">
