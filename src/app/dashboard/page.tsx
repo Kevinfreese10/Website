@@ -129,7 +129,7 @@ export default function DashboardPage() {
         let allNotes: (OrderNote & { orderId: string, orderTitle: string, customerName: string })[] = [];
         orders.forEach(order => {
           const notes = (order.notes || [])
-            .filter(note => note.authorId !== user.id && note.type === 'note')
+            .filter(note => note.authorId !== user.id && note.type === 'note' && !note.isInternal)
             .map(note => ({
               ...note,
               orderId: order.id,

@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Mail, Phone, Send, MessageSquare, Users, Sparkles, Paperclip, CheckCircle, AlertTriangle, XCircle, Download, Star, Percent, Clock, ClipboardCheck, FileText } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -53,6 +53,7 @@ const formatPrice = (price: number) => {
 const noteFormSchema = z.object({
   noteText: z.string().optional(),
   attachments: z.any().optional(),
+  isInternal: z.boolean().optional(),
 }).refine(data => (data.noteText && data.noteText.trim().length >= 3) || (data.attachments && data.attachments.length > 0), {
   message: "Note must be at least 3 characters or include an attachment.",
   path: ["noteText"],
@@ -74,6 +75,7 @@ export default function PartnerOrderDetailsPage() {
   const [allServices, setAllServices] = useState<Service[]>([]);
   const [isProofreading, setIsProofreading] = useState(false);
   const [isGeneratingDiscount, setIsGeneratingDiscount] = useState(false);
+  const [noteTab, setNoteTab] = useState<'all' | 'public' | 'internal'>('all');
   const [isSendingReminder, setIsSendingReminder] = useState(false);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [isRejectionDialogOpen, setIsRejectionDialogOpen] = useState(false);
@@ -215,11 +217,13 @@ export default function PartnerOrderDetailsPage() {
       }
     }
 
+    const isInternalNote = !!values.isInternal;
     const newNote: OrderNote = {
       text: values.noteText || "",
       authorId: currentUser.uid,
       date: Timestamp.now(),
       type: 'note',
+      isInternal: isInternalNote,
       subject: null,
       attachments: attachments.length > 0 ? attachments : null,
     };
@@ -230,24 +234,29 @@ export default function PartnerOrderDetailsPage() {
         notes: arrayUnion(newNote),
       });
 
-      const isToClient = order.documentContact === 'client';
-      const emailTo = (isToClient ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
-      const recipientName = ((isToClient ? order.endCustomerName : order.customerName) || order.customerName) || 'Client';
+      if (!isInternalNote) {
+        const isToClient = order.documentContact === 'client';
+        const emailTo = (isToClient ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
+        const recipientName = ((isToClient ? order.endCustomerName : order.customerName) || order.customerName) || 'Client';
 
-      if (emailTo && emailTo !== currentUser.email) {
-          notifyOfNewNote({
-              recipientEmail: emailTo,
-              recipientName: recipientName,
-              senderName: currentUser.name || 'Partner',
-              orderId: order.originalOrderId || order.id,
-              notePreview: (values.noteText || "").substring(0, 150) + ((values.noteText || "").length > 150 ? '...' : ''),
-              actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`,
-              isToClient: true,
-              resellerId: order.resellerId
-          }).catch(err => console.error("Failed to send note notification:", err));
+        if (emailTo && emailTo !== currentUser.email) {
+            notifyOfNewNote({
+                recipientEmail: emailTo,
+                recipientName: recipientName,
+                senderName: currentUser.name || 'Partner',
+                orderId: order.originalOrderId || order.id,
+                notePreview: (values.noteText || "").substring(0, 150) + ((values.noteText || "").length > 150 ? '...' : ''),
+                actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`,
+                isToClient: true,
+                resellerId: order.resellerId
+            }).catch(err => console.error("Failed to send note notification:", err));
+        }
       }
 
-      toast({ title: "Note Added", description: "Your note has been saved." });
+      toast({ 
+        title: isInternalNote ? "Internal Note Added 🔒" : "Note Added", 
+        description: isInternalNote ? "Saved internally for staff and partners." : "Your note has been saved and client notified." 
+      });
       noteForm.reset();
       await fetchOrder();
     } catch (error) {
@@ -1017,6 +1026,32 @@ export default function PartnerOrderDetailsPage() {
                                         </FormItem>
                                     )}
                                 />
+                                
+                                <FormField 
+                                  control={noteForm.control} 
+                                  name="isInternal" 
+                                  render={({ field }) => (
+                                    <FormItem className="flex items-center gap-3 space-y-0 rounded-lg border border-amber-500/30 bg-amber-50/50 p-3">
+                                      <FormControl>
+                                        <input
+                                          type="checkbox"
+                                          checked={!!field.value}
+                                          onChange={(e) => field.onChange(e.target.checked)}
+                                          className="h-4 w-4 rounded border-amber-500 text-amber-600 focus:ring-amber-500"
+                                        />
+                                      </FormControl>
+                                      <div className="space-y-0.5">
+                                        <FormLabel className="text-xs font-bold text-amber-800 flex items-center gap-1 cursor-pointer">
+                                          <Lock className="h-3.5 w-3.5 text-amber-600" /> Internal Staff &amp; Partner Note
+                                        </FormLabel>
+                                        <p className="text-[11px] text-amber-700/80">
+                                          Client will NOT see this note or receive an email notification.
+                                        </p>
+                                      </div>
+                                    </FormItem>
+                                  )} 
+                                />
+
                                 <div className="flex gap-2">
                                     <Button type="submit" size="sm" disabled={isLoading}>
                                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
@@ -1030,16 +1065,60 @@ export default function PartnerOrderDetailsPage() {
                             </form>
                         </Form>
                         <Separator className="my-4" />
+
+                        {/* Notes Filter Tabs */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex gap-1 bg-muted p-1 rounded-lg text-xs font-medium">
+                            <button
+                              type="button"
+                              onClick={() => setNoteTab('all')}
+                              className={`px-3 py-1 rounded-md transition-colors ${noteTab === 'all' ? 'bg-background text-foreground shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground'}`}
+                            >
+                              All ({order.notes?.length || 0})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setNoteTab('public')}
+                              className={`px-3 py-1 rounded-md transition-colors ${noteTab === 'public' ? 'bg-background text-foreground shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground'}`}
+                            >
+                              Client Visible ({order.notes?.filter(n => !n.isInternal).length || 0})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setNoteTab('internal')}
+                              className={`px-3 py-1 rounded-md transition-colors ${noteTab === 'internal' ? 'bg-amber-500 text-white shadow-sm font-bold' : 'text-muted-foreground hover:text-foreground'}`}
+                            >
+                              🔒 Internal ({order.notes?.filter(n => n.isInternal).length || 0})
+                            </button>
+                          </div>
+                        </div>
+
                         <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                             {order.notes && order.notes.length > 0 ? (
-                                order.notes.slice().reverse().map((note, index) => {
+                                order.notes
+                                  .slice()
+                                  .reverse()
+                                  .filter(n => {
+                                    if (noteTab === 'public') return !n.isInternal;
+                                    if (noteTab === 'internal') return n.isInternal;
+                                    return true;
+                                  })
+                                  .map((note, index) => {
                                     const author = getAuthor(note.authorId);
                                     const isEmail = note.type === 'email';
+                                    const isInternal = !!note.isInternal;
                                     return (
                                         <div key={index} className="flex items-start gap-3">
-                                            <div className="p-3 rounded-lg w-full bg-muted">
+                                            <div className={`p-3 rounded-lg w-full ${isInternal ? 'bg-amber-50/80 border border-amber-200/80' : 'bg-muted'}`}>
                                                 <div className="flex justify-between items-center mb-1">
-                                                    <p className="text-xs font-semibold">{author?.name || 'System'}</p>
+                                                    <div className="flex items-center gap-2">
+                                                      <p className="text-xs font-semibold">{author?.name || 'System'}</p>
+                                                      {isInternal && (
+                                                        <Badge className="bg-amber-500/20 text-amber-800 hover:bg-amber-500/20 border-amber-300 text-[10px] py-0 h-4 flex items-center gap-1 font-bold">
+                                                          <Lock className="h-2.5 w-2.5" /> Internal Note
+                                                        </Badge>
+                                                      )}
+                                                    </div>
                                                     <p className="text-xs text-muted-foreground">{format(new Date(note.date), 'dd/MM/yyyy, HH:mm')}</p>
                                                 </div>
                                                 {isEmail ? (

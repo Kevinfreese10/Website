@@ -100,6 +100,7 @@ export type OrderNote = {
   date: any;
   authorId: string;
   type?: 'note' | 'email';
+  isInternal?: boolean;
   subject: string | null;
   attachments: { name: string; url: string }[] | null;
   attachmentUrl?: string | null; // For legacy single attachments

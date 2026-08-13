@@ -565,8 +565,8 @@ export default function ClientOrderDetailsPage() {
                     <CardHeader><CardTitle>Communication History</CardTitle><CardDescription>Notes and messages regarding this order.</CardDescription></CardHeader>
                     <CardContent className="space-y-4">
                          <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                            {order.notes && order.notes.length > 0 ? (
-                                order.notes.slice().reverse().map((note, index) => {
+                            {order.notes && order.notes.filter(n => !n.isInternal).length > 0 ? (
+                                order.notes.filter(n => !n.isInternal).slice().reverse().map((note, index) => {
                                     const author = getAuthor(note.authorId);
                                     const isEmail = note.type === 'email';
                                     return (
