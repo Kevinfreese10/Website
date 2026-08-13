@@ -7,6 +7,36 @@ import { summarizeEmail } from '@/ai/flows/summarize-email';
 import { extractEmailActions } from '@/ai/flows/extract-email-actions';
 import type { EmailContact, EmailAttachment } from '@/lib/types';
 
+export function isMarketingOrSpamSender(email: string, subject: string): boolean {
+  if (!email) return false;
+  const lowerEmail = email.toLowerCase();
+  const lowerSubject = (subject || '').toLowerCase();
+
+  // Known bulk / newsletter / no-reply prefixes & domains
+  const bulkPatterns = [
+    'no-reply@', 'noreply@', 'newsletter@', 'marketing@', 'notifications@',
+    'info@linkedin.com', 'news@', 'updates@', 'promotions@', 'mailer-daemon@',
+    'postmaster@', 'support@mailchimp.com', 'bounce@', 'digest-noreply@',
+    'facebookmail.com', 'account-security-noreply@'
+  ];
+
+  if (bulkPatterns.some(p => lowerEmail.includes(p))) {
+    return true;
+  }
+
+  // Common marketing keywords in subject
+  const marketingSubjectKeywords = [
+    'unsubscribe', 'view in browser', 'special offer', '% off', 'webinar',
+    'newsletter', 'black friday', 'limited time offer'
+  ];
+
+  if (marketingSubjectKeywords.some(k => lowerSubject.includes(k))) {
+    return true;
+  }
+
+  return false;
+}
+
 export async function syncEmailsInternal(): Promise<{ success: boolean; count?: number; totalProcessed?: number; error?: string }> {
   try {
     const adminDb = getAdminDb();
@@ -188,8 +218,9 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
           bodyText = bodyText.substring(0, 150000) + '\n\n[Text Content Truncated due to database size limits]';
         }
 
-        // 8. Store in Firestore
-        const isAutoArchived = fromContact?.email && autoArchiveSenders.includes(fromContact.email.toLowerCase());
+        // 8. Deterministic Pre-Filtering (0 AI credits spent on spam/newsletters)
+        const isMarketingOrSpam = isMarketingOrSpamSender(fromContact?.email || '', parsed.subject || '');
+        const isAutoArchived = isMarketingOrSpam || (fromContact?.email && autoArchiveSenders.includes(fromContact.email.toLowerCase()));
         
         const emailDoc = {
           messageId,
@@ -205,6 +236,12 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
           attachments,
           status: (isAutoArchived ? 'archived' : 'unread') as 'unread' | 'archived',
           isStarred: false,
+          ...(isMarketingOrSpam ? {
+            aiCategory: 'spam_marketing',
+            aiPriority: 'low',
+            isAnalyzed: true,
+            aiSummary: 'Auto-filtered bulk marketing or newsletter email.'
+          } : {})
         };
 
         const safeDocId = messageId.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -212,13 +249,15 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
         await docRef.set(emailDoc, { merge: true });
         newEmailCount++;
 
-        // Add to AI background tasks queue
-        aiTasks.push({
-          docRef,
-          emailDoc,
-          fromContact,
-          messageId,
-        });
+        // Add to AI background processing queue only if NOT pre-filtered as marketing/spam
+        if (!isMarketingOrSpam) {
+          aiTasks.push({
+            docRef,
+            emailDoc,
+            fromContact,
+            messageId,
+          });
+        }
       } catch (msgError: any) {
         console.error('[Email Sync] Error processing individual message:', msgError.message);
         continue;
@@ -252,8 +291,125 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
       }
     }
 
-    // 13. Automatic background AI processing disabled per user request (emails are analyzed manually via "Analyze Email" button)
-    console.log(`[Email Sync API] Sync finished for ${aiTasks.length} emails. Manual analysis enabled via UI.`);
+    // 13. Tiered AI Background Processing for Legitimate Business Emails
+    if (aiTasks.length > 0) {
+      console.log(`[Email Sync API] Starting background AI processing for ${aiTasks.length} non-spam emails.`);
+      const processAiTasks = async () => {
+        const { triageEmail } = await import('@/ai/flows/triage-email');
+        const { summarizeEmail } = await import('@/ai/flows/summarize-email');
+        const { extractEmailActions } = await import('@/ai/flows/extract-email-actions');
+        const { draftEmailReply } = await import('@/ai/flows/draft-email-reply');
+
+        for (const task of aiTasks) {
+          try {
+            const emailId = task.docRef.id;
+            const bodyText = task.emailDoc.bodyText || task.emailDoc.subject || '';
+            const senderEmail = task.fromContact.email;
+            const senderName = task.fromContact.name || senderEmail;
+
+            // Tier 1: Light Triage
+            const triageRes = await runWithRetry(() => triageEmail({
+              subject: task.emailDoc.subject,
+              body: bodyText,
+              senderEmail,
+              senderName,
+            }));
+
+            if (triageRes.success && triageRes.data?.category === 'spam_marketing') {
+              await task.docRef.update({
+                status: 'archived',
+                aiCategory: 'spam_marketing',
+                aiPriority: 'low',
+                isAnalyzed: true,
+              });
+              continue; // Stop further AI calls for spam
+            }
+
+            // Tier 2: Deep Analysis for Genuine Emails
+            const [summaryRes, actionsRes, draftRes] = await Promise.allSettled([
+              runWithRetry(() => summarizeEmail({
+                subject: task.emailDoc.subject,
+                body: bodyText,
+                senderName,
+              })),
+              runWithRetry(() => extractEmailActions({
+                subject: task.emailDoc.subject,
+                body: bodyText,
+                senderEmail,
+                senderName,
+              })),
+              runWithRetry(() => draftEmailReply({
+                subject: task.emailDoc.subject,
+                body: bodyText,
+                senderName,
+                category: triageRes.data?.category || 'other',
+              })),
+            ]);
+
+            const updates: Record<string, any> = {
+              isAnalyzed: true,
+              analyzedAt: FieldValue.serverTimestamp(),
+            };
+
+            if (triageRes.success && triageRes.data) {
+              if (triageRes.data.category) updates.aiCategory = triageRes.data.category;
+              if (triageRes.data.priority) updates.aiPriority = triageRes.data.priority;
+              if (triageRes.data.sentiment) updates.aiSentiment = triageRes.data.sentiment;
+            }
+
+            if (summaryRes.status === 'fulfilled' && summaryRes.value.success && summaryRes.value.data?.summary) {
+              updates.aiSummary = summaryRes.value.data.summary;
+            }
+
+            if (actionsRes.status === 'fulfilled' && actionsRes.value.success && actionsRes.value.data?.actionItems) {
+              const formattedActions = actionsRes.value.data.actionItems.map(
+                (item: any) => `[${(item.type || 'ACTION').replace('_', ' ').toUpperCase()}] (${(item.priority || 'MEDIUM').toUpperCase()}) ${item.description}${item.suggestedDueDate ? ` (Due: ${item.suggestedDueDate})` : ''}`
+              );
+              if (formattedActions.length > 0) updates.aiActionItems = formattedActions;
+            }
+
+            if (draftRes.status === 'fulfilled' && draftRes.value.success && draftRes.value.data) {
+              const replyData = draftRes.value.data as any;
+              const draftText = replyData.replyBody || replyData.draftReply || '';
+              if (draftText) updates.aiDraftReply = draftText;
+            }
+
+            // Target Auto-Task Creation ONLY for Urgent SARS Notices
+            const isSars = updates.aiCategory === 'sars_correspondence';
+            const isUrgent = updates.aiPriority === 'urgent' || updates.aiPriority === 'high';
+
+            if (isSars && isUrgent) {
+              try {
+                const taskData = {
+                  title: `[URGENT SARS] ${task.emailDoc.subject}`,
+                  description: updates.aiSummary || bodyText.substring(0, 500),
+                  assignedTo: [],
+                  createdBy: 'system-automation',
+                  createdAt: FieldValue.serverTimestamp(),
+                  dueDate: null,
+                  priority: 'High',
+                  status: 'To-Do',
+                  type: 'SARS Compliance',
+                  clientSource: 'system',
+                };
+                const taskRef = await adminDb.collection('tasks').add(taskData);
+                updates.linkedTaskId = taskRef.id;
+                console.log(`[Email Sync API] Auto-created urgent SARS task: ${taskRef.id}`);
+              } catch (taskErr: any) {
+                console.error(`[Email Sync API] Failed auto-creating SARS task:`, taskErr.message);
+              }
+            }
+
+            await task.docRef.update(updates);
+          } catch (aiErr: any) {
+            console.error(`[Email Sync API] Error in AI pipeline for email ${task.messageId}:`, aiErr.message);
+          }
+        }
+        console.log(`[Email Sync API] Tiered AI background processing complete.`);
+      };
+
+      processAiTasks().catch(err => console.error('[Email Sync API] Background processing error:', err));
+    }
 
     console.log(`[Email Sync] Complete. ${newEmailCount} new emails synced.`);
 
