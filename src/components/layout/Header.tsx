@@ -93,6 +93,7 @@ const navGroups = [
       { label: 'Tax Deadlines 2026', href: '/tax-deadlines-calendar-2026' },
       { label: 'Tax Glossary', href: '/tax-glossary' },
     ],
+  },
   {
     label: 'SARS Services',
     href: '/sars-online-query-system-guide',
