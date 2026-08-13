@@ -627,3 +627,83 @@ export async function addAutoArchiveRule(senderEmail: string): Promise<{ success
     return { success: false, error: error.message };
   }
 }
+
+// ─── 19. Analyze Email (Manual Action) ───────────────────────────────────────
+
+export async function analyzeEmailAction(emailId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const adminDb = getAdminDb();
+    const docRef = adminDb.collection('emails').doc(emailId);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      return { success: false, error: 'Email not found' };
+    }
+
+    const email = docSnap.data() as Email;
+
+    const { triageEmail } = await import('@/ai/flows/triage-email');
+    const { summarizeEmail } = await import('@/ai/flows/summarize-email');
+    const { extractEmailActions } = await import('@/ai/flows/extract-email-actions');
+
+    const [triageResult, summaryResult, actionsResult, draftResult] = await Promise.all([
+      triageEmail({
+        subject: email.subject,
+        body: email.bodyText,
+        senderEmail: email.from.email,
+        senderName: email.from.name || email.from.email,
+      }),
+      summarizeEmail({
+        subject: email.subject,
+        body: email.bodyText,
+        senderName: email.from.name || email.from.email,
+      }),
+      extractEmailActions({
+        subject: email.subject,
+        body: email.bodyText,
+        senderEmail: email.from.email,
+        senderName: email.from.name || email.from.email,
+      }),
+      draftEmailReply({
+        subject: email.subject,
+        body: email.bodyText,
+        senderName: email.from.name || email.from.email,
+        category: email.aiCategory || 'other',
+      }),
+    ]);
+
+    const updates: Record<string, any> = {
+      isAnalyzed: true,
+      analyzedAt: new Date().toISOString(),
+    };
+
+    if (triageResult.success && triageResult.data) {
+      if (triageResult.data.category) updates.aiCategory = triageResult.data.category;
+      if (triageResult.data.priority) updates.aiPriority = triageResult.data.priority;
+      if (triageResult.data.sentiment) updates.aiSentiment = triageResult.data.sentiment;
+    }
+
+    if (summaryResult.success && summaryResult.data) {
+      if (summaryResult.data.summary) updates.aiSummary = summaryResult.data.summary;
+    }
+
+    if (actionsResult.success && actionsResult.data) {
+      const formattedActions = actionsResult.data.actionItems.map(
+        (item: any) => `[${item.type.replace('_', ' ').toUpperCase()}] (${item.priority.toUpperCase()}) ${item.description}${item.suggestedDueDate ? ` (Due: ${item.suggestedDueDate})` : ''}`
+      );
+      if (formattedActions.length > 0) updates.aiActionItems = formattedActions;
+    }
+
+    if (draftResult.success && draftResult.data) {
+      const replyData = draftResult.data as any;
+      const draftText = replyData.replyBody || replyData.draftReply || '';
+      if (draftText) updates.aiDraftReply = draftText;
+    }
+
+    await docRef.update(updates);
+    return { success: true };
+  } catch (error: any) {
+    console.error('[analyzeEmailAction] Error:', error);
+    return { success: false, error: error.message || 'Failed to analyze email' };
+  }
+}

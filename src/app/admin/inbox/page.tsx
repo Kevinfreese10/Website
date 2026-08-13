@@ -85,6 +85,7 @@ import {
   forwardEmail,
   deleteEmail,
   addAutoArchiveRule,
+  analyzeEmailAction,
 } from '@/app/actions/email-actions';
 
 import { ToastAction } from '@/components/ui/toast';
@@ -538,6 +539,37 @@ export default function AdminInboxPage() {
       setIsSyncing(false);
     }
   }, [toast, fetchEmails]);
+
+  const [analyzingEmailId, setAnalyzingEmailId] = useState<string | null>(null);
+
+  const handleAnalyzeEmail = useCallback(async (emailId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setAnalyzingEmailId(emailId);
+    try {
+      const res = await analyzeEmailAction(emailId);
+      if (res.success) {
+        toast({
+          title: 'Email Analyzed',
+          description: 'AI summary, priority, and category generated.',
+        });
+        await fetchEmails();
+      } else {
+        toast({
+          title: 'Analysis Failed',
+          description: res.error || 'Failed to analyze email.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to analyze email.',
+        variant: 'destructive',
+      });
+    } finally {
+      setAnalyzingEmailId(null);
+    }
+  }, [fetchEmails, toast]);
 
   const handleStar = useCallback(
     async (e: React.MouseEvent, emailId: string, currentStarred: boolean) => {
@@ -1398,15 +1430,32 @@ export default function AdminInboxPage() {
                               className="flex items-center justify-between border-t border-slate-100 pt-2.5 mt-2"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-[11px] font-semibold border-slate-200 hover:bg-slate-50 text-slate-700 gap-1"
-                                onClick={() => handleSelectEmail(email)}
-                              >
-                                <Eye className="h-3 w-3 text-[#1877F2]" />
-                                View Email
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-[11px] font-semibold border-slate-200 hover:bg-slate-50 text-slate-700 gap-1"
+                                  onClick={() => handleSelectEmail(email)}
+                                >
+                                  <Eye className="h-3 w-3 text-[#1877F2]" />
+                                  View Email
+                                </Button>
+
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-[11px] font-semibold border-purple-200 bg-purple-50/60 hover:bg-purple-100 text-purple-700 gap-1"
+                                  disabled={analyzingEmailId === email.id}
+                                  onClick={(e) => handleAnalyzeEmail(email.id, e)}
+                                >
+                                  {analyzingEmailId === email.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin text-purple-600" />
+                                  ) : (
+                                    <Sparkles className="h-3 w-3 text-purple-600" />
+                                  )}
+                                  {analyzingEmailId === email.id ? 'Analyzing...' : (email.aiCategory || email.aiSummary ? 'Re-Analyze' : 'Analyze Email')}
+                                </Button>
+                              </div>
 
                               <div className="flex items-center gap-1">
                                 <Button
@@ -1614,6 +1663,20 @@ export default function AdminInboxPage() {
 
                     {/* Quick Action Buttons */}
                     <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs border-purple-200 bg-purple-50/60 hover:bg-purple-100 text-purple-700 gap-1 font-semibold"
+                        disabled={analyzingEmailId === selectedEmail.id}
+                        onClick={() => handleAnalyzeEmail(selectedEmail.id)}
+                      >
+                        {analyzingEmailId === selectedEmail.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-purple-600" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+                        )}
+                        {analyzingEmailId === selectedEmail.id ? 'Analyzing...' : (selectedEmail.aiCategory || selectedEmail.aiSummary ? 'Re-Analyze' : 'Analyze Email')}
+                      </Button>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="outline" size="icon" className="h-8 w-8 border-slate-200 text-slate-600 hover:text-[#1877F2] hover:bg-[#1877F2]/5 hover:border-[#1877F2]/30" onClick={handleToggleRead}>

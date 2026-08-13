@@ -252,73 +252,8 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
       }
     }
 
-    // 13. Run AI triage, summarization, and automation rule engine in the background
-    if (aiTasks.length > 0) {
-      console.log(`[Email Sync API] Starting background AI processing for ${aiTasks.length} emails.`);
-      // Run asynchronously without awaiting so the sync returns immediately
-      const processAiTasks = async () => {
-        const { runEmailAutomation } = await import('@/lib/email-automation-engine');
-        for (const task of aiTasks) {
-          try {
-            const emailId = task.docRef.id;
-            console.log(`[Email Sync API] Running triage/summarize for emailId: ${emailId}`);
-            
-            const [triageResult, summaryResult, actionsResult] = await Promise.all([
-              runWithRetry(() => triageEmail({
-                subject: task.emailDoc.subject,
-                body: task.emailDoc.bodyText,
-                senderEmail: task.fromContact.email,
-                senderName: task.fromContact.name || task.fromContact.email,
-              })),
-              runWithRetry(() => summarizeEmail({
-                subject: task.emailDoc.subject,
-                body: task.emailDoc.bodyText,
-                senderName: task.fromContact.name || task.fromContact.email,
-              })),
-              runWithRetry(() => extractEmailActions({
-                subject: task.emailDoc.subject,
-                body: task.emailDoc.bodyText,
-                senderEmail: task.fromContact.email,
-                senderName: task.fromContact.name || task.fromContact.email,
-              })),
-            ]);
-
-            const aiUpdate: Record<string, any> = {};
-
-            if (triageResult.success && triageResult.data) {
-              if (triageResult.data.category) aiUpdate.aiCategory = triageResult.data.category;
-              if (triageResult.data.priority) aiUpdate.aiPriority = triageResult.data.priority;
-              if (triageResult.data.sentiment) aiUpdate.aiSentiment = triageResult.data.sentiment;
-            }
-
-            if (summaryResult.success && summaryResult.data) {
-              if (summaryResult.data.summary) aiUpdate.aiSummary = summaryResult.data.summary;
-            }
-
-            if (actionsResult.success && actionsResult.data) {
-              const formattedActions = actionsResult.data.actionItems.map(
-                (item: any) => `[${item.type.replace('_', ' ').toUpperCase()}] (${item.priority.toUpperCase()}) ${item.description}${item.suggestedDueDate ? ` (Due: ${item.suggestedDueDate})` : ''}`
-              );
-              if (formattedActions.length > 0) aiUpdate.aiActionItems = formattedActions;
-            }
-
-            if (Object.keys(aiUpdate).length > 0) {
-              await task.docRef.update(aiUpdate);
-            }
-
-            // Trigger automation rules (auto-archive, auto-task, auto-draft)
-            await runEmailAutomation(emailId);
-            
-          } catch (aiError: any) {
-            console.error(`[Email Sync API] Failed processing AI for ${task.messageId}:`, aiError.message);
-          }
-        }
-        console.log(`[Email Sync API] Background AI processing complete.`);
-      };
-      
-      // Fire and forget
-      processAiTasks().catch(err => console.error('[Email Sync API] Background processing error:', err));
-    }
+    // 13. Automatic background AI processing disabled per user request (emails are analyzed manually via "Analyze Email" button)
+    console.log(`[Email Sync API] Sync finished for ${aiTasks.length} emails. Manual analysis enabled via UI.`);
 
     console.log(`[Email Sync] Complete. ${newEmailCount} new emails synced.`);
 

@@ -34,57 +34,7 @@ export async function runEmailAutomation(emailId: string): Promise<{ success: bo
       return { success: true, actionsTaken };
     }
 
-    // 2. Auto-Create Tasks for SARS or Urgent Emails
-    const isSars = email.aiCategory === 'sars_correspondence';
-    const isUrgent = email.aiPriority === 'urgent' || email.aiPriority === 'high';
-    
-    if ((isSars || isUrgent) && !email.linkedTaskId) {
-      try {
-        console.log(`[Automation Engine] Extracting actions to auto-create task for email: ${emailId}`);
-        const actionResult = await extractEmailActions({
-          subject: email.subject,
-          body: email.bodyText,
-          senderEmail: email.from.email,
-          senderName: email.from.name || email.from.email,
-        });
-
-        if (actionResult.success && actionResult.data) {
-          const { suggestedTaskTitle, suggestedTaskDescription, actionItems } = actionResult.data;
-          
-          let priority: 'High' | 'Medium' | 'Low' = 'Medium';
-          if (email.aiPriority === 'urgent' || email.aiPriority === 'high') {
-            priority = 'High';
-          } else if (email.aiPriority === 'low') {
-            priority = 'Low';
-          }
-
-          const formattedActions = actionItems.map(
-            (item) => `[${item.type.replace('_', ' ').toUpperCase()}] (${item.priority.toUpperCase()}) ${item.description}${item.suggestedDueDate ? ` (Due: ${item.suggestedDueDate})` : ''}`
-          );
-
-          // Create the task in Firestore
-          const taskData = {
-            title: suggestedTaskTitle || `Follow up: ${email.subject}`,
-            description: suggestedTaskDescription || email.aiSummary || email.bodyText?.substring(0, 500) || '',
-            assignedTo: [], // Leave unassigned for admin delegation
-            createdBy: 'system-automation',
-            createdAt: FieldValue.serverTimestamp(),
-            dueDate: null,
-            priority,
-            status: 'To-Do',
-            type: 'Email Follow-up',
-            clientSource: 'system',
-          };
-
-          const taskRef = await adminDb.collection('tasks').add(taskData);
-          updates.linkedTaskId = taskRef.id;
-          updates.aiActionItems = formattedActions;
-          actionsTaken.push(`auto_created_task_${taskRef.id}`);
-        }
-      } catch (taskErr: any) {
-        console.error(`[Automation Engine] Failed to auto-create task for email ${emailId}:`, taskErr.message);
-      }
-    }
+    // 2. Automatic task creation disabled per user request (tasks are created manually via UI)
 
     // 3. Pre-generate AI Reply Draft
     if (!email.aiDraftReply) {
