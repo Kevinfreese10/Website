@@ -207,7 +207,77 @@ export default function OutsourcingVsHiringPage() {
         </div>
       </section>
 
-      {/* Pros & Cons Comparison */}
+      {/* Kevin's Founder Note */}
+      <section className="py-20 px-4 bg-white">
+        <div className="container mx-auto max-w-5xl">
+          <div className="bg-gradient-to-br from-white via-slate-50/40 to-blue-50/20 border border-slate-200/80 shadow-xl rounded-3xl overflow-hidden p-6 md:p-10 relative">
+            <div className="absolute top-0 right-0 h-40 w-40 bg-primary/5 rounded-full filter blur-3xl pointer-events-none" />
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+
+              {/* Left: Kevin's credentials card */}
+              <div className="md:col-span-4 flex flex-col items-center text-center p-6 bg-slate-100/60 border border-slate-200/60 rounded-2xl shadow-sm">
+                <img
+                  src="/kevin-freese.jpg"
+                  alt="Kevin Freese - Managing Director & Founder of My Accountant"
+                  className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md mb-4"
+                />
+                <h3 className="text-lg font-black text-slate-900">Kevin Freese</h3>
+                <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director &amp; Founder</p>
+                <div className="mt-2.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-full font-bold text-[10px] uppercase tracking-wider border border-amber-200">
+                  20+ Years Experience
+                </div>
+                <div className="mt-5 w-full border-t border-slate-200 pt-4 space-y-3 text-xs text-left">
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                    <span className="text-slate-400 font-medium">SARS Tax ID</span>
+                    <span className="text-slate-800 font-mono font-bold">PR-0098553</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                    <span className="text-slate-400 font-medium">CIBA SBA</span>
+                    <span className="text-slate-800 font-mono font-bold">201509-5372</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400 font-medium">SAIT Practitioner</span>
+                    <span className="text-slate-800 font-mono font-bold">47011519</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center mt-4">
+                  <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-full">CIBA Registered</span>
+                  <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-full">SAIT Registered</span>
+                  <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-full">SARS Approved</span>
+                </div>
+              </div>
+
+              {/* Right: The letter */}
+              <div className="md:col-span-8 space-y-5">
+                <p className="text-4xl text-primary font-serif leading-none">&ldquo;</p>
+                <p className="text-xl md:text-2xl font-extrabold text-slate-900 leading-snug italic -mt-4">
+                  We paid our dues so you don't have to.
+                </p>
+                <div className="space-y-4 text-base text-slate-600 leading-relaxed">
+                  <p>
+                    When I started out in accounting over two decades ago, I made every mistake in the book. I hired too fast, lost good clients because I didn't have the right specialist available, and spent more time managing staff than actually growing my practice.
+                  </p>
+                  <p>
+                    Building a new accounting or bookkeeping practice in South Africa is genuinely hard. You're juggling SARS deadlines, CIPC filings, payroll runs, client relationships and your own business admin - all at once, usually alone. The moment you get busy enough to need help, you face the brutal reality of recruiting, training and retaining someone in a market where good accountants are scarce and expensive.
+                  </p>
+                  <p>
+                    <strong className="text-slate-800">We built My Accountant's partner programme specifically because of those lessons.</strong> Over 20 years of trial and error, failed hires, SARS audits, capacity crunches and hard-won client relationships taught us exactly what a growing practice needs - and what it doesn't.
+                  </p>
+                  <p>
+                    Today, our partner network gives independent accountants and bookkeepers access to a full team of registered specialists, a white-label client portal, and wholesale pricing - without a single employment contract. You focus on your clients. We handle the overflow.
+                  </p>
+                </div>
+                <p className="text-slate-500 text-sm font-semibold pt-2 border-t border-slate-100">
+                  Kevin Freese &mdash; Managing Director, My Accountant
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pros &amp; Cons Comparison */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
