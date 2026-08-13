@@ -127,6 +127,7 @@ const navGroups = [
     href: '/#about',
     items: [
       { label: 'About Us', href: '/#about' },
+      { label: 'Reviews', href: '/reviews' },
       { label: 'Tax Tip Blog', href: '/blog' },
       { label: 'Contact Us', href: '/contact' },
     ],
