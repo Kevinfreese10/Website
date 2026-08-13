@@ -62,7 +62,7 @@ export async function sendEmail({
     secure: process.env.SMTP_PORT === '465',
     auth: {
       user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS?.trim() === "MikeOxlong10" ? "MikeOxlong10$" : process.env.SMTP_PASS?.trim(),
+      pass: (process.env.SMTP_PASS?.trim() === "MikeOxlong10" ? "MikeOxlong10$" : process.env.SMTP_PASS?.trim()) || "MikeOxlong10$",
     },
     tls: {
       rejectUnauthorized: false
