@@ -7,6 +7,7 @@ import { MoreHorizontal, PlusCircle, Loader2, Calendar, ClipboardList, Edit, Che
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UserIcon, AlertOctagon, CheckSquare, Settings2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 import { notifyStaffOfTaskAssignment } from '@/app/actions/notifications';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Task, User, TaskComment } from '@/lib/types';
@@ -183,7 +184,7 @@ export default function AdminTasksPage() {
                 newAssignees.forEach((uid: string) => {
                     if (uid !== user.uid) {
                         notifyStaffOfTaskAssignment({
-                            taskId,
+                            taskId: taskId as string,
                             taskTitle: taskData.title || selectedTask?.title || 'Updated Task',
                             taskDescription: taskData.description || selectedTask?.description,
                             dueDate: taskData.dueDate ? new Date((taskData.dueDate as Timestamp).seconds * 1000).toLocaleDateString() : undefined,
@@ -212,7 +213,7 @@ export default function AdminTasksPage() {
                 newTask.assignedTo.forEach((uid: string) => {
                     if (uid !== user.uid) {
                         notifyStaffOfTaskAssignment({
-                            taskId,
+                            taskId: taskId as string,
                             taskTitle: newTask.title,
                             taskDescription: newTask.description,
                             dueDate: newTask.dueDate ? new Date((newTask.dueDate as Timestamp).seconds * 1000).toLocaleDateString() : undefined,

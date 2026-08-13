@@ -505,7 +505,7 @@ export default function AdminDashboardPage() {
                     newAssignees.forEach((uid: string) => {
                         if (uid !== user.uid) {
                             notifyStaffOfTaskAssignment({
-                                taskId,
+                                taskId: taskId as string,
                                 taskTitle: taskData.title || selectedTask?.title || 'Updated Task',
                                 taskDescription: taskData.description || selectedTask?.description,
                                 dueDate: taskData.dueDate ? new Date((taskData.dueDate as Timestamp).seconds * 1000).toLocaleDateString() : undefined,
@@ -532,7 +532,7 @@ export default function AdminDashboardPage() {
                     newTask.assignedTo.forEach((uid: string) => {
                         if (uid !== user.uid) {
                             notifyStaffOfTaskAssignment({
-                                taskId,
+                                taskId: taskId as string,
                                 taskTitle: newTask.title,
                                 taskDescription: newTask.description,
                                 dueDate: newTask.dueDate ? new Date((newTask.dueDate as Timestamp).seconds * 1000).toLocaleDateString() : undefined,
