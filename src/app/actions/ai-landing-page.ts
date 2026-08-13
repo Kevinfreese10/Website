@@ -79,7 +79,7 @@ export async function editLandingPageWithAI({
     const partnerAi = await getPartnerAiInstance();
 
     const { output } = await partnerAi.generate({
-      model: 'googleai/gemini-2.5-flash',
+      model: 'googleai/gemini-3.5-flash-lite',
       output: { schema: LandingPageConfigOutputSchema },
       prompt: `You are an expert web designer, developer, and marketing copywriter specializing in creating beautiful white-label landing pages for accounting and auditing practices.
 

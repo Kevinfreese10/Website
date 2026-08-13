@@ -29,7 +29,7 @@ export async function extractStatementMetadata(
   const mimeType = input.statementPdf.split(';')[0].split(':')[1] || 'application/pdf';
 
   const { output } = await ai.generate({
-    model: 'googleai/gemini-2.5-flash',
+    model: 'googleai/gemini-3.5-flash-lite',
     output: { schema: ExtractStatementMetadataOutputSchema },
     prompt: [
       { text: `You are an expert OCR and financial document analysis agent.

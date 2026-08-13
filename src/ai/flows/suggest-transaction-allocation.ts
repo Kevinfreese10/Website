@@ -51,7 +51,7 @@ export async function suggestTransactionAllocation(
       });
 
       const { output } = await customAi.generate({
-        model: 'googleai/gemini-2.5-flash',
+        model: 'googleai/gemini-3.5-flash-lite',
         output: { schema: SuggestTransactionAllocationOutputSchema },
         prompt: `You are an experienced South African Chartered Accountant. Your task is to perform research on a bank transaction description and suggest the correct general ledger account and VAT type.
 

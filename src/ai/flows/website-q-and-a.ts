@@ -332,7 +332,7 @@ export async function websiteQAndA(
 
   const prompt = ai.definePrompt({
     name: 'websiteQAndAPrompt',
-    model: 'googleai/gemini-2.5-flash',
+    model: 'googleai/gemini-3.5-flash-lite',
     input: {schema: WebsiteQAndAInputSchema},
     output: {schema: WebsiteQAndAOutputSchema},
     prompt: `You are the Support Specialist for ${companyName} (Pty) Ltd. Your name is 'Khai'.

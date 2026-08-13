@@ -49,7 +49,7 @@ export async function extractStatementData(
   }
 
   const { output } = await currentAi.generate({
-    model: 'googleai/gemini-2.5-flash',
+    model: 'googleai/gemini-3.5-flash-lite',
     output: { schema: ExtractStatementDataOutputSchema },
     prompt: [
       { text: `You are an expert OCR and financial data extraction agent specializing in South African bank statements.

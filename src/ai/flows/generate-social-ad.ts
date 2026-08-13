@@ -39,7 +39,7 @@ export type SocialAdOutput = z.infer<typeof SocialAdOutputSchema>;
 
 const prompt = ai.definePrompt({
   name: 'generateSocialAdPrompt',
-  model: 'googleai/gemini-2.5-flash',
+  model: 'googleai/gemini-3.5-flash-lite',
   input: { schema: SocialAdInputSchema },
   output: { schema: SocialAdOutputSchema },
   prompt: `You are an expert social media copywriter specializing in Facebook ads for the South African accounting and tax industry.

@@ -108,7 +108,7 @@ const googleProvider = createGoogleGenerativeAI({
 export async function generateFollowUpEmailDraft(chatHistoryText: string, clientName: string) {
   try {
     const { object } = await generateObject({
-      model: googleProvider('gemini-2.5-flash'),
+      model: googleProvider('gemini-3.5-flash-lite'),
       schema: z.object({
         subject: z.string().describe('The subject line of the email.'),
         body: z.string().describe('The body of the email in plain text.'),
