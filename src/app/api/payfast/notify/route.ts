@@ -273,11 +273,11 @@ export async function POST(req: NextRequest) {
             let cost = 0;
             for (const item of currentOrderData.items) {
                 const service = allServices.find(s => s.id === item.id);
-                const basePrice = service?.price || item.price;
+                const basePrice = service?.price || item.price || 0;
                 const wholesalePrice = isGrowthActive 
                     ? (service?.resellerPrice || basePrice * 0.80)
                     : (basePrice * 0.80);
-                cost += wholesalePrice * item.quantity;
+                cost += wholesalePrice * (item.quantity || 1);
             }
             orderTotal = parseFloat(cost.toFixed(2));
         }

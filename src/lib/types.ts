@@ -110,11 +110,13 @@ export type OrderNote = {
 };
 
 export type OrderItem = {
+  id?: string;
   serviceId?: string;
   title: string;
   quantity?: number;
   unitPrice?: number;
   clientPrice?: number;
+  basePrice?: number;
   price?: number;
   total?: number;
   description?: string;

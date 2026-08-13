@@ -258,7 +258,7 @@ export default function PaymentSuccessPage() {
                             {order.items.map((item, index) => (
                                 <div key={index} className="flex justify-between items-center">
                                     <p>{item.title}</p>
-                                    <p className="font-semibold">{formatPrice(item.price)}</p>
+                                    <p className="font-semibold">{formatPrice(item.price || item.unitPrice || 0)}</p>
                                 </div>
                             ))}
                              <Separator />

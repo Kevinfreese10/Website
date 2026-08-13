@@ -421,16 +421,17 @@ export default function ClientOrderDetailsPage() {
   if (!order) return notFound();
 
     const orderedItemsWithServices = order.items.map(item => {
+        const itemId = item.id || item.serviceId || item.title;
         const serviceDetails = allServices.find(s => 
-          s.id === item.id || 
-          s.title.toLowerCase() === item.id.toLowerCase() || 
+          s.id === itemId || 
+          (item.id && s.title.toLowerCase() === item.id.toLowerCase()) || 
           s.title.toLowerCase() === item.title.toLowerCase() ||
-          s.slug === item.id
+          s.slug === itemId
         );
         
         const standardReqs = serviceDetails?.informationToProvide || [];
         const customReqs = (order.documentUploads || [])
-            .filter(d => (d.serviceId === item.id || d.serviceId === serviceDetails?.id) && !standardReqs.some(p => p.label === d.requirementLabel))
+            .filter(d => (d.serviceId === itemId || d.serviceId === serviceDetails?.id) && !standardReqs.some(p => p.label === d.requirementLabel))
             .map(d => ({
                 label: d.requirementLabel,
                 type: d.type,
@@ -440,7 +441,7 @@ export default function ClientOrderDetailsPage() {
             
         const combinedRequirements = [...standardReqs, ...customReqs];
 
-        return { ...item, service: serviceDetails, combinedRequirements };
+        return { id: itemId, price: item.price || item.unitPrice || 0, ...item, service: serviceDetails, combinedRequirements };
     });
 
   const allRequirements = orderedItemsWithServices.flatMap(item => item.combinedRequirements || []);

@@ -54,16 +54,18 @@ export function ProcessOrderModal({
   // --- Cost & Profit calculations ---
   const wholesaleCost = (order?.items ?? []).reduce((sum, item) => {
     const matchedService = allServices.find((s) => s.id === item.id);
-    const unitCost = matchedService?.resellerPrice ?? item.price * 0.80;
+    const itemPrice = item.price || item.unitPrice || 0;
+    const unitCost = matchedService?.resellerPrice ?? itemPrice * 0.80;
     return sum + unitCost * (item.quantity || 1);
   }, 0);
 
   // Calculate retail/client selling price total for all items in the order
   const calculatedRetailTotal = (order?.items ?? []).reduce((sum, item) => {
     const matchedService = allServices.find((s) => s.id === item.id);
-    const wholesaleUnitPrice = matchedService?.resellerPrice ?? item.price * 0.80;
-    // If item.price is greater than wholesale price, use item.price; otherwise fallback to matchedService.price or item.price / 0.80
-    let retailUnitPrice = item.price;
+    const itemPrice = item.price || item.unitPrice || 0;
+    const wholesaleUnitPrice = matchedService?.resellerPrice ?? itemPrice * 0.80;
+    // If itemPrice is greater than wholesale price, use itemPrice; otherwise fallback to matchedService.price or itemPrice / 0.80
+    let retailUnitPrice = itemPrice;
     if (!retailUnitPrice || retailUnitPrice <= wholesaleUnitPrice) {
       retailUnitPrice = matchedService?.price ?? (wholesaleUnitPrice > 0 ? wholesaleUnitPrice / 0.80 : 0);
     }
