@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query Portal", detail: "Go to online.sars.gov.za or log into SARS eFiling." },
+  { step: "Step 1", title: "Access the SARS Online Query Portal", detail: "Go to tools.sars.gov.za/soqs or log into SARS eFiling." },
   { step: "Step 2", title: "Select 'Payment Reference Number (PRN) Inquiry'", detail: "Choose the tax type: Income Tax (IT), VAT, PAYE, Provisional Tax (IRP6), or Administrative Penalties." },
   { step: "Step 3", title: "Enter Tax Reference Number", detail: "Input your 10-digit SARS reference number and period code." },
   { step: "Step 4", title: "Retrieve 19-Digit PRN", detail: "View the official 19-character alphanumeric Payment Reference Number generated for your return or notice of assessment (ITA34)." },

@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query Portal", detail: "Navigate to online.sars.gov.za and choose 'Diesel Refund Scheme Registration'." },
+  { step: "Step 1", title: "Access the SARS Online Query Portal", detail: "Navigate to tools.sars.gov.za/soqs and choose 'Diesel Refund Scheme Registration'." },
   { step: "Step 2", title: "Verify VAT Registration & Industry Qualification", detail: "Ensure your entity is registered for VAT and operates in qualifying sectors (Food Manufacturing, Agriculture, Forestry, Mining)." },
   { step: "Step 3", title: "Complete VAT101 Diesel Registration Profile", detail: "Add diesel refund scheme user profile under your active VAT registration." },
   { step: "Step 4", title: "Upload Generator & Equipment Logbook Evidence", detail: "Attach diesel purchase tax invoices, generator specifications, electricity load shedding logs, and manufacturing flowcharts." },

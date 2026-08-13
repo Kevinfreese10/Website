@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access SARS Fraud Reporting Portal", detail: "Go to online.sars.gov.za and choose 'Report Digital Fraud / Profile Compromise'." },
+  { step: "Step 1", title: "Access SARS Fraud Reporting Portal", detail: "Go to tools.sars.gov.za/soqs and choose 'Report Digital Fraud / Profile Compromise'." },
   { step: "Step 2", title: "Specify Fraud Incident Type", detail: "Select category: Unauthorized eFiling Profile Transfer, Fraudulent Banking Detail Changes, Phishing Scam, or Unauthorized Refund Redirection." },
   { step: "Step 3", title: "Enter Taxpayer & Incident Information", detail: "Provide 10-digit tax reference number, SA ID number, and details of suspicious activity observed." },
   { step: "Step 4", title: "Attach Evidence Files", detail: "Upload bank statements, SAPS affidavit, fraudulent email headers, or screenshot evidence." },

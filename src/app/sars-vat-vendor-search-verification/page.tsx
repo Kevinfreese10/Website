@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za and choose 'VAT Vendor Search & Verification'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and choose 'VAT Vendor Search & Verification'." },
   { step: "Step 2", title: "Enter 10-Digit VAT Registration Number", detail: "Input the vendor's 10-digit VAT registration number starting with '4'." },
   { step: "Step 3", title: "Submit Verification Search", detail: "Click search to query live SARS VAT database records." },
   { step: "Step 4", title: "Review Registered Trading Name & Status", detail: "Verify that the registered VAT name matches the supplier name printed on the tax invoice." },

@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za and click 'Verify Tax Compliance Status'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and click 'Verify Tax Compliance Status'." },
   { step: "Step 2", title: "Enter Tax Reference Number", detail: "Provide the 10-digit SARS income tax or company reference number of the entity or individual." },
   { step: "Step 3", title: "Enter the TCS PIN", detail: "Input the unique 6-character TCS PIN provided by the taxpayer." },
   { step: "Step 4", title: "Submit Verification Query", detail: "Click search to retrieve real-time compliance results from the SARS database." },

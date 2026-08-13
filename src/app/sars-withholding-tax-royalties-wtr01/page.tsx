@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za and select 'Withholding Tax on Royalties (WTR01)'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and select 'Withholding Tax on Royalties (WTR01)'." },
   { step: "Step 2", title: "Enter Payer & Non-Resident Payee Details", detail: "Input South African payer's tax reference number and offshore payee's international details." },
   { step: "Step 3", title: "Specify Royalty Payment & DTA Treaty Rate", detail: "State total gross royalty amount, date paid, and applicable Double Taxation Agreement (DTA) reduced tax rate if certified." },
   { step: "Step 4", title: "Calculate 15% Withholding Amount", detail: "Apply statutory 15% tax rate (or reduced DTA rate) to determine tax withheld." },

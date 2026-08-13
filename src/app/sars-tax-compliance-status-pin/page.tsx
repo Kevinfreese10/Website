@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System or eFiling", detail: "Navigate to online.sars.gov.za or log into your eFiling profile." },
+  { step: "Step 1", title: "Access the SARS Online Query System or eFiling", detail: "Navigate to tools.sars.gov.za/soqs or log into your eFiling profile." },
   { step: "Step 2", title: "Select 'Tax Compliance Status Request'", detail: "Choose the purpose of your TCS PIN: Good Standing, Tender, Foreign Investment, or Approval International Transfer (AIT)." },
   { step: "Step 3", title: "Verify Your Compliance Overview", detail: "Ensure all tax returns (IT, VAT, PAYE) are filed and no outstanding debt exists." },
   { step: "Step 4", title: "Submit Supporting Documentation (If required)", detail: "For AIT or Foreign Investment, upload proof of funds, source of wealth, and bank statements." },

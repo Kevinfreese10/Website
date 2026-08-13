@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za and choose 'Debt Management Query'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and choose 'Debt Management Query'." },
   { step: "Step 2", title: "Provide Tax & Personal Identification", detail: "Enter your 10-digit tax reference number and valid SA ID or company registration number." },
   { step: "Step 3", title: "View Outstanding Tax Balance", detail: "Review tax principal debt, interest charges, and administrative penalties accrued." },
   { step: "Step 4", title: "Request Payment Arrangement (Deferral)", detail: "Submit a proposed monthly instalment plan under Section 167 of the Tax Administration Act." },

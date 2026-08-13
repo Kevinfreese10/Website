@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Open the SARS Online Query System", detail: "Go to online.sars.gov.za and choose 'Submit Supporting Documents'." },
+  { step: "Step 1", title: "Open the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and choose 'Submit Supporting Documents'." },
   { step: "Step 2", title: "Enter Case Number or Tax Reference", detail: "Input the specific SARS Case Number provided on your verification letter, or your 10-digit tax reference number." },
   { step: "Step 3", title: "Select Document Category", detail: "Choose the document type: IRP5 certificate, medical tax certificate, logbook, bank statements, or invoices." },
   { step: "Step 4", title: "Upload PDF / Image Files", detail: "Ensure files are unencrypted PDF/JPEG formats under 5MB per file." },

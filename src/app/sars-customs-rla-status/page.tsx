@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access SARS Online Query Portal or eFiling", detail: "Go to online.sars.gov.za and choose 'Customs RLA Status Inquiry'." },
+  { step: "Step 1", title: "Access SARS Online Query Portal or eFiling", detail: "Go to tools.sars.gov.za/soqs and choose 'Customs RLA Status Inquiry'." },
   { step: "Step 2", title: "Provide Case or Trader Reference Number", detail: "Input your RLA case reference number, tax reference number, or CIPC registration number." },
   { step: "Step 3", title: "View Application Status Dashboard", detail: "Check processing stage: Submitted, Selected for Site Inspection, Documents Requested, or Approved." },
   { step: "Step 4", title: "Review Outstanding RLA Requirements", detail: "Identify if SARS Customs requested additional warehouse diagrams, bond agreements, or tax clearance." },

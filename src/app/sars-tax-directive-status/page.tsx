@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Navigate to online.sars.gov.za or access SARS eFiling." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Navigate to tools.sars.gov.za/soqs or access SARS eFiling." },
   { step: "Step 2", title: "Select 'Tax Directive Status Check'", detail: "Choose the directive inquiry service." },
   { step: "Step 3", title: "Provide Application Reference Number", detail: "Enter the directive application number or your SA ID number and tax reference number." },
   { step: "Step 4", title: "View Directive Processing Status", detail: "Check whether the tax directive has been Submitted, Approved, Rejected, or requires supporting documents." },

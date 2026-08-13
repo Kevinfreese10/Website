@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za and select 'Outstanding Tax Returns Query'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and select 'Outstanding Tax Returns Query'." },
   { step: "Step 2", title: "Enter Tax Reference Number", detail: "Input your 10-digit SARS reference number and personal identification details." },
   { step: "Step 3", title: "Authenticate Identity", detail: "Complete OTP verification via your registered cell phone or email." },
   { step: "Step 4", title: "View Non-Compliance Listing", detail: "Review all unfiled tax years and periods across Income Tax, VAT, PAYE, and Provisional Tax." },

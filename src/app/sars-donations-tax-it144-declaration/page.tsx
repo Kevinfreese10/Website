@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za and choose 'Donations Tax Declaration (IT144)'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and choose 'Donations Tax Declaration (IT144)'." },
   { step: "Step 2", title: "Enter Donor & Donee Tax Details", detail: "Input the donor's tax reference number and donee's ID or registration details." },
   { step: "Step 3", title: "Specify Donation Valuation & Date", detail: "State property description, market value of donation, and date donation took effect." },
   { step: "Step 4", title: "Calculate Tax Liability & Exemptions", detail: "Apply annual R100,000 individual exemption or spouse exemption. Calculate 20% tax on net taxable donations." },

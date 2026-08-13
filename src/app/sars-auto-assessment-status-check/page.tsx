@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access SARS Online Query Portal or Mobile App", detail: "Go to online.sars.gov.za or open the SARS Mobile App." },
+  { step: "Step 1", title: "Access SARS Online Query Portal or Mobile App", detail: "Go to tools.sars.gov.za/soqs or open the SARS Mobile App." },
   { step: "Step 2", title: "Select 'Auto-Assessment Status'", detail: "Click on the auto-assessment lookup utility." },
   { step: "Step 3", title: "Enter ID & Tax Reference Number", detail: "Provide your 13-digit SA ID number and 10-digit tax reference number." },
   { step: "Step 4", title: "View Auto-Assessment Results", detail: "Check whether SARS generated an auto-assessment (ITA34) based on third-party data (IRP5, medical aid, bank interest)." },

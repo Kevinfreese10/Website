@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za and choose 'Customs Trader Code Query'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and choose 'Customs Trader Code Query'." },
   { step: "Step 2", title: "Select Inquiry Type", detail: "Choose between looking up an existing Customs Code or applying for a new Importer/Exporter Trader ID." },
   { step: "Step 3", title: "Enter Company & Income Tax Details", detail: "Provide 10-digit SARS income tax reference number and CIPC registration number." },
   { step: "Step 4", title: "Upload Verification Documentation", detail: "Attach company registration documents, bank statement proof, and Public Officer ID copy." },

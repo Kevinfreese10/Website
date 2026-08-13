@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Open SARS Online Query Portal", detail: "Navigate to online.sars.gov.za or access via SARS Digital Channels." },
+  { step: "Step 1", title: "Open SARS Online Query Portal", detail: "Navigate to tools.sars.gov.za/soqs or access via SARS Digital Channels." },
   { step: "Step 2", title: "Select 'Request Notice of Registration (IT150)'", detail: "Click on the IT150 document request option." },
   { step: "Step 3", title: "Provide Tax & Personal Identification Details", detail: "Enter your 10-digit income tax number and 13-digit SA ID or passport/company registration number." },
   { step: "Step 4", title: "Authenticate via OTP", detail: "Enter the OTP sent to your registered cellphone number or email address." },

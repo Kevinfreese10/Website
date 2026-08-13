@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query Portal", detail: "Go to online.sars.gov.za and choose 'Large Business & International (LBI) Query'." },
+  { step: "Step 1", title: "Access the SARS Online Query Portal", detail: "Go to tools.sars.gov.za/soqs and choose 'Large Business & International (LBI) Query'." },
   { step: "Step 2", title: "Identify Taxpayer Segment", detail: "Confirm corporate qualification (Turnover > R100 million or multinational enterprise group)." },
   { step: "Step 3", title: "Select Technical Query Category", detail: "Choose area: Corporate Income Tax, Transfer Pricing, Controlled Foreign Companies (CFC), Financial Sector, or International Tax." },
   { step: "Step 4", title: "Attach Technical Opinion & Documentation", detail: "Upload detailed background statements, transfer pricing documentation, or advance tax ruling requests." },

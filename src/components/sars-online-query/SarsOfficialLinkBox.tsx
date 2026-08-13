@@ -32,7 +32,7 @@ export default function SarsOfficialLinkBox({
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
             <Button asChild size="lg" className="bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-md">
               <a 
-                href="https://online.sars.gov.za" 
+                href="https://tools.sars.gov.za/soqs" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2"

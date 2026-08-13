@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access SARS Online Query Portal", detail: "Go to online.sars.gov.za and select 'New Trust Registration (IT77T)'." },
+  { step: "Step 1", title: "Access SARS Online Query Portal", detail: "Go to tools.sars.gov.za/soqs and select 'New Trust Registration (IT77T)'." },
   { step: "Step 2", title: "Enter Trust Identification & Masters Reference", detail: "Input the Trust Name, Master's Office Registration Number (e.g. IT1234/2026), and registered address." },
   { step: "Step 3", title: "Appoint Representative Taxpayer (Main Trustee)", detail: "Provide full details and tax reference number of the designated main trustee." },
   { step: "Step 4", title: "Upload Required Trust Documentation", detail: "Attach Letters of Authority (issued by Master of High Court), registered Trust Deed, and ID copies of all trustees and beneficiaries." },

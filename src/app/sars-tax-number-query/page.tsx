@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Visit the Official SARS Online Query System", detail: "Go to online.sars.gov.za or access via the official SARS Digital Channels portal." },
+  { step: "Step 1", title: "Visit the Official SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs or access via the official SARS Digital Channels portal." },
   { step: "Step 2", title: "Select 'What's My Tax Number?'", detail: "Choose the individual or entity option from the main query menu." },
   { step: "Step 3", title: "Enter Your ID / Passport / Company Reg Number", detail: "Input your 13-digit South African ID number, passport number, or CIPC company registration number along with your full legal name." },
   { step: "Step 4", title: "Complete Security Verification", detail: "Provide your registered mobile number or email address to receive a one-time PIN (OTP)." },

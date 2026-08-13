@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Anti-Corruption Hotline / SOQS", detail: "Go to online.sars.gov.za or access the toll-free SARS Anti-Corruption Hotline (0800 00 2870)." },
+  { step: "Step 1", title: "Access the SARS Anti-Corruption Hotline / SOQS", detail: "Go to tools.sars.gov.za/soqs or access the toll-free SARS Anti-Corruption Hotline (0800 00 2870)." },
   { step: "Step 2", title: "Choose Anonymous vs Named Disclosure", detail: "Select whether to file an anonymous whistleblowing report or provide your contact details under Protected Disclosures Act." },
   { step: "Step 3", title: "Detail the Alleged Misconduct", detail: "Provide specific details: SARS official's name, employee number (if known), branch location, case/audit reference, and date of occurrence." },
   { step: "Step 4", title: "Attach Supporting Evidence", detail: "Upload email threads, audio recordings, WhatsApp messages, or financial extortion demands." },

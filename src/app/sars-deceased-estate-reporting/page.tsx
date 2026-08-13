@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Navigate to online.sars.gov.za and choose 'Report Deceased Estate'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Navigate to tools.sars.gov.za/soqs and choose 'Report Deceased Estate'." },
   { step: "Step 2", title: "Input Deceased Taxpayer Information", detail: "Enter full legal name, SA ID or passport number, tax reference number, and date of death." },
   { step: "Step 3", title: "Provide Executor / Representative Details", detail: "Input contact details, ID number, and tax reference number of the appointed Executor or legal representative." },
   { step: "Step 4", title: "Upload Legal Documents", detail: "Attach Death Certificate, Letter of Executorship (issued by Master of High Court), certified ID of Executor, and death notice." },

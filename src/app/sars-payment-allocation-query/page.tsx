@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za and select 'Payment Allocation Query'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and select 'Payment Allocation Query'." },
   { step: "Step 2", title: "Enter Tax & Payment Details", detail: "Input tax reference number, date of EFT payment, payment amount, and bank reference used." },
   { step: "Step 3", title: "Specify Destination Tax Account", detail: "Indicate which tax type and period the payment should be reallocated to (e.g. Income Tax 2025 or VAT period 2025/08)." },
   { step: "Step 4", title: "Upload Proof of Payment", detail: "Attach bank-stamped proof of payment (EFT receipt) showing bank date and beneficiary details." },

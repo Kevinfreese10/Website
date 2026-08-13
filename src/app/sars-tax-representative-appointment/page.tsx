@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za and select 'Appoint Representative Taxpayer'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and select 'Appoint Representative Taxpayer'." },
   { step: "Step 2", title: "Input Entity & Representative Details", detail: "Enter company CIPC registration number, tax reference number, and proposed Public Officer's ID & tax reference number." },
   { step: "Step 3", title: "Select Representative Type", detail: "Choose role: Public Officer (Company), Trustee, Representative Taxpayer, or Power of Attorney." },
   { step: "Step 4", title: "Upload Supporting Documents", detail: "Attach CIPC COR39 / CoR14.3 certificate, Company Resolution appointing the Public Officer, ID copy, and utility bill." },

@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Navigate to online.sars.gov.za and select 'Submit Customs RLA Supporting Documents'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Navigate to tools.sars.gov.za/soqs and select 'Submit Customs RLA Supporting Documents'." },
   { step: "Step 2", title: "Provide RLA Case Reference Number", detail: "Input the unique Customs RLA application case number received from SARS." },
   { step: "Step 3", title: "Select Document Category", detail: "Choose document type: Proof of Business Address, Bank Letter, Resolution of Authority, Bond Security, or Lease Agreement." },
   { step: "Step 4", title: "Upload High-Resolution PDF Files", detail: "Attach unencrypted PDF documents (under 5MB per file) matching SARS Customs requirements." },

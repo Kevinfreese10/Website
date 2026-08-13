@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za or access via eFiling." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs or access via eFiling." },
   { step: "Step 2", title: "Select 'Statement of Account Request'", detail: "Choose the tax type required: Income Tax (IT), Value Added Tax (VAT), PAYE, or Provisional Tax." },
   { step: "Step 3", title: "Specify Statement Period", detail: "Select the date range (e.g. six months, six years, or custom financial year-end range)." },
   { step: "Step 4", title: "Authenticate Identity", detail: "Provide tax reference number and verify using OTP sent to registered mobile/email." },

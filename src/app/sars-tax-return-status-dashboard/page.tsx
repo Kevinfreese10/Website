@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const diySteps = [
-  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to online.sars.gov.za and select 'Tax Return Status Tracker'." },
+  { step: "Step 1", title: "Access the SARS Online Query System", detail: "Go to tools.sars.gov.za/soqs and select 'Tax Return Status Tracker'." },
   { step: "Step 2", title: "Input Tax Reference & ID Details", detail: "Enter your tax reference number, SA ID number, and security verification details." },
   { step: "Step 3", title: "Select Assessment Year", detail: "Choose the relevant tax year (e.g. 2024, 2025, or 2026)." },
   { step: "Step 4", title: "View Status Dashboard", detail: "Review live status indicators: Return Submitted, Selected for Audit/Verification, Documents Required, Assessment Finalized, or Refund Paid." },
