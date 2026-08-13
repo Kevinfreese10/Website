@@ -582,11 +582,11 @@ export default function AdminOrdersPage() {
                         )}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">
-                            {lastNote && lastNoteAuthor ? (
+                            {lastNote ? (
                                 <div className="flex items-start gap-2">
                                     <MessageSquare className="h-3 w-3 text-primary flex-shrink-0 mt-0.5" />
                                     <div className="text-[10px] leading-tight">
-                                        <span className="font-black text-slate-900">{lastNoteAuthor.name.split(' ')[0]}:</span>
+                                        <span className="font-black text-slate-900">{lastNoteAuthor ? lastNoteAuthor.name.split(' ')[0] : 'Client'}:</span>
                                         <span className="text-muted-foreground ml-1">"{lastNote.subject || lastNote.text}"</span>
                                     </div>
                                 </div>
