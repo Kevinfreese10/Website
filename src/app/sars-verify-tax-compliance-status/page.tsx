@@ -71,7 +71,6 @@ export default function SarsVerifyTaxComplianceStatusPage() {
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
           portalUrl="https://tools.sars.gov.za/sarsonlinequery/tcsverify"
-          guideUrl="https://www.sars.gov.za/pay-tax/tax-compliance-status-system/"
           title="Verify a SARS TCS PIN Directly"
           description="Use the official SARS online portal to check real-time tax clearance and compliance status."
         />

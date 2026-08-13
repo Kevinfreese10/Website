@@ -71,7 +71,6 @@ export default function SarsTaxRepresentativeAppointmentPage() {
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
           portalUrl="https://tools.sars.gov.za/sarsonlinequery/RegisteredRepresentative"
-          guideUrl="https://www.sars.gov.za/client-segments/tax-practitioners/"
           title="Appoint a Tax Representative / Public Officer Online"
           description="Use official SARS digital query portals to submit company resolutions, CIPC certificates, and representative appointments."
         />

@@ -71,7 +71,6 @@ export default function SarsReportEmployeeCorruptionPage() {
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
           portalUrl="https://tools.sars.gov.za/sarsonlinequery/ACReporting"
-          guideUrl="https://www.sars.gov.za/targeting-tax-crime/report-tax-crime/"
           title="Lodge an Anonymous Corruption Report with SARS"
           description="Use official SARS anti-corruption digital channels to report bribery or official misconduct in confidence."
         />

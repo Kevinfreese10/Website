@@ -71,7 +71,6 @@ export default function SarsPaymentAllocationQueryPage() {
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
           portalUrl="https://tools.sars.gov.za/sarsonlinequery/accountquery"
-          guideUrl="https://www.sars.gov.za/pay-tax/how-to-pay/"
           title="Submit a SARS Payment Allocation Query Online"
           description="Access official SARS query portals to trace missing payments and request reallocation of funds."
         />

@@ -174,8 +174,7 @@ export default function SarsOnlineQueryGuidePage() {
 
       <section className="container mx-auto px-4 max-w-5xl">
         <SarsOfficialLinkBox
-          portalUrl="https://tools.sars.gov.za/soqs"
-          guideUrl="https://www.sars.gov.za/individuals/i-need-help-with-my-tax/use-our-digital-channels/" 
+          portalUrl="https://tools.sars.gov.za/soqs" 
           title="Access Official SARS Digital Channels (SOQS)"
           description="Use the official SARS online query portal to submit queries directly or browse official SARS digital instructions."
         />

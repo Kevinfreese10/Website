@@ -7,16 +7,12 @@ interface SarsOfficialLinkBoxProps {
   title?: string;
   description?: string;
   portalUrl?: string;
-  guideUrl?: string;
-  guideButtonText?: string;
 }
 
 export default function SarsOfficialLinkBox({
   title = "Official SARS Online Query System (SOQS)",
   description = "Access the official SARS digital portal to submit your query directly without queuing at a SARS branch or logging into eFiling.",
-  portalUrl = "https://tools.sars.gov.za/soqs",
-  guideUrl = "https://www.sars.gov.za/individuals/i-need-help-with-my-tax/use-our-digital-channels/",
-  guideButtonText = "SARS Official Service Guide"
+  portalUrl = "https://tools.sars.gov.za/soqs"
 }: SarsOfficialLinkBoxProps) {
   return (
     <Card className="border-2 border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-background shadow-lg overflow-hidden my-8">
@@ -45,17 +41,6 @@ export default function SarsOfficialLinkBox({
               >
                 <Globe className="h-4 w-4" />
                 Launch SOQS Portal
-                <ExternalLink className="h-4 w-4 ml-1" />
-              </a>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="border-amber-500/30 hover:bg-amber-500/10 font-bold">
-              <a 
-                href={guideUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2"
-              >
-                {guideButtonText}
                 <ExternalLink className="h-4 w-4 ml-1" />
               </a>
             </Button>

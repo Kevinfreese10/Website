@@ -71,7 +71,6 @@ export default function SarsOutstandingDebtQueryPage() {
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
           portalUrl="https://tools.sars.gov.za/sarsonlinequery/accountquery"
-          guideUrl="https://www.sars.gov.za/pay-tax/managing-debt/"
           title="Submit a SARS Debt Query or Instalment Request"
           description="Use official SARS digital channels to enquire on debt and submit formal payment deferral requests."
         />

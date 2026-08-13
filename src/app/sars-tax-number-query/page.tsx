@@ -71,7 +71,6 @@ export default function SarsTaxNumberQueryPage() {
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
           portalUrl="https://tools.sars.gov.za/sarsonlinequery/whatsmytaxnumber"
-          guideUrl="https://www.sars.gov.za/individuals/i-need-a-tax-number/"
           title="Query Your SARS Tax Reference Number Directly"
           description="Use the official SARS online portal to request your individual or company tax number via SMS or email."
         />

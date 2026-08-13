@@ -71,7 +71,6 @@ export default function SarsWithholdingTaxRoyaltiesWtr01Page() {
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
           portalUrl="https://tools.sars.gov.za/sarsonlinequery/DonationsTax"
-          guideUrl="https://www.sars.gov.za/types-of-tax/withholding-tax-on-royalties/"
           title="Submit a SARS WTR01 Royalty Declaration Online"
           description="Use official SARS digital query portals to submit royalty withholding tax returns and calculate payment references."
         />

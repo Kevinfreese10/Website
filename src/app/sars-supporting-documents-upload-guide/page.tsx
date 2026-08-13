@@ -71,7 +71,6 @@ export default function SarsSupportingDocumentsUploadGuidePage() {
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
           portalUrl="https://tools.sars.gov.za/sarsonlinequery/suppdocs"
-          guideUrl="https://www.sars.gov.za/contact-us/submit-supporting-documents/"
           title="Upload Audit Documents Directly to SARS"
           description="Use official SARS online channels to upload files for open verification cases or audit requests."
         />
