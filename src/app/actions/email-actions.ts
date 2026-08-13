@@ -500,14 +500,33 @@ export async function getEmailsList(limitCount: number = 50, startAfterDate?: st
 
     const emails: Email[] = docsToProcess.map(doc => {
       const data = doc.data();
-      const dateVal = data.date?.toDate?.() || (data.date ? new Date(data.date) : new Date());
-      const receivedAtVal = data.receivedAt?.toDate?.() || (data.receivedAt ? new Date(data.receivedAt) : new Date());
       
+      const cleanData: Record<string, any> = {};
+      for (const [key, value] of Object.entries(data)) {
+        if (value && typeof value === 'object' && typeof (value as any).toDate === 'function') {
+          try {
+            cleanData[key] = (value as any).toDate().toISOString();
+          } catch {
+            cleanData[key] = new Date().toISOString();
+          }
+        } else if (value instanceof Date) {
+          cleanData[key] = isNaN(value.getTime()) ? new Date().toISOString() : value.toISOString();
+        } else {
+          cleanData[key] = value;
+        }
+      }
+
+      const dateVal = cleanData.date ? new Date(cleanData.date) : new Date();
+      const safeDateStr = isNaN(dateVal.getTime()) ? new Date().toISOString() : dateVal.toISOString();
+
+      const receivedAtVal = cleanData.receivedAt ? new Date(cleanData.receivedAt) : new Date();
+      const safeReceivedAtStr = isNaN(receivedAtVal.getTime()) ? new Date().toISOString() : receivedAtVal.toISOString();
+
       return {
         id: doc.id,
-        ...data,
-        date: dateVal.toISOString(),
-        receivedAt: receivedAtVal.toISOString(),
+        ...cleanData,
+        date: safeDateStr,
+        receivedAt: safeReceivedAtStr,
       };
     }) as any[];
 

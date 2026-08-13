@@ -348,7 +348,7 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
 
             const updates: Record<string, any> = {
               isAnalyzed: true,
-              analyzedAt: FieldValue.serverTimestamp(),
+              analyzedAt: new Date().toISOString(),
             };
 
             if (triageRes.success && triageRes.data) {
