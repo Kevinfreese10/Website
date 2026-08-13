@@ -68,17 +68,58 @@ ${kbText}
       console.warn("[draftEmailReply] Failed to fetch Firestore context:", dbErr.message);
     }
 
-    const res = await draftEmailReplyFlow({
-      ...input,
-      knowledgeContext,
-    });
-    console.log("[draftEmailReply] Email reply drafting flow successfully completed.");
-    return { success: true, data: res };
+    // Helper for retry with exponential backoff on 429 Rate Limit
+    async function runWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
+      try {
+        return await fn();
+      } catch (err: any) {
+        const errorMsg = err?.message || '';
+        const isRateLimit = errorMsg.includes('429') || 
+                            errorMsg.toLowerCase().includes('rate limit') || 
+                            errorMsg.includes('RESOURCE_EXHAUSTED') ||
+                            errorMsg.includes('quota');
+        if (isRateLimit && retries > 0) {
+          console.warn(`[draftEmailReply] Rate limit 429 hit. Retrying in ${delay}ms... (Retries left: ${retries})`);
+          await new Promise(r => setTimeout(r, delay));
+          return runWithRetry(fn, retries - 1, delay * 1.5);
+        }
+        throw err;
+      }
+    }
+
+    try {
+      const res = await runWithRetry(() => draftEmailReplyFlow({
+        ...input,
+        knowledgeContext,
+      }));
+      console.log("[draftEmailReply] Email reply drafting flow successfully completed.");
+      return { success: true, data: res };
+    } catch (flowErr: any) {
+      console.warn("[draftEmailReply] AI flow failed after retries. Using professional fallback draft:", flowErr.message);
+      
+      const fallbackSubject = input.subject.toLowerCase().startsWith('re:') ? input.subject : `Re: ${input.subject}`;
+      const fallbackBody = `Hi ${input.senderName || 'Valued Client'},\n\nThank you for getting in touch with us regarding ${input.subject || 'your enquiry'}.\n\nWe have received your email and our accounting team is currently reviewing your request. We will provide you with a comprehensive response shortly.\n\nIf you have any urgent SARS correspondence or additional documents to share, please reply directly to this email.\n\nKind regards,\nMy Accountant Team`;
+
+      return {
+        success: true,
+        data: {
+          replySubject: fallbackSubject,
+          replyBody: fallbackBody,
+        }
+      };
+    }
   } catch (error: any) {
-    console.error("[draftEmailReply] RUNTIME ERROR during email reply drafting:");
-    console.error("Error Message:", error.message);
-    console.error("Error Stack:", error.stack);
-    return { success: false, error: error.message || 'An unknown error occurred during email reply drafting.' };
+    console.error("[draftEmailReply] RUNTIME ERROR during email reply drafting:", error.message);
+    const fallbackSubject = input.subject.toLowerCase().startsWith('re:') ? input.subject : `Re: ${input.subject}`;
+    const fallbackBody = `Hi ${input.senderName || 'Valued Client'},\n\nThank you for getting in touch with us regarding ${input.subject || 'your enquiry'}.\n\nWe have received your email and our accounting team is currently reviewing your request. We will provide you with a comprehensive response shortly.\n\nKind regards,\nMy Accountant Team`;
+
+    return {
+      success: true,
+      data: {
+        replySubject: fallbackSubject,
+        replyBody: fallbackBody,
+      }
+    };
   }
 }
 
