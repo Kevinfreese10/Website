@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: 'Read real success stories and case studies from businesses and individuals who have transformed their accounting with My Accountant.',
 };
 
+import PageHero from '@/components/shared/PageHero';
+
 export default function CaseStudiesPage() {
   const caseStudies = [
     {
@@ -36,17 +38,24 @@ export default function CaseStudiesPage() {
   ];
 
   return (
-    <main className="container mx-auto px-4 py-16 max-w-5xl">
-      <div className="text-center mb-16 space-y-4">
-        <h1 className="text-4xl md:text-5xl font-black text-slate-900">Client Success Stories</h1>
-        <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-          Discover how we help South African businesses overcome complex financial challenges and achieve sustainable growth.
-        </p>
-      </div>
+    <div className="bg-background min-h-screen pb-16">
+      <PageHero
+        badgeText="Real Business Impact"
+        title={
+          <>
+            Client <span className="text-gradient">Success Stories</span>
+          </>
+        }
+        subtitle="Discover how we help South African businesses overcome complex financial challenges and achieve sustainable growth."
+        primaryCta={{ text: 'Book Free Consultation', href: '/contact' }}
+        secondaryCta={{ text: 'View All Services', href: '/products' }}
+        showCredibilityRibbon={true}
+      />
 
-      <div className="mb-16">
-        <TrustIndexWidget />
-      </div>
+      <main className="container mx-auto px-4 py-12 max-w-5xl">
+        <div className="mb-16">
+          <TrustIndexWidget />
+        </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {caseStudies.map((study, index) => (
@@ -84,5 +93,6 @@ export default function CaseStudiesPage() {
         ))}
       </div>
     </main>
+    </div>
   );
 }

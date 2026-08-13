@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import PageHero from '@/components/shared/PageHero';
 import {
   CheckCircle2,
   XCircle,
@@ -151,37 +152,21 @@ const features = [
 
 export default function OutsourcingVsHiringPage() {
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-background min-h-screen">
 
       {/* Hero */}
-      <section className="bg-slate-900 text-white pt-32 pb-24 px-4">
-        <div className="container mx-auto max-w-4xl text-center">
-          <span className="inline-block text-xs font-black uppercase tracking-widest text-primary bg-primary/10 px-4 py-2 rounded-full mb-6">
-            For Accountants &amp; Bookkeepers
-          </span>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-6 leading-tight">
-            Outsourcing vs Hiring Staff<br />
-            <span className="text-primary">The Honest Comparison</span>
-          </h1>
-          <p className="text-xl text-slate-300 leading-relaxed max-w-2xl mx-auto mb-10">
-            Every growing accounting practice reaches the same crossroads: take on more clients and hire someone, or find a smarter way to scale. Here's everything you need to make the right decision.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/become-a-partner"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary text-white font-bold rounded-full hover:bg-primary/90 transition-all shadow-lg text-base"
-            >
-              Become a Partner <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/contact"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/10 text-white font-bold rounded-full hover:bg-white/20 transition-all text-base"
-            >
-              Talk to Us First
-            </Link>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        badgeText="For Accountants & Bookkeepers"
+        title={
+          <>
+            Outsourcing vs Hiring Staff — <span className="text-gradient">The Honest Comparison</span>
+          </>
+        }
+        subtitle="Every growing accounting practice reaches the same crossroads: take on more clients and hire someone, or find a smarter way to scale. Here's everything you need to make the right decision."
+        primaryCta={{ text: 'Become a Partner', href: '/become-a-partner' }}
+        secondaryCta={{ text: 'Talk to Us First', href: '/contact' }}
+        showCredibilityRibbon={true}
+      />
 
       {/* Quick Stats */}
       <section className="bg-primary text-white py-10 px-4">

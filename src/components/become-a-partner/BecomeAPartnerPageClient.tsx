@@ -18,6 +18,8 @@ import { Service } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+import PageHero from '@/components/shared/PageHero';
+
 const TrustIndexWidget = dynamicImport(() => import('@/components/shared/TrustIndexWidget'), {
   ssr: false,
 });
@@ -270,28 +272,19 @@ const faqs = [
 export default function BecomeAPartnerPageClient() {
   return (
     <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
-      <section className="relative overflow-hidden bg-background">
-        {/* Aurora background blobs */}
-        <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
-        <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-20 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
-        <div className="aurora-blob aurora-blue w-[300px] h-[300px] bottom-0 left-1/3 animate-aurora-drift" style={{ animationDelay: '-10s' }} />
-        {/* Dot grid overlay */}
-        <div className="absolute inset-0 bg-dot-grid" />
-
-        <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
-            <div className="absolute top-10 left-10"><Bot size={120} /></div>
-            <div className="absolute bottom-10 right-10"><Wallet size={120} /></div>
-        </div>
-        <div className="container mx-auto px-4 py-20 text-center relative z-10">
-            <h1 className="text-4xl font-black tracking-tight md:text-6xl lg:text-7xl text-hero-gradient pb-2">
-                10X Your Practice — <span className="text-gradient">Without Hiring More Staff.</span>
-            </h1>
-            <p className="mt-6 text-xl text-foreground/80 max-w-4xl mx-auto font-medium leading-relaxed">
-                Never lose a client because you lack capacity, specialised expertise, or time. With the Bookkeeper Empowerment Initiative (BEI), you can confidently outsource complex work while keeping full control of the client relationship and growing your revenue.
-            </p>
-            <p className="mt-6 text-2xl font-bold text-foreground/90 uppercase tracking-tighter">Expand your services. Protect your clients. Scale your practice.</p>
-        </div>
-      </section>
+      <PageHero
+        badgeText="Bookkeeper Empowerment Initiative (BEI)"
+        badgeIcon={<Rocket className="h-3.5 w-3.5 text-primary animate-pulse" />}
+        title={
+          <>
+            10X Your Practice — <span className="text-gradient">Without Hiring More Staff.</span>
+          </>
+        }
+        subtitle="Never lose a client because you lack capacity, specialised expertise, or time. Confidently outsource complex work while keeping full control of the client relationship and growing your revenue."
+        primaryCta={{ text: 'Apply for Partner Access', href: '/partner-signup' }}
+        secondaryCta={{ text: 'Outsourcing vs Hiring Guide', href: '/outsourcing-vs-hiring' }}
+        showCredibilityRibbon={true}
+      />
 
       <div className="container mx-auto px-4">
         <TrustIndexWidget />

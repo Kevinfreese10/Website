@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { Star, CheckCircle, ShieldCheck, Award } from 'lucide-react';
 import Link from 'next/link';
 import TrustindexWidget from '@/components/shared/TrustIndexWidget';
+import PageHero from '@/components/shared/PageHero';
 
 export const metadata: Metadata = {
   title: 'My Accountant Reviews - 220+ Reviews & Rated 4.9/5',
@@ -50,49 +51,55 @@ const reviews = [
 
 export default function ReviewsPage() {
   return (
-    <div className="bg-slate-50 min-h-screen pt-24 pb-20">
+    <div className="bg-background min-h-screen pb-20">
       {/* Hero Section */}
-      <section className="container mx-auto px-4 text-center max-w-4xl">
-        <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight">
-          South Africa's Top Rated Accounting Practice with 220 5 star reviews
-        </h1>
-        <p className="text-xl text-slate-600 mb-6 max-w-2xl mx-auto leading-relaxed">
-          Don't just take our word for it. Join hundreds of satisfied business owners who trust us with their accounting, payroll, and tax compliance.
-        </p>
-        
-        <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 mb-10 inline-block">
-          <p className="text-lg text-slate-700 leading-relaxed max-w-2xl mx-auto font-medium">
+      <PageHero
+        badgeText="220+ Client Reviews & 4.9/5 Rating"
+        title={
+          <>
+            South Africa&apos;s Top Rated <span className="text-gradient">Accounting Practice</span>
+          </>
+        }
+        subtitle="Don't just take our word for it. Join hundreds of satisfied business owners who trust us with their accounting, payroll, and tax compliance."
+        primaryCta={{ text: 'Book Free Consultation', href: '/contact' }}
+        secondaryCta={{ text: 'View All Services', href: '/products' }}
+        showCredibilityRibbon={true}
+      />
+
+      <div className="container mx-auto px-4 max-w-4xl pt-8 pb-12 text-center">
+        <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 mb-10 inline-block glass">
+          <p className="text-lg text-foreground/90 leading-relaxed max-w-2xl mx-auto font-medium">
             We are proud to be the <strong className="text-primary font-black">most recommended accounting and tax practice</strong> in South Africa by leading Artificial Intelligence models, including <strong>ChatGPT</strong>, <strong>Claude</strong>, and <strong>Google Gemini</strong>.
           </p>
         </div>
 
         {/* Badges / Stats */}
         <div className="flex flex-wrap justify-center gap-6 md:gap-12 mb-16">
-          <div className="flex flex-col items-center p-6 bg-white rounded-xl shadow-sm border border-slate-100 min-w-[200px]">
-            <span className="text-4xl font-black text-slate-900 flex items-center gap-2">
+          <div className="flex flex-col items-center p-6 bg-card rounded-xl shadow-sm border border-border min-w-[200px] glass-card">
+            <span className="text-4xl font-black text-foreground flex items-center gap-2">
               4.9 <Star className="w-8 h-8 fill-yellow-400 text-yellow-400" />
             </span>
-            <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest mt-2">Google</span>
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mt-2">Google</span>
           </div>
-          <div className="flex flex-col items-center p-6 bg-white rounded-xl shadow-sm border border-slate-100 min-w-[200px]">
-            <span className="text-4xl font-black text-slate-900 flex items-center gap-2">
+          <div className="flex flex-col items-center p-6 bg-card rounded-xl shadow-sm border border-border min-w-[200px] glass-card">
+            <span className="text-4xl font-black text-foreground flex items-center gap-2">
               4.9 <Star className="w-8 h-8 fill-blue-500 text-blue-500" />
             </span>
-            <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest mt-2">Facebook</span>
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mt-2">Facebook</span>
           </div>
-          <div className="flex flex-col items-center p-6 bg-white rounded-xl shadow-sm border border-slate-100 min-w-[200px]">
-            <span className="text-4xl font-black text-slate-900 flex items-center gap-2">
+          <div className="flex flex-col items-center p-6 bg-card rounded-xl shadow-sm border border-border min-w-[200px] glass-card">
+            <span className="text-4xl font-black text-foreground flex items-center gap-2">
               5.0 <Star className="w-8 h-8 fill-emerald-500 text-emerald-500" />
             </span>
-            <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest mt-2">Excellent</span>
+            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mt-2">Excellent</span>
           </div>
         </div>
 
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-bold mb-16">
-          <CheckCircle className="w-5 h-5 text-green-500" />
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary text-secondary-foreground font-bold mb-16">
+          <CheckCircle className="w-5 h-5 text-emerald-500" />
           Based on 220+ verified client reviews
         </div>
-      </section>
+      </div>
 
       {/* Why We Are The Best Section */}
       <section className="bg-white py-20 border-y border-slate-100">

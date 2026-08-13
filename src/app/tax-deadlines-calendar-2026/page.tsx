@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { Calendar } from 'lucide-react';
+import PageHero from '@/components/shared/PageHero';
 
 export const metadata: Metadata = {
   title: 'Tax Deadlines Calendar 2026 | My Accountant',
@@ -18,15 +19,22 @@ export default function TaxDeadlinesPage() {
   ];
 
   return (
-    <main className="container mx-auto px-4 py-16 max-w-4xl">
-      <div className="flex items-center gap-4 mb-8">
-        <Calendar className="h-10 w-10 text-blue-600" />
-        <h1 className="text-4xl font-black text-slate-900">Tax Deadlines 2026</h1>
-      </div>
-      
-      <p className="text-lg text-slate-600 mb-12">
-        Missing a SARS deadline can result in severe penalties and interest. Keep track of the crucial dates below to ensure your business remains fully compliant.
-      </p>
+    <div className="bg-background min-h-screen pb-16">
+      <PageHero
+        badgeText="SARS Compliance Calendar"
+        badgeIcon={<Calendar className="h-3.5 w-3.5 text-primary animate-pulse" />}
+        title={
+          <>
+            SARS Tax Deadlines <span className="text-gradient">Calendar 2026</span>
+          </>
+        }
+        subtitle="Missing a SARS deadline can result in severe penalties and interest. Keep track of crucial dates to ensure your business remains fully compliant."
+        primaryCta={{ text: 'Book Free Tax Consultation', href: '/contact' }}
+        secondaryCta={{ text: 'View Tax Services', href: '/products#sars-services' }}
+        showCredibilityRibbon={true}
+      />
+
+      <main className="container mx-auto px-4 py-12 max-w-4xl">
 
       <div className="relative border-l-4 border-blue-100 ml-4 pl-8 space-y-12">
         {deadlines.map((item, index) => (
@@ -38,5 +46,6 @@ export default function TaxDeadlinesPage() {
         ))}
       </div>
     </main>
+    </div>
   );
 }

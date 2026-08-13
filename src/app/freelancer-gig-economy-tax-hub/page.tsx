@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
+import PageHero from '@/components/shared/PageHero';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
@@ -48,23 +49,19 @@ export default function FreelancerHubPage() {
   ];
 
   return (
-    <div className="space-y-16 pb-16">
-      <section className="bg-slate-50 text-slate-900 py-20 lg:py-32 border-b border-slate-200/50">
-        <div className="container mx-auto px-4 text-center">
-            <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-8">
-                <Laptop className="h-8 w-8 text-primary" />
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl max-w-4xl mx-auto text-hero-gradient pb-2">
-                The Freelancer & Gig Economy Tax Hub
-            </h1>
-            <p className="mt-6 text-xl text-slate-600 max-w-2xl mx-auto">
-                Everything South African freelancers, digital nomads, and remote workers need to know about navigating SARS, foreign income, and running a lean independent business.
-            </p>
-            <Button asChild size="lg" className="mt-10 font-bold px-10 h-12">
-                <Link href="/contact">Get Expert Tax Help</Link>
-            </Button>
-        </div>
-      </section>
+    <div className="space-y-16 pb-16 bg-background">
+      <PageHero
+        badgeText="Freelancer & Remote Worker Hub"
+        title={
+          <>
+            The Freelancer &amp; <span className="text-gradient">Gig Economy Tax Hub</span>
+          </>
+        }
+        subtitle="Everything South African freelancers, digital nomads, and remote workers need to know about navigating SARS, foreign income, and running a lean independent business."
+        primaryCta={{ text: 'Get Expert Tax Help', href: '/contact' }}
+        secondaryCta={{ text: 'View All Tax Services', href: '/products#sars-services' }}
+        showCredibilityRibbon={true}
+      />
 
       <TrustIndexWidget />
 
