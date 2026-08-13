@@ -137,6 +137,7 @@ const navGroups = [
     href: '/become-a-partner',
     items: [
       { label: 'Partner Program (BEI)', href: '/become-a-partner' },
+      { label: "Outsourcing vs Hiring", href: '/blog/outsourcing-vs-hiring-accountants' },
       { label: 'Partner Jobs Board', href: '/jobs' },
       { label: 'Sign Up', href: '/partner-signup' },
     ],
