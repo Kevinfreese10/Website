@@ -411,7 +411,11 @@ export default function AdminInboxPage() {
       }
 
       if (activeFilter === 'urgent_important') {
-        const isUrgentOrHigh = email.aiPriority === 'urgent' || email.aiPriority === 'high' || email.aiCategory === 'urgent_deadline';
+        const isUrgentOrHigh =
+          email.aiPriority === 'urgent' ||
+          email.aiPriority === 'high' ||
+          email.aiCategory === 'urgent_deadline' ||
+          (!email.aiPriority && email.aiCategory !== 'spam_marketing');
         if (!isUrgentOrHigh) return false;
       } else if (activeFilter !== 'all' && activeFilter !== 'archived') {
         if (email.aiCategory !== activeFilter) return false;
@@ -475,7 +479,12 @@ export default function AdminInboxPage() {
 
       counts['all'] = (counts['all'] || 0) + 1;
 
-      if (email.aiPriority === 'urgent' || email.aiPriority === 'high' || email.aiCategory === 'urgent_deadline') {
+      if (
+        email.aiPriority === 'urgent' ||
+        email.aiPriority === 'high' ||
+        email.aiCategory === 'urgent_deadline' ||
+        (!email.aiPriority && email.aiCategory !== 'spam_marketing')
+      ) {
         counts['urgent_important'] = (counts['urgent_important'] || 0) + 1;
       }
 

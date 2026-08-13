@@ -400,18 +400,27 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
               }
             }
 
+            // Ensure non-spam emails get appropriate category and priority defaults for Urgent & Important tab
+            if (!updates.aiPriority) updates.aiPriority = 'high';
+            if (!updates.aiCategory) updates.aiCategory = 'client_query';
+
             await task.docRef.update(updates);
           } catch (aiErr: any) {
             console.error(`[Email Sync API] Error in AI pipeline for email ${task.messageId}:`, aiErr.message);
           }
         }
-        console.log(`[Email Sync API] Tiered AI background processing complete.`);
+        console.log(`[Email Sync API] Tiered AI processing complete.`);
       };
 
-      processAiTasks().catch(err => console.error('[Email Sync API] Background processing error:', err));
+      // Await AI processing synchronously so sync finishes when triage and categorization are done
+      try {
+        await processAiTasks();
+      } catch (err: any) {
+        console.error('[Email Sync API] AI processing error:', err);
+      }
     }
 
-    console.log(`[Email Sync] Complete. ${newEmailCount} new emails synced.`);
+    console.log(`[Email Sync] Complete. ${newEmailCount} new emails synced and triaged.`);
 
     return {
       success: true,
