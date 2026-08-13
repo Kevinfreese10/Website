@@ -548,6 +548,11 @@ export default function AdminInboxPage() {
     try {
       const res = await analyzeEmailAction(emailId);
       if (res.success) {
+        if (res.email) {
+          setEmails((prev) =>
+            prev.map((item) => (item.id === emailId ? { ...item, ...res.email } : item))
+          );
+        }
         toast({
           title: 'Email Analyzed',
           description: 'AI summary, priority, and category generated.',

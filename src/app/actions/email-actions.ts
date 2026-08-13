@@ -630,7 +630,7 @@ export async function addAutoArchiveRule(senderEmail: string): Promise<{ success
 
 // ─── 19. Analyze Email (Manual Action) ───────────────────────────────────────
 
-export async function analyzeEmailAction(emailId: string): Promise<{ success: boolean; error?: string }> {
+export async function analyzeEmailAction(emailId: string): Promise<{ success: boolean; email?: Record<string, any>; error?: string }> {
   try {
     const adminDb = getAdminDb();
     const docRef = adminDb.collection('emails').doc(emailId);
@@ -641,33 +641,39 @@ export async function analyzeEmailAction(emailId: string): Promise<{ success: bo
     }
 
     const email = docSnap.data() as Email;
+    const bodyText = email.bodyText || (email.bodyHtml ? email.bodyHtml.replace(/<[^>]*>?/gm, '') : '') || email.subject || '';
+    const senderEmail = email.from?.email || 'unknown@domain.com';
+    const senderName = email.from?.name || senderEmail;
 
     const { triageEmail } = await import('@/ai/flows/triage-email');
     const { summarizeEmail } = await import('@/ai/flows/summarize-email');
     const { extractEmailActions } = await import('@/ai/flows/extract-email-actions');
+    const { draftEmailReply } = await import('@/ai/flows/draft-email-reply');
 
-    const [triageResult, summaryResult, actionsResult, draftResult] = await Promise.all([
+    console.log(`[analyzeEmailAction] Running AI analysis for emailId: ${emailId}`);
+
+    const [triageResult, summaryResult, actionsResult, draftResult] = await Promise.allSettled([
       triageEmail({
-        subject: email.subject,
-        body: email.bodyText,
-        senderEmail: email.from.email,
-        senderName: email.from.name || email.from.email,
+        subject: email.subject || '',
+        body: bodyText,
+        senderEmail,
+        senderName,
       }),
       summarizeEmail({
-        subject: email.subject,
-        body: email.bodyText,
-        senderName: email.from.name || email.from.email,
+        subject: email.subject || '',
+        body: bodyText,
+        senderName,
       }),
       extractEmailActions({
-        subject: email.subject,
-        body: email.bodyText,
-        senderEmail: email.from.email,
-        senderName: email.from.name || email.from.email,
+        subject: email.subject || '',
+        body: bodyText,
+        senderEmail,
+        senderName,
       }),
       draftEmailReply({
-        subject: email.subject,
-        body: email.bodyText,
-        senderName: email.from.name || email.from.email,
+        subject: email.subject || '',
+        body: bodyText,
+        senderName,
         category: email.aiCategory || 'other',
       }),
     ]);
@@ -677,31 +683,43 @@ export async function analyzeEmailAction(emailId: string): Promise<{ success: bo
       analyzedAt: new Date().toISOString(),
     };
 
-    if (triageResult.success && triageResult.data) {
-      if (triageResult.data.category) updates.aiCategory = triageResult.data.category;
-      if (triageResult.data.priority) updates.aiPriority = triageResult.data.priority;
-      if (triageResult.data.sentiment) updates.aiSentiment = triageResult.data.sentiment;
+    if (triageResult.status === 'fulfilled' && triageResult.value.success && triageResult.value.data) {
+      const data = triageResult.value.data;
+      if (data.category) updates.aiCategory = data.category;
+      if (data.priority) updates.aiPriority = data.priority;
+      if (data.sentiment) updates.aiSentiment = data.sentiment;
     }
 
-    if (summaryResult.success && summaryResult.data) {
-      if (summaryResult.data.summary) updates.aiSummary = summaryResult.data.summary;
+    if (summaryResult.status === 'fulfilled' && summaryResult.value.success && summaryResult.value.data) {
+      const data = summaryResult.value.data;
+      if (data.summary) updates.aiSummary = data.summary;
     }
 
-    if (actionsResult.success && actionsResult.data) {
-      const formattedActions = actionsResult.data.actionItems.map(
-        (item: any) => `[${item.type.replace('_', ' ').toUpperCase()}] (${item.priority.toUpperCase()}) ${item.description}${item.suggestedDueDate ? ` (Due: ${item.suggestedDueDate})` : ''}`
-      );
-      if (formattedActions.length > 0) updates.aiActionItems = formattedActions;
+    if (actionsResult.status === 'fulfilled' && actionsResult.value.success && actionsResult.value.data) {
+      const data = actionsResult.value.data;
+      if (data.actionItems && Array.isArray(data.actionItems)) {
+        const formattedActions = data.actionItems.map(
+          (item: any) => `[${(item.type || 'ACTION').replace('_', ' ').toUpperCase()}] (${(item.priority || 'MEDIUM').toUpperCase()}) ${item.description}${item.suggestedDueDate ? ` (Due: ${item.suggestedDueDate})` : ''}`
+        );
+        if (formattedActions.length > 0) updates.aiActionItems = formattedActions;
+      }
     }
 
-    if (draftResult.success && draftResult.data) {
-      const replyData = draftResult.data as any;
+    if (draftResult.status === 'fulfilled' && draftResult.value.success && draftResult.value.data) {
+      const replyData = draftResult.value.data as any;
       const draftText = replyData.replyBody || replyData.draftReply || '';
       if (draftText) updates.aiDraftReply = draftText;
     }
 
+    // Fallbacks if AI didn't return category/summary
+    if (!updates.aiCategory) updates.aiCategory = 'client_enquiry';
+    if (!updates.aiPriority) updates.aiPriority = 'medium';
+    if (!updates.aiSummary) updates.aiSummary = `Email regarding: "${email.subject || 'General Enquiry'}". Client ${senderName} (${senderEmail}) requested assistance.`;
+
+    console.log(`[analyzeEmailAction] Updates to apply:`, updates);
+
     await docRef.update(updates);
-    return { success: true };
+    return { success: true, email: updates };
   } catch (error: any) {
     console.error('[analyzeEmailAction] Error:', error);
     return { success: false, error: error.message || 'Failed to analyze email' };
