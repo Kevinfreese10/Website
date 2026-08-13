@@ -51,7 +51,7 @@ export async function summarizeEmail(
 
 const prompt = ai.definePrompt({
   name: 'summarizeEmailPrompt',
-  model: 'googleai/gemini-2.5-flash',
+  model: 'googleai/gemini-2.5-flash-lite',
   input: { schema: SummarizeEmailInputSchema },
   output: { schema: SummarizeEmailOutputSchema },
   prompt: `You are a professional email summarizer for a South African accounting firm called "Tax Shop / My Accountant".

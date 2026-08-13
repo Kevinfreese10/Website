@@ -63,7 +63,7 @@ export async function triageEmail(
 
 const prompt = ai.definePrompt({
   name: 'triageEmailPrompt',
-  model: 'googleai/gemini-2.5-flash',
+  model: 'googleai/gemini-2.5-flash-lite',
   input: { schema: TriageEmailInputSchema },
   output: { schema: TriageEmailOutputSchema },
   prompt: `You are an expert email triage assistant for a South African accounting firm called "Tax Shop / My Accountant".

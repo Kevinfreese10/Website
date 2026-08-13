@@ -125,7 +125,7 @@ ${kbText}
 
 const prompt = ai.definePrompt({
   name: 'draftEmailReplyPrompt',
-  model: 'googleai/gemini-2.5-flash',
+  model: 'googleai/gemini-2.5-flash-lite',
   input: { schema: DraftEmailReplyInputSchema },
   output: { schema: DraftEmailReplyOutputSchema },
   prompt: `You are a professional email reply drafter for a South African accounting firm called "Tax Shop / My Accountant".

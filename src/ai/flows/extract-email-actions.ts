@@ -62,7 +62,7 @@ export async function extractEmailActions(
 
 const prompt = ai.definePrompt({
   name: 'extractEmailActionsPrompt',
-  model: 'googleai/gemini-2.5-flash',
+  model: 'googleai/gemini-2.5-flash-lite',
   input: { schema: ExtractEmailActionsInputSchema },
   output: { schema: ExtractEmailActionsOutputSchema },
   prompt: `You are an expert task extraction assistant for a South African accounting firm called "Tax Shop / My Accountant".
