@@ -439,7 +439,7 @@ export default function AdminDashboardPage() {
     };
 
     const handleBulkAssign = async (staffId: string) => {
-        if (selectedRoadmapIds.length === 0) return;
+        if (!user || selectedRoadmapIds.length === 0) return;
         
         setIsLoading(true);
         const batch = writeBatch(db);
