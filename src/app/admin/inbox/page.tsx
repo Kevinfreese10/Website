@@ -92,20 +92,18 @@ import { ToastAction } from '@/components/ui/toast';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-type FilterTab = 'all' | 'archived' | 'priority_urgent' | 'priority_high' | EmailCategory;
+type FilterTab = 'urgent_important' | 'all' | 'archived' | EmailCategory;
 
 const FILTER_TABS: { value: FilterTab; label: string }[] = [
+  { value: 'urgent_important', label: 'Urgent & Important' },
   { value: 'all', label: 'All' },
-  { value: 'priority_urgent', label: 'Urgent' },
-  { value: 'priority_high', label: 'Important' },
-  { value: 'urgent_deadline', label: 'Urgent Deadline' },
   { value: 'client_query', label: 'Client Queries' },
   { value: 'sars_correspondence', label: 'SARS' },
   { value: 'document_submission', label: 'Documents' },
   { value: 'payment_related', label: 'Payments' },
   { value: 'complaint', label: 'Complaints' },
-  { value: 'archived', label: 'Archived' },
   { value: 'other', label: 'Other' },
+  { value: 'archived', label: 'Archived' },
 ];
 
 const PRIORITY_STYLES: Record<string, string> = {
@@ -227,7 +225,7 @@ export default function AdminInboxPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('urgent_important');
 
   // Sync
   const [isSyncing, setIsSyncing] = useState(false);
@@ -412,10 +410,9 @@ export default function AdminInboxPage() {
         if (email.status === 'archived') return false;
       }
 
-      if (activeFilter === 'priority_urgent') {
-        if (email.aiPriority !== 'urgent') return false;
-      } else if (activeFilter === 'priority_high') {
-        if (email.aiPriority !== 'high' && email.aiPriority !== 'urgent') return false;
+      if (activeFilter === 'urgent_important') {
+        const isUrgentOrHigh = email.aiPriority === 'urgent' || email.aiPriority === 'high' || email.aiCategory === 'urgent_deadline';
+        if (!isUrgentOrHigh) return false;
       } else if (activeFilter !== 'all' && activeFilter !== 'archived') {
         if (email.aiCategory !== activeFilter) return false;
       }
@@ -468,9 +465,31 @@ export default function AdminInboxPage() {
 
   const threadEmails = selectedThreadEmails;
 
+  const unreadCountsByTab = useMemo(() => {
+    const counts: Record<string, number> = {};
+    FILTER_TABS.forEach(t => { counts[t.value] = 0; });
+
+    for (const email of emails) {
+      // Only count unread non-archived emails for active section badges
+      if (email.status !== 'unread') continue;
+
+      counts['all'] = (counts['all'] || 0) + 1;
+
+      if (email.aiPriority === 'urgent' || email.aiPriority === 'high' || email.aiCategory === 'urgent_deadline') {
+        counts['urgent_important'] = (counts['urgent_important'] || 0) + 1;
+      }
+
+      if (email.aiCategory && counts[email.aiCategory] !== undefined) {
+        counts[email.aiCategory] = (counts[email.aiCategory] || 0) + 1;
+      }
+    }
+
+    return counts;
+  }, [emails]);
+
   const unreadCount = useMemo(
-    () => emails.filter((e) => e.status === 'unread').length,
-    [emails]
+    () => unreadCountsByTab['all'] || 0,
+    [unreadCountsByTab]
   );
 
   // ─── Handlers ────────────────────────────────────────────────────────
@@ -1187,21 +1206,38 @@ export default function AdminInboxPage() {
         </div>
 
         {/* ─── Filter Tabs ──────────────────────────────────────────── */}
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-          {FILTER_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveFilter(tab.value)}
-              className={cn(
-                'px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap border',
-                activeFilter === tab.value
-                  ? 'bg-[#1877F2] text-white border-[#1877F2] shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none items-center">
+          {FILTER_TABS.map((tab) => {
+            const tabUnread = unreadCountsByTab[tab.value] || 0;
+            const isActive = activeFilter === tab.value;
+
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setActiveFilter(tab.value)}
+                className={cn(
+                  'px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap border flex items-center gap-1.5 shadow-sm',
+                  isActive
+                    ? 'bg-[#1877F2] text-white border-[#1877F2]'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                )}
+              >
+                <span>{tab.label}</span>
+                {tabUnread > 0 && (
+                  <span
+                    className={cn(
+                      'px-1.5 py-0.2 text-[10px] font-extrabold rounded-full transition-colors',
+                      isActive
+                        ? 'bg-white/25 text-white'
+                        : 'bg-blue-100 text-blue-700'
+                    )}
+                  >
+                    {tabUnread}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* ─── Main Split Pane ──────────────────────────────────────── */}
