@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MoreHorizontal, PlusCircle, Loader2, Calendar, ClipboardList, Edit, Check, Trash2, Paperclip } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
+import { UserIcon, AlertOctagon, CheckSquare, Settings2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { notifyStaffOfTaskAssignment } from '@/app/actions/notifications';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Task, User, TaskComment } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -175,6 +176,24 @@ export default function AdminTasksPage() {
         if (taskId) {
             const taskRef = doc(db, 'tasks', taskId);
             await updateDoc(taskRef, { ...taskData });
+
+            if (taskData.assignedTo && Array.isArray(taskData.assignedTo)) {
+                const oldAssignees = selectedTask?.assignedTo || [];
+                const newAssignees = taskData.assignedTo.filter((uid: string) => !oldAssignees.includes(uid));
+                newAssignees.forEach((uid: string) => {
+                    if (uid !== user.uid) {
+                        notifyStaffOfTaskAssignment({
+                            taskId,
+                            taskTitle: taskData.title || selectedTask?.title || 'Updated Task',
+                            taskDescription: taskData.description || selectedTask?.description,
+                            dueDate: taskData.dueDate ? new Date((taskData.dueDate as Timestamp).seconds * 1000).toLocaleDateString() : undefined,
+                            assigneeId: uid,
+                            assignedBy: user.name || 'Admin',
+                            taskUrl: 'https://www.myacc.co.za/admin/tasks'
+                        }).catch(console.error);
+                    }
+                });
+            }
         } else {
             const newTask: Omit<Task, 'id' | 'priority'> = {
                 ...taskData,
@@ -188,6 +207,22 @@ export default function AdminTasksPage() {
             };
             const docRef = await addDoc(collection(db, 'tasks'), newTask);
             taskId = docRef.id;
+
+            if (newTask.assignedTo && Array.isArray(newTask.assignedTo) && newTask.assignedTo.length > 0) {
+                newTask.assignedTo.forEach((uid: string) => {
+                    if (uid !== user.uid) {
+                        notifyStaffOfTaskAssignment({
+                            taskId,
+                            taskTitle: newTask.title,
+                            taskDescription: newTask.description,
+                            dueDate: newTask.dueDate ? new Date((newTask.dueDate as Timestamp).seconds * 1000).toLocaleDateString() : undefined,
+                            assigneeId: uid,
+                            assignedBy: user.name || 'Admin',
+                            taskUrl: 'https://www.myacc.co.za/admin/tasks'
+                        }).catch(console.error);
+                    }
+                });
+            }
         }
 
         if (files && files.length > 0 && taskId) {

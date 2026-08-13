@@ -11,6 +11,7 @@ import { DocumentReviewEmail } from '@/components/emails/DocumentReviewEmail';
 import { NewNoteNotificationEmail } from '@/components/emails/NewNoteNotificationEmail';
 import { OutstandingDocumentsEmail } from '@/components/emails/OutstandingDocumentsEmail';
 import { OrderConfirmationEmail } from '@/components/emails/OrderConfirmationEmail';
+import NewTaskEmail from '@/components/emails/NewTaskEmail';
 import { DocumentRequestEmail } from '@/components/emails/DocumentRequestEmail';
 import { services as allServices } from '@/lib/data';
 import { InvoicePdfDocument } from '@/server/pdf/InvoicePdfDocument';
@@ -378,7 +379,56 @@ export async function sendInvoiceEmailAction({
         
         return { success: true };
     } catch (error: any) {
-        console.error('Failed to send invoice email:', error);
-        return { success: false, error: error.message };
+        console.error('[sendInvoiceEmailAction] Error:', error);
+        return { success: false, error: String(error) };
+    }
+}
+
+export async function notifyStaffOfTaskAssignment({ 
+    taskId, 
+    taskTitle, 
+    taskDescription, 
+    dueDate, 
+    assigneeId, 
+    assignedBy, 
+    taskUrl 
+}: { 
+    taskId: string, 
+    taskTitle: string, 
+    taskDescription?: string, 
+    dueDate?: string, 
+    assigneeId: string, 
+    assignedBy: string, 
+    taskUrl: string 
+}) {
+    try {
+        const adminDb = getAdminDb();
+        const staffSnap = await adminDb.collection('users').doc(assigneeId).get();
+        if (!staffSnap.exists) return { success: false, error: 'Assignee not found' };
+        
+        const staffData = staffSnap.data();
+        if (!staffData?.email) return { success: false, error: 'Assignee has no email' };
+        
+        const emailHtml = render(
+            React.createElement(NewTaskEmail, {
+                assigneeName: staffData.name || 'Staff Member',
+                taskTitle,
+                taskDescription: taskDescription || 'No description provided.',
+                dueDate: dueDate || 'No due date',
+                assignedBy,
+                taskUrl
+            })
+        );
+        
+        await sendEmail({
+            to: staffData.email,
+            subject: `New Task Assigned: ${taskTitle}`,
+            html: emailHtml,
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('[notifyStaffOfTaskAssignment] Error:', error);
+        return { success: false, error: String(error) };
     }
 }

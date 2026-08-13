@@ -23,6 +23,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
+import { notifyStaffOfTaskAssignment } from '@/app/actions/notifications';
+import { notifyStaffOfAssignment } from '@/app/actions/order-actions';
 
 type RecentCommunication = {
     id: string;
@@ -449,6 +451,22 @@ export default function AdminDashboardPage() {
 
         try {
             await batch.commit();
+            
+            selectedRoadmapIds.forEach(taskId => {
+                const t = tasks.find(task => task.id === taskId);
+                if (t && staffId !== user.uid) {
+                    notifyStaffOfTaskAssignment({
+                        taskId,
+                        taskTitle: t.title,
+                        taskDescription: t.description,
+                        dueDate: t.dueDate ? new Date((t.dueDate as Timestamp).seconds * 1000).toLocaleDateString() : undefined,
+                        assigneeId: staffId,
+                        assignedBy: user.name || 'Admin',
+                        taskUrl: 'https://www.myacc.co.za/admin/dashboard'
+                    }).catch(console.error);
+                }
+            });
+
             toast({ 
                 title: 'Bulk Assignment Complete', 
                 description: `Assigned ${selectedRoadmapIds.length} tasks successfully.` 
@@ -480,6 +498,24 @@ export default function AdminDashboardPage() {
             if (taskId) {
                 const taskRef = doc(db, 'tasks', taskId);
                 await updateDoc(taskRef, taskData);
+
+                if (taskData.assignedTo && Array.isArray(taskData.assignedTo)) {
+                    const oldAssignees = selectedTask?.assignedTo || [];
+                    const newAssignees = taskData.assignedTo.filter((uid: string) => !oldAssignees.includes(uid));
+                    newAssignees.forEach((uid: string) => {
+                        if (uid !== user.uid) {
+                            notifyStaffOfTaskAssignment({
+                                taskId,
+                                taskTitle: taskData.title || selectedTask?.title || 'Updated Task',
+                                taskDescription: taskData.description || selectedTask?.description,
+                                dueDate: taskData.dueDate ? new Date((taskData.dueDate as Timestamp).seconds * 1000).toLocaleDateString() : undefined,
+                                assigneeId: uid,
+                                assignedBy: user.name || 'Admin',
+                                taskUrl: 'https://www.myacc.co.za/admin/dashboard'
+                            }).catch(console.error);
+                        }
+                    });
+                }
             } else {
                 const newTask: Omit<Task, 'id'> = {
                     ...(taskData as any),
@@ -491,6 +527,22 @@ export default function AdminDashboardPage() {
                 };
                 const docRef = await addDoc(collection(db, 'tasks'), newTask);
                 taskId = docRef.id;
+
+                if (newTask.assignedTo && Array.isArray(newTask.assignedTo) && newTask.assignedTo.length > 0) {
+                    newTask.assignedTo.forEach((uid: string) => {
+                        if (uid !== user.uid) {
+                            notifyStaffOfTaskAssignment({
+                                taskId,
+                                taskTitle: newTask.title,
+                                taskDescription: newTask.description,
+                                dueDate: newTask.dueDate ? new Date((newTask.dueDate as Timestamp).seconds * 1000).toLocaleDateString() : undefined,
+                                assigneeId: uid,
+                                assignedBy: user.name || 'Admin',
+                                taskUrl: 'https://www.myacc.co.za/admin/dashboard'
+                            }).catch(console.error);
+                        }
+                    });
+                }
             }
 
             if (files && files.length > 0 && taskId) {
