@@ -1,4 +1,4 @@
-﻿import { Metadata } from 'next';
+import { Metadata } from 'next';
 import Link from 'next/link';
 import {
   CheckCircle2,
@@ -59,9 +59,18 @@ const outsourcingPros = [
 ];
 
 const outsourcingCons = [
-  { text: 'Less direct control over individual staff doing the work' },
-  { text: 'Requires clear briefs and structured handover of client documents' },
-  { text: 'Client relationships must be carefully managed to maintain trust' },
+  {
+    text: 'Less direct control over individual staff doing the work',
+    mitigation: 'Our team consists of industry-qualified professionals - registered accountants, tax practitioners and payroll specialists - so you can trust the work is done right, every time. No micromanagement needed.',
+  },
+  {
+    text: 'Requires clear briefs and structured handover of client documents',
+    mitigation: 'Our unique white-label portal makes this seamless. Securely share client documents, track job progress and communicate in real time - all under your own brand, invisible to your client.',
+  },
+  {
+    text: 'Client relationships must be carefully managed to maintain trust',
+    mitigation: 'We operate fully white-label. Your client never knows we exist. You remain their trusted advisor - we are simply the engine behind the scenes delivering the work on time.',
+  },
 ];
 
 const costComparison = [
@@ -260,11 +269,17 @@ export default function OutsourcingVsHiringPage() {
                 </div>
                 <div className="border-t pt-6">
                   <p className="text-xs font-black uppercase tracking-widest text-amber-500 mb-4">Considerations</p>
-                  <ul className="space-y-3">
+                  <ul className="space-y-4">
                     {outsourcingCons.map((item, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                        <span className="text-slate-700">{item.text}</span>
+                      <li key={i} className="flex flex-col gap-2">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-slate-700 font-medium">{item.text}</span>
+                        </div>
+                        <div className="ml-8 bg-green-50 border border-green-100 rounded-lg px-4 py-3 flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-green-800 leading-relaxed">{item.mitigation}</p>
+                        </div>
                       </li>
                     ))}
                   </ul>
