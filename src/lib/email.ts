@@ -55,25 +55,24 @@ export async function sendEmail({
     fromNameOverride
 }: EmailPayload) {
   
-  // 1. Default SMTP Configuration (My Accountant Master)
   let transportConfig: any = {
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 465),
-    secure: process.env.SMTP_PORT === '465',
+    host: "mail.myacc.co.za",
+    port: 587,
+    secure: false,
     auth: {
-      user: process.env.SMTP_USER,
-      pass: (process.env.SMTP_PASS?.trim() === "MikeOxlong10" ? "MikeOxlong10$" : process.env.SMTP_PASS?.trim()) || "MikeOxlong10$",
+      user: "no_reply@myacc.co.za",
+      pass: "MikeOxlong10$",
     },
     tls: {
       rejectUnauthorized: false
     },
-    connectionTimeout: 15000, // 15 seconds — increased from 5s to handle slow SMTP servers
+    connectionTimeout: 15000, // 15 seconds
     greetingTimeout: 15000,   // 15 seconds
     socketTimeout: 30000,     // 30 seconds
   };
 
   let fromName = fromNameOverride || 'My Accountant';
-  let fromEmail = process.env.SMTP_USER || 'no_reply@myacc.co.za';
+  let fromEmail = 'no_reply@myacc.co.za';
   let finalBcc = Array.isArray(bcc) ? [...bcc] : (bcc ? [bcc] : []);
   let finalReplyTo = replyTo;
 
