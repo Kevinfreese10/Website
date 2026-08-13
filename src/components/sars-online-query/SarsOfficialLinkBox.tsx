@@ -6,11 +6,17 @@ import { Button } from '@/components/ui/button';
 interface SarsOfficialLinkBoxProps {
   title?: string;
   description?: string;
+  portalUrl?: string;
+  guideUrl?: string;
+  guideButtonText?: string;
 }
 
 export default function SarsOfficialLinkBox({
   title = "Official SARS Online Query System (SOQS)",
-  description = "Access the official SARS digital portal to submit your query directly without queuing at a SARS branch or logging into eFiling."
+  description = "Access the official SARS digital portal to submit your query directly without queuing at a SARS branch or logging into eFiling.",
+  portalUrl = "https://tools.sars.gov.za/soqs",
+  guideUrl = "https://www.sars.gov.za/individuals/i-need-help-with-my-tax/use-our-digital-channels/",
+  guideButtonText = "SARS Official Service Guide"
 }: SarsOfficialLinkBoxProps) {
   return (
     <Card className="border-2 border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-background shadow-lg overflow-hidden my-8">
@@ -32,7 +38,7 @@ export default function SarsOfficialLinkBox({
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
             <Button asChild size="lg" className="bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-md">
               <a 
-                href="https://tools.sars.gov.za/soqs" 
+                href={portalUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2"
@@ -44,12 +50,12 @@ export default function SarsOfficialLinkBox({
             </Button>
             <Button asChild size="lg" variant="outline" className="border-amber-500/30 hover:bg-amber-500/10 font-bold">
               <a 
-                href="https://www.sars.gov.za/individuals/i-need-help-with-my-tax/use-our-digital-channels/" 
+                href={guideUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2"
               >
-                SARS Digital Channels Guide
+                {guideButtonText}
                 <ExternalLink className="h-4 w-4 ml-1" />
               </a>
             </Button>
