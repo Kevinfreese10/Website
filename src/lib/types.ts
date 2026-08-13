@@ -109,6 +109,29 @@ export type OrderNote = {
   attachmentName?: string | null; // For legacy single attachments
 };
 
+export type OrderItem = {
+  serviceId?: string;
+  title: string;
+  quantity?: number;
+  unitPrice?: number;
+  clientPrice?: number;
+  price?: number;
+  total?: number;
+  description?: string;
+  [key: string]: any;
+};
+
+export type AuditEntry = {
+  id: string;
+  action: string;
+  performedBy: string;
+  performedByName?: string;
+  timestamp: string;
+  details?: string;
+  previousValue?: string;
+  newValue?: string;
+};
+
 export type ItnLog = {
   receivedAt: any;
   status: 'Success' | 'Failed';
@@ -126,7 +149,7 @@ export type Order = {
   endCustomerName?: string; 
   endCustomerEmail?: string; 
   date: any;
-  items: any[];
+  items: OrderItem[];
   total: number;
   discountCode: string | null;
   discountAmount: number | null;
@@ -140,6 +163,7 @@ export type Order = {
   notes?: OrderNote[];
   documentUploads?: DocumentUpload[];
   itnHistory?: ItnLog[];
+  auditLog?: AuditEntry[];
   source?: 'Client' | 'Staff' | 'Partner' | 'AI Accountant Signup' | 'Partner Landing Page';
   renewalForClientId?: string;
   documentContact?: 'partner' | 'client';

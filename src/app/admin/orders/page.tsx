@@ -53,6 +53,11 @@ import {
   sendReviewRequestEmailAction, 
   sendOrderStatusUpdateEmailAction 
 } from '@/app/actions/order-actions';
+import {
+  updateOrderStatusAtomic,
+  reassignOrderStaffAtomic,
+  getNextStaffMemberPersisted
+} from '@/app/actions/order-admin-actions';
 import PaymentConfirmationEmail from '@/components/emails/PaymentConfirmationEmail';
 import { Dialog } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -65,7 +70,7 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('active');
   const [assignedFilter, setAssignedFilter] = useState<string>('all');
   const [isReconciling, setIsReconciling] = useState(false);
   const { toast } = useToast();
@@ -180,11 +185,11 @@ export default function AdminOrdersPage() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-        // Status filter: Hide Completed by default when statusFilter is 'all'
-        if (statusFilter !== 'all') {
+        // Status filter: 'active' hides Completed/Cancelled; 'all' shows everything
+        if (statusFilter === 'active') {
+            if (order.status === 'Completed' || order.status === 'Cancelled') return false;
+        } else if (statusFilter !== 'all') {
             if (order.status !== statusFilter) return false;
-        } else {
-            if (order.status === 'Completed') return false;
         }
 
         // Assigned filter
@@ -200,8 +205,9 @@ export default function AdminOrdersPage() {
             const matchesOriginalId = order.originalOrderId?.toLowerCase().includes(term);
             const matchesName = order.customerName.toLowerCase().includes(term) || order.endCustomerName?.toLowerCase().includes(term);
             const matchesEmail = order.customerEmail.toLowerCase().includes(term) || order.endCustomerEmail?.toLowerCase().includes(term);
+            const matchesPhone = order.customerPhone?.toLowerCase().includes(term);
             
-            if (!matchesId && !matchesOriginalId && !matchesName && !matchesEmail) return false;
+            if (!matchesId && !matchesOriginalId && !matchesName && !matchesEmail && !matchesPhone) return false;
         }
 
         return true;

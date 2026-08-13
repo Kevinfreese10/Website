@@ -438,6 +438,17 @@ export default function PartnerOrderDetailsPage() {
   const handleFileUpload = (file: File, serviceId: string, requirementLabel: string) => {
     if (!currentUser || !order) return;
 
+    // Validation: Max 10MB
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast({
+        title: 'File Too Large',
+        description: 'Maximum file size allowed is 10MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const uniqueFileName = `${Date.now()}-${sanitizedFileName}`;
     const storageRef = ref(storage, `uploads/${currentUser.uid}/orders/${order.id}/${uniqueFileName}`);

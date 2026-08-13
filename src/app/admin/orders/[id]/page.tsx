@@ -29,6 +29,7 @@ import PartnerAssignmentEmail from '@/components/emails/PartnerAssignmentEmail';
 import { notifyOfNewNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
+import { updateOrderStatusAtomic, reassignOrderStaffAtomic } from '@/app/actions/order-admin-actions';
 
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
@@ -847,9 +848,126 @@ export default function AdminOrderDetailsPage() {
                     </Card>
                 </div>
                 <div className="lg:col-span-1 space-y-6 sticky top-24">
-                    {assignee && ( <Card><CardHeader className="flex flex-row items-center gap-3 space-y-0"><UserIcon className="h-5 w-5 text-muted-foreground"/><CardTitle className="text-lg">Assigned To</CardTitle></CardHeader><CardContent className="space-y-4"><div className="flex items-center gap-4"><div><p className="font-semibold">{assignee.name}</p><p className="text-sm text-muted-foreground">{assignee.department}</p></div></div></CardContent></Card> )}
+                    {/* Status Control Card */}
+                    <Card>
+                        <CardHeader className="py-4">
+                            <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                <BellRing className="h-4 w-4 text-primary" /> Order Status
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-0">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Current:</span>
+                                <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                            </div>
+                            <Select 
+                                value={order.status} 
+                                onValueChange={async (newStatus: any) => {
+                                    if (!currentUser) return;
+                                    const res = await updateOrderStatusAtomic(order.id, newStatus, {
+                                        id: currentUser.id || (currentUser as any).uid,
+                                        name: currentUser.name || currentUser.email || 'Admin',
+                                    });
+                                    if (res.success) {
+                                        setOrder(prev => prev ? { ...prev, status: newStatus } : null);
+                                        toast({ title: 'Status Updated', description: `Status changed to ${newStatus}` });
+                                    } else {
+                                        toast({ title: 'Error', description: res.error, variant: 'destructive' });
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="w-full h-9 text-xs font-semibold">
+                                    <SelectValue placeholder="Change Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Pending Payment">Pending Payment</SelectItem>
+                                    <SelectItem value="Processing">Processing</SelectItem>
+                                    <SelectItem value="Completed">Completed</SelectItem>
+                                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </CardContent>
+                    </Card>
 
+                    {/* Staff Assignment Card */}
+                    <Card>
+                        <CardHeader className="py-4 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                <UserIcon className="h-4 w-4 text-primary" /> Staff Assignment
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-0">
+                            {assignee ? (
+                                <div className="space-y-1 bg-muted/50 p-2.5 rounded-md border text-xs">
+                                    <p className="font-bold">{assignee.name}</p>
+                                    <p className="text-muted-foreground text-[11px]">{assignee.department || 'No Department'}</p>
+                                    <p className="text-[10px] text-primary">{assignee.email}</p>
+                                </div>
+                            ) : (
+                                <p className="text-xs text-amber-600 font-medium bg-amber-50 p-2 rounded border border-amber-200">
+                                    ⚠️ Unassigned
+                                </p>
+                            )}
 
+                            <Select 
+                                value={assignee?.id || (assignee as any)?.uid || ''} 
+                                onValueChange={async (staffId: string) => {
+                                    if (!currentUser) return;
+                                    const selectedStaff = allStaff.find(s => s.id === staffId || (s as any).uid === staffId);
+                                    const dept = selectedStaff?.department as any || order.department || null;
+                                    const res = await reassignOrderStaffAtomic(order.id, [staffId], dept, {
+                                        id: currentUser.id || (currentUser as any).uid,
+                                        name: currentUser.name || currentUser.email || 'Admin',
+                                    });
+                                    if (res.success) {
+                                        setAssignee(selectedStaff || null);
+                                        setOrder(prev => prev ? { ...prev, assignedTo: [staffId] } : null);
+                                        toast({ title: 'Staff Reassigned', description: `Assigned to ${selectedStaff?.name || staffId}` });
+                                    } else {
+                                        toast({ title: 'Reassignment Failed', description: res.error, variant: 'destructive' });
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="w-full h-9 text-xs">
+                                    <SelectValue placeholder="Reassign Staff..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {allStaff.filter(s => s.role === 'staff' || s.role === 'admin').map((staff) => (
+                                        <SelectItem key={staff.id || (staff as any).uid} value={staff.id || (staff as any).uid}>
+                                            {staff.name} ({staff.department || 'General'})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </CardContent>
+                    </Card>
+
+                    {/* Audit Log Trail Card */}
+                    <Card>
+                        <CardHeader className="py-4">
+                            <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-primary" /> Audit Log Trail
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-0 max-h-64 overflow-y-auto">
+                            {order.auditLog && order.auditLog.length > 0 ? (
+                                order.auditLog.slice().reverse().map((entry) => (
+                                    <div key={entry.id} className="text-xs border-l-2 border-primary/40 pl-3 py-1 space-y-0.5 bg-muted/30 rounded-r">
+                                        <div className="flex items-center justify-between font-bold text-foreground">
+                                            <span>{entry.action.replace('_', ' ')}</span>
+                                            <span className="text-[10px] text-muted-foreground font-normal">
+                                                {format(new Date(entry.timestamp), 'dd/MM, HH:mm')}
+                                            </span>
+                                        </div>
+                                        <p className="text-muted-foreground leading-snug">{entry.details}</p>
+                                        <p className="text-[10px] text-primary font-medium">By: {entry.performedByName || entry.performedBy}</p>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-xs text-muted-foreground text-center py-3">No audit entries recorded yet.</p>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </div>
