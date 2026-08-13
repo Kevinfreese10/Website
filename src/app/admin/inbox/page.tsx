@@ -86,6 +86,7 @@ import {
   deleteEmail,
   addAutoArchiveRule,
   analyzeEmailAction,
+  triageExistingInboxAction,
 } from '@/app/actions/email-actions';
 
 import { ToastAction } from '@/components/ui/toast';
@@ -414,8 +415,7 @@ export default function AdminInboxPage() {
         const isUrgentOrHigh =
           email.aiPriority === 'urgent' ||
           email.aiPriority === 'high' ||
-          email.aiCategory === 'urgent_deadline' ||
-          (!email.aiPriority && email.aiCategory !== 'spam_marketing');
+          email.aiCategory === 'urgent_deadline';
         if (!isUrgentOrHigh) return false;
       } else if (activeFilter !== 'all' && activeFilter !== 'archived') {
         if (email.aiCategory !== activeFilter) return false;
@@ -482,8 +482,7 @@ export default function AdminInboxPage() {
       if (
         email.aiPriority === 'urgent' ||
         email.aiPriority === 'high' ||
-        email.aiCategory === 'urgent_deadline' ||
-        (!email.aiPriority && email.aiCategory !== 'spam_marketing')
+        email.aiCategory === 'urgent_deadline'
       ) {
         counts['urgent_important'] = (counts['urgent_important'] || 0) + 1;
       }
@@ -543,11 +542,13 @@ export default function AdminInboxPage() {
     setIsSyncing(true);
     try {
       const result = await syncEmails();
+      const triageRes = await triageExistingInboxAction(50);
+
       if (result.success) {
         setLastSyncTime(new Date());
         toast({
-          title: 'Sync Complete',
-          description: `${result.count || 0} new emails synced.`,
+          title: 'Sync & Triage Complete',
+          description: `${result.count || 0} new emails synced. ${triageRes.archivedSpamCount || 0} bulk emails archived, ${triageRes.triagedCount || 0} triaged.`,
         });
         await fetchEmails();
       } else {
@@ -748,13 +749,15 @@ export default function AdminInboxPage() {
       if (result.success) {
         toast({ title: 'Reply Sent', description: 'Your reply has been sent successfully.' });
         const threadId = selectedEmail.threadId || selectedEmail.id;
+        const activeUserEmail = connectionSettings?.smtpUser || connectionSettings?.imapUser || 'kev@thinkestry.co.za';
+        const senderDomain = activeUserEmail.includes('@') ? activeUserEmail.split('@')[1] : 'thinkestry.co.za';
         const newReplyObj = {
           id: result.replyId || `temp-${Date.now()}`,
-          messageId: `<reply-${Date.now()}@myacc.co.za>`,
+          messageId: `<reply-${Date.now()}@${senderDomain}>`,
           threadId,
           from: {
             name: 'My Accountant',
-            email: 'info@myacc.co.za',
+            email: activeUserEmail,
           },
           to: [selectedEmail.from],
           subject: aiDraftSubject || `Re: ${selectedEmail.subject}`,
@@ -1110,13 +1113,15 @@ export default function AdminInboxPage() {
         const originalEmail = emails.find((email) => email.id === emailId);
         if (originalEmail) {
           const threadId = originalEmail.threadId || originalEmail.id;
+          const activeUserEmail = connectionSettings?.smtpUser || connectionSettings?.imapUser || 'kev@thinkestry.co.za';
+          const senderDomain = activeUserEmail.includes('@') ? activeUserEmail.split('@')[1] : 'thinkestry.co.za';
           const newReplyObj = {
             id: result.replyId || `temp-${Date.now()}`,
-            messageId: `<reply-${Date.now()}@myacc.co.za>`,
+            messageId: `<reply-${Date.now()}@${senderDomain}>`,
             threadId,
             from: {
               name: 'My Accountant',
-              email: 'info@myacc.co.za',
+              email: activeUserEmail,
             },
             to: [originalEmail.from],
             subject: replySubject,

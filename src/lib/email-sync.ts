@@ -12,22 +12,26 @@ export function isMarketingOrSpamSender(email: string, subject: string): boolean
   const lowerEmail = email.toLowerCase();
   const lowerSubject = (subject || '').toLowerCase();
 
-  // Known bulk / newsletter / no-reply prefixes & domains
+  // Known bulk / newsletter / marketing / educational webinar domains & prefixes
   const bulkPatterns = [
     'no-reply@', 'noreply@', 'newsletter@', 'marketing@', 'notifications@',
     'info@linkedin.com', 'news@', 'updates@', 'promotions@', 'mailer-daemon@',
     'postmaster@', 'support@mailchimp.com', 'bounce@', 'digest-noreply@',
-    'facebookmail.com', 'account-security-noreply@'
+    'facebookmail.com', 'account-security-noreply@', 'taxfaculty.ac.za',
+    'events@', 'webinar@', 'courses@', 'info@taxfaculty', 'training@',
+    'support@taxfaculty', 'admin@taxfaculty'
   ];
 
   if (bulkPatterns.some(p => lowerEmail.includes(p))) {
     return true;
   }
 
-  // Common marketing keywords in subject
+  // Common marketing / webinar / promotional keywords in subject
   const marketingSubjectKeywords = [
     'unsubscribe', 'view in browser', 'special offer', '% off', 'webinar',
-    'newsletter', 'black friday', 'limited time offer'
+    'newsletter', 'black friday', 'limited time offer', 'professional competence',
+    'structured route', 'workshop', 'masterclass', 'enroll now', 'register today',
+    'tax practice'
   ];
 
   if (marketingSubjectKeywords.some(k => lowerSubject.includes(k))) {
@@ -400,8 +404,8 @@ export async function syncEmailsInternal(): Promise<{ success: boolean; count?: 
               }
             }
 
-            // Ensure non-spam emails get appropriate category and priority defaults for Urgent & Important tab
-            if (!updates.aiPriority) updates.aiPriority = 'high';
+            // Ensure non-spam emails get appropriate category and priority defaults
+            if (!updates.aiPriority) updates.aiPriority = 'medium';
             if (!updates.aiCategory) updates.aiCategory = 'client_query';
 
             await task.docRef.update(updates);

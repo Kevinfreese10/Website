@@ -909,6 +909,8 @@ export type Email = {
   receivedAt: any; // Firestore Timestamp
   attachments: EmailAttachment[];
   // AI-generated fields
+  isAnalyzed?: boolean;
+  analyzedAt?: string;
   aiSummary?: string;
   aiCategory?: EmailCategory;
   aiPriority?: 'urgent' | 'high' | 'medium' | 'low';

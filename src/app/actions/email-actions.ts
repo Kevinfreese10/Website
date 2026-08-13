@@ -297,13 +297,16 @@ export async function sendEmailReply(
 
     const threadId = email.threadId || emailId;
 
+    const senderEmail = smtpUser || process.env.SMTP_USER || 'kev@thinkestry.co.za';
+    const domain = senderEmail.includes('@') ? senderEmail.split('@')[1] : 'thinkestry.co.za';
+
     // Add new email doc for the sent reply
     const replyDocData = {
-      messageId: `<reply-${Date.now()}@myacc.co.za>`,
+      messageId: `<reply-${Date.now()}@${domain}>`,
       threadId,
       from: {
         name: 'My Accountant',
-        email: smtpUser || process.env.SMTP_USER || 'info@myacc.co.za',
+        email: senderEmail,
       },
       to: [email.from],
       subject,
@@ -742,5 +745,99 @@ export async function analyzeEmailAction(emailId: string): Promise<{ success: bo
   } catch (error: any) {
     console.error('[analyzeEmailAction] Error:', error);
     return { success: false, error: error.message || 'Failed to analyze email' };
+  }
+}
+
+// ─── 20. Triage Existing Inbox Emails (Batch Action) ─────────────────────────
+
+export async function triageExistingInboxAction(maxEmails: number = 50): Promise<{ success: boolean; triagedCount?: number; archivedSpamCount?: number; error?: string }> {
+  try {
+    const adminDb = getAdminDb();
+    const { isMarketingOrSpamSender } = await import('@/lib/email-sync');
+    const { triageEmail } = await import('@/ai/flows/triage-email');
+    const { summarizeEmail } = await import('@/ai/flows/summarize-email');
+
+    const snap = await adminDb.collection('emails')
+      .limit(maxEmails)
+      .get();
+
+    let triagedCount = 0;
+    let archivedSpamCount = 0;
+
+    for (const doc of snap.docs) {
+      const email = doc.data() as Email;
+      
+      // Skip already categorized emails
+      if (email.isAnalyzed && email.aiCategory && email.aiPriority) {
+        continue;
+      }
+
+      const senderEmail = email.from?.email || '';
+      const subject = email.subject || '';
+      const bodyText = email.bodyText || (email.bodyHtml ? email.bodyHtml.replace(/<[^>]*>?/gm, '') : '') || subject;
+
+      // Step 1: Pre-filter marketing / webinars / no-reply (0 AI credits)
+      if (isMarketingOrSpamSender(senderEmail, subject)) {
+        await doc.ref.update({
+          status: 'archived',
+          aiCategory: 'spam_marketing',
+          aiPriority: 'low',
+          isAnalyzed: true,
+          aiSummary: 'Auto-filtered marketing, newsletter, or educational announcement.'
+        });
+        archivedSpamCount++;
+        continue;
+      }
+
+      // Step 2: Run AI Triage
+      try {
+        const triageRes = await triageEmail({
+          subject,
+          body: bodyText,
+          senderEmail,
+          senderName: email.from?.name || senderEmail,
+        });
+
+        const updates: Record<string, any> = {
+          isAnalyzed: true,
+          analyzedAt: new Date().toISOString(),
+        };
+
+        if (triageRes.success && triageRes.data) {
+          if (triageRes.data.category === 'spam_marketing') {
+            updates.status = 'archived';
+            updates.aiCategory = 'spam_marketing';
+            updates.aiPriority = 'low';
+            archivedSpamCount++;
+          } else {
+            updates.aiCategory = triageRes.data.category || 'client_query';
+            updates.aiPriority = triageRes.data.priority || 'medium';
+            updates.aiSentiment = triageRes.data.sentiment || 'neutral';
+
+            const summaryRes = await summarizeEmail({
+              subject,
+              body: bodyText,
+              senderName: email.from?.name || senderEmail,
+            });
+            if (summaryRes.success && summaryRes.data?.summary) {
+              updates.aiSummary = summaryRes.data.summary;
+            }
+            triagedCount++;
+          }
+        } else {
+          updates.aiCategory = 'client_query';
+          updates.aiPriority = 'medium';
+        }
+
+        await doc.ref.update(updates);
+      } catch (aiErr: any) {
+        console.error(`[triageExistingInboxAction] Error triaging email ${doc.id}:`, aiErr.message);
+      }
+    }
+
+    return { success: true, triagedCount, archivedSpamCount };
+  } catch (error: any) {
+    console.error('[triageExistingInboxAction] Error:', error);
+    return { success: false, error: error.message };
   }
 }
