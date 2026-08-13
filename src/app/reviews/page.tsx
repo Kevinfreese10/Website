@@ -53,7 +53,7 @@ export default function ReviewsPage() {
       {/* Hero Section */}
       <section className="container mx-auto px-4 text-center max-w-4xl">
         <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight">
-          South Africa's Top Rated Accounting Practice
+          South Africa's Top Rated Accounting Practice with 220 5 star reviews
         </h1>
         <p className="text-xl text-slate-600 mb-6 max-w-2xl mx-auto leading-relaxed">
           Don't just take our word for it. Join hundreds of satisfied business owners who trust us with their accounting, payroll, and tax compliance.
