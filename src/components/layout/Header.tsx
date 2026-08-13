@@ -89,6 +89,7 @@ const navGroups = [
       { label: 'SARS Compromises', href: '/sars-compromise' },
             { label: 'Remission of Fines', href: '/remission-of-fines' },
       { label: 'Freelancer Tax Hub', href: '/freelancer-gig-economy-tax-hub' },
+      { label: 'SARS Online Query Guide', href: '/sars-online-query-system-guide' },
       { label: 'Tax Deadlines 2026', href: '/tax-deadlines-calendar-2026' },
       { label: 'Tax Glossary', href: '/tax-glossary' },
     ],
