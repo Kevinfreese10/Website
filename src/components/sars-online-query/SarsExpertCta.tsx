@@ -33,15 +33,15 @@ export default function SarsExpertCta({
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row gap-4 w-full md:w-auto shrink-0 justify-center">
-            <Button asChild size="lg" className="h-13 px-8 text-base font-bold shadow-lg bg-gradient hover:opacity-90 text-white">
-              <Link href="/contact" className="inline-flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row gap-4 w-full md:w-auto shrink-0 justify-center items-center">
+            <Button asChild size="lg" className="h-12 px-7 text-base font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-200">
+              <Link href="/contact" className="inline-flex items-center justify-center gap-2">
                 <PhoneCall className="h-4 w-4" />
                 Book Consultation
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="h-13 px-8 text-base font-bold border-primary/30 hover:bg-primary/10">
-              <Link href="/products#sars-services" className="inline-flex items-center gap-2">
+            <Button asChild size="lg" variant="outline" className="h-12 px-7 text-base font-bold border-2 border-primary text-primary hover:bg-primary/10 transition-all duration-200">
+              <Link href="/products#sars-services" className="inline-flex items-center justify-center gap-2">
                 View SARS Services
                 <ArrowRight className="h-4 w-4" />
               </Link>
