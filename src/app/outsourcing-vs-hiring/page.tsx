@@ -1,4 +1,4 @@
-import { Metadata } from 'next';
+﻿import { Metadata } from 'next';
 import Link from 'next/link';
 import {
   CheckCircle2,
@@ -38,7 +38,7 @@ const hiringPros = [
 
 const hiringCons = [
   { text: 'High fixed cost: salary, UIF, COIDA, medical aid, leave pay' },
-  { text: 'Lengthy recruitment process — can take 3 to 6 months' },
+  { text: 'Lengthy recruitment process ÔÇö can take 3 to 6 months' },
   { text: 'Risk of a bad hire destroying client trust or exposing you to SARS penalties' },
   { text: 'Staff need ongoing training as tax laws, CIPC rules and software change' },
   { text: 'Sick leave, resignations and notice periods create gaps in service delivery' },
@@ -48,14 +48,14 @@ const hiringCons = [
 ];
 
 const outsourcingPros = [
-  { text: 'Pay only for work done — zero idle salary cost in slow periods' },
+  { text: 'Pay only for work done ÔÇö zero idle salary cost in slow periods' },
   { text: 'Instantly scale capacity up or down to match your client pipeline' },
   { text: 'Access a full team of registered specialists across tax, payroll, CIPC and compliance' },
   { text: 'No recruitment, onboarding or HR administration to manage' },
   { text: 'You maintain the client relationship while we handle the work' },
-  { text: 'Zero risk of SARS penalties — we guarantee compliance and accuracy' },
+  { text: 'Zero risk of SARS penalties ÔÇö we guarantee compliance and accuracy' },
   { text: 'Earn a referral commission or markup on every outsourced job' },
-  { text: 'Your practice can serve 3× more clients without 3× the cost' },
+  { text: 'Your practice can serve 3├ù more clients without 3├ù the cost' },
 ];
 
 const outsourcingCons = [
@@ -67,42 +67,42 @@ const outsourcingCons = [
 const costComparison = [
   {
     item: 'Junior Accountant Salary (annual)',
-    hiring: 'R 180,000 – R 300,000',
+    hiring: 'R 180,000 ÔÇô R 300,000',
     outsourcing: 'R 0',
   },
   {
     item: 'Employer UIF / COIDA Contributions',
-    hiring: '~R 3,600 – R 6,000 / yr',
+    hiring: '~R 3,600 ÔÇô R 6,000 / yr',
     outsourcing: 'R 0',
   },
   {
     item: 'Leave Pay & 13th Cheque',
-    hiring: '~R 15,000 – R 25,000 / yr',
+    hiring: '~R 15,000 ÔÇô R 25,000 / yr',
     outsourcing: 'R 0',
   },
   {
     item: 'Software Licences (Xero, Sage, etc.)',
-    hiring: 'R 6,000 – R 18,000 / yr',
+    hiring: 'R 6,000 ÔÇô R 18,000 / yr',
     outsourcing: 'Included',
   },
   {
     item: 'Training & CPD Courses',
-    hiring: 'R 5,000 – R 15,000 / yr',
+    hiring: 'R 5,000 ÔÇô R 15,000 / yr',
     outsourcing: 'R 0',
   },
   {
     item: 'Recruitment Fees (once-off)',
-    hiring: 'R 20,000 – R 60,000',
+    hiring: 'R 20,000 ÔÇô R 60,000',
     outsourcing: 'R 0',
   },
   {
     item: 'Office Space & Equipment',
-    hiring: 'R 12,000 – R 36,000 / yr',
+    hiring: 'R 12,000 ÔÇô R 36,000 / yr',
     outsourcing: 'R 0',
   },
   {
     item: 'Cost per completed tax return',
-    hiring: 'R 800 – R 2,000+',
+    hiring: 'R 800 ÔÇô R 2,000+',
     outsourcing: 'From R 350 (partner rate)',
   },
 ];
@@ -111,7 +111,7 @@ const features = [
   {
     icon: Zap,
     title: 'Instant Capacity',
-    description: 'Take on 10 new clients tomorrow. We have the team ready — no interviews, no onboarding.',
+    description: 'Take on 10 new clients tomorrow. We have the team ready ÔÇö no interviews, no onboarding.',
   },
   {
     icon: ShieldCheck,
@@ -131,12 +131,12 @@ const features = [
   {
     icon: BookOpen,
     title: 'Specialists Across All Areas',
-    description: 'Tax, payroll, CIPC, SARS disputes, financial statements — one partner, every service.',
+    description: 'Tax, payroll, CIPC, SARS disputes, financial statements ÔÇö one partner, every service.',
   },
   {
     icon: BarChart3,
     title: 'Built-in Practice Management',
-    description: 'Use our portal to track jobs, upload documents and communicate — completely free.',
+    description: 'Use our portal to track jobs, upload documents and communicate ÔÇö completely free.',
   },
 ];
 
@@ -183,7 +183,7 @@ export default function OutsourcingVsHiringPage() {
               <p className="text-sm text-white/70 mt-1">Average annual cost of a junior hire</p>
             </div>
             <div>
-              <p className="text-3xl font-black">3–6 Months</p>
+              <p className="text-3xl font-black">3ÔÇô6 Months</p>
               <p className="text-sm text-white/70 mt-1">Average recruitment timeline in SA</p>
             </div>
             <div>
@@ -336,7 +336,7 @@ export default function OutsourcingVsHiringPage() {
             ))}
           </div>
           <blockquote className="text-2xl font-bold text-slate-800 italic leading-relaxed mb-8">
-            "I was about to hire my third staff member when I discovered the partner programme. I outsource everything I can't handle, mark it up slightly, and I'm earning more than before — with less stress and zero HR headaches."
+            "I was about to hire my third staff member when I discovered the partner programme. I outsource everything I can't handle, mark it up slightly, and I'm earning more than before ÔÇö with less stress and zero HR headaches."
           </blockquote>
           <p className="font-bold text-slate-900">Themba M.</p>
           <p className="text-slate-500 text-sm">Independent Bookkeeper, Johannesburg</p>
