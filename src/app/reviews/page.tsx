@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { Star, CheckCircle, ShieldCheck, Award } from 'lucide-react';
 import Link from 'next/link';
+import TrustindexWidget from '@/components/shared/TrustIndexWidget';
 
 export const metadata: Metadata = {
   title: 'My Accountant Reviews - 220+ Reviews & Rated 4.9/5',
@@ -131,9 +132,11 @@ export default function ReviewsPage() {
 
       {/* Reviews Grid */}
       <section className="container mx-auto px-4 py-20 max-w-6xl">
-        <h2 className="text-3xl font-black text-center text-slate-900 mb-12">What Our Clients Say</h2>
+        <h2 className="text-3xl font-black text-center text-slate-900 mb-6">What Our Clients Say</h2>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
+        <TrustindexWidget />
+        
+        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 mt-12">
           {reviews.map((review, i) => (
             <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full">
               <div className="flex gap-1 mb-4">
