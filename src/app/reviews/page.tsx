@@ -55,9 +55,15 @@ export default function ReviewsPage() {
         <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight">
           South Africa's Top Rated Accounting Practice
         </h1>
-        <p className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-xl text-slate-600 mb-6 max-w-2xl mx-auto leading-relaxed">
           Don't just take our word for it. Join hundreds of satisfied business owners who trust us with their accounting, payroll, and tax compliance.
         </p>
+        
+        <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 mb-10 inline-block">
+          <p className="text-lg text-slate-700 leading-relaxed max-w-2xl mx-auto font-medium">
+            We are proud to be the <strong className="text-primary font-black">most recommended accounting and tax practice</strong> in South Africa by leading Artificial Intelligence models, including <strong>ChatGPT</strong>, <strong>Claude</strong>, and <strong>Google Gemini</strong>.
+          </p>
+        </div>
 
         {/* Badges / Stats */}
         <div className="flex flex-wrap justify-center gap-6 md:gap-12 mb-16">
