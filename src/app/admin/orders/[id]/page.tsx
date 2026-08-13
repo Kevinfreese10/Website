@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Eye, EyeOff, Calendar, ShoppingBag, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -641,19 +641,103 @@ export default function AdminOrderDetailsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2 space-y-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Order {order.originalOrderId || order.id}</CardTitle>
-                            <div className="text-sm text-muted-foreground">Date: {format(new Date(order.date), 'dd/MM/yyyy')} | Status: <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge></div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div><h3 className="font-semibold text-muted-foreground mb-2">Order Items</h3>
-                                    <div className="space-y-4">{order.items.map((item: any) => ( <div key={item.id} className="flex justify-between items-center"><div><p className="font-semibold">{item.title}</p><p className="text-sm text-muted-foreground">Qty: {item.quantity}</p></div><p>{formatPrice(item.price)}</p></div> ))}</div>
-                                    <Separator className="my-4" /><div className="flex justify-between font-bold text-lg"><span>Total</span><span>{formatPrice(order.total)}</span></div>
+                    <Card className="border shadow-md bg-card overflow-hidden">
+                        <CardHeader className="bg-muted/30 border-b pb-4">
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-3">
+                                        <h2 className="text-2xl font-black tracking-tight text-foreground">
+                                            Order #{order.originalOrderId || order.id}
+                                        </h2>
+                                        <Badge variant={getStatusVariant(order.status)} className="px-3 py-1 text-xs font-bold uppercase tracking-wider shadow-sm">
+                                            {order.status}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-1">
+                                        <span className="flex items-center gap-1.5 font-medium">
+                                            <Calendar className="h-3.5 w-3.5 text-primary" />
+                                            {format(new Date(order.date), 'dd/MM/yyyy, HH:mm')}
+                                        </span>
+                                        {order.source && (
+                                            <span className="flex items-center gap-1.5 font-medium">
+                                                <ShoppingBag className="h-3.5 w-3.5 text-primary" />
+                                                Source: {order.source}
+                                            </span>
+                                        )}
+                                        {order.paymentMethod && (
+                                            <span className="flex items-center gap-1.5 font-medium">
+                                                <CreditCard className="h-3.5 w-3.5 text-primary" />
+                                                Paid via {order.paymentMethod}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div><h3 className="font-semibold text-muted-foreground mb-2">Contact Details</h3>
-                                    <div className="space-y-3"><p className="font-semibold text-lg">{order.customerName}</p>{order.customerEmail && ( <div className="flex items-center gap-2 text-sm"><Mail className="h-4 w-4 text-muted-foreground" /><a href={`mailto:${order.customerEmail}`} className="text-primary hover:underline">{order.customerEmail}</a></div> )}{order.customerPhone && ( <div className="flex items-center gap-2 text-sm"><Phone className="h-4 w-4 text-muted-foreground" /><span>{order.customerPhone}</span></div> )}</div>
+                                {order.resellerId && (
+                                    <Badge variant="outline" className="bg-primary/10 border-primary/30 text-primary px-3 py-1 font-semibold text-xs">
+                                        Reseller / Partner Order
+                                    </Badge>
+                                )}
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Order Items Container */}
+                                <div className="bg-muted/40 p-5 rounded-xl border border-border/60 space-y-4">
+                                    <h3 className="text-xs font-extrabold uppercase tracking-widest text-primary flex items-center gap-2">
+                                        <ShoppingBag className="h-4 w-4" /> Order Items
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {order.items.map((item: any, idx: number) => (
+                                            <div key={item.id || idx} className="flex justify-between items-center py-2 border-b border-border/40 last:border-0 text-sm">
+                                                <div>
+                                                    <p className="font-bold text-foreground">{item.title}</p>
+                                                    <p className="text-xs text-muted-foreground font-medium">Quantity: {item.quantity || 1}</p>
+                                                </div>
+                                                <p className="font-bold text-foreground">{formatPrice(item.price || item.unitPrice || 0)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="bg-primary/10 border border-primary/20 p-3.5 rounded-lg flex justify-between items-center text-primary font-black text-lg">
+                                        <span>Total Amount</span>
+                                        <span>{formatPrice(order.total)}</span>
+                                    </div>
+                                </div>
+
+                                {/* Contact Details Container */}
+                                <div className="bg-muted/40 p-5 rounded-xl border border-border/60 space-y-4">
+                                    <h3 className="text-xs font-extrabold uppercase tracking-widest text-primary flex items-center gap-2">
+                                        <UserIcon className="h-4 w-4" /> Contact Details
+                                    </h3>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <p className="text-xs text-muted-foreground font-medium">Customer Name</p>
+                                            <p className="font-extrabold text-base text-foreground mt-0.5">{order.customerName}</p>
+                                        </div>
+                                        {order.customerEmail && (
+                                            <div>
+                                                <p className="text-xs text-muted-foreground font-medium">Email Address</p>
+                                                <a href={`mailto:${order.customerEmail}`} className="text-sm font-bold text-primary hover:underline flex items-center gap-2 mt-0.5">
+                                                    <Mail className="h-4 w-4 text-primary shrink-0" />
+                                                    {order.customerEmail}
+                                                </a>
+                                            </div>
+                                        )}
+                                        {order.customerPhone && (
+                                            <div>
+                                                <p className="text-xs text-muted-foreground font-medium">Phone Number</p>
+                                                <a href={`tel:${order.customerPhone}`} className="text-sm font-bold text-foreground hover:text-primary flex items-center gap-2 mt-0.5">
+                                                    <Phone className="h-4 w-4 text-primary shrink-0" />
+                                                    {order.customerPhone}
+                                                </a>
+                                            </div>
+                                        )}
+                                        {order.endCustomerName && (
+                                            <div className="pt-2 border-t border-border/40">
+                                                <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider">End Client</p>
+                                                <p className="text-xs font-bold text-foreground">{order.endCustomerName} ({order.endCustomerEmail})</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </CardContent>
