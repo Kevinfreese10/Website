@@ -70,6 +70,8 @@ export default function SarsTaxComplianceStatusPinPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/tcsrequest"
+          guideUrl="https://www.sars.gov.za/pay-tax/tax-compliance-status-system/"
           title="Request Your SARS TCS PIN Online"
           description="Access the SARS digital portal to request your real-time Tax Compliance Status PIN."
         />

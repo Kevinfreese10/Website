@@ -70,6 +70,8 @@ export default function SarsCustomsRlaSupportingDocumentsPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/SubmitRLADocuments"
+          guideUrl="https://www.sars.gov.za/customs-and-excise/registration-licensing-and-accreditation/"
           title="Upload Customs RLA Files Directly to SARS"
           description="Use official SARS online query channels to upload supporting documentation for customs trader applications."
         />

@@ -70,6 +70,8 @@ export default function SarsLargeBusinessLbiQueryPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/LBCQuery"
+          guideUrl="https://www.sars.gov.za/client-segments/large-business/"
           title="Submit a SARS LBI Query Online"
           description="Access official SARS digital channels to lodge technical corporate and international tax inquiries."
         />

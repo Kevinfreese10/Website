@@ -70,6 +70,8 @@ export default function SarsCustomsRlaStatusPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/requestrlastatus"
+          guideUrl="https://www.sars.gov.za/customs-and-excise/registration-licensing-and-accreditation/"
           title="Track Your Customs RLA Status Directly"
           description="Access official SARS Customs online channels to view live processing status and license approvals."
         />

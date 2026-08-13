@@ -70,6 +70,8 @@ export default function SarsDonationsTaxIt144DeclarationPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/DonationsTax"
+          guideUrl="https://www.sars.gov.za/types-of-tax/donations-tax/"
           title="Submit Your SARS IT144 Declaration Online"
           description="Use official SARS digital query portals to submit donations tax returns and calculate payment reference numbers."
         />

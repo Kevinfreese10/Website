@@ -70,6 +70,8 @@ export default function SarsVatVendorSearchVerificationPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://secure.sarsefiling.co.za/vatvendorsearch.aspx"
+          guideUrl="https://www.sars.gov.za/types-of-tax/value-added-tax-vat/"
           title="Verify a SARS VAT Vendor Directly"
           description="Use official SARS digital query portals to check real-time VAT registration status and registered vendor names."
         />

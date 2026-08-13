@@ -70,6 +70,8 @@ export default function SarsDeceasedEstateReportingPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/ReportNewEstateCase"
+          guideUrl="https://www.sars.gov.za/client-segments/estates/"
           title="Report a Deceased Estate Directly with SARS"
           description="Use official SARS digital query portals to register a deceased estate and submit Master's court documentation."
         />

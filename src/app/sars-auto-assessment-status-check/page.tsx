@@ -70,6 +70,8 @@ export default function SarsAutoAssessmentStatusCheckPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/assessmentlookup"
+          guideUrl="https://www.sars.gov.za/types-of-tax/personal-income-tax/auto-assessment/"
           title="Check Your Auto-Assessment Status Directly with SARS"
           description="Use official SARS digital channels to check auto-assessment notifications, refund status, and tax calculations."
         />

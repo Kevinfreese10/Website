@@ -70,6 +70,8 @@ export default function SarsTrustRegistrationOnlinePage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/trustregistration/"
+          guideUrl="https://www.sars.gov.za/types-of-tax/trusts/"
           title="Submit a SARS Trust Registration Query"
           description="Use official SARS digital channels to register your trust for tax and submit required Master's court documentation."
         />

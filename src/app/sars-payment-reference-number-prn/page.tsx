@@ -70,6 +70,8 @@ export default function SarsPaymentReferenceNumberPrnPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/wmprn"
+          guideUrl="https://www.sars.gov.za/pay-tax/how-to-pay/"
           title="Retrieve Your 19-Digit SARS PRN Online"
           description="Access the SARS digital query system to find the exact payment reference number for your tax account."
         />

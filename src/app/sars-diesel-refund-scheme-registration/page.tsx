@@ -70,6 +70,8 @@ export default function SarsDieselRefundSchemeRegistrationPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/DieselRefundsRegistration"
+          guideUrl="https://www.sars.gov.za/customs-and-excise/about-customs/diesel-refund-scheme/"
           title="Submit a SARS Diesel Refund Registration Query"
           description="Access official SARS digital query portals to register for food manufacturing and agricultural diesel rebate schemes."
         />

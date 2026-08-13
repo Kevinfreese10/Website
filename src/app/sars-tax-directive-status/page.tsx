@@ -70,6 +70,8 @@ export default function SarsTaxDirectiveStatusPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/directivestatus"
+          guideUrl="https://www.sars.gov.za/types-of-tax/personal-income-tax/tax-directives/"
           title="Track Your SARS Tax Directive Status Directly"
           description="Access official SARS digital channels to view live status updates for lump sum tax directives."
         />

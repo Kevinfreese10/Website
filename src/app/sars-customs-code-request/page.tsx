@@ -70,6 +70,8 @@ export default function SarsCustomsCodeRequestPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/requestcustomscode/"
+          guideUrl="https://www.sars.gov.za/customs-and-excise/"
           title="Query Your SARS Customs Code Online"
           description="Access official SARS digital channels to request or verify importer/exporter customs registration codes."
         />

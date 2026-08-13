@@ -70,6 +70,8 @@ export default function SarsOutstandingReturnsQueryPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/visualdashboard"
+          guideUrl="https://www.sars.gov.za/types-of-tax/personal-income-tax/"
           title="Check Your Outstanding Returns Directly with SARS"
           description="Access official SARS digital query tools to view unfiled tax returns and penalty statuses."
         />

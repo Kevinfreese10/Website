@@ -70,6 +70,8 @@ export default function SarsReportDigitalFraudPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/ReportDigitalFraud"
+          guideUrl="https://www.sars.gov.za/targeting-tax-crime/report-scams-and-fraud/"
           title="Lodge an Urgent Digital Fraud Report with SARS"
           description="Use official SARS digital security portals to freeze compromised profiles and report unauthorized access."
         />

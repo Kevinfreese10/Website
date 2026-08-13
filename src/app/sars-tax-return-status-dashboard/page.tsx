@@ -70,6 +70,8 @@ export default function SarsTaxReturnStatusDashboardPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/visualdashboard"
+          guideUrl="https://www.sars.gov.za/types-of-tax/personal-income-tax/"
           title="Track Your Tax Return Status Directly"
           description="Check official SARS live updates on your tax return, verification status, and pending refund payments."
         />

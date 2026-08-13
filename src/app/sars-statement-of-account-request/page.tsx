@@ -70,6 +70,8 @@ export default function SarsStatementOfAccountRequestPage() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/accountquery"
+          guideUrl="https://www.sars.gov.za/client-segments/individuals/my-tax-matters/statement-of-account/"
           title="Obtain Your SARS Statement of Account Online"
           description="Request real-time official tax balance statements directly from SARS without visiting a branch."
         />

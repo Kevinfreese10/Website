@@ -70,6 +70,8 @@ export default function SarsNoticeOfRegistrationIt150Page() {
 
       <section className="container mx-auto px-4 max-w-4xl">
         <SarsOfficialLinkBox
+          portalUrl="https://tools.sars.gov.za/sarsonlinequery/historicnotices/"
+          guideUrl="https://www.sars.gov.za/individuals/i-need-a-tax-number/"
           title="Download Your SARS IT150 Notice of Registration"
           description="Use the official SARS online query system to issue your official tax registration document directly."
         />
