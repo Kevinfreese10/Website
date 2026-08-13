@@ -8,7 +8,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload } from 'lucide-react';
+import { Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload, ArrowUp, ArrowDown, HelpCircle } from 'lucide-react';
 import { generateServiceDetails } from '@/ai/flows/generate-service-details';
 import { generateBlogPostSeo } from '@/ai/flows/generate-blog-post-seo';
 import { useToast } from '@/hooks/use-toast';
@@ -62,9 +62,11 @@ const formSchema = z.object({
   clientRequirements: z.array(z.object({ value: z.string().min(1, 'This field cannot be empty.') })),
   informationToProvide: z.array(z.object({
     label: z.string().min(1, 'Label cannot be empty.'),
-    type: z.enum(['text', 'pdf', 'excel']).optional(),
+    type: z.enum(['text', 'pdf', 'excel', 'image', 'any']).optional(),
+    helpText: z.string().optional(),
     isConditional: z.boolean().optional(),
     conditionalQuestion: z.string().optional(),
+    isRequired: z.boolean().optional(),
   })),
   metaTitle: z.string().min(1, 'Meta Title is required.').max(59, 'Meta Title must be under 60 characters.'),
   metaDescription: z.string().max(160, 'Meta Description must be 160 characters or less.').optional().or(z.literal('')),
@@ -136,7 +138,14 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
       turnaroundTime: service?.turnaroundTime || '',
       whatsIncluded: service?.whatsIncluded?.map(v => ({ value: v })) || [{ value: '' }],
       clientRequirements: service?.clientRequirements?.map(v => ({ value: v })) || [{ value: '' }],
-      informationToProvide: service?.informationToProvide?.map(v => ({ label: v.label, type: v.type || 'text' })) || [],
+      informationToProvide: service?.informationToProvide?.map(v => ({
+        label: v.label,
+        type: v.type || 'text',
+        helpText: v.helpText || '',
+        isConditional: v.isConditional || false,
+        conditionalQuestion: v.conditionalQuestion || '',
+        isRequired: v.isRequired ?? true,
+      })) || [],
       metaTitle: service?.metaTitle || '',
       metaDescription: service?.metaDescription || '',
       metaKeywords: service?.metaKeywords?.map(v => ({value: v})) || [{ value: '' }],
@@ -169,7 +178,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
     name: 'clientRequirements',
   });
 
-  const { fields: infoFields, append: appendInfo, remove: removeInfo, replace: replaceInfo } = useFieldArray({
+  const { fields: infoFields, append: appendInfo, remove: removeInfo, replace: replaceInfo, move: moveInfo } = useFieldArray({
     control: form.control,
     name: 'informationToProvide',
   });
@@ -338,7 +347,14 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
   const handleCopyFrom = (serviceId: string) => {
     const sourceService = allServices.find(s => s.id === serviceId);
     if (sourceService && sourceService.informationToProvide) {
-      replaceInfo(sourceService.informationToProvide);
+      replaceInfo(sourceService.informationToProvide.map(v => ({
+        label: v.label,
+        type: v.type || 'text',
+        helpText: v.helpText || '',
+        isConditional: v.isConditional || false,
+        conditionalQuestion: v.conditionalQuestion || '',
+        isRequired: v.isRequired ?? true,
+      })));
       toast({ title: 'Information Copied', description: `Copied requirements from "${sourceService.title}".`});
     }
   };
@@ -553,16 +569,16 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
             </div>
 
             {infoFields.map((field, index) => (
-              <div key={field.id} className="flex flex-col gap-2 p-2 border rounded-md">
+              <div key={field.id} className="flex flex-col gap-3 p-3 border rounded-lg bg-card shadow-sm">
                 <div className="flex items-end gap-2">
                     <FormField
                         control={form.control}
                         name={`informationToProvide.${index}.label`}
                         render={({ field }) => (
                             <FormItem className="flex-grow">
-                            <FormLabel>Field Label</FormLabel>
-                            <FormControl><Input {...field} /></FormControl>
-                            <FormMessage/>
+                              <FormLabel>Field Label</FormLabel>
+                              <FormControl><Input placeholder="e.g. Bank Statement (12 Months)" {...field} /></FormControl>
+                              <FormMessage/>
                             </FormItem>
                         )}
                     />
@@ -570,42 +586,112 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                         control={form.control}
                         name={`informationToProvide.${index}.type`}
                         render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="w-48">
                                 <FormLabel>Field Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} defaultValue={field.value || 'text'}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="text">Text Input</SelectItem>
                                         <SelectItem value="pdf">File Upload (PDF)</SelectItem>
                                         <SelectItem value="excel">File Upload (Excel/CSV)</SelectItem>
+                                        <SelectItem value="image">File Upload (Image/Photo)</SelectItem>
+                                        <SelectItem value="any">File Upload (Any Format)</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
-                    <Button type="button" variant="destructive" size="icon" onClick={() => removeInfo(index)}><Trash className="h-4 w-4"/></Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        disabled={index === 0}
+                        onClick={() => moveInfo(index, index - 1)}
+                        title="Move Up"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        disabled={index === infoFields.length - 1}
+                        onClick={() => moveInfo(index, index + 1)}
+                        title="Move Down"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button type="button" variant="destructive" size="icon" onClick={() => removeInfo(index)} title="Delete Requirement">
+                        <Trash className="h-4 w-4"/>
+                      </Button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <FormField
-                        control={form.control}
-                        name={`informationToProvide.${index}.isConditional`}
-                        render={({ field }) => (
-                            <FormItem className="flex items-center gap-2">
-                                <FormControl>
-                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                </FormControl>
-                                <FormLabel className="!mt-0">Conditional</FormLabel>
-                            </FormItem>
-                        )}
-                    />
+
+                <FormField
+                    control={form.control}
+                    name={`informationToProvide.${index}.helpText`}
+                    render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs text-muted-foreground flex items-center gap-1">
+                            <HelpCircle className="h-3.5 w-3.5" /> Client Helper Text / Instructions (Optional)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              className="h-8 text-xs"
+                              placeholder="e.g. Please ensure statements are in PDF format and cover the full financial year."
+                              {...field}
+                              value={field.value || ''}
+                            />
+                          </FormControl>
+                        </FormItem>
+                    )}
+                />
+
+                <div className="flex items-center justify-between pt-1 border-t border-border/60">
+                    <div className="flex items-center gap-6">
+                        <FormField
+                            control={form.control}
+                            name={`informationToProvide.${index}.isRequired`}
+                            render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 space-y-0">
+                                    <FormControl>
+                                        <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                    <FormLabel className="!mt-0 text-xs font-semibold cursor-pointer">Required for Completion</FormLabel>
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name={`informationToProvide.${index}.isConditional`}
+                            render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 space-y-0">
+                                    <FormControl>
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                    <FormLabel className="!mt-0 text-xs font-semibold cursor-pointer">Conditional Question</FormLabel>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+
                     {form.watch(`informationToProvide.${index}.isConditional`) && (
                         <FormField
                             control={form.control}
                             name={`informationToProvide.${index}.conditionalQuestion`}
                             render={({ field }) => (
-                                <FormItem className="flex-grow">
-                                    <FormControl><Input placeholder="Question (e.g. Do you have previous financial statements?)" {...field} value={field.value || ''} /></FormControl>
+                                <FormItem className="flex-grow max-w-md ml-4 space-y-0">
+                                    <FormControl>
+                                      <Input
+                                        className="h-8 text-xs"
+                                        placeholder="Question (e.g. Do you have previous financial statements?)"
+                                        {...field}
+                                        value={field.value || ''}
+                                      />
+                                    </FormControl>
                                 </FormItem>
                             )}
                         />
@@ -613,7 +699,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                 </div>
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => appendInfo({ label: '', type: 'text' })}>
+            <Button type="button" variant="outline" size="sm" onClick={() => appendInfo({ label: '', type: 'text', helpText: '', isRequired: true })}>
               <Plus className="mr-2 h-4 w-4" />
               Add Information Field
             </Button>

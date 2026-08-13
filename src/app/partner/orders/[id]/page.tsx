@@ -852,7 +852,14 @@ export default function PartnerOrderDetailsPage() {
                                                 return (
                                                     <li key={index} className="pt-3">
                                                         <div className="flex items-center justify-between">
-                                                            <p className="font-medium text-sm">{req.label}</p>
+                                                            <p className="font-medium text-sm flex items-center gap-2">
+                                                                {req.label}
+                                                                {req.isRequired === false && (
+                                                                    <Badge variant="outline" className="text-[10px] py-0 font-normal border-dashed text-muted-foreground">
+                                                                        Optional
+                                                                    </Badge>
+                                                                )}
+                                                            </p>
                                                             {upload ? (
                                                                  <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'}>
                                                                     {upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}

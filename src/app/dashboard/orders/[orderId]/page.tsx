@@ -62,6 +62,31 @@ export default function ClientOrderDetailsPage() {
       const uploadKey = `${serviceId}-${requirementLabel}`;
       if (answer) {
           setConditionalAnswers(prev => ({ ...prev, [uploadKey]: true }));
+          if (!currentUser || !order) return;
+          const newUpload: DocumentUpload = {
+              serviceId,
+              requirementLabel,
+              type: 'text',
+              textValue: 'Applicable (Yes)',
+              uploadedAt: Timestamp.now(),
+              status: 'pending',
+          };
+          try {
+              const orderRef = doc(db, 'orders', order.id);
+              const currentUploads = order.documentUploads || [];
+              const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
+              let updatedUploads;
+              if (existingIndex > -1) {
+                  updatedUploads = [...currentUploads];
+                  updatedUploads[existingIndex] = newUpload;
+              } else {
+                  updatedUploads = [...currentUploads, newUpload];
+              }
+              await updateDoc(orderRef, { documentUploads: updatedUploads });
+              fetchOrderAndServices();
+          } catch (error) {
+              console.error("Error submitting answer:", error);
+          }
       } else {
           if (!currentUser || !order) return;
           const newUpload: DocumentUpload = {
@@ -146,6 +171,15 @@ export default function ClientOrderDetailsPage() {
   const handleFileUpload = (file: File, serviceId: string, requirementLabel: string) => {
     if (!currentUser || !order) return;
     
+    if (file.size > 25 * 1024 * 1024) {
+      toast({
+        title: 'File Exceeds Size Limit',
+        description: 'Maximum file size allowed is 25MB. Please compress or select a smaller file.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const uniqueFileName = `${Date.now()}-${sanitizedFileName}`;
     const storageRef = ref(storage, `uploads/${currentUser.uid}/orders/${order.id}/${uniqueFileName}`);
@@ -399,7 +433,9 @@ export default function ClientOrderDetailsPage() {
             .filter(d => (d.serviceId === item.id || d.serviceId === serviceDetails?.id) && !standardReqs.some(p => p.label === d.requirementLabel))
             .map(d => ({
                 label: d.requirementLabel,
-                type: d.type
+                type: d.type,
+                helpText: '',
+                isRequired: true,
             }));
             
         const combinedRequirements = [...standardReqs, ...customReqs];
@@ -408,9 +444,15 @@ export default function ClientOrderDetailsPage() {
     });
 
   const allRequirements = orderedItemsWithServices.flatMap(item => item.combinedRequirements || []);
-  const allSubmitted = allRequirements.every(req => 
-      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected' && (doc.fileUrl || doc.textValue))
+  const requiredRequirements = allRequirements.filter(req => req.isRequired !== false);
+
+  const allSubmitted = requiredRequirements.every(req => 
+      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected' && (doc.fileUrl || (doc.textValue && doc.textValue !== 'Applicable (Yes)')))
   );
+
+  const submittedCount = requiredRequirements.filter(req => 
+      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected' && (doc.fileUrl || (doc.textValue && doc.textValue !== 'Applicable (Yes)')))
+  ).length;
   const consultantNotified = order.notes?.some(note => note.text === "Client has submitted their documents for review.") || false;
 
   return (
@@ -472,6 +514,21 @@ export default function ClientOrderDetailsPage() {
                         )}
                     </CardHeader>
                     <CardContent className="space-y-6">
+                        {requiredRequirements.length > 0 && (
+                            <div className="p-4 bg-muted/60 rounded-lg border space-y-2">
+                                <div className="flex justify-between items-center text-sm font-semibold">
+                                    <span>Document Collection Progress</span>
+                                    <span className="text-muted-foreground">{submittedCount} of {requiredRequirements.length} required items completed</span>
+                                </div>
+                                <div className="w-full bg-secondary h-2.5 rounded-full overflow-hidden">
+                                    <div 
+                                        className="bg-primary h-full transition-all duration-300 rounded-full" 
+                                        style={{ width: `${requiredRequirements.length > 0 ? Math.min(100, Math.round((submittedCount / requiredRequirements.length) * 100)) : 100}%` }} 
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         {orderedItemsWithServices.map((item, index) => (
                             <div key={item.id}>
                                 <div className="flex justify-between items-center">
@@ -486,11 +543,28 @@ export default function ClientOrderDetailsPage() {
                                             const uploadKey = `${item.service?.id || item.id}-${info.label}`;
                                             const isUploading = uploadingFiles[uploadKey] !== undefined;
                                             const isRejected = upload?.status === 'rejected';
-                                            const isNotUploaded = !upload || (upload.status === 'pending' && !upload.fileUrl && !upload.textValue);
+                                            const hasPassedConditional = upload?.textValue === 'Applicable (Yes)' || conditionalAnswers[uploadKey] === true;
+                                            const isNotUploaded = !upload || (upload.status === 'pending' && !upload.fileUrl && upload.textValue === 'Applicable (Yes)') || (!upload.fileUrl && !upload.textValue);
 
                                              return (
                                             <div key={infoIndex} className={`space-y-2 p-3 rounded-md border ${isRejected ? 'border-destructive bg-destructive/5 dark:bg-destructive/10' : ''}`}>
-                                                <div className="flex justify-between items-center"><label className="text-sm font-medium flex items-center gap-2"><ClipboardCheck className="h-4 w-4" />{info.label}</label>{upload && (upload.fileUrl || upload.textValue) && ( <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'}>{upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}{upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}{upload.status.charAt(0).toUpperCase() + upload.status.slice(1).replace('_', ' ')}</Badge> )}</div>
+                                                <div className="flex justify-between items-center">
+                                                    <div>
+                                                        <label className="text-sm font-medium flex items-center gap-2">
+                                                            <ClipboardCheck className="h-4 w-4" />
+                                                            {info.label}
+                                                            {info.isRequired === false && (
+                                                                <Badge variant="outline" className="text-[10px] py-0 font-normal border-dashed text-muted-foreground">
+                                                                    Optional
+                                                                </Badge>
+                                                            )}
+                                                        </label>
+                                                        {info.helpText && (
+                                                            <p className="text-xs text-muted-foreground mt-0.5 pl-6">{info.helpText}</p>
+                                                        )}
+                                                    </div>
+                                                    {upload && (upload.fileUrl || (upload.textValue && upload.textValue !== 'Applicable (Yes)')) && ( <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'}>{upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}{upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}{upload.status.charAt(0).toUpperCase() + upload.status.slice(1).replace('_', ' ')}</Badge> )}
+                                                </div>
                                                 {isRejected && (
                                                     <div className="p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive flex items-start gap-2 mt-1">
                                                         <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -502,7 +576,7 @@ export default function ClientOrderDetailsPage() {
                                                 )}
                                                 {isRejected || isNotUploaded ? (
                                                     <>
-                                                        {info.isConditional && conditionalAnswers[uploadKey] === undefined && isNotUploaded ? (
+                                                        {info.isConditional && !hasPassedConditional && (!upload || upload.textValue !== 'N/A (No)') ? (
                                                             <div className="flex flex-col gap-2 p-4 bg-muted/50 rounded-lg border">
                                                                 <p className="text-sm font-medium">{info.conditionalQuestion || info.label}</p>
                                                                 <div className="flex gap-2">
@@ -522,6 +596,10 @@ export default function ClientOrderDetailsPage() {
                                                                         <Input type="file" accept="application/pdf" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} />
                                                                     ) : info.type === 'excel' ? (
                                                                         <Input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} />
+                                                                    ) : info.type === 'image' ? (
+                                                                        <Input type="file" accept="image/*, .png, .jpg, .jpeg, .webp, .heic" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} />
+                                                                    ) : info.type === 'any' ? (
+                                                                        <Input type="file" accept="*" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} />
                                                                     ) : (
                                                                         <div className="flex items-center gap-2">
                                                                             <Input type="text" className="h-9" placeholder="Enter information here..." value={textInputs[info.label] || ''} onChange={(e) => handleTextChange(info.label, e.target.value)} />

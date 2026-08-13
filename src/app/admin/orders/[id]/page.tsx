@@ -683,7 +683,24 @@ export default function AdminOrderDetailsPage() {
                                                 const upload = order.documentUploads?.find(d => (d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === req.label);
                                                 const identifier = upload ? (upload.type === 'file' ? upload.fileUrl! : upload.textValue!) : '';
                                                 return (
-                                                    <li key={index} className="pt-3"><div className="flex items-center justify-between"><p className="font-medium text-sm">{req.label}</p>{upload ? ( <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'}>{upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}{upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}{upload.status}</Badge> ) : <Badge variant="secondary">Pending</Badge>}</div>
+                                                    <li key={index} className="pt-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="font-medium text-sm flex items-center gap-2">
+                                                                {req.label}
+                                                                {req.isRequired === false && (
+                                                                    <Badge variant="outline" className="text-[10px] py-0 font-normal border-dashed text-muted-foreground">
+                                                                        Optional
+                                                                    </Badge>
+                                                                )}
+                                                            </p>
+                                                            {upload ? ( 
+                                                                <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'}>
+                                                                    {upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}
+                                                                    {upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}
+                                                                    {upload.status}
+                                                                </Badge> 
+                                                            ) : <Badge variant="secondary">Pending</Badge>}
+                                                        </div>
                                                         {upload && ( <div className="mt-2 space-y-2">{upload.type === 'file' ? ( <a href={upload.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><Download className="h-4 w-4" /> {upload.fileName}</a> ) : ( <p className="text-sm p-2 bg-muted rounded-md mt-1">"{upload.textValue}"</p> )}{upload.status === 'pending' && ( <div className="flex items-center gap-2"><Button size="xs" variant="outline" onClick={() => handleDocumentStatusUpdate(identifier, 'approved')}>Approve</Button><Button size="xs" variant="destructive" onClick={() => handleOpenRejectionDialog(upload)}>Reject</Button></div> )}{upload.status === 'rejected' && upload.rejectionReason && ( <p className="text-xs text-destructive italic">Reason: {upload.rejectionReason}</p> )}</div> )}
                                                     </li>
                                                 )
