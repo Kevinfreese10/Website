@@ -151,11 +151,12 @@ export default function AdminOrderDetailsPage() {
           }
 
           const itemsWithServices = fetchedOrder.items.map(item => {
+            const itemId = item.id || item.serviceId || item.title;
             const serviceDetails = fetchedServices.find(s => 
-              s.id === item.id || 
-              s.title.toLowerCase() === item.id.toLowerCase() || 
+              s.id === itemId || 
+              (item.id && s.title.toLowerCase() === item.id.toLowerCase()) || 
               s.title.toLowerCase() === item.title.toLowerCase() ||
-              s.slug === item.id
+              s.slug === itemId
             );
             if (!serviceDetails) return { ...item, service: null };
             return { ...item, service: serviceDetails };

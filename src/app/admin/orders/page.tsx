@@ -149,7 +149,7 @@ export default function AdminOrdersPage() {
             if (order.status === 'Cancelled') return false;
             const isDirectOrder = !order.resellerId;
             const isOutsourcedWork = !!(order.resellerId && (order.isOutsourced || order.originalOrderId));
-            const isPartnerPurchase = !!(order.resellerId && !order.isOutsourced && !order.originalOrderId && order.items?.some(i => i.id.startsWith('partner_') || i.id.includes('topup') || i.id.includes('setup')));
+            const isPartnerPurchase = !!(order.resellerId && !order.isOutsourced && !order.originalOrderId && order.items?.some(i => i.id?.startsWith('partner_') || i.id?.includes('topup') || i.id?.includes('setup')));
             return (isDirectOrder || isOutsourcedWork || isPartnerPurchase);
         });
 

@@ -395,7 +395,7 @@ export async function POST(req: NextRequest) {
               if (currentOrderData.department) {
                   department = currentOrderData.department as any;
               } else {
-                  const itemIds = currentOrderData.items.map(i => i.id);
+                  const itemIds = currentOrderData.items.map(i => i.id || i.serviceId).filter(Boolean) as string[];
                   for (const itemId of itemIds) {
                       let service = allServices.find(s => s.id === itemId);
                       if (!service) {
