@@ -497,15 +497,22 @@ export default function ServiceCheckoutForm({
                     </div>
                 ) : (
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                        {!watchedAgreedToRefundPolicy && (
+                            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-gradient-to-r from-rose-50 via-red-50 to-red-100/60 border border-red-300 text-xs text-red-950 font-bold shadow-2xs animate-in fade-in">
+                                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                                <span>Please agree to the refund policy below to unlock payment.</span>
+                            </div>
+                        )}
+
                         <FormField
                             control={form.control}
                             name="agreedToRefundPolicy"
                             render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-colors">
                                     <FormControl><Checkbox checked={field.value ?? false} onCheckedChange={(c) => field.onChange(Boolean(c))} /></FormControl>
                                     <div className="space-y-1 leading-none">
-                                        <FormLabel className="text-sm font-medium cursor-pointer">
-                                            I agree to the <Link href="/refund-policy" className="text-primary underline" target="_blank">refund policy</Link>.
+                                        <FormLabel className="text-xs sm:text-sm font-semibold cursor-pointer text-slate-800">
+                                            I agree to the <Link href="/refund-policy" className="text-primary underline font-bold" target="_blank">refund policy</Link>.
                                         </FormLabel>
                                         <FormMessage />
                                     </div>
