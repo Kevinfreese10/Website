@@ -174,9 +174,8 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
 
         if (isMounted) {
           setPrereqServices(matched);
-          const initialSelected = new Set<string>();
-          matched.forEach((p) => initialSelected.add(p.id));
-          setSelectedPrereqIds(initialSelected);
+          // By default, checkboxes are UNSELECTED
+          setSelectedPrereqIds(new Set());
           setLoadingPrereqs(false);
         }
       } catch (err) {
@@ -192,6 +191,35 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
     };
   }, [service.id, service.requiredProductIds, service.clientRequirements]);
 
+  // Sync window events from PrerequisitesList
+  useEffect(() => {
+    const handleToggleOrderEvent = (e: Event) => {
+      const customEvt = e as CustomEvent<{ serviceId: string }>;
+      const serviceId = customEvt.detail?.serviceId;
+      if (!serviceId) return;
+
+      setSelectedPrereqIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(serviceId)) {
+          next.delete(serviceId);
+        } else {
+          next.add(serviceId);
+        }
+        window.dispatchEvent(
+          new CustomEvent('prerequisite-order-updated', {
+            detail: { selectedIds: Array.from(next) },
+          })
+        );
+        return next;
+      });
+    };
+
+    window.addEventListener('toggle-prerequisite-order', handleToggleOrderEvent);
+    return () => {
+      window.removeEventListener('toggle-prerequisite-order', handleToggleOrderEvent);
+    };
+  }, []);
+
   const togglePrereq = (id: string) => {
     setSelectedPrereqIds((prev) => {
       const next = new Set(prev);
@@ -200,6 +228,11 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
       } else {
         next.add(id);
       }
+      window.dispatchEvent(
+        new CustomEvent('prerequisite-order-updated', {
+          detail: { selectedIds: Array.from(next) },
+        })
+      );
       return next;
     });
   };

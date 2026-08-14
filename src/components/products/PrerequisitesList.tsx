@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Service, PrerequisiteItem } from '@/lib/types';
-import { ClipboardCheck, ShoppingBag, ShoppingCart, CheckCircle2, ShieldAlert, Loader2, CornerDownRight } from 'lucide-react';
+import { ClipboardCheck, ShoppingBag, ShoppingCart, CheckCircle2, ShieldAlert, Loader2, CornerDownRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
@@ -35,9 +35,32 @@ export default function PrerequisitesList({ requirements, allServices = [], dept
   const { toast } = useToast();
   const [items, setItems] = useState<LoadedPrereq[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [selectedInOrderIds, setSelectedInOrderIds] = useState<Set<string>>(new Set());
 
   const requirementsKey = JSON.stringify(requirements || []);
   const servicesLength = allServices?.length || 0;
+
+  // Listen for order configuration updates from ServiceCheckoutForm
+  useEffect(() => {
+    const handleUpdatedEvent = (e: Event) => {
+      const customEvt = e as CustomEvent<{ selectedIds: string[] }>;
+      const selectedIds = customEvt.detail?.selectedIds || [];
+      setSelectedInOrderIds(new Set(selectedIds));
+    };
+
+    window.addEventListener('prerequisite-order-updated', handleUpdatedEvent);
+    return () => {
+      window.removeEventListener('prerequisite-order-updated', handleUpdatedEvent);
+    };
+  }, []);
+
+  const handleToggleIncludeInOrder = (serviceId: string) => {
+    window.dispatchEvent(
+      new CustomEvent('toggle-prerequisite-order', {
+        detail: { serviceId },
+      })
+    );
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -149,7 +172,7 @@ export default function PrerequisitesList({ requirements, allServices = [], dept
           );
         }
 
-        const inCart = cartItems.some((ci) => ci.service.id === item.service.id);
+        const isIncludedInOrder = selectedInOrderIds.has(item.service.id);
         const childRequirements = item.service.clientRequirements || [];
 
         return (
@@ -177,23 +200,23 @@ export default function PrerequisitesList({ requirements, allServices = [], dept
               </div>
 
               <Button
-                onClick={() => handleToggleCart(item.service, inCart)}
+                onClick={() => handleToggleIncludeInOrder(item.service.id)}
                 size="sm"
                 className={`h-9 font-bold text-xs rounded-lg shrink-0 w-full sm:w-auto transition-all ${
-                  inCart
-                    ? 'bg-emerald-600 hover:bg-red-600 text-white'
+                  isIncludedInOrder
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
               >
-                {inCart ? (
+                {isIncludedInOrder ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                    Added (Click to Remove)
+                    Included in Order
                   </>
                 ) : (
                   <>
-                    <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                    Add Prerequisite to Cart
+                    <Plus className="w-3.5 h-3.5 mr-1.5" />
+                    Include in Order
                   </>
                 )}
               </Button>
