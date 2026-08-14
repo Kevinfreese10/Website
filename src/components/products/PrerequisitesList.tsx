@@ -19,6 +19,8 @@ interface PrerequisitesListProps {
   selectedPrereqIds?: Set<string>;
   onTogglePrereq?: (serviceId: string) => void;
   onConfirmationChange?: (allConfirmed: boolean) => void;
+  confirmedIds?: Set<string>;
+  onToggleConfirm?: (reqId: string) => void;
 }
 
 interface LoadedProductPrereq {
@@ -40,26 +42,33 @@ export default function PrerequisitesList({
   selectedPrereqIds,
   onTogglePrereq,
   onConfirmationChange,
+  confirmedIds,
+  onToggleConfirm,
 }: PrerequisitesListProps) {
   const { addToCart, removeFromCart, cartItems } = useCart();
   const { toast } = useToast();
   const [items, setItems] = useState<LoadedPrereq[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [localSelectedIds, setLocalSelectedIds] = useState<Set<string>>(new Set());
-  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
+  const [localConfirmedIds, setLocalConfirmedIds] = useState<Set<string>>(new Set());
 
   const requirementsKey = JSON.stringify(requirements || []);
   const servicesLength = allServices?.length || 0;
 
   const activeSelectedIds = selectedPrereqIds || localSelectedIds;
+  const activeConfirmedIds = confirmedIds || localConfirmedIds;
 
   const toggleConfirm = (reqId: string) => {
-    setConfirmedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(reqId)) next.delete(reqId);
-      else next.add(reqId);
-      return next;
-    });
+    if (onToggleConfirm) {
+      onToggleConfirm(reqId);
+    } else {
+      setLocalConfirmedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(reqId)) next.delete(reqId);
+        else next.add(reqId);
+        return next;
+      });
+    }
   };
 
   // Evaluate if all top-level prerequisite requirements are confirmed
@@ -86,9 +95,9 @@ export default function PrerequisitesList({
       }
     });
 
-    const allConfirmed = textReqIds.length === 0 || textReqIds.every((id) => confirmedIds.has(id));
+    const allConfirmed = textReqIds.length === 0 || textReqIds.every((id) => activeConfirmedIds.has(id));
     onConfirmationChange(allConfirmed);
-  }, [confirmedIds, items, depth, onConfirmationChange]);
+  }, [activeConfirmedIds, items, depth, onConfirmationChange]);
 
   const handleToggleIncludeInOrder = (serviceId: string) => {
     if (onTogglePrereq) {
@@ -198,7 +207,7 @@ export default function PrerequisitesList({
       {items.map((item, index) => {
         if (item.type === 'text') {
           const reqId = `text_${depth}_${index}_${item.text}`;
-          const isConfirmed = confirmedIds.has(reqId);
+          const isConfirmed = activeConfirmedIds.has(reqId);
 
           return (
             <div
@@ -249,7 +258,7 @@ export default function PrerequisitesList({
 
         const allChildReqsConfirmed =
           childReqStrings.length === 0 ||
-          childReqStrings.every((text, idx) => confirmedIds.has(`text_${depth + 1}_${idx}_${text}`));
+          childReqStrings.every((text, idx) => activeConfirmedIds.has(`text_${depth + 1}_${idx}_${text}`));
 
         return (
           <div
@@ -343,6 +352,8 @@ export default function PrerequisitesList({
                   depth={depth + 1}
                   selectedPrereqIds={selectedPrereqIds}
                   onTogglePrereq={onTogglePrereq}
+                  confirmedIds={activeConfirmedIds}
+                  onToggleConfirm={toggleConfirm}
                 />
               </div>
             )}
