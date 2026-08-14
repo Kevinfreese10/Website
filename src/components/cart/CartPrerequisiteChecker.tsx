@@ -24,6 +24,8 @@ export default function CartPrerequisiteChecker() {
   const [missingPrereqs, setMissingPrereqs] = useState<MissingCartPrerequisite[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const cartItemsKey = cartItems.map((ci) => ci.service.id).join(',');
+
   useEffect(() => {
     let isMounted = true;
 
@@ -97,7 +99,7 @@ export default function CartPrerequisiteChecker() {
     return () => {
       isMounted = false;
     };
-  }, [cartItems]);
+  }, [cartItemsKey]);
 
   if (loading || missingPrereqs.length === 0) {
     return null;

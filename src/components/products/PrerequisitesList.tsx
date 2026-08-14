@@ -35,6 +35,9 @@ export default function PrerequisitesList({ requirements, allServices = [] }: Pr
   const [items, setItems] = useState<LoadedPrereq[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const requirementsKey = JSON.stringify(requirements || []);
+  const servicesLength = allServices?.length || 0;
+
   useEffect(() => {
     let isMounted = true;
 
@@ -95,7 +98,7 @@ export default function PrerequisitesList({ requirements, allServices = [] }: Pr
     return () => {
       isMounted = false;
     };
-  }, [requirements, allServices]);
+  }, [requirementsKey, servicesLength]);
 
   if (loading) {
     return (
