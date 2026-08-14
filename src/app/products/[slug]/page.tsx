@@ -7,7 +7,7 @@ import { Service } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Metadata, ResolvingMetadata } from 'next';
-import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
+import ClientServiceCheckoutForm from '@/components/checkout/ClientServiceCheckoutForm';
 import PrerequisitesList from '@/components/products/PrerequisitesList';
 import Script from 'next/script';
 import { generateStructuredData } from '@/lib/schema/productSchema';
@@ -428,7 +428,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   </span>
                 </div>
               </div>
-              <ServiceCheckoutForm service={service} />
+              <ClientServiceCheckoutForm service={service} />
             </div>
           </div>
         </div>

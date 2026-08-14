@@ -6,7 +6,7 @@ import { Clock, ClipboardCheck, BadgeCheck, ArrowLeft } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
+import ClientServiceCheckoutForm from '@/components/checkout/ClientServiceCheckoutForm';
 import PrerequisitesList from '@/components/products/PrerequisitesList';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Metadata } from 'next';
@@ -149,7 +149,7 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
                   <CardTitle className="text-lg">Place Order</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <ServiceCheckoutForm service={service} partnerId={partner.id} />
+                  <ClientServiceCheckoutForm service={service} />
                 </CardContent>
                 <CardFooter className="text-center border-t py-4" style={{ backgroundColor: 'rgba(0,0,0,0.02)' }}>
                   <p className="text-[10px] opacity-50 px-4 uppercase tracking-widest font-bold">

@@ -20,6 +20,9 @@ import { Order } from '@/lib/types';
 import { customAlphabet } from 'nanoid';
 import { Separator } from '../ui/separator';
 
+import { Checkbox } from '@/components/ui/checkbox';
+import Link from 'next/link';
+
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
 const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 10);
@@ -29,6 +32,12 @@ const formSchema = z.object({
   lastName: z.string().min(2, 'Surname is required.'),
   email: z.string().email('Please enter a valid email.'),
   phone: z.string().min(10, 'Please enter a valid cell number.'),
+  confirmPrerequisites: z.boolean().refine(val => val === true, {
+    message: 'You must confirm that you have all required prerequisites.',
+  }),
+  agreeRefundPolicy: z.boolean().refine(val => val === true, {
+    message: 'You must agree to the refund policy to proceed.',
+  }),
 });
 
 const formatPrice = (price: number) => {
@@ -57,6 +66,8 @@ export default function CheckoutForm() {
       lastName: (user?.role === 'client' ? user?.name?.split(' ').slice(1).join(' ') : '') || '',
       email: (user?.role === 'client' ? user?.email : '') || '',
       phone: (user?.role === 'client' ? user?.contactNumber : '') || '',
+      confirmPrerequisites: false,
+      agreeRefundPolicy: false,
     },
   });
 
@@ -282,7 +293,7 @@ export default function CheckoutForm() {
             />
         </div>
 
-         <FormField
+        <FormField
           control={form.control}
           name="phone"
           render={({ field }) => (
@@ -294,11 +305,52 @@ export default function CheckoutForm() {
           )}
         />
 
+        <div className="space-y-3 pt-2">
+          <FormField
+            control={form.control}
+            name="confirmPrerequisites"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-slate-200 p-3 bg-slate-50/50">
+                <FormControl>
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} className="mt-0.5" />
+                </FormControl>
+                <div className="space-y-1 leading-tight">
+                  <FormLabel className="text-xs font-semibold text-slate-700 cursor-pointer">
+                    I confirm I have all the prerequisites for the services in my order.
+                  </FormLabel>
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="agreeRefundPolicy"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-xl border border-slate-200 p-3 bg-slate-50/50">
+                <FormControl>
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} className="mt-0.5" />
+                </FormControl>
+                <div className="space-y-1 leading-tight">
+                  <FormLabel className="text-xs font-semibold text-slate-700 cursor-pointer">
+                    I agree to the{' '}
+                    <Link href="/terms" target="_blank" className="text-primary underline font-bold">
+                      refund policy
+                    </Link>.
+                  </FormLabel>
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
+        </div>
+
         <Separator />
 
-        <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={isLoading}>
+        <Button type="submit" className="w-full h-12 text-base font-extrabold shadow-md rounded-xl" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isLoading ? 'Processing...' : `Pay ${formatPrice(cartTotal)}`}
+          {isLoading ? 'Processing Order...' : `Proceed to Payment – ${formatPrice(cartTotal)}`}
         </Button>
       </form>
     </Form>
