@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Service, Order, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, User as UserIcon, CheckCircle2, ShieldCheck, Lock, RefreshCw, MessageSquare } from 'lucide-react';
+import { Loader2, Mail, User as UserIcon, CheckCircle2, ShieldCheck, Lock, RefreshCw, MessageSquare, AlertCircle } from 'lucide-react';
 import { getFirestore, doc, setDoc, Timestamp, getDoc, serverTimestamp, collection, query, where, getDocs, or } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
@@ -56,12 +56,10 @@ function PriceOnRequestForm({ service }: { service: Service }) {
   const handleEnquiry = async (values: z.infer<typeof enquirySchema>) => {
     setIsSending(true);
     try {
-      // Build a mailto fallback — a server action for email can be wired later
       const subject = encodeURIComponent(`Quote Request: ${service.title}`);
       const body = encodeURIComponent(
         `Name: ${values.name}\nEmail: ${values.email}\nPhone: ${values.phone}\n\nMessage:\n${values.message}`
       );
-      // Fire-and-forget: open mailto (will silently fail if no email client)
       window.location.href = `mailto:info@myacc.co.za?subject=${subject}&body=${body}`;
       setIsSent(true);
       toast({ title: 'Enquiry Sent!', description: 'We will respond within 1 business day.' });
@@ -99,36 +97,116 @@ function PriceOnRequestForm({ service }: { service: Service }) {
         </div>
         <div>
           <label className="text-xs font-bold text-slate-700">Email Address</label>
-          <Input {...enquiryForm.register('email')} type="email" placeholder="john@example.com" className="mt-1 h-9 text-sm" />
+          <Input type="email" {...enquiryForm.register('email')} placeholder="john@example.com" className="mt-1 h-9 text-sm" />
           {enquiryForm.formState.errors.email && <p className="text-[10px] text-destructive mt-0.5">{enquiryForm.formState.errors.email.message}</p>}
         </div>
         <div>
           <label className="text-xs font-bold text-slate-700">Cell Number</label>
-          <Input {...enquiryForm.register('phone')} placeholder="082 123 4567" className="mt-1 h-9 text-sm" />
+          <Input type="tel" {...enquiryForm.register('phone')} placeholder="082 123 4567" className="mt-1 h-9 text-sm" />
           {enquiryForm.formState.errors.phone && <p className="text-[10px] text-destructive mt-0.5">{enquiryForm.formState.errors.phone.message}</p>}
         </div>
         <div>
-          <label className="text-xs font-bold text-slate-700">Tell us about your requirements</label>
-          <Textarea {...enquiryForm.register('message')} placeholder="Briefly describe your business and what you need..." rows={3} className="mt-1 text-sm resize-none" />
+          <label className="text-xs font-bold text-slate-700">Requirements / Message</label>
+          <Textarea {...enquiryForm.register('message')} placeholder="Please describe what you need..." className="mt-1 text-sm min-h-[80px]" />
           {enquiryForm.formState.errors.message && <p className="text-[10px] text-destructive mt-0.5">{enquiryForm.formState.errors.message.message}</p>}
         </div>
-        <Button type="submit" disabled={isSending} className="w-full h-11 font-extrabold text-sm partner-btn">
-          {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-          {isSending ? 'Sending...' : 'Send Quote Request'}
+        <Button type="submit" disabled={isSending} className="w-full h-10 text-sm font-bold mt-2">
+          {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          {isSending ? 'Sending...' : 'Submit Quote Request'}
         </Button>
-        <p className="text-center text-[10px] text-muted-foreground">Or call us: <a href="tel:+27123456789" className="font-bold text-primary hover:underline">+27 12 345 6789</a></p>
       </form>
     </div>
   );
 }
 
-export default function ServiceCheckoutForm({ service, partnerId }: { service: Service, partnerId?: string }) {
+export default function ServiceCheckoutForm({ service, partnerId }: { service: Service; partnerId?: string }) {
   const router = useRouter();
   const { user, reauthenticate } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  
   const [linkedUser, setLinkedUser] = useState<{name: string, id: string} | null>(null);
   const [isCheckingUser, setIsCheckingUser] = useState(false);
+  const [prereqServices, setPrereqServices] = useState<Service[]>([]);
+  const [selectedPrereqIds, setSelectedPrereqIds] = useState<Set<string>>(new Set());
+  const [loadingPrereqs, setLoadingPrereqs] = useState<boolean>(true);
+
+  // Load prerequisite products for this service
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPrereqs() {
+      const productIds = new Set<string>();
+
+      if (service.requiredProductIds) {
+        service.requiredProductIds.forEach((id) => productIds.add(id));
+      }
+
+      if (service.clientRequirements) {
+        service.clientRequirements.forEach((req) => {
+          if (typeof req !== 'string' && req.type === 'product' && req.productId) {
+            productIds.add(req.productId);
+          }
+        });
+      }
+
+      if (productIds.size === 0) {
+        if (isMounted) {
+          setPrereqServices([]);
+          setLoadingPrereqs(false);
+        }
+        return;
+      }
+
+      try {
+        const snap = await getDocs(collection(db, 'services'));
+        const allServices = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Service));
+
+        const matched: Service[] = [];
+        productIds.forEach((pid) => {
+          const found = allServices.find(
+            (s) => s.id === pid || s.slug === pid || s.title.toLowerCase() === pid.toLowerCase()
+          );
+          if (found && found.id !== service.id && !matched.some((m) => m.id === found.id)) {
+            matched.push(found);
+          }
+        });
+
+        if (isMounted) {
+          setPrereqServices(matched);
+          const initialSelected = new Set<string>();
+          matched.forEach((p) => initialSelected.add(p.id));
+          setSelectedPrereqIds(initialSelected);
+          setLoadingPrereqs(false);
+        }
+      } catch (err) {
+        console.error('Error fetching prerequisite products in ServiceCheckoutForm:', err);
+        if (isMounted) setLoadingPrereqs(false);
+      }
+    }
+
+    loadPrereqs();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [service.id, service.requiredProductIds, service.clientRequirements]);
+
+  const togglePrereq = (id: string) => {
+    setSelectedPrereqIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectedPrereqList = prereqServices.filter((p) => selectedPrereqIds.has(p.id));
+  const prereqsTotal = selectedPrereqList.reduce((sum, p) => sum + (p.price || 0), 0);
+  const orderTotal = (service.price || 0) + prereqsTotal;
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
       resolver: zodResolver(checkoutSchema),
@@ -219,13 +297,18 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
     try {
         const finalUserId = (user?.role === 'client' ? user?.uid : null) || linkedUser?.id || null;
         
+        const orderItems = [
+          { id: service.id, title: service.title, price: service.price, quantity: 1 },
+          ...selectedPrereqList.map((p) => ({ id: p.id, title: p.title, price: p.price, quantity: 1 })),
+        ];
+
         const result = await createCheckoutOrderAction({
             firstName: values.firstName,
             lastName: values.lastName,
             email: values.email,
             phone: values.phone,
-            items: [{ id: service.id, title: service.title, price: service.price, quantity: 1 }],
-            total: service.price,
+            items: orderItems,
+            total: orderTotal,
             partnerId,
             userId: finalUserId,
         });
@@ -277,6 +360,50 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
   return (
     <Form {...form}>
         <form id="checkout" onSubmit={form.handleSubmit(handleCheckout, onError)} className="space-y-6">
+            {/* Prerequisite Product Checkbox Selection Box */}
+            {!loadingPrereqs && prereqServices.length > 0 && (
+                <div className="space-y-2 rounded-xl border border-blue-200 bg-blue-50/60 p-3.5 shadow-2xs">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-blue-950">
+                        <AlertCircle className="h-4 w-4 text-blue-600 shrink-0" />
+                        Include Required Prerequisite Products
+                    </div>
+                    <p className="text-[11px] text-blue-900 leading-tight">
+                        Select any prerequisites you don&apos;t have so they can be included directly in your order:
+                    </p>
+
+                    <div className="space-y-2 pt-1">
+                        {prereqServices.map((p) => {
+                            const isChecked = selectedPrereqIds.has(p.id);
+                            return (
+                                <div
+                                    key={p.id}
+                                    onClick={() => togglePrereq(p.id)}
+                                    className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-all select-none cursor-pointer ${
+                                        isChecked
+                                            ? 'bg-white border-blue-300 shadow-2xs'
+                                            : 'bg-white/70 border-slate-200 opacity-70 hover:opacity-100'
+                                    }`}
+                                >
+                                    <Checkbox
+                                        checked={isChecked}
+                                        onCheckedChange={() => togglePrereq(p.id)}
+                                        className="mt-0.5 pointer-events-none"
+                                    />
+                                    <div className="text-xs space-y-0.5 min-w-0 flex-1">
+                                        <div className="flex items-center justify-between gap-1">
+                                            <span className="font-bold text-slate-900 leading-none">{p.title}</span>
+                                            <span className="font-extrabold text-blue-700 text-xs shrink-0">
+                                                {p.isPriceTbc ? 'Quote' : formatPrice(p.price)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {(!user || user.role !== 'client') && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground tracking-widest mb-2">
@@ -347,7 +474,7 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
                 className="w-full partner-btn h-12 text-base font-extrabold"
             >
                 {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                {isLoading ? 'Processing...' : `Proceed to Payment${!service.isPriceTbc ? ` – ${formatPrice(service.price)}` : ''}`}
+                {isLoading ? 'Processing...' : `Proceed to Payment${!service.isPriceTbc ? ` – ${formatPrice(orderTotal)}` : ''}`}
             </Button>
 
             {/* Trust bar */}
