@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Service, PrerequisiteItem } from '@/lib/types';
-import { ClipboardCheck, ShoppingBag, ShoppingCart, CheckCircle2, ShieldAlert, Loader2, CornerDownRight, Plus } from 'lucide-react';
+import { ClipboardCheck, ShoppingBag, ShoppingCart, CheckCircle2, ShieldAlert, Loader2, CornerDownRight, Plus, Clock, Check, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
@@ -16,6 +16,9 @@ interface PrerequisitesListProps {
   requirements: (string | PrerequisiteItem)[];
   allServices?: Service[];
   depth?: number;
+  selectedPrereqIds?: Set<string>;
+  onTogglePrereq?: (serviceId: string) => void;
+  onConfirmationChange?: (allConfirmed: boolean) => void;
 }
 
 interface LoadedProductPrereq {
@@ -30,36 +33,74 @@ interface LoadedTextPrereq {
 
 type LoadedPrereq = LoadedTextPrereq | LoadedProductPrereq;
 
-export default function PrerequisitesList({ requirements, allServices = [], depth = 0 }: PrerequisitesListProps) {
+export default function PrerequisitesList({
+  requirements,
+  allServices = [],
+  depth = 0,
+  selectedPrereqIds,
+  onTogglePrereq,
+  onConfirmationChange,
+}: PrerequisitesListProps) {
   const { addToCart, removeFromCart, cartItems } = useCart();
   const { toast } = useToast();
   const [items, setItems] = useState<LoadedPrereq[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedInOrderIds, setSelectedInOrderIds] = useState<Set<string>>(new Set());
+  const [localSelectedIds, setLocalSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
 
   const requirementsKey = JSON.stringify(requirements || []);
   const servicesLength = allServices?.length || 0;
 
-  // Listen for order configuration updates from ServiceCheckoutForm
-  useEffect(() => {
-    const handleUpdatedEvent = (e: Event) => {
-      const customEvt = e as CustomEvent<{ selectedIds: string[] }>;
-      const selectedIds = customEvt.detail?.selectedIds || [];
-      setSelectedInOrderIds(new Set(selectedIds));
-    };
+  const activeSelectedIds = selectedPrereqIds || localSelectedIds;
 
-    window.addEventListener('prerequisite-order-updated', handleUpdatedEvent);
-    return () => {
-      window.removeEventListener('prerequisite-order-updated', handleUpdatedEvent);
-    };
-  }, []);
+  const toggleConfirm = (reqId: string) => {
+    setConfirmedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(reqId)) next.delete(reqId);
+      else next.add(reqId);
+      return next;
+    });
+  };
+
+  // Evaluate if all top-level prerequisite requirements are confirmed
+  useEffect(() => {
+    if (!onConfirmationChange) return;
+
+    if (!items || items.length === 0) {
+      onConfirmationChange(true);
+      return;
+    }
+
+    const textReqIds: string[] = [];
+    items.forEach((item, idx) => {
+      if (item.type === 'text') {
+        textReqIds.push(`text_${depth}_${idx}_${item.text}`);
+      } else if (item.type === 'product') {
+        const childReqs = item.service.clientRequirements || [];
+        childReqs.forEach((r, childIdx) => {
+          const reqText = typeof r === 'string' ? r : r.type === 'text' ? r.text : null;
+          if (reqText) {
+            textReqIds.push(`text_${depth + 1}_${childIdx}_${reqText}`);
+          }
+        });
+      }
+    });
+
+    const allConfirmed = textReqIds.length === 0 || textReqIds.every((id) => confirmedIds.has(id));
+    onConfirmationChange(allConfirmed);
+  }, [confirmedIds, items, depth, onConfirmationChange]);
 
   const handleToggleIncludeInOrder = (serviceId: string) => {
-    window.dispatchEvent(
-      new CustomEvent('toggle-prerequisite-order', {
-        detail: { serviceId },
-      })
-    );
+    if (onTogglePrereq) {
+      onTogglePrereq(serviceId);
+    } else {
+      setLocalSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(serviceId)) next.delete(serviceId);
+        else next.add(serviceId);
+        return next;
+      });
+    }
   };
 
   useEffect(() => {
@@ -144,36 +185,69 @@ export default function PrerequisitesList({ requirements, allServices = [], dept
     }).format(price);
   };
 
-  const handleToggleCart = (service: Service, inCart: boolean) => {
-    if (inCart) {
-      removeFromCart(service.id);
-      toast({
-        title: 'Removed from Cart',
-        description: `"${service.title}" has been removed from your cart.`,
-      });
-    } else {
-      addToCart(service);
-      toast({
-        title: 'Prerequisite Added to Cart',
-        description: `"${service.title}" has been added to your cart.`,
-      });
-    }
-  };
-
   return (
     <div className="space-y-3">
+      {depth === 0 && (
+        <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-gradient-to-r from-amber-50 via-amber-100/40 to-orange-50 border border-amber-200/90 text-xs text-amber-900 font-semibold shadow-2xs mb-2 animate-in fade-in">
+          <ClipboardCheck className="w-4.5 h-4.5 text-amber-600 shrink-0" />
+          <span>
+            Please confirm you have each required item below by clicking the checkboxes to unlock checkout.
+          </span>
+        </div>
+      )}
       {items.map((item, index) => {
         if (item.type === 'text') {
+          const reqId = `text_${depth}_${index}_${item.text}`;
+          const isConfirmed = confirmedIds.has(reqId);
+
           return (
-            <div key={index} className="flex items-start gap-3 p-2.5 rounded-lg bg-slate-50/60 border border-slate-200/60 text-xs">
-              <ClipboardCheck className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-              <span className="text-slate-800 font-medium leading-relaxed">{item.text}</span>
+            <div
+              key={reqId}
+              onClick={() => toggleConfirm(reqId)}
+              className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer select-none ${
+                isConfirmed
+                  ? 'bg-emerald-50/90 border-emerald-300 text-slate-900 shadow-2xs'
+                  : 'bg-white border-slate-200/80 text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              <div
+                className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-all mt-0.5 ${
+                  isConfirmed
+                    ? 'bg-emerald-600 border-emerald-600 text-white'
+                    : 'border-slate-400 bg-white'
+                }`}
+              >
+                {isConfirmed && <Check className="h-3 w-3 text-white stroke-[3]" />}
+              </div>
+              <span className={`text-xs leading-relaxed ${isConfirmed ? 'font-bold text-emerald-950' : 'font-medium'}`}>
+                {item.text}
+              </span>
+              <span className="ml-auto text-[10px] font-bold shrink-0">
+                {isConfirmed ? (
+                  <span className="text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
+                    ✓ Confirmed
+                  </span>
+                ) : (
+                  <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                    Confirm you have this
+                  </span>
+                )}
+              </span>
             </div>
           );
         }
 
-        const isIncludedInOrder = selectedInOrderIds.has(item.service.id);
+        const isIncludedInOrder = activeSelectedIds.has(item.service.id);
         const childRequirements = item.service.clientRequirements || [];
+
+        // Check if all child text requirements for this product are confirmed
+        const childReqStrings = childRequirements
+          .map((r) => (typeof r === 'string' ? r : r.type === 'text' ? r.text : null))
+          .filter(Boolean) as string[];
+
+        const allChildReqsConfirmed =
+          childReqStrings.length === 0 ||
+          childReqStrings.every((text, idx) => confirmedIds.has(`text_${depth + 1}_${idx}_${text}`));
 
         return (
           <div
@@ -186,32 +260,57 @@ export default function PrerequisitesList({ requirements, allServices = [], dept
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-blue-600 shrink-0" />
                   <span className="font-bold text-slate-900 text-sm">{item.service.title}</span>
                   <Badge variant="outline" className="text-[10px] bg-blue-100 text-blue-800 border-blue-200 font-bold">
                     Required Product
                   </Badge>
+                  {item.service.turnaroundTime && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-white/90 border border-slate-200/90 px-2 py-0.5 rounded-md shadow-2xs">
+                      <Clock className="w-3 h-3 text-blue-600 shrink-0" />
+                      {item.service.turnaroundTime}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-slate-600 line-clamp-2">{item.service.description}</p>
-                <div className="font-extrabold text-blue-700 text-xs pt-0.5">
-                  {item.service.isPriceTbc ? 'Price on Request' : formatPrice(item.service.price)}
+                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                  {item.service.isPriceTbc ? (
+                    <span className="font-extrabold text-blue-700 text-xs">Price on Request</span>
+                  ) : (
+                    <>
+                      <span className="font-black text-blue-700 text-sm">
+                        {formatPrice(item.service.price || 0)}
+                      </span>
+                      <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-300 font-extrabold">
+                        🎁 Unlocks 20% OFF Total Order
+                      </Badge>
+                    </>
+                  )}
                 </div>
               </div>
 
               <Button
+                disabled={!allChildReqsConfirmed && !isIncludedInOrder}
                 onClick={() => handleToggleIncludeInOrder(item.service.id)}
                 size="sm"
                 className={`h-9 font-bold text-xs rounded-lg shrink-0 w-full sm:w-auto transition-all ${
                   isIncludedInOrder
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : !allChildReqsConfirmed
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                 }`}
               >
                 {isIncludedInOrder ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
                     Included in Order
+                  </>
+                ) : !allChildReqsConfirmed ? (
+                  <>
+                    <Lock className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+                    Confirm Prerequisites Below
                   </>
                 ) : (
                   <>
@@ -221,6 +320,13 @@ export default function PrerequisitesList({ requirements, allServices = [], dept
                 )}
               </Button>
             </div>
+
+            {!allChildReqsConfirmed && !isIncludedInOrder && (
+              <div className="mt-2 text.5 max-w-full text-[11px] font-semibold text-amber-800 bg-amber-50/90 border border-amber-200/90 p-2 rounded-lg flex items-center gap-1.5 animate-in fade-in">
+                <span className="text-sm">⚠️</span>
+                Please confirm all prerequisites below to enable including this product in your order.
+              </div>
+            )}
 
             {/* Recursive Child Prerequisites */}
             {childRequirements.length > 0 && depth < 3 && (
@@ -233,6 +339,8 @@ export default function PrerequisitesList({ requirements, allServices = [], dept
                   requirements={childRequirements}
                   allServices={allServices}
                   depth={depth + 1}
+                  selectedPrereqIds={selectedPrereqIds}
+                  onTogglePrereq={onTogglePrereq}
                 />
               </div>
             )}
@@ -242,3 +350,4 @@ export default function PrerequisitesList({ requirements, allServices = [], dept
     </div>
   );
 }
+

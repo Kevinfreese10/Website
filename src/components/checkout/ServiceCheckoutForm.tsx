@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Service, Order, User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, User as UserIcon, CheckCircle2, ShieldCheck, Lock, RefreshCw, MessageSquare, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, User as UserIcon, CheckCircle2, ShieldCheck, Lock, RefreshCw, MessageSquare, AlertCircle, Check, Clock } from 'lucide-react';
 import { getFirestore, doc, setDoc, Timestamp, getDoc, serverTimestamp, collection, query, where, getDocs, or } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
@@ -119,17 +119,35 @@ function PriceOnRequestForm({ service }: { service: Service }) {
   );
 }
 
-export default function ServiceCheckoutForm({ service, partnerId }: { service: Service; partnerId?: string }) {
+interface ServiceCheckoutFormProps {
+  service: Service;
+  partnerId?: string;
+  selectedPrereqIds?: Set<string>;
+  onTogglePrereq?: (serviceId: string) => void;
+  arePrereqsConfirmed?: boolean;
+}
+
+export default function ServiceCheckoutForm({
+  service,
+  partnerId,
+  selectedPrereqIds,
+  onTogglePrereq,
+  arePrereqsConfirmed,
+}: ServiceCheckoutFormProps) {
   const router = useRouter();
   const { user, reauthenticate } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
   const [linkedUser, setLinkedUser] = useState<{name: string, id: string} | null>(null);
+
+  const allPrereqsMet = arePrereqsConfirmed !== undefined ? arePrereqsConfirmed : true;
   const [isCheckingUser, setIsCheckingUser] = useState(false);
   const [prereqServices, setPrereqServices] = useState<Service[]>([]);
-  const [selectedPrereqIds, setSelectedPrereqIds] = useState<Set<string>>(new Set());
+  const [localSelectedPrereqIds, setLocalSelectedPrereqIds] = useState<Set<string>>(new Set());
   const [loadingPrereqs, setLoadingPrereqs] = useState<boolean>(true);
+
+  const activeSelectedPrereqIds = selectedPrereqIds || localSelectedPrereqIds;
 
   // Load prerequisite products for this service
   useEffect(() => {
@@ -174,8 +192,6 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
 
         if (isMounted) {
           setPrereqServices(matched);
-          // By default, checkboxes are UNSELECTED
-          setSelectedPrereqIds(new Set());
           setLoadingPrereqs(false);
         }
       } catch (err) {
@@ -191,55 +207,28 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
     };
   }, [service.id, service.requiredProductIds, service.clientRequirements]);
 
-  // Sync window events from PrerequisitesList
-  useEffect(() => {
-    const handleToggleOrderEvent = (e: Event) => {
-      const customEvt = e as CustomEvent<{ serviceId: string }>;
-      const serviceId = customEvt.detail?.serviceId;
-      if (!serviceId) return;
-
-      setSelectedPrereqIds((prev) => {
+  const togglePrereq = (id: string) => {
+    if (onTogglePrereq) {
+      onTogglePrereq(id);
+    } else {
+      setLocalSelectedPrereqIds((prev) => {
         const next = new Set(prev);
-        if (next.has(serviceId)) {
-          next.delete(serviceId);
-        } else {
-          next.add(serviceId);
-        }
-        window.dispatchEvent(
-          new CustomEvent('prerequisite-order-updated', {
-            detail: { selectedIds: Array.from(next) },
-          })
-        );
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
         return next;
       });
-    };
-
-    window.addEventListener('toggle-prerequisite-order', handleToggleOrderEvent);
-    return () => {
-      window.removeEventListener('toggle-prerequisite-order', handleToggleOrderEvent);
-    };
-  }, []);
-
-  const togglePrereq = (id: string) => {
-    setSelectedPrereqIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      window.dispatchEvent(
-        new CustomEvent('prerequisite-order-updated', {
-          detail: { selectedIds: Array.from(next) },
-        })
-      );
-      return next;
-    });
+    }
   };
 
-  const selectedPrereqList = prereqServices.filter((p) => selectedPrereqIds.has(p.id));
-  const prereqsTotal = selectedPrereqList.reduce((sum, p) => sum + (p.price || 0), 0);
-  const orderTotal = (service.price || 0) + prereqsTotal;
+  const selectedPrereqList = prereqServices.filter((p) => activeSelectedPrereqIds.has(p.id));
+  const hasPackageDiscount = selectedPrereqList.length > 0;
+
+  const rawPrereqsTotal = selectedPrereqList.reduce((sum, p) => sum + (p.price || 0), 0);
+  const rawOrderTotal = (service.price || 0) + rawPrereqsTotal;
+
+  // 20% discount applies to the ENTIRE order when prerequisites are included
+  const packageDiscount = hasPackageDiscount ? Math.round(rawOrderTotal * 0.2) : 0;
+  const orderTotal = rawOrderTotal - packageDiscount;
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
       resolver: zodResolver(checkoutSchema),
@@ -248,12 +237,17 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
           lastName: (user?.role === 'client' ? user?.name?.split(' ').slice(1).join(' ') : '') || '',
           email: (user?.role === 'client' ? user?.email : '') || '',
           phone: (user?.role === 'client' ? user?.contactNumber : '') || '',
-          hasPrerequisites: false,
+          hasPrerequisites: allPrereqsMet,
           agreedToRefundPolicy: false,
       }
   });
 
+  useEffect(() => {
+    form.setValue('hasPrerequisites', allPrereqsMet);
+  }, [allPrereqsMet, form]);
+
   const watchedEmail = form.watch('email');
+  const watchedAgreedToRefundPolicy = form.watch('agreedToRefundPolicy');
 
   // Automatic user lookup when email is entered
   useEffect(() => {
@@ -331,8 +325,18 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
         const finalUserId = (user?.role === 'client' ? user?.uid : null) || linkedUser?.id || null;
         
         const orderItems = [
-          { id: service.id, title: service.title, price: service.price, quantity: 1 },
-          ...selectedPrereqList.map((p) => ({ id: p.id, title: p.title, price: p.price, quantity: 1 })),
+          {
+            id: service.id,
+            title: service.title,
+            price: hasPackageDiscount ? Math.round((service.price || 0) * 0.8) : (service.price || 0),
+            quantity: 1,
+          },
+          ...selectedPrereqList.map((p) => ({
+            id: p.id,
+            title: p.title,
+            price: Math.round((p.price || 0) * 0.8),
+            quantity: 1,
+          })),
         ];
 
         const result = await createCheckoutOrderAction({
@@ -406,7 +410,7 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
 
                     <div className="space-y-2 pt-1">
                         {prereqServices.map((p) => {
-                            const isChecked = selectedPrereqIds.has(p.id);
+                            const isChecked = activeSelectedPrereqIds.has(p.id);
                             return (
                                 <div
                                     key={p.id}
@@ -417,18 +421,28 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
                                             : 'bg-white/70 border-slate-200 opacity-70 hover:opacity-100'
                                     }`}
                                 >
-                                    <Checkbox
-                                        checked={isChecked}
-                                        onCheckedChange={() => togglePrereq(p.id)}
-                                        className="mt-0.5 pointer-events-none"
-                                    />
-                                    <div className="text-xs space-y-0.5 min-w-0 flex-1">
+                                    <div
+                                        className={`h-4 w-4 shrink-0 rounded-sm border flex items-center justify-center transition-all mt-0.5 ${
+                                            isChecked
+                                                ? 'bg-blue-600 border-blue-600 text-white'
+                                                : 'border-slate-300 bg-white'
+                                        }`}
+                                    >
+                                        {isChecked && <Check className="h-3 w-3 text-white stroke-[3]" />}
+                                    </div>
+                                    <div className="text-xs space-y-1 min-w-0 flex-1">
                                         <div className="flex items-center justify-between gap-1">
-                                            <span className="font-bold text-slate-900 leading-none">{p.title}</span>
-                                            <span className="font-extrabold text-blue-700 text-xs shrink-0">
-                                                {p.isPriceTbc ? 'Quote' : formatPrice(p.price)}
+                                            <span className="font-bold text-slate-900 leading-none truncate">{p.title}</span>
+                                            <span className="font-black text-blue-700 text-xs shrink-0">
+                                                {p.isPriceTbc ? 'Quote' : formatPrice(p.price || 0)}
                                             </span>
                                         </div>
+                                        {p.turnaroundTime && (
+                                            <div className="flex items-center gap-1 text-[10px] text-slate-500 font-semibold pt-0.5">
+                                                <Clock className="w-3 h-3 text-blue-600 shrink-0" />
+                                                <span>{p.turnaroundTime}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -471,44 +485,70 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
             )}
 
             <div className="space-y-4">
-                <FormField
-                    control={form.control}
-                    name="hasPrerequisites"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            <div className="space-y-1 leading-none">
-                                <FormLabel className="text-sm font-medium cursor-pointer">I confirm I have all the prerequisites for this service.</FormLabel>
-                                <FormMessage />
+                {!allPrereqsMet ? (
+                    <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-4 text-center space-y-2 animate-in fade-in">
+                        <div className="flex items-center justify-center gap-1.5 text-amber-900 font-extrabold text-xs">
+                            <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                            Prerequisites Action Required
+                        </div>
+                        <p className="text-xs text-amber-800 font-semibold leading-relaxed">
+                            Please confirm all required prerequisites on the left by ticking each requirement box before proceeding to payment.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                        <FormField
+                            control={form.control}
+                            name="agreedToRefundPolicy"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl><Checkbox checked={field.value ?? false} onCheckedChange={(c) => field.onChange(Boolean(c))} /></FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel className="text-sm font-medium cursor-pointer">
+                                            I agree to the <Link href="/refund-policy" className="text-primary underline" target="_blank">refund policy</Link>.
+                                        </FormLabel>
+                                        <FormMessage />
+                                    </div>
+                                </FormItem>
+                            )}
+                        />
+
+                        {hasPackageDiscount && packageDiscount > 0 && (
+                            <div className="rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50/50 to-white border border-emerald-300 p-3 space-y-2 text-xs animate-in fade-in shadow-2xs">
+                                <div className="flex items-center justify-between text-slate-600 font-semibold">
+                                    <span>Order Subtotal</span>
+                                    <span className="line-through text-slate-400">{formatPrice(rawOrderTotal)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-emerald-800 font-black">
+                                    <span className="flex items-center gap-1.5">
+                                        <span className="text-sm">🎁</span> 20% Package Discount (Total Order)
+                                    </span>
+                                    <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300">
+                                        -{formatPrice(packageDiscount)}
+                                    </span>
+                                </div>
                             </div>
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="agreedToRefundPolicy"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            <div className="space-y-1 leading-none">
-                                <FormLabel className="text-sm font-medium cursor-pointer">
-                                    I agree to the <Link href="/refund-policy" className="text-primary underline" target="_blank">refund policy</Link>.
-                                </FormLabel>
-                                <FormMessage />
-                            </div>
-                        </FormItem>
-                    )}
-                />
+                        )}
+
+                        <Button 
+                            type="submit"
+                            disabled={isLoading || !watchedAgreedToRefundPolicy}
+                            className={`w-full h-12 text-base font-extrabold transition-all ${
+                                !watchedAgreedToRefundPolicy
+                                    ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
+                                    : 'partner-btn shadow-md hover:shadow-lg'
+                            }`}
+                        >
+                            {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                            {isLoading
+                                ? 'Processing...'
+                                : !watchedAgreedToRefundPolicy
+                                ? '🔒 Please Agree to Refund Policy to Proceed'
+                                : `Proceed to Payment${!service.isPriceTbc ? ` – ${formatPrice(orderTotal)}` : ''}`}
+                        </Button>
+                    </div>
+                )}
             </div>
-        
-            <Button 
-                type="submit"
-                disabled={isLoading}
-                className="w-full partner-btn h-12 text-base font-extrabold"
-            >
-                {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                {isLoading ? 'Processing...' : `Proceed to Payment${!service.isPriceTbc ? ` – ${formatPrice(orderTotal)}` : ''}`}
-            </Button>
 
             {/* Trust bar */}
             <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-wider pt-1">

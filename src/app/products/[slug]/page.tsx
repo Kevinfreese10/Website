@@ -9,6 +9,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Metadata, ResolvingMetadata } from 'next';
 import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
 import PrerequisitesList from '@/components/products/PrerequisitesList';
+import ProductPageInteractiveContainer from '@/components/products/ProductPageInteractiveContainer';
 import Script from 'next/script';
 import { generateStructuredData } from '@/lib/schema/productSchema';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
@@ -369,69 +370,11 @@ export default async function ProductDetailPage({ params }: Props) {
       </div>
 
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
-          <div className="space-y-8 md:col-span-2">
-              
-            <div>
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <span className="h-5 w-1 rounded-full bg-gradient-to-b from-violet-500 to-purple-600 shrink-0" />
-                Product Description
-              </h2>
-              <Separator className="my-3" />
-              <p className="text-muted-foreground leading-relaxed">{service.longDescription}</p>
-            </div>
-
-            {service.whatsIncluded && service.whatsIncluded.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <span className="h-5 w-1 rounded-full bg-gradient-to-b from-cyan-500 to-blue-600 shrink-0" />
-                  What's Included
-                </h2>
-                <Separator className="my-3" />
-                <ul className="space-y-3">
-                  {service.whatsIncluded.map((item, index) => (
-                    <li key={index} className="flex items-start">
-                      <BadgeCheck className="h-5 w-5 text-emerald-400 mr-3 mt-1 flex-shrink-0" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {service.clientRequirements && service.clientRequirements.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <span className="h-5 w-1 rounded-full bg-gradient-to-b from-amber-500 to-orange-600 shrink-0" />
-                  Prerequisites
-                </h2>
-                <Separator className="my-3" />
-                <PrerequisitesList requirements={service.clientRequirements} />
-              </div>
-            )}
-
-          </div>
-
-          {/* STICKY CHECKOUT SIDEBAR */}
-          <div className="md:col-span-1">
-            <div className="sticky top-24 space-y-4">
-              {/* Service summary recap */}
-              <div className="rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
-                <p className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground mb-1">{service.category}</p>
-                <h3 className="text-base font-black text-foreground leading-snug mb-3">{service.title}</h3>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center text-xs text-muted-foreground font-semibold gap-1">
-                    <Clock className="h-3.5 w-3.5" />{service.turnaroundTime}
-                  </span>
-                  <span className="text-xl font-black text-primary">
-                    {service.isPriceTbc ? 'Quote' : formatPrice(service.price)}
-                  </span>
-                </div>
-              </div>
-              <ServiceCheckoutForm service={service} />
-            </div>
-          </div>
-        </div>
+        <ProductPageInteractiveContainer
+          service={service}
+          clientRequirements={service.clientRequirements}
+        />
+      </div>
 
         {/* DYNAMIC FAQ ACCORDION SECTION (Strictly aligned with Google Search Engine requirements) */}
         {serviceFaqs && serviceFaqs.length > 0 && (
@@ -453,11 +396,10 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
             </div>
           ))}
-        </div>
+              </div>
             </div>
           </div>
         )}
-      </div>
 
       {/* MOBILE STICKY BUY BAR */}
       {!service.isPriceTbc && (
