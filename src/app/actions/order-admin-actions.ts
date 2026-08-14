@@ -2,6 +2,7 @@
 
 import { getAdminDb } from '@/lib/firebase-admin';
 import { AuditEntry } from '@/lib/types';
+import { sendOrderStatusUpdateEmailAction } from './order-actions';
 
 /**
  * Updates order status atomically across both primary and original/linked partner orders.
@@ -61,6 +62,14 @@ export async function updateOrderStatusAtomic(
     }
 
     await batch.commit();
+
+    // Trigger order status update email (includes review request when Completed)
+    try {
+      await sendOrderStatusUpdateEmailAction(orderId, newStatus);
+    } catch (emailErr) {
+      console.error('[updateOrderStatusAtomic] Email notification failed:', emailErr);
+    }
+
     return { success: true, message: `Status updated to ${newStatus}` };
   } catch (error: any) {
     console.error('Error updating order status atomically:', error);

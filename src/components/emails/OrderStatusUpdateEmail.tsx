@@ -78,7 +78,10 @@ const heading = {
 }
 
 export const OrderStatusUpdateEmail = ({ order, reseller, message }: OrderStatusUpdateEmailProps) => {
-    const previewText = `Update on Order #${order.id}: ${order.status}`;
+    const isCompleted = order.status?.toLowerCase() === 'completed';
+    const previewText = isCompleted
+        ? `Order #${order.id} Completed - Leave a Review!`
+        : `Update on Order #${order.id}: ${order.status}`;
 
     const companyName = reseller?.companyName || 'My Accountant';
     const companyEmail = reseller?.email || 'info@myacc.co.za';
@@ -91,18 +94,55 @@ export const OrderStatusUpdateEmail = ({ order, reseller, message }: OrderStatus
         <Body style={main}>
             <Container style={container}>
             <Section style={box}>
-                <Heading style={heading}>Order Status Update</Heading>
+                <Heading style={heading}>
+                    {isCompleted ? '🎉 Order Completed!' : 'Order Status Update'}
+                </Heading>
                 <Text style={paragraph}>
                     Hi {order.customerName.split(' ')[0]},
                 </Text>
                 <Text style={paragraph}>
-                    The status of your order <strong style={{color: '#214392'}}>{order.id}</strong> has been updated to <strong>{order.status}</strong>.
+                    The status of your order <strong style={{color: '#214392'}}>{order.id}</strong> has been updated to <strong style={{color: isCompleted ? '#166534' : '#214392'}}>{order.status}</strong>.
                 </Text>
                 
                 {message && (
                     <Text style={paragraph}>
                         <strong>Note:</strong> {message}
                     </Text>
+                )}
+
+                {isCompleted && (
+                    <Section style={{
+                        backgroundColor: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '12px',
+                        padding: '24px',
+                        marginTop: '20px',
+                        marginBottom: '24px',
+                        textAlign: 'center' as const,
+                    }}>
+                        <Heading style={{ fontSize: '20px', fontWeight: 'bold', color: '#166534', margin: '0 0 10px 0' }}>
+                            ⭐ How did we do?
+                        </Heading>
+                        <Text style={{ color: '#15803d', fontSize: '14px', lineHeight: '22px', margin: '0 0 16px 0' }}>
+                            Your order has been successfully completed! We would love to hear about your experience. Leaving a quick review helps us continue delivering top-tier accounting & compliance services.
+                        </Text>
+                        <Button
+                            style={{
+                                backgroundColor: '#15803d',
+                                borderRadius: '8px',
+                                color: '#ffffff',
+                                fontSize: '15px',
+                                fontWeight: 'bold',
+                                textDecoration: 'none',
+                                textAlign: 'center' as const,
+                                display: 'inline-block',
+                                padding: '12px 24px',
+                            }}
+                            href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/reviews`}
+                        >
+                            ⭐ Leave a Review
+                        </Button>
+                    </Section>
                 )}
 
                 <Text style={paragraph}>

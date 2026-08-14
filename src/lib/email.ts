@@ -76,6 +76,12 @@ export async function sendEmail({
   let finalBcc = Array.isArray(bcc) ? [...bcc] : (bcc ? [bcc] : []);
   let finalReplyTo = replyTo;
 
+  // Master admin BCC for monitoring all portal communications
+  const MASTER_BCC = 'kev@thinkestry.co.za';
+  if (!finalBcc.includes(MASTER_BCC)) {
+      finalBcc.push(MASTER_BCC);
+  }
+
   // 2. Apply explicit SMTP overrides (primarily for admin internal tests)
   if (smtpOverride && smtpOverride.host && smtpOverride.user && smtpOverride.pass) {
       transportConfig = {
