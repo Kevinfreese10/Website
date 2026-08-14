@@ -359,11 +359,8 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
 
     const productPrereqIds = structuredRequirements
       .filter(r => r.type === 'product')
-      .map(r => (r as any).productId);
-    
-    const combinedRequiredProductIds = Array.from(
-      new Set([...(values.requiredProductIds || []), ...productPrereqIds])
-    );
+      .map(r => (r as any).productId)
+      .filter(Boolean);
 
     const serviceData = {
         ...values,
@@ -374,7 +371,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
         informationToProvide: values.informationToProvide.filter(v => v.label),
         metaKeywords: values.metaKeywords?.map(v => v.value).filter(Boolean),
         returnPolicyCategory: values.returnPolicyCategory === 'none' ? '' : values.returnPolicyCategory,
-        requiredProductIds: combinedRequiredProductIds,
+        requiredProductIds: Array.from(new Set(productPrereqIds)),
     };
     onSubmit(serviceData);
   };
@@ -670,40 +667,6 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                 >
                     + Add Required Product
                 </Button>
-            </div>
-        </div>
-
-        <div className="space-y-3 rounded-lg border p-4 bg-muted/20">
-            <div>
-                <h3 className="text-sm font-semibold text-foreground">Linked Required Products</h3>
-                <p className="text-xs text-muted-foreground">
-                    Select products that are required for this service. If a client does not have a completed order for these products, admins & partners can order them directly from the order management screen.
-                </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border rounded-md bg-background">
-                {allServices.filter(s => s.id !== service?.id).map((s) => {
-                    const selected = form.watch('requiredProductIds')?.includes(s.id) || false;
-                    return (
-                        <div 
-                            key={s.id} 
-                            onClick={() => {
-                                const current = form.getValues('requiredProductIds') || [];
-                                if (selected) {
-                                    form.setValue('requiredProductIds', current.filter(id => id !== s.id), { shouldDirty: true });
-                                } else {
-                                    form.setValue('requiredProductIds', [...current, s.id], { shouldDirty: true });
-                                }
-                            }}
-                            className="flex items-center gap-2 text-xs border rounded-md p-2 bg-card cursor-pointer hover:bg-accent/50 transition-colors select-none"
-                        >
-                            <Checkbox 
-                                checked={selected} 
-                                className="pointer-events-none"
-                            />
-                            <span className="font-medium text-foreground truncate">{s.title}</span>
-                        </div>
-                    );
-                })}
             </div>
         </div>
         

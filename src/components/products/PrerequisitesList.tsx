@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Service, PrerequisiteItem } from '@/lib/types';
-import { ClipboardCheck, ShoppingBag, ShoppingCart, CheckCircle2, ShieldAlert, Loader2, CornerDownRight, Plus, Clock, Check, Lock } from 'lucide-react';
+import { ClipboardCheck, ShoppingBag, ShoppingCart, CheckCircle2, ShieldAlert, Loader2, CornerDownRight, Plus, Clock, Check, Lock, MousePointerClick } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
@@ -34,6 +34,57 @@ interface LoadedTextPrereq {
 }
 
 type LoadedPrereq = LoadedTextPrereq | LoadedProductPrereq;
+
+function checkServicePrereqsSatisfied(
+  serviceReqs: (string | PrerequisiteItem)[] | undefined,
+  currentDepth: number,
+  allServicesMap: Service[],
+  confirmedIds: Set<string>,
+  selectedIds: Set<string>,
+  visitedServiceIds: Set<string> = new Set()
+): boolean {
+  if (!serviceReqs || serviceReqs.length === 0 || currentDepth > 15) return true;
+
+  for (let idx = 0; idx < serviceReqs.length; idx++) {
+    const req = serviceReqs[idx];
+    if (typeof req === 'string' || req.type === 'text') {
+      const text = typeof req === 'string' ? req : req.text;
+      const textId = `text_${currentDepth}_${idx}_${text}`;
+      if (!confirmedIds.has(textId)) {
+        return false;
+      }
+    } else if (req.type === 'product' && req.productId) {
+      const productId = req.productId;
+      if (visitedServiceIds.has(productId)) continue;
+
+      const isAlreadyHave = confirmedIds.has(`product_${productId}`);
+      const isIncluded = selectedIds.has(productId);
+
+      if (!isAlreadyHave) {
+        if (!isIncluded) return false;
+
+        const childService = allServicesMap.find(
+          (s) => s.id === productId || s.slug === productId || s.title.toLowerCase() === productId.toLowerCase()
+        );
+        if (childService && childService.clientRequirements) {
+          const nextVisited = new Set(visitedServiceIds);
+          nextVisited.add(productId);
+          const childSatisfied = checkServicePrereqsSatisfied(
+            childService.clientRequirements,
+            currentDepth + 1,
+            allServicesMap,
+            confirmedIds,
+            selectedIds,
+            nextVisited
+          );
+          if (!childSatisfied) return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
 
 export default function PrerequisitesList({
   requirements,
@@ -80,24 +131,42 @@ export default function PrerequisitesList({
       return;
     }
 
-    const textReqIds: string[] = [];
+    const unconfirmedIds: string[] = [];
+
     items.forEach((item, idx) => {
       if (item.type === 'text') {
-        textReqIds.push(`text_${depth}_${idx}_${item.text}`);
+        const id = `text_${depth}_${idx}_${item.text}`;
+        if (!activeConfirmedIds.has(id)) {
+          unconfirmedIds.push(id);
+        }
       } else if (item.type === 'product') {
-        const childReqs = item.service.clientRequirements || [];
-        childReqs.forEach((r, childIdx) => {
-          const reqText = typeof r === 'string' ? r : r.type === 'text' ? r.text : null;
-          if (reqText) {
-            textReqIds.push(`text_${depth + 1}_${childIdx}_${reqText}`);
+        const productId = item.service.id;
+        const isIncluded = activeSelectedIds.has(productId);
+        const isAlreadyHave = activeConfirmedIds.has(`product_${productId}`);
+
+        if (!isIncluded && !isAlreadyHave) {
+          unconfirmedIds.push(`product_${productId}`);
+        }
+
+        // Only enforce child requirements if user does NOT already have this product!
+        if (!isAlreadyHave) {
+          const childSatisfied = checkServicePrereqsSatisfied(
+            item.service.clientRequirements,
+            depth + 1,
+            allServices || [],
+            activeConfirmedIds,
+            activeSelectedIds
+          );
+          if (!childSatisfied) {
+            unconfirmedIds.push(`child_prereqs_${productId}`);
           }
-        });
+        }
       }
     });
 
-    const allConfirmed = textReqIds.length === 0 || textReqIds.every((id) => activeConfirmedIds.has(id));
+    const allConfirmed = unconfirmedIds.length === 0;
     onConfirmationChange(allConfirmed);
-  }, [activeConfirmedIds, items, depth, onConfirmationChange]);
+  }, [activeConfirmedIds, activeSelectedIds, items, depth, onConfirmationChange]);
 
   const handleToggleIncludeInOrder = (serviceId: string) => {
     if (onTogglePrereq) {
@@ -197,11 +266,11 @@ export default function PrerequisitesList({
   return (
     <div className="space-y-3">
       {depth === 0 && (
-        <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-gradient-to-r from-amber-50 via-amber-100/50 to-orange-50 border border-amber-300 text-xs text-amber-950 font-bold shadow-2xs mb-2 animate-in fade-in leading-relaxed">
-          <ClipboardCheck className="w-4.5 h-4.5 text-amber-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-gradient-to-r from-rose-50 via-red-50 to-red-100/60 border border-red-300 text-xs text-red-950 font-bold shadow-2xs mb-2 animate-in fade-in leading-relaxed">
+          <ClipboardCheck className="w-4.5 h-4.5 text-red-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p>Please confirm you have each required item below by clicking the checkboxes to unlock checkout.</p>
-            <p className="text-[11px] font-normal text-amber-900 leading-normal">
+            <p className="text-[11px] font-normal text-red-900 leading-normal">
               🤝 <strong>Don&apos;t worry if you&apos;re missing anything right now!</strong> Your order stays open for as long as you need, with no expiry date. You can provide your documents whenever it&apos;s convenient for you. <span className="text-[10px] opacity-80">(Please note that missing prerequisites do not qualify for a refund, as we keep your account ready for you).</span>
             </p>
           </div>
@@ -219,20 +288,20 @@ export default function PrerequisitesList({
               className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border transition-all cursor-pointer select-none ${
                 isConfirmed
                   ? 'bg-emerald-50/90 border-emerald-300 text-slate-900 shadow-2xs'
-                  : 'bg-white border-slate-200/80 text-slate-700 hover:border-slate-300'
+                  : 'bg-white border-red-200/90 hover:border-red-300 text-slate-700 shadow-2xs'
               }`}
             >
               <div className="flex items-start gap-2.5 min-w-0 flex-1">
                 <div
-                  className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-all mt-0.5 ${
+                  className={`h-4.5 w-4.5 shrink-0 rounded border flex items-center justify-center transition-all mt-0.5 ${
                     isConfirmed
                       ? 'bg-emerald-600 border-emerald-600 text-white'
-                      : 'border-slate-400 bg-white'
+                      : 'border-red-400 bg-red-50/60 ring-2 ring-red-400/20 animate-pulse'
                   }`}
                 >
-                  {isConfirmed && <Check className="h-3 w-3 text-white stroke-[3]" />}
+                  {isConfirmed && <Check className="h-3.5 w-3.5 text-white stroke-[3]" />}
                 </div>
-                <span className={`text-xs leading-relaxed break-words ${isConfirmed ? 'font-bold text-emerald-950' : 'font-medium'}`}>
+                <span className={`text-xs leading-relaxed break-words ${isConfirmed ? 'font-bold text-emerald-950' : 'font-semibold text-slate-800'}`}>
                   {item.text}
                 </span>
               </div>
@@ -242,8 +311,9 @@ export default function PrerequisitesList({
                     ✓ Confirmed
                   </span>
                 ) : (
-                  <span className="text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                    Confirm you have this
+                  <span className="inline-flex items-center gap-1 text-red-800 bg-red-50 px-2 py-0.5 rounded-md border border-red-200 animate-pulse">
+                    <MousePointerClick className="w-3 h-3 text-red-600 animate-bounce" />
+                    Click box to confirm
                   </span>
                 )}
               </span>
@@ -252,22 +322,25 @@ export default function PrerequisitesList({
         }
 
         const isIncludedInOrder = activeSelectedIds.has(item.service.id);
+        const isProductAlreadyHave = activeConfirmedIds.has(`product_${item.service.id}`);
         const childRequirements = item.service.clientRequirements || [];
 
-        // Check if all child text requirements for this product are confirmed
-        const childReqStrings = childRequirements
-          .map((r) => (typeof r === 'string' ? r : r.type === 'text' ? r.text : null))
-          .filter(Boolean) as string[];
-
-        const allChildReqsConfirmed =
-          childReqStrings.length === 0 ||
-          childReqStrings.every((text, idx) => activeConfirmedIds.has(`text_${depth + 1}_${idx}_${text}`));
+        // Check recursively if all child text and product requirements for this product are confirmed/satisfied
+        const allChildReqsConfirmed = checkServicePrereqsSatisfied(
+          childRequirements,
+          depth + 1,
+          allServices || [],
+          activeConfirmedIds,
+          activeSelectedIds
+        );
 
         return (
           <div
             key={item.service.id}
             className={`p-3.5 rounded-xl border transition-all ${
-              depth > 0
+              isProductAlreadyHave
+                ? 'border-emerald-300 bg-emerald-50/40 shadow-2xs'
+                : depth > 0
                 ? 'border-blue-300 bg-blue-100/40 ml-2 sm:ml-4'
                 : 'border-blue-200 bg-blue-50/40 shadow-2xs'
             }`}
@@ -280,6 +353,11 @@ export default function PrerequisitesList({
                   <Badge variant="outline" className="text-[10px] bg-blue-100 text-blue-800 border-blue-200 font-bold">
                     Required Product
                   </Badge>
+                  {isProductAlreadyHave && (
+                    <Badge variant="outline" className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-300 font-extrabold">
+                      ✓ Confirmed (You have this)
+                    </Badge>
+                  )}
                   {item.service.turnaroundTime && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-white/90 border border-slate-200/90 px-2 py-0.5 rounded-md shadow-2xs">
                       <Clock className="w-3 h-3 text-blue-600 shrink-0" />
@@ -304,46 +382,75 @@ export default function PrerequisitesList({
                 </div>
               </div>
 
-              <Button
-                disabled={!allChildReqsConfirmed && !isIncludedInOrder}
-                onClick={() => handleToggleIncludeInOrder(item.service.id)}
-                size="sm"
-                className={`h-9 font-bold text-xs rounded-lg shrink-0 w-full sm:w-auto transition-all ${
-                  isIncludedInOrder
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    : !allChildReqsConfirmed
-                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                }`}
-              >
-                {isIncludedInOrder ? (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                    Included in Order
-                  </>
-                ) : !allChildReqsConfirmed ? (
-                  <>
-                    <Lock className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
-                    Confirm Prerequisites Below
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-3.5 h-3.5 mr-1.5" />
-                    Include in Order
-                  </>
-                )}
-              </Button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
+                {/* Option 1: I already have this */}
+                <div
+                  onClick={() => toggleConfirm(`product_${item.service.id}`)}
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all cursor-pointer select-none ${
+                    isProductAlreadyHave
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-950 shadow-2xs'
+                      : 'bg-white border-slate-300 text-slate-700 hover:border-slate-400'
+                  }`}
+                >
+                  <div
+                    className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-all ${
+                      isProductAlreadyHave
+                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                        : 'border-slate-400 bg-white'
+                    }`}
+                  >
+                    {isProductAlreadyHave && <Check className="h-3 w-3 text-white stroke-[3]" />}
+                  </div>
+                  <span>I already have {item.service.title}</span>
+                </div>
+
+                {/* Option 2: Include in Order */}
+                <Button
+                  disabled={!allChildReqsConfirmed && !isIncludedInOrder}
+                  onClick={() => {
+                    if (isProductAlreadyHave) {
+                      toggleConfirm(`product_${item.service.id}`);
+                    }
+                    handleToggleIncludeInOrder(item.service.id);
+                  }}
+                  size="sm"
+                  className={`h-9 font-bold text-xs rounded-lg shrink-0 transition-all ${
+                    isIncludedInOrder
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : !allChildReqsConfirmed
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                  }`}
+                >
+                  {isIncludedInOrder ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                      Included in Order
+                    </>
+                  ) : !allChildReqsConfirmed ? (
+                    <>
+                      <Lock className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+                      Confirm Prerequisites Below
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3.5 h-3.5 mr-1.5" />
+                      Include in Order
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
-            {!allChildReqsConfirmed && !isIncludedInOrder && (
+            {!isProductAlreadyHave && !allChildReqsConfirmed && !isIncludedInOrder && (
               <div className="mt-2 text.5 max-w-full text-[11px] font-semibold text-amber-800 bg-amber-50/90 border border-amber-200/90 p-2 rounded-lg flex items-center gap-1.5 animate-in fade-in">
                 <span className="text-sm">⚠️</span>
                 Please confirm all prerequisites below to enable including this product in your order.
               </div>
             )}
 
-            {/* Recursive Child Prerequisites */}
-            {childRequirements.length > 0 && depth < 3 && (
+            {/* Recursive Child Prerequisites (only if not already owned) */}
+            {!isProductAlreadyHave && childRequirements.length > 0 && depth < 15 && (
               <div className="mt-3 pt-3 border-t border-blue-200/70 space-y-2">
                 <div className="text-[11px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
                   <CornerDownRight className="w-3.5 h-3.5 text-blue-600 shrink-0" />

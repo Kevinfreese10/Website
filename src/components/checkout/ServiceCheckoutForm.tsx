@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Service, Order, User } from '@/lib/types';
+import { Service, Order, User, PrerequisiteItem } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Loader2, Mail, User as UserIcon, CheckCircle2, ShieldCheck, Lock, RefreshCw, MessageSquare, AlertCircle, Check, Clock } from 'lucide-react';
 import { getFirestore, doc, setDoc, Timestamp, getDoc, serverTimestamp, collection, query, where, getDocs, or } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -149,39 +150,37 @@ export default function ServiceCheckoutForm({
 
   const activeSelectedPrereqIds = selectedPrereqIds || localSelectedPrereqIds;
 
-  // Load prerequisite products for this service
+  // Load prerequisite products for this service (recursively including nested prerequisites)
   useEffect(() => {
     let isMounted = true;
 
     async function loadPrereqs() {
-      const productIds = new Set<string>();
-
-      if (service.requiredProductIds) {
-        service.requiredProductIds.forEach((id) => productIds.add(id));
-      }
-
-      if (service.clientRequirements) {
-        service.clientRequirements.forEach((req) => {
-          if (typeof req !== 'string' && req.type === 'product' && req.productId) {
-            productIds.add(req.productId);
-          }
-        });
-      }
-
-      if (productIds.size === 0) {
-        if (isMounted) {
-          setPrereqServices([]);
-          setLoadingPrereqs(false);
-        }
-        return;
-      }
-
       try {
         const snap = await getDocs(collection(db, 'services'));
         const allServices = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Service));
 
+        const collectedProductIds = new Set<string>();
+
+        function extractProductIds(reqs?: (string | PrerequisiteItem)[], depth = 0) {
+          if (!reqs || depth > 15) return;
+          reqs.forEach((req) => {
+            if (typeof req !== 'string' && req.type === 'product' && req.productId) {
+              collectedProductIds.add(req.productId);
+              const match = allServices.find(
+                (s) => s.id === req.productId || s.slug === req.productId || s.title.toLowerCase() === req.productId.toLowerCase()
+              );
+              if (match && match.clientRequirements) {
+                extractProductIds(match.clientRequirements, depth + 1);
+              }
+            }
+          });
+        }
+
+        // Extract product prerequisites strictly from clientRequirements (the public Prerequisites list)
+        extractProductIds(service.clientRequirements);
+
         const matched: Service[] = [];
-        productIds.forEach((pid) => {
+        collectedProductIds.forEach((pid) => {
           const found = allServices.find(
             (s) => s.id === pid || s.slug === pid || s.title.toLowerCase() === pid.toLowerCase()
           );
@@ -397,45 +396,46 @@ export default function ServiceCheckoutForm({
   return (
     <Form {...form}>
         <form id="checkout" onSubmit={form.handleSubmit(handleCheckout, onError)} className="space-y-6">
-            {/* Prerequisite Product Checkbox Selection Box */}
+            {/* Prerequisite Product Status Summary Box (Read-only, driven by main page prerequisite selections) */}
             {!loadingPrereqs && prereqServices.length > 0 && (
-                <div className="space-y-2 rounded-xl border border-blue-200 bg-blue-50/60 p-3.5 shadow-2xs">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-blue-950">
-                        <AlertCircle className="h-4 w-4 text-blue-600 shrink-0" />
-                        Include Required Prerequisite Products
+                <div className="space-y-2.5 rounded-xl border border-blue-200 bg-blue-50/60 p-3.5 shadow-2xs">
+                    <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-blue-950">
+                            <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
+                            Required Prerequisite Products
+                        </div>
+                        <Badge variant="outline" className="text-[10px] bg-blue-100 text-blue-800 border-blue-200 font-bold">
+                            Live Summary
+                        </Badge>
                     </div>
                     <p className="text-[11px] text-blue-900 leading-tight">
-                        Select any prerequisites you don&apos;t have so they can be included directly in your order:
+                        Status driven by your selections under Prerequisites on the page:
                     </p>
 
                     <div className="space-y-2 pt-1">
                         {prereqServices.map((p) => {
-                            const isChecked = activeSelectedPrereqIds.has(p.id);
+                            const isIncluded = activeSelectedPrereqIds.has(p.id);
                             return (
                                 <div
                                     key={p.id}
-                                    onClick={() => togglePrereq(p.id)}
-                                    className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-all select-none cursor-pointer ${
-                                        isChecked
-                                            ? 'bg-white border-blue-300 shadow-2xs'
-                                            : 'bg-white/70 border-slate-200 opacity-70 hover:opacity-100'
+                                    className={`flex items-center justify-between gap-2.5 p-2.5 rounded-lg border transition-all ${
+                                        isIncluded
+                                            ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950 shadow-2xs'
+                                            : 'bg-white/80 border-slate-200 text-slate-600'
                                     }`}
                                 >
-                                    <div
-                                        className={`h-4 w-4 shrink-0 rounded-sm border flex items-center justify-center transition-all mt-0.5 ${
-                                            isChecked
-                                                ? 'bg-blue-600 border-blue-600 text-white'
-                                                : 'border-slate-300 bg-white'
-                                        }`}
-                                    >
-                                        {isChecked && <Check className="h-3 w-3 text-white stroke-[3]" />}
-                                    </div>
                                     <div className="text-xs space-y-1 min-w-0 flex-1">
-                                        <div className="flex items-center justify-between gap-1">
+                                        <div className="flex items-center gap-2">
                                             <span className="font-bold text-slate-900 leading-none truncate">{p.title}</span>
-                                            <span className="font-black text-blue-700 text-xs shrink-0">
-                                                {p.isPriceTbc ? 'Quote' : formatPrice(p.price || 0)}
-                                            </span>
+                                            {isIncluded ? (
+                                                <Badge variant="outline" className="text-[9px] bg-emerald-100 text-emerald-800 border-emerald-300 font-extrabold shrink-0">
+                                                    ✓ Included in Order
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-[9px] bg-slate-100 text-slate-600 border-slate-200 font-semibold shrink-0">
+                                                    Not Included
+                                                </Badge>
+                                            )}
                                         </div>
                                         {p.turnaroundTime && (
                                             <div className="flex items-center gap-1 text-[10px] text-slate-500 font-semibold pt-0.5">
@@ -444,6 +444,9 @@ export default function ServiceCheckoutForm({
                                             </div>
                                         )}
                                     </div>
+                                    <span className={`font-black text-xs shrink-0 ${isIncluded ? 'text-emerald-700' : 'text-slate-400 line-through'}`}>
+                                        {p.isPriceTbc ? 'Quote' : formatPrice(p.price || 0)}
+                                    </span>
                                 </div>
                             );
                         })}

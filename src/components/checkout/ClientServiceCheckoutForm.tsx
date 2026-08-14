@@ -36,12 +36,7 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
     async function loadPrereqs() {
       const productIds = new Set<string>();
 
-      // Check requiredProductIds
-      if (service.requiredProductIds) {
-        service.requiredProductIds.forEach((id) => productIds.add(id));
-      }
-
-      // Check clientRequirements
+      // Check clientRequirements strictly
       if (service.clientRequirements) {
         service.clientRequirements.forEach((req) => {
           if (typeof req !== 'string' && req.type === 'product' && req.productId) {

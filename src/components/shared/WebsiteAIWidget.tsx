@@ -369,7 +369,9 @@ export default function WebsiteAIWidget() {
               )}
               <div className={cn(
                 "prose prose-sm max-w-none",
-                message.role === 'user' || message.role === 'agent' ? "prose-invert text-white" : "prose-invert text-foreground"
+                message.role === 'user' || message.role === 'agent'
+                  ? "prose-invert text-white"
+                  : "prose-slate text-slate-900 dark:prose-invert dark:text-slate-100 font-medium"
               )}>
                  <ReactMarkdown
                    components={{
