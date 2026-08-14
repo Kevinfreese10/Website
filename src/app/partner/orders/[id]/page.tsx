@@ -27,7 +27,7 @@ import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { notifyOfNewNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
+import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 
 const db = getFirestore(firebaseApp);
@@ -236,7 +236,22 @@ export default function PartnerOrderDetailsPage() {
         notes: arrayUnion(newNote),
       });
 
-      if (!isInternalNote) {
+      if (order.originalOrderId && order.originalOrderId !== order.id) {
+        try {
+          const origRef = doc(db, 'orders', order.originalOrderId);
+          await updateDoc(origRef, { notes: arrayUnion(newNote) });
+        } catch (syncErr) {
+          console.error("Failed to sync note to master order:", syncErr);
+        }
+      }
+
+      if (isInternalNote) {
+        notifyAllocatedUserOfInternalNote({
+          orderId: order.id,
+          senderName: currentUser.name || order.customerName || 'Partner',
+          noteText: values.noteText || '',
+        }).catch(err => console.error("Failed to send internal note notification:", err));
+      } else {
         const isToClient = order.documentContact === 'client';
         const emailTo = (isToClient ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
         const recipientName = ((isToClient ? order.endCustomerName : order.customerName) || order.customerName) || 'Client';

@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
 import PartnerAssignmentEmail from '@/components/emails/PartnerAssignmentEmail';
-import { notifyOfNewNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
+import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
 import { updateOrderStatusAtomic, reassignOrderStaffAtomic } from '@/app/actions/order-admin-actions';
@@ -226,7 +226,22 @@ export default function AdminOrderDetailsPage() {
         notes: arrayUnion(newNote),
       });
 
-      if (!isInternalNote) {
+      if (order.originalOrderId && order.originalOrderId !== order.id) {
+        try {
+          const origRef = doc(db, 'orders', order.originalOrderId);
+          await updateDoc(origRef, { notes: arrayUnion(newNote) });
+        } catch (syncErr) {
+          console.error("Failed to sync note to original order:", syncErr);
+        }
+      }
+
+      if (isInternalNote) {
+        notifyAllocatedUserOfInternalNote({
+          orderId: order.id,
+          senderName: currentUser.name || 'Admin / Staff',
+          noteText: values.noteText || '',
+        }).catch(err => console.error("Failed to send internal note notification:", err));
+      } else {
         const isOutsourced = !!order.resellerId;
         const isToClient = !(isOutsourced && order.documentContact === 'partner');
         const emailTo = (isOutsourced && order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;

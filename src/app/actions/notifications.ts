@@ -172,6 +172,99 @@ export async function notifyStaffOfClientNote({
     }
 }
 
+export async function notifyAllocatedUserOfInternalNote({
+    orderId,
+    senderName,
+    noteText,
+}: {
+    orderId: string,
+    senderName: string,
+    noteText: string,
+}) {
+    try {
+        const adminDb = getAdminDb();
+        const orderDoc = await adminDb.collection('orders').doc(orderId).get();
+        if (!orderDoc.exists) {
+            console.error(`[notifyAllocatedUserOfInternalNote] Order not found: ${orderId}`);
+            return;
+        }
+        const orderData = { ...orderDoc.data(), id: orderDoc.id } as Order;
+        const displayOrderId = orderData.originalOrderId || orderData.id;
+
+        const recipients: { email: string; name: string; role: 'staff' | 'partner' }[] = [];
+
+        // 1. Look for staff assigned to this order or linked original order
+        let assignedStaffIds: string[] = orderData.assignedTo || [];
+        if (assignedStaffIds.length === 0 && orderData.originalOrderId) {
+            const origDoc = await adminDb.collection('orders').doc(orderData.originalOrderId).get();
+            if (origDoc.exists && origDoc.data()?.assignedTo) {
+                assignedStaffIds = origDoc.data()!.assignedTo;
+            }
+        }
+
+        // Fetch staff members
+        for (const staffId of assignedStaffIds) {
+            const staffSnap = await adminDb.collection('users').doc(staffId).get();
+            if (staffSnap.exists) {
+                const staffUser = staffSnap.data() as User;
+                if (staffUser && staffUser.email) {
+                    recipients.push({
+                        email: staffUser.email,
+                        name: staffUser.name || 'Assigned Staff',
+                        role: 'staff'
+                    });
+                }
+            }
+        }
+
+        // 2. If sender is internal CAP staff, also notify the partner who owns/outsourced the order
+        if (orderData.customerEmail && !recipients.some(r => r.email === orderData.customerEmail)) {
+            recipients.push({
+                email: orderData.customerEmail,
+                name: orderData.customerName || 'Partner',
+                role: 'partner'
+            });
+        }
+
+        // 3. Default fallback if no staff assigned yet
+        if (recipients.length === 0) {
+            recipients.push({
+                email: 'info@myacc.co.za',
+                name: 'Support Team',
+                role: 'staff'
+            });
+        }
+
+        const noteSnippet = noteText.substring(0, 200) + (noteText.length > 200 ? '...' : '');
+
+        for (const recipient of recipients) {
+            const actionUrl = recipient.role === 'partner'
+                ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/partner/orders/${orderData.id}`
+                : `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/admin/orders/${orderData.id}`;
+
+            const emailHtml = await render(
+                React.createElement(NewNoteNotificationEmail, {
+                    recipientName: recipient.name,
+                    senderName: senderName || 'Partner/Staff',
+                    orderId: displayOrderId,
+                    notePreview: noteSnippet,
+                    actionUrl,
+                    isToClient: false,
+                    resellerName: 'My Accountant Internal Note'
+                })
+            );
+
+            await sendEmail({
+                to: recipient.email,
+                subject: `🔒 Internal Note Added on Order #${displayOrderId}`,
+                html: emailHtml,
+            });
+        }
+    } catch (err) {
+        console.error('[notifyAllocatedUserOfInternalNote] Failed to send email notification:', err);
+    }
+}
+
 export async function sendOutstandingDocumentsReminder({ orderId, clientName, clientEmail, resellerId }: { orderId: string, clientName: string, clientEmail: string, resellerId?: string }) {
     let resellerName = 'The My Accountant Team';
     const adminDb = getAdminDb();

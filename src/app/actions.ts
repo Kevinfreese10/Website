@@ -44,6 +44,10 @@ export async function notifyStaffOfClientNote(params: any) {
   return notifications.notifyStaffOfClientNote(params);
 }
 
+export async function notifyAllocatedUserOfInternalNote(params: any) {
+  return notifications.notifyAllocatedUserOfInternalNote(params);
+}
+
 export async function sendOutstandingDocumentsReminder(params: any) {
   return notifications.sendOutstandingDocumentsReminder(params);
 }
