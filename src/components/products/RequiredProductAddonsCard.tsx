@@ -29,11 +29,14 @@ export default function RequiredProductAddonsCard({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const mainServiceId = mainService?.id;
+  const requiredProductIdsKey = (mainService?.requiredProductIds || []).join(',');
+
   useEffect(() => {
     let isMounted = true;
 
     async function loadRequiredServices() {
-      if (!mainService.requiredProductIds || mainService.requiredProductIds.length === 0) {
+      if (!mainService?.requiredProductIds || mainService.requiredProductIds.length === 0) {
         setLoading(false);
         return;
       }
@@ -82,7 +85,7 @@ export default function RequiredProductAddonsCard({
     return () => {
       isMounted = false;
     };
-  }, [mainService, allServices]);
+  }, [mainServiceId, requiredProductIdsKey]);
 
   if (loading || prereqServices.length === 0) {
     return null;

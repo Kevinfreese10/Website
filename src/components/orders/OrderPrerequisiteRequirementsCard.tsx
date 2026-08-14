@@ -41,6 +41,10 @@ export default function OrderPrerequisiteRequirementsCard({
   const [missingPrereqs, setMissingPrereqs] = useState<MissingPrerequisite[]>([]);
   const [linkedChildOrders, setLinkedChildOrders] = useState<Order[]>([]);
 
+  const orderId = order?.id;
+  const customerEmail = order?.customerEmail || order?.endCustomerEmail;
+  const servicesLength = allServices?.length || 0;
+
   useEffect(() => {
     let isMounted = true;
 
@@ -127,7 +131,7 @@ export default function OrderPrerequisiteRequirementsCard({
     return () => {
       isMounted = false;
     };
-  }, [order, allServices]);
+  }, [orderId, customerEmail, servicesLength]);
 
   const handleCreatePrerequisiteOrder = async (prereq: MissingPrerequisite) => {
     setCreatingPrereqId(prereq.prereqService.id);
