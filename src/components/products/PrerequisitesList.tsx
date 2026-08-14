@@ -204,25 +204,27 @@ export default function PrerequisitesList({
             <div
               key={reqId}
               onClick={() => toggleConfirm(reqId)}
-              className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer select-none ${
+              className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border transition-all cursor-pointer select-none ${
                 isConfirmed
                   ? 'bg-emerald-50/90 border-emerald-300 text-slate-900 shadow-2xs'
                   : 'bg-white border-slate-200/80 text-slate-700 hover:border-slate-300'
               }`}
             >
-              <div
-                className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-all mt-0.5 ${
-                  isConfirmed
-                    ? 'bg-emerald-600 border-emerald-600 text-white'
-                    : 'border-slate-400 bg-white'
-                }`}
-              >
-                {isConfirmed && <Check className="h-3 w-3 text-white stroke-[3]" />}
+              <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                <div
+                  className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-all mt-0.5 ${
+                    isConfirmed
+                      ? 'bg-emerald-600 border-emerald-600 text-white'
+                      : 'border-slate-400 bg-white'
+                  }`}
+                >
+                  {isConfirmed && <Check className="h-3 w-3 text-white stroke-[3]" />}
+                </div>
+                <span className={`text-xs leading-relaxed break-words ${isConfirmed ? 'font-bold text-emerald-950' : 'font-medium'}`}>
+                  {item.text}
+                </span>
               </div>
-              <span className={`text-xs leading-relaxed ${isConfirmed ? 'font-bold text-emerald-950' : 'font-medium'}`}>
-                {item.text}
-              </span>
-              <span className="ml-auto text-[10px] font-bold shrink-0">
+              <span className="self-end sm:self-center text-[10px] font-bold shrink-0">
                 {isConfirmed ? (
                   <span className="text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200">
                     ✓ Confirmed

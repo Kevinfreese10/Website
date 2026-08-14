@@ -533,13 +533,13 @@ export default function ServiceCheckoutForm({
                         <Button 
                             type="submit"
                             disabled={isLoading || !watchedAgreedToRefundPolicy}
-                            className={`w-full h-12 text-base font-extrabold transition-all ${
+                            className={`w-full min-h-[3rem] h-auto py-3 px-4 text-xs sm:text-sm md:text-base font-extrabold whitespace-normal leading-snug transition-all ${
                                 !watchedAgreedToRefundPolicy
                                     ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
                                     : 'partner-btn shadow-md hover:shadow-lg'
                             }`}
                         >
-                            {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin shrink-0" /> : null}
                             {isLoading
                                 ? 'Processing...'
                                 : !watchedAgreedToRefundPolicy

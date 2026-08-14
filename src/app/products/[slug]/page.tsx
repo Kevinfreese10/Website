@@ -258,7 +258,7 @@ export default async function ProductDetailPage({ params }: Props) {
       </nav>
 
       {/* COLOURFUL HERO SECTION */}
-      <section className="relative w-full overflow-hidden pt-8 pb-20 text-center mb-12 animate-in fade-in">
+      <section className="relative w-full overflow-hidden pt-6 sm:pt-8 pb-12 sm:pb-20 text-center mb-6 sm:mb-12 animate-in fade-in">
         {/* Aurora blobs */}
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />
         <div className="aurora-blob aurora-violet w-[400px] h-[400px] top-10 right-[-100px] animate-aurora-drift" style={{ animationDelay: '-5s' }} />
@@ -266,56 +266,56 @@ export default async function ProductDetailPage({ params }: Props) {
         <div className="absolute inset-0 bg-dot-grid" />
 
         <div className="container relative z-10 mx-auto px-4 max-w-3xl">
-          <div className="inline-flex items-center gap-2 mb-5 px-4 py-1.5 rounded-full glass neon-border text-xs font-extrabold text-primary uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 mb-4 sm:mb-5 px-3.5 py-1.5 rounded-full glass neon-border text-[11px] sm:text-xs font-extrabold text-primary uppercase tracking-widest">
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             {service.category}
           </div>
-          <h1 className="mb-5 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
+          <h1 className="mb-4 sm:mb-5 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-hero-gradient pb-2 leading-tight">
             {firstPart} {secondPart && <span className="text-gradient">{secondPart}</span>}
           </h1>
-          <div className="flex items-center justify-center gap-1.5 mb-6">
+          <div className="flex items-center justify-center gap-1.5 mb-5 sm:mb-6">
             <div className="flex items-center text-amber-400">
-              <Star className="h-4 w-4 fill-amber-400" />
-              <Star className="h-4 w-4 fill-amber-400" />
-              <Star className="h-4 w-4 fill-amber-400" />
-              <Star className="h-4 w-4 fill-amber-400" />
-              <Star className="h-4 w-4 fill-amber-400" />
+              <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-amber-400" />
+              <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-amber-400" />
+              <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-amber-400" />
+              <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-amber-400" />
+              <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-amber-400" />
             </div>
-            <span className="text-sm font-bold text-slate-500">
+            <span className="text-xs sm:text-sm font-bold text-slate-500">
               {service.aggregateRatingValue || "5.0"} ({service.reviewCount || "120+"} reviews)
             </span>
           </div>
-          <p className="mx-auto mb-8 max-w-2xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
+          <p className="mx-auto mb-6 sm:mb-8 max-w-2xl text-base sm:text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
             {service.description || `Professional ${service.title} compliance services tailored for South African businesses and individuals.`}
           </p>
-          <div className="flex items-center justify-center gap-6 text-sm font-semibold">
-            <span className="flex items-center text-muted-foreground gap-1.5">
-              <Clock className="h-4 w-4 text-primary" />
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-sm font-semibold">
+            <span className="flex items-center text-muted-foreground gap-1.5 text-xs sm:text-sm">
+              <Clock className="h-4 w-4 text-primary shrink-0" />
               {service.turnaroundTime}
             </span>
-            <span className="inline-flex items-center gap-2 px-5 py-2 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-xl font-black neon-border">
+            <span className="inline-flex items-center gap-2 px-4 sm:px-5 py-1.5 sm:py-2 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-lg sm:text-xl font-black neon-border">
               {service.isPriceTbc ? 'Price on Request' : formatPrice(service.price)}
             </span>
           </div>
         </div>
       </section>
 
-      <div className="text-center -mt-6 mb-8 animate-in fade-in">
+      <div className="text-center -mt-4 sm:-mt-6 mb-6 sm:mb-8 animate-in fade-in">
         <TrustIndexWidget />
       </div>
 
-      <div className="container mx-auto px-4 pb-12 flex-grow">
-        <section className="bg-secondary/30 border-white/[0.06] mb-12 rounded-3xl glass-card px-4 sm:px-8">
+      <div className="container mx-auto px-4 pb-8 sm:pb-12 flex-grow">
+        <section className="bg-secondary/30 border-white/[0.06] mb-8 sm:mb-12 rounded-3xl glass-card px-3 sm:px-8">
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="how-it-works" className="border-none">
-              <AccordionTrigger className="hover:no-underline py-8">
-                <div className="text-left md:text-center w-full space-y-2">
-                  <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter text-foreground font-headline">How Our Online Accounting Process Works</h2>
-                  <p className="text-muted-foreground text-base md:text-lg font-normal">Four simple steps to full compliance. Click to view.</p>
+              <AccordionTrigger className="hover:no-underline py-6 sm:py-8">
+                <div className="text-left md:text-center w-full space-y-1 sm:space-y-2">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tighter text-foreground font-headline">How Our Online Accounting Process Works</h2>
+                  <p className="text-muted-foreground text-xs sm:text-base md:text-lg font-normal">Four simple steps to full compliance. Click to view.</p>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 relative pb-8 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 md:gap-12 relative pb-6 sm:pb-8 pt-3 sm:pt-4">
               {[
                 { 
                   step: "01", 
@@ -350,15 +350,15 @@ export default async function ProductDetailPage({ params }: Props) {
                   textColor: "text-emerald-600 dark:text-emerald-400"
                 }
               ].map((step, idx) => (
-                <div key={idx} className="relative text-center space-y-6 group">
-                  <div className={cn("h-20 w-20 rounded-3xl border flex items-center justify-center mx-auto mb-6 shadow-sm transition-all duration-300 group-hover:scale-105", step.bg)}>
-                    <step.icon className="h-10 w-10" />
+                <div key={idx} className="relative text-center space-y-4 sm:space-y-6 group">
+                  <div className={cn("h-16 w-16 sm:h-20 sm:w-20 rounded-3xl border flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-sm transition-all duration-300 group-hover:scale-105", step.bg)}>
+                    <step.icon className="h-8 w-8 sm:h-10 sm:w-10" />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1 sm:space-y-2">
                     <span className={cn("text-[10px] font-black uppercase tracking-widest leading-none block mb-1", step.textColor)}>Step {step.step}</span>
-                    <h3 className="font-bold text-xl leading-tight text-foreground">{step.title}</h3>
+                    <h3 className="font-bold text-lg sm:text-xl leading-tight text-foreground">{step.title}</h3>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed px-4">{step.desc}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed px-2 sm:px-4">{step.desc}</p>
                   {idx < 3 && <ArrowRight className="hidden lg:block absolute -right-6 top-10 h-8 w-8 text-muted-foreground/20" />}
                 </div>
               ))}
@@ -369,7 +369,7 @@ export default async function ProductDetailPage({ params }: Props) {
         </section>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-6 sm:py-12">
         <ProductPageInteractiveContainer
           service={service}
           clientRequirements={service.clientRequirements}
@@ -378,11 +378,11 @@ export default async function ProductDetailPage({ params }: Props) {
 
         {/* DYNAMIC FAQ ACCORDION SECTION (Strictly aligned with Google Search Engine requirements) */}
         {serviceFaqs && serviceFaqs.length > 0 && (
-          <div className="mt-16 bg-card/40 rounded-2xl p-8 border border-border/40 shadow-sm max-w-4xl mx-auto">
-            <div className="max-w-3xl mx-auto space-y-6">
+          <div className="mt-8 sm:mt-16 bg-card/40 rounded-2xl p-4 sm:p-8 border border-border/40 shadow-sm max-w-4xl mx-auto">
+            <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
               <div className="text-center space-y-2">
-                <h2 className="text-3xl font-black tracking-tight text-foreground">Frequently Asked Questions</h2>
-                <p className="text-sm text-muted-foreground font-semibold">Everything you need to know about our {service.title} solutions.</p>
+                <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">Frequently Asked Questions</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground font-semibold">Everything you need to know about our {service.title} solutions.</p>
               </div>
               
               <div className="w-full space-y-6">
