@@ -22,7 +22,6 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { customAlphabet } from 'nanoid';
-import RequiredProductAddonsCard from '@/components/products/RequiredProductAddonsCard';
 
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -278,7 +277,6 @@ export default function ServiceCheckoutForm({ service, partnerId }: { service: S
   return (
     <Form {...form}>
         <form id="checkout" onSubmit={form.handleSubmit(handleCheckout, onError)} className="space-y-6">
-            <RequiredProductAddonsCard mainService={service} />
             {(!user || user.role !== 'client') && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground tracking-widest mb-2">
