@@ -63,8 +63,13 @@ export default function ProductsPageClient({
   const [isLoading, setIsLoading] = useState(initialServices.length === 0);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [mounted, setMounted] = useState(false);
   const { addToCart } = useCart();
   const { wishlist, addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const scrollToSection = (categoryName: string) => {
     if (categoryName === 'all') {
@@ -402,6 +407,7 @@ export default function ProductsPageClient({
                           </div>
                           
                           <button 
+                            suppressHydrationWarning
                             onClick={(e) => {
                               e.preventDefault();
                               isInWishlist(service.id) ? removeFromWishlist(service.id) : addToWishlist(service);
@@ -409,7 +415,7 @@ export default function ProductsPageClient({
                             className="p-1.5 hover:bg-slate-100 rounded-full transition-colors group/heart"
                             aria-label="Save for later"
                           >
-                            <Heart className={cn("h-4 w-4 transition-all duration-300", isInWishlist(service.id) ? "fill-rose-500 text-rose-500" : "text-slate-400 group-hover/heart:text-rose-400")} />
+                            <Heart className={cn("h-4 w-4 transition-all duration-300", mounted && isInWishlist(service.id) ? "fill-rose-500 text-rose-500" : "text-slate-400 group-hover/heart:text-rose-400")} />
                           </button>
                         </div>
 
