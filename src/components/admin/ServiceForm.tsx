@@ -567,20 +567,24 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                 {allServices.filter(s => s.id !== service?.id).map((s) => {
                     const selected = form.watch('requiredProductIds')?.includes(s.id) || false;
                     return (
-                        <label key={s.id} className="flex items-center gap-2 text-xs border rounded-md p-2 bg-card cursor-pointer hover:bg-accent/50 transition-colors">
+                        <div 
+                            key={s.id} 
+                            onClick={() => {
+                                const current = form.getValues('requiredProductIds') || [];
+                                if (selected) {
+                                    form.setValue('requiredProductIds', current.filter(id => id !== s.id), { shouldDirty: true });
+                                } else {
+                                    form.setValue('requiredProductIds', [...current, s.id], { shouldDirty: true });
+                                }
+                            }}
+                            className="flex items-center gap-2 text-xs border rounded-md p-2 bg-card cursor-pointer hover:bg-accent/50 transition-colors select-none"
+                        >
                             <Checkbox 
                                 checked={selected} 
-                                onCheckedChange={(checked) => {
-                                    const current = form.getValues('requiredProductIds') || [];
-                                    if (checked) {
-                                        form.setValue('requiredProductIds', [...current, s.id], { shouldDirty: true });
-                                    } else {
-                                        form.setValue('requiredProductIds', current.filter(id => id !== s.id), { shouldDirty: true });
-                                    }
-                                }} 
+                                className="pointer-events-none"
                             />
                             <span className="font-medium text-foreground truncate">{s.title}</span>
-                        </label>
+                        </div>
                     );
                 })}
             </div>

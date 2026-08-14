@@ -158,8 +158,8 @@ export default function RequiredProductAddonsCard({
               >
                 <Checkbox
                   checked={isChecked}
-                  onCheckedChange={() => toggleSelect(service.id)}
-                  className="mt-1"
+                  tabIndex={-1}
+                  className="mt-1 pointer-events-none"
                 />
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center justify-between">
