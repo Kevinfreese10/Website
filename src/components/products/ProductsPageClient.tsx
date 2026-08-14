@@ -467,9 +467,6 @@ export default function ProductsPageClient({
                         ) : (
                           <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mt-1">{service.description}</p>
                         )}
-                        {service.requiredProductIds && service.requiredProductIds.length > 0 && (
-                          <RequiredProductAddonsCard mainService={service} allServices={services} />
-                        )}
                     </CardContent>
 
                     <CardFooter className="pt-0 pb-4 flex gap-2">

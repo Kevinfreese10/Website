@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Metadata, ResolvingMetadata } from 'next';
 import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
+import RequiredProductAddonsCard from '@/components/products/RequiredProductAddonsCard';
 import Script from 'next/script';
 import { generateStructuredData } from '@/lib/schema/productSchema';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
@@ -397,6 +398,8 @@ export default async function ProductDetailPage({ params }: Props) {
                 </ul>
               </div>
             )}
+
+            <RequiredProductAddonsCard mainService={service} />
 
             {service.clientRequirements && service.clientRequirements.length > 0 && (
               <div>
