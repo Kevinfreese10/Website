@@ -27,12 +27,13 @@ export default function RefundPolicyPage() {
             <p className="text-muted-foreground">Our refund policy for accounting and compliance services is as follows:</p>
             <ul className="list-disc space-y-2 pl-6 text-muted-foreground">
                 <li>All services are non-refundable once the work has begun.</li>
-                <li>Refunds may be considered only if the service has not yet started.</li>
+                <li>Not having the required prerequisites or documentation is not valid grounds for a refund. Your order will remain open for as long as you need in order to provide the required information, even if it is not immediate.</li>
+                <li>Refunds may be considered only if the service has not yet started and valid grounds apply.</li>
                 <li>A processing fee of 10% will be deducted from any approved refund.</li>
                 <li>Refund requests must be submitted within 48 hours of purchase.</li>
             </ul>
             <p className="font-semibold text-foreground">
-                Please ensure you have all required documents ready before purchasing, as delays in providing documentation may affect service delivery times.
+                Please ensure you have all required documents ready before purchasing. Your order will remain securely stored on your account until all prerequisites are provided.
             </p>
         </CardContent>
       </Card>
