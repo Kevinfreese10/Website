@@ -61,15 +61,15 @@ export default function SarsTurnoverTaxRegistrationPage() {
       <PageHero
         title="SARS Turnover Tax Registration & Guide"
         subtitle="Simplified, low-rate tax for South African micro-businesses with annual turnover of R1 million or less."
-        badge="SARS Official Query Guide"
+        badgeText="SARS Official Query Guide"
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
         <TrustIndexWidget />
 
         <SarsOfficialLinkBox
-          queryTitle="SARS Turnover Tax Portal & TT01 Forms"
-          officialUrl="https://www.sars.gov.za/types-of-tax/turnover-tax/"
+          title="SARS Turnover Tax Portal & TT01 Forms"
+          portalUrl="https://www.sars.gov.za/types-of-tax/turnover-tax/"
           description="Access official SARS Turnover Tax information, download TT01 registration forms, and manage your micro-business tax profile online via SARS eFiling or SOQS."
         />
 
