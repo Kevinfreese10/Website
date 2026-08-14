@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 const db = getFirestore(firebaseApp);
 
 export default function ClientServiceCheckoutForm({ service }: { service: Service }) {
-  const { addToCart, cartItems } = useCart();
+  const { addToCart, removeFromCart, cartItems } = useCart();
   const { toast } = useToast();
   const [includeMainProduct, setIncludeMainProduct] = useState<boolean>(true);
   const [prereqServices, setPrereqServices] = useState<Service[]>([]);
@@ -95,16 +95,43 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
     };
   }, [service.id, service.requiredProductIds, service.clientRequirements, cartItems]);
 
-  const togglePrereq = (id: string) => {
-    setSelectedPrereqIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+  const handleToggleMainProduct = () => {
+    if (isMainInCart) {
+      removeFromCart(service.id);
+      setIncludeMainProduct(false);
+      toast({
+        title: 'Main Service Removed',
+        description: `"${service.title}" removed from your cart.`,
+      });
+    } else {
+      setIncludeMainProduct(!includeMainProduct);
+    }
+  };
+
+  const togglePrereq = (p: Service) => {
+    const inCart = cartItems.some((ci) => ci.service.id === p.id);
+    if (inCart) {
+      removeFromCart(p.id);
+      setSelectedPrereqIds((prev) => {
+        const next = new Set(prev);
+        next.delete(p.id);
+        return next;
+      });
+      toast({
+        title: 'Prerequisite Removed',
+        description: `"${p.title}" removed from your cart.`,
+      });
+    } else {
+      setSelectedPrereqIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(p.id)) {
+          next.delete(p.id);
+        } else {
+          next.add(p.id);
+        }
+        return next;
+      });
+    }
   };
 
   // Live Price Calculation
@@ -171,19 +198,18 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
 
         {/* Main Product Selection Row */}
         <div
-          onClick={() => !isMainInCart && setIncludeMainProduct(!includeMainProduct)}
-          className={`flex items-start gap-3 p-3 rounded-xl border transition-all select-none ${
+          onClick={handleToggleMainProduct}
+          className={`flex items-start gap-3 p-3 rounded-xl border transition-all select-none cursor-pointer ${
             isMainInCart
-              ? 'bg-emerald-50/60 border-emerald-200 cursor-default'
+              ? 'bg-emerald-50/70 border-emerald-300 hover:bg-red-50/50 hover:border-red-200'
               : includeMainProduct
-              ? 'bg-primary/5 border-primary/40 shadow-2xs cursor-pointer'
-              : 'bg-slate-50 border-slate-200 cursor-pointer opacity-70 hover:opacity-100'
+              ? 'bg-primary/5 border-primary/40 shadow-2xs'
+              : 'bg-slate-50 border-slate-200 opacity-70 hover:opacity-100'
           }`}
         >
           <Checkbox
             checked={isMainInCart || includeMainProduct}
-            disabled={isMainInCart}
-            onCheckedChange={() => !isMainInCart && setIncludeMainProduct(!includeMainProduct)}
+            onCheckedChange={handleToggleMainProduct}
             className="mt-0.5 pointer-events-none"
           />
           <div className="text-xs space-y-0.5 flex-1 min-w-0">
@@ -200,7 +226,7 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
             </div>
             {isMainInCart && (
               <Badge className="text-[9px] bg-emerald-100 text-emerald-800 border-none font-bold py-0 px-1.5 mt-1">
-                Main Service in Cart
+                In Cart (Click to Remove)
               </Badge>
             )}
           </div>
@@ -221,19 +247,18 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
               return (
                 <div
                   key={p.id}
-                  onClick={() => !inCart && togglePrereq(p.id)}
-                  className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-all select-none ${
+                  onClick={() => togglePrereq(p)}
+                  className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-all select-none cursor-pointer ${
                     inCart
-                      ? 'bg-emerald-50/70 border-emerald-200 cursor-default'
+                      ? 'bg-emerald-50/70 border-emerald-300 hover:bg-red-50/50 hover:border-red-200'
                       : isChecked
-                      ? 'bg-blue-50/60 border-blue-200 shadow-2xs cursor-pointer'
-                      : 'bg-slate-50/60 border-slate-200 cursor-pointer opacity-70 hover:opacity-100'
+                      ? 'bg-blue-50/60 border-blue-200 shadow-2xs'
+                      : 'bg-slate-50/60 border-slate-200 opacity-70 hover:opacity-100'
                   }`}
                 >
                   <Checkbox
                     checked={isChecked}
-                    disabled={inCart}
-                    onCheckedChange={() => !inCart && togglePrereq(p.id)}
+                    onCheckedChange={() => togglePrereq(p)}
                     className="mt-0.5 pointer-events-none"
                   />
                   <div className="text-xs space-y-0.5 min-w-0 flex-1">
@@ -246,7 +271,7 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
                     <span className="text-[10px] text-slate-500">Prerequisite Service</span>
                     {inCart && (
                       <Badge className="text-[9px] bg-emerald-100 text-emerald-800 border-none font-bold py-0 px-1.5 mt-1 block w-fit">
-                        Already in Cart
+                        In Cart (Click to Remove)
                       </Badge>
                     )}
                   </div>

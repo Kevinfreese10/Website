@@ -31,7 +31,7 @@ interface LoadedTextPrereq {
 type LoadedPrereq = LoadedTextPrereq | LoadedProductPrereq;
 
 export default function PrerequisitesList({ requirements, allServices = [], depth = 0 }: PrerequisitesListProps) {
-  const { addToCart, cartItems } = useCart();
+  const { addToCart, removeFromCart, cartItems } = useCart();
   const { toast } = useToast();
   const [items, setItems] = useState<LoadedPrereq[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -121,12 +121,20 @@ export default function PrerequisitesList({ requirements, allServices = [], dept
     }).format(price);
   };
 
-  const handleAddToCart = (service: Service) => {
-    addToCart(service);
-    toast({
-      title: 'Prerequisite Added to Cart',
-      description: `"${service.title}" has been added to your cart. Please review your cart to ensure all prerequisites are met.`,
-    });
+  const handleToggleCart = (service: Service, inCart: boolean) => {
+    if (inCart) {
+      removeFromCart(service.id);
+      toast({
+        title: 'Removed from Cart',
+        description: `"${service.title}" has been removed from your cart.`,
+      });
+    } else {
+      addToCart(service);
+      toast({
+        title: 'Prerequisite Added to Cart',
+        description: `"${service.title}" has been added to your cart.`,
+      });
+    }
   };
 
   return (
@@ -169,17 +177,18 @@ export default function PrerequisitesList({ requirements, allServices = [], dept
               </div>
 
               <Button
-                onClick={() => handleAddToCart(item.service)}
-                disabled={inCart}
+                onClick={() => handleToggleCart(item.service, inCart)}
                 size="sm"
-                className={`h-9 font-bold text-xs rounded-lg shrink-0 w-full sm:w-auto ${
-                  inCart ? 'bg-emerald-600 text-white hover:bg-emerald-600' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                className={`h-9 font-bold text-xs rounded-lg shrink-0 w-full sm:w-auto transition-all ${
+                  inCart
+                    ? 'bg-emerald-600 hover:bg-red-600 text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
               >
                 {inCart ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                    Added to Cart
+                    Added (Click to Remove)
                   </>
                 ) : (
                   <>
