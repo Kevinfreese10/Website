@@ -59,7 +59,11 @@ const formSchema = z.object({
   department: z.enum(departments),
   turnaroundTime: z.string().min(1, 'Turnaround time is required.'),
   whatsIncluded: z.array(z.object({ value: z.string().min(1, 'This field cannot be empty.') })),
-  clientRequirements: z.array(z.object({ value: z.string().min(1, 'This field cannot be empty.') })),
+  clientRequirements: z.array(z.object({
+    type: z.enum(['text', 'product']).default('text'),
+    value: z.string().optional(),
+    productId: z.string().optional(),
+  })),
   informationToProvide: z.array(z.object({
     label: z.string().min(1, 'Label cannot be empty.'),
     type: z.enum(['text', 'pdf', 'excel', 'image', 'any']).optional(),
@@ -138,7 +142,15 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
       department: service?.department || 'Administration',
       turnaroundTime: service?.turnaroundTime || '',
       whatsIncluded: service?.whatsIncluded?.map(v => ({ value: v })) || [{ value: '' }],
-      clientRequirements: service?.clientRequirements?.map(v => ({ value: v })) || [{ value: '' }],
+      clientRequirements: service?.clientRequirements?.map(item => {
+        if (typeof item === 'string') {
+          return { type: 'text' as const, value: item, productId: '' };
+        } else if (item && typeof item === 'object' && item.type === 'product') {
+          return { type: 'product' as const, value: item.text || '', productId: item.productId };
+        } else {
+          return { type: 'text' as const, value: (item as any)?.text || '', productId: '' };
+        }
+      }) || [{ type: 'text', value: '', productId: '' }],
       informationToProvide: service?.informationToProvide?.map(v => ({
         label: v.label,
         type: v.type || 'text',
@@ -333,17 +345,37 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     const slug = values.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    
+    const structuredRequirements = values.clientRequirements
+      .map(item => {
+        if (item.type === 'product' && item.productId) {
+          return { type: 'product' as const, productId: item.productId, text: item.value || undefined };
+        } else if (item.value) {
+          return { type: 'text' as const, text: item.value };
+        }
+        return null;
+      })
+      .filter(Boolean) as PrerequisiteItem[];
+
+    const productPrereqIds = structuredRequirements
+      .filter(r => r.type === 'product')
+      .map(r => (r as any).productId);
+    
+    const combinedRequiredProductIds = Array.from(
+      new Set([...(values.requiredProductIds || []), ...productPrereqIds])
+    );
+
     const serviceData = {
         ...values,
         slug,
         seoImageUrl: values.imageUrl,
         whatsIncluded: values.whatsIncluded.map(v => v.value).filter(Boolean),
-        clientRequirements: values.clientRequirements.map(v => v.value).filter(Boolean),
+        clientRequirements: structuredRequirements,
         informationToProvide: values.informationToProvide.filter(v => v.label),
         metaKeywords: values.metaKeywords?.map(v => v.value).filter(Boolean),
         returnPolicyCategory: values.returnPolicyCategory === 'none' ? '' : values.returnPolicyCategory,
-        requiredProductIds: values.requiredProductIds || [],
-    }
+        requiredProductIds: combinedRequiredProductIds,
+    };
     onSubmit(serviceData);
   };
   
@@ -538,22 +570,107 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
             ))}
             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendIncluded({ value: '' })}>Add Item</Button>
         </div>
-         <div className="space-y-2 rounded-lg border p-4">
-            <h3 className="text-sm font-medium">Prerequisites (Shown on public product page)</h3>
-            {prereqFields.map((field, index) => (
-                 <FormField
-                    key={field.id}
-                    control={form.control}
-                    name={`clientRequirements.${index}.value`}
-                    render={({ field }) => (
-                        <FormItem className="flex items-center gap-2">
-                             <FormControl><Input {...field} /></FormControl>
-                             <Button type="button" variant="destructive" size="icon" onClick={() => removePrereq(index)}><Trash className="h-4 w-4"/></Button>
-                        </FormItem>
-                    )}
-                />
-            ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => appendPrereq({ value: '' })}>Add Prerequisite</Button>
+        <div className="space-y-4 rounded-lg border p-4 bg-muted/10">
+            <div>
+                <h3 className="text-sm font-bold text-foreground">Prerequisites (Shown on public product page)</h3>
+                <p className="text-xs text-muted-foreground">
+                    Add requirements for this service. You can specify custom text requirements or link required products from your store.
+                </p>
+            </div>
+
+            <div className="space-y-3">
+                {prereqFields.map((field, index) => {
+                    const currentType = form.watch(`clientRequirements.${index}.type`) || 'text';
+                    return (
+                        <div key={field.id} className="p-3 border rounded-lg bg-card space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Select
+                                    value={currentType}
+                                    onValueChange={(val: 'text' | 'product') => {
+                                        form.setValue(`clientRequirements.${index}.type`, val);
+                                        if (val === 'text') form.setValue(`clientRequirements.${index}.productId`, '');
+                                    }}
+                                >
+                                    <SelectTrigger className="w-[150px] h-9 text-xs font-semibold">
+                                        <SelectValue placeholder="Select type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="text">Text Requirement</SelectItem>
+                                        <SelectItem value="product">Required Product</SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                {currentType === 'text' ? (
+                                    <FormField
+                                        control={form.control}
+                                        name={`clientRequirements.${index}.value`}
+                                        render={({ field }) => (
+                                            <FormItem className="flex-1 space-y-0">
+                                                <FormControl>
+                                                    <Input {...field} placeholder="e.g. Bank confirmation letter not older than 3 months" className="h-9 text-xs" />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                ) : (
+                                    <FormField
+                                        control={form.control}
+                                        name={`clientRequirements.${index}.productId`}
+                                        render={({ field }) => (
+                                            <FormItem className="flex-1 space-y-0">
+                                                <Select value={field.value || ''} onValueChange={field.onChange}>
+                                                    <FormControl>
+                                                        <SelectTrigger className="h-9 text-xs font-medium">
+                                                            <SelectValue placeholder="Select required product..." />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {allServices.filter(s => s.id !== service?.id).map((s) => (
+                                                            <SelectItem key={s.id} value={s.id}>
+                                                                {s.title} ({s.isPriceTbc ? 'Quote' : `R${s.price?.toFixed(2)}`})
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
+
+                                <Button 
+                                    type="button" 
+                                    variant="destructive" 
+                                    size="icon" 
+                                    className="h-9 w-9 shrink-0" 
+                                    onClick={() => removePrereq(index)}
+                                >
+                                    <Trash className="h-4 w-4"/>
+                                </Button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => appendPrereq({ type: 'text', value: '', productId: '' })}
+                >
+                    + Add Text Requirement
+                </Button>
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    className="border-primary/40 text-primary hover:bg-primary/5 font-semibold"
+                    onClick={() => appendPrereq({ type: 'product', value: '', productId: '' })}
+                >
+                    + Add Required Product
+                </Button>
+            </div>
         </div>
 
         <div className="space-y-3 rounded-lg border p-4 bg-muted/20">

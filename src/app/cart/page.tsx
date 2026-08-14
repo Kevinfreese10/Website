@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Trash2, ShoppingCart, ArrowRight, ShieldCheck, Clock, ChevronRight } from 'lucide-react';
+import CartPrerequisiteChecker from '@/components/cart/CartPrerequisiteChecker';
 
 
 export default function CartPage() {
@@ -40,6 +41,7 @@ export default function CartPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
+              <CartPrerequisiteChecker />
               {cartItems.map(item => (
                 <div
                   key={item.service.id}

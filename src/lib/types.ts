@@ -10,6 +10,10 @@ export type DocumentUpload = {
   rejectionReason?: string;
 };
 
+export type PrerequisiteItem = 
+  | { type: 'text'; text: string }
+  | { type: 'product'; productId: string; text?: string };
+
 export type Service = {
   id: string;
   slug: string;
@@ -27,7 +31,7 @@ export type Service = {
   department?: 'Accounting and Tax' | 'Administration' | 'CAP';
   whatsIncluded: string[];
   turnaroundTime: string;
-  clientRequirements: string[];
+  clientRequirements: (string | PrerequisiteItem)[];
   informationToProvide: {
     label: string;
     type?: 'text' | 'pdf' | 'excel' | 'image' | 'any';

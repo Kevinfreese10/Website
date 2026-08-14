@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Metadata, ResolvingMetadata } from 'next';
 import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
-import RequiredProductAddonsCard from '@/components/products/RequiredProductAddonsCard';
+import PrerequisitesList from '@/components/products/PrerequisitesList';
 import Script from 'next/script';
 import { generateStructuredData } from '@/lib/schema/productSchema';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
@@ -399,8 +399,6 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
             )}
 
-            <RequiredProductAddonsCard mainService={service} />
-
             {service.clientRequirements && service.clientRequirements.length > 0 && (
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
@@ -408,14 +406,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   Prerequisites
                 </h2>
                 <Separator className="my-3" />
-                 <ul className="space-y-3">
-                  {service.clientRequirements.map((doc, index) => (
-                    <li key={index} className="flex items-start">
-                      <ClipboardCheck className="h-5 w-5 text-amber-400 mr-3 mt-1 flex-shrink-0" />
-                      <span>{doc}</span>
-                    </li>
-                  ))}
-                </ul>
+                <PrerequisitesList requirements={service.clientRequirements} />
               </div>
             )}
 

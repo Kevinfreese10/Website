@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
-import RequiredProductAddonsCard from '@/components/products/RequiredProductAddonsCard';
+import PrerequisitesList from '@/components/products/PrerequisitesList';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Metadata } from 'next';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
@@ -135,21 +135,10 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
               </div>
             )}
 
-            <RequiredProductAddonsCard mainService={service} />
-
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">Prerequisites</h2>
               <Separator className="opacity-20" />
-              <div className="border p-6 rounded-xl partner-card" style={{ borderLeftWidth: '4px', borderLeftColor: lp?.primaryColor }}>
-                <ul className="space-y-3">
-                  {service.clientRequirements.map((req: string, i: number) => (
-                    <li key={i} className="flex items-start">
-                      <ClipboardCheck className="h-5 w-5 partner-icon mr-3 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm opacity-90">{req}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <PrerequisitesList requirements={service.clientRequirements} />
             </div>
           </div>
 
