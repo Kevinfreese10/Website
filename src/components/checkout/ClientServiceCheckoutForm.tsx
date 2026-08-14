@@ -21,16 +21,13 @@ const db = getFirestore(firebaseApp);
 export default function ClientServiceCheckoutForm({ service }: { service: Service }) {
   const { addToCart, cartItems } = useCart();
   const { toast } = useToast();
-  const [isAdded, setIsAdded] = useState(false);
+  const [includeMainProduct, setIncludeMainProduct] = useState<boolean>(true);
   const [prereqServices, setPrereqServices] = useState<Service[]>([]);
   const [selectedPrereqIds, setSelectedPrereqIds] = useState<Set<string>>(new Set());
   const [loadingPrereqs, setLoadingPrereqs] = useState<boolean>(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const itemInCart = cartItems.some((item) => item.service.id === service.id);
-    setIsAdded(itemInCart);
-  }, [cartItems, service.id]);
+  const isMainInCart = cartItems.some((item) => item.service.id === service.id);
 
   // Load prerequisite products for this service
   useEffect(() => {
@@ -77,7 +74,6 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
 
         if (isMounted) {
           setPrereqServices(matched);
-          // By default, select all prerequisite products that are not yet in the cart
           const initialSelected = new Set<string>();
           matched.forEach((p) => {
             const inCart = cartItems.some((ci) => ci.service.id === p.id);
@@ -97,7 +93,7 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
     return () => {
       isMounted = false;
     };
-  }, [service.id, service.requiredProductIds, service.clientRequirements]);
+  }, [service.id, service.requiredProductIds, service.clientRequirements, cartItems]);
 
   const togglePrereq = (id: string) => {
     setSelectedPrereqIds((prev) => {
@@ -111,54 +107,113 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
     });
   };
 
+  // Live Price Calculation
+  const mainPrice = includeMainProduct && !isMainInCart ? service.price : 0;
+  const selectedPrereqList = prereqServices.filter(
+    (p) => selectedPrereqIds.has(p.id) && !cartItems.some((ci) => ci.service.id === p.id)
+  );
+  const prereqsPrice = selectedPrereqList.reduce((sum, p) => sum + (p.price || 0), 0);
+  const calculatedTotal = mainPrice + prereqsPrice;
+  const selectedCount = (includeMainProduct && !isMainInCart ? 1 : 0) + selectedPrereqList.length;
+
   const handleAddAllToCart = (redirect: boolean) => {
-    // 1. Add main service
-    if (!isAdded) {
+    if (selectedCount === 0) {
+      toast({
+        title: 'No Items Selected',
+        description: 'Please select at least one product or prerequisite to add to cart.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // 1. Add main service if checked
+    if (includeMainProduct && !isMainInCart) {
       addToCart(service);
-      setIsAdded(true);
     }
 
     // 2. Add selected prerequisite products
-    let addedPrereqCount = 0;
-    prereqServices.forEach((p) => {
-      const inCart = cartItems.some((ci) => ci.service.id === p.id);
-      if (selectedPrereqIds.has(p.id) && !inCart) {
-        addToCart(p);
-        addedPrereqCount++;
-      }
+    selectedPrereqList.forEach((p) => {
+      addToCart(p);
     });
 
-    if (addedPrereqCount > 0) {
-      toast({
-        title: 'Prerequisites Added to Cart',
-        description: `Added "${service.title}" + ${addedPrereqCount} required prerequisite product(s) to your cart.`,
-      });
-    } else if (!isAdded) {
-      toast({
-        title: 'Added to Cart',
-        description: `"${service.title}" added to your cart.`,
-      });
-    }
+    toast({
+      title: 'Cart Updated',
+      description: `Added ${selectedCount} item(s) to your cart.`,
+    });
 
     if (redirect) {
       router.push('/cart');
     }
   };
 
+  const getButtonText = () => {
+    if (selectedCount === 0) return 'Select at Least 1 Product';
+    if (includeMainProduct && !isMainInCart && selectedPrereqList.length > 0) {
+      return `Buy Complete Package – ${formatPrice(calculatedTotal)}`;
+    }
+    if (includeMainProduct && !isMainInCart && selectedPrereqList.length === 0) {
+      return `Buy ${service.title} Only – ${formatPrice(calculatedTotal)}`;
+    }
+    if ((!includeMainProduct || isMainInCart) && selectedPrereqList.length > 0) {
+      return `Buy Prerequisite${selectedPrereqList.length > 1 ? 's' : ''} Only – ${formatPrice(calculatedTotal)}`;
+    }
+    return `Buy Now – ${formatPrice(calculatedTotal)}`;
+  };
+
   return (
     <div className="space-y-4">
-      {/* Prerequisite Product Checkbox Selection */}
-      {!loadingPrereqs && prereqServices.length > 0 && (
-        <div className="space-y-2 rounded-xl border border-blue-200 bg-blue-50/60 p-3.5 shadow-2xs">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-blue-950">
-            <AlertCircle className="h-4 w-4 text-blue-600 shrink-0" />
-            Required Prerequisite Products
-          </div>
-          <p className="text-[11px] text-blue-900 leading-tight">
-            Select the prerequisites you don&apos;t have so they can be added to your cart:
-          </p>
+      {/* Order Configuration Box */}
+      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between text-xs font-black uppercase text-slate-400 tracking-wider pb-1 border-b">
+          <span>Configure Your Order</span>
+          <span>Select Items</span>
+        </div>
 
-          <div className="space-y-2 pt-1">
+        {/* Main Product Selection Row */}
+        <div
+          onClick={() => !isMainInCart && setIncludeMainProduct(!includeMainProduct)}
+          className={`flex items-start gap-3 p-3 rounded-xl border transition-all select-none ${
+            isMainInCart
+              ? 'bg-emerald-50/60 border-emerald-200 cursor-default'
+              : includeMainProduct
+              ? 'bg-primary/5 border-primary/40 shadow-2xs cursor-pointer'
+              : 'bg-slate-50 border-slate-200 cursor-pointer opacity-70 hover:opacity-100'
+          }`}
+        >
+          <Checkbox
+            checked={isMainInCart || includeMainProduct}
+            disabled={isMainInCart}
+            onCheckedChange={() => !isMainInCart && setIncludeMainProduct(!includeMainProduct)}
+            className="mt-0.5 pointer-events-none"
+          />
+          <div className="text-xs space-y-0.5 flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-1">
+              <span className="font-extrabold text-slate-900 leading-tight">{service.title}</span>
+              <span className="font-black text-primary text-xs shrink-0">
+                {service.isPriceTbc ? 'Quote' : formatPrice(service.price)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              <span>Main Service</span>
+              <span>·</span>
+              <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" />{service.turnaroundTime}</span>
+            </div>
+            {isMainInCart && (
+              <Badge className="text-[9px] bg-emerald-100 text-emerald-800 border-none font-bold py-0 px-1.5 mt-1">
+                Main Service in Cart
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Prerequisite Products Selection List */}
+        {!loadingPrereqs && prereqServices.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+              <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              Required Prerequisites
+            </div>
+
             {prereqServices.map((p) => {
               const inCart = cartItems.some((ci) => ci.service.id === p.id);
               const isChecked = inCart || selectedPrereqIds.has(p.id);
@@ -171,8 +226,8 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
                     inCart
                       ? 'bg-emerald-50/70 border-emerald-200 cursor-default'
                       : isChecked
-                      ? 'bg-white border-blue-300 shadow-2xs cursor-pointer'
-                      : 'bg-white/70 border-slate-200 cursor-pointer opacity-75 hover:opacity-100'
+                      ? 'bg-blue-50/60 border-blue-200 shadow-2xs cursor-pointer'
+                      : 'bg-slate-50/60 border-slate-200 cursor-pointer opacity-70 hover:opacity-100'
                   }`}
                 >
                   <Checkbox
@@ -188,8 +243,9 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
                         {p.isPriceTbc ? 'Quote' : formatPrice(p.price)}
                       </span>
                     </div>
+                    <span className="text-[10px] text-slate-500">Prerequisite Service</span>
                     {inCart && (
-                      <Badge className="text-[9px] bg-emerald-100 text-emerald-800 border-none font-bold py-0 px-1.5 mt-1">
+                      <Badge className="text-[9px] bg-emerald-100 text-emerald-800 border-none font-bold py-0 px-1.5 mt-1 block w-fit">
                         Already in Cart
                       </Badge>
                     )}
@@ -198,45 +254,38 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
               );
             })}
           </div>
-        </div>
-      )}
+        )}
 
+        {/* Live Calculated Total Bar */}
+        <div className="flex items-center justify-between pt-2 border-t font-black text-sm">
+          <span className="text-slate-600 font-extrabold text-xs">Selected Total ({selectedCount} item{selectedCount !== 1 ? 's' : ''}):</span>
+          <span className="text-primary text-base font-black">{formatPrice(calculatedTotal)}</span>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
       <Button
         onClick={() => handleAddAllToCart(true)}
+        disabled={selectedCount === 0}
         size="lg"
         className="w-full h-12 font-black text-sm bg-primary hover:bg-primary/90 text-white shadow-md rounded-xl"
       >
-        Buy Now & Proceed to Cart
+        {getButtonText()}
         <ArrowRight className="ml-2 h-4 w-4" />
       </Button>
 
       <Button
         onClick={() => handleAddAllToCart(false)}
-        disabled={isAdded && selectedPrereqIds.size === 0}
-        variant={isAdded ? 'secondary' : 'outline'}
+        disabled={selectedCount === 0}
+        variant="outline"
         size="lg"
-        className={`w-full h-11 font-bold text-xs rounded-xl ${
-          isAdded && selectedPrereqIds.size === 0
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-            : 'border-slate-300 hover:bg-slate-50'
-        }`}
+        className="w-full h-11 font-bold text-xs rounded-xl border-slate-300 hover:bg-slate-50"
       >
-        {isAdded && selectedPrereqIds.size === 0 ? (
-          <>
-            <Check className="mr-2 h-4 w-4 text-emerald-600" />
-            Items Added to Cart
-          </>
-        ) : (
-          <>
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            {selectedPrereqIds.size > 0
-              ? `Add Main + ${selectedPrereqIds.size} Prerequisite(s) to Cart`
-              : 'Add to Cart Only'}
-          </>
-        )}
+        <ShoppingCart className="mr-2 h-4 w-4" />
+        Add Selected ({selectedCount}) to Cart Only
       </Button>
 
-      {isAdded && (
+      {cartItems.length > 0 && (
         <Button asChild variant="ghost" className="w-full text-xs font-bold text-primary hover:bg-primary/5" size="sm">
           <Link href="/cart">
             View Cart ({cartItems.length} item{cartItems.length !== 1 ? 's' : ''}) <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
