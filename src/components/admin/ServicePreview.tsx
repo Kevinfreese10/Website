@@ -56,7 +56,7 @@ export default function ServicePreview({ service }: { service: Service }) {
             {service.clientRequirements.map((doc, index) => (
                 <li key={index} className="flex items-start">
                 <ClipboardCheck className="h-5 w-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
-                <span>{doc}</span>
+                <span>{typeof doc === 'string' ? doc : (doc.type === 'text' ? doc.text : doc.productId)}</span>
                 </li>
             ))}
             </ul>

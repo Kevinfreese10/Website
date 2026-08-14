@@ -2,7 +2,7 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Service } from '@/lib/types';
+import { Service, PrerequisiteItem } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -226,7 +226,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
         form.setValue('longDescription', result.longDescription);
         form.setValue('turnaroundTime', result.turnaroundTime);
         form.setValue('whatsIncluded', result.whatsIncluded.map(item => ({ value: item })));
-        form.setValue('clientRequirements', result.clientRequirements.map(item => ({ value: item })));
+        form.setValue('clientRequirements', result.clientRequirements.map(item => ({ type: 'text' as const, value: item, productId: '' })));
         form.setValue('metaTitle', result.metaTitle);
         form.setValue('metaDescription', result.metaDescription);
         form.setValue('metaKeywords', result.metaKeywords.map(k => ({ value: k })));

@@ -434,7 +434,7 @@ function ViewProductDialog({
                                     {service.clientRequirements.map((req, idx) => (
                                         <li key={idx} className="flex items-start gap-2">
                                             <div className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0 mt-2" />
-                                            <span>{req}</span>
+                                            <span>{typeof req === 'string' ? req : (req.type === 'text' ? req.text : req.productId)}</span>
                                         </li>
                                     ))}
                                 </ul>

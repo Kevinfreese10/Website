@@ -280,7 +280,7 @@ export default function PaymentSuccessPage() {
                                     <h4 className="font-semibold">{service.title}</h4>
                                     <ul className="list-disc pl-5 mt-2 space-y-1 text-sm text-muted-foreground">
                                         {service.clientRequirements.map((req, index) => (
-                                            <li key={index}>{req}</li>
+                                            <li key={index}>{typeof req === 'string' ? req : (req.type === 'text' ? req.text : req.productId)}</li>
                                         ))}
                                     </ul>
                                 </div>
