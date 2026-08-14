@@ -197,8 +197,8 @@ export default function PrerequisitesList({
   return (
     <div className="space-y-3">
       {depth === 0 && (
-        <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-gradient-to-r from-amber-50 via-amber-100/40 to-orange-50 border border-amber-200/90 text-xs text-amber-900 font-semibold shadow-2xs mb-2 animate-in fade-in">
-          <ClipboardCheck className="w-4.5 h-4.5 text-amber-600 shrink-0" />
+        <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-gradient-to-r from-rose-50 via-red-50 to-red-100/60 border border-red-300 text-xs text-red-950 font-bold shadow-2xs mb-2 animate-in fade-in">
+          <ClipboardCheck className="w-4.5 h-4.5 text-red-600 shrink-0" />
           <span>
             Please confirm you have each required item below by clicking the checkboxes to unlock checkout.
           </span>
