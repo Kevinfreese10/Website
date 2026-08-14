@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { Service, PrerequisiteItem } from '@/lib/types';
 import { Button } from '../ui/button';
 import { useCart } from '@/contexts/CartContext';
-import { ShoppingCart, Check, ArrowRight, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { ShoppingCart, Check, ArrowRight, ShieldCheck, AlertCircle, Loader2, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatPrice } from '@/lib/utils';
