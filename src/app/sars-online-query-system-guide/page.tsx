@@ -31,13 +31,13 @@ import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'SARS Online Query System (SOQS) Complete Guide 2026 | My Accountant',
-  description: 'Complete guide to the SARS Online Query System (SOQS). Access all 26 official online tax services, request tax numbers, TCS PINs, IT150, submit documents, and verify compliance.',
+  description: 'Complete guide to the SARS Online Query System (SOQS). Access official online tax services, request tax numbers, TCS PINs, IT150, submit documents, and verify compliance.',
   alternates: {
     canonical: `${SITE_URL}/sars-online-query-system-guide`,
   },
   openGraph: {
     title: 'SARS Online Query System (SOQS) Master Guide 2026',
-    description: 'Master guide to all 26 online queries available on the official SARS Online Query System. Step-by-step DIY instructions and professional tax help.',
+    description: 'Master guide to online queries available on the official SARS Online Query System. Step-by-step DIY instructions and professional tax help.',
     url: `${SITE_URL}/sars-online-query-system-guide`,
     siteName: 'My Accountant',
     locale: 'en_ZA',
@@ -79,9 +79,10 @@ const queryCategories = [
     ]
   },
   {
-    category: 'Entities & Legal Representatives',
-    description: 'Register trusts, report deceased estates, and appoint tax representatives.',
+    category: 'Entities & Specialized Taxes',
+    description: 'Register turnover tax, trusts, report deceased estates, and appoint tax representatives.',
     items: [
+      { name: "SARS Turnover Tax Registration & Rates", href: "/sars-turnover-tax-registration", icon: DollarSign, desc: "Simplified tax system for micro-businesses with turnover under R1 million." },
       { name: "Register a New Trust with SARS via SOQS", href: "/sars-trust-registration-online", icon: Building2, desc: "Submit IT77T registration for family and trading trusts." },
       { name: "Report a Deceased Estate to SARS", href: "/sars-deceased-estate-reporting", icon: Users, desc: "Notify SARS of deceased taxpayers and register estate profiles." },
       { name: "Appoint Registered Tax Representative / Public Officer", href: "/sars-tax-representative-appointment", icon: UserCheck, desc: "Update registered tax representative details and power of attorney." },
@@ -164,7 +165,7 @@ export default function SarsOnlineQueryGuidePage() {
             Master Guide to <span className="text-gradient">SARS Online Queries</span>
           </>
         }
-        subtitle="Access all 26 official SARS digital queries directly. Request tax reference numbers, TCS PINs, IT150 documents, track returns, and resolve tax debt without visiting a branch."
+        subtitle="Access all official SARS digital queries directly. Request tax reference numbers, TCS PINs, IT150 documents, track returns, and resolve tax debt without visiting a branch."
         primaryCta={{ text: 'Book Expert Tax Assistance', href: '/contact' }}
         secondaryCta={{ text: 'Explore Tax Services', href: '/products#sars-services' }}
         showCredibilityRibbon={true}
@@ -184,7 +185,7 @@ export default function SarsOnlineQueryGuidePage() {
       <section className="container mx-auto px-4 max-w-6xl space-y-12 pt-6">
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <Badge variant="outline" className="text-xs uppercase tracking-widest border-primary/30 text-primary font-bold">
-            26 Digital Services Available
+            Digital Services Available
           </Badge>
           <h2 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight">
             Browse All SARS Online Queries
@@ -199,33 +200,32 @@ export default function SarsOnlineQueryGuidePage() {
             <div key={idx} className="space-y-4">
               <div className="border-b border-border/60 pb-2">
                 <h3 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-primary inline-block" />
                   {cat.category}
                 </h3>
                 <p className="text-sm text-muted-foreground">{cat.description}</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {cat.items.map((item, i) => {
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {cat.items.map((item, itemIdx) => {
                   const Icon = item.icon;
                   return (
-                    <Card key={i} className="hover:border-primary/50 transition-all hover:shadow-md group flex flex-col justify-between">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <Badge variant="secondary" className="text-[10px]">SOQS</Badge>
+                    <Card key={itemIdx} className="hover:border-primary/50 transition-all shadow-sm flex flex-col justify-between">
+                      <CardHeader className="space-y-3 pb-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                          <Icon className="w-5 h-5" />
                         </div>
-                        <CardTitle className="text-base font-bold group-hover:text-primary transition-colors">
+                        <CardTitle className="text-lg font-bold text-foreground leading-snug">
                           {item.name}
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-4 text-sm text-muted-foreground flex-1 flex flex-col justify-between">
-                        <p>{item.desc}</p>
-                        <Button asChild variant="ghost" size="sm" className="w-full justify-between hover:bg-primary/5 text-primary font-bold p-0 h-auto pt-2">
+                      <CardContent className="space-y-4 pt-0">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {item.desc}
+                        </p>
+                        <Button asChild variant="ghost" className="w-full justify-between p-0 h-auto font-semibold text-primary hover:bg-transparent">
                           <Link href={item.href}>
-                            View Guide &amp; Instructions <ArrowRight className="h-4 w-4 ml-1" />
+                            View Guide & Instructions
+                            <ArrowRight className="w-4 h-4 ml-1" />
                           </Link>
                         </Button>
                       </CardContent>
@@ -238,33 +238,12 @@ export default function SarsOnlineQueryGuidePage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="container mx-auto px-4 max-w-4xl pt-8 space-y-6">
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground">Frequently Asked Questions</h2>
-          <p className="text-muted-foreground">Everything you need to know about using SARS digital channels.</p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          {faqItems.map((faq, i) => (
-            <Card key={i} className="border">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-                  <HelpCircle className="h-5 w-5 text-primary shrink-0" />
-                  {faq.question}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground leading-relaxed">
-                {faq.answer}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Expert Assistance CTA */}
+      {/* Expert CTA */}
       <section className="container mx-auto px-4 max-w-5xl">
-        <SarsExpertCta />
+        <SarsExpertCta
+          title="Need Assistance with a SARS Online Query?"
+          subtitle="Our team of registered SAIT tax practitioners can submit, track, and resolve any SARS query on your behalf."
+        />
       </section>
     </div>
   );
