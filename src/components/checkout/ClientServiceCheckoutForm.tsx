@@ -8,6 +8,7 @@ import { Button } from '../ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { ShoppingCart, Check, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import RequiredProductAddonsCard from '@/components/products/RequiredProductAddonsCard';
 
 export default function ClientServiceCheckoutForm({ service }: { service: Service }) {
   const { addToCart, cartItems } = useCart();
@@ -25,6 +26,7 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
 
   return (
     <div className="sticky top-24 space-y-4">
+        <RequiredProductAddonsCard mainService={service} />
         <Button 
             onClick={handleAddToCart} 
             disabled={isAdded}

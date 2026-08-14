@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, CheckCircle2, ShieldAlert, Plus, Sparkles } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 
 const db = getFirestore(firebaseApp);
@@ -50,17 +50,22 @@ export default function RequiredProductAddonsCard({
         }
       });
 
-      // Fetch any missing required services directly from Firestore
+      // Fetch missing required services directly from Firestore
       if (missingIds.length > 0) {
-        for (const reqId of missingIds) {
-          try {
-            const docSnap = await getDoc(doc(db, 'services', reqId));
-            if (docSnap.exists()) {
-              found.push({ id: docSnap.id, ...docSnap.data() } as Service);
+        try {
+          const snap = await getDocs(collection(db, 'services'));
+          const allDbServices = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Service));
+
+          missingIds.forEach((reqId) => {
+            const match = allDbServices.find(
+              (s) => s.id === reqId || s.slug === reqId || s.title.toLowerCase() === reqId.toLowerCase()
+            );
+            if (match && !found.some((f) => f.id === match.id)) {
+              found.push(match);
             }
-          } catch (err) {
-            console.error('Error loading prerequisite service:', err);
-          }
+          });
+        } catch (err) {
+          console.error('Error loading prerequisite services:', err);
         }
       }
 

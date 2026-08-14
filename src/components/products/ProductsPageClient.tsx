@@ -27,6 +27,7 @@ import {
 import { collection, getFirestore, orderBy, query, onSnapshot, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Service } from '@/lib/types';
+import RequiredProductAddonsCard from './RequiredProductAddonsCard';
 import { useEffect, useState, useMemo } from 'react';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Badge } from '@/components/ui/badge';
@@ -465,6 +466,9 @@ export default function ProductsPageClient({
                           </div>
                         ) : (
                           <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mt-1">{service.description}</p>
+                        )}
+                        {service.requiredProductIds && service.requiredProductIds.length > 0 && (
+                          <RequiredProductAddonsCard mainService={service} allServices={services} />
                         )}
                     </CardContent>
 
