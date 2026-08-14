@@ -521,18 +521,22 @@ export default function ServiceCheckoutForm({
                         />
 
                         {hasPackageDiscount && packageDiscount > 0 && (
-                            <div className="rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50/50 to-white border border-emerald-300 p-3 space-y-2 text-xs animate-in fade-in shadow-2xs">
+                            <div className="rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50/50 to-white border border-emerald-300 p-3.5 space-y-2 text-xs animate-in fade-in shadow-2xs">
                                 <div className="flex items-center justify-between text-slate-600 font-semibold">
                                     <span>Order Subtotal</span>
                                     <span className="line-through text-slate-400">{formatPrice(rawOrderTotal)}</span>
                                 </div>
-                                <div className="flex items-center justify-between text-emerald-800 font-black">
+                                <div className="flex items-center justify-between text-emerald-800 font-bold">
                                     <span className="flex items-center gap-1.5">
                                         <span className="text-sm">🎁</span> 20% Package Discount (Total Order)
                                     </span>
-                                    <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300">
+                                    <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 font-extrabold">
                                         -{formatPrice(packageDiscount)}
                                     </span>
+                                </div>
+                                <div className="pt-2 border-t border-emerald-200/80 flex items-center justify-between font-black text-slate-900 text-sm">
+                                    <span>New Total Payment Amount</span>
+                                    <span className="text-emerald-700 text-base">{formatPrice(orderTotal)}</span>
                                 </div>
                             </div>
                         )}
