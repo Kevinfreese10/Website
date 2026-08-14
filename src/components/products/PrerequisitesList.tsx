@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Service, PrerequisiteItem } from '@/lib/types';
-import { ClipboardCheck, ShoppingBag, ShoppingCart, CheckCircle2, ShieldAlert, Loader2 } from 'lucide-react';
+import { ClipboardCheck, ShoppingBag, ShoppingCart, CheckCircle2, ShieldAlert, Loader2, CornerDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/contexts/CartContext';
@@ -15,6 +15,7 @@ const db = getFirestore(firebaseApp);
 interface PrerequisitesListProps {
   requirements: (string | PrerequisiteItem)[];
   allServices?: Service[];
+  depth?: number;
 }
 
 interface LoadedProductPrereq {
@@ -29,7 +30,7 @@ interface LoadedTextPrereq {
 
 type LoadedPrereq = LoadedTextPrereq | LoadedProductPrereq;
 
-export default function PrerequisitesList({ requirements, allServices = [] }: PrerequisitesListProps) {
+export default function PrerequisitesList({ requirements, allServices = [], depth = 0 }: PrerequisitesListProps) {
   const { addToCart, cartItems } = useCart();
   const { toast } = useToast();
   const [items, setItems] = useState<LoadedPrereq[]>([]);
@@ -141,46 +142,68 @@ export default function PrerequisitesList({ requirements, allServices = [] }: Pr
         }
 
         const inCart = cartItems.some((ci) => ci.service.id === item.service.id);
+        const childRequirements = item.service.clientRequirements || [];
 
         return (
           <div
             key={item.service.id}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-blue-200 bg-blue-50/40 shadow-2xs"
+            className={`p-3.5 rounded-xl border transition-all ${
+              depth > 0
+                ? 'border-blue-300 bg-blue-100/40 ml-2 sm:ml-4'
+                : 'border-blue-200 bg-blue-50/40 shadow-2xs'
+            }`}
           >
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-blue-600 shrink-0" />
-                <span className="font-bold text-slate-900 text-sm">{item.service.title}</span>
-                <Badge variant="outline" className="text-[10px] bg-blue-100 text-blue-800 border-blue-200 font-bold">
-                  Required Product
-                </Badge>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span className="font-bold text-slate-900 text-sm">{item.service.title}</span>
+                  <Badge variant="outline" className="text-[10px] bg-blue-100 text-blue-800 border-blue-200 font-bold">
+                    Required Product
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-600 line-clamp-2">{item.service.description}</p>
+                <div className="font-extrabold text-blue-700 text-xs pt-0.5">
+                  {item.service.isPriceTbc ? 'Price on Request' : formatPrice(item.service.price)}
+                </div>
               </div>
-              <p className="text-xs text-slate-600 line-clamp-2">{item.service.description}</p>
-              <div className="font-extrabold text-blue-700 text-xs pt-0.5">
-                {item.service.isPriceTbc ? 'Price on Request' : formatPrice(item.service.price)}
-              </div>
+
+              <Button
+                onClick={() => handleAddToCart(item.service)}
+                disabled={inCart}
+                size="sm"
+                className={`h-9 font-bold text-xs rounded-lg shrink-0 w-full sm:w-auto ${
+                  inCart ? 'bg-emerald-600 text-white hover:bg-emerald-600' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {inCart ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                    Added to Cart
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+                    Add Prerequisite to Cart
+                  </>
+                )}
+              </Button>
             </div>
 
-            <Button
-              onClick={() => handleAddToCart(item.service)}
-              disabled={inCart}
-              size="sm"
-              className={`h-9 font-bold text-xs rounded-lg shrink-0 w-full sm:w-auto ${
-                inCart ? 'bg-emerald-600 text-white hover:bg-emerald-600' : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {inCart ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                  Added to Cart
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                  Add Prerequisite to Cart
-                </>
-              )}
-            </Button>
+            {/* Recursive Child Prerequisites */}
+            {childRequirements.length > 0 && depth < 3 && (
+              <div className="mt-3 pt-3 border-t border-blue-200/70 space-y-2">
+                <div className="text-[11px] font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <CornerDownRight className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  Prerequisites for {item.service.title}:
+                </div>
+                <PrerequisitesList
+                  requirements={childRequirements}
+                  allServices={allServices}
+                  depth={depth + 1}
+                />
+              </div>
+            )}
           </div>
         );
       })}
