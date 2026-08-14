@@ -57,6 +57,7 @@ export type Service = {
   faqs?: { q: string; a: string }[];
   isFeatured?: boolean;
   subcontractorFee?: number;
+  requiredProductIds?: string[];
 };
 
 export type BlogPost = {

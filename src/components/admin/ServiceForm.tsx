@@ -83,6 +83,7 @@ const formSchema = z.object({
   aggregateRatingValue: z.preprocess(val => Number(val), z.number().optional()),
   reviewCount: z.preprocess(val => Number(val), z.number().optional()),
   priceValidUntilOverride: z.string().optional(),
+  requiredProductIds: z.array(z.string()).optional(),
 });
 
 type ServiceFormProps = {
@@ -161,6 +162,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
       aggregateRatingValue: service?.aggregateRatingValue || 4.9,
       reviewCount: service?.reviewCount || 187,
       priceValidUntilOverride: service?.priceValidUntilOverride || '',
+      requiredProductIds: service?.requiredProductIds || [],
     },
   });
   
@@ -340,6 +342,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
         informationToProvide: values.informationToProvide.filter(v => v.label),
         metaKeywords: values.metaKeywords?.map(v => v.value).filter(Boolean),
         returnPolicyCategory: values.returnPolicyCategory === 'none' ? '' : values.returnPolicyCategory,
+        requiredProductIds: values.requiredProductIds || [],
     }
     onSubmit(serviceData);
   };
@@ -551,6 +554,36 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
                 />
             ))}
             <Button type="button" variant="outline" size="sm" onClick={() => appendPrereq({ value: '' })}>Add Prerequisite</Button>
+        </div>
+
+        <div className="space-y-3 rounded-lg border p-4 bg-muted/20">
+            <div>
+                <h3 className="text-sm font-semibold text-foreground">Linked Required Products</h3>
+                <p className="text-xs text-muted-foreground">
+                    Select products that are required for this service. If a client does not have a completed order for these products, admins & partners can order them directly from the order management screen.
+                </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border rounded-md bg-background">
+                {allServices.filter(s => s.id !== service?.id).map((s) => {
+                    const selected = form.watch('requiredProductIds')?.includes(s.id) || false;
+                    return (
+                        <label key={s.id} className="flex items-center gap-2 text-xs border rounded-md p-2 bg-card cursor-pointer hover:bg-accent/50 transition-colors">
+                            <Checkbox 
+                                checked={selected} 
+                                onCheckedChange={(checked) => {
+                                    const current = form.getValues('requiredProductIds') || [];
+                                    if (checked) {
+                                        form.setValue('requiredProductIds', [...current, s.id], { shouldDirty: true });
+                                    } else {
+                                        form.setValue('requiredProductIds', current.filter(id => id !== s.id), { shouldDirty: true });
+                                    }
+                                }} 
+                            />
+                            <span className="font-medium text-foreground truncate">{s.title}</span>
+                        </label>
+                    );
+                })}
+            </div>
         </div>
         
         <div className="space-y-2 rounded-lg border p-4">

@@ -28,6 +28,7 @@ import { customAlphabet } from 'nanoid';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { notifyOfNewNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
+import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
@@ -777,6 +778,12 @@ export default function PartnerOrderDetailsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             <div className={order?.isOutsourced ? "lg:col-span-2 space-y-8" : "lg:col-span-3 space-y-8"}>
+                <OrderPrerequisiteRequirementsCard 
+                    order={order} 
+                    allServices={allServices} 
+                    baseRoute="/partner/orders" 
+                    onOrderUpdated={fetchOrder} 
+                />
                 <Card>
                     <CardHeader>
                         <CardTitle>Order {order.id}</CardTitle>

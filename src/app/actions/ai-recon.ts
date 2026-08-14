@@ -245,7 +245,19 @@ export async function bulkMoveTransactionsToNew({ clientId, transactionIds ,
     return { count: transactionIds.length };
 }
 
-export async function researchMerchantWithAi({ clientId, transactionIds, description, chartOfAccounts, isVatRegistered, isExpense }: any) {
+export async function researchMerchantWithAi({ clientId, transactionIds, description, chartOfAccounts, isVatRegistered, isExpense, requestorId }: {
+    clientId: string;
+    transactionIds: string[];
+    description: string;
+    chartOfAccounts: string;
+    isVatRegistered: boolean;
+    isExpense?: boolean;
+    requestorId?: string;
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     try {
         const { suggestTransactionAllocation } = await import('@/ai/flows/suggest-transaction-allocation');
         const res = await suggestTransactionAllocation({
@@ -256,20 +268,24 @@ export async function researchMerchantWithAi({ clientId, transactionIds, descrip
 
         if (clientId && transactionIds && transactionIds.length > 0 && res && res.accountId) {
             const adminDb = getAdminDb();
-            const batch = adminDb.batch();
-            transactionIds.forEach((id: string) => {
-                const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
-                batch.update(ref, {
-                    smartAllocationResult: {
-                        accountId: res.accountId,
-                        vatType: res.vatType,
-                        confidence: res.confidence,
-                        summary: res.summary,
-                        suggestedKeyword: res.suggestedKeyword
-                    }
+            const batchSize = 400;
+            for (let i = 0; i < transactionIds.length; i += batchSize) {
+                const chunk = transactionIds.slice(i, i + batchSize);
+                const batch = adminDb.batch();
+                chunk.forEach((id: string) => {
+                    const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
+                    batch.update(ref, {
+                        smartAllocationResult: {
+                            accountId: res.accountId,
+                            vatType: res.vatType,
+                            confidence: res.confidence,
+                            summary: res.summary,
+                            suggestedKeyword: res.suggestedKeyword
+                        }
+                    });
                 });
-            });
-            await batch.commit();
+                await batch.commit();
+            }
         }
 
         return res as SmartAllocationResult;
@@ -470,7 +486,16 @@ export async function applyRegroups({ clientId, merges, userId ,
     await batch.commit();
 }
 
-export async function proposeAiRegroups({ clientId, bankAccountId, selectedMerchantKeys }: any) {
+export async function proposeAiRegroups({ clientId, bankAccountId, selectedMerchantKeys, requestorId }: {
+    clientId: string;
+    bankAccountId: string;
+    selectedMerchantKeys?: string[];
+    requestorId?: string;
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const { aiSmartRegroup } = await import('@/ai/flows/ai-smart-regroup');
     const adminDb = getAdminDb();
     const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
@@ -483,11 +508,12 @@ export async function proposeAiRegroups({ clientId, bankAccountId, selectedMerch
     const merchantMap: Record<string, string[]> = {};
 
     txs.forEach(t => {
-        if (!merchantMap[t.merchantKey!]) {
-            merchantMap[t.merchantKey!] = [];
-            groupData.push({ key: t.merchantKey, example: t.description, count: 0 });
+        const key = t.merchantKey || 'UNKNOWN';
+        if (!merchantMap[key]) {
+            merchantMap[key] = [];
+            groupData.push({ key, example: t.description || '', count: 0 });
         }
-        merchantMap[t.merchantKey!].push(t.id);
+        merchantMap[key].push(t.id);
     });
 
     groupData.forEach(g => g.count = merchantMap[g.key].length);
@@ -502,36 +528,53 @@ export async function proposeAiRegroups({ clientId, bankAccountId, selectedMerch
             toImpact: merchantMap[p.toKey]?.length || 0,
             score: p.confidence,
             reason: p.reasoning,
-            fromExamples: [txs.find(t => t.merchantKey === p.fromKey)?.description],
-            toExamples: [txs.find(t => t.merchantKey === p.toKey)?.description]
+            fromExamples: [txs.find(t => (t.merchantKey || 'UNKNOWN') === p.fromKey)?.description || ''],
+            toExamples: [txs.find(t => (t.merchantKey || 'UNKNOWN') === p.toKey)?.description || '']
         }));
 }
 
-export async function analyzeClientCommentAndSuggest({ clientId, transactionIds, comment, merchantKey, examples, chartOfAccounts, isVatRegistered }: any) {
+export async function analyzeClientCommentAndSuggest({ clientId, transactionIds, comment, merchantKey, examples, chartOfAccounts, isVatRegistered, requestorId }: {
+    clientId: string;
+    transactionIds: string[];
+    comment: string;
+    merchantKey?: string;
+    examples?: string[];
+    chartOfAccounts?: string;
+    isVatRegistered?: boolean;
+    requestorId?: string;
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const { analyzeClientComment } = await import('@/ai/flows/analyze-client-comment');
     const res = await analyzeClientComment({
         comment,
-        merchantKey,
-        examples,
-        chartOfAccounts,
-        isVatRegistered
+        merchantKey: merchantKey || '',
+        examples: examples || [],
+        chartOfAccounts: chartOfAccounts || '',
+        isVatRegistered: !!isVatRegistered
     });
 
     const adminDb = getAdminDb();
-    const batch = adminDb.batch();
-    transactionIds.forEach((id: string) => {
-        const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
-        batch.update(ref, { 
-            clientComment: comment,
-            smartAllocationResult: {
-                accountId: res.accountId,
-                vatType: res.vatType,
-                confidence: res.confidence,
-                summary: `AI Analysis of client comment: ${res.reasoning}`
-            }
+    const batchSize = 400;
+    for (let i = 0; i < transactionIds.length; i += batchSize) {
+        const chunk = transactionIds.slice(i, i + batchSize);
+        const batch = adminDb.batch();
+        chunk.forEach((id: string) => {
+            const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
+            batch.update(ref, { 
+                clientComment: comment,
+                smartAllocationResult: {
+                    accountId: res.accountId,
+                    vatType: res.vatType,
+                    confidence: res.confidence,
+                    summary: `AI Analysis of client comment: ${res.reasoning}`
+                }
+            });
         });
-    });
-    await batch.commit();
+        await batch.commit();
+    }
 
     return res;
 }
@@ -581,7 +624,18 @@ export async function matchTransactionsToSuppliers({ clientId, bankAccountId ,
     return { count };
 }
 
-export async function finalizeChatAllocation({ clientId, transactionId, accountId, vatType, explanation }: any) {
+export async function finalizeChatAllocation({ clientId, transactionId, accountId, vatType, explanation, requestorId }: {
+    clientId: string;
+    transactionId: string;
+    accountId: string;
+    vatType: string;
+    explanation: string;
+    requestorId?: string;
+}) {
+    const authCtx = await getAuthContext(requestorId as string);
+    if (!authCtx) throw new Error('Unauthorized');
+    if (!authCtx.isAdmin && !authCtx.isPartner) throw new Error('Unauthorized');
+
     const adminDb = getAdminDb();
     const txRef = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(transactionId);
     await txRef.update({
@@ -681,25 +735,29 @@ export async function applySpreadsheetAllocationsAction({
 
     try {
         const adminDb = getAdminDb();
-        const batch = adminDb.batch();
         const txCollection = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions');
 
-        allocations.forEach(alloc => {
-            const ref = txCollection.doc(alloc.transactionId);
-            batch.update(ref, {
-                status: 'reviewed',
-                allocatedTo: {
-                    value: alloc.accountId,
-                    type: alloc.accountType
-                },
-                vatType: alloc.vatType,
-                clientExplanation: alloc.explanation,
-                allocatedAt: FieldValue.serverTimestamp(),
-                allocationSource: 'chat'
+        const batchSize = 400;
+        for (let i = 0; i < allocations.length; i += batchSize) {
+            const chunk = allocations.slice(i, i + batchSize);
+            const batch = adminDb.batch();
+            chunk.forEach(alloc => {
+                const ref = txCollection.doc(alloc.transactionId);
+                batch.update(ref, {
+                    status: 'reviewed',
+                    allocatedTo: {
+                        value: alloc.accountId,
+                        type: alloc.accountType
+                    },
+                    vatType: alloc.vatType,
+                    clientExplanation: alloc.explanation,
+                    allocatedAt: FieldValue.serverTimestamp(),
+                    allocationSource: 'chat'
+                });
             });
-        });
+            await batch.commit();
+        }
 
-        await batch.commit();
         return { success: true, count: allocations.length };
     } catch (e: any) {
         console.error("Apply spreadsheet allocations action failed:", e);

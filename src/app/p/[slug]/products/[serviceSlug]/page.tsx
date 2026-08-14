@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
+import RequiredProductAddonsCard from '@/components/products/RequiredProductAddonsCard';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Metadata } from 'next';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
@@ -133,6 +134,8 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
                 </ul>
               </div>
             )}
+
+            <RequiredProductAddonsCard mainService={service} />
 
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">Prerequisites</h2>

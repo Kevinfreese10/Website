@@ -30,6 +30,7 @@ import { notifyOfNewNote, sendDocumentReviewFeedback, sendOutstandingDocumentsRe
 import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
 import { updateOrderStatusAtomic, reassignOrderStaffAtomic } from '@/app/actions/order-admin-actions';
+import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
@@ -641,6 +642,12 @@ export default function AdminOrderDetailsPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2 space-y-8">
+                    <OrderPrerequisiteRequirementsCard 
+                        order={order} 
+                        allServices={allServices} 
+                        baseRoute="/admin/orders" 
+                        onOrderUpdated={fetchOrderAndStaff} 
+                    />
                     <Card className="border shadow-md bg-card overflow-hidden">
                         <CardHeader className="bg-muted/30 border-b pb-4">
                             <div className="flex flex-wrap items-center justify-between gap-4">
