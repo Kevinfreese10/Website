@@ -197,12 +197,12 @@ export default function PrerequisitesList({
   return (
     <div className="space-y-3">
       {depth === 0 && (
-        <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-gradient-to-r from-rose-50 via-red-50 to-red-100/60 border border-red-300 text-xs text-red-950 font-bold shadow-2xs mb-2 animate-in fade-in leading-relaxed">
-          <ClipboardCheck className="w-4.5 h-4.5 text-red-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-gradient-to-r from-amber-50 via-amber-100/50 to-orange-50 border border-amber-300 text-xs text-amber-950 font-bold shadow-2xs mb-2 animate-in fade-in leading-relaxed">
+          <ClipboardCheck className="w-4.5 h-4.5 text-amber-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p>Please confirm you have each required item below by clicking the checkboxes to unlock checkout.</p>
-            <p className="text-[11px] font-normal text-red-900">
-              <strong className="font-bold text-red-950">Note:</strong> Not having the prerequisites is not valid grounds for a refund. Your order will remain open for as long as you need in order to provide us with the required information, even if it is not immediate.
+            <p className="text-[11px] font-normal text-amber-900 leading-normal">
+              🤝 <strong>Don&apos;t worry if you&apos;re missing anything right now!</strong> Your order stays open for as long as you need, with no expiry date. You can provide your documents whenever it&apos;s convenient for you. <span className="text-[10px] opacity-80">(Please note that missing prerequisites do not qualify for a refund, as we keep your account ready for you).</span>
             </p>
           </div>
         </div>
