@@ -6,7 +6,7 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 224 71% 9%;
-    --card: 220 33% 96%;
+    --card: 220 100% 97.6%; /* Soft ice-blue #F3F7FF card background */
     --card-foreground: 224 71% 9%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 9%;
@@ -250,7 +250,7 @@ body.dark .border-slate-400 {
 .home-light-theme {
   --background: 0 0% 100%;             /* Pure white background */
   --foreground: 240 10% 3.9%;          /* Off-black text */
-  --card: 240 5% 96.5%;                /* Extremely light gray cards */
+  --card: 220 100% 97.6%;                /* Soft ice-blue #F3F7FF card background */
   --card-foreground: 240 10% 3.9%;
   --popover: 0 0% 100%;
   --popover-foreground: 240 10% 3.9%;
