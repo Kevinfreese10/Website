@@ -141,6 +141,10 @@ export default function DashboardPage() {
         return allNotes.sort((a, b) => b.date.getTime() - a.date.getTime());
       }, [orders, user]);
 
+    const activeNotifications = useMemo(() => {
+        return notifications.filter(n => !archivedNotifications.includes(n.orderId + n.date.toISOString()));
+    }, [notifications, archivedNotifications]);
+
     const getAuthor = (authorId: string): User | undefined => {
         return allStaff.find(u => u.id === authorId);
     }
@@ -162,10 +166,10 @@ export default function DashboardPage() {
                         <div className="flex justify-center p-8">
                             <Loader2 className="h-8 w-8 animate-spin text-primary"/>
                         </div>
-                    ) : notifications.length > 0 ? (
+                    ) : activeNotifications.length > 0 ? (
                         <ScrollArea className="h-96">
                             <div className="space-y-6">
-                            {notifications.filter(n => !archivedNotifications.includes(n.orderId + n.date.toISOString())).map((note, index) => {
+                            {activeNotifications.map((note, index) => {
                                 const author = getAuthor(note.authorId);
                                 const date = note.date;
                                 const noteId = note.orderId + date.toISOString();
@@ -186,7 +190,9 @@ export default function DashboardPage() {
                                                 </p>
                                             </div>
                                             <div className="bg-muted/50 p-3 rounded-lg border border-muted">
-                                                <p className="text-sm text-foreground/90 leading-relaxed italic" dangerouslySetInnerHTML={{ __html: `"${note.text.replace(/\n/g, '<br />')}"` }} />
+                                                <p className="text-sm text-foreground/90 leading-relaxed italic">
+                                                    "{note.text}"
+                                                </p>
                                             </div>
                                             <div className="flex justify-end pt-1">
                                                 <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground hover:text-foreground" onClick={() => archiveNotification(noteId)}>
@@ -214,7 +220,29 @@ export default function DashboardPage() {
                     <CardTitle>Recent Orders</CardTitle>
                     <CardDescription>Track the status of your active requests.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                    {orders.slice(0, 3).map((order) => (
+                        <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border bg-card text-card-foreground">
+                            <div>
+                                <p className="font-semibold text-sm">{order.items?.[0]?.title || 'Service Order'}</p>
+                                <p className="text-xs text-muted-foreground font-mono">Order #{order.id}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className={cn(
+                                    "px-2.5 py-0.5 rounded-full text-xs font-bold",
+                                    order.status === 'Completed' ? "bg-green-100 text-green-800" :
+                                    order.status === 'Processing' ? "bg-blue-100 text-blue-800" :
+                                    order.status === 'Pending Payment' ? "bg-amber-100 text-amber-800" :
+                                    "bg-slate-100 text-slate-800"
+                                )}>
+                                    {order.status}
+                                </span>
+                                <Button asChild size="sm" variant="outline">
+                                    <Link href={`/dashboard/orders/${order.id}`}>View</Link>
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
                     <Button asChild variant="outline" className="w-full">
                         <Link href="/dashboard/orders">
                             View All My Orders <ArrowRight className="ml-2 h-4 w-4" />

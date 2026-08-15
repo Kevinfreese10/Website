@@ -448,11 +448,11 @@ export default function ClientOrderDetailsPage() {
   const requiredRequirements = allRequirements.filter(req => req.isRequired !== false);
 
   const allSubmitted = requiredRequirements.every(req => 
-      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected' && (doc.fileUrl || (doc.textValue && doc.textValue !== 'Applicable (Yes)')))
+      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected' && (doc.fileUrl || doc.textValue))
   );
 
   const submittedCount = requiredRequirements.filter(req => 
-      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected' && (doc.fileUrl || (doc.textValue && doc.textValue !== 'Applicable (Yes)')))
+      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected' && (doc.fileUrl || doc.textValue))
   ).length;
   const consultantNotified = order.notes?.some(note => note.text === "Client has submitted their documents for review.") || false;
 
@@ -460,9 +460,9 @@ export default function ClientOrderDetailsPage() {
     <div className="space-y-8">
         <div>
             <Button variant="outline" asChild>
-                <Link href="/dashboard">
+                <Link href="/dashboard/orders">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Dashboard
+                    Back to Orders
                 </Link>
             </Button>
         </div>
@@ -611,7 +611,21 @@ export default function ClientOrderDetailsPage() {
                                                             </>
                                                         )}
                                                     </>
-                                                ) : ( <div className="p-2 bg-green-50 text-green-800 rounded-md border border-green-200 text-sm">{upload.type === 'file' ? `Submitted: ${upload.fileName}` : `Submitted: "${upload.textValue}"`}</div> )}
+                                                ) : ( 
+                                                    <div className="p-2.5 bg-green-50 text-green-800 rounded-md border border-green-200 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                                                        <span>{upload.type === 'file' ? `Submitted: ${upload.fileName}` : `Submitted: "${upload.textValue}"`}</span>
+                                                        {upload.type === 'file' && upload.fileUrl && (
+                                                            <a 
+                                                                href={upload.fileUrl} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer" 
+                                                                className="text-xs font-bold text-green-900 underline hover:text-green-950 inline-flex items-center gap-1 shrink-0"
+                                                            >
+                                                                View / Download
+                                                            </a>
+                                                        )}
+                                                    </div> 
+                                                )}
                                             </div>
                                         )})}
                                     </div>

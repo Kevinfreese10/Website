@@ -10,17 +10,29 @@ import { useSearchParams, useRouter } from 'next/navigation';
 
 // Metadata has been removed from this client component and will be placed in a parent server component.
 
+import { useAuth } from '@/contexts/AuthContext';
+
 function LoginFormWrapper() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
-    if (searchParams.has("redirect")) {
-      // Use replaceState to clean the URL without a page reload
-      // This keeps the client-side history clean for crawlers.
-      router.replace('/login', { scroll: false });
+    if (isAuthenticated && user) {
+      const redirectUrl = searchParams.get('redirect');
+      if (redirectUrl) {
+        router.push(redirectUrl);
+        return;
+      }
+      if (user.role === 'admin' || user.role === 'staff' || user.role === 'cap_staff' || user.role === 'cap_supervisor') {
+        router.push('/admin/dashboard');
+      } else if (user.role === 'partner' || user.role === 'partner_staff' || user.role === 'partner_admin') {
+        router.push('/partner/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
     }
-  }, [searchParams, router]);
+  }, [isAuthenticated, user, router, searchParams]);
 
   return (
     <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}>

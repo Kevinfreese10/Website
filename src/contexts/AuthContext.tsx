@@ -56,7 +56,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         return await reauthenticate(userCredential.user);
     } catch (error: any) {
-        const expectedAuthErrors = ['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential'];
+        const expectedAuthErrors = [
+          'auth/user-not-found', 
+          'auth/wrong-password', 
+          'wrong-password', 
+          'auth/invalid-credential',
+          'auth/invalid-email'
+        ];
         if (error.code && !expectedAuthErrors.includes(error.code) && error.code !== 'permission-denied') { 
              console.error("Error logging in:", error.code, error.message);
         }
@@ -89,7 +95,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             if (foundUser) {
                 if (foundUser.source === 'AI Accountant' && foundUser.subscription) {
-                    const endDate = foundUser.subscription.subscriptionEndDate?.toDate();
+                    const rawEndDate = (foundUser.subscription as any).subscriptionEndDate;
+                    let endDate: Date | null = null;
+                    if (rawEndDate?.toDate) {
+                        endDate = rawEndDate.toDate();
+                    } else if (rawEndDate instanceof Date) {
+                        endDate = rawEndDate;
+                    } else if (typeof rawEndDate === 'string') {
+                        endDate = new Date(rawEndDate);
+                    }
                     if (endDate && isPast(endDate) && foundUser.subscription.subscriptionStatus !== 'active') {
                         setUser(foundUser); 
                         return 'subscription_lapsed';

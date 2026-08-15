@@ -29,7 +29,7 @@ const navGroups = [
   },
   {
     label: 'Online Store',
-    href: '/services',
+    href: '/products',
     items: []
   },
   {
@@ -49,11 +49,11 @@ const navGroups = [
         { label: 'Sage Accountant', href: '/sage-accountant-south-africa' },
         { label: 'Zoho Accountant', href: '/zoho-accountant-south-africa' },
         { label: 'Pastel Accountant', href: '/pastel-accountant-south-africa' },
-        { label: 'Accountant Johannesburg', href: '/accountant-johannesburg' },
-        { label: 'Accountant Pretoria', href: '/accountant-pretoria' },
-        { label: 'Accountant Cape Town', href: '/accountant-cape-town' },
-        { label: 'Accountant Durban', href: '/accountant-durban' },
-                { label: 'Accountant Randburg', href: '/accountant-randburg' },
+        { label: 'Accountant Johannesburg', href: '/accountant/johannesburg' },
+        { label: 'Accountant Pretoria', href: '/accountant/pretoria' },
+        { label: 'Accountant Cape Town', href: '/accountant/cape-town' },
+        { label: 'Accountant Durban', href: '/accountant/durban' },
+        { label: 'Accountant Randburg', href: '/accountant/randburg' },
         { label: 'Accountant Sandton', href: '/accountant/sandton' },
         { label: 'Accountant Fourways', href: '/accountant/fourways' },
         { label: 'Accountant Bryanston', href: '/accountant/bryanston' },
@@ -308,7 +308,19 @@ const Header = () => {
                   <div className="mt-auto pt-6 border-t space-y-4">
                     {mounted && isAuthenticated && user ? (
                         <div className="space-y-4">
-                            <Link href={user.role === 'partner' ? '/partner/dashboard' : '/admin/dashboard'} className="block text-lg font-medium" onClick={() => setMobileMenuOpen(false)}>Go to Dashboard</Link>
+                            <Link 
+                              href={
+                                user.role === 'partner' || user.role === 'partner_staff' || user.role === 'partner_admin' 
+                                  ? '/partner/dashboard' 
+                                  : user.role === 'admin' || user.role === 'staff' 
+                                    ? '/admin/dashboard' 
+                                    : '/dashboard'
+                              } 
+                              className="block text-lg font-medium" 
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              Go to Dashboard
+                            </Link>
                             <Button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="w-full">Logout</Button>
                         </div>
                       ) : (

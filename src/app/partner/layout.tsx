@@ -21,12 +21,12 @@ export default function PartnerLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   
   useEffect(() => {
-    if (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff') {
+    if (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff' && user?.role !== 'partner_admin') {
       router.push('/login');
     }
   }, [isAuthenticated, user, router]);
 
-  if (isAuthenticated === undefined || (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff')) {
+  if (isAuthenticated === undefined || (isAuthenticated && user?.role !== 'partner' && user?.role !== 'partner_staff' && user?.role !== 'partner_admin')) {
      return (
         <div className="flex min-h-screen">
             <Skeleton className="hidden md:block w-16 lg:w-64" />
@@ -54,7 +54,7 @@ export default function PartnerLayout({ children }: { children: ReactNode }) {
             <SidebarInset>
                 <div className="p-4 sm:p-6 lg:p-8">
                     <div className="flex items-center gap-4 mb-6">
-                        <SidebarTrigger className="md:hidden" />
+                        <SidebarTrigger />
                     </div>
 
                     {user?.role === 'partner_staff' && <WorkingAsBanner />}

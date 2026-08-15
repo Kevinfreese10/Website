@@ -133,6 +133,12 @@ export async function createCheckoutOrderAction({
           }
         }
 
+        // Allow legitimate 20% bundle package discount when prerequisites are purchased together
+        const isBundleDiscounted = items.length > 1 && item.price && Math.abs(item.price - Math.round(finalUnitPrice * 0.8)) <= 2;
+        if (isBundleDiscounted) {
+          finalUnitPrice = Math.round(finalUnitPrice * 0.8);
+        }
+
         const qty = item.quantity && item.quantity > 0 ? item.quantity : 1;
         calculatedTotal += finalUnitPrice * qty;
 

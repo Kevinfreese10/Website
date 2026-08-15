@@ -25,6 +25,8 @@ const formatPrice = (price: number) => {
     }).format(price);
 };
 
+import { useCart } from '@/contexts/CartContext';
+
 export default function PaymentSuccessPage() {
     const params = useParams();
     const orderId = params.orderId as string;
@@ -33,21 +35,26 @@ export default function PaymentSuccessPage() {
     const [error, setError] = useState<string | null>(null);
     const [assignee, setAssignee] = useState<User | null>(null);
     const { user: currentUser } = useAuth();
+    const { clearCart } = useCart();
     const { toast } = useToast();
     const router = useRouter();
+
+    useEffect(() => {
+        clearCart();
+    }, [clearCart]);
 
     const orderUrl = useMemo(() => {
         if (!currentUser) return '/login';
         if (currentUser.role === 'admin' || currentUser.role === 'staff') return `/admin/orders/${orderId}`;
-        if (currentUser.role === 'partner' || currentUser.role === 'partner_staff') return `/partner/orders/${orderId}`;
+        if (currentUser.role === 'partner' || currentUser.role === 'partner_staff' || currentUser.role === 'partner_admin') return `/partner/orders/${orderId}`;
         return `/dashboard/orders/${orderId}`;
     }, [currentUser, orderId]);
 
-    const [countdown, setCountdown] = useState(5);
+    const [countdown, setCountdown] = useState(8);
 
     useEffect(() => {
         if (!order || !currentUser) return;
-        if (currentUser.role === 'partner' || currentUser.role === 'partner_staff') {
+        if (currentUser.role === 'partner' || currentUser.role === 'partner_staff' || currentUser.role === 'partner_admin') {
             router.push('/partner/orders');
             return;
         }

@@ -146,7 +146,7 @@ export default function LoginForm() {
     
     if (result.role === 'admin' || result.role === 'staff' || result.role === 'cap_staff' || result.role === 'cap_supervisor') {
         router.push('/admin/dashboard');
-    } else if (result.role === 'partner' || result.role === 'partner_staff') {
+    } else if (result.role === 'partner' || result.role === 'partner_staff' || result.role === 'partner_admin') {
         router.push('/partner/dashboard');
     } else if ((result.role as any) === 'reseller') {
         router.push('/reseller/dashboard');

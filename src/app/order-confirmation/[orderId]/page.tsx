@@ -4,7 +4,7 @@ import { useParams, notFound, useRouter } from 'next/navigation';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Order, User } from '@/lib/types';
-import { Loader2, CheckCircle, Banknote, LogIn, ExternalLink } from 'lucide-react';
+import { Loader2, CheckCircle, Banknote, LogIn, ExternalLink, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -72,13 +72,6 @@ export default function OrderConfirmationPage() {
                             if (resellerSnap.exists()) {
                                 setReseller({ ...resellerSnap.data(), id: resellerSnap.id } as User);
                             }
-                        }
-
-                        // If user is authenticated and lands here, redirect them to PayFast immediately.
-                        const isSetupOrTopup = orderData.items.some(i => i.id === 'partner_setup_fee' || i.id === 'partner_credit_topup');
-                        
-                        if (isAuthenticated && orderData.status === 'Pending Payment' && (!orderData.resellerId || isSetupOrTopup)) {
-                            handlePayNow(orderData);
                         }
                     } else {
                         notFound();
@@ -280,11 +273,19 @@ export default function OrderConfirmationPage() {
                                     <Button asChild variant="outline">
                                         <Link href="/dashboard/orders">Go to Dashboard</Link>
                                     </Button>
-                                    <Button asChild className="gap-2">
-                                        <Link href={`/p/${reseller?.landingPage?.slug || ''}`}>
-                                            Return to Practice Page <ExternalLink className="h-4 w-4" />
-                                        </Link>
-                                    </Button>
+                                    {reseller?.landingPage?.slug ? (
+                                        <Button asChild className="gap-2">
+                                            <Link href={`/p/${reseller.landingPage.slug}`}>
+                                                Return to Practice Page <ExternalLink className="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    ) : (
+                                        <Button asChild className="gap-2">
+                                            <Link href="/products">
+                                                Browse More Services <ArrowRight className="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         ) : (

@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   
-  const isPartner = user?.role === 'partner' || user?.role === 'partner_staff';
+  const isPartner = user?.role === 'partner' || user?.role === 'partner_staff' || user?.role === 'partner_admin';
   const isAllowedPartnerRoute = isPartner && (
     pathname.startsWith('/dashboard/ai-accountant') ||
     pathname.startsWith('/dashboard/ai-payroll')

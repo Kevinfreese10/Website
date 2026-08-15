@@ -596,8 +596,7 @@ export default function AdminOrderDetailsPage() {
 
 
   return (
-    <Dialog>
-        <div className="space-y-8">
+    <div className="space-y-8">
             <Dialog open={isRejectionDialogOpen} onOpenChange={setIsRejectionDialogOpen}>
                 <DialogContent>
                     <DialogHeader><DialogTitle>Reject Document</DialogTitle><DialogDescription>Provide a reason for rejection.</DialogDescription></DialogHeader>
@@ -1078,6 +1077,5 @@ export default function AdminOrderDetailsPage() {
                 </div>
             </div>
         </div>
-    </Dialog>
   );
 }

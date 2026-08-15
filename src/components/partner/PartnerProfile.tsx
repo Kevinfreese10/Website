@@ -399,43 +399,44 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
 
   const { setValue, watch, reset } = form;
 
-  // Ensure form resets if propPartner changes (important for Modal reuse)
+  // Ensure form resets if propPartner or authUser finishes loading
   useEffect(() => {
-      if (propPartner) {
+      const activePartner = propPartner || authUser;
+      if (activePartner && activePartner.email) {
           const initialLp = {
             ...form.getValues().landingPage,
-            ...propPartner.landingPage,
-            enabled: propPartner.landingPage?.enabled || false,
-            slug: propPartner.landingPage?.slug || '',
-            testimonials: propPartner.landingPage?.testimonials || [],
-            faqs: propPartner.landingPage?.faqs || [],
-            showLeadForm: propPartner.landingPage?.showLeadForm !== undefined ? propPartner.landingPage?.showLeadForm : true,
+            ...activePartner.landingPage,
+            enabled: activePartner.landingPage?.enabled || false,
+            slug: activePartner.landingPage?.slug || '',
+            testimonials: activePartner.landingPage?.testimonials || [],
+            faqs: activePartner.landingPage?.faqs || [],
+            showLeadForm: activePartner.landingPage?.showLeadForm !== undefined ? activePartner.landingPage?.showLeadForm : true,
           };
           reset({
-            companyName: propPartner.companyName || '',
-            name: propPartner.name?.split(' ')[0] || propPartner.contactPerson?.split(' ')[0] || '',
-            surname: propPartner.name?.split(' ').slice(1).join(' ') || propPartner.contactPerson?.split(' ').slice(1).join(' ') || '',
-            email: propPartner.email || '',
-            contactNumber: propPartner.contactNumber || '',
+            companyName: activePartner.companyName || '',
+            name: activePartner.name?.split(' ')[0] || activePartner.contactPerson?.split(' ')[0] || '',
+            surname: activePartner.name?.split(' ').slice(1).join(' ') || activePartner.contactPerson?.split(' ').slice(1).join(' ') || '',
+            email: activePartner.email || '',
+            contactNumber: activePartner.contactNumber || '',
             address: { 
-                street: propPartner.address?.street || '', 
-                suburb: propPartner.address?.suburb || '', 
-                city: propPartner.address?.city || '', 
-                province: propPartner.address?.province || '', 
-                zip: propPartner.address?.zip || ''
+                street: activePartner.address?.street || '', 
+                suburb: activePartner.address?.suburb || '', 
+                city: activePartner.address?.city || '', 
+                province: activePartner.address?.province || '', 
+                zip: activePartner.address?.zip || ''
             },
             bankingDetails: { 
-                bankName: propPartner.bankingDetails?.bankName || '', 
-                accountHolder: propPartner.bankingDetails?.accountHolder || '', 
-                accountNumber: propPartner.bankingDetails?.accountNumber || '', 
-                branchCode: propPartner.bankingDetails?.branchCode || ''
+                bankName: activePartner.bankingDetails?.bankName || '', 
+                accountHolder: activePartner.bankingDetails?.accountHolder || '', 
+                accountNumber: activePartner.bankingDetails?.accountNumber || '', 
+                branchCode: activePartner.bankingDetails?.branchCode || ''
             },
             landingPage: initialLp
           });
           setConfigHistory([JSON.parse(JSON.stringify(initialLp))]);
           setHistoryIndex(0);
       }
-  }, [propPartner, reset]);
+  }, [propPartner, authUser, reset]);
 
   const watchedBanking = watch('bankingDetails');
   const watchedLp = watch('landingPage');

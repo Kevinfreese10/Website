@@ -82,6 +82,10 @@ export default function DashboardNav({ user }: { user: UserType }) {
      ...(user.payrollClientId ? [
        { href: `/dashboard/ai-payroll/${user.payrollClientId}/dashboard`, label: 'Payroll Portal', icon: Users, roles: ['client'] }
      ] : []),
+     ...(user.subscription || user.clientSource === 'ai_accountant' ? [
+       { href: '/dashboard/ai-accountant/clients', label: 'AI Accountant', icon: Calculator, roles: ['client', 'ai_accountant'] }
+     ] : []),
+     { href: '/dashboard/subscriptions', label: 'My Subscriptions', icon: Percent, roles: ['client'] },
      { href: '/dashboard/profile', label: 'My Profile', icon: User, roles: ['client'] },
      { href: '/dashboard/talent-profile', label: 'Talent Profile', icon: UserPlus, roles: ['client'] },
   ];
@@ -118,13 +122,13 @@ export default function DashboardNav({ user }: { user: UserType }) {
   const isFreePartner = user.partnerTier === 'free';
 
   const partnerNavItems = [
-    { href: '/partner/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['partner', 'partner_staff'] },
+    { href: '/partner/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['partner', 'partner_staff', 'partner_admin'] },
     ...(!isFreePartner ? [
       ...(limits.aiCompanies > 0 ? [{ 
         href: '/partner/ai-accountant', 
         label: 'AI Accountant', 
         icon: Calculator, 
-        roles: ['partner', 'partner_staff'],
+        roles: ['partner', 'partner_staff', 'partner_admin'],
         subItems: [
           { href: '/partner/ai-accountant/clients', label: 'Manage Clients' },
           { href: '/partner/ai-accountant/allocation-rules', label: 'Allocation Rules' },
@@ -135,21 +139,21 @@ export default function DashboardNav({ user }: { user: UserType }) {
         href: '/partner/ai-payroll', 
         label: 'AI Payroll', 
         icon: Users, 
-        roles: ['partner', 'partner_staff'],
+        roles: ['partner', 'partner_staff', 'partner_admin'],
         subItems: [
           { href: '/partner/ai-payroll/clients', label: 'Manage Clients' }
         ]
       }] : []),
-      ...(user?.partnerSubscription?.hasTaskManager ? [{ href: '/partner/tasks', label: 'Task Manager', icon: ClipboardCheck, roles: ['partner', 'partner_staff'] }] : []),
-      { href: '/partner/leads', label: 'Practice Leads', icon: MessageSquare, roles: ['partner', 'partner_staff'] },
+      ...(user?.partnerSubscription?.hasTaskManager ? [{ href: '/partner/tasks', label: 'Task Manager', icon: ClipboardCheck, roles: ['partner', 'partner_staff', 'partner_admin'] }] : []),
+      { href: '/partner/leads', label: 'Practice Leads', icon: MessageSquare, roles: ['partner', 'partner_staff', 'partner_admin'] },
     ] : []),
-    { href: '/partner/services', label: 'View Products', icon: Briefcase, roles: ['partner', 'partner_staff'] },
-    { href: '/partner/orders', label: isFreePartner ? 'My Orders' : 'Client Orders', icon: ShieldCheck, roles: ['partner', 'partner_staff'] },
-    ...(!isFreePartner ? [{ href: '/partner/outsourced-orders', label: 'Outsourced Orders', icon: FileText, roles: ['partner', 'partner_staff'] }] : []),
-    { href: '/partner/profile', label: 'My Profile', icon: User, roles: ['partner', 'partner_staff'] },
-    { href: '/partner/community', label: 'Community Q&A', icon: MessageSquare, roles: ['partner', 'partner_staff'] },
-    { href: '/partner/jobs', label: 'Jobs & Talent', icon: Briefcase, roles: ['partner', 'partner_staff'] },
-    { href: '/partner/talent-profile', label: 'Talent Profile', icon: UserPlus, roles: ['partner', 'partner_staff'] },
+    { href: '/partner/services', label: 'View Products', icon: Briefcase, roles: ['partner', 'partner_staff', 'partner_admin'] },
+    { href: '/partner/orders', label: isFreePartner ? 'My Orders' : 'Client Orders', icon: ShieldCheck, roles: ['partner', 'partner_staff', 'partner_admin'] },
+    ...(!isFreePartner ? [{ href: '/partner/outsourced-orders', label: 'Outsourced Orders', icon: FileText, roles: ['partner', 'partner_staff', 'partner_admin'] }] : []),
+    { href: '/partner/profile', label: 'My Profile', icon: User, roles: ['partner', 'partner_staff', 'partner_admin'] },
+    { href: '/partner/community', label: 'Community Q&A', icon: MessageSquare, roles: ['partner', 'partner_staff', 'partner_admin'] },
+    { href: '/partner/jobs', label: 'Jobs & Talent', icon: Briefcase, roles: ['partner', 'partner_staff', 'partner_admin'] },
+    { href: '/partner/talent-profile', label: 'Talent Profile', icon: UserPlus, roles: ['partner', 'partner_staff', 'partner_admin'] },
   ];
 
   const visibleNavItems = navItems.filter(item => item.roles.includes(user.role));

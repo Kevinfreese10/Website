@@ -295,13 +295,20 @@ export default function PartnerOnboardingPage() {
         ...user,
         landingPage: {
           themePreset: selectedTheme as any,
-          primaryColor: theme.primaryColor,
-          hoverColor: theme.hoverColor,
+          primaryColor,
+          hoverColor,
+          secondaryColor,
+          cardBg,
+          cardBorder,
+          textColor,
+          glassmorphism,
+          cardRadius,
+          logoUrl,
           heroTitle: user.landingPage?.heroTitle || user.companyName || 'Welcome to Our Practice',
           heroSubtitle: heroSubheadline,
           aboutUs,
           enabled: true,
-          slug: user.landingPage?.slug || '',
+          slug,
         } as any
       });
       toast({ title: 'Branding Saved', description: 'Your landing page customization is updated.' });
@@ -333,12 +340,6 @@ export default function PartnerOnboardingPage() {
         
         const newValues = {
           price: markedPrice,
-          title: service.title,
-          description: service.description,
-          longDescription: service.longDescription,
-          turnaroundTime: service.turnaroundTime,
-          whatsIncluded: service.whatsIncluded || [],
-          clientRequirements: service.clientRequirements || [],
           enabled: isEnabled
         };
 
