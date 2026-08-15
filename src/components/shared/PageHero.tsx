@@ -18,6 +18,7 @@ export interface PageHeroProps {
     text: string;
     href: string;
   };
+  ctaSubtext?: string;
   showCredibilityRibbon?: boolean;
   children?: React.ReactNode;
   className?: string;
@@ -30,6 +31,7 @@ export default function PageHero({
   subtitle,
   primaryCta = { text: 'Visit Our Online Store', href: '/products' },
   secondaryCta = { text: 'Book Free Consultation', href: '/contact' },
+  ctaSubtext = 'Explore 75+ accounting & tax services with transparent fixed prices and clear completion times in our online store.',
   showCredibilityRibbon = true,
   children,
   className = '',
@@ -61,18 +63,27 @@ export default function PageHero({
         </p>
 
         {(primaryCta || secondaryCta || children) && (
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center items-center">
-            {primaryCta && (
-              <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300">
-                <Link href={primaryCta.href}>{primaryCta.text}</Link>
-              </Button>
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center items-center">
+              {primaryCta && (
+                <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300">
+                  <Link href={primaryCta.href}>{primaryCta.text}</Link>
+                </Button>
+              )}
+              {secondaryCta && (
+                <Button asChild size="lg" variant="outline" className="h-14 px-8 text-base font-bold shadow-xl border-white/10 hover:bg-white/5 transition-all duration-300">
+                  <Link href={secondaryCta.href}>{secondaryCta.text}</Link>
+                </Button>
+              )}
+              {children}
+            </div>
+
+            {ctaSubtext && (
+              <p className="text-xs sm:text-sm font-semibold text-primary/90 flex items-center justify-center gap-1.5 pt-1.5 max-w-xl mx-auto">
+                <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse shrink-0" />
+                <span>{ctaSubtext}</span>
+              </p>
             )}
-            {secondaryCta && (
-              <Button asChild size="lg" variant="outline" className="h-14 px-8 text-base font-bold shadow-xl border-white/10 hover:bg-white/5 transition-all duration-300">
-                <Link href={secondaryCta.href}>{secondaryCta.text}</Link>
-              </Button>
-            )}
-            {children}
           </div>
         )}
 

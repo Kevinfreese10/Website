@@ -144,13 +144,19 @@ export default function HomePageClient() {
                 Built for South African entrepreneurs who demand efficiency and transparency.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
-                <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300">
-                  <Link href="/products">Visit Our Online Store</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="h-14 px-8 text-base font-bold shadow-xl border-white/10 hover:bg-white/5 transition-all duration-300">
-                  <Link href="/contact">Book Free Consultation</Link>
-                </Button>
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
+                  <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300">
+                    <Link href="/products">Visit Our Online Store</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="h-14 px-8 text-base font-bold shadow-xl border-white/10 hover:bg-white/5 transition-all duration-300">
+                    <Link href="/contact">Book Free Consultation</Link>
+                  </Button>
+                </div>
+                <p className="text-xs sm:text-sm font-semibold text-primary/90 flex items-center justify-center gap-1.5 pt-1.5 max-w-xl mx-auto">
+                  <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse shrink-0" />
+                  <span>Explore 75+ accounting & tax services with transparent fixed prices and clear completion times in our online store.</span>
+                </p>
               </div>
             </div>
           </div>
