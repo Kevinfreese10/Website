@@ -146,10 +146,10 @@ export default function HomePageClient() {
 
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
                 <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300">
-                  <Link href="/contact">Book Free Consultation</Link>
+                  <Link href="/products">Visit Our Online Store</Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="h-14 px-8 text-base font-bold shadow-xl border-white/10 hover:bg-white/5 transition-all duration-300">
-                  <Link href="/services">Visit Our Online Store</Link>
+                  <Link href="/contact">Book Free Consultation</Link>
                 </Button>
               </div>
             </div>
