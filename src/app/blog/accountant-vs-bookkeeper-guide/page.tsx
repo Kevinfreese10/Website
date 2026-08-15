@@ -1,9 +1,13 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Accountant vs Bookkeeper: What’s the Difference?',
   description: 'Discover the key differences between an accountant and a bookkeeper, and find out which financial professional your business needs.',
+  alternates: {
+    canonical: `${SITE_URL}/blog/accountant-vs-bookkeeper-guide`,
+  },
   openGraph: {
     title: 'Accountant vs Bookkeeper | My Accountant',
     description: 'Learn whether your business needs a bookkeeper, an accountant, or both.',

@@ -1,9 +1,13 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'CC vs Pty Ltd: Why You Should Convert to a Pty Ltd',
   description: 'Learn why converting your Close Corporation (CC) to a Private Company (Pty Ltd) in South Africa is highly recommended and how to do it.',
+  alternates: {
+    canonical: `${SITE_URL}/blog/cc-vs-pty-ltd-conversion`,
+  },
   openGraph: {
     title: 'CC vs Pty Ltd Conversion | My Accountant',
     description: 'Understand the benefits of converting your CC to a Pty Ltd and ensure compliance with the new Companies Act.',

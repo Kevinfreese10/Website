@@ -60,6 +60,7 @@ const nextConfig: NextConfig = {
     return [
       { source: '/admin/:path*', headers: noCacheHeaders },
       { source: '/dashboard/:path*', headers: noCacheHeaders },
+      { source: '/partner/:path*', headers: noCacheHeaders },
       { source: '/login', headers: noCacheHeaders },
       { source: '/signup', headers: noCacheHeaders },
       { source: '/cart', headers: noCacheHeaders },
@@ -293,6 +294,10 @@ const nextConfig: NextConfig = {
       { source: '/small-business-accounting', destination: '/small-business-accounting-south-africa', permanent: true },
       { source: '/tax-consultation', destination: '/tax-consulting', permanent: true },
       { source: '/articles/directors-duties', destination: '/blog', permanent: true },
+
+      // --- City landing pages: canonical form is the hyphenated /accountant-<city> URL.
+      // Redirect the old slash form so nav/sitemap/canonical all agree on one URL. ---
+      { source: '/accountant/:city', destination: '/accountant-:city', permanent: true },
     ];
   },
   async rewrites() {

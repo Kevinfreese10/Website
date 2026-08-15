@@ -3,10 +3,14 @@ import { Star, CheckCircle, ShieldCheck, Award } from 'lucide-react';
 import Link from 'next/link';
 import TrustindexWidget from '@/components/shared/TrustIndexWidget';
 import PageHero from '@/components/shared/PageHero';
+import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'My Accountant Reviews - 220+ Reviews & Rated 4.9/5',
   description: 'See why over 220 clients rate us 4.9/5 on Google and Facebook. My Accountant is the most trusted accounting and tax practice in South Africa.',
+  alternates: {
+    canonical: `${SITE_URL}/reviews`,
+  },
   openGraph: {
     title: 'My Accountant Reviews - South Africa’s Best Rated Accountants',
     description: 'Read our 220+ reviews from real business owners. We are rated 4.9/5 on Google and Facebook.',

@@ -13,6 +13,7 @@ export default function robots(): MetadataRoute.Robots {
           '/cart',
           '/checkout',
           '/admin',
+          '/partner',      // Authenticated partner portal — not indexable
           '/reseller/',    // Reseller portal — not indexable
           '/p/',           // Partner/vendor pages — not indexable
         ],

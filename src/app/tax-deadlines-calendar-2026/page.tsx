@@ -1,10 +1,14 @@
 import { Metadata } from 'next';
 import { Calendar } from 'lucide-react';
 import PageHero from '@/components/shared/PageHero';
+import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Tax Deadlines Calendar 2026 | My Accountant',
   description: 'Stay compliant with our 2026 calendar of important SARS tax compliance dates for businesses and individuals.',
+  alternates: {
+    canonical: `${SITE_URL}/tax-deadlines-calendar-2026`,
+  },
 };
 
 export default function TaxDeadlinesPage() {

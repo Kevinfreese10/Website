@@ -1,9 +1,13 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Sole Proprietor vs Pty Ltd: Which is Best in South Africa?',
   description: 'A detailed guide comparing Sole Proprietorships and Private Companies (Pty Ltd) in South Africa. Understand the tax, legal, and operational differences.',
+  alternates: {
+    canonical: `${SITE_URL}/blog/sole-proprietor-vs-pty-ltd`,
+  },
   openGraph: {
     title: 'Sole Proprietor vs Pty Ltd | My Accountant',
     description: 'Learn the differences between a Sole Proprietor and a Pty Ltd in South Africa to make the right business choice.',

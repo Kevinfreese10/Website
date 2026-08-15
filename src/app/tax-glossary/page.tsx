@@ -1,9 +1,13 @@
 import { Metadata } from 'next';
 import PageHero from '@/components/shared/PageHero';
+import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Tax Glossary | My Accountant',
   description: 'Understand common tax terms and definitions with our comprehensive South African tax glossary.',
+  alternates: {
+    canonical: `${SITE_URL}/tax-glossary`,
+  },
 };
 
 export default function TaxGlossaryPage() {
