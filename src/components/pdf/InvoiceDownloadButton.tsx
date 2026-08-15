@@ -6,6 +6,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, User, ClientCustomer } from '@/lib/types';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -118,13 +119,13 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
       doc.setFont('helvetica', 'bold');
       doc.text(`Date:`, 135, headerY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
-      doc.text(format(new Date(invoice.invoiceDate), 'dd/MM/yyyy'), 139, headerY);
+      doc.text(formatDate(invoice.invoiceDate, 'long'), 139, headerY);
       headerY += 5;
 
       doc.setFont('helvetica', 'bold');
       doc.text(`Due Date:`, 135, headerY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
-      doc.text(format(new Date(invoice.dueDate), 'dd/MM/yyyy'), 139, headerY);
+      doc.text(formatDate(invoice.dueDate, 'long'), 139, headerY);
 
       let valY = headerY;
 

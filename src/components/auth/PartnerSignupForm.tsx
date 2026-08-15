@@ -21,8 +21,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { Loader2, Briefcase, CheckCircle2, UserPlus, Wallet2, CreditCard, Sparkles, Globe } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Service, Order } from '@/lib/types';
-import { sendEmail } from '@/lib/email';
+import { sendOwnWelcomeEmail } from '@/app/actions/email-gateway';
 import { checkIfEmailExists } from '@/app/actions';
+import { becomePartnerAction } from '@/app/actions/account-provisioning';
 import { render } from '@react-email/components';
 import PartnerWelcomeEmail from '../emails/PartnerWelcomeEmail';
 import { getNextOrderId } from '@/lib/sequence';
@@ -219,10 +220,11 @@ export default function PartnerSignupForm() {
         
         const contactPersonFullName = `${values.name} ${values.surname}`;
 
-        // 2. Create the User Document
+        // 2. Create/update the User Document with the non-privileged profile fields.
+        // role, partnerTier, status, creditBalance, and partnerSubscription are intentionally
+        // NOT set here — firestore.rules blocks clients from self-assigning those fields.
+        // They're granted server-side in step 2b, which always sets safe, server-decided values.
         const newUserDocRef = doc(db, "users", authUid);
-        
-        const periodEndDate = new Date('2099-12-31');
 
         await setDoc(newUserDocRef, {
             ...partnerData,
@@ -230,10 +232,6 @@ export default function PartnerSignupForm() {
             name: contactPersonFullName,
             id: authUid,
             uid: authUid,
-            role: 'partner',
-            partnerTier: 'growth',
-            status: 'Active', 
-            creditBalance: 0,
             createdAt: serverTimestamp(),
             cvUrl: cvUrl,
             certificateUrl: certificateUrl,
@@ -242,15 +240,15 @@ export default function PartnerSignupForm() {
                 slug: '',
                 companyName: values.companyName,
             },
-            partnerSubscription: {
-                status: 'active',
-                currentPeriodEnd: Timestamp.fromDate(periodEndDate),
-                aiCompanyLimit: 0,
-                aiPayrollLimit: 0,
-                staffSeatLimit: 1,
-                hasTaskManager: false,
-            }
         }, { merge: true });
+
+        // 2b. Elevate to a partner account server-side (validates the transition, decides
+        // role/subscription defaults itself rather than trusting client-supplied values).
+        const partnerIdToken = await newFirebaseUser.getIdToken();
+        const becomePartnerResult = await becomePartnerAction(partnerIdToken);
+        if (!becomePartnerResult.success) {
+            throw new Error(becomePartnerResult.error || 'Could not activate partner account.');
+        }
 
         // 3. Trigger manual re-auth logic
         await reauthenticate(newFirebaseUser);
@@ -264,8 +262,10 @@ export default function PartnerSignupForm() {
                     loginUrl={`${process.env.NEXT_PUBLIC_APP_URL}/login`} 
                 />);
 
-                await sendEmail({
-                    to: values.email,
+                // Recipient is derived server-side from the verified ID token, not the
+                // client-supplied form value — reuses the token obtained above.
+                await sendOwnWelcomeEmail({
+                    idToken: partnerIdToken,
                     cc: 'kev@thinkestry.co.za',
                     subject: `Welcome to the My Accountant Partner Program!`,
                     html: emailHtml,

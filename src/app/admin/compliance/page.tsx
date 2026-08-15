@@ -14,7 +14,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Task, User } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
 import NewTaskEmail from '@/components/emails/NewTaskEmail';
 

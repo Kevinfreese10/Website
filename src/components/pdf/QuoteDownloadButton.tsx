@@ -6,6 +6,7 @@ import { Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Quote, User, ClientCustomer } from '@/lib/types';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -122,13 +123,13 @@ export default function QuoteDownloadButton({ quote, client, customer }: QuoteDo
       doc.setFont('helvetica', 'bold');
       doc.text(`Date:`, 135, qY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
-      doc.text(format(quoteDateObj, 'dd/MM/yyyy'), 139, qY);
+      doc.text(formatDate(quoteDateObj, 'long'), 139, qY);
       qY += 5;
 
       doc.setFont('helvetica', 'bold');
       doc.text(`Expiry Date:`, 135, qY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
-      doc.text(format(expiryDateObj, 'dd/MM/yyyy'), 139, qY);
+      doc.text(formatDate(expiryDateObj, 'long'), 139, qY);
 
       // 4. Client / Bill To Info
       const startInfoY = Math.max(leftY, 50);

@@ -15,6 +15,7 @@ import Papa from 'papaparse';
 import { ImportedTransaction, ChartOfAccount, User, VatType, AllocatedTransaction, AllocationRule, ClientCustomer, Invoice, SmartAllocationResult, Supplier } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getFirestore, doc, updateDoc, arrayUnion, getDoc, collection, getDocs, query, orderBy, where, writeBatch, onSnapshot, Timestamp, deleteField, addDoc, limit, serverTimestamp, deleteDoc, setDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -48,6 +49,17 @@ import { AccountSelector } from '@/components/accounting/AccountSelector';
 
 const db = getFirestore(firebaseApp);
 const PAGE_SIZE = 50;
+
+/**
+ * Fetches a fresh Firebase ID token for the currently signed-in user, to pass to server
+ * actions for trusted verification. Throws if nobody is signed in, since every AI Accountant
+ * action requires an authenticated, verifiable caller.
+ */
+async function getIdToken(): Promise<string> {
+    const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+    if (!token) throw new Error('You must be signed in to do this.');
+    return token;
+}
 
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -2073,7 +2085,7 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
         if (!client?.uid || !bankAccountId) return;
         setIsSupplierMatching(true);
         try {
-            const res = await matchTransactionsToSuppliers({ requestorId: user?.uid || user?.id, clientId: client.uid, bankAccountId });
+            const res = await matchTransactionsToSuppliers({ idToken: await getIdToken(), clientId: client.uid, bankAccountId });
             toast({ 
                 title: "Supplier Matching Complete", 
                 description: `${res.count} transactions fuzzy-matched to your supplier list.` 
@@ -2118,10 +2130,10 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
         if (!client?.uid || !bankAccountId || !user?.email) return;
         setIsSubmittingToWorkflow(true);
         try {
-            const lockRes = await prepareAiAccountantAnalysis({ requestorId: user?.uid || user?.id, clientId: client.uid, bankAccountId });
+            const lockRes = await prepareAiAccountantAnalysis({ idToken: await getIdToken(), clientId: client.uid, bankAccountId });
             if (lockRes.count > 0) {
                 setActiveTab('ai-workflow');
-                await runAiAccountantAnalysis({ requestorId: user?.uid || user?.id, clientId: client.uid, bankAccountId, initiatorEmail: user.email });
+                await runAiAccountantAnalysis({ idToken: await getIdToken(), clientId: client.uid, bankAccountId, initiatorEmail: user.email });
                 setIsSubmittingToWorkflow(false);
             } else { 
                 toast({ title: "No new expenses found to process." }); 
@@ -2138,7 +2150,7 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
         setIsAiResearching(tx.id);
         setSelectedTxForAi(tx);
         try {
-            const res = await researchMerchantWithAi({ requestorId: user?.uid || user?.id,
+            const res = await researchMerchantWithAi({ idToken: await getIdToken(),
                 clientId: client.uid,
                 transactionIds: [tx.id],
                 description: tx.description,
@@ -2607,8 +2619,8 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         
         try {
             const [standardProposals, aiProposals] = await Promise.all([
-                proposeRegroups({ requestorId: user?.uid || user?.id, clientId: client.uid, bankAccountId }),
-                proposeAiRegroups({ requestorId: user?.uid || user?.id, 
+                proposeRegroups({ idToken: await getIdToken(), clientId: client.uid, bankAccountId }),
+                proposeAiRegroups({ idToken: await getIdToken(), 
                     clientId: client.uid, 
                     bankAccountId,
                     selectedMerchantKeys: onlySelectedGroups ? selectedGroupKeys : undefined
@@ -2659,7 +2671,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                 .filter(p => selectedMerges.includes(`${p.fromKey}::${p.toKey}`))
                 .map(p => ({ fromKey: p.fromKey, toKey: p.toKey, fromTxIds: p.fromTxIds }));
 
-            await applyRegroups({ requestorId: user?.uid || user?.id, clientId: client.uid, merges: mergesToApply, userId: user.id });
+            await applyRegroups({ idToken: await getIdToken(), clientId: client.uid, merges: mergesToApply, userId: user.id });
             toast({ title: "Regrouping Applied", description: `Successfully merged ${mergesToApply.length} merchant groups.` });
             setIsMergeDialogOpen(false);
         } catch (e) {
@@ -2735,7 +2747,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         if (!client?.uid || !bankAccountId) return;
         setIsReseting(true);
         try {
-            const res = await resetAiAccountantAnalysis({ requestorId: user?.uid || user?.id, clientId: client.uid, bankAccountId });
+            const res = await resetAiAccountantAnalysis({ idToken: await getIdToken(), clientId: client.uid, bankAccountId });
             toast({ title: "Analysis Stopped", description: `${res.count} transactions have been reset to 'new'.` });
         } catch (e) {
             toast({ title: "Reset Failed", variant: "destructive" });
@@ -2748,7 +2760,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         if (!client?.uid || !bankAccountId || !user?.email) return;
         setIsReanalyzing(true);
         try {
-            const res = await reanalyzeAndRegroupTransactions({ requestorId: user?.uid || user?.id, 
+            const res = await reanalyzeAndRegroupTransactions({ idToken: await getIdToken(), 
                 clientId: client.uid, 
                 bankAccountId, 
                 initiatorEmail: user.email 
@@ -2768,7 +2780,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         if (!client?.uid || !bankAccountId) return;
         setIsHistoryMatching(true);
         try {
-            const res = await matchTransactionsToHistory({ requestorId: user?.uid || user?.id, clientId: client.uid, bankAccountId });
+            const res = await matchTransactionsToHistory({ idToken: await getIdToken(), clientId: client.uid, bankAccountId });
             toast({ 
                 title: "History Matching Complete", 
                 description: `${res.count} transactions matched using your past allocation history.` 
@@ -2837,7 +2849,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                 });
             });
             
-            updateGlobalMerchantDb({ requestorId: user?.uid || user?.id,
+            updateGlobalMerchantDb({
                 merchantKey: group.merchantKey,
                 accountId: settings.accountId,
                 vatType: settings.vatType || 'no_vat'
@@ -2924,7 +2936,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                     });
                 });
                 
-                updateGlobalMerchantDb({ requestorId: user?.uid || user?.id,
+                updateGlobalMerchantDb({
                     merchantKey: group.merchantKey,
                     accountId: settings.accountId,
                     vatType: settings.vatType || 'no_vat'
@@ -2939,7 +2951,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         if (!client?.uid) return;
         setIsMovingBack(txId);
         try {
-            await moveTransactionToNew({ requestorId: user?.uid || user?.id, clientId: client.uid, transactionId: txId });
+            await moveTransactionToNew({ idToken: await getIdToken(), clientId: client.uid, transactionId: txId });
             toast({ title: "Transaction Moved to Individual Group" });
         } catch (e) { toast({ title: "Failed to move", variant: "destructive" }); } finally { setIsMovingBack(null); }
     };
@@ -2947,7 +2959,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
     const handleSplitGroupToNew = async (txIds: string[]) => {
         if (!client?.uid || !txIds.length) return;
         try {
-            await bulkMoveTransactionsToNew({ requestorId: user?.uid || user?.id, clientId: client.uid, transactionIds: txIds });
+            await bulkMoveTransactionsToNew({ idToken: await getIdToken(), clientId: client.uid, transactionIds: txIds });
             toast({ title: `Split ${txIds.length} transactions into individual merchant groups` });
             setViewingGroup(null);
         } catch (e) { toast({ title: "Failed to split group", variant: "destructive" }); }
@@ -2957,7 +2969,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         if (!client) return;
         setIsResearchingId(group.merchantKey);
         try {
-            const res = await researchMerchantWithAi({ requestorId: user?.uid || user?.id,
+            const res = await researchMerchantWithAi({ idToken: await getIdToken(),
                 clientId: client.uid,
                 transactionIds: group.transactions.map(t => t.id),
                 description: group.transactions[0].description,
@@ -2993,7 +3005,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
 
         setIsAnalyzingComment(group.merchantKey);
         try {
-            const result = await analyzeClientCommentAndSuggest({ requestorId: user?.uid || user?.id,
+            const result = await analyzeClientCommentAndSuggest({ idToken: await getIdToken(),
                 clientId: client.uid,
                 transactionIds: group.transactions.map(t => t.id),
                 comment,
@@ -3780,7 +3792,7 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
         if (!client?.uid) return;
         setIsMovingBack(txId);
         try {
-            await moveTransactionToNew({ requestorId: user?.uid || user?.id, clientId: client.uid, transactionId: txId });
+            await moveTransactionToNew({ idToken: await getIdToken(), clientId: client.uid, transactionId: txId });
             toast({ title: "Allocation Cleared", description: "Transaction moved back to 'New' tab." });
             setSelectedTransactions(prev => prev.filter(id => id !== txId));
             refetch();
@@ -3847,7 +3859,7 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
         if (!client?.uid || selectedTransactions.length === 0) return;
         setIsBulkMoving(true);
         try {
-            const res = await bulkMoveTransactionsToNew({ requestorId: user?.uid || user?.id, clientId: client.uid, transactionIds: selectedTransactions });
+            const res = await bulkMoveTransactionsToNew({ idToken: await getIdToken(), clientId: client.uid, transactionIds: selectedTransactions });
             toast({ title: "Success", description: `${res.count} transactions moved back to New tab.` });
             setSelectedTransactions([]);
             refetch();

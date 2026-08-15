@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { extractStatementMetadata } from '@/ai/flows/extract-statement-metadata';
 import { getFirestore, collection, getDocs, doc, query, where, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { User, ChartOfAccount, ImportedTransaction, AllocationRule } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -28,6 +29,12 @@ import * as XLSX from 'xlsx-js-style';
 import { Progress } from '@/components/ui/progress';
 
 const db = getFirestore(firebaseApp);
+
+async function getIdToken(): Promise<string> {
+  const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+  if (!token) throw new Error('You must be signed in to do this.');
+  return token;
+}
 
 type Transaction = {
   date: string;
@@ -405,7 +412,7 @@ export default function AIBulkStatementImportDialog({
           copiedPages.forEach(p => chunkDoc.addPage(p));
           
           const chunkBase64 = `data:application/pdf;base64,${await chunkDoc.saveAsBase64()}`;
-          const result = await extractStatementChunk({ chunkBase64 });
+          const result = await extractStatementChunk({ chunkBase64, idToken: await getIdToken() });
 
           if (result.success && result.transactions) {
             transactionsByAccount[accountId] = [...transactionsByAccount[accountId], ...result.transactions];

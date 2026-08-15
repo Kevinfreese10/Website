@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getFirestore, onSnapshot } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePartner } from '@/contexts/PartnerContext';
@@ -21,6 +22,12 @@ import { StaffPermissions } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 
 const db = getFirestore(firebaseApp);
+
+async function getIdToken(): Promise<string> {
+  const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+  if (!token) throw new Error('You must be signed in to do this.');
+  return token;
+}
 
 interface StaffUser {
   id: string;
@@ -153,6 +160,7 @@ export default function StaffManager() {
         callerPartnerId: partnerId,
         staffUid: editingStaff.id,
         permissions: editingPermissions,
+        idToken: await getIdToken(),
       });
 
       if (res.success) {
@@ -176,6 +184,7 @@ export default function StaffManager() {
       const res = await deactivateStaffMember({
         callerPartnerId: partnerId,
         staffUid: deactivatingStaff.id,
+        idToken: await getIdToken(),
       });
 
       if (res.success) {
@@ -202,6 +211,7 @@ export default function StaffManager() {
       const res = await reactivateStaffMember({
         callerPartnerId: partnerId,
         staffUid: staff.id,
+        idToken: await getIdToken(),
       });
 
       if (res.success) {
@@ -223,6 +233,7 @@ export default function StaffManager() {
       const res = await revokeInvite({
         callerPartnerId: partnerId,
         token: invite.id,
+        idToken: await getIdToken(),
       });
 
       if (res.success) {

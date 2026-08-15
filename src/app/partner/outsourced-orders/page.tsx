@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
   Tooltip,
@@ -182,7 +183,7 @@ export default function OutsourcedOrdersPage() {
                     return (
                     <TableRow key={order.id}>
                         <TableCell className="font-medium">{order.id}</TableCell>
-                        <TableCell>{format(new Date(order.date), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell>{formatDate(order.date)}</TableCell>
                         <TableCell>
                             <Button variant="link" asChild className="p-0 h-auto font-semibold">
                                 <Link href={`/partner/orders/${order.originalOrderId || order.id}`}>{order.originalOrderId || order.id}</Link>

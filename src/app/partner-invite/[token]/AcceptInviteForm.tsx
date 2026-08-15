@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getFirestore, doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { PartnerInvite } from '@/lib/types';
+import { acceptPartnerInviteAction } from '@/app/actions/account-provisioning';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,25 +52,27 @@ export default function AcceptInviteForm({ invite }: { invite: PartnerInvite }) 
       // 3. Update displayName in Auth
       await updateProfile(credential.user, { displayName: name });
 
-      // 4. Create the Firestore user document
+      // 4. Create the Firestore user document with the non-privileged profile fields.
+      // role/partnerId/permissions are intentionally NOT set here — firestore.rules blocks
+      // clients from self-assigning those fields. They're granted server-side in step 5,
+      // after the invite token, its expiry, and the invited email are re-verified.
       await setDoc(doc(db, 'users', uid), {
         id: uid,
         uid: uid,
         name: name,
         email: invite.invitedEmail,
-        role: invite.staffRole, // 'partner_admin' or 'partner_staff'
-        partnerId: invite.partnerId,
-        permissions: invite.permissions,
-        isActive: true,
         createdAt: serverTimestamp(),
         source: 'Partner Management',
         status: 'Active',
       });
 
-      // 5. Update the invite status to accepted
-      await updateDoc(doc(db, 'partnerInvites', invite.token), {
-        status: 'accepted',
-      });
+      // 5. Redeem the invite server-side: validates status/expiry/email match, then grants
+      // role, partnerId, and permissions and marks the invite accepted.
+      const idToken = await credential.user.getIdToken();
+      const result = await acceptPartnerInviteAction(idToken, invite.token);
+      if (!result.success) {
+        throw new Error(result.error || 'Could not complete account setup.');
+      }
 
       toast({ title: 'Welcome!', description: 'Your account has been created successfully.' });
       

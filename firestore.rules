@@ -49,6 +49,29 @@ service cloud.firestore {
       return isPartnerOwner(partnerId) || isPartnerStaffOf(partnerId);
     }
 
+    /**
+     * True when a self-write to /users/{userId} leaves every privilege-bearing field at its
+     * existing value (comparing the resulting document to the current one, not just the keys
+     * present in this write — so a merge-update of an unrelated field like "name" doesn't get
+     * blocked just because the document already has, say, a "permissions" map on it).
+     * "role" is the one exception: it may additionally be *set* to 'client' — the lowest-
+     * privilege role — for normal signup. Any other role transition, and any change at all to
+     * permissions/isActive/creditBalance/partnerSubscription/partnerTier/staffRole/partnerId,
+     * must go through a server action using the Admin SDK, which can validate the transition.
+     */
+    function isSafeSelfWrite() {
+      let after = request.resource.data;
+      let before = resource != null ? resource.data : {};
+      return after.get('permissions', null) == before.get('permissions', null) &&
+             after.get('isActive', null) == before.get('isActive', null) &&
+             after.get('creditBalance', null) == before.get('creditBalance', null) &&
+             after.get('partnerSubscription', null) == before.get('partnerSubscription', null) &&
+             after.get('partnerTier', null) == before.get('partnerTier', null) &&
+             after.get('staffRole', null) == before.get('staffRole', null) &&
+             after.get('partnerId', null) == before.get('partnerId', null) &&
+             (after.get('role', null) == before.get('role', null) || after.get('role', null) == 'client');
+    }
+
     // ─── Users ──────────────────────────────────────────────────────────────
     match /users/{userId} {
       // Scoped read access: self, admins/staff, partner practice owners & staff
@@ -60,7 +83,7 @@ service cloud.firestore {
         resource == null
       );
       allow write: if isAuthenticated() && (
-        request.auth.uid == userId ||
+        (request.auth.uid == userId && isSafeSelfWrite()) ||
         isAdmin() ||
         // Partner owner can write to their staff member documents
         (resource != null && resource.data.get('partnerId', null) == request.auth.uid) ||

@@ -13,6 +13,7 @@ import { Loader2, Sparkles, FileText, Upload, AlertTriangle, CheckCircle2, Info,
 import { extractStatementPeriod, ExtractStatementPeriodOutput } from '@/ai/flows/extract-statement-period';
 import { extractStatementMetadata, ExtractStatementMetadataOutput } from '@/ai/flows/extract-statement-metadata';
 import { getFirestore, collection, getDocs, doc, query, where, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { User, ChartOfAccount, ImportedTransaction, AllocationRule } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -30,6 +31,12 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const db = getFirestore(firebaseApp);
+
+async function getIdToken(): Promise<string> {
+  const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+  if (!token) throw new Error('You must be signed in to do this.');
+  return token;
+}
 
 const formSchema = z.object({
   bankAccountId: z.string().min(1, 'Please select a bank account.'),
@@ -515,7 +522,7 @@ export default function AIStatementImportDialog({
           copiedPages.forEach(p => chunkDoc.addPage(p));
           
           const chunkBase64 = `data:application/pdf;base64,${await chunkDoc.saveAsBase64()}`;
-          const result = await extractStatementChunk({ chunkBase64 });
+          const result = await extractStatementChunk({ chunkBase64, idToken: await getIdToken() });
 
           if (result.success && result.transactions) {
             const txsWithSource = result.transactions.map((tx: Transaction) => ({ ...tx, sourceStmtId: stmt.id }));

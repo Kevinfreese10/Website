@@ -14,13 +14,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
 import { Input } from '@/components/ui/input';
 import { proofreadNote } from '@/ai/flows/proofread-note';
@@ -803,7 +803,7 @@ export default function PartnerOrderDetailsPage() {
                     <CardHeader>
                         <CardTitle>Order {order.id}</CardTitle>
                         <div className="text-sm text-muted-foreground">
-                            Date: {format(new Date(order.date), 'dd MMMM yyyy')} | Status: <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                            Date: {formatDate(order.date, 'long')} | Status: <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -1160,7 +1160,7 @@ export default function PartnerOrderDetailsPage() {
                                                         </Badge>
                                                       )}
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground">{format(new Date(note.date), 'dd/MM/yyyy, HH:mm')}</p>
+                                                    <p className="text-xs text-muted-foreground">{formatDate(note.date, 'datetime')}</p>
                                                 </div>
                                                 {isEmail ? (
                                                     <div>

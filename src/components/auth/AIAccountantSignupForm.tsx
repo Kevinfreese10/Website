@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Order } from '@/lib/types';
 import { getNextOrderId } from '@/lib/sequence';
 import { Timestamp } from 'firebase/firestore';
-import { sendEmail } from '@/lib/email';
+import { sendOwnWelcomeEmail } from '@/app/actions/email-gateway';
 import { render } from '@react-email/components';
 import AIAccountantWelcomeEmail from '../emails/AIAccountantWelcomeEmail';
 
@@ -143,11 +143,13 @@ export default function AIAccountantSignupForm() {
             createdAt: serverTimestamp(),
         });
 
-        // Send welcome email
+        // Send welcome email — recipient is derived server-side from the verified ID token of
+        // the account we just created, not from the client-supplied form value.
         try {
             const emailHtml = render(<AIAccountantWelcomeEmail name={values.name} loginUrl={`${process.env.NEXT_PUBLIC_APP_URL}/login`} />);
-            await sendEmail({
-                to: values.email,
+            const welcomeIdToken = await newFirebaseUser.getIdToken();
+            await sendOwnWelcomeEmail({
+                idToken: welcomeIdToken,
                 subject: `Welcome to My Accountant!`,
                 html: emailHtml,
                 bcc: 'kev@thinkestry.co.za',

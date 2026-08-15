@@ -2,6 +2,7 @@
 
 import { Quote, ClientCustomer, User } from "@/lib/types";
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import Image from "next/image";
 import React from "react";
 
@@ -82,9 +83,9 @@ const QuotePreview = React.forwardRef<HTMLDivElement, { quote: Quote, client: Us
                                 </>
                             )}
                             <span className="font-semibold text-gray-600 text-right">Date:</span>
-                            <span className="text-gray-900 text-left">{format(quoteDateObj, 'dd/MM/yyyy')}</span>
+                            <span className="text-gray-900 text-left">{formatDate(quoteDateObj, 'long')}</span>
                             <span className="font-semibold text-gray-600 text-right">Expiry Date:</span>
-                            <span className="text-gray-900 text-left">{format(expiryDateObj, 'dd/MM/yyyy')}</span>
+                            <span className="text-gray-900 text-left">{formatDate(expiryDateObj, 'long')}</span>
                         </div>
                     </div>
 

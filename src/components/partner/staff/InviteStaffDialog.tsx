@@ -10,6 +10,14 @@ import { PermissionsEditor } from './PermissionsEditor';
 import { sendStaffInvite } from '@/app/actions/staff';
 import { DEFAULT_STAFF_PERMISSIONS, ADMIN_STAFF_PERMISSIONS, StaffPermissions } from '@/lib/types';
 import { Loader2, UserPlus } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/lib/firebase';
+
+async function getIdToken(): Promise<string> {
+  const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+  if (!token) throw new Error('You must be signed in to do this.');
+  return token;
+}
 
 type InviteStaffDialogProps = {
   partnerId: string;
@@ -66,6 +74,7 @@ export function InviteStaffDialog({
         invitedEmail: email,
         staffRole: role,
         permissions,
+        idToken: await getIdToken(),
       });
 
       if (res.success) {

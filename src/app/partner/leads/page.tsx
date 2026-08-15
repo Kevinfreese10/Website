@@ -3,6 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPartnerLeads } from '@/app/actions/partnerLeads';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/lib/firebase';
+
+async function getIdToken(): Promise<string> {
+  const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+  if (!token) throw new Error('You must be signed in to do this.');
+  return token;
+}
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -27,7 +35,8 @@ export default function PartnerLeadsPage() {
     async function loadLeads() {
       setIsLoading(true);
       try {
-        const res = await getPartnerLeads(currentPartnerId);
+        const idToken = await getIdToken();
+        const res = await getPartnerLeads(currentPartnerId, idToken);
         if (res.success && res.leads) {
           setLeads(res.leads);
         }

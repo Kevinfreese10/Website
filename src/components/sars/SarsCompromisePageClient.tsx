@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -35,7 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { sendEmail } from '@/lib/email';
+import { sendPublicFormEmail } from '@/app/actions/email-gateway';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SarsCompromisePageClient() {
@@ -199,6 +199,8 @@ export default function SarsCompromisePageClient() {
   const [leadPhone, setLeadPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
+  const formRenderedAt = useRef(Date.now());
 
   // Parsing values
   const debtVal = parseFloat(debtInput.replace(/[^\d.-]/g, '')) || 0;
@@ -235,10 +237,11 @@ export default function SarsCompromisePageClient() {
     
     setIsSubmitting(true);
     try {
-      await sendEmail({
-        to: 'info@myacc.co.za',
+      await sendPublicFormEmail({
         subject: `SARS Compromise Lead: ${leadName} - ${isEligible ? 'Eligible' : 'Not Eligible'}`,
-        replyTo: leadEmail,
+        replyToEmail: leadEmail,
+        website: honeypot,
+        formRenderedAt: formRenderedAt.current,
         html: `
           <h3>SARS Compromise Eligibility Calculator Lead</h3>
           <p><strong>Contact Name:</strong> ${leadName}</p>
@@ -594,6 +597,18 @@ export default function SarsCompromisePageClient() {
                                           </div>
                                       ) : (
                                           <form onSubmit={handleLeadSubmit} className="space-y-4">
+                                              <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+                                                  <Label htmlFor="website">Leave this field blank</Label>
+                                                  <Input
+                                                      type="text"
+                                                      id="website"
+                                                      name="website"
+                                                      tabIndex={-1}
+                                                      autoComplete="off"
+                                                      value={honeypot}
+                                                      onChange={(e) => setHoneypot(e.target.value)}
+                                                  />
+                                              </div>
                                               <div className="space-y-1">
                                                   <h4 className="font-bold text-foreground text-sm">Request Debt Compromise Consultation</h4>
                                                   <p className="text-[11px] text-slate-500">

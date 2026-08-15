@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -46,7 +46,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { sendEmail } from '@/lib/email';
+import { sendPublicFormEmail } from '@/app/actions/email-gateway';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SarsRefundPageClient() {
@@ -67,6 +67,8 @@ export default function SarsRefundPageClient() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
+  const formRenderedAt = useRef(Date.now());
 
   // Checklist state
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
@@ -122,10 +124,11 @@ export default function SarsRefundPageClient() {
 
     setIsSubmitting(true);
     try {
-      await sendEmail({
-        to: 'info@myacc.co.za',
+      await sendPublicFormEmail({
         subject: `🟢 SARS Tax Refund Lead: ${fullName}`,
-        replyTo: email,
+        replyToEmail: email,
+        website: honeypot,
+        formRenderedAt: formRenderedAt.current,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px;">
             <h2 style="color: #0284c7;">New SARS Tax Refund Assessment Request</h2>
@@ -620,6 +623,18 @@ export default function SarsRefundPageClient() {
                 <CardContent className="space-y-5">
                   {formStep === 1 ? (
                     <form onSubmit={handleStep1Next} className="space-y-4">
+                      <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+                        <Label htmlFor="website">Leave this field blank</Label>
+                        <Input
+                          type="text"
+                          id="website"
+                          name="website"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          value={honeypot}
+                          onChange={(e) => setHoneypot(e.target.value)}
+                        />
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="fullName" className="text-sm font-medium">Full Name *</Label>
                         <Input 

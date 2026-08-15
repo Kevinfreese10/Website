@@ -3,14 +3,14 @@
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { sendEmail } from '@/lib/email';
+import { sendPublicFormEmail } from '@/app/actions/email-gateway';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Loader2, Mail } from 'lucide-react';
@@ -25,6 +25,8 @@ const contactFormSchema = z.object({
 export default function ContactPageClient() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
+  const formRenderedAt = useRef(Date.now());
   const form = useForm<z.infer<typeof contactFormSchema>>({
     resolver: zodResolver(contactFormSchema),
     defaultValues: { name: '', email: '', phone: '', message: '' },
@@ -33,10 +35,9 @@ export default function ContactPageClient() {
   async function handleSubmit(values: z.infer<typeof contactFormSchema>) {
     setIsLoading(true);
     try {
-      await sendEmail({
-        to: 'info@myacc.co.za',
+      await sendPublicFormEmail({
         subject: `New Contact Form Submission from ${values.name}`,
-        replyTo: values.email,
+        replyToEmail: values.email,
         html: `
           <p><strong>Name:</strong> ${values.name}</p>
           <p><strong>Email:</strong> ${values.email}</p>
@@ -45,6 +46,8 @@ export default function ContactPageClient() {
           <p><strong>Message:</strong></p>
           <p>${values.message.replace(/\n/g, '<br>')}</p>
         `,
+        website: honeypot,
+        formRenderedAt: formRenderedAt.current,
       });
       toast({
         title: 'Message Sent!',
@@ -109,6 +112,18 @@ export default function ContactPageClient() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+                  <label htmlFor="website">Leave this field blank</label>
+                  <input
+                    type="text"
+                    id="website"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                  />
+                </div>
                 <FormField
                   control={form.control}
                   name="name"

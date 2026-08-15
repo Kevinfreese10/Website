@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Upload, ClipboardCheck, MessageSquare, Send, Mail, CheckCircle, AlertTriangle, Paperclip } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -498,7 +499,7 @@ export default function ClientOrderDetailsPage() {
                     <CardHeader>
                         <CardTitle>Order {order.id}</CardTitle>
                         <div className="text-sm text-muted-foreground">
-                        <span>Date: {format(new Date(order.date), 'dd MMMM yyyy')}</span> | <span>Status: </span><Badge variant={getStatusVariant(order.status)}>{(order.status as any) === 'Outsourced' ? 'Processing' : order.status}</Badge>
+                        <span>Date: {formatDate(order.date, 'long')}</span> | <span>Status: </span><Badge variant={getStatusVariant(order.status)}>{(order.status as any) === 'Outsourced' ? 'Processing' : order.status}</Badge>
                         </div>
                         {order.status === 'Pending Payment' && (
                             <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -665,7 +666,7 @@ export default function ClientOrderDetailsPage() {
                                     return (
                                         <div key={index} className="flex items-start gap-3">
                                             <div className="p-3 rounded-lg w-full bg-muted">
-                                                <div className="flex justify-between items-center mb-1"><p className="text-xs font-semibold">{author?.name || 'System'}</p><p className="text-xs text-muted-foreground">{format(new Date(note.date), 'dd/MM/yyyy, HH:mm')}</p></div>
+                                                <div className="flex justify-between items-center mb-1"><p className="text-xs font-semibold">{author?.name || 'System'}</p><p className="text-xs text-muted-foreground">{formatDate(note.date, 'datetime')}</p></div>
                                                  {isEmail ? ( <div><div className="flex items-center gap-2 mb-1"><Mail className="h-4 w-4 text-muted-foreground" /><p className="text-sm font-semibold">{note.subject}</p></div><p className="text-sm italic text-muted-foreground">"{note.text}"</p></div> ) : ( <p className="text-sm" dangerouslySetInnerHTML={{ __html: note.text.replace(/\n/g, '<br />') }} /> )}
                                                  {note.attachments && note.attachments.length > 0 && ( <div className="mt-2 space-y-1">{note.attachments.map((att, i) => ( <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><Paperclip className="h-4 w-4"/>{att.name}</a> ))}</div> )}
                                             </div>

@@ -55,13 +55,19 @@ export async function sendEmail({
     fromNameOverride
 }: EmailPayload) {
   
+  // Password must come from the environment — never hardcode a live credential in source.
+  if (!smtpOverride && !process.env.SMTP_PASS) {
+    console.error('sendEmail: SMTP_PASS environment variable is not set and no smtpOverride was provided.');
+    throw new Error('Email is not configured on the server (missing SMTP_PASS).');
+  }
+
   let transportConfig: any = {
-    host: "mail.myacc.co.za",
-    port: 587,
+    host: process.env.SMTP_HOST || "mail.myacc.co.za",
+    port: Number(process.env.SMTP_PORT || 587),
     secure: false,
     auth: {
-      user: "no_reply@myacc.co.za",
-      pass: "MikeOxlong10$",
+      user: process.env.SMTP_USER || "no_reply@myacc.co.za",
+      pass: process.env.SMTP_PASS,
     },
     tls: {
       rejectUnauthorized: false

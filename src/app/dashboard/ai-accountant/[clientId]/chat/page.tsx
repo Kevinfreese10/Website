@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Send, Bot, User, CheckCircle2, AlertCircle, Info, Banknote, MessageSquareQuote, Play, RotateCcw, RefreshCcw } from 'lucide-react';
 import { getFirestore, doc, getDoc, collection, query, where, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +22,12 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { format } from 'date-fns';
 
 const db = getFirestore(firebaseApp);
+
+async function getIdToken(): Promise<string> {
+    const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+    if (!token) throw new Error('You must be signed in to do this.');
+    return token;
+}
 
 type Message = {
     role: 'bot' | 'user';
@@ -177,7 +184,8 @@ export default function ClientAllocationChatPage() {
                     transactionId: res.allocation.transactionId,
                     accountId: res.allocation.accountId,
                     vatType: res.allocation.vatType,
-                    explanation: res.allocation.reasoning
+                    explanation: res.allocation.reasoning,
+                    idToken: await getIdToken()
                 });
                 toast({ title: "Transaction Allocated", description: "The records have been updated." });
             }

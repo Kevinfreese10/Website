@@ -7,6 +7,22 @@ import React from 'react';
 import crypto from 'crypto';
 import PartnerStaffInviteEmail from '@/components/emails/PartnerStaffInviteEmail';
 import { StaffPermissions, PartnerInvite } from '@/lib/types';
+import { getVerifiedAuthContext, verifyPartnerAccess } from '@/lib/server-auth';
+
+/**
+ * Verifies the caller's Firebase ID token and confirms they're actually authorized to act on
+ * the given partner practice (the partner themselves, an active staff member of that practice,
+ * or an admin) — closing the gap where these actions used to trust a plain, client-supplied
+ * partnerId string with no check that the caller was really that partner.
+ */
+async function requirePartnerAccess(idToken: string, partnerId: string) {
+  const authCtx = await getVerifiedAuthContext(idToken);
+  if (!authCtx) return { ok: false as const, error: 'Unauthorized' };
+  if (!(await verifyPartnerAccess(authCtx.userId, partnerId))) {
+    return { ok: false as const, error: 'Unauthorized: you do not have access to this practice' };
+  }
+  return { ok: true as const, authCtx };
+}
 
 // Action 1: sendStaffInvite
 export async function sendStaffInvite({
@@ -15,14 +31,19 @@ export async function sendStaffInvite({
   invitedEmail,
   staffRole,
   permissions,
+  idToken,
 }: {
   partnerId: string;
   invitedByName: string;
   invitedEmail: string;
   staffRole: 'partner_admin' | 'partner_staff';
   permissions: StaffPermissions;
+  idToken: string;
 }) {
   try {
+    const access = await requirePartnerAccess(idToken, partnerId);
+    if (!access.ok) return { success: false, error: access.error };
+
     const adminDb = getAdminDb();
     const cleanEmail = invitedEmail.toLowerCase().trim();
 
@@ -131,11 +152,16 @@ export async function sendStaffInvite({
 export async function deactivateStaffMember({
   callerPartnerId,
   staffUid,
+  idToken,
 }: {
   callerPartnerId: string;
   staffUid: string;
+  idToken: string;
 }) {
   try {
+    const access = await requirePartnerAccess(idToken, callerPartnerId);
+    if (!access.ok) return { success: false, error: access.error };
+
     const adminDb = getAdminDb();
     const staffRef = adminDb.collection('users').doc(staffUid);
     const staffSnap = await staffRef.get();
@@ -158,13 +184,18 @@ export async function deactivateStaffMember({
 export async function reactivateStaffMember({
   callerPartnerId,
   staffUid,
+  idToken,
 }: {
   callerPartnerId: string;
   staffUid: string;
+  idToken: string;
 }) {
   try {
+    const access = await requirePartnerAccess(idToken, callerPartnerId);
+    if (!access.ok) return { success: false, error: access.error };
+
     const adminDb = getAdminDb();
-    
+
     // Check seat limit first
     const staffSnap = await adminDb.collection('users')
       .where('partnerId', '==', callerPartnerId)
@@ -221,12 +252,17 @@ export async function updateStaffPermissions({
   callerPartnerId,
   staffUid,
   permissions,
+  idToken,
 }: {
   callerPartnerId: string;
   staffUid: string;
   permissions: StaffPermissions;
+  idToken: string;
 }) {
   try {
+    const access = await requirePartnerAccess(idToken, callerPartnerId);
+    if (!access.ok) return { success: false, error: access.error };
+
     const adminDb = getAdminDb();
     const staffRef = adminDb.collection('users').doc(staffUid);
     const staffSnap = await staffRef.get();
@@ -249,11 +285,16 @@ export async function updateStaffPermissions({
 export async function revokeInvite({
   callerPartnerId,
   token,
+  idToken,
 }: {
   callerPartnerId: string;
   token: string;
+  idToken: string;
 }) {
   try {
+    const access = await requirePartnerAccess(idToken, callerPartnerId);
+    if (!access.ok) return { success: false, error: access.error };
+
     const adminDb = getAdminDb();
     const inviteRef = adminDb.collection('partnerInvites').doc(token);
     const inviteSnap = await inviteRef.get();

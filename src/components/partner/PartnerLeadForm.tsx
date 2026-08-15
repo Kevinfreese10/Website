@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,6 +24,8 @@ export default function PartnerLeadForm({ partnerId }: { partnerId: string }) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
+  const formRenderedAt = useRef(Date.now());
 
   const form = useForm<z.infer<typeof leadSchema>>({
     resolver: zodResolver(leadSchema),
@@ -41,6 +43,8 @@ export default function PartnerLeadForm({ partnerId }: { partnerId: string }) {
       const res = await savePartnerLead({
         partnerId,
         ...values,
+        website: honeypot,
+        formRenderedAt: formRenderedAt.current,
       });
 
       if (res.success) {
@@ -115,6 +119,21 @@ export default function PartnerLeadForm({ partnerId }: { partnerId: string }) {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Honeypot: hidden from real users via CSS + tabIndex/autoComplete, but visible to
+                bots that auto-fill every input in the DOM. Any value here marks the submission
+                as spam server-side. */}
+            <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+              <label htmlFor="website">Leave this field blank</label>
+              <input
+                type="text"
+                id="website"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            </div>
             <FormField
               control={form.control}
               name="name"

@@ -23,7 +23,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
 import PartnerAssignmentEmail from '@/components/emails/PartnerAssignmentEmail';
 import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';

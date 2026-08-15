@@ -41,9 +41,14 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
     numericPrice = numericPrice && numericPrice > 0 ? numericPrice : 950;
   }
 
-  // 3. Combined Multi-Type Schema: Universally designated as both Service and Product.
-  // This triggers Product Snippets in search results while declaring the item is a professional Service.
-  const type = ["Service", "Product"];
+  // 3. Combined Multi-Type Schema: Service and Product, EXCEPT for TBC/"Price on Request"
+  // services. Google's Merchant Center "Product" validation cross-checks the declared price
+  // against what's actually visible on the page — since TBC pages show "Price on Request"
+  // rather than a number, declaring a synthetic fallback price under the Product type causes
+  // the recurring "missing price" flag in Search Console. Dropping the Product type for these
+  // items keeps them out of Merchant Center's product-price validation entirely, while still
+  // emitting valid Service/Offer markup for any Service-level rich results.
+  const type = isTbc ? ["Service"] : ["Service", "Product"];
 
   // Base Schema Structure
   const schema: any = {

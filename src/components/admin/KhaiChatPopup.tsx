@@ -25,8 +25,15 @@ import {
 import * as XLSX from 'xlsx-js-style';
 import { analyzeSpreadsheetAllocationsAction, applySpreadsheetAllocationsAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
+import { getAuth } from 'firebase/auth';
 
 const db = getFirestore(firebaseApp);
+
+async function getIdToken(): Promise<string> {
+  const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+  if (!token) throw new Error('You must be signed in to do this.');
+  return token;
+}
 
 type Message = {
   role: 'bot' | 'user';
@@ -193,7 +200,8 @@ export default function KhaiChatPopup({ clientId, client }: { clientId: string, 
 
           const res = await analyzeSpreadsheetAllocationsAction({
             clientId,
-            spreadsheetData: JSON.stringify(rows)
+            spreadsheetData: JSON.stringify(rows),
+            idToken: await getIdToken()
           }) as any;
 
           if (!res.success) {
@@ -262,6 +270,7 @@ export default function KhaiChatPopup({ clientId, client }: { clientId: string, 
     try {
       const res = await applySpreadsheetAllocationsAction({
         clientId,
+        idToken: await getIdToken(),
         allocations: activeAllocations.map(m => ({
           transactionId: m.transactionId,
           accountId: m.accountId,

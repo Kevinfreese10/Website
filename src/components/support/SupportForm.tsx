@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { sendEmail } from '@/lib/email';
+import { sendPublicFormEmail } from '@/app/actions/email-gateway';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
@@ -23,6 +23,8 @@ const formSchema = z.object({
 
 export default function SupportForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
+  const formRenderedAt = useRef(Date.now());
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -33,10 +35,9 @@ export default function SupportForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      await sendEmail({
-        to: 'info@myacc.co.za',
+      await sendPublicFormEmail({
         subject: `Support Request: ${values.subject}`,
-        replyTo: values.email,
+        replyToEmail: values.email,
         html: `
           <p><strong>Name:</strong> ${values.name}</p>
           <p><strong>Email:</strong> ${values.email}</p>
@@ -45,6 +46,8 @@ export default function SupportForm() {
           <p><strong>Message:</strong></p>
           <p>${values.message.replace(/\n/g, '<br>')}</p>
         `,
+        website: honeypot,
+        formRenderedAt: formRenderedAt.current,
       });
 
       toast({
@@ -73,6 +76,18 @@ export default function SupportForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
+            <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+              <label htmlFor="website">Leave this field blank</label>
+              <input
+                type="text"
+                id="website"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}

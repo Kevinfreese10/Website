@@ -22,13 +22,20 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
-import { sendEmail } from '@/lib/email';
+import { sendAdminEmail } from '@/app/actions/email-gateway';
+import { getAuth } from 'firebase/auth';
 import PartnerProfile from '@/components/partner/PartnerProfile';
 import React from 'react';
 import { render } from '@react-email/components';
 import PartnerOnboardingEmail from '@/components/emails/PartnerOnboardingEmail';
 
 const db = getFirestore(firebaseApp);
+
+async function getIdToken(): Promise<string> {
+    const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+    if (!token) throw new Error('You must be signed in to do this.');
+    return token;
+}
 
 function PartnerProfileDialog({ 
     partner, 
@@ -70,7 +77,8 @@ function PartnerProfileDialog({
                             <p style="margin-top: 30px; font-size: 13px; color: #64748b;">My Accountant Network Operations</p>
                         </div>
                     `;
-                    await sendEmail({
+                    await sendAdminEmail({
+                        idToken: await getIdToken(),
                         to: partner.email,
                         subject: '🎉 Approved: My Accountant Network Overflow Program',
                         html: emailHtml,
@@ -332,7 +340,8 @@ function ManualCreditDialog({ partner, onUpdate, open, onOpenChange }: { partner
                             <p style="margin-top: 30px; font-size: 13px; color: #64748b;">My Accountant Partner Team</p>
                         </div>
                     `;
-                    await sendEmail({
+                    await sendAdminEmail({
+                        idToken: await getIdToken(),
                         to: partner.email,
                         subject: `Credit Allocation Receipt (R${numericAmount.toFixed(2)})`,
                         html: emailHtml
@@ -599,7 +608,8 @@ export default function AdminPartnersPage() {
                     creditAmount: partner.creditBalance || 0,
                     loginUrl
                 }));
-                await sendEmail({
+                await sendAdminEmail({
+                    idToken: await getIdToken(),
                     to: partner.email,
                     subject: '🎉 Your Practice Storefront & Landing Page is Unlocked!',
                     html: emailHtml,
@@ -657,7 +667,8 @@ export default function AdminPartnersPage() {
     toast({ title: 'Sending...', description: `Drafting assistance offer for ${partner.email}.` });
     
     try {
-        await sendEmail({
+        await sendAdminEmail({
+            idToken: await getIdToken(),
             to: partner.email,
             subject: `Do you need assistance with your ${partner.companyName || 'practice'} setup?`,
             html: `

@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, User as UserIcon, Mail } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
 const db = getFirestore(firebaseApp);
@@ -157,7 +158,7 @@ export default function PartnerOutsourcedOrderDetailsPage() {
                     <CardHeader>
                         <CardTitle>Order {order.id}</CardTitle>
                         <CardDescription>
-                        Date: {format(new Date(order.date), 'dd MMMM yyyy')} | Status: <Badge variant={getStatusVariant(order.status)}>{(order.status as any) === 'Outsourced' ? 'Processing' : order.status}</Badge>
+                        Date: {formatDate(order.date, 'long')} | Status: <Badge variant={getStatusVariant(order.status)}>{(order.status as any) === 'Outsourced' ? 'Processing' : order.status}</Badge>
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -196,7 +197,7 @@ export default function PartnerOutsourcedOrderDetailsPage() {
                                             <div className="bg-muted p-3 rounded-lg w-full">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <p className="text-xs font-semibold">{author?.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{format(new Date(note.date), 'dd/MM/yyyy, HH:mm')}</p>
+                                                    <p className="text-xs text-muted-foreground">{formatDate(note.date, 'datetime')}</p>
                                                 </div>
                                                  {isEmail ? (
                                                     <div>

@@ -46,8 +46,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { sendEmail } from '@/lib/email';
-import { 
+import {
   notifyStaffOfAssignment, 
   sendDocumentRequestEmailAction, 
   sendReviewRequestEmailAction, 

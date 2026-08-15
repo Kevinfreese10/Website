@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { format, addDays } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { services as allServices } from '@/lib/data';
 import { sendDocumentRequestEmailAction } from '@/app/actions';
@@ -259,7 +260,7 @@ export default function PaymentSuccessPage() {
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Order Date:</span>
-                                <span>{order.date?.toDate ? format(order.date.toDate(), 'dd/MM/yyyy') : format(new Date(order.date), 'dd/MM/yyyy')}</span>
+                                <span>{formatDate(order.date)}</span>
                             </div>
                             <Separator />
                             {order.items.map((item, index) => (

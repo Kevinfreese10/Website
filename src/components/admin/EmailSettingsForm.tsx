@@ -11,12 +11,19 @@ import { Separator } from '../ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
-import { sendEmail } from '@/lib/email';
+import { sendAdminEmail } from '@/app/actions/email-gateway';
 import { getFirestore, doc, updateDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { Switch } from '../ui/switch';
 
 const db = getFirestore(firebaseApp);
+
+async function getIdToken(): Promise<string> {
+    const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+    if (!token) throw new Error('You must be signed in to do this.');
+    return token;
+}
 
 const formSchema = z.object({
   smtpDetails: z.object({
@@ -92,7 +99,8 @@ export default function EmailSettingsForm() {
     });
 
     try {
-        await sendEmail({
+        await sendAdminEmail({
+            idToken: await getIdToken(),
             to: values.smtpDetails.user,
             subject: 'SMTP Settings Test from My Accountant',
             html: `<p>This is a test email to confirm your SMTP settings are working correctly.</p>`,

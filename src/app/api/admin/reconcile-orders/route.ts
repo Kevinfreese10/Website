@@ -5,7 +5,7 @@ import { Order } from '@/lib/types';
 import crypto from 'crypto';
 
 const MERCHANT_ID = process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312';
-const PASSPHRASE  = process.env.PAYFAST_PASSPHRASE || 'KhaiFreese11';
+const PASSPHRASE  = process.env.PAYFAST_PASSPHRASE;
 const IS_SANDBOX  = MERCHANT_ID === '10049800' || MERCHANT_ID === '10042278';
 const PAYFAST_API = IS_SANDBOX
     ? 'https://sandbox.payfast.co.za'
@@ -15,7 +15,7 @@ function buildHeaders(): Record<string, string> {
     const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '+00:00');
     const params: Record<string, string> = {
         'merchant-id': MERCHANT_ID,
-        passphrase: PASSPHRASE,
+        passphrase: PASSPHRASE || '',
         timestamp,
         version: 'v1',
     };
@@ -49,6 +49,11 @@ export async function POST(req: NextRequest) {
     const adminSecret = req.headers.get('x-admin-secret');
     if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!PASSPHRASE) {
+        console.error('reconcile-orders: PAYFAST_PASSPHRASE environment variable is not set.');
+        return NextResponse.json({ error: 'Server misconfigured: PAYFAST_PASSPHRASE not set' }, { status: 500 });
     }
 
     try {

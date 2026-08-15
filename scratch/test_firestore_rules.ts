@@ -82,9 +82,15 @@ async function runTests() {
   );
 
   await assertRule(
-    "Authenticated client can read user profile",
-    getDoc(doc(clientDb, 'users', 'partner_user_789')),
+    "Authenticated client can read their own user profile",
+    getDoc(doc(clientDb, 'users', 'client_user_123')),
     true
+  );
+
+  await assertRule(
+    "Authenticated client cannot read an unrelated user's profile",
+    getDoc(doc(clientDb, 'users', 'partner_user_789')),
+    false
   );
 
   await assertRule(
@@ -96,6 +102,30 @@ async function runTests() {
   await assertRule(
     "Authenticated client cannot write another user's profile",
     setDoc(doc(clientDb, 'users', 'partner_user_789'), { name: 'Hacked Partner' }),
+    false
+  );
+
+  await assertRule(
+    "Authenticated client CANNOT self-escalate role to admin",
+    setDoc(doc(clientDb, 'users', 'client_user_123'), { role: 'admin' }, { merge: true }),
+    false
+  );
+
+  await assertRule(
+    "Authenticated client CANNOT self-escalate role to partner directly",
+    setDoc(doc(clientDb, 'users', 'client_user_123'), { role: 'partner' }, { merge: true }),
+    false
+  );
+
+  await assertRule(
+    "Authenticated client CAN self-set role to 'client' (normal signup)",
+    setDoc(doc(clientDb, 'users', 'client_user_123'), { role: 'client', name: 'Test Client' }, { merge: true }),
+    true
+  );
+
+  await assertRule(
+    "Authenticated client cannot self-write privileged fields (permissions/creditBalance/etc.)",
+    setDoc(doc(clientDb, 'users', 'client_user_123'), { creditBalance: 999999 }, { merge: true }),
     false
   );
 
@@ -112,9 +142,19 @@ async function runTests() {
     false
   );
 
+  // Order creation is deliberately restricted to Admin/Staff (or a caller with the
+  // "Manage Orders" module) — regular checkout creates orders server-side via the Admin SDK,
+  // which bypasses these rules entirely. A plain authenticated client should NOT be able to
+  // create an order directly through the client SDK.
   await assertRule(
-    "Authenticated client can create an order with status 'Pending Payment'",
+    "Authenticated client (no admin role) cannot create an order directly",
     setDoc(doc(clientDb, 'orders', 'order_abc'), { status: 'Pending Payment', userId: 'client_user_123', total: 100 }),
+    false
+  );
+
+  await assertRule(
+    "Admin can create an order with status 'Pending Payment'",
+    setDoc(doc(adminDb, 'orders', 'order_admin_abc'), { status: 'Pending Payment', userId: 'client_user_123', total: 100 }),
     true
   );
 

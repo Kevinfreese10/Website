@@ -46,11 +46,12 @@ import { useRouter } from 'next/navigation';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 import { render } from '@react-email/components';
 import React from 'react';
 import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
-import { sendEmail } from '@/lib/email';
+import { sendPartnerOrderEmail } from '@/app/actions/email-gateway';
+import { getAuth } from 'firebase/auth';
 import { getNextOrderId } from '@/lib/sequence';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
@@ -59,6 +60,12 @@ import { completeOrderWithRoyalty, outsourceOrderFromWallet } from '@/app/action
 
 
 const db = getFirestore(firebaseApp);
+
+async function getIdToken(): Promise<string> {
+    const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+    if (!token) throw new Error('You must be signed in to do this.');
+    return token;
+}
 
 export default function PartnerOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -241,7 +248,9 @@ export default function PartnerOrdersPage() {
                   replyTo: user.email,
               }));
 
-              await sendEmail({
+              await sendPartnerOrderEmail({
+                  idToken: await getIdToken(),
+                  partnerId: partnerId!,
                   to: emailTo,
                   subject: `Action Required for Your Order #${orderToUpdate.originalOrderId || orderToUpdate.id}`,
                   html: emailHtml,
@@ -393,7 +402,7 @@ export default function PartnerOrdersPage() {
                         {orders.map((order) => (
                         <TableRow key={order.id}>
                             <TableCell className="font-medium">{order.id}</TableCell>
-                            <TableCell>{format(new Date(order.date), 'dd/MM/yyyy')}</TableCell>
+                            <TableCell>{formatDate(order.date)}</TableCell>
                             <TableCell>
                                 <div>
                                     <p className="font-medium">{order.endCustomerName || order.customerName}</p>

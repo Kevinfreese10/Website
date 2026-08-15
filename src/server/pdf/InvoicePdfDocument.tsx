@@ -1,7 +1,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font, Image } from '@react-pdf/renderer';
 import { Invoice, ClientCustomer, User } from '@/lib/types';
-import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 
 // Keep font registration simple. If this ever causes deployment/runtime issues,
 // remove it entirely and rely on the built-in Helvetica.
@@ -282,29 +282,10 @@ function formatPrice(value: unknown): string {
 }
 
 function safeFormatDate(date: unknown): string {
-  try {
-    if ((date as any)?.toDate && typeof (date as any).toDate === 'function') {
-      const d = (date as any).toDate();
-      if (d instanceof Date && !Number.isNaN(d.getTime())) {
-        return format(d, 'dd/MM/yyyy');
-      }
-    }
-
-    if (date instanceof Date && !Number.isNaN(date.getTime())) {
-      return format(date, 'dd/MM/yyyy');
-    }
-
-    if (typeof date === 'string' || typeof date === 'number') {
-      const parsed = new Date(date);
-      if (!Number.isNaN(parsed.getTime())) {
-        return format(parsed, 'dd/MM/yyyy');
-      }
-    }
-
-    return 'N/A';
-  } catch {
-    return 'N/A';
-  }
+  // Delegates to the shared formatDate() utility (src/lib/utils.ts), which already handles
+  // Firestore Timestamps, Date instances, and string/number input the same way this function
+  // used to duplicate inline. Kept as a thin wrapper so call sites in this file don't change.
+  return formatDate(date, 'long', 'N/A');
 }
 
 function addressLinesFromUnknown(address: unknown): string[] {

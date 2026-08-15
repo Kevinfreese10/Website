@@ -3,6 +3,7 @@
 
 import { Invoice, ClientCustomer, User } from "@/lib/types";
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/utils';
 import Image from "next/image";
 import React from "react";
 
@@ -82,9 +83,9 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                                 </>
                             )}
                             <span className="font-semibold text-gray-600 text-right">Date:</span>
-                            <span className="text-gray-900 text-left">{format(invoice.invoiceDate, 'dd/MM/yyyy')}</span>
+                            <span className="text-gray-900 text-left">{formatDate(invoice.invoiceDate, 'long')}</span>
                             <span className="font-semibold text-gray-600 text-right">Due Date:</span>
-                            <span className="text-gray-900 text-left">{format(invoice.dueDate, 'dd/MM/yyyy')}</span>
+                            <span className="text-gray-900 text-left">{formatDate(invoice.dueDate, 'long')}</span>
                         </div>
                     </div>
 

@@ -8,13 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Loader2, ShieldCheck, Rocket, Wallet, Building, Landmark, CheckCircle, FileWarning, CalendarCheck2, FileUp, Phone, Mail } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getFirestore, addDoc, doc, setDoc, serverTimestamp, collection, Timestamp, getDocs, query, where } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { customAlphabet } from 'nanoid';
-import { sendEmail } from '@/lib/email';
+import { sendLeadMagnetEmail } from '@/app/actions/email-gateway';
 import { render } from '@react-email/components';
 import WelcomeDiscountEmail from '@/components/emails/WelcomeDiscountEmail';
 import { DiscountCode, Task, User } from '@/lib/types';
@@ -43,6 +43,8 @@ function ComplianceFormCard({ onComplete }: { onComplete: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isStaffLoading, setIsStaffLoading] = useState(true);
   const [allStaff, setAllStaff] = useState<User[]>([]);
+  const [honeypot, setHoneypot] = useState('');
+  const formRenderedAt = useRef(Date.now());
   
   useEffect(() => {
     const fetchStaff = async () => {
@@ -111,10 +113,12 @@ function ComplianceFormCard({ onComplete }: { onComplete: () => void }) {
       }
 
       const emailHtml = render(<WelcomeDiscountEmail name={values.yourName} discountCode={discountCode} />);
-      await sendEmail({
-        to: values.yourEmail,
+      await sendLeadMagnetEmail({
+        toEmail: values.yourEmail,
         subject: `Your Free Compliance Assessment & 5% Discount!`,
         html: emailHtml,
+        website: honeypot,
+        formRenderedAt: formRenderedAt.current,
       });
 
       toast({
@@ -135,6 +139,18 @@ function ComplianceFormCard({ onComplete }: { onComplete: () => void }) {
   return (
     <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <div className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+                <label htmlFor="website">Leave this field blank</label>
+                <input
+                    type="text"
+                    id="website"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                />
+            </div>
             <FormField control={form.control} name="companyName" render={({ field }) => ( <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )}/>
             <FormField control={form.control} name="registrationNumber" render={({ field }) => ( <FormItem><FormLabel>Registration Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )}/>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
