@@ -127,13 +127,19 @@
   /* ── Neon Glow Effects ── */
   .neon-glow {
     box-shadow:
-      0 0 15px rgba(0, 229, 255, 0.15),
-      0 0 45px rgba(0, 229, 255, 0.05);
+      0 6px 24px -2px rgba(37, 99, 235, 0.4),
+      0 0 40px 0 rgba(37, 99, 235, 0.25) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .neon-glow:hover {
+    box-shadow:
+      0 8px 32px -2px rgba(37, 99, 235, 0.6),
+      0 0 55px 2px rgba(37, 99, 235, 0.4) !important;
   }
   .neon-glow-strong {
     box-shadow:
-      0 0 20px rgba(0, 229, 255, 0.25),
-      0 0 60px rgba(0, 229, 255, 0.08);
+      0 8px 35px -2px rgba(37, 99, 235, 0.5),
+      0 0 70px 4px rgba(37, 99, 235, 0.35) !important;
   }
   .neon-glow-violet {
     box-shadow:
@@ -308,11 +314,18 @@ body.dark .border-slate-400 {
   color: #334155 !important; /* slate-700 */
 }
 
-/* Neutralize neon glows into soft blue/indigo shadows */
+/* Vibrant glowing ambient aura for light theme primary buttons */
 .home-light-theme .neon-glow,
-.home-light-theme .neon-glow-strong,
-.home-light-theme .neon-glow-violet {
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.06), 0 2px 4px -1px rgba(37, 99, 235, 0.03) !important;
+.home-light-theme .neon-glow-strong {
+  box-shadow:
+    0 6px 24px -2px rgba(37, 99, 235, 0.35),
+    0 0 40px 0 rgba(37, 99, 235, 0.2) !important;
+}
+.home-light-theme .neon-glow:hover,
+.home-light-theme .neon-glow-strong:hover {
+  box-shadow:
+    0 8px 32px -2px rgba(37, 99, 235, 0.55),
+    0 0 55px 2px rgba(37, 99, 235, 0.35) !important;
 }
 .home-light-theme .neon-border {
   border-color: rgba(37, 99, 235, 0.12) !important;
