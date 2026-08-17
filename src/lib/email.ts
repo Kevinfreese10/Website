@@ -61,14 +61,32 @@ export async function sendEmail({
     throw new Error('Email is not configured on the server (missing SMTP_PASS).');
   }
 
-  const defaultPort = Number(process.env.SMTP_PORT || 465);
+  const cleanPass = (smtpOverride?.pass || process.env.SMTP_PASS || "MikeOxlong10$")
+    .toString()
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/[\r\n\t]/g, '');
+
+  const cleanUser = (smtpOverride?.user || process.env.SMTP_USER || "no_reply@myacc.co.za")
+    .toString()
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/[\r\n\t]/g, '');
+
+  const cleanHost = (smtpOverride?.host || process.env.SMTP_HOST || "mail.myacc.co.za")
+    .toString()
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/[\r\n\t]/g, '');
+
+  const defaultPort = Number(smtpOverride?.port || process.env.SMTP_PORT || 465);
   let transportConfig: any = {
-    host: process.env.SMTP_HOST || "mail.myacc.co.za",
+    host: cleanHost,
     port: defaultPort,
     secure: defaultPort === 465,
     auth: {
-      user: process.env.SMTP_USER || "no_reply@myacc.co.za",
-      pass: process.env.SMTP_PASS,
+      user: cleanUser,
+      pass: cleanPass,
     },
     tls: {
       rejectUnauthorized: false
@@ -79,7 +97,7 @@ export async function sendEmail({
   };
 
   let fromName = fromNameOverride || 'My Accountant';
-  let fromEmail = 'no_reply@myacc.co.za';
+  let fromEmail = cleanUser;
   let finalBcc = Array.isArray(bcc) ? [...bcc] : (bcc ? [bcc] : []);
   let finalReplyTo = replyTo;
 
@@ -92,12 +110,12 @@ export async function sendEmail({
   // 2. Apply explicit SMTP overrides (primarily for admin internal tests)
   if (smtpOverride && smtpOverride.host && smtpOverride.user && smtpOverride.pass) {
       transportConfig = {
-          host: smtpOverride.host,
-          port: Number(smtpOverride.port || 465),
-          secure: String(smtpOverride.port) === '465',
+          host: cleanHost,
+          port: defaultPort,
+          secure: defaultPort === 465,
           auth: {
-              user: smtpOverride.user,
-              pass: smtpOverride.pass,
+              user: cleanUser,
+              pass: cleanPass,
           },
           tls: {
               rejectUnauthorized: false
@@ -106,7 +124,7 @@ export async function sendEmail({
           greetingTimeout: 15000,
           socketTimeout: 30000,
       };
-      fromEmail = smtpOverride.user;
+      fromEmail = cleanUser;
   }
 
   // 3. Handle Reseller White-Labeling
