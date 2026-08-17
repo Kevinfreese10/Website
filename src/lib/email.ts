@@ -55,39 +55,63 @@ export async function sendEmail({
     fromNameOverride
 }: EmailPayload) {
   
-  // Password must come from the environment — never hardcode a live credential in source.
-  if (!smtpOverride && !process.env.SMTP_PASS) {
-    console.error('sendEmail: SMTP_PASS environment variable is not set and no smtpOverride was provided.');
-    throw new Error('Email is not configured on the server (missing SMTP_PASS).');
+  let liveSmtpPass = (process.env.SMTP_PASS || "").trim().replace(/^["']|["']$/g, '');
+  let liveSmtpUser = (process.env.SMTP_USER || "no_reply@myacc.co.za").trim().replace(/^["']|["']$/g, '');
+  let liveSmtpHost = (process.env.SMTP_HOST || "mail.myacc.co.za").trim().replace(/^["']|["']$/g, '');
+  let liveSmtpPort = Number(process.env.SMTP_PORT || 465);
+
+  // Proactively check Firestore emailSettings/connection to ensure Cloud Run uses latest credentials without delay
+  if (!smtpOverride) {
+    try {
+      const adminDb = getAdminDb();
+      const connSnap = await adminDb.collection('emailSettings').doc('connection').get();
+      if (connSnap.exists) {
+        const connData = connSnap.data();
+        if (connData?.smtpPass && connData.smtpPass.trim()) {
+          liveSmtpPass = connData.smtpPass.trim().replace(/^["']|["']$/g, '');
+        }
+        if (connData?.smtpUser && connData.smtpUser.trim()) {
+          liveSmtpUser = connData.smtpUser.trim().replace(/^["']|["']$/g, '');
+        }
+        if (connData?.smtpHost && connData.smtpHost.trim()) {
+          liveSmtpHost = connData.smtpHost.trim().replace(/^["']|["']$/g, '');
+        }
+        if (connData?.smtpPort) {
+          liveSmtpPort = Number(connData.smtpPort);
+        }
+      }
+    } catch {
+      // Fallback silently to process.env
+    }
   }
 
-  const cleanPass = (smtpOverride?.pass || process.env.SMTP_PASS || "")
+  const cleanPass = (smtpOverride?.pass || liveSmtpPass || "")
     .toString()
     .trim()
     .replace(/^["']|["']$/g, '')
     .replace(/[\r\n\t]/g, '');
 
-  const cleanUser = (smtpOverride?.user || process.env.SMTP_USER || "no_reply@myacc.co.za")
+  const cleanUser = (smtpOverride?.user || liveSmtpUser || "no_reply@myacc.co.za")
     .toString()
     .trim()
     .replace(/^["']|["']$/g, '')
     .replace(/[\r\n\t]/g, '');
 
-  const cleanHost = (smtpOverride?.host || process.env.SMTP_HOST || "mail.myacc.co.za")
+  const cleanHost = (smtpOverride?.host || liveSmtpHost || "mail.myacc.co.za")
     .toString()
     .trim()
     .replace(/^["']|["']$/g, '')
     .replace(/[\r\n\t]/g, '');
 
-  // Catches the case where SMTP_PASS is "set" (so the earlier check passes) but is actually
-  // empty/whitespace-only — e.g. a Secret Manager secret with no version, or a blank value.
+  // Catches the case where SMTP_PASS is not resolved
   if (!cleanPass) {
-    console.error('sendEmail: SMTP_PASS resolved to an empty value after cleaning.');
+    console.error('sendEmail: SMTP_PASS resolved to an empty value.');
     throw new Error('Email is not configured on the server (SMTP_PASS is empty).');
   }
 
-  const defaultPort = Number(smtpOverride?.port || process.env.SMTP_PORT || 465);
+  const defaultPort = Number(smtpOverride?.port || liveSmtpPort || 465);
   let transportConfig: any = {
+    pool: false,
     host: cleanHost,
     port: defaultPort,
     secure: defaultPort === 465,
@@ -96,11 +120,12 @@ export async function sendEmail({
       pass: cleanPass,
     },
     tls: {
-      rejectUnauthorized: false
+      rejectUnauthorized: false,
+      servername: cleanHost,
     },
-    connectionTimeout: 15000, // 15 seconds
-    greetingTimeout: 15000,   // 15 seconds
-    socketTimeout: 30000,     // 30 seconds
+    connectionTimeout: 25000, // 25 seconds
+    greetingTimeout: 35000,   // 35 seconds (prevents premature timeout on cPanel Exim ident query)
+    socketTimeout: 45000,     // 45 seconds
   };
 
   let fromName = fromNameOverride || 'My Accountant';
@@ -117,6 +142,7 @@ export async function sendEmail({
   // 2. Apply explicit SMTP overrides (primarily for admin internal tests)
   if (smtpOverride && smtpOverride.host && smtpOverride.user && smtpOverride.pass) {
       transportConfig = {
+          pool: false,
           host: cleanHost,
           port: defaultPort,
           secure: defaultPort === 465,
@@ -125,11 +151,12 @@ export async function sendEmail({
               pass: cleanPass,
           },
           tls: {
-              rejectUnauthorized: false
+              rejectUnauthorized: false,
+              servername: cleanHost,
           },
-          connectionTimeout: 15000,
-          greetingTimeout: 15000,
-          socketTimeout: 30000,
+          connectionTimeout: 25000,
+          greetingTimeout: 35000,
+          socketTimeout: 45000,
       };
       fromEmail = cleanUser;
   }
