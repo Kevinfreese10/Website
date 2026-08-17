@@ -418,27 +418,36 @@ export async function POST(req: NextRequest) {
               console.log(`Allocating staff for order ${orderId} in department ${department}`);
               
               const staffSnapshot = await adminDb.collection('users')
-                  .where('role', '==', 'staff')
+                  .where('role', 'in', ['staff', 'admin'])
                   .get();
               
-              const matchingStaff = staffSnapshot.docs
+              const allActiveStaff = staffSnapshot.docs
                   .map(doc => ({ id: doc.id, ...doc.data() } as User))
                   .filter(staff => {
-                      if (staff.status === 'Inactive' || staff.status === 'Archived') return false;
-                      if (staff.department === department) return true;
-                      if (Array.isArray(staff.departments) && staff.departments.includes(department)) return true;
-                      return false;
+                      if (staff.isActive === false || (staff as any).disabled === true) return false;
+                      if (staff.status === 'Inactive' || staff.status === 'Archived' || staff.status === 'Deactivated') return false;
+                      return true;
                   });
+
+              const matchingStaff = allActiveStaff.filter(staff => {
+                  if (staff.role !== 'staff') return false;
+                  if (staff.department === department) return true;
+                  if (Array.isArray(staff.departments) && staff.departments.includes(department)) return true;
+                  return false;
+              });
+
+              // If department has active staff, use them; otherwise fallback to other active staff or active admin
+              const candidateStaff = matchingStaff.length > 0 ? matchingStaff : allActiveStaff;
               
               let assignedStaffId: string | null = null;
               
-              if (matchingStaff.length > 0) {
+              if (candidateStaff.length > 0) {
                   const processingOrdersSnapshot = await adminDb.collection('orders')
                       .where('status', '==', 'Processing')
                       .get();
                   
                   const workloadMap: { [userId: string]: number } = {};
-                  matchingStaff.forEach(staff => {
+                  candidateStaff.forEach(staff => {
                       workloadMap[staff.id] = 0;
                   });
                   

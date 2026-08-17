@@ -81,13 +81,23 @@ export default function AdminOrdersPage() {
   const staffCounters = useRef<{ [key: string]: number }>({});
   
   const getNextStaffMember = (department: 'Accounting and Tax' | 'Administration' | 'CAP'): User | undefined => {
-      const staffInDept = allStaff.filter(u => u.role === 'staff' && u.department === department);
-      if (staffInDept.length === 0) return undefined;
+      const activeStaff = allStaff.filter(u => 
+        (u.role === 'staff' || u.role === 'admin') && 
+        u.isActive !== false && 
+        u.status !== 'Inactive' && 
+        u.status !== 'Archived' && 
+        u.status !== 'Deactivated' && 
+        !(u as any).disabled
+      );
+
+      const staffInDept = activeStaff.filter(u => u.department === department && u.role === 'staff');
+      const candidates = staffInDept.length > 0 ? staffInDept : activeStaff;
+      if (candidates.length === 0) return undefined;
 
       const currentIndex = staffCounters.current[department] || 0;
-      const nextStaff = staffInDept[currentIndex];
+      const nextStaff = candidates[currentIndex % candidates.length];
       
-      staffCounters.current[department] = (currentIndex + 1) % staffInDept.length;
+      staffCounters.current[department] = (currentIndex + 1) % candidates.length;
       
       return nextStaff;
   };
@@ -718,7 +728,7 @@ export default function AdminOrdersPage() {
                                         <DropdownMenuSub>
                                         <DropdownMenuSubTrigger>Assign To</DropdownMenuSubTrigger>
                                         <DropdownMenuSubContent>
-                                            {allStaff.map(staff => (
+                                            {allStaff.filter(staff => staff.isActive !== false && staff.status !== 'Inactive' && staff.status !== 'Archived' && staff.status !== 'Deactivated' && !(staff as any).disabled).map(staff => (
                                             <DropdownMenuItem 
                                                 key={staff.id} 
                                                 onClick={() => handleAssignment(order.id, staff.id)}

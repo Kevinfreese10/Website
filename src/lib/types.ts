@@ -496,7 +496,8 @@ export type User = {
   departments?: string[]; 
   allowedModules?: string[];
   entityType?: 'Company' | 'Trust' | 'Individual';
-  status?: 'Active' | 'Inactive' | 'Archived' | 'Pending Setup Payment';
+  status?: 'Active' | 'Inactive' | 'Archived' | 'Pending Setup Payment' | 'Deactivated';
+  disabled?: boolean;
   onboardingStep?: number;
   partnerId?: string; 
   companyName?: string;

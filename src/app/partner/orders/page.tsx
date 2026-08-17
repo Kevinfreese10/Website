@@ -113,13 +113,23 @@ export default function PartnerOrdersPage() {
   }, [orders, statusFilter, searchTerm]);
 
   const getNextStaffMember = (department: 'Accounting and Tax' | 'Administration' | 'CAP'): User | undefined => {
-      const staffInDept = allStaff.filter(u => u.role === 'staff' && u.department === department);
-      if (staffInDept.length === 0) return undefined;
+      const activeStaff = allStaff.filter(u => 
+        (u.role === 'staff' || u.role === 'admin') && 
+        u.isActive !== false && 
+        u.status !== 'Inactive' && 
+        u.status !== 'Archived' && 
+        u.status !== 'Deactivated' && 
+        !(u as any).disabled
+      );
+
+      const staffInDept = activeStaff.filter(u => u.department === department && u.role === 'staff');
+      const candidates = staffInDept.length > 0 ? staffInDept : activeStaff;
+      if (candidates.length === 0) return undefined;
 
       const currentIndex = staffCounters.current[department] || 0;
-      const nextStaff = staffInDept[currentIndex];
+      const nextStaff = candidates[currentIndex % candidates.length];
       
-      staffCounters.current[department] = (currentIndex + 1) % staffInDept.length;
+      staffCounters.current[department] = (currentIndex + 1) % candidates.length;
       
       return nextStaff;
   };

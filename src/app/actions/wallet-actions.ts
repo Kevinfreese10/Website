@@ -310,17 +310,52 @@ export async function outsourceOrderFromWallet(
           }
         }
 
-        // 2. Auto-allocate staff member based on department
+        // 2. Auto-allocate active staff member based on department
         try {
-          const staffSnap = await db.collection('users').where('role', '==', 'staff').get();
-          const staffMembers = staffSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          let department: 'Accounting and Tax' | 'Administration' | 'CAP' = 'Administration';
+          if (orderData.department) {
+            department = orderData.department as any;
+          } else if (Array.isArray(orderData.items)) {
+            const itemIds = orderData.items.map((i: any) => i.id || i.serviceId).filter(Boolean);
+            for (const itemId of itemIds) {
+              const serviceSnap = await db.collection('services').doc(itemId).get();
+              if (serviceSnap.exists && serviceSnap.data()?.department) {
+                department = serviceSnap.data()!.department;
+                break;
+              }
+            }
+          }
 
-          if (staffMembers.length > 0) {
-            const targetStaff = staffMembers[0];
+          const staffSnap = await db.collection('users').where('role', 'in', ['staff', 'admin']).get();
+          const allActiveStaff = staffSnap.docs
+            .map(d => ({ id: d.id, ...d.data() } as any))
+            .filter(staff => {
+              if (staff.isActive === false || staff.disabled === true) return false;
+              if (staff.status === 'Inactive' || staff.status === 'Archived' || staff.status === 'Deactivated') return false;
+              return true;
+            });
+
+          const matchingStaff = allActiveStaff.filter(staff => {
+            if (staff.role !== 'staff') return false;
+            if (staff.department === department) return true;
+            if (Array.isArray(staff.departments) && staff.departments.includes(department)) return true;
+            return false;
+          });
+
+          // Prioritize matching department staff, then any active staff, then active admin
+          const candidates = matchingStaff.length > 0 ? matchingStaff : allActiveStaff;
+          candidates.sort((a, b) => {
+            if (a.role === 'staff' && b.role !== 'staff') return -1;
+            if (a.role !== 'staff' && b.role === 'staff') return 1;
+            return (a.name || '').localeCompare(b.name || '');
+          });
+
+          if (candidates.length > 0) {
+            const targetStaff = candidates[0];
             if (targetStaff) {
-              await orderRef.update({ assignedTo: [targetStaff.id] });
+              await orderRef.update({ assignedTo: [targetStaff.id], department });
               await notifyStaffOfAssignment(orderId, targetStaff.id);
-              console.log(`[wallet-actions] Auto-assigned staff ${targetStaff.id} to order #${orderId}`);
+              console.log(`[wallet-actions] Auto-assigned active staff ${targetStaff.name || targetStaff.email} (${targetStaff.id}) to order #${orderId}`);
             }
           }
         } catch (staffErr) {
