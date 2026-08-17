@@ -18,8 +18,9 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, ArrowRight, CheckCircle2, Wallet2, AlertCircle } from 'lucide-react';
+import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, ArrowRight, CheckCircle2, Wallet2, AlertCircle, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,12 +79,38 @@ export default function PartnerOrdersPage() {
   const [processModalOpen, setProcessModalOpen] = useState(false);
   const [isCreateOrderOpen, setIsCreateOrderOpen] = useState(false);
   const [selectedOrderForProcess, setSelectedOrderForProcess] = useState<Order | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   
   const staffCounters = useRef<{ [key: string]: number }>({});
   const router = useRouter();
     
   const orderStatuses: Order['status'][] = ['Pending Payment', 'Processing', 'Completed', 'Cancelled'];
   const partnerId = user?.role === 'partner' ? user.uid : user?.partnerId;
+
+  const statusCounts = useMemo(() => {
+    return {
+      all: orders.length,
+      processing: orders.filter(o => o.status === 'Processing').length,
+      pending: orders.filter(o => o.status === 'Pending Payment').length,
+      completed: orders.filter(o => o.status === 'Completed').length,
+      cancelled: orders.filter(o => o.status === 'Cancelled').length,
+    };
+  }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      if (statusFilter !== 'all' && order.status !== statusFilter) return false;
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const matchesId = order.id.toLowerCase().includes(term);
+        const matchesName = (order.endCustomerName || order.customerName || '').toLowerCase().includes(term);
+        const matchesEmail = (order.endCustomerEmail || order.customerEmail || '').toLowerCase().includes(term);
+        if (!matchesId && !matchesName && !matchesEmail) return false;
+      }
+      return true;
+    });
+  }, [orders, statusFilter, searchTerm]);
 
   const getNextStaffMember = (department: 'Accounting and Tax' | 'Administration' | 'CAP'): User | undefined => {
       const staffInDept = allStaff.filter(u => u.role === 'staff' && u.department === department);
@@ -352,16 +379,26 @@ export default function PartnerOrdersPage() {
                 onConfirm={handleProcessOrderConfirm}
             />
 
-             <Card>
+              <Card>
                 <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                     <CardTitle>Your Client Orders</CardTitle>
                     <CardDescription>
                         View and manage all orders you've created for your clients.
                     </CardDescription>
                     </div>
-                     <Dialog open={isCreateOrderOpen} onOpenChange={setIsCreateOrderOpen}>
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search orders, customers..." 
+                            className="pl-9 h-10" 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      <Dialog open={isCreateOrderOpen} onOpenChange={setIsCreateOrderOpen}>
                         <DialogTrigger asChild>
                              <Button>
                                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -375,7 +412,72 @@ export default function PartnerOrdersPage() {
                             </DialogHeader>
                             <CreatePartnerOrderForm onOrderCreated={handleOrderCreated} />
                         </DialogContent>
-                    </Dialog>
+                      </Dialog>
+                    </div>
+                </div>
+
+                {/* Quick Status Tabs */}
+                <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border/40">
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'all' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => setStatusFilter('all')}
+                    >
+                        All Orders
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'all' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                            {statusCounts.all}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Processing' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => setStatusFilter('Processing')}
+                    >
+                        Processing
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Processing' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-blue-100 text-blue-800")}>
+                            {statusCounts.processing}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Pending Payment' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => setStatusFilter('Pending Payment')}
+                    >
+                        Pending Payment
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Pending Payment' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-yellow-100 text-yellow-800")}>
+                            {statusCounts.pending}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Completed' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => setStatusFilter('Completed')}
+                    >
+                        Completed
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Completed' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-green-100 text-green-800")}>
+                            {statusCounts.completed}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Cancelled' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => setStatusFilter('Cancelled')}
+                    >
+                        Cancelled
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Cancelled' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-red-100 text-red-800")}>
+                            {statusCounts.cancelled}
+                        </span>
+                    </Button>
                 </div>
                 </CardHeader>
                 <CardContent>
@@ -383,8 +485,11 @@ export default function PartnerOrdersPage() {
                     <div className="flex justify-center items-center h-64">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                ) : orders.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No client orders to display.</p>
+                ) : filteredOrders.length === 0 ? (
+                    <div className="py-12 text-center space-y-3">
+                        <p className="text-muted-foreground">No orders matching your search or filters.</p>
+                        <Button variant="outline" size="sm" onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}>Clear Filters</Button>
+                    </div>
                 ) : (
                     <Table>
                     <TableHeader>
@@ -399,7 +504,7 @@ export default function PartnerOrdersPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {orders.map((order) => (
+                        {filteredOrders.map((order) => (
                         <TableRow key={order.id}>
                             <TableCell className="font-medium">{order.id}</TableCell>
                             <TableCell>{formatDate(order.date)}</TableCell>

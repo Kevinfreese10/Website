@@ -7,6 +7,7 @@ import { firebaseApp } from '@/lib/firebase';
 import { Order, User, Service, OrderNote, Task, ItnLog } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { services as allServices } from '@/lib/data';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -145,9 +146,7 @@ export default function AdminOrdersPage() {
         // 1. Direct Customer Orders (resellerId is null or empty)
         // 2. Explicitly Outsourced Work (resellerId IS set AND (isOutsourced IS true OR originalOrderId IS set))
         // 3. HIDE: Internal Partner Orders (resellerId IS set AND isOutsourced IS false) - EXCEPT Partner purchases (setup fees/topups)
-        // 4. HIDE: Cancelled orders (per user request)
         const visibleOrders = ordersWithClientDetails.filter(order => {
-            if (order.status === 'Cancelled') return false;
             const isDirectOrder = !order.resellerId;
             const isOutsourcedWork = !!(order.resellerId && (order.isOutsourced || order.originalOrderId));
             const isPartnerPurchase = !!(order.resellerId && !order.isOutsourced && !order.originalOrderId && order.items?.some(i => i.id?.startsWith('partner_') || i.id?.includes('topup') || i.id?.includes('setup')));
@@ -171,7 +170,11 @@ export default function AdminOrdersPage() {
     if (savedAssigned) setAssignedFilter(savedAssigned);
     
     const savedStatus = localStorage.getItem('adminOrdersStatusFilter');
-    if (savedStatus) setStatusFilter(savedStatus);
+    if (savedStatus && savedStatus !== 'active') {
+      setStatusFilter(savedStatus);
+    } else {
+      setStatusFilter('all');
+    }
   }, []);
 
   const handleAssignedFilterChange = (value: string) => {
@@ -184,9 +187,20 @@ export default function AdminOrdersPage() {
     localStorage.setItem('adminOrdersStatusFilter', value);
   };
 
+  const statusCounts = useMemo(() => {
+    return {
+      all: orders.length,
+      active: orders.filter(o => o.status === 'Processing' || o.status === 'Pending Payment').length,
+      processing: orders.filter(o => o.status === 'Processing').length,
+      pending: orders.filter(o => o.status === 'Pending Payment').length,
+      completed: orders.filter(o => o.status === 'Completed').length,
+      cancelled: orders.filter(o => o.status === 'Cancelled').length,
+    };
+  }, [orders]);
+
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-        // Status filter: 'active' hides Completed/Cancelled; 'all' shows everything
+        // Status filter: 'active' shows Processing & Pending; 'all' shows everything
         if (statusFilter === 'active') {
             if (order.status === 'Completed' || order.status === 'Cancelled') return false;
         } else if (statusFilter !== 'all') {
@@ -208,8 +222,8 @@ export default function AdminOrdersPage() {
             const term = searchTerm.toLowerCase();
             const matchesId = order.id.toLowerCase().includes(term);
             const matchesOriginalId = order.originalOrderId?.toLowerCase().includes(term);
-            const matchesName = order.customerName.toLowerCase().includes(term) || order.endCustomerName?.toLowerCase().includes(term);
-            const matchesEmail = order.customerEmail.toLowerCase().includes(term) || order.endCustomerEmail?.toLowerCase().includes(term);
+            const matchesName = order.customerName?.toLowerCase().includes(term) || order.endCustomerName?.toLowerCase().includes(term);
+            const matchesEmail = order.customerEmail?.toLowerCase().includes(term) || order.endCustomerEmail?.toLowerCase().includes(term);
             const matchesPhone = order.customerPhone?.toLowerCase().includes(term);
             
             if (!matchesId && !matchesOriginalId && !matchesName && !matchesEmail && !matchesPhone) return false;
@@ -534,6 +548,70 @@ export default function AdminOrdersPage() {
                             </Select>
                         </div>
                     </div>
+                </div>
+
+                {/* Quick Status Filter Tabs */}
+                <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border/40">
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'all' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => handleStatusFilterChange('all')}
+                    >
+                        All Orders
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'all' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                            {statusCounts.all}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Processing' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => handleStatusFilterChange('Processing')}
+                    >
+                        Processing
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Processing' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-blue-100 text-blue-800")}>
+                            {statusCounts.processing}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Pending Payment' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => handleStatusFilterChange('Pending Payment')}
+                    >
+                        Pending Payment
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Pending Payment' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-yellow-100 text-yellow-800")}>
+                            {statusCounts.pending}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Completed' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => handleStatusFilterChange('Completed')}
+                    >
+                        Completed
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Completed' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-green-100 text-green-800")}>
+                            {statusCounts.completed}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Cancelled' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => handleStatusFilterChange('Cancelled')}
+                    >
+                        Cancelled
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Cancelled' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-red-100 text-red-800")}>
+                            {statusCounts.cancelled}
+                        </span>
+                    </Button>
                 </div>
             </CardHeader>
             <CardContent className="p-0">
