@@ -210,30 +210,34 @@ export async function sendEmail({
           lastError = error;
           console.error(`[Email] Attempt ${attempt}/${MAX_ATTEMPTS} failed (${error.code || 'unknown'}): ${error.message}`);
           
-          // If a custom smtpOverride failed (e.g. bad user password or unreachable host),
-          // immediately fallback to system default credentials for subsequent attempts.
-          if (smtpOverride && (error.code === 'EAUTH' || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND')) {
-              console.warn(`[Email] SMTP Override failed (${error.code}). Falling back to system default SMTP...`);
-              const sysHost = (process.env.SMTP_HOST || "mail.myacc.co.za").trim().replace(/^["']|["']$/g, '');
-              const sysUser = (process.env.SMTP_USER || "no_reply@myacc.co.za").trim().replace(/^["']|["']$/g, '');
-              const sysPass = (process.env.SMTP_PASS || "").trim().replace(/^["']|["']$/g, '');
-              const sysPort = Number(process.env.SMTP_PORT || 465);
-
-              if (sysPass) {
-                  currentConfig = {
-                      host: sysHost,
-                      port: sysPort,
-                      secure: sysPort === 465,
-                      auth: { user: sysUser, pass: sysPass },
-                      tls: { rejectUnauthorized: false },
-                      connectionTimeout: 12000,
-                      greetingTimeout: 12000,
-                      socketTimeout: 25000,
-                  };
-                  currentFromAddress = `"${fromName}" <${sysUser}>`;
-                  smtpOverride = undefined; // Cleared so next iteration uses system
-                  await new Promise(resolve => setTimeout(resolve, 500));
-                  continue;
+          // If credentials failed or timed out, attempt to load live credentials from Firestore emailSettings/connection
+          if (error.code === 'EAUTH' || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+              try {
+                  const adminDb = getAdminDb();
+                  const connSnap = await adminDb.collection('emailSettings').doc('connection').get();
+                  if (connSnap.exists) {
+                      const data = connSnap.data();
+                      if (data?.smtpPass && data?.smtpUser) {
+                          console.log(`[Email] Retrying with live credentials from Firestore emailSettings/connection...`);
+                          const fPort = Number(data.smtpPort || 465);
+                          currentConfig = {
+                              host: data.smtpHost || "mail.myacc.co.za",
+                              port: fPort,
+                              secure: fPort === 465,
+                              auth: { user: data.smtpUser, pass: data.smtpPass },
+                              tls: { rejectUnauthorized: false },
+                              connectionTimeout: 12000,
+                              greetingTimeout: 12000,
+                              socketTimeout: 25000,
+                          };
+                          currentFromAddress = `"${fromName}" <${data.smtpUser}>`;
+                          smtpOverride = undefined;
+                          await new Promise(resolve => setTimeout(resolve, 500));
+                          continue;
+                      }
+                  }
+              } catch (fsErr) {
+                  console.error('[Email] Firestore settings fallback lookup failed:', fsErr);
               }
           }
 
