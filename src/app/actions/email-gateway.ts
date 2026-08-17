@@ -141,6 +141,7 @@ export async function sendAdminEmail({
   cc,
   bcc,
   replyTo,
+  smtpOverride,
 }: {
   idToken: string;
   to: string | string[];
@@ -149,13 +150,14 @@ export async function sendAdminEmail({
   cc?: string | string[];
   bcc?: string | string[];
   replyTo?: string;
+  smtpOverride?: { host: string; port: string; user: string; pass: string };
 }) {
   const authCtx = await getVerifiedAuthContext(idToken);
   if (!authCtx || !authCtx.isAdmin) {
     return { success: false, error: 'Unauthorized' };
   }
   try {
-    await sendEmail({ to, subject, html, cc, bcc, replyTo });
+    await sendEmail({ to, subject, html, cc, bcc, replyTo, smtpOverride });
     return { success: true };
   } catch (e: any) {
     console.error('sendAdminEmail error:', e);

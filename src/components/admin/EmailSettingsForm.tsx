@@ -104,6 +104,12 @@ export default function EmailSettingsForm() {
             to: values.smtpDetails.user,
             subject: 'SMTP Settings Test from My Accountant',
             html: `<p>This is a test email to confirm your SMTP settings are working correctly.</p>`,
+            smtpOverride: {
+                host: values.smtpDetails.host,
+                port: values.smtpDetails.port,
+                user: values.smtpDetails.user,
+                pass: values.smtpDetails.pass,
+            },
         });
         toast({
             title: 'Test Email Sent!',

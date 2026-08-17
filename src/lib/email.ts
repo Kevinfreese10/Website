@@ -61,7 +61,7 @@ export async function sendEmail({
     throw new Error('Email is not configured on the server (missing SMTP_PASS).');
   }
 
-  const cleanPass = (smtpOverride?.pass || process.env.SMTP_PASS || "MikeOxlong10$")
+  const cleanPass = (smtpOverride?.pass || process.env.SMTP_PASS || "")
     .toString()
     .trim()
     .replace(/^["']|["']$/g, '')
@@ -78,6 +78,13 @@ export async function sendEmail({
     .trim()
     .replace(/^["']|["']$/g, '')
     .replace(/[\r\n\t]/g, '');
+
+  // Catches the case where SMTP_PASS is "set" (so the earlier check passes) but is actually
+  // empty/whitespace-only — e.g. a Secret Manager secret with no version, or a blank value.
+  if (!cleanPass) {
+    console.error('sendEmail: SMTP_PASS resolved to an empty value after cleaning.');
+    throw new Error('Email is not configured on the server (SMTP_PASS is empty).');
+  }
 
   const defaultPort = Number(smtpOverride?.port || process.env.SMTP_PORT || 465);
   let transportConfig: any = {
@@ -196,8 +203,9 @@ export async function sendEmail({
           return info;
       } catch (error: any) {
           lastError = error;
-          const isAuthError = error.code === 'EAUTH' || error.message?.includes('535') || error.message?.includes('authentication');
-          const isTransient = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ESOCKET', 'EDNS'].includes(error.code) || error.message?.includes('Greeting never received') || isAuthError;
+          // Auth failures (wrong/missing credentials) are permanent — retrying won't fix them,
+          // so only network-level issues are treated as worth a retry.
+          const isTransient = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ESOCKET', 'EDNS'].includes(error.code) || error.message?.includes('Greeting never received');
           console.error(`[Email] Attempt ${attempt}/${MAX_ATTEMPTS} failed (${error.code || 'unknown'}): ${error.message}`);
           
           if (!isTransient || attempt === MAX_ATTEMPTS) {
@@ -207,10 +215,7 @@ export async function sendEmail({
               throw new Error(errorMsg);
           }
 
-          if (isAuthError && transportConfig.auth.pass !== "MikeOxlong10$") {
-              console.log('[Email] Auth rejected. Retrying with fallback authentication password...');
-              transportConfig.auth.pass = "MikeOxlong10$";
-          } else if (transportConfig.port === 587) {
+          if (transportConfig.port === 587) {
               transportConfig.port = 465;
               transportConfig.secure = true;
           } else if (transportConfig.port === 465) {
