@@ -195,36 +195,68 @@ export async function sendEmail({
   // 4. Send with retry logic on transient connection failures & auth issues
   const MAX_ATTEMPTS = 3;
   let lastError: any;
+  let currentConfig = { ...transportConfig };
+  let currentFromAddress = fromAddress;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-          const transporter = nodemailer.createTransport(transportConfig);
-          const info = await transporter.sendMail(mailOptions);
+          const transporter = nodemailer.createTransport(currentConfig);
+          const info = await transporter.sendMail({
+              ...mailOptions,
+              from: currentFromAddress,
+          });
           return info;
       } catch (error: any) {
           lastError = error;
-          // Auth failures (wrong/missing credentials) are permanent — retrying won't fix them,
-          // so only network-level issues are treated as worth a retry.
-          const isTransient = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ESOCKET', 'EDNS'].includes(error.code) || error.message?.includes('Greeting never received');
           console.error(`[Email] Attempt ${attempt}/${MAX_ATTEMPTS} failed (${error.code || 'unknown'}): ${error.message}`);
           
-          if (!isTransient || attempt === MAX_ATTEMPTS) {
+          // If a custom smtpOverride failed (e.g. bad user password or unreachable host),
+          // immediately fallback to system default credentials for subsequent attempts.
+          if (smtpOverride && (error.code === 'EAUTH' || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND')) {
+              console.warn(`[Email] SMTP Override failed (${error.code}). Falling back to system default SMTP...`);
+              const sysHost = (process.env.SMTP_HOST || "mail.myacc.co.za").trim().replace(/^["']|["']$/g, '');
+              const sysUser = (process.env.SMTP_USER || "no_reply@myacc.co.za").trim().replace(/^["']|["']$/g, '');
+              const sysPass = (process.env.SMTP_PASS || "").trim().replace(/^["']|["']$/g, '');
+              const sysPort = Number(process.env.SMTP_PORT || 465);
+
+              if (sysPass) {
+                  currentConfig = {
+                      host: sysHost,
+                      port: sysPort,
+                      secure: sysPort === 465,
+                      auth: { user: sysUser, pass: sysPass },
+                      tls: { rejectUnauthorized: false },
+                      connectionTimeout: 12000,
+                      greetingTimeout: 12000,
+                      socketTimeout: 25000,
+                  };
+                  currentFromAddress = `"${fromName}" <${sysUser}>`;
+                  smtpOverride = undefined; // Cleared so next iteration uses system
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  continue;
+              }
+          }
+
+          const isTransient = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ESOCKET', 'EDNS'].includes(error.code) || error.message?.includes('Greeting never received') || error.message?.includes('timeout');
+          
+          if ((!isTransient && !smtpOverride) || attempt === MAX_ATTEMPTS) {
               // Permanent failure or out of retries — log and throw
               const errorMsg = `SMTP Error: ${error.code || 'Unknown'} - ${error.message}`;
               await logEmailFailure({ to, subject, error: errorMsg });
               throw new Error(errorMsg);
           }
 
-          if (transportConfig.port === 587) {
-              transportConfig.port = 465;
-              transportConfig.secure = true;
-          } else if (transportConfig.port === 465) {
-              transportConfig.port = 587;
-              transportConfig.secure = false;
+          // Switch port on transient failure (465 <-> 587)
+          if (currentConfig.port === 587) {
+              currentConfig.port = 465;
+              currentConfig.secure = true;
+          } else if (currentConfig.port === 465) {
+              currentConfig.port = 587;
+              currentConfig.secure = false;
           }
 
-          // Wait 1.5 seconds before retrying
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Wait 1 second before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
       }
   }
 }
