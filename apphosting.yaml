@@ -54,7 +54,10 @@ env:
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY
   - variable: SMTP_PASS
-    secret: SMTP_PASS
+    value: "MikeOxlong10$"
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: PAYFAST_PASSPHRASE
     secret: PAYFAST_PASSPHRASE
   - variable: FIREBASE_SERVICE_ACCOUNT

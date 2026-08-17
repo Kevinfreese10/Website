@@ -185,8 +185,8 @@ export async function sendEmail({
       replyTo: finalReplyTo,
   };
 
-  // 4. Send with retry logic on transient connection failures
-  const MAX_ATTEMPTS = 2;
+  // 4. Send with retry logic on transient connection failures & auth issues
+  const MAX_ATTEMPTS = 3;
   let lastError: any;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -196,7 +196,8 @@ export async function sendEmail({
           return info;
       } catch (error: any) {
           lastError = error;
-          const isTransient = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ESOCKET', 'EDNS'].includes(error.code) || error.message?.includes('Greeting never received');
+          const isAuthError = error.code === 'EAUTH' || error.message?.includes('535') || error.message?.includes('authentication');
+          const isTransient = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ESOCKET', 'EDNS'].includes(error.code) || error.message?.includes('Greeting never received') || isAuthError;
           console.error(`[Email] Attempt ${attempt}/${MAX_ATTEMPTS} failed (${error.code || 'unknown'}): ${error.message}`);
           
           if (!isTransient || attempt === MAX_ATTEMPTS) {
@@ -206,8 +207,10 @@ export async function sendEmail({
               throw new Error(errorMsg);
           }
 
-          // On transient failure, if on port 587 try 465 (or vice versa)
-          if (transportConfig.port === 587) {
+          if (isAuthError && transportConfig.auth.pass !== "MikeOxlong10$") {
+              console.log('[Email] Auth rejected. Retrying with fallback authentication password...');
+              transportConfig.auth.pass = "MikeOxlong10$";
+          } else if (transportConfig.port === 587) {
               transportConfig.port = 465;
               transportConfig.secure = true;
           } else if (transportConfig.port === 465) {
