@@ -15,8 +15,8 @@ const auth = getAuth(firebaseApp);
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password?: string) => Promise<User | 'invalid_role' | 'invalid_credentials' | 'subscription_lapsed' | undefined>;
-  reauthenticate: (firebaseUser: FirebaseUser) => Promise<User | 'invalid_credentials' | 'subscription_lapsed' | undefined>;
+  login: (email: string, password?: string) => Promise<User | 'invalid_role' | 'invalid_credentials' | 'subscription_lapsed' | 'account_deactivated' | undefined>;
+  reauthenticate: (firebaseUser: FirebaseUser) => Promise<User | 'invalid_credentials' | 'subscription_lapsed' | 'account_deactivated' | undefined>;
   logout: () => void;
   signup: (values: { name: string; surname: string; cellNumber: string; email: string; password?: string }) => Promise<User | string>;
   updateUser: (updatedUser: User | null) => void;
@@ -33,6 +33,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
             if (user && firebaseUser.uid === user.uid) {
+                if (user.isActive === false) {
+                    await signOut(auth);
+                    updateUser(null);
+                    setIsAuthenticated(false);
+                    return;
+                }
                 if (isAuthenticated === false) setIsAuthenticated(true);
                 return;
             }
@@ -50,12 +56,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(updatedUser);
   }
 
-  const login = async (email: string, password?: string): Promise<User | 'invalid_role' | 'invalid_credentials' | 'subscription_lapsed' | undefined> => {
+  const login = async (email: string, password?: string): Promise<User | 'invalid_role' | 'invalid_credentials' | 'subscription_lapsed' | 'account_deactivated' | undefined> => {
     if (!password) return 'invalid_credentials';
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         return await reauthenticate(userCredential.user);
     } catch (error: any) {
+        if (error.code === 'auth/user-disabled') {
+             return 'account_deactivated';
+        }
         const expectedAuthErrors = [
           'auth/user-not-found', 
           'auth/wrong-password', 
@@ -74,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const reauthenticate = async (firebaseUser: FirebaseUser): Promise<User | 'invalid_credentials' | 'subscription_lapsed' | undefined> => {
+  const reauthenticate = async (firebaseUser: FirebaseUser): Promise<User | 'invalid_credentials' | 'subscription_lapsed' | 'account_deactivated' | undefined> => {
         if (!firebaseUser.email) return 'invalid_credentials';
         
         try {
@@ -94,6 +103,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const foundUser = results.find((user) => user !== null) || null;
 
             if (foundUser) {
+                if (foundUser.isActive === false) {
+                    await signOut(auth);
+                    updateUser(null);
+                    setIsAuthenticated(false);
+                    return 'account_deactivated';
+                }
                 if (foundUser.source === 'AI Accountant' && foundUser.subscription) {
                     const rawEndDate = (foundUser.subscription as any).subscriptionEndDate;
                     let endDate: Date | null = null;

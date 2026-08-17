@@ -12,12 +12,18 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   
   useEffect(() => {
-    if (isAuthenticated && user?.role !== 'admin' && user?.role !== 'staff' && user?.role !== 'cap_staff' && user?.role !== 'cap_supervisor') {
-      router.push('/login');
+    if (isAuthenticated) {
+      if (user?.isActive === false) {
+        router.push('/login');
+        return;
+      }
+      if (user?.role !== 'admin' && user?.role !== 'staff' && user?.role !== 'cap_staff' && user?.role !== 'cap_supervisor') {
+        router.push('/login');
+      }
     }
   }, [isAuthenticated, user, router]);
   
-  if (isAuthenticated === undefined || (isAuthenticated && user?.role !== 'admin' && user?.role !== 'staff' && user?.role !== 'cap_staff' && user?.role !== 'cap_supervisor')) {
+  if (isAuthenticated === undefined || (isAuthenticated && (user?.isActive === false || (user?.role !== 'admin' && user?.role !== 'staff' && user?.role !== 'cap_staff' && user?.role !== 'cap_supervisor')))) {
      return (
         <div className="flex min-h-screen">
             <Skeleton className="hidden md:block w-16 lg:w-64" />

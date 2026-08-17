@@ -61,10 +61,11 @@ export async function sendEmail({
     throw new Error('Email is not configured on the server (missing SMTP_PASS).');
   }
 
+  const defaultPort = Number(process.env.SMTP_PORT || 465);
   let transportConfig: any = {
     host: process.env.SMTP_HOST || "mail.myacc.co.za",
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: false,
+    port: defaultPort,
+    secure: defaultPort === 465,
     auth: {
       user: process.env.SMTP_USER || "no_reply@myacc.co.za",
       pass: process.env.SMTP_PASS,
@@ -154,7 +155,6 @@ export async function sendEmail({
   }
 
   const fromAddress = from || `"${fromName}" <${fromEmail}>`;
-  const transporter = nodemailer.createTransport(transportConfig);
 
   const mailOptions = {
       from: fromAddress,
@@ -167,17 +167,18 @@ export async function sendEmail({
       replyTo: finalReplyTo,
   };
 
-  // 4. Send with 1 retry on transient connection failures
+  // 4. Send with retry logic on transient connection failures
   const MAX_ATTEMPTS = 2;
   let lastError: any;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
+          const transporter = nodemailer.createTransport(transportConfig);
           const info = await transporter.sendMail(mailOptions);
           return info;
       } catch (error: any) {
           lastError = error;
-          const isTransient = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ESOCKET'].includes(error.code);
+          const isTransient = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ESOCKET', 'EDNS'].includes(error.code) || error.message?.includes('Greeting never received');
           console.error(`[Email] Attempt ${attempt}/${MAX_ATTEMPTS} failed (${error.code || 'unknown'}): ${error.message}`);
           
           if (!isTransient || attempt === MAX_ATTEMPTS) {
@@ -187,8 +188,18 @@ export async function sendEmail({
               throw new Error(errorMsg);
           }
 
-          // Wait 2 seconds before retrying
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // On transient failure, if on port 587 try 465 (or vice versa)
+          if (transportConfig.port === 587) {
+              transportConfig.port = 465;
+              transportConfig.secure = true;
+          } else if (transportConfig.port === 465) {
+              transportConfig.port = 587;
+              transportConfig.secure = false;
+          }
+
+          // Wait 1.5 seconds before retrying
+          await new Promise(resolve => setTimeout(resolve, 1500));
       }
   }
 }
+

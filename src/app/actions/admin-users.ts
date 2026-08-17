@@ -179,3 +179,31 @@ export async function adminUpdateUserPasswordAction({ uid, password }: { uid: st
     return { success: false, error: error.code || 'error', message: error.message || 'Failed to update user password.' };
   }
 }
+
+export async function adminToggleUserActiveAction({ uid, isActive }: { uid: string; isActive: boolean }) {
+  try {
+    const adminAuth = getAdminAuth();
+    const adminDb = getAdminDb();
+
+    // 1. Update Firestore user document
+    await adminDb.collection('users').doc(uid).set({ isActive }, { merge: true });
+
+    // 2. Enable or disable user in Firebase Authentication and revoke sessions if deactivating
+    try {
+      await adminAuth.updateUser(uid, { disabled: !isActive });
+      if (!isActive) {
+        await adminAuth.revokeRefreshTokens(uid);
+      }
+    } catch (authErr: any) {
+      if (authErr.code !== 'auth/user-not-found') {
+        console.warn(`Could not update Firebase Auth disabled state for user ${uid}:`, authErr);
+      }
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error in adminToggleUserActiveAction:", error);
+    return { success: false, error: error.message || 'Failed to update account active status' };
+  }
+}
+

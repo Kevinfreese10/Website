@@ -37,7 +37,7 @@ env:
       - BUILD
       - RUNTIME
   - variable: SMTP_PORT
-    value: "587"
+    value: "465"
     availability:
       - BUILD
       - RUNTIME

@@ -17,7 +17,7 @@ import { User } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFirestore, collection, getDocs, doc, setDoc, query, where } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { adminCreateUserAction, adminUpdateUserPasswordAction, adminDeleteUserAction } from '@/app/actions';
+import { adminCreateUserAction, adminUpdateUserPasswordAction, adminDeleteUserAction, adminToggleUserActiveAction } from '@/app/actions';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -263,7 +263,12 @@ export default function AdminStaffPage() {
   const handleToggleActive = async (staffMember: User) => {
     try {
         const newStatus = staffMember.isActive === false ? true : false;
-        await setDoc(doc(db, "users", staffMember.id), { isActive: newStatus }, { merge: true });
+        const res = await adminToggleUserActiveAction({ uid: staffMember.id, isActive: newStatus });
+        
+        if (!res.success) {
+            toast({ title: 'Error', description: res.error || 'Could not change account status.', variant: 'destructive' });
+            return;
+        }
         
         toast({
             title: newStatus ? 'Account Reactivated' : 'Account Deactivated',

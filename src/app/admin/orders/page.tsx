@@ -26,6 +26,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from '@/components/ui/select';
 import {
   DropdownMenu,
@@ -103,9 +104,10 @@ export default function AdminOrdersPage() {
     if (!user) return;
     setIsLoading(true);
 
-    const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin']));
+    const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'cap_staff', 'cap_supervisor']));
     getDocs(staffQuery).then(staffSnapshot => {
         const fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
+        fetchedStaff.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         setAllStaff(fetchedStaff);
     }).catch(error => {
         console.error("Error fetching staff:", error);
@@ -195,6 +197,10 @@ export default function AdminOrdersPage() {
         if (assignedFilter === 'mine') {
             const currentUserId = user?.id || (user as any)?.uid;
             if (!currentUserId || !order.assignedTo?.includes(currentUserId)) return false;
+        } else if (assignedFilter === 'unassigned') {
+            if (order.assignedTo && order.assignedTo.length > 0) return false;
+        } else if (assignedFilter !== 'all') {
+            if (!order.assignedTo || !order.assignedTo.includes(assignedFilter)) return false;
         }
 
         // Search term filter
@@ -498,23 +504,32 @@ export default function AdminOrdersPage() {
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                             <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
                             <Select value={assignedFilter} onValueChange={handleAssignedFilterChange}>
-                                <SelectTrigger className="h-10 w-full sm:w-[150px] font-bold border-primary/10">
-                                    <SelectValue placeholder="All Orders" />
+                                <SelectTrigger className="h-10 w-full sm:w-[180px] font-bold border-primary/10">
+                                    <SelectValue placeholder="All Staff" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Orders</SelectItem>
+                                <SelectContent className="max-h-[300px]">
+                                    <SelectItem value="all">All Staff</SelectItem>
                                     <SelectItem value="mine">My Orders</SelectItem>
+                                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                                    {allStaff.length > 0 && <SelectSeparator />}
+                                    {allStaff.map(staff => (
+                                        <SelectItem key={staff.id} value={staff.id}>
+                                            {staff.name || staff.email} {staff.isActive === false ? '(Inactive)' : ''}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                             <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                                <SelectTrigger className="h-10 w-full sm:w-[200px] font-bold border-primary/10">
+                                <SelectTrigger className="h-10 w-full sm:w-[180px] font-bold border-primary/10">
                                     <SelectValue placeholder="All Statuses" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Statuses</SelectItem>
+                                    <SelectItem value="active">Active Orders</SelectItem>
                                     <SelectItem value="Pending Payment">Pending Payment</SelectItem>
                                     <SelectItem value="Processing">Processing</SelectItem>
                                     <SelectItem value="Completed">Completed</SelectItem>
+                                    <SelectItem value="Cancelled">Cancelled</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -196,6 +196,11 @@ export async function adminUpdateUserPasswordAction(params: any) {
   return adminUsers.adminUpdateUserPasswordAction(params);
 }
 
+export async function adminToggleUserActiveAction(params: any) {
+  return adminUsers.adminToggleUserActiveAction(params);
+}
+
+
 // --- CHECKOUT ---
 export async function createCheckoutOrderAction(params: any) {
   return checkoutCore.createCheckoutOrderAction(params);

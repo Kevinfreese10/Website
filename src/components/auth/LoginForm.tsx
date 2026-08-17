@@ -99,6 +99,15 @@ export default function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     const result = await login(values.email, values.password);
 
+    if (result === 'account_deactivated') {
+        toast({
+            title: 'Account Deactivated',
+            description: 'This account has been deactivated. Please contact an administrator.',
+            variant: 'destructive',
+        });
+        return;
+    }
+
     if (result === 'subscription_lapsed') {
         // tempUser is set in the auth context when subscription is lapsed
         setLapsedUser(tempUser);

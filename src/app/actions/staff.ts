@@ -1,6 +1,6 @@
 'use server';
 
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
 import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
 import React from 'react';
@@ -174,6 +174,18 @@ export async function deactivateStaffMember({
     }
 
     await staffRef.update({ isActive: false });
+
+    // Also disable user in Firebase Authentication and revoke sessions
+    try {
+      const adminAuth = getAdminAuth();
+      await adminAuth.updateUser(staffUid, { disabled: true });
+      await adminAuth.revokeRefreshTokens(staffUid);
+    } catch (authErr: any) {
+      if (authErr.code !== 'auth/user-not-found') {
+        console.warn(`Could not disable Firebase Auth user ${staffUid}:`, authErr);
+      }
+    }
+
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message || 'Failed to deactivate staff member' };
@@ -241,6 +253,17 @@ export async function reactivateStaffMember({
     }
 
     await staffRef.update({ isActive: true });
+
+    // Also re-enable in Firebase Authentication
+    try {
+      const adminAuth = getAdminAuth();
+      await adminAuth.updateUser(staffUid, { disabled: false });
+    } catch (authErr: any) {
+      if (authErr.code !== 'auth/user-not-found') {
+        console.warn(`Could not enable Firebase Auth user ${staffUid}:`, authErr);
+      }
+    }
+
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message || 'Failed to reactivate staff member' };
