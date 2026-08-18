@@ -315,6 +315,20 @@ export async function POST(req: NextRequest) {
               await orderRef.update({ status: 'Processing' });
           }
 
+          if (currentOrderData.discountCode) {
+              try {
+                  const codeUpper = currentOrderData.discountCode.toUpperCase().trim();
+                  await adminDb.collection('discounts').doc(codeUpper).update({
+                      status: 'used',
+                      usedAt: FieldValue.serverTimestamp(),
+                      orderId: orderDoc.id,
+                  });
+                  console.log(`[PayFast ITN] Marked discount code ${codeUpper} as used for order ${orderDoc.id}`);
+              } catch (dErr) {
+                  console.error('[PayFast ITN] Error updating discount code status:', dErr);
+              }
+          }
+
           if (currentOrderData.userId && currentOrderData.items && currentOrderData.items.some(item => item.id === 'partner_dfy_setup')) {
               await adminDb.collection('users').doc(currentOrderData.userId).update({ setupAddon: true });
               console.log(`Paid Done-For-You Setup Add-on. Marked partner ${currentOrderData.userId} setupAddon as true.`);

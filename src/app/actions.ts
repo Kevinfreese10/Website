@@ -206,6 +206,10 @@ export async function createCheckoutOrderAction(params: any) {
   return checkoutCore.createCheckoutOrderAction(params);
 }
 
+export async function validateDiscountCodeAction(params: any) {
+  return checkoutCore.validateDiscountCodeAction(params);
+}
+
 // --- AI WEB SEARCH FLOW ---
 export async function suggestTransactionAllocationWeb(input: any) {
   const { suggestTransactionAllocationWeb: flow } = await import('@/ai/flows/suggest-transaction-allocation-web');

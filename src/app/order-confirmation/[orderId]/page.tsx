@@ -218,6 +218,12 @@ export default function OrderConfirmationPage() {
                                     <p className="font-semibold">{formatPrice(item.clientPrice || item.price)}</p>
                                 </div>
                             ))}
+                            {order.discountAmount && order.discountAmount > 0 ? (
+                                <div className="flex justify-between items-center text-emerald-600 font-semibold text-sm">
+                                    <p>Discount {order.discountCode ? `(${order.discountCode})` : ''}</p>
+                                    <p>-{formatPrice(order.discountAmount)}</p>
+                                </div>
+                            ) : null}
                              <Separator />
                             <div className="flex justify-between font-bold text-lg">
                                 <p>Total Due</p>

@@ -7,6 +7,62 @@ import { sendOrderConfirmationEmailAction } from './notifications';
 import { Order } from '@/lib/types';
 import { checkRateLimit } from '@/lib/rate-limiter';
 
+export async function validateDiscountCodeAction({
+  code,
+  email,
+  subtotal,
+}: {
+  code: string;
+  email?: string;
+  subtotal: number;
+}) {
+  try {
+    if (!code || !code.trim()) {
+      return { success: false, error: 'Please enter a discount code.' };
+    }
+    const adminDb = getAdminDb();
+    const cleanCode = code.trim().toUpperCase();
+    const discountDoc = await adminDb.collection('discounts').doc(cleanCode).get();
+
+    if (!discountDoc.exists) {
+      return { success: false, error: 'Invalid discount code.' };
+    }
+
+    const data = discountDoc.data()!;
+    if (data.status === 'used') {
+      return { success: false, error: 'This discount code has already been used.' };
+    }
+
+    if (data.clientEmail && data.clientEmail.trim()) {
+      const allowedEmail = data.clientEmail.toLowerCase().trim();
+      const clientEmail = (email || '').toLowerCase().trim();
+      if (clientEmail && allowedEmail !== clientEmail) {
+        return { success: false, error: `This discount code is only valid for ${allowedEmail}.` };
+      }
+    }
+
+    const percentage = Number(data.percentage) || 0;
+    if (percentage <= 0 || percentage > 100) {
+      return { success: false, error: 'Invalid discount percentage.' };
+    }
+
+    const discountAmount = Math.round((subtotal * percentage) / 100);
+    const newTotal = Math.max(0, subtotal - discountAmount);
+
+    return {
+      success: true,
+      code: cleanCode,
+      percentage,
+      discountAmount,
+      newTotal,
+      message: `${percentage}% discount applied! (-R ${discountAmount.toLocaleString('en-ZA')})`,
+    };
+  } catch (error: any) {
+    console.error('Error validating discount code:', error);
+    return { success: false, error: 'Could not validate discount code. Please try again.' };
+  }
+}
+
 export async function createCheckoutOrderAction({
   firstName,
   lastName,
@@ -17,6 +73,7 @@ export async function createCheckoutOrderAction({
   paymentMethod,
   partnerId,
   userId,
+  discountCode,
 }: {
   firstName: string;
   lastName: string;
@@ -27,6 +84,7 @@ export async function createCheckoutOrderAction({
   paymentMethod?: 'EFT' | 'PayFast';
   partnerId?: string;
   userId?: string | null;
+  discountCode?: string | null;
 }) {
   try {
     const rateLimit = await checkRateLimit('checkout', 5, 60000); // max 5 orders per minute per IP
@@ -99,24 +157,30 @@ export async function createCheckoutOrderAction({
       }
     }
 
-    const finalPaymentMethod = paymentMethod || (resellerData?.bankingDetails?.bankName ? 'EFT' : 'PayFast');
-
     const { getNextOrderId } = await import('@/lib/sequence');
     const orderId = await getNextOrderId();
 
-    // Validate and re-calculate prices server-side to prevent client-side price tampering
+    const paymentConfigDoc = await adminDb.collection('settings').doc('payment_methods').get();
+    let finalPaymentMethod = paymentMethod || (resellerData?.bankingDetails?.bankName ? 'EFT' : 'PayFast');
+    if (!paymentMethod && paymentConfigDoc.exists) {
+      const config = paymentConfigDoc.data();
+      if (config?.defaultMethod === 'EFT') {
+        finalPaymentMethod = 'EFT';
+      }
+    }
+
     let calculatedTotal = 0;
     const validatedItems = await Promise.all(
       items.map(async (item) => {
-        const serviceSnap = await adminDb.collection('services').doc(item.id).get();
-        if (!serviceSnap.exists) {
+        const serviceDoc = await adminDb.collection('services').doc(item.id).get();
+        if (!serviceDoc.exists) {
           throw new Error(`Service ${item.id} not found.`);
         }
-        const serviceData = serviceSnap.data()!;
-        const retailFloor = serviceData.price || 0;
-        let finalUnitPrice = retailFloor;
+        const serviceData = serviceDoc.data()!;
+        let finalUnitPrice = serviceData.price || 0;
 
         if (partnerId) {
+          const retailFloor = serviceData.retailPrice || serviceData.price || 0;
           const overrideSnap = await adminDb
             .collection('users')
             .doc(partnerId)
@@ -127,7 +191,6 @@ export async function createCheckoutOrderAction({
           if (overrideSnap.exists) {
             const overrideData = overrideSnap.data()!;
             if (typeof overrideData.price === 'number') {
-              // Ensure price never falls below retail floor
               finalUnitPrice = Math.max(overrideData.price, retailFloor);
             }
           }
@@ -151,6 +214,26 @@ export async function createCheckoutOrderAction({
       })
     );
 
+    // Validate promo / discount code server-side if provided
+    let appliedDiscountCode: string | null = null;
+    let appliedDiscountAmount: number | null = null;
+
+    if (discountCode && discountCode.trim()) {
+      const codeClean = discountCode.trim().toUpperCase();
+      const discountDoc = await adminDb.collection('discounts').doc(codeClean).get();
+      if (discountDoc.exists) {
+        const dData = discountDoc.data()!;
+        const isValidStatus = dData.status !== 'used';
+        const isClientAllowed = !dData.clientEmail || !dData.clientEmail.trim() || dData.clientEmail.toLowerCase().trim() === cleanEmail;
+
+        if (isValidStatus && isClientAllowed && typeof dData.percentage === 'number' && dData.percentage > 0) {
+          appliedDiscountCode = codeClean;
+          appliedDiscountAmount = Math.round((calculatedTotal * dData.percentage) / 100);
+          calculatedTotal = Math.max(0, calculatedTotal - appliedDiscountAmount);
+        }
+      }
+    }
+
     const orderData = {
       id: orderId,
       userId: finalUserId,
@@ -159,8 +242,8 @@ export async function createCheckoutOrderAction({
       customerPhone: phone,
       items: validatedItems,
       total: calculatedTotal,
-      discountCode: null,
-      discountAmount: null,
+      discountCode: appliedDiscountCode,
+      discountAmount: appliedDiscountAmount,
       paymentMethod: finalPaymentMethod,
       status: 'Pending Payment',
       date: new Date(),

@@ -7,13 +7,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Service, Order, User, PrerequisiteItem } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Mail, User as UserIcon, CheckCircle2, ShieldCheck, Lock, RefreshCw, MessageSquare, AlertCircle, Check, Clock } from 'lucide-react';
+import { Loader2, Mail, User as UserIcon, CheckCircle2, ShieldCheck, Lock, RefreshCw, MessageSquare, AlertCircle, Check, Clock, Tag } from 'lucide-react';
 import { getFirestore, doc, setDoc, Timestamp, getDoc, serverTimestamp, collection, query, where, getDocs, or } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { Checkbox } from '../ui/checkbox';
 import { Separator } from '../ui/separator';
-import { sendOrderConfirmationEmailAction, checkExistingUserByEmail, createCheckoutOrderAction } from '@/app/actions';
+import { sendOrderConfirmationEmailAction, checkExistingUserByEmail, createCheckoutOrderAction, validateDiscountCodeAction } from '@/app/actions';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Input } from '@/components/ui/input';
@@ -219,6 +219,11 @@ export default function ServiceCheckoutForm({
     }
   };
 
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; percentage: number; discountAmount: number } | null>(null);
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+  const [isPromoInputOpen, setIsPromoInputOpen] = useState(false);
+
   const selectedPrereqList = prereqServices.filter((p) => activeSelectedPrereqIds.has(p.id));
   const hasPackageDiscount = selectedPrereqList.length > 0;
 
@@ -227,7 +232,49 @@ export default function ServiceCheckoutForm({
 
   // 20% discount applies to the ENTIRE order when prerequisites are included
   const packageDiscount = hasPackageDiscount ? Math.round(rawOrderTotal * 0.2) : 0;
-  const orderTotal = rawOrderTotal - packageDiscount;
+  const baseAfterPackageDiscount = rawOrderTotal - packageDiscount;
+
+  // Promo code discount applies to remaining total
+  const promoDiscountAmount = appliedPromo ? Math.round((baseAfterPackageDiscount * appliedPromo.percentage) / 100) : 0;
+  const orderTotal = Math.max(0, baseAfterPackageDiscount - promoDiscountAmount);
+
+  const handleApplyPromo = async () => {
+    if (!promoCodeInput.trim()) {
+      toast({ title: 'Enter Code', description: 'Please enter a discount or promo code.', variant: 'destructive' });
+      return;
+    }
+    setIsValidatingPromo(true);
+    try {
+      const email = form.getValues('email') || user?.email || undefined;
+      const res = await validateDiscountCodeAction({
+        code: promoCodeInput.trim(),
+        email,
+        subtotal: baseAfterPackageDiscount,
+      });
+
+      if (res.success && res.code && res.percentage !== undefined && res.discountAmount !== undefined) {
+        setAppliedPromo({
+          code: res.code,
+          percentage: res.percentage,
+          discountAmount: res.discountAmount,
+        });
+        toast({ title: 'Discount Applied! 🎉', description: res.message });
+      } else {
+        toast({ title: 'Invalid Code', description: res.error || 'This code is not valid.', variant: 'destructive' });
+      }
+    } catch (e: any) {
+      console.error('Error validating promo code:', e);
+      toast({ title: 'Validation Error', description: 'Could not validate promo code. Please try again.', variant: 'destructive' });
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput('');
+    toast({ title: 'Discount Removed', description: 'Promo code discount has been removed.' });
+  };
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
       resolver: zodResolver(checkoutSchema),
@@ -347,6 +394,7 @@ export default function ServiceCheckoutForm({
             total: orderTotal,
             partnerId,
             userId: finalUserId,
+            discountCode: appliedPromo?.code || null,
         });
 
         if (!result.success) {
@@ -523,12 +571,85 @@ export default function ServiceCheckoutForm({
                             )}
                         />
 
-                        {hasPackageDiscount && packageDiscount > 0 && (
-                            <div className="rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50/50 to-white border border-emerald-300 p-3.5 space-y-2 text-xs animate-in fade-in shadow-2xs">
+                        {/* Promo / Discount Code Box */}
+                        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-2.5 text-xs transition-all">
+                            {appliedPromo ? (
+                                <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-950">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <Tag className="w-4 h-4 text-emerald-600 shrink-0" />
+                                        <div>
+                                            <span className="font-extrabold uppercase tracking-wide">{appliedPromo.code}</span>
+                                            <span className="text-[11px] text-emerald-700 ml-1.5 font-bold">({appliedPromo.percentage}% OFF applied)</span>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="xs"
+                                        onClick={handleRemovePromo}
+                                        className="h-6 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2 font-bold shrink-0"
+                                    >
+                                        Remove
+                                    </Button>
+                                </div>
+                            ) : isPromoInputOpen ? (
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-slate-700 font-bold">
+                                        <span className="flex items-center gap-1.5">
+                                            <Tag className="w-3.5 h-3.5 text-primary" /> Promo / Discount Code
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsPromoInputOpen(false)}
+                                            className="text-[11px] text-slate-500 hover:text-slate-700 underline"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="e.g. WELCOME10"
+                                            value={promoCodeInput}
+                                            onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                                            className="h-9 text-xs uppercase font-mono tracking-wider bg-white"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleApplyPromo();
+                                                }
+                                            }}
+                                        />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            disabled={isValidatingPromo || !promoCodeInput.trim()}
+                                            onClick={handleApplyPromo}
+                                            className="h-9 px-4 text-xs font-bold shrink-0"
+                                        >
+                                            {isValidatingPromo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Apply'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsPromoInputOpen(true)}
+                                    className="flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary/80 transition-colors w-full text-left"
+                                >
+                                    <Tag className="w-3.5 h-3.5" /> Have a discount or promo code?
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Order Total & Breakdown Card */}
+                        <div className="rounded-xl bg-gradient-to-br from-emerald-50 via-teal-50/50 to-white border border-emerald-300 p-3.5 space-y-2 text-xs animate-in fade-in shadow-2xs">
+                            {(hasPackageDiscount || appliedPromo) && (
                                 <div className="flex items-center justify-between text-slate-600 font-semibold">
                                     <span>Order Subtotal</span>
                                     <span className="line-through text-slate-400">{formatPrice(rawOrderTotal)}</span>
                                 </div>
+                            )}
+                            {hasPackageDiscount && packageDiscount > 0 && (
                                 <div className="flex items-center justify-between text-emerald-800 font-bold">
                                     <span className="flex items-center gap-1.5">
                                         <span className="text-sm">🎁</span> 20% Package Discount (Total Order)
@@ -537,12 +658,22 @@ export default function ServiceCheckoutForm({
                                         -{formatPrice(packageDiscount)}
                                     </span>
                                 </div>
-                                <div className="pt-2 border-t border-emerald-200/80 flex items-center justify-between font-black text-slate-900 text-sm">
-                                    <span>New Total Payment Amount</span>
-                                    <span className="text-emerald-700 text-base">{formatPrice(orderTotal)}</span>
+                            )}
+                            {appliedPromo && promoDiscountAmount > 0 && (
+                                <div className="flex items-center justify-between text-emerald-800 font-bold">
+                                    <span className="flex items-center gap-1.5">
+                                        <Tag className="w-3.5 h-3.5 text-emerald-600" /> Promo Code ({appliedPromo.code})
+                                    </span>
+                                    <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 font-extrabold">
+                                        -{formatPrice(promoDiscountAmount)}
+                                    </span>
                                 </div>
+                            )}
+                            <div className="pt-2 border-t border-emerald-200/80 flex items-center justify-between font-black text-slate-900 text-sm">
+                                <span>Total Payment Amount</span>
+                                <span className="text-emerald-700 text-base">{formatPrice(orderTotal)}</span>
                             </div>
-                        )}
+                        </div>
 
                         <Button 
                             type="submit"

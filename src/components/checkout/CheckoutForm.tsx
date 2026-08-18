@@ -49,7 +49,11 @@ const formatPrice = (price: number) => {
     }).format(price);
 };
 
-export default function CheckoutForm() {
+export default function CheckoutForm({
+  appliedPromo = null,
+}: {
+  appliedPromo?: { code: string; percentage: number; discountAmount: number } | null;
+}) {
   const router = useRouter();
   const { user, reauthenticate } = useAuth();
   const { cartItems, cartTotal, clearCart } = useCart();
@@ -80,6 +84,8 @@ export default function CheckoutForm() {
         lastName: user.name?.split(' ').slice(1).join(' ') || '',
         email: user.email || '',
         phone: user.contactNumber || '',
+        confirmPrerequisites: form.getValues('confirmPrerequisites'),
+        agreeRefundPolicy: form.getValues('agreeRefundPolicy'),
       });
     }
   }, [user, form]);
@@ -129,6 +135,7 @@ export default function CheckoutForm() {
     const formElement = document.createElement('form');
     formElement.method = 'POST';
     formElement.action = payfastUrl;
+    formElement.setAttribute('target', '_top');
 
     const data: { [key: string]: string } = {
         merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
@@ -175,15 +182,19 @@ export default function CheckoutForm() {
             quantity: item.quantity
         }));
 
+        const promoDiscountAmount = appliedPromo ? Math.round((cartTotal * appliedPromo.percentage) / 100) : 0;
+        const finalTotal = Math.max(0, cartTotal - promoDiscountAmount);
+
         const result = await createCheckoutOrderAction({
             firstName: values.firstName,
             lastName: values.lastName,
             email: values.email,
             phone: values.phone,
             items,
-            total: cartTotal,
+            total: finalTotal,
             paymentMethod: 'PayFast',
             userId: finalUserId,
+            discountCode: appliedPromo?.code || null,
         });
 
         if (!result.success) {
@@ -218,9 +229,9 @@ export default function CheckoutForm() {
             customerEmail: values.email,
             customerPhone: values.phone,
             items,
-            total: cartTotal,
-            discountCode: null,
-            discountAmount: null,
+            total: finalTotal,
+            discountCode: appliedPromo?.code || null,
+            discountAmount: promoDiscountAmount || null,
             status: 'Pending Payment',
             date: Timestamp.now(),
             source: 'Client',
