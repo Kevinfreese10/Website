@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { notFound, useParams } from 'next/navigation';
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -23,6 +23,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { notifyStaffOfDocumentUpload, notifyOfNewNote, notifyStaffOfClientNote } from '@/app/actions';
+import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 
 
 const db = getFirestore(firebaseApp);
@@ -58,6 +59,10 @@ export default function ClientOrderDetailsPage() {
   const [uploadingFiles, setUploadingFiles] = useState<{ [key: string]: number }>({});
   const [textInputs, setTextInputs] = useState<{ [key: string]: string }>({});
   const [conditionalAnswers, setConditionalAnswers] = useState<Record<string, boolean>>({});
+
+  // Attached files & screenshots state for live preview
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleConditionalAnswer = async (serviceId: string, requirementLabel: string, answer: boolean) => {
       const uploadKey = `${serviceId}-${requirementLabel}`;
@@ -291,20 +296,28 @@ export default function ClientOrderDetailsPage() {
   const onNoteSubmit = async (values: z.infer<typeof noteFormSchema>) => {
     if (!currentUser || !order) return;
 
+    if (!values.noteText?.trim() && attachedFiles.length === 0) {
+      toast({ title: "Note Empty", description: "Please enter text or attach a screenshot/file.", variant: "destructive" });
+      return;
+    }
+
     setIsSubmitting(true);
     let attachments: { name: string; url: string }[] = [];
-    const file = values.attachment?.[0];
+    const filesToUpload = attachedFiles.length > 0 ? attachedFiles : (values.attachment ? Array.from(values.attachment as FileList) : []);
 
-    if (file) {
-      toast({ title: 'Uploading attachment...', description: 'Please wait.' });
+    if (filesToUpload.length > 0) {
+      toast({ title: `Uploading ${filesToUpload.length} attachment(s)...`, description: 'Please wait.' });
       try {
-        const uniqueFileName = `${Date.now()}-${file.name}`;
-        const storageRef = ref(storage, `uploads/${currentUser.uid}/orders/${order.id}/notes/${uniqueFileName}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
-        const snapshot = await uploadTask;
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        attachments = [{ name: file.name, url: downloadURL }];
-        toast({ title: 'Attachment Uploaded' });
+        const uploadPromises = filesToUpload.map(async (file: any) => {
+            const uniqueFileName = `${Date.now()}-${file.name}`;
+            const storageRef = ref(storage, `uploads/${currentUser.uid}/orders/${order.id}/notes/${uniqueFileName}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            const snapshot = await uploadTask;
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            return { name: file.name, url: downloadURL };
+        });
+        attachments = await Promise.all(uploadPromises);
+        toast({ title: 'Attachments Uploaded' });
       } catch (error) {
         console.error('Attachment upload failed:', error);
         toast({ title: 'Attachment Upload Failed', variant: 'destructive' });
@@ -337,6 +350,8 @@ export default function ClientOrderDetailsPage() {
 
       toast({ title: "Note Added", description: "Your note has been saved." });
       noteForm.reset();
+      setAttachedFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       await fetchOrderAndServices();
     } catch (error) {
       console.error("Error adding note:", error);
@@ -677,27 +692,76 @@ export default function ClientOrderDetailsPage() {
                         </div>
                          <Form {...noteForm}>
                             <form onSubmit={noteForm.handleSubmit(onNoteSubmit)} className="space-y-4 pt-4">
-                                <FormField control={noteForm.control} name="noteText" render={({ field }) => ( <FormItem><FormControl><Textarea placeholder="Add a new note..." {...field} rows={3} onPaste={(e) => {
-                                    const items = e.clipboardData?.items;
-                                    if (!items) return;
-                                    for (let i = 0; i < items.length; i++) {
-                                        if (items[i].type.indexOf('image') !== -1) {
-                                            const file = items[i].getAsFile();
-                                            if (file) {
-                                                const renamedFile = new File([file], `screenshot-${Date.now()}.png`, { type: file.type });
-                                                const dataTransfer = new DataTransfer();
-                                                const existing = noteForm.getValues('attachment');
-                                                if (existing) {
-                                                    Array.from(existing as FileList).forEach(f => dataTransfer.items.add(f));
-                                                }
-                                                dataTransfer.items.add(renamedFile);
-                                                noteForm.setValue('attachment', dataTransfer.files);
+                                <FormField control={noteForm.control} name="noteText" render={({ field }) => ( 
+                                    <FormItem>
+                                        <FormControl>
+                                            <Textarea 
+                                                placeholder="Add a new note... (Tip: You can paste screenshots directly with Ctrl+V)" 
+                                                {...field} 
+                                                rows={3} 
+                                                onPaste={(e) => {
+                                                    const items = e.clipboardData?.items;
+                                                    if (!items) return;
+                                                    const newImages: File[] = [];
+                                                    for (let i = 0; i < items.length; i++) {
+                                                        if (items[i].type.indexOf('image') !== -1) {
+                                                            const file = items[i].getAsFile();
+                                                            if (file) {
+                                                                const renamedFile = new File([file], `screenshot-${Date.now()}.png`, { type: file.type });
+                                                                newImages.push(renamedFile);
+                                                            }
+                                                        }
+                                                    }
+                                                    if (newImages.length > 0) {
+                                                        setAttachedFiles(prev => [...prev, ...newImages]);
+                                                        toast({ 
+                                                            title: '📸 Screenshot Captured!', 
+                                                            description: `${newImages.length} screenshot(s) attached. See preview below before posting.` 
+                                                        });
+                                                    }
+                                                }} 
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem> 
+                                )} />
+
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-semibold text-slate-700">Attachments (optional)</label>
+                                        <span className="text-[11px] text-muted-foreground font-mono">PNG, JPG, PDF, DOCX or Ctrl+V</span>
+                                    </div>
+                                    <Input 
+                                        ref={fileInputRef}
+                                        type="file" 
+                                        multiple 
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files.length > 0) {
+                                                const filesArray = Array.from(e.target.files);
+                                                setAttachedFiles(prev => [...prev, ...filesArray]);
                                             }
-                                            break;
-                                        }
-                                    }
-                                }} /></FormControl><FormMessage /></FormItem> )} />
-                                <div className="flex items-center gap-2"><FormField control={noteForm.control} name="attachment" render={({ field }) => ( <FormItem><FormControl><Input type="file" onChange={(e) => field.onChange(e.target.files)} className="max-w-xs" /></FormControl><FormMessage /></FormItem> )} /><Button type="submit" size="sm" disabled={isSubmitting}><Send className="h-4 w-4 mr-2" />Post Note</Button></div>
+                                        }} 
+                                    />
+                                </div>
+
+                                {/* Live Thumbnail & File Attachment Preview */}
+                                <NoteAttachmentsPreview 
+                                    files={attachedFiles} 
+                                    onRemoveFile={(idx) => {
+                                        setAttachedFiles(prev => prev.filter((_, i) => i !== idx));
+                                    }}
+                                    onClearAll={() => {
+                                        setAttachedFiles([]);
+                                        if (fileInputRef.current) fileInputRef.current.value = '';
+                                    }}
+                                />
+
+                                <div className="flex justify-end">
+                                    <Button type="submit" size="sm" disabled={isSubmitting}>
+                                        {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                                        Post Note
+                                    </Button>
+                                </div>
                             </form>
                         </Form>
                     </CardContent>

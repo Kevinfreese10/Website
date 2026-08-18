@@ -13,6 +13,7 @@ import { Loader2, Send, Paperclip, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { User } from '@/lib/types';
 import { sendNewPayrollNoteNotification } from '@/app/actions/payroll-portal';
+import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
@@ -36,7 +37,7 @@ interface CommunicationHistoryProps {
 export default function CommunicationHistory({ clientId, currentUser }: CommunicationHistoryProps) {
   const [notes, setNotes] = useState<PayrollNote[]>([]);
   const [noteText, setNoteText] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,34 +75,23 @@ export default function CommunicationHistory({ clientId, currentUser }: Communic
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!noteText.trim() && !selectedFile) return;
+    if (!noteText.trim() && attachedFiles.length === 0) return;
 
     setIsSubmitting(true);
     let attachments: { name: string; url: string }[] = [];
 
-    if (selectedFile) {
+    if (attachedFiles.length > 0) {
       setUploadProgress(0);
       try {
-        const uniqueFileName = `${Date.now()}-${selectedFile.name}`;
-        const storageRef = ref(storage, `ai-payroll/${clientId}/notes/${uniqueFileName}`);
-        const uploadTask = uploadBytesResumable(storageRef, selectedFile);
-        
-        await new Promise<void>((resolve, reject) => {
-          uploadTask.on('state_changed',
-            (snapshot) => {
-              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setUploadProgress(progress);
-            },
-            (error) => {
-              reject(error);
-            },
-            async () => {
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              attachments = [{ name: selectedFile.name, url: downloadURL }];
-              resolve();
-            }
-          );
+        const uploadPromises = attachedFiles.map(async (file) => {
+          const uniqueFileName = `${Date.now()}-${file.name}`;
+          const storageRef = ref(storage, `ai-payroll/${clientId}/notes/${uniqueFileName}`);
+          const uploadTask = uploadBytesResumable(storageRef, file);
+          const snapshot = await uploadTask;
+          const downloadURL = await getDownloadURL(snapshot.ref);
+          return { name: file.name, url: downloadURL };
         });
+        attachments = await Promise.all(uploadPromises);
       } catch (error) {
         console.error('File upload failed:', error);
         toast({ title: 'File Upload Failed', description: 'Could not upload attachment.', variant: 'destructive' });
@@ -136,7 +126,7 @@ export default function CommunicationHistory({ clientId, currentUser }: Communic
       }
 
       setNoteText('');
-      setSelectedFile(null);
+      setAttachedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
       toast({ title: 'Note Added', description: 'Your message has been posted.' });
     } catch (error) {
@@ -179,44 +169,49 @@ export default function CommunicationHistory({ clientId, currentUser }: Communic
                 <div key={note.id} className={`flex items-start gap-3 ${isMe ? 'justify-end' : 'justify-start'}`}>
                   <div className={`p-3 rounded-2xl max-w-[85%] border shadow-sm ${
                     isMe 
-                      ? 'bg-primary text-primary-foreground rounded-br-none border-primary/20' 
-                      : 'bg-muted rounded-bl-none text-slate-900 border-slate-200'
+                      ? 'bg-primary text-primary-foreground rounded-tr-none ml-auto' 
+                      : 'bg-muted/60 text-foreground rounded-tl-none mr-auto'
                   }`}>
-                    <div className="flex justify-between items-center mb-1 gap-4">
-                      <p className="text-[10px] font-black uppercase opacity-80">
-                        {isMe ? 'You' : note.authorName || 'Consultant'}
-                      </p>
-                      <p className="text-[9px] opacity-70">
+                    <div className="flex items-center justify-between gap-4 mb-1 border-b border-white/10 pb-1">
+                      <span className={`text-[11px] font-bold ${isMe ? 'text-primary-foreground/90' : 'text-primary'}`}>
+                        {isMe ? 'You' : note.authorName}
+                      </span>
+                      <span className={`text-[10px] ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                         {formattedDate}
-                      </p>
+                      </span>
                     </div>
-                    {isEmail ? (
-                      <div>
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Mail className="h-3.5 w-3.5 shrink-0" />
-                          <p className="text-xs font-bold">{note.subject}</p>
-                        </div>
-                        <p className="text-sm italic opacity-90 leading-relaxed font-medium">"{note.text}"</p>
+
+                    {isEmail && note.subject && (
+                      <div className={`text-xs font-semibold mb-1.5 flex items-center gap-1.5 ${
+                        isMe ? 'text-primary-foreground/95' : 'text-foreground'
+                      }`}>
+                        <Mail className="h-3.5 w-3.5" />
+                        <span>{note.subject}</span>
                       </div>
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed font-medium">
-                        {note.text}
-                      </p>
                     )}
+
+                    <p className={`text-xs whitespace-pre-wrap leading-relaxed ${
+                      isMe ? 'text-primary-foreground' : 'text-foreground/90'
+                    }`}>
+                      {note.text}
+                    </p>
+
                     {note.attachments && note.attachments.length > 0 && (
-                      <div className="mt-2 space-y-1">
+                      <div className="mt-2.5 pt-2 border-t border-white/10 space-y-1.5">
                         {note.attachments.map((att, i) => (
                           <a 
                             key={i} 
                             href={att.url} 
                             target="_blank" 
-                            rel="noopener noreferrer" 
-                            className={`text-xs font-bold hover:underline flex items-center gap-1 ${
-                              isMe ? 'text-primary-foreground' : 'text-primary'
+                            rel="noopener noreferrer"
+                            className={`text-xs flex items-center gap-1.5 p-1.5 rounded-lg transition-colors ${
+                              isMe 
+                                ? 'bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground' 
+                                : 'bg-background hover:bg-muted text-primary'
                             }`}
                           >
                             <Paperclip className="h-3.5 w-3.5 shrink-0" />
-                            {att.name}
+                            <span className="truncate max-w-[180px] font-medium">{att.name}</span>
                           </a>
                         ))}
                       </div>
@@ -226,58 +221,89 @@ export default function CommunicationHistory({ clientId, currentUser }: Communic
               );
             })
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground flex-grow">
-              <p className="font-semibold text-sm">No messages yet</p>
-              <p className="text-xs">Start the conversation by posting a note below.</p>
+            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+              <p className="text-xs">No notes or messages yet.</p>
+              <p className="text-[11px]">Send a note below to start the conversation.</p>
             </div>
           )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3 pt-3 border-t">
           <Textarea 
-            placeholder="Type a message or add a note..."
+            placeholder="Type a message or add a note... (Tip: You can paste screenshots directly with Ctrl+V)"
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
             onPaste={(e) => {
               const items = e.clipboardData?.items;
               if (!items) return;
+              const newImages: File[] = [];
               for (let i = 0; i < items.length; i++) {
                 if (items[i].type.indexOf('image') !== -1) {
                   const file = items[i].getAsFile();
                   if (file) {
-                    // Create a new File object with a recognizable name
                     const renamedFile = new File([file], `screenshot-${Date.now()}.png`, { type: file.type });
-                    setSelectedFile(renamedFile);
+                    newImages.push(renamedFile);
                   }
-                  break;
                 }
+              }
+              if (newImages.length > 0) {
+                setAttachedFiles(prev => [...prev, ...newImages]);
+                toast({ 
+                  title: '📸 Screenshot Captured!', 
+                  description: `${newImages.length} screenshot(s) attached. See preview below before posting.` 
+                });
               }
             }}
             rows={3}
             disabled={isSubmitting}
             className="bg-white border-primary/15 focus-visible:ring-primary text-sm"
           />
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2 max-w-xs sm:max-w-md">
-              <Input 
-                type="file" 
-                ref={fileInputRef}
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                disabled={isSubmitting}
-                className="max-w-[200px] h-9 text-xs"
-              />
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-700">Attachments (optional)</label>
+              <span className="text-[11px] text-muted-foreground font-mono">PNG, JPG, PDF, DOCX or Ctrl+V</span>
             </div>
-            
-            {uploadProgress !== null && (
-              <div className="text-xs text-primary font-bold animate-pulse">
-                Uploading... {Math.round(uploadProgress)}%
-              </div>
-            )}
+            <Input 
+              type="file" 
+              ref={fileInputRef}
+              multiple
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  const filesArray = Array.from(e.target.files);
+                  setAttachedFiles(prev => [...prev, ...filesArray]);
+                }
+              }}
+              disabled={isSubmitting}
+              className="h-9 text-xs"
+            />
+          </div>
+
+          {/* Live Thumbnail & File Attachment Preview */}
+          <NoteAttachmentsPreview 
+            files={attachedFiles} 
+            onRemoveFile={(idx) => {
+              setAttachedFiles(prev => prev.filter((_, i) => i !== idx));
+            }}
+            onClearAll={() => {
+              setAttachedFiles([]);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }}
+          />
+
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              {uploadProgress !== null && (
+                <div className="text-xs text-primary font-bold animate-pulse">
+                  Uploading... {Math.round(uploadProgress)}%
+                </div>
+              )}
+            </div>
 
             <Button 
               type="submit" 
               size="sm" 
-              disabled={isSubmitting || (!noteText.trim() && !selectedFile)}
+              disabled={isSubmitting || (!noteText.trim() && attachedFiles.length === 0)}
               className="gap-1.5 font-bold px-4"
             >
               {isSubmitting ? (
