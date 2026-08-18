@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp, collection, getDocs, where, query, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp, collection, getDocs, where, query, setDoc, orderBy, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { firebaseApp } from '@/lib/firebase';
 import { Order, Service, User, OrderNote, DocumentUpload } from '@/lib/types';
@@ -11,11 +11,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Eye, EyeOff, Calendar, ShoppingBag, CreditCard } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Eye, EyeOff, Calendar, ShoppingBag, CreditCard, Link as LinkIcon, Unlink, Plus, CheckCircle2, Search, AlertCircle, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,7 +30,7 @@ import PartnerAssignmentEmail from '@/components/emails/PartnerAssignmentEmail';
 import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
-import { updateOrderStatusAtomic, reassignOrderStaffAtomic } from '@/app/actions/order-admin-actions';
+import { updateOrderStatusAtomic, reassignOrderStaffAtomic, linkOrderDependencyAtomic, unlinkOrderDependencyAtomic } from '@/app/actions/order-admin-actions';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 
 const db = getFirestore(firebaseApp);
@@ -89,6 +91,17 @@ export default function AdminOrderDetailsPage() {
   const [customDocLabel, setCustomDocLabel] = useState('');
   const [customDocType, setCustomDocType] = useState<'pdf' | 'text'>('pdf');
   const [isSubmittingCustomDoc, setIsSubmittingCustomDoc] = useState(false);
+
+  // Order Dependency States
+  const [prereqOrders, setPrereqOrders] = useState<Order[]>([]);
+  const [dependentOrders, setDependentOrders] = useState<Order[]>([]);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const [candidateOrders, setCandidateOrders] = useState<Order[]>([]);
+  const [isSearchingCandidates, setIsSearchingCandidates] = useState(false);
+  const [isLinkingDependency, setIsLinkingDependency] = useState(false);
+  const [isOverrideDialogOpen, setIsOverrideDialogOpen] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<Order['status'] | null>(null);
 
   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
     resolver: zodResolver(noteFormSchema),
@@ -178,6 +191,185 @@ export default function AdminOrderDetailsPage() {
   useEffect(() => {
     fetchOrderAndStaff();
   }, [id]);
+
+  // Fetch detailed info for prerequisite and dependent orders
+  useEffect(() => {
+    if (!order) return;
+
+    const loadDependencies = async () => {
+      const prereqIds = order.dependsOnOrderIds || [];
+      const blockedIds = order.blockedOrderIds || [];
+
+      try {
+        if (prereqIds.length > 0) {
+          const prereqDocs = await Promise.all(
+            prereqIds.map((prereqId) => getDoc(doc(db, 'orders', prereqId)))
+          );
+          const loadedPrereqs: Order[] = prereqDocs
+            .filter((d) => d.exists())
+            .map((d) => ({ ...d.data(), id: d.id } as Order));
+          setPrereqOrders(loadedPrereqs);
+        } else {
+          setPrereqOrders([]);
+        }
+
+        if (blockedIds.length > 0) {
+          const blockedDocs = await Promise.all(
+            blockedIds.map((blockedId) => getDoc(doc(db, 'orders', blockedId)))
+          );
+          const loadedBlocked: Order[] = blockedDocs
+            .filter((d) => d.exists())
+            .map((d) => ({ ...d.data(), id: d.id } as Order));
+          setDependentOrders(loadedBlocked);
+        } else {
+          setDependentOrders([]);
+        }
+      } catch (err) {
+        console.error('Error loading order dependencies:', err);
+      }
+    };
+
+    loadDependencies();
+  }, [order?.dependsOnOrderIds, order?.blockedOrderIds, order?.id]);
+
+  // Search candidate orders to link as prerequisite
+  useEffect(() => {
+    if (!isLinkModalOpen) return;
+
+    const searchOrders = async () => {
+      setIsSearchingCandidates(true);
+      try {
+        const ordersRef = collection(db, 'orders');
+        const q = query(ordersRef, orderBy('date', 'desc'), limit(100));
+        const snap = await getDocs(q);
+        const allFetched = snap.docs
+          .map((d) => ({ ...d.data(), id: d.id } as Order))
+          .filter((o) => o.id !== order?.id && !(order?.dependsOnOrderIds || []).includes(o.id));
+        setCandidateOrders(allFetched);
+      } catch (err) {
+        console.error('Error searching candidate orders:', err);
+      } finally {
+        setIsSearchingCandidates(false);
+      }
+    };
+
+    searchOrders();
+  }, [isLinkModalOpen, order?.id, order?.dependsOnOrderIds]);
+
+  const incompletePrerequisites = useMemo(() => {
+    return prereqOrders.filter((p) => p.status !== 'Completed');
+  }, [prereqOrders]);
+
+  const filteredCandidates = useMemo(() => {
+    if (!orderSearchTerm.trim()) return candidateOrders;
+    const term = orderSearchTerm.toLowerCase();
+    return candidateOrders.filter((o) => {
+      return (
+        o.id.toLowerCase().includes(term) ||
+        o.customerName?.toLowerCase().includes(term) ||
+        o.customerEmail?.toLowerCase().includes(term) ||
+        o.items?.some((i) => i.title?.toLowerCase().includes(term))
+      );
+    });
+  }, [candidateOrders, orderSearchTerm]);
+
+  const sameClientCandidates = useMemo(() => {
+    if (!order) return [];
+    const clientEmail = (order.customerEmail || '').toLowerCase().trim();
+    const userId = order.userId;
+    return candidateOrders.filter((o) => {
+      const matchEmail = clientEmail && (o.customerEmail || '').toLowerCase().trim() === clientEmail;
+      const matchUser = userId && o.userId === userId;
+      return matchEmail || matchUser;
+    });
+  }, [candidateOrders, order]);
+
+  const handleLinkPrerequisite = async (targetOrderId: string) => {
+    if (!order || !currentUser) return;
+    setIsLinkingDependency(true);
+    try {
+      const res = await linkOrderDependencyAtomic(order.id, targetOrderId, {
+        id: currentUser.id || currentUser.uid,
+        name: currentUser.name || currentUser.email || 'Admin',
+      });
+      if (res.success) {
+        toast({ title: 'Prerequisite Linked', description: res.message });
+        setOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                dependsOnOrderIds: [...(prev.dependsOnOrderIds || []), targetOrderId],
+              }
+            : null
+        );
+        setIsLinkModalOpen(false);
+      } else {
+        toast({ title: 'Linking Failed', description: res.error, variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsLinkingDependency(false);
+    }
+  };
+
+  const handleUnlinkPrerequisite = async (targetOrderId: string) => {
+    if (!order || !currentUser) return;
+    try {
+      const res = await unlinkOrderDependencyAtomic(order.id, targetOrderId, {
+        id: currentUser.id || currentUser.uid,
+        name: currentUser.name || currentUser.email || 'Admin',
+      });
+      if (res.success) {
+        toast({ title: 'Prerequisite Unlinked', description: res.message });
+        setOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                dependsOnOrderIds: (prev.dependsOnOrderIds || []).filter((id) => id !== targetOrderId),
+              }
+            : null
+        );
+      } else {
+        toast({ title: 'Unlink Failed', description: res.error, variant: 'destructive' });
+      }
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const executeStatusChange = async (newStatus: Order['status'], isOverride = false) => {
+    if (!order || !currentUser) return;
+    const details = isOverride
+      ? `Status changed to ${newStatus} (Overrode incomplete prerequisite orders: ${incompletePrerequisites.map(p => `#${p.id}`).join(', ')})`
+      : undefined;
+
+    const res = await updateOrderStatusAtomic(
+      order.id,
+      newStatus,
+      {
+        id: currentUser.id || currentUser.uid,
+        name: currentUser.name || currentUser.email || 'Admin',
+      },
+      details
+    );
+
+    if (res.success) {
+      setOrder((prev) => (prev ? { ...prev, status: newStatus } : null));
+      toast({ title: 'Status Updated', description: `Status changed to ${newStatus}` });
+    } else {
+      toast({ title: 'Error', description: res.error, variant: 'destructive' });
+    }
+  };
+
+  const handleStatusChangeRequest = (newStatus: Order['status']) => {
+    if (newStatus === 'Completed' && incompletePrerequisites.length > 0) {
+      setPendingStatusChange(newStatus);
+      setIsOverrideDialogOpen(true);
+      return;
+    }
+    executeStatusChange(newStatus);
+  };
 
   const onNoteSubmit = async (values: z.infer<typeof noteFormSchema>) => {
     if (!currentUser || !order) return;
@@ -651,7 +843,208 @@ export default function AdminOrderDetailsPage() {
                     </form>
                 </DialogContent>
             </Dialog>
+            {/* Link Prerequisite Order Dialog */}
+            <Dialog open={isLinkModalOpen} onOpenChange={setIsLinkModalOpen}>
+                <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <LinkIcon className="h-5 w-5 text-primary" /> Link Prerequisite Order
+                        </DialogTitle>
+                        <DialogDescription>
+                            Select an order that must be finished <strong>before</strong> Order #{order.id} can be completed.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2 flex-1 overflow-hidden flex flex-col">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search by Order ID, Client Name, Email, or Service..."
+                                className="pl-9"
+                                value={orderSearchTerm}
+                                onChange={(e) => setOrderSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        <ScrollArea className="flex-1 max-h-[380px] pr-3">
+                            {isSearchingCandidates ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {/* Same Client Quick Picks */}
+                                    {!orderSearchTerm.trim() && sameClientCandidates.length > 0 && (
+                                        <div className="space-y-2">
+                                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                                                <UserIcon className="h-3.5 w-3.5" /> Other Orders From This Client
+                                            </span>
+                                            <div className="space-y-1.5">
+                                                {sameClientCandidates.map((candidate) => (
+                                                    <div 
+                                                        key={candidate.id}
+                                                        className="flex items-center justify-between p-3 rounded-lg border bg-primary/5 hover:bg-primary/10 transition-colors"
+                                                    >
+                                                        <div className="min-w-0 pr-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-sm text-foreground">Order #{candidate.id}</span>
+                                                                <Badge variant={getStatusVariant(candidate.status)} className="text-[10px] uppercase font-bold">
+                                                                    {candidate.status}
+                                                                </Badge>
+                                                            </div>
+                                                            <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
+                                                                {candidate.items?.map(i => i.title).join(', ') || 'Custom Order'}
+                                                            </p>
+                                                            <p className="text-[11px] text-muted-foreground/80">
+                                                                {format(new Date(candidate.date), 'dd MMM yyyy')} • {formatPrice(candidate.total)}
+                                                            </p>
+                                                        </div>
+                                                        <Button
+                                                            size="sm"
+                                                            disabled={isLinkingDependency}
+                                                            onClick={() => handleLinkPrerequisite(candidate.id)}
+                                                            className="shrink-0 font-semibold"
+                                                        >
+                                                            {isLinkingDependency ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
+                                                            Link Prereq
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* All Matching Orders */}
+                                    <div className="space-y-2">
+                                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                                            {orderSearchTerm.trim() ? `Search Results (${filteredCandidates.length})` : 'All Recent Orders'}
+                                        </span>
+                                        {filteredCandidates.length > 0 ? (
+                                            <div className="space-y-1.5">
+                                                {filteredCandidates.map((candidate) => (
+                                                    <div 
+                                                        key={candidate.id}
+                                                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                                                    >
+                                                        <div className="min-w-0 pr-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-sm text-foreground">Order #{candidate.id}</span>
+                                                                <Badge variant={getStatusVariant(candidate.status)} className="text-[10px] uppercase font-bold">
+                                                                    {candidate.status}
+                                                                </Badge>
+                                                            </div>
+                                                            <p className="text-xs text-foreground/90 font-medium truncate mt-0.5">
+                                                                {candidate.customerName} ({candidate.customerEmail})
+                                                            </p>
+                                                            <p className="text-[11px] text-muted-foreground truncate">
+                                                                {candidate.items?.map(i => i.title).join(', ') || 'Custom Order'}
+                                                            </p>
+                                                        </div>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            disabled={isLinkingDependency}
+                                                            onClick={() => handleLinkPrerequisite(candidate.id)}
+                                                            className="shrink-0 font-semibold hover:bg-primary hover:text-primary-foreground"
+                                                        >
+                                                            {isLinkingDependency ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
+                                                            Link
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 text-xs text-muted-foreground border border-dashed rounded-lg">
+                                                No matching orders found.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </ScrollArea>
+                    </div>
+
+                    <DialogFooter className="pt-2 border-t">
+                        <Button variant="outline" onClick={() => setIsLinkModalOpen(false)}>
+                            Cancel
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Incomplete Prerequisite Override Warning Alert Dialog */}
+            <AlertDialog open={isOverrideDialogOpen} onOpenChange={setIsOverrideDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+                            <AlertTriangle className="h-5 w-5" /> Incomplete Prerequisite Warning
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2 pt-2">
+                            <p>
+                                Order #{order.id} has <strong>{incompletePrerequisites.length} prerequisite {incompletePrerequisites.length === 1 ? 'order' : 'orders'}</strong> that have not been completed yet:
+                            </p>
+                            <div className="bg-amber-500/10 p-3 rounded-md border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                                {incompletePrerequisites.map((p) => (
+                                    <div key={p.id} className="flex items-center justify-between font-semibold">
+                                        <span>Order #{p.id} ({p.items?.map(i => i.title).join(', ') || 'Custom'})</span>
+                                        <Badge variant={getStatusVariant(p.status)} className="text-[9px] uppercase">
+                                            {p.status}
+                                        </Badge>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Completing this order before its prerequisites are finished may result in missing dependencies. Are you sure you want to proceed and mark this order as <strong>Completed</strong>?
+                            </p>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setPendingStatusChange(null)}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction 
+                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                            onClick={() => {
+                                if (pendingStatusChange) {
+                                    executeStatusChange(pendingStatusChange, true);
+                                    setPendingStatusChange(null);
+                                }
+                            }}
+                        >
+                            Yes, Mark as Completed
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <Button variant="outline" asChild><Link href="/admin/orders"><ArrowLeft className="mr-2 h-4 w-4" />Back to Orders</Link></Button>
+
+            {/* Prerequisite Dependency Warning Banner */}
+            {incompletePrerequisites.length > 0 && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3.5 text-amber-900 dark:text-amber-200">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="flex-1 text-sm">
+                        <p className="font-bold flex items-center gap-2">
+                            Prerequisite Order Dependency Warning
+                            <Badge variant="outline" className="bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/40 text-[10px]">
+                                {incompletePrerequisites.length} Pending {incompletePrerequisites.length === 1 ? 'Prerequisite' : 'Prerequisites'}
+                            </Badge>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            This order is dependent on{' '}
+                            {incompletePrerequisites.map((p, idx) => (
+                                <span key={p.id}>
+                                    <Link href={`/admin/orders/${p.id}`} className="font-bold underline text-primary hover:text-primary/80">
+                                        Order #{p.id} ({p.items?.map(i => i.title).join(', ') || 'Custom'} - {p.status})
+                                    </Link>
+                                    {idx < incompletePrerequisites.length - 1 ? ', ' : ''}
+                                </span>
+                            ))}{' '}
+                            being finished first. Please ensure prerequisite work is finalized before completing this order.
+                        </p>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2 space-y-8">
@@ -967,19 +1360,7 @@ export default function AdminOrderDetailsPage() {
                             </div>
                             <Select 
                                 value={order.status} 
-                                onValueChange={async (newStatus: any) => {
-                                    if (!currentUser) return;
-                                    const res = await updateOrderStatusAtomic(order.id, newStatus, {
-                                        id: currentUser.id || (currentUser as any).uid,
-                                        name: currentUser.name || currentUser.email || 'Admin',
-                                    });
-                                    if (res.success) {
-                                        setOrder(prev => prev ? { ...prev, status: newStatus } : null);
-                                        toast({ title: 'Status Updated', description: `Status changed to ${newStatus}` });
-                                    } else {
-                                        toast({ title: 'Error', description: res.error, variant: 'destructive' });
-                                    }
-                                }}
+                                onValueChange={(newStatus: any) => handleStatusChangeRequest(newStatus)}
                             >
                                 <SelectTrigger className="w-full h-9 text-xs font-semibold">
                                     <SelectValue placeholder="Change Status" />
@@ -1044,6 +1425,106 @@ export default function AdminOrderDetailsPage() {
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </CardContent>
+                    </Card>
+
+                    {/* Order Dependencies & Linked Orders Card */}
+                    <Card className="border shadow-sm">
+                        <CardHeader className="py-4 flex flex-row items-center justify-between space-y-0">
+                            <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                <LinkIcon className="h-4 w-4 text-primary" /> Order Dependencies
+                            </CardTitle>
+                            <Button 
+                                size="xs" 
+                                variant="outline" 
+                                className="h-7 text-xs font-semibold gap-1"
+                                onClick={() => {
+                                    setOrderSearchTerm('');
+                                    setIsLinkModalOpen(true);
+                                }}
+                            >
+                                <Plus className="h-3 w-3" /> Link Prereq
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-4 pt-0">
+                            {/* Prerequisites List (Must finish before this order) */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                                        Prerequisites (Must finish first)
+                                    </span>
+                                    <span className="text-[10px] font-bold text-muted-foreground">
+                                        {prereqOrders.length}
+                                    </span>
+                                </div>
+                                {prereqOrders.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {prereqOrders.map((prereq) => (
+                                            <div key={prereq.id} className="flex items-center justify-between p-2 rounded-md border bg-muted/30 text-xs">
+                                                <div className="min-w-0 pr-2">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <Link href={`/admin/orders/${prereq.id}`} className="font-bold text-primary hover:underline">
+                                                            #{prereq.id}
+                                                        </Link>
+                                                        <Badge variant={getStatusVariant(prereq.status)} className="text-[9px] px-1.5 py-0 uppercase font-black">
+                                                            {prereq.status}
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-[10px] text-muted-foreground truncate max-w-[170px] mt-0.5">
+                                                        {prereq.items?.map(i => i.title).join(', ') || prereq.customerName}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="xs"
+                                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                                                    onClick={() => handleUnlinkPrerequisite(prereq.id)}
+                                                    title="Unlink Prerequisite"
+                                                >
+                                                    <Unlink className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-[11px] text-muted-foreground italic bg-muted/20 p-2 rounded border border-dashed text-center">
+                                        No prerequisite orders linked.
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Dependent Orders (Orders waiting on this one) */}
+                            {dependentOrders.length > 0 && (
+                                <div className="space-y-2 pt-2 border-t border-border/40">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                                            Dependent Orders (Blocked by this)
+                                        </span>
+                                        <span className="text-[10px] font-bold text-muted-foreground">
+                                            {dependentOrders.length}
+                                        </span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {dependentOrders.map((dep) => (
+                                            <div key={dep.id} className="flex items-center justify-between p-2 rounded-md border bg-blue-500/5 border-blue-500/20 text-xs">
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <Link href={`/admin/orders/${dep.id}`} className="font-bold text-primary hover:underline">
+                                                            #{dep.id}
+                                                        </Link>
+                                                        <Badge variant={getStatusVariant(dep.status)} className="text-[9px] px-1.5 py-0 uppercase font-black">
+                                                            {dep.status}
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-[10px] text-muted-foreground truncate max-w-[190px] mt-0.5">
+                                                        {dep.customerName} • {dep.items?.map(i => i.title).join(', ')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 

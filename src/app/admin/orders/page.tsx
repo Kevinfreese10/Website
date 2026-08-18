@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter, RefreshCw } from 'lucide-react';
+import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter, RefreshCw, Link as LinkIcon, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -315,6 +315,16 @@ export default function AdminOrdersPage() {
 
     let assignedStaffIds = orderToUpdate.assignedTo;
     let assignedStaffMember = assignedStaffIds?.[0] ? allStaff.find(s => s.id === assignedStaffIds![0]) : undefined;
+
+    if (newStatus === 'Completed' && orderToUpdate.dependsOnOrderIds && orderToUpdate.dependsOnOrderIds.length > 0) {
+        const incomplete = orders.filter(o => orderToUpdate.dependsOnOrderIds?.includes(o.id) && o.status !== 'Completed');
+        if (incomplete.length > 0) {
+            toast({
+                title: '⚠️ Prerequisite Incomplete Warning',
+                description: `Order #${orderId} depends on Order(s) ${incomplete.map(i => `#${i.id}`).join(', ')} which are still ${incomplete[0].status}.`,
+            });
+        }
+    }
 
 
     // New Logic: Assign staff only when moving to "Processing"
@@ -661,7 +671,53 @@ export default function AdminOrdersPage() {
                     return (
                     <TableRow key={order.id} className="hover:bg-muted/5 transition-colors">
                         <TableCell className="font-bold text-slate-900">
-                            <p>{order.originalOrderId || order.id}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <p>{order.originalOrderId || order.id}</p>
+                                {order.dependsOnOrderIds && order.dependsOnOrderIds.length > 0 && (() => {
+                                    const hasIncomplete = orders.some(o => order.dependsOnOrderIds?.includes(o.id) && o.status !== 'Completed');
+                                    return (
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="cursor-help inline-flex">
+                                                        {hasIncomplete ? (
+                                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-500/10 text-amber-700 border-amber-500/30 gap-1 font-bold">
+                                                                <AlertTriangle className="h-2.5 w-2.5 text-amber-600" />
+                                                                Blocked
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-700 border-emerald-500/30 gap-1 font-bold">
+                                                                <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600" />
+                                                                Prereqs Done
+                                                            </Badge>
+                                                        )}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p className="text-xs">Prerequisites: {order.dependsOnOrderIds.map(id => `#${id}`).join(', ')}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    );
+                                })()}
+                                {order.blockedOrderIds && order.blockedOrderIds.length > 0 && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <span className="cursor-help inline-flex">
+                                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-500/10 text-blue-700 border-blue-500/30 gap-1 font-bold">
+                                                        <LinkIcon className="h-2.5 w-2.5 text-blue-600" />
+                                                        Blocks #{order.blockedOrderIds.join(', #')}
+                                                    </Badge>
+                                                </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="text-xs">Dependent Orders waiting on this: {order.blockedOrderIds.map(id => `#${id}`).join(', ')}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+                            </div>
                             <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{format(new Date(order.date), 'dd MMM yyyy')}</p>
                         </TableCell>
                         <TableCell>

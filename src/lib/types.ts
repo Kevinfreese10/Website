@@ -182,6 +182,8 @@ export type Order = {
   overflowSubmittedAt?: any;
   overflowCompletedAt?: any;
   overflowPayoutStatus?: 'none' | 'pending' | 'can_request' | 'requested' | 'paid';
+  dependsOnOrderIds?: string[];
+  blockedOrderIds?: string[];
 };
 
 export type Invoice = {

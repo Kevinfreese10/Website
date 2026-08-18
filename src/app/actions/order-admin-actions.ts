@@ -181,3 +181,168 @@ export async function getNextStaffMemberPersisted(
     return staffMembers[0] || null;
   }
 }
+
+/**
+ * Links a prerequisite order dependency atomically.
+ * (orderId depends on prerequisiteOrderId being finished first)
+ */
+export async function linkOrderDependencyAtomic(
+  orderId: string,
+  prerequisiteOrderId: string,
+  performer: { id: string; name: string }
+) {
+  try {
+    if (orderId === prerequisiteOrderId) {
+      return { success: false, error: 'An order cannot depend on itself.' };
+    }
+
+    const db = getAdminDb();
+    const batch = db.batch();
+
+    const orderRef = db.collection('orders').doc(orderId);
+    const prereqRef = db.collection('orders').doc(prerequisiteOrderId);
+
+    const [orderDoc, prereqDoc] = await Promise.all([
+      orderRef.get(),
+      prereqRef.get(),
+    ]);
+
+    if (!orderDoc.exists) {
+      return { success: false, error: `Order #${orderId} not found.` };
+    }
+    if (!prereqDoc.exists) {
+      return { success: false, error: `Prerequisite Order #${prerequisiteOrderId} not found.` };
+    }
+
+    const orderData = orderDoc.data() || {};
+    const prereqData = prereqDoc.data() || {};
+
+    const existingDependsOn: string[] = orderData.dependsOnOrderIds || [];
+    if (existingDependsOn.includes(prerequisiteOrderId)) {
+      return { success: false, error: `Order #${orderId} is already linked to prerequisite #${prerequisiteOrderId}.` };
+    }
+
+    // Circular dependency check: does prereqData already depend on orderId?
+    const prereqDependsOn: string[] = prereqData.dependsOnOrderIds || [];
+    if (prereqDependsOn.includes(orderId)) {
+      return {
+        success: false,
+        error: `Circular dependency detected: Order #${prerequisiteOrderId} already depends on Order #${orderId}.`,
+      };
+    }
+
+    const updatedDependsOn = [...existingDependsOn, prerequisiteOrderId];
+    const existingBlocked: string[] = prereqData.blockedOrderIds || [];
+    const updatedBlocked = Array.from(new Set([...existingBlocked, orderId]));
+
+    const auditEntryOrder: AuditEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      action: 'LINK_DEPENDENCY',
+      performedBy: performer.id,
+      performedByName: performer.name,
+      timestamp: new Date().toISOString(),
+      details: `Linked prerequisite Order #${prerequisiteOrderId} (Must finish before this order)`,
+    };
+
+    const auditEntryPrereq: AuditEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      action: 'LINK_DEPENDENCY',
+      performedBy: performer.id,
+      performedByName: performer.name,
+      timestamp: new Date().toISOString(),
+      details: `Linked dependent Order #${orderId} (Waiting on this order to finish)`,
+    };
+
+    batch.update(orderRef, {
+      dependsOnOrderIds: updatedDependsOn,
+      auditLog: [...(orderData.auditLog || []), auditEntryOrder],
+      updatedAt: new Date().toISOString(),
+    });
+
+    batch.update(prereqRef, {
+      blockedOrderIds: updatedBlocked,
+      auditLog: [...(prereqData.auditLog || []), auditEntryPrereq],
+      updatedAt: new Date().toISOString(),
+    });
+
+    await batch.commit();
+
+    return { success: true, message: `Successfully linked Order #${prerequisiteOrderId} as prerequisite for Order #${orderId}.` };
+  } catch (error: any) {
+    console.error('Error linking order dependency atomically:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Removes a prerequisite order dependency link atomically.
+ */
+export async function unlinkOrderDependencyAtomic(
+  orderId: string,
+  prerequisiteOrderId: string,
+  performer: { id: string; name: string }
+) {
+  try {
+    const db = getAdminDb();
+    const batch = db.batch();
+
+    const orderRef = db.collection('orders').doc(orderId);
+    const prereqRef = db.collection('orders').doc(prerequisiteOrderId);
+
+    const [orderDoc, prereqDoc] = await Promise.all([
+      orderRef.get(),
+      prereqRef.get(),
+    ]);
+
+    if (!orderDoc.exists) {
+      return { success: false, error: `Order #${orderId} not found.` };
+    }
+
+    const orderData = orderDoc.data() || {};
+    const existingDependsOn: string[] = orderData.dependsOnOrderIds || [];
+    const updatedDependsOn = existingDependsOn.filter((id) => id !== prerequisiteOrderId);
+
+    const auditEntryOrder: AuditEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      action: 'UNLINK_DEPENDENCY',
+      performedBy: performer.id,
+      performedByName: performer.name,
+      timestamp: new Date().toISOString(),
+      details: `Removed prerequisite link to Order #${prerequisiteOrderId}`,
+    };
+
+    batch.update(orderRef, {
+      dependsOnOrderIds: updatedDependsOn,
+      auditLog: [...(orderData.auditLog || []), auditEntryOrder],
+      updatedAt: new Date().toISOString(),
+    });
+
+    if (prereqDoc.exists) {
+      const prereqData = prereqDoc.data() || {};
+      const existingBlocked: string[] = prereqData.blockedOrderIds || [];
+      const updatedBlocked = existingBlocked.filter((id) => id !== orderId);
+
+      const auditEntryPrereq: AuditEntry = {
+        id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        action: 'UNLINK_DEPENDENCY',
+        performedBy: performer.id,
+        performedByName: performer.name,
+        timestamp: new Date().toISOString(),
+        details: `Removed dependent link from Order #${orderId}`,
+      };
+
+      batch.update(prereqRef, {
+        blockedOrderIds: updatedBlocked,
+        auditLog: [...(prereqData.auditLog || []), auditEntryPrereq],
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    await batch.commit();
+
+    return { success: true, message: `Successfully unlinked prerequisite Order #${prerequisiteOrderId}.` };
+  } catch (error: any) {
+    console.error('Error unlinking order dependency atomically:', error);
+    return { success: false, error: error.message };
+  }
+}
