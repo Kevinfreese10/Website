@@ -880,67 +880,87 @@ export default function AdminOrderDetailsPage() {
             </Dialog>
             {/* Link Prerequisite Order Dialog */}
             <Dialog open={isLinkModalOpen} onOpenChange={setIsLinkModalOpen}>
-                <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-6">
+                    <DialogHeader className="pb-2 border-b">
+                        <DialogTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
                             <LinkIcon className="h-5 w-5 text-primary" /> Link Prerequisite Order
                         </DialogTitle>
-                        <DialogDescription>
-                            Select an order that must be finished <strong>before</strong> Order #{order.id} can be completed.
+                        <DialogDescription className="text-xs text-muted-foreground">
+                            Select an order that must be completed <strong>before</strong> Order #{order.originalOrderId || order.id} can be finalized.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-2 flex-1 overflow-hidden flex flex-col">
+                    <div className="space-y-4 py-3 flex-1 flex flex-col min-h-0">
                         <div className="relative">
                             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <Input 
                                 placeholder="Search by Order ID, Client Name, Email, or Service..."
-                                className="pl-9"
+                                className="pl-9 h-10 border-primary/20 bg-background"
                                 value={orderSearchTerm}
                                 onChange={(e) => setOrderSearchTerm(e.target.value)}
+                                autoFocus
                             />
+                            {orderSearchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => setOrderSearchTerm('')}
+                                    className="absolute right-3 top-3 text-xs text-muted-foreground hover:text-foreground font-semibold"
+                                >
+                                    Clear
+                                </button>
+                            )}
                         </div>
 
-                        <ScrollArea className="flex-1 max-h-[380px] pr-3">
+                        <div className="overflow-y-auto max-h-[52vh] pr-1 space-y-4">
                             {isSearchingCandidates ? (
-                                <div className="flex justify-center py-8">
-                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+                                    <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                                    <span className="text-xs font-medium">Loading orders...</span>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
+                                <>
                                     {/* Same Client Quick Picks */}
                                     {!orderSearchTerm.trim() && sameClientCandidates.length > 0 && (
-                                        <div className="space-y-2">
-                                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                                                <UserIcon className="h-3.5 w-3.5" /> Other Orders From This Client
-                                            </span>
-                                            <div className="space-y-1.5">
+                                        <div className="space-y-2.5 bg-blue-50/50 dark:bg-blue-950/20 p-3.5 rounded-xl border border-blue-200/70 dark:border-blue-800/60">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                                                    <UserIcon className="h-3.5 w-3.5" /> Orders From This Client
+                                                </span>
+                                                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded-full">
+                                                    {sameClientCandidates.length} Found
+                                                </span>
+                                            </div>
+                                            <div className="space-y-2">
                                                 {sameClientCandidates.map((candidate) => (
                                                     <div 
                                                         key={candidate.id}
-                                                        className="flex items-center justify-between p-3 rounded-lg border bg-primary/5 hover:bg-primary/10 transition-colors"
+                                                        className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-background hover:border-primary/50 transition-all shadow-sm"
                                                     >
-                                                        <div className="min-w-0 pr-3">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-bold text-sm text-foreground">Order #{candidate.id}</span>
-                                                                <Badge variant={getStatusVariant(candidate.status)} className="text-[10px] uppercase font-bold">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className="font-extrabold text-sm text-foreground">
+                                                                    Order #{candidate.originalOrderId || candidate.id}
+                                                                </span>
+                                                                <Badge variant={getStatusVariant(candidate.status)} className="text-[10px] uppercase font-black px-2 py-0.5">
                                                                     {candidate.status}
                                                                 </Badge>
                                                             </div>
-                                                            <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">
-                                                                {candidate.items?.map(i => i.title).join(', ') || 'Custom Order'}
+                                                            <p className="text-xs font-semibold text-foreground/90 mt-1 truncate">
+                                                                {candidate.items?.map(i => i.title).join(', ') || 'Custom Service Order'}
                                                             </p>
-                                                            <p className="text-[11px] text-muted-foreground/80">
-                                                                {safeFormatDate(candidate.date, 'dd MMM yyyy')} • {formatPrice(candidate.total)}
-                                                            </p>
+                                                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
+                                                                <span>{safeFormatDate(candidate.date, 'dd MMM yyyy')}</span>
+                                                                <span>•</span>
+                                                                <span className="font-semibold text-foreground/80">{formatPrice(candidate.total)}</span>
+                                                            </div>
                                                         </div>
                                                         <Button
                                                             size="sm"
                                                             disabled={isLinkingDependency}
                                                             onClick={() => handleLinkPrerequisite(candidate.id)}
-                                                            className="shrink-0 font-semibold"
+                                                            className="shrink-0 font-bold h-9 px-3.5 gap-1.5 shadow-sm"
                                                         >
-                                                            {isLinkingDependency ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
+                                                            {isLinkingDependency ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                                                             Link Prereq
                                                         </Button>
                                                     </div>
@@ -950,56 +970,78 @@ export default function AdminOrderDetailsPage() {
                                     )}
 
                                     {/* All Matching Orders */}
-                                    <div className="space-y-2">
-                                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
-                                            {orderSearchTerm.trim() ? `Search Results (${filteredCandidates.length})` : 'All Recent Orders'}
-                                        </span>
+                                    <div className="space-y-2.5">
+                                        <div className="flex items-center justify-between px-1">
+                                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                                                {orderSearchTerm.trim() ? `Search Results (${filteredCandidates.length})` : 'All Recent Orders'}
+                                            </span>
+                                        </div>
                                         {filteredCandidates.length > 0 ? (
-                                            <div className="space-y-1.5">
-                                                {filteredCandidates.map((candidate) => (
-                                                    <div 
-                                                        key={candidate.id}
-                                                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                                                    >
-                                                        <div className="min-w-0 pr-3">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-bold text-sm text-foreground">Order #{candidate.id}</span>
-                                                                <Badge variant={getStatusVariant(candidate.status)} className="text-[10px] uppercase font-bold">
-                                                                    {candidate.status}
-                                                                </Badge>
-                                                            </div>
-                                                            <p className="text-xs text-foreground/90 font-medium truncate mt-0.5">
-                                                                {candidate.customerName} ({candidate.customerEmail})
-                                                            </p>
-                                                            <p className="text-[11px] text-muted-foreground truncate">
-                                                                {candidate.items?.map(i => i.title).join(', ') || 'Custom Order'}
-                                                            </p>
-                                                        </div>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            disabled={isLinkingDependency}
-                                                            onClick={() => handleLinkPrerequisite(candidate.id)}
-                                                            className="shrink-0 font-semibold hover:bg-primary hover:text-primary-foreground"
+                                            <div className="space-y-2">
+                                                {filteredCandidates.map((candidate) => {
+                                                    const isSameClient = order && (
+                                                        ((order.customerEmail || '').toLowerCase().trim() === (candidate.customerEmail || '').toLowerCase().trim()) ||
+                                                        (order.userId && order.userId === candidate.userId)
+                                                    );
+                                                    return (
+                                                        <div 
+                                                            key={candidate.id}
+                                                            className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/30 hover:border-primary/40 transition-all shadow-sm"
                                                         >
-                                                            {isLinkingDependency ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
-                                                            Link
-                                                        </Button>
-                                                    </div>
-                                                ))}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <span className="font-extrabold text-sm text-foreground">
+                                                                        Order #{candidate.originalOrderId || candidate.id}
+                                                                    </span>
+                                                                    <Badge variant={getStatusVariant(candidate.status)} className="text-[10px] uppercase font-black px-2 py-0.5">
+                                                                        {candidate.status}
+                                                                    </Badge>
+                                                                    {isSameClient && (
+                                                                        <Badge variant="outline" className="text-[9px] font-bold text-blue-600 bg-blue-50 border-blue-200">
+                                                                            Same Client
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-xs text-foreground font-medium mt-1 truncate">
+                                                                    {candidate.customerName} <span className="text-muted-foreground">({candidate.customerEmail})</span>
+                                                                </p>
+                                                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5 flex-wrap">
+                                                                    <span className="truncate max-w-[240px]">
+                                                                        {candidate.items?.map(i => i.title).join(', ') || 'Custom Service'}
+                                                                    </span>
+                                                                    <span>•</span>
+                                                                    <span>{safeFormatDate(candidate.date, 'dd MMM yyyy')}</span>
+                                                                    <span>•</span>
+                                                                    <span className="font-semibold text-foreground/80">{formatPrice(candidate.total)}</span>
+                                                                </div>
+                                                            </div>
+                                                            <Button
+                                                                size="sm"
+                                                                variant={isSameClient ? 'default' : 'outline'}
+                                                                disabled={isLinkingDependency}
+                                                                onClick={() => handleLinkPrerequisite(candidate.id)}
+                                                                className="shrink-0 font-bold h-9 px-3.5 gap-1.5 shadow-sm"
+                                                            >
+                                                                {isLinkingDependency ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                                                                Link
+                                                            </Button>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         ) : (
-                                            <div className="text-center py-6 text-xs text-muted-foreground border border-dashed rounded-lg">
-                                                No matching orders found.
+                                            <div className="text-center py-10 text-xs text-muted-foreground border border-dashed rounded-xl bg-muted/10 space-y-1">
+                                                <p className="font-medium">No matching orders found.</p>
+                                                <p className="text-[11px] opacity-75">Try searching with a different order number or customer name.</p>
                                             </div>
                                         )}
                                     </div>
-                                </div>
+                                </>
                             )}
-                        </ScrollArea>
+                        </div>
                     </div>
 
-                    <DialogFooter className="pt-2 border-t">
+                    <DialogFooter className="pt-3 border-t flex justify-end">
                         <Button variant="outline" onClick={() => setIsLinkModalOpen(false)}>
                             Cancel
                         </Button>
