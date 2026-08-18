@@ -54,6 +54,20 @@ const formatPrice = (price: number) => {
     }).format(price);
 };
 
+const safeFormatDate = (rawDate: any, formatStr = 'dd MMM yyyy'): string => {
+  if (!rawDate) return '';
+  try {
+    if (typeof rawDate?.toDate === 'function') {
+      return format(rawDate.toDate(), formatStr);
+    }
+    const d = new Date(rawDate);
+    if (isNaN(d.getTime())) return '';
+    return format(d, formatStr);
+  } catch {
+    return '';
+  }
+};
+
 const noteFormSchema = z.object({
   noteText: z.string().optional(),
   attachments: z.any().optional(),
@@ -207,7 +221,14 @@ export default function AdminOrderDetailsPage() {
           );
           const loadedPrereqs: Order[] = prereqDocs
             .filter((d) => d.exists())
-            .map((d) => ({ ...d.data(), id: d.id } as Order));
+            .map((d) => {
+              const data = d.data() || {};
+              return {
+                ...data,
+                id: d.id,
+                date: data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString()),
+              } as Order;
+            });
           setPrereqOrders(loadedPrereqs);
         } else {
           setPrereqOrders([]);
@@ -219,7 +240,14 @@ export default function AdminOrderDetailsPage() {
           );
           const loadedBlocked: Order[] = blockedDocs
             .filter((d) => d.exists())
-            .map((d) => ({ ...d.data(), id: d.id } as Order));
+            .map((d) => {
+              const data = d.data() || {};
+              return {
+                ...data,
+                id: d.id,
+                date: data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString()),
+              } as Order;
+            });
           setDependentOrders(loadedBlocked);
         } else {
           setDependentOrders([]);
@@ -243,7 +271,14 @@ export default function AdminOrderDetailsPage() {
         const q = query(ordersRef, orderBy('date', 'desc'), limit(100));
         const snap = await getDocs(q);
         const allFetched = snap.docs
-          .map((d) => ({ ...d.data(), id: d.id } as Order))
+          .map((d) => {
+            const data = d.data() || {};
+            return {
+              ...data,
+              id: d.id,
+              date: data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString()),
+            } as Order;
+          })
           .filter((o) => o.id !== order?.id && !(order?.dependsOnOrderIds || []).includes(o.id));
         setCandidateOrders(allFetched);
       } catch (err) {
@@ -896,7 +931,7 @@ export default function AdminOrderDetailsPage() {
                                                                 {candidate.items?.map(i => i.title).join(', ') || 'Custom Order'}
                                                             </p>
                                                             <p className="text-[11px] text-muted-foreground/80">
-                                                                {format(new Date(candidate.date), 'dd MMM yyyy')} • {formatPrice(candidate.total)}
+                                                                {safeFormatDate(candidate.date, 'dd MMM yyyy')} • {formatPrice(candidate.total)}
                                                             </p>
                                                         </div>
                                                         <Button
@@ -1069,7 +1104,7 @@ export default function AdminOrderDetailsPage() {
                                     <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-1">
                                         <span className="flex items-center gap-1.5 font-medium">
                                             <Calendar className="h-3.5 w-3.5 text-primary" />
-                                            {format(new Date(order.date), 'dd/MM/yyyy, HH:mm')}
+                                            {safeFormatDate(order.date, 'dd/MM/yyyy, HH:mm')}
                                         </span>
                                         {order.source && (
                                             <span className="flex items-center gap-1.5 font-medium">
@@ -1332,7 +1367,7 @@ export default function AdminOrderDetailsPage() {
                                                             </Badge>
                                                           )}
                                                         </div>
-                                                        <p className="text-xs text-muted-foreground">{format(new Date(note.date), 'dd/MM/yyyy, HH:mm')}</p>
+                                                        <p className="text-xs text-muted-foreground">{safeFormatDate(note.date, 'dd/MM/yyyy, HH:mm')}</p>
                                                     </div>
                                                     {isEmail ? ( <div><div className="flex items-center gap-2 mb-1"><Mail className="h-4 w-4 text-muted-foreground" /><p className="text-sm font-semibold">{note.subject}</p></div><p className="text-sm italic text-muted-foreground">"{note.text}"</p></div> ) : ( <p className="text-sm" dangerouslySetInnerHTML={{ __html: note.text.replace(/\n/g, '<br />') }} /> )}
                                                      {note.attachments && note.attachments.length > 0 && ( <div className="mt-2 space-y-1">{note.attachments.map((att, i) => ( <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><Paperclip className="h-4 w-4"/>{att.name}</a> ))}</div> )}
@@ -1542,7 +1577,7 @@ export default function AdminOrderDetailsPage() {
                                         <div className="flex items-center justify-between font-bold text-foreground">
                                             <span>{entry.action.replace('_', ' ')}</span>
                                             <span className="text-[10px] text-muted-foreground font-normal">
-                                                {format(new Date(entry.timestamp), 'dd/MM, HH:mm')}
+                                                {safeFormatDate(entry.timestamp, 'dd/MM, HH:mm')}
                                             </span>
                                         </div>
                                         <p className="text-muted-foreground leading-snug">{entry.details}</p>

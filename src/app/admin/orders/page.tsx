@@ -435,6 +435,20 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const safeFormatDate = (rawDate: any, formatStr = 'dd MMM yyyy'): string => {
+    if (!rawDate) return '';
+    try {
+      if (typeof rawDate?.toDate === 'function') {
+        return format(rawDate.toDate(), formatStr);
+      }
+      const d = new Date(rawDate);
+      if (isNaN(d.getTime())) return '';
+      return format(d, formatStr);
+    } catch {
+      return '';
+    }
+  };
+
   const getAssignee = (userId?: string): User | undefined => {
     if (!userId) return undefined;
     return allStaff.find(u => u.id === userId);
@@ -718,7 +732,7 @@ export default function AdminOrdersPage() {
                                     </TooltipProvider>
                                 )}
                             </div>
-                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{format(new Date(order.date), 'dd MMM yyyy')}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{safeFormatDate(order.date, 'dd MMM yyyy')}</p>
                         </TableCell>
                         <TableCell>
                             <div className="flex flex-col">
