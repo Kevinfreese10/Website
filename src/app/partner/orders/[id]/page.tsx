@@ -248,7 +248,8 @@ export default function PartnerOrderDetailsPage() {
       if (isInternalNote) {
         notifyAllocatedUserOfInternalNote({
           orderId: order.id,
-          senderName: currentUser.name || order.customerName || 'Partner',
+          senderName: currentUser.name || currentUser.email || order.customerName || 'Partner',
+          senderEmail: currentUser.email || undefined,
           noteText: values.noteText || '',
         }).catch(err => console.error("Failed to send internal note notification:", err));
       } else {

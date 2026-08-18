@@ -19,6 +19,7 @@ interface NewNoteNotificationEmailProps {
   notePreview: string;
   actionUrl: string;
   isToClient: boolean;
+  isInternalNote?: boolean;
   resellerName?: string;
 }
 
@@ -76,9 +77,22 @@ const heading = {
   color: '#333'
 }
 
-export const NewNoteNotificationEmail = ({ recipientName, senderName, orderId, notePreview, actionUrl, isToClient, resellerName }: NewNoteNotificationEmailProps) => {
-    const previewText = `New note on Order #${orderId}`;
-    const headingText = isToClient ? "New Note on Your Order" : "Client Left a New Note";
+export const NewNoteNotificationEmail = ({ 
+  recipientName, 
+  senderName, 
+  orderId, 
+  notePreview, 
+  actionUrl, 
+  isToClient, 
+  isInternalNote = false,
+  resellerName 
+}: NewNoteNotificationEmailProps) => {
+    const previewText = isInternalNote 
+      ? `🔒 Internal note on Order #${orderId}` 
+      : `New note on Order #${orderId}`;
+    const headingText = isInternalNote 
+      ? "🔒 Internal Team Note" 
+      : (isToClient ? "New Note on Your Order" : "Client Left a New Note");
 
     return (
         <Html>

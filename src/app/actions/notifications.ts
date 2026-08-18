@@ -175,11 +175,13 @@ export async function notifyStaffOfClientNote({
 export async function notifyAllocatedUserOfInternalNote({
     orderId,
     senderName,
+    senderEmail,
     noteText,
 }: {
-    orderId: string,
-    senderName: string,
-    noteText: string,
+    orderId: string;
+    senderName: string;
+    senderEmail?: string;
+    noteText: string;
 }) {
     try {
         const adminDb = getAdminDb();
@@ -202,42 +204,64 @@ export async function notifyAllocatedUserOfInternalNote({
             }
         }
 
-        // Fetch staff members
+        // Fetch staff members (MUST have active staff/admin/ai role)
         for (const staffId of assignedStaffIds) {
             const staffSnap = await adminDb.collection('users').doc(staffId).get();
             if (staffSnap.exists) {
                 const staffUser = staffSnap.data() as User;
-                if (staffUser && staffUser.email) {
-                    recipients.push({
-                        email: staffUser.email,
-                        name: staffUser.name || 'Assigned Staff',
-                        role: 'staff'
-                    });
+                const isStaff = staffUser.role === 'staff' || staffUser.role === 'admin' || staffUser.role === 'ai_accountant';
+                const isActive = staffUser.isActive !== false && staffUser.status !== 'Inactive' && staffUser.status !== 'Archived' && staffUser.status !== 'Deactivated' && !(staffUser as any).disabled;
+                if (isStaff && isActive && staffUser.email) {
+                    if (!recipients.some(r => r.email.toLowerCase() === staffUser.email.toLowerCase())) {
+                        recipients.push({
+                            email: staffUser.email,
+                            name: staffUser.name || 'Assigned Staff',
+                            role: 'staff'
+                        });
+                    }
                 }
             }
         }
 
-        // 2. If sender is internal CAP staff, also notify the partner who owns/outsourced the order
-        if (orderData.customerEmail && !recipients.some(r => r.email === orderData.customerEmail)) {
-            recipients.push({
-                email: orderData.customerEmail,
-                name: orderData.customerName || 'Partner',
-                role: 'partner'
-            });
+        // 2. If this is an outsourced partner order, notify the partner account (ONLY if partner role)
+        // NEVER notify direct customers (clients) of internal notes!
+        if (orderData.resellerId) {
+            const resellerSnap = await adminDb.collection('users').doc(orderData.resellerId).get();
+            if (resellerSnap.exists) {
+                const resellerUser = resellerSnap.data() as User;
+                const isPartner = resellerUser.role === 'partner' || resellerUser.role === 'partner_staff';
+                const isActive = resellerUser.isActive !== false && resellerUser.status !== 'Inactive' && resellerUser.status !== 'Archived' && resellerUser.status !== 'Deactivated' && !(resellerUser as any).disabled;
+                if (isPartner && isActive && resellerUser.email) {
+                    if (!recipients.some(r => r.email.toLowerCase() === resellerUser.email.toLowerCase())) {
+                        recipients.push({
+                            email: resellerUser.email,
+                            name: resellerUser.companyName || resellerUser.name || 'Partner',
+                            role: 'partner'
+                        });
+                    }
+                }
+            }
         }
 
-        // 3. Default fallback if no staff assigned yet
-        if (recipients.length === 0) {
-            recipients.push({
-                email: 'info@myacc.co.za',
-                name: 'Support Team',
-                role: 'staff'
-            });
+        // 3. Exclude the sender so they do not receive an email for their own internal note
+        const filteredRecipients = recipients.filter(
+            r => !senderEmail || r.email.toLowerCase() !== senderEmail.toLowerCase()
+        );
+
+        // 4. Default fallback: If no other staff or partner was notified, alert support team (never the client)
+        if (filteredRecipients.length === 0) {
+            if (!senderEmail || senderEmail.toLowerCase() !== 'info@myacc.co.za') {
+                filteredRecipients.push({
+                    email: 'info@myacc.co.za',
+                    name: 'Support Team',
+                    role: 'staff'
+                });
+            }
         }
 
         const noteSnippet = noteText.substring(0, 200) + (noteText.length > 200 ? '...' : '');
 
-        for (const recipient of recipients) {
+        for (const recipient of filteredRecipients) {
             const actionUrl = recipient.role === 'partner'
                 ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/partner/orders/${orderData.id}`
                 : `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/admin/orders/${orderData.id}`;
@@ -250,7 +274,8 @@ export async function notifyAllocatedUserOfInternalNote({
                     notePreview: noteSnippet,
                     actionUrl,
                     isToClient: false,
-                    resellerName: 'My Accountant Internal Note'
+                    isInternalNote: true,
+                    resellerName: 'My Accountant Internal Team'
                 })
             );
 

@@ -464,7 +464,8 @@ export default function AdminOrderDetailsPage() {
       if (isInternalNote) {
         notifyAllocatedUserOfInternalNote({
           orderId: order.id,
-          senderName: currentUser.name || 'Admin / Staff',
+          senderName: currentUser.name || currentUser.email || 'Admin / Staff',
+          senderEmail: currentUser.email || undefined,
           noteText: values.noteText || '',
         }).catch(err => console.error("Failed to send internal note notification:", err));
       } else {
