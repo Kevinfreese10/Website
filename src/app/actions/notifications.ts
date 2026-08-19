@@ -193,9 +193,39 @@ export async function notifyAllocatedUserOfInternalNote({
         const orderData = { ...orderDoc.data(), id: orderDoc.id } as Order;
         const displayOrderId = orderData.originalOrderId || orderData.id;
 
-        const recipients: { email: string; name: string; role: 'staff' | 'partner' }[] = [];
+        // Build a strict blacklist of any email involved in the client / customer / reseller side of this order
+        const blacklistEmails = new Set<string>();
+        if (orderData.customerEmail) blacklistEmails.add(orderData.customerEmail.toLowerCase().trim());
+        if ((orderData as any).endCustomerEmail) blacklistEmails.add((orderData as any).endCustomerEmail.toLowerCase().trim());
+        if (senderEmail) blacklistEmails.add(senderEmail.toLowerCase().trim());
 
-        // 1. Look for staff assigned to this order or linked original order
+        // Look up the ordering user's email if userId is present
+        if (orderData.userId) {
+            try {
+                const clientUserSnap = await adminDb.collection('users').doc(orderData.userId).get();
+                if (clientUserSnap.exists && clientUserSnap.data()?.email) {
+                    blacklistEmails.add(clientUserSnap.data()!.email.toLowerCase().trim());
+                }
+            } catch (err) {
+                console.error('[notifyAllocatedUserOfInternalNote] Error looking up userId:', err);
+            }
+        }
+
+        // Look up the reseller/partner user's email if resellerId is present (partners must NOT receive internal staff notes)
+        if (orderData.resellerId) {
+            try {
+                const resellerSnap = await adminDb.collection('users').doc(orderData.resellerId).get();
+                if (resellerSnap.exists && resellerSnap.data()?.email) {
+                    blacklistEmails.add(resellerSnap.data()!.email.toLowerCase().trim());
+                }
+            } catch (err) {
+                console.error('[notifyAllocatedUserOfInternalNote] Error looking up resellerId:', err);
+            }
+        }
+
+        const recipients: { email: string; name: string }[] = [];
+
+        // 1. Look for internal My Accountant staff assigned to this order (or linked original order)
         let assignedStaffIds: string[] = orderData.assignedTo || [];
         if (assignedStaffIds.length === 0 && orderData.originalOrderId) {
             const origDoc = await adminDb.collection('orders').doc(orderData.originalOrderId).get();
@@ -204,72 +234,47 @@ export async function notifyAllocatedUserOfInternalNote({
             }
         }
 
-        // Fetch staff members (MUST have active staff/admin/ai role)
+        // Fetch staff members: MUST strictly have role 'staff', 'admin', or 'ai_accountant'
         for (const staffId of assignedStaffIds) {
             const staffSnap = await adminDb.collection('users').doc(staffId).get();
             if (staffSnap.exists) {
                 const staffUser = staffSnap.data() as User;
-                const isStaff = staffUser.role === 'staff' || staffUser.role === 'admin' || staffUser.role === 'ai_accountant';
+                const isInternalStaff = staffUser.role === 'staff' || staffUser.role === 'admin' || staffUser.role === 'ai_accountant';
                 const isActive = staffUser.isActive !== false && staffUser.status !== 'Inactive' && staffUser.status !== 'Archived' && staffUser.status !== 'Deactivated' && !(staffUser as any).disabled;
-                if (isStaff && isActive && staffUser.email) {
-                    if (!recipients.some(r => r.email.toLowerCase() === staffUser.email.toLowerCase())) {
+                
+                if (isInternalStaff && isActive && staffUser.email) {
+                    const normalizedEmail = staffUser.email.toLowerCase().trim();
+                    if (!blacklistEmails.has(normalizedEmail) && !recipients.some(r => r.email.toLowerCase() === normalizedEmail)) {
                         recipients.push({
-                            email: staffUser.email,
+                            email: staffUser.email.trim(),
                             name: staffUser.name || 'Assigned Staff',
-                            role: 'staff'
                         });
                     }
                 }
             }
         }
 
-        // 2. If this is an outsourced partner order, notify the partner account (ONLY if partner role)
-        // NEVER notify direct customers (clients) of internal notes!
-        if (orderData.resellerId) {
-            const resellerSnap = await adminDb.collection('users').doc(orderData.resellerId).get();
-            if (resellerSnap.exists) {
-                const resellerUser = resellerSnap.data() as User;
-                const isPartner = resellerUser.role === 'partner' || resellerUser.role === 'partner_staff';
-                const isActive = resellerUser.isActive !== false && resellerUser.status !== 'Inactive' && resellerUser.status !== 'Archived' && resellerUser.status !== 'Deactivated' && !(resellerUser as any).disabled;
-                if (isPartner && isActive && resellerUser.email) {
-                    if (!recipients.some(r => r.email.toLowerCase() === resellerUser.email.toLowerCase())) {
-                        recipients.push({
-                            email: resellerUser.email,
-                            name: resellerUser.companyName || resellerUser.name || 'Partner',
-                            role: 'partner'
-                        });
-                    }
-                }
-            }
-        }
-
-        // 3. Exclude the sender so they do not receive an email for their own internal note
-        const filteredRecipients = recipients.filter(
-            r => !senderEmail || r.email.toLowerCase() !== senderEmail.toLowerCase()
-        );
-
-        // 4. Default fallback: If no other staff or partner was notified, alert support team (never the client)
-        if (filteredRecipients.length === 0) {
-            if (!senderEmail || senderEmail.toLowerCase() !== 'info@myacc.co.za') {
-                filteredRecipients.push({
-                    email: 'info@myacc.co.za',
+        // 2. Default fallback: If no assigned staff was eligible (or sender is the only assigned staff),
+        // alert info@myacc.co.za ONLY if it is not blacklisted
+        if (recipients.length === 0) {
+            const defaultSupportEmail = 'info@myacc.co.za';
+            if (!blacklistEmails.has(defaultSupportEmail)) {
+                recipients.push({
+                    email: defaultSupportEmail,
                     name: 'Support Team',
-                    role: 'staff'
                 });
             }
         }
 
         const noteSnippet = noteText.substring(0, 200) + (noteText.length > 200 ? '...' : '');
 
-        for (const recipient of filteredRecipients) {
-            const actionUrl = recipient.role === 'partner'
-                ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/partner/orders/${orderData.id}`
-                : `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/admin/orders/${orderData.id}`;
+        for (const recipient of recipients) {
+            const actionUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/admin/orders/${orderData.id}`;
 
             const emailHtml = await render(
                 React.createElement(NewNoteNotificationEmail, {
                     recipientName: recipient.name,
-                    senderName: senderName || 'Partner/Staff',
+                    senderName: senderName || 'My Accountant Staff',
                     orderId: displayOrderId,
                     notePreview: noteSnippet,
                     actionUrl,
