@@ -19,156 +19,288 @@ interface OrderStatusUpdateEmailProps {
   message?: string;
 }
 
-const main = {
-  backgroundColor: '#f6f9fc',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
-};
-
-const container = {
-  backgroundColor: '#ffffff',
-  margin: '0 auto',
-  padding: '20px 0 48px',
-  marginBottom: '64px',
-};
-
-const box = {
-  padding: '0 48px',
-};
-
-const hr = {
-  borderColor: '#e6ebf1',
-  margin: '20px 0',
-};
-
-const paragraph = {
-  color: '#525f7f',
-  fontSize: '16px',
-  lineHeight: '24px',
-  textAlign: 'left' as const,
-};
-
-const anchor = {
-  color: '#214392',
-};
-
-const button = {
-  backgroundColor: '#214392',
-  borderRadius: '5px',
-  color: '#fff',
-  fontSize: '16px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  width: '100%',
-  padding: '12px',
-};
-
-const footer = {
-  color: '#8898aa',
-  fontSize: '12px',
-  lineHeight: '16px',
-};
-
-const heading = {
-  fontSize: '24px',
-  fontWeight: 'bold' as const,
-  marginBottom: '20px',
-  color: '#333'
-}
-
 export const OrderStatusUpdateEmail = ({ order, reseller, message }: OrderStatusUpdateEmailProps) => {
-    const isCompleted = order.status?.toLowerCase() === 'completed';
-    const previewText = isCompleted
-        ? `Order #${order.id} Completed - Leave a Review!`
-        : `Update on Order #${order.id}: ${order.status}`;
+  const isCompleted = order.status?.toLowerCase() === 'completed';
+  const previewText = isCompleted
+    ? `🎉 Order #${order.id} is Completed!`
+    : `Status Update on Order #${order.id}: ${order.status}`;
 
-    const companyName = reseller?.companyName || 'My Accountant';
-    const companyEmail = reseller?.email || 'info@myacc.co.za';
-    const companyAddress = reseller?.address ? `${reseller.address.street}, ${reseller.address.city}` : 'Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195';
+  const companyName = reseller?.companyName || 'My Accountant';
+  const companyEmail = reseller?.email || 'info@myacc.co.za';
+  const primaryColor = reseller?.landingPage?.primaryColor || '#1e3a8a';
+  const companyAddress = reseller?.address ? `${reseller.address.street}, ${reseller.address.city}` : 'Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195';
 
-    return (
-        <Html>
-        <Head />
-        <Preview>{previewText}</Preview>
-        <Body style={main}>
-            <Container style={container}>
-            <Section style={box}>
-                <Heading style={heading}>
-                    {isCompleted ? '🎉 Order Completed!' : 'Order Status Update'}
-                </Heading>
-                <Text style={paragraph}>
-                    Hi {order.customerName.split(' ')[0]},
-                </Text>
-                <Text style={paragraph}>
-                    The status of your order <strong style={{color: '#214392'}}>{order.id}</strong> has been updated to <strong style={{color: isCompleted ? '#166534' : '#214392'}}>{order.status}</strong>.
-                </Text>
-                
-                {message && (
-                    <Text style={paragraph}>
-                        <strong>Note:</strong> {message}
+  const firstName = (order.customerName || 'Client').split(' ')[0];
+
+  return (
+    <Html>
+      <Head />
+      <Preview>{previewText}</Preview>
+      <Body style={mainStyle}>
+        <Container style={containerStyle}>
+          
+          {/* Header Banner */}
+          <Section style={{ ...headerBannerStyle, backgroundColor: isCompleted ? '#15803d' : primaryColor }}>
+            <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+              <tbody>
+                <tr>
+                  <td>
+                    <Text style={headerBrandTitle}>{companyName}</Text>
+                    <Text style={headerBrandSubtitle}>
+                      {isCompleted ? 'Service Completed' : 'Order Update'}
                     </Text>
-                )}
+                  </td>
+                  <td align="right">
+                    <span style={orderBadgeStyle}>Order #{order.id}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </Section>
 
-                {isCompleted && (
-                    <Section style={{
-                        backgroundColor: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        borderRadius: '12px',
-                        padding: '24px',
-                        marginTop: '20px',
-                        marginBottom: '24px',
-                        textAlign: 'center' as const,
-                    }}>
-                        <Heading style={{ fontSize: '20px', fontWeight: 'bold', color: '#166534', margin: '0 0 10px 0' }}>
-                            ⭐ How did we do?
-                        </Heading>
-                        <Text style={{ color: '#15803d', fontSize: '14px', lineHeight: '22px', margin: '0 0 16px 0' }}>
-                            Your order has been successfully completed! We would love to hear about your experience. Leaving a quick review helps us continue delivering top-tier accounting & compliance services.
-                        </Text>
-                        <Button
-                            style={{
-                                backgroundColor: '#15803d',
-                                borderRadius: '8px',
-                                color: '#ffffff',
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                textDecoration: 'none',
-                                textAlign: 'center' as const,
-                                display: 'inline-block',
-                                padding: '12px 24px',
-                            }}
-                            href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/reviews`}
-                        >
-                            ⭐ Leave a Review
-                        </Button>
-                    </Section>
-                )}
+          {/* Main Card Content */}
+          <Section style={cardContentStyle}>
+            <Heading style={headingStyle}>
+              {isCompleted ? '🎉 Order Completed Successfully!' : 'Order Status Update'}
+            </Heading>
+            
+            <Text style={paragraphStyle}>
+              Hi {firstName},
+            </Text>
+            
+            <Text style={paragraphStyle}>
+              The status of your order <strong style={{ color: primaryColor }}>#{order.id}</strong> has been updated.
+            </Text>
 
-                <Text style={paragraph}>
-                    You can view the full details of your order by logging into your dashboard.
+            {/* Status Highlight Card */}
+            <div style={statusHighlightBoxStyle}>
+              <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                <tbody>
+                  <tr>
+                    <td>
+                      <Text style={statusHighlightLabel}>Current Status</Text>
+                      <Text style={{ ...statusHighlightValue, color: isCompleted ? '#166534' : '#1e3a8a' }}>
+                        {isCompleted ? '✓ Completed' : order.status}
+                      </Text>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {message && (
+              <div style={messageBoxStyle}>
+                <Text style={{ ...paragraphStyle, margin: 0, color: '#1e293b' }}>
+                  <strong>Update Note:</strong> {message}
                 </Text>
-                
-                 <Button style={button} href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`}>
-                    View Order Details
+              </div>
+            )}
+
+            {/* Review Card for Completed Orders */}
+            {isCompleted && (
+              <div style={reviewBoxStyle}>
+                <Heading style={{ fontSize: '18px', fontWeight: '800', color: '#166534', margin: '0 0 8px 0' }}>
+                  ⭐ How did we do?
+                </Heading>
+                <Text style={{ color: '#15803d', fontSize: '14px', lineHeight: '22px', margin: '0 0 16px 0' }}>
+                  Your order has been completed! If you're happy with our turnaround time and service, we'd love a quick 5-star review.
+                </Text>
+                <Button
+                  style={{
+                    backgroundColor: '#15803d',
+                    borderRadius: '8px',
+                    color: '#ffffff',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    textDecoration: 'none',
+                    textAlign: 'center',
+                    display: 'inline-block',
+                    padding: '12px 24px',
+                  }}
+                  href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/reviews`}
+                >
+                  ⭐ Leave a Quick Review
                 </Button>
+              </div>
+            )}
 
-                <Hr style={hr} />
-                
-                <Text style={paragraph}>
-                    Regards,
-                    <br />
-                    The {companyName} Team
-                </Text>
-                
-                <Text style={footer}>
-                     {companyName} | <a href={`mailto:${companyEmail}`} style={anchor}>{companyEmail}</a> | {companyAddress}
-                </Text>
+            <Text style={paragraphStyle}>
+              You can access your completed documents and full invoice history in your client dashboard.
+            </Text>
+
+            {/* CTA Button */}
+            <Section style={{ textAlign: 'center', marginTop: '28px', marginBottom: '28px' }}>
+              <Button 
+                style={{ ...buttonStyle, backgroundColor: primaryColor }} 
+                href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders/${order.id}`}
+              >
+                View Order in Dashboard
+              </Button>
             </Section>
-            </Container>
-        </Body>
-        </Html>
-    );
-}
+
+            <Hr style={dividerStyle} />
+
+            <Text style={paragraphStyle}>
+              Regards,
+              <br />
+              <strong>{companyName} Team</strong>
+            </Text>
+
+            {/* Footer */}
+            <Section style={footerSectionStyle}>
+              <Text style={footerTextStyle}>
+                {companyName} | {companyEmail} | {companyAddress}
+              </Text>
+              <Text style={footerTextStyle}>
+                © {new Date().getFullYear()} {companyName}. All rights reserved.
+              </Text>
+            </Section>
+          </Section>
+        </Container>
+      </Body>
+    </Html>
+  );
+};
 
 export default OrderStatusUpdateEmail;
+
+// --- Styles ---
+
+const mainStyle: React.CSSProperties = {
+  backgroundColor: '#f1f5f9',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  margin: 0,
+  padding: '32px 0',
+};
+
+const containerStyle: React.CSSProperties = {
+  backgroundColor: '#ffffff',
+  margin: '0 auto',
+  maxWidth: '600px',
+  borderRadius: '12px',
+  overflow: 'hidden',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+  border: '1px solid #e2e8f0',
+};
+
+const headerBannerStyle: React.CSSProperties = {
+  padding: '24px 32px',
+  color: '#ffffff',
+};
+
+const headerBrandTitle: React.CSSProperties = {
+  fontSize: '20px',
+  fontWeight: '800',
+  color: '#ffffff',
+  margin: 0,
+  letterSpacing: '-0.5px',
+};
+
+const headerBrandSubtitle: React.CSSProperties = {
+  fontSize: '12px',
+  color: 'rgba(255, 255, 255, 0.8)',
+  margin: '2px 0 0 0',
+};
+
+const orderBadgeStyle: React.CSSProperties = {
+  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  color: '#ffffff',
+  fontSize: '13px',
+  fontWeight: '700',
+  padding: '6px 12px',
+  borderRadius: '20px',
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+  display: 'inline-block',
+};
+
+const cardContentStyle: React.CSSProperties = {
+  padding: '32px 32px 24px',
+};
+
+const headingStyle: React.CSSProperties = {
+  fontSize: '22px',
+  fontWeight: '800',
+  color: '#0f172a',
+  margin: '0 0 16px 0',
+  letterSpacing: '-0.5px',
+};
+
+const paragraphStyle: React.CSSProperties = {
+  fontSize: '15px',
+  lineHeight: '24px',
+  color: '#334155',
+  margin: '0 0 14px 0',
+};
+
+const statusHighlightBoxStyle: React.CSSProperties = {
+  backgroundColor: '#f8fafc',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  padding: '16px 20px',
+  margin: '18px 0',
+};
+
+const statusHighlightLabel: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: '800',
+  color: '#64748b',
+  letterSpacing: '0.5px',
+  textTransform: 'uppercase',
+  margin: '0 0 4px 0',
+};
+
+const statusHighlightValue: React.CSSProperties = {
+  fontSize: '20px',
+  fontWeight: '800',
+  margin: 0,
+  letterSpacing: '-0.5px',
+};
+
+const messageBoxStyle: React.CSSProperties = {
+  backgroundColor: '#f1f5f9',
+  borderLeft: '4px solid #64748b',
+  borderRadius: '4px',
+  padding: '12px 16px',
+  margin: '14px 0',
+};
+
+const reviewBoxStyle: React.CSSProperties = {
+  backgroundColor: '#f0fdf4',
+  border: '1px solid #bbf7d0',
+  borderRadius: '10px',
+  padding: '20px',
+  marginTop: '20px',
+  marginBottom: '24px',
+  textAlign: 'center',
+};
+
+const buttonStyle: React.CSSProperties = {
+  color: '#ffffff',
+  fontSize: '15px',
+  fontWeight: '700',
+  textDecoration: 'none',
+  textAlign: 'center',
+  display: 'inline-block',
+  padding: '14px 32px',
+  borderRadius: '8px',
+  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+};
+
+const dividerStyle: React.CSSProperties = {
+  borderColor: '#e2e8f0',
+  margin: '24px 0',
+};
+
+const footerSectionStyle: React.CSSProperties = {
+  marginTop: '24px',
+  paddingTop: '16px',
+  borderTop: '1px solid #f1f5f9',
+};
+
+const footerTextStyle: React.CSSProperties = {
+  fontSize: '12px',
+  lineHeight: '18px',
+  color: '#94a3b8',
+  margin: '0 0 8px 0',
+};
+

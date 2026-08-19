@@ -35,13 +35,15 @@ export async function notifyStaffOfDocumentUpload({ orderId, clientName, assigne
 }
 
 export async function sendDocumentReviewFeedback({ orderId, clientName, clientEmail, documentUploads, resellerId }: { orderId: string, clientName: string, clientEmail: string, documentUploads: DocumentUpload[], resellerId?: string }) {
-    let resellerName = 'The My Accountant Team';
+    let resellerName = 'My Accountant';
+    let primaryColor = '#1e3a8a';
     const adminDb = getAdminDb();
     if (resellerId) {
         const resellerSnap = await adminDb.collection('users').doc(resellerId).get();
         if (resellerSnap.exists) {
             const resellerData = resellerSnap.data() as User;
-            resellerName = resellerData.companyName || resellerData.name;
+            resellerName = resellerData.companyName || resellerData.name || 'My Accountant';
+            primaryColor = resellerData.landingPage?.primaryColor || '#1e3a8a';
         }
     }
 
@@ -50,8 +52,9 @@ export async function sendDocumentReviewFeedback({ orderId, clientName, clientEm
             clientName,
             orderId,
             documentUploads,
-            orderUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${orderId}`,
-            resellerName: `The ${resellerName} Team`
+            orderUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders/${orderId}`,
+            resellerName,
+            primaryColor,
         })
     );
 
@@ -296,13 +299,15 @@ export async function notifyAllocatedUserOfInternalNote({
 }
 
 export async function sendOutstandingDocumentsReminder({ orderId, clientName, clientEmail, resellerId }: { orderId: string, clientName: string, clientEmail: string, resellerId?: string }) {
-    let resellerName = 'The My Accountant Team';
+    let resellerName = 'My Accountant';
+    let primaryColor = '#1e3a8a';
     const adminDb = getAdminDb();
     if (resellerId) {
         const resellerSnap = await adminDb.collection('users').doc(resellerId).get();
         if (resellerSnap.exists) {
             const resellerData = resellerSnap.data() as User;
-            resellerName = resellerData.companyName || resellerData.name;
+            resellerName = resellerData.companyName || resellerData.name || 'My Accountant';
+            primaryColor = resellerData.landingPage?.primaryColor || '#1e3a8a';
         }
     }
 
@@ -310,8 +315,9 @@ export async function sendOutstandingDocumentsReminder({ orderId, clientName, cl
         React.createElement(OutstandingDocumentsEmail, {
             clientName,
             orderId,
-            orderUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${orderId}`,
-            resellerName: `The ${resellerName} Team`
+            orderUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders/${orderId}`,
+            resellerName,
+            primaryColor,
         })
     );
 

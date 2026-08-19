@@ -19,109 +19,219 @@ interface PaymentConfirmationEmailProps {
   reseller?: User;
 }
 
-const main = {
-  backgroundColor: '#f6f9fc',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
-};
-
-const container = {
-  backgroundColor: '#ffffff',
-  margin: '0 auto',
-  padding: '20px 0 48px',
-  marginBottom: '64px',
-};
-
-const box = {
-  padding: '0 48px',
-};
-
-const hr = {
-  borderColor: '#e6ebf1',
-  margin: '20px 0',
-};
-
-const paragraph = {
-  color: '#525f7f',
-  fontSize: '16px',
-  lineHeight: '24px',
-  textAlign: 'left' as const,
-};
-
-const anchor = {
-  color: '#214392',
-};
-
-const button = {
-  backgroundColor: '#214392',
-  borderRadius: '5px',
-  color: '#fff',
-  fontSize: '16px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  width: '100%',
-  padding: '12px',
-};
-
-const footer = {
-  color: '#8898aa',
-  fontSize: '12px',
-  lineHeight: '16px',
-};
-
-const heading = {
-  fontSize: '24px',
-  fontWeight: 'bold' as const,
-  marginBottom: '20px',
-  color: '#333'
-}
-
 export const PaymentConfirmationEmail = ({ order, reseller }: PaymentConfirmationEmailProps) => {
-    const previewText = `Payment Received for Order #${order.id}`;
+  const companyName = reseller?.companyName || 'My Accountant';
+  const companyEmail = reseller?.email || 'info@myacc.co.za';
+  const primaryColor = reseller?.landingPage?.primaryColor || '#1e3a8a';
+  const companyAddress = reseller?.address ? `${reseller.address.street}, ${reseller.address.city}` : 'Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195';
 
-    const companyName = reseller?.companyName || 'My Accountant';
-    const companyEmail = reseller?.email || 'info@myacc.co.za';
-    const companyAddress = reseller?.address ? `${reseller.address.street}, ${reseller.address.city}` : 'Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195';
+  const previewText = `Payment Confirmed: Order #${order.id}`;
+  const firstName = (order.customerName || 'Client').split(' ')[0];
 
-    return (
-        <Html>
-        <Head />
-        <Preview>{previewText}</Preview>
-        <Body style={main}>
-            <Container style={container}>
-            <Section style={box}>
-                <Heading style={heading}>Payment Received!</Heading>
-                <Text style={paragraph}>
-                    Hi {order.customerName.split(' ')[0]},
-                </Text>
-                <Text style={paragraph}>
-                    This is to confirm that we have received payment for your order <strong style={{color: '#214392'}}>{order.id}</strong>.
-                </Text>
-                <Text style={paragraph}>
-                    Our team will begin processing your services shortly. If any documents or further information are required, a consultant will be in touch with you soon. You can also view the requirements for your order by logging into your dashboard.
-                </Text>
-                
-                 <Button style={button} href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`}>
-                    View Order in Dashboard
-                </Button>
+  return (
+    <Html>
+      <Head />
+      <Preview>{previewText}</Preview>
+      <Body style={mainStyle}>
+        <Container style={containerStyle}>
+          
+          {/* Header Banner */}
+          <Section style={{ ...headerBannerStyle, backgroundColor: '#15803d' }}>
+            <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+              <tbody>
+                <tr>
+                  <td>
+                    <Text style={headerBrandTitle}>{companyName}</Text>
+                    <Text style={headerBrandSubtitle}>Payment Received</Text>
+                  </td>
+                  <td align="right">
+                    <span style={orderBadgeStyle}>Order #{order.id}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </Section>
 
-                <Hr style={hr} />
-                
-                <Text style={paragraph}>
-                    Regards,
-                    <br />
-                    The {companyName} Team
-                </Text>
-                
-                <Text style={footer}>
-                     {companyName} | <a href={`mailto:${companyEmail}`} style={anchor}>{companyEmail}</a> | {companyAddress}
-                </Text>
+          {/* Main Card Content */}
+          <Section style={cardContentStyle}>
+            <Heading style={headingStyle}>Payment Successfully Received!</Heading>
+            
+            <Text style={paragraphStyle}>
+              Hi {firstName},
+            </Text>
+            
+            <Text style={paragraphStyle}>
+              We are pleased to confirm receipt of your payment for order <strong style={{ color: primaryColor }}>#{order.id}</strong>.
+            </Text>
+
+            {/* Payment Verified Callout Box */}
+            <div style={successBoxStyle}>
+              <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                <tbody>
+                  <tr>
+                    <td width="28" style={{ verticalAlign: 'middle' }}>
+                      <span style={{ fontSize: '18px', color: '#166534' }}>✓</span>
+                    </td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <Text style={successTextStyle}>
+                        <strong>Payment Verified:</strong> Your order is now moving into our processing queue.
+                      </Text>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <Text style={paragraphStyle}>
+              If any additional documents or verifications are required for your service, please log in to your dashboard to complete the prerequisites so our team can expedite your filing.
+            </Text>
+
+            {/* CTA Button */}
+            <Section style={{ textAlign: 'center', marginTop: '28px', marginBottom: '28px' }}>
+              <Button 
+                style={{ ...buttonStyle, backgroundColor: primaryColor }} 
+                href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders/${order.id}`}
+              >
+                Go to Order Dashboard
+              </Button>
             </Section>
-            </Container>
-        </Body>
-        </Html>
-    );
-}
+
+            <Hr style={dividerStyle} />
+
+            <Text style={paragraphStyle}>
+              Regards,
+              <br />
+              <strong>{companyName} Team</strong>
+            </Text>
+
+            {/* Footer */}
+            <Section style={footerSectionStyle}>
+              <Text style={footerTextStyle}>
+                {companyName} | {companyEmail} | {companyAddress}
+              </Text>
+              <Text style={footerTextStyle}>
+                © {new Date().getFullYear()} {companyName}. All rights reserved.
+              </Text>
+            </Section>
+          </Section>
+        </Container>
+      </Body>
+    </Html>
+  );
+};
 
 export default PaymentConfirmationEmail;
+
+// --- Styles ---
+
+const mainStyle: React.CSSProperties = {
+  backgroundColor: '#f1f5f9',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  margin: 0,
+  padding: '32px 0',
+};
+
+const containerStyle: React.CSSProperties = {
+  backgroundColor: '#ffffff',
+  margin: '0 auto',
+  maxWidth: '600px',
+  borderRadius: '12px',
+  overflow: 'hidden',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+  border: '1px solid #e2e8f0',
+};
+
+const headerBannerStyle: React.CSSProperties = {
+  padding: '24px 32px',
+  color: '#ffffff',
+};
+
+const headerBrandTitle: React.CSSProperties = {
+  fontSize: '20px',
+  fontWeight: '800',
+  color: '#ffffff',
+  margin: 0,
+  letterSpacing: '-0.5px',
+};
+
+const headerBrandSubtitle: React.CSSProperties = {
+  fontSize: '12px',
+  color: 'rgba(255, 255, 255, 0.8)',
+  margin: '2px 0 0 0',
+};
+
+const orderBadgeStyle: React.CSSProperties = {
+  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  color: '#ffffff',
+  fontSize: '13px',
+  fontWeight: '700',
+  padding: '6px 12px',
+  borderRadius: '20px',
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+  display: 'inline-block',
+};
+
+const cardContentStyle: React.CSSProperties = {
+  padding: '32px 32px 24px',
+};
+
+const headingStyle: React.CSSProperties = {
+  fontSize: '22px',
+  fontWeight: '800',
+  color: '#0f172a',
+  margin: '0 0 16px 0',
+  letterSpacing: '-0.5px',
+};
+
+const paragraphStyle: React.CSSProperties = {
+  fontSize: '15px',
+  lineHeight: '24px',
+  color: '#334155',
+  margin: '0 0 14px 0',
+};
+
+const successBoxStyle: React.CSSProperties = {
+  backgroundColor: '#f0fdf4',
+  border: '1px solid #bbf7d0',
+  borderRadius: '8px',
+  padding: '14px 16px',
+  margin: '18px 0',
+};
+
+const successTextStyle: React.CSSProperties = {
+  color: '#15803d',
+  fontSize: '14px',
+  lineHeight: '20px',
+  margin: 0,
+};
+
+const buttonStyle: React.CSSProperties = {
+  color: '#ffffff',
+  fontSize: '15px',
+  fontWeight: '700',
+  textDecoration: 'none',
+  textAlign: 'center',
+  display: 'inline-block',
+  padding: '14px 32px',
+  borderRadius: '8px',
+  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+};
+
+const dividerStyle: React.CSSProperties = {
+  borderColor: '#e2e8f0',
+  margin: '24px 0',
+};
+
+const footerSectionStyle: React.CSSProperties = {
+  marginTop: '24px',
+  paddingTop: '16px',
+  borderTop: '1px solid #f1f5f9',
+};
+
+const footerTextStyle: React.CSSProperties = {
+  fontSize: '12px',
+  lineHeight: '18px',
+  color: '#94a3b8',
+  margin: '0 0 8px 0',
+};
+
