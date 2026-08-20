@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { notFound, useParams } from 'next/navigation';
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp, collection, getDocs, where, query, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { firebaseApp } from '@/lib/firebase';
 import { Order, Service, User, OrderNote, DocumentUpload } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +11,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock } from 'lucide-react';
+import { 
+  generateOrderDocumentDraftsAction, 
+  regenerateOrderDraftWithFeedbackAction, 
+  approveAndSendDraftToClientAction 
+} from '@/app/actions/order-fulfillment-pipeline';
+import { GeneratedDocumentDraft } from '@/lib/types';
+import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Bot, ExternalLink, RefreshCw, FileSignature, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
@@ -25,13 +30,13 @@ import { render } from '@react-email/components';
 import { Input } from '@/components/ui/input';
 import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
+import { db, firebaseApp } from '@/lib/firebase';
 
-const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
 
@@ -101,6 +106,14 @@ export default function PartnerOrderDetailsPage() {
   // Attached files & Screenshots state for live preview
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Draft Document Templates States
+  const [isGeneratingDrafts, setIsGeneratingDrafts] = useState(false);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [selectedDraftForFeedback, setSelectedDraftForFeedback] = useState<GeneratedDocumentDraft | null>(null);
+  const [draftFeedbackText, setDraftFeedbackText] = useState('');
+  const [isRegeneratingDraft, setIsRegeneratingDraft] = useState(false);
+  const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
 
   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
     resolver: zodResolver(noteFormSchema),
@@ -651,6 +664,76 @@ export default function PartnerOrderDetailsPage() {
     }
   };
 
+  const handleGenerateDrafts = async () => {
+    if (!order) return;
+    setIsGeneratingDrafts(true);
+    try {
+        const res = await generateOrderDocumentDraftsAction(order.id);
+        if (res.success) {
+            toast({ title: "Drafts Generated", description: res.message });
+            await fetchOrder();
+        } else {
+            toast({ title: "Draft Generation Failed", description: res.error, variant: "destructive" });
+        }
+    } catch (err: any) {
+        toast({ title: "Draft Generation Error", description: err.message, variant: "destructive" });
+    } finally {
+        setIsGeneratingDrafts(false);
+    }
+  };
+
+  const handleOpenFeedbackDialog = (draft: GeneratedDocumentDraft) => {
+    setSelectedDraftForFeedback(draft);
+    setDraftFeedbackText('');
+    setFeedbackDialogOpen(true);
+  };
+
+  const handleRegenerateDraftSubmit = async () => {
+    if (!order || !selectedDraftForFeedback || !draftFeedbackText.trim()) return;
+    setIsRegeneratingDraft(true);
+    try {
+        const res = await regenerateOrderDraftWithFeedbackAction(
+            order.id,
+            selectedDraftForFeedback.id,
+            draftFeedbackText,
+            { id: currentUser?.uid || 'partner', name: currentUser?.name || 'Partner' }
+        );
+        if (res.success) {
+            toast({ title: "Draft Regenerated", description: res.message });
+            setFeedbackDialogOpen(false);
+            await fetchOrder();
+        } else {
+            toast({ title: "Regeneration Failed", description: res.error, variant: "destructive" });
+        }
+    } catch (err: any) {
+        toast({ title: "Regeneration Error", description: err.message, variant: "destructive" });
+    } finally {
+        setIsRegeneratingDraft(false);
+    }
+  };
+
+  const handleApproveAndSendDraft = async (draft: GeneratedDocumentDraft) => {
+    if (!order) return;
+    setSendingDraftId(draft.id);
+    try {
+        const res = await approveAndSendDraftToClientAction(
+            order.id,
+            draft.id,
+            { id: currentUser?.uid || 'partner', name: currentUser?.name || 'Partner' }
+        );
+        if (res.success) {
+            toast({ title: "Draft Approved & Sent", description: res.message });
+            await fetchOrder();
+        } else {
+            toast({ title: "Action Failed", description: res.error, variant: "destructive" });
+        }
+    } catch (err: any) {
+        toast({ title: "Send Error", description: err.message, variant: "destructive" });
+    } finally {
+        setSendingDraftId(null);
+    }
+  };
+
   const handleSendFollowUp = async () => {
     if (!order) return;
     const emailTo = (order.documentContact === 'client' ? order.endCustomerEmail : order.customerEmail) || order.customerEmail;
@@ -1054,7 +1137,167 @@ export default function PartnerOrderDetailsPage() {
                     )}
                 </Card>
 
-                 <Card>
+                {/* 🤖 AI Generated Drafts & Pre-Filled Templates Card */}
+                <Card className="border-indigo-200 dark:border-indigo-900/50 shadow-xs">
+                    <CardHeader className="bg-gradient-to-r from-indigo-50/70 to-blue-50/50 dark:from-indigo-950/30 dark:to-blue-950/20 border-b pb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <CardTitle className="text-base font-bold flex items-center gap-2 text-indigo-950 dark:text-indigo-200">
+                                    <Bot className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                                    AI Generated Drafts & Statutory Templates
+                                </CardTitle>
+                                <CardDescription className="text-xs text-indigo-900/70 dark:text-indigo-300/70">
+                                    Pre-filled statutory applications, resolutions, share certificates, and confirmation letters prepared from client intake.
+                                </CardDescription>
+                            </div>
+                            <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="h-8 text-xs font-semibold bg-white dark:bg-slate-900 border-indigo-200 hover:bg-indigo-50 text-indigo-900 dark:text-indigo-200 shadow-2xs"
+                                onClick={handleGenerateDrafts}
+                                disabled={isGeneratingDrafts}
+                            >
+                                {isGeneratingDrafts ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin text-indigo-600" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-indigo-600" />}
+                                {order.generatedDrafts && order.generatedDrafts.length > 0 ? "Regenerate All Drafts" : "Generate Drafts Now"}
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-5 space-y-4">
+                        {/* Review Completion Gate Alert */}
+                        {(!order.documentUploads || order.documentUploads.some(d => d.status !== 'approved')) && (!order.generatedDrafts || order.generatedDrafts.length === 0) && (
+                            <div className="p-4 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg flex items-start gap-3">
+                                <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                <div className="space-y-1">
+                                    <h5 className="text-xs font-bold text-amber-950 dark:text-amber-200">Awaiting Document Approval</h5>
+                                    <p className="text-xs text-amber-800 dark:text-amber-300">
+                                        Statutory draft templates will automatically generate the moment all client documents and information requirements are reviewed and approved above. You can also click <em>"Generate Drafts Now"</em> to force early generation.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Generated Drafts List */}
+                        {order.generatedDrafts && order.generatedDrafts.length > 0 ? (
+                            <div className="space-y-3">
+                                {order.generatedDrafts.map((draft, dIdx) => (
+                                    <div key={draft.id || dIdx} className="p-3.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors space-y-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                                        <FileText className="h-4 w-4 text-indigo-600" />
+                                                        {draft.title}
+                                                    </span>
+                                                    <Badge variant={draft.status === 'sent_to_client' ? 'default' : draft.status === 'regenerated' ? 'secondary' : 'outline'} className="text-[10px] uppercase font-bold">
+                                                        {draft.status === 'sent_to_client' ? 'Sent to Client' : draft.status === 'regenerated' ? 'Regenerated' : 'Draft Ready'}
+                                                    </Badge>
+                                                </div>
+                                                {draft.description && (
+                                                    <p className="text-xs text-muted-foreground">{draft.description}</p>
+                                                )}
+                                                <p className="text-[11px] text-muted-foreground">
+                                                    Generated: {formatDate(draft.generatedAt, 'datetime')} • File: <span className="font-mono text-foreground">{draft.fileName}</span>
+                                                </p>
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex items-center gap-2 shrink-0 pt-1 sm:pt-0">
+                                                <a 
+                                                    href={draft.fileUrl} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    className="inline-flex items-center justify-center rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2.5 shadow-2xs"
+                                                >
+                                                    <ExternalLink className="h-3.5 w-3.5 mr-1 text-primary" /> View PDF
+                                                </a>
+
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="outline" 
+                                                    className="h-8 text-xs font-semibold border-amber-300 hover:bg-amber-50 text-amber-900 dark:text-amber-200"
+                                                    onClick={() => handleOpenFeedbackDialog(draft)}
+                                                >
+                                                    <RefreshCw className="h-3.5 w-3.5 mr-1 text-amber-600" /> Regenerate
+                                                </Button>
+
+                                                <Button 
+                                                    size="sm" 
+                                                    className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                                                    disabled={sendingDraftId === draft.id || draft.status === 'sent_to_client'}
+                                                    onClick={() => handleApproveAndSendDraft(draft)}
+                                                >
+                                                    {sendingDraftId === draft.id ? (
+                                                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                                                    ) : draft.status === 'sent_to_client' ? (
+                                                        <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-emerald-300" />
+                                                    ) : (
+                                                        <FileSignature className="h-3.5 w-3.5 mr-1.5" />
+                                                    )}
+                                                    {draft.status === 'sent_to_client' ? 'Sent for Signature' : 'Approve & Send to Client'}
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Feedback History Trail */}
+                                        {draft.feedbackHistory && draft.feedbackHistory.length > 0 && (
+                                            <div className="p-2.5 bg-muted/50 rounded-md border text-xs space-y-1.5">
+                                                <div className="font-semibold text-muted-foreground flex items-center gap-1.5 text-[11px]">
+                                                    <History className="h-3.5 w-3.5 text-amber-600" /> Revision Feedback History:
+                                                </div>
+                                                {draft.feedbackHistory.map((fb, fIdx) => (
+                                                    <div key={fIdx} className="text-xs text-foreground pl-5 border-l-2 border-amber-300">
+                                                        <span className="font-medium text-amber-950 dark:text-amber-300">{fb.consultantName}</span> ({formatDate(fb.timestamp, 'datetime')}): "{fb.feedback}"
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : null}
+                    </CardContent>
+                </Card>
+
+                {/* Feedback & Regeneration Dialog */}
+                <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <RefreshCw className="h-4 w-4 text-amber-600" />
+                                Regenerate Draft with Corrections
+                            </DialogTitle>
+                            <DialogDescription>
+                                Provide adjustment notes for <strong>{selectedDraftForFeedback?.title}</strong>. The template engine will apply your corrections and generate an updated PDF.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-3 py-2">
+                            <Textarea 
+                                rows={3} 
+                                placeholder="e.g. Update share split to 60 Ordinary Shares for Director A and 40 for Director B; change registered address to..." 
+                                value={draftFeedbackText}
+                                onChange={(e) => setDraftFeedbackText(e.target.value)}
+                                className="text-xs font-medium"
+                            />
+                        </div>
+                        <DialogFooter className="gap-2 sm:gap-0">
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setFeedbackDialogOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button 
+                                type="button" 
+                                size="sm" 
+                                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                disabled={isRegeneratingDraft || !draftFeedbackText.trim()}
+                                onClick={handleRegenerateDraftSubmit}
+                            >
+                                {isRegeneratingDraft ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                                Regenerate Draft
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Card>
                     <CardHeader>
                         <CardTitle>Communication History</CardTitle>
                         <CardDescription>Internal notes and sent emails for this order.</CardDescription>

@@ -225,7 +225,25 @@ export type Order = {
   fulfillmentStatus?: 'Awaiting Documents' | 'Under Review' | 'In Execution' | 'Ready for Signoff' | 'Completed' | 'Blocked';
   checklist?: OrderChecklistItem[];
   serviceSnapshots?: OrderServiceSnapshot[];
+  generatedDrafts?: GeneratedDocumentDraft[];
 };
+
+export interface GeneratedDocumentDraft {
+  id: string;
+  templateType: 'ncr_form_2' | 'director_resolution' | 'power_of_attorney' | 'share_certificate' | 'accountants_letter' | 'intake_summary';
+  title: string;
+  description?: string;
+  fileUrl: string;
+  fileName: string;
+  generatedAt: string;
+  status: 'draft' | 'approved' | 'sent_to_client' | 'regenerated';
+  feedbackHistory?: {
+    timestamp: string;
+    consultantName: string;
+    feedback: string;
+  }[];
+  metadata?: Record<string, any>;
+}
 
 export type OrderChecklistItem = {
   id: string;

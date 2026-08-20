@@ -402,6 +402,16 @@ export async function reviewOrderDocumentAtomic(
 
     await batch.commit();
 
+    // If all documents are approved, auto-generate statutory document drafts
+    if (status === 'approved' && allApproved) {
+      try {
+        const { generateOrderDocumentDraftsInternal } = await import('@/app/actions/order-fulfillment-pipeline');
+        await generateOrderDocumentDraftsInternal(orderId);
+      } catch (genErr) {
+        console.error('Error generating document drafts on final approval:', genErr);
+      }
+    }
+
     return serializeDbData({
       success: true,
       message: `Document "${targetDocLabel || identifier}" marked as ${status}`,

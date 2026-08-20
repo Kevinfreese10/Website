@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 import fs from 'fs';
 
 function logInit(msg: string) {
@@ -96,6 +97,38 @@ export function cleanFirestoreData<T>(data: T): T {
 export function getAdminAuth() {
   getAdminApp();
   return getAuth();
+}
+
+export function getAdminStorage() {
+  const app = getAdminApp();
+  return getStorage(app);
+}
+
+/**
+ * Uploads a Buffer/Uint8Array to Firebase Storage and returns the public download URL with permanent token.
+ */
+export async function uploadBufferToStorage(
+  buffer: Buffer | Uint8Array,
+  destinationPath: string,
+  contentType: string = 'application/pdf'
+): Promise<string> {
+  const storage = getAdminStorage();
+  const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'studio-2604127518-57889.firebasestorage.app';
+  const bucket = storage.bucket(bucketName);
+  const file = bucket.file(destinationPath);
+  
+  const token = Buffer.from(Math.random().toString(36) + Date.now().toString(36)).toString('hex');
+  await file.save(Buffer.from(buffer), {
+    metadata: {
+      contentType,
+      metadata: {
+        firebaseStorageDownloadTokens: token,
+      },
+    },
+  });
+
+  const encodedPath = encodeURIComponent(destinationPath);
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${token}`;
 }
 
 // Helper to recursively serialize firestore timestamps and custom objects to clean JSON values

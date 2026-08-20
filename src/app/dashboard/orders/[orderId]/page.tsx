@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { notFound, useParams } from 'next/navigation';
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { firebaseApp } from '@/lib/firebase';
 import { Order, Service, User, OrderNote, DocumentUpload, UploadedFileItem } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -28,9 +27,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { notifyStaffOfDocumentUpload, notifyOfNewNote, notifyStaffOfClientNote } from '@/app/actions';
+import { triggerOrderAutomatedFulfillmentReview } from '@/app/actions/order-fulfillment-pipeline';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
+import { db, firebaseApp } from '@/lib/firebase';
 
-const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
 
 function formatFileSize(bytes?: number): string {
@@ -587,7 +587,7 @@ export default function ClientOrderDetailsPage() {
     }
 
     setIsSubmitting(true);
-    toast({ title: "Notifying Consultant...", description: "Please wait a moment." });
+    toast({ title: "Submitting to Consultant...", description: "Running automated document intake and notifying your consultant." });
 
     const noteText = "Client has submitted their documents for review.";
     const newNote: OrderNote = {
@@ -603,6 +603,9 @@ export default function ClientOrderDetailsPage() {
       const orderRef = doc(db, 'orders', order.id);
       await updateDoc(orderRef, { notes: arrayUnion(newNote) });
       
+      // Trigger automated AI review, checklist progression, and consolidated alert
+      const reviewResult = await triggerOrderAutomatedFulfillmentReview(order.id, currentUser.name);
+
       await notifyStaffOfDocumentUpload({
           orderId: order.id,
           clientName: currentUser.name,
@@ -610,7 +613,12 @@ export default function ClientOrderDetailsPage() {
           assignedStaffEmail: assignedStaffEmail,
       });
 
-      toast({ title: "Documents Submitted!", description: "Your consultant has been notified." });
+      toast({ 
+        title: "Documents Submitted & Verified!", 
+        description: reviewResult.allDocumentsApproved 
+          ? "All documents passed AI review! Pre-filled application templates are being prepared." 
+          : "Your documents have been analyzed and queued for your consultant's review." 
+      });
       fetchOrderAndServices();
     } catch(error) {
       console.error("Error submitting documents:", error);
