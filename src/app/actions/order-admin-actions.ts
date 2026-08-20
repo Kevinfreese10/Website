@@ -60,6 +60,7 @@ export async function ensureOrderChecklistInitialized(orderId: string): Promise<
         description: step.description || '',
         type: step.type || 'manual',
         status: 'pending',
+        templateIds: step.templateIds && step.templateIds.length > 0 ? step.templateIds : undefined,
       });
     });
   }

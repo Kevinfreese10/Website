@@ -42,7 +42,47 @@ export type PrerequisiteItem =
   | { type: 'text'; text: string }
   | { type: 'product'; productId: string; text?: string };
 
-export type FulfillmentStepType = 'doc_verification' | 'external_filing' | 'internal_calc' | 'manual' | 'signoff';
+export type FulfillmentStepType = 'doc_verification' | 'document_drafting' | 'external_filing' | 'internal_calc' | 'manual' | 'signoff';
+
+export type DocumentTemplateOption = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+};
+
+export const AVAILABLE_DOCUMENT_TEMPLATES: DocumentTemplateOption[] = [
+  {
+    id: 'sars_public_officer_resolution',
+    title: 'SARS Public Officer Appointment & Director Resolution',
+    description: 'Statutory Board Resolution in terms of Section 246 of Tax Administration Act.',
+    category: 'SARS & Tax'
+  },
+  {
+    id: 'ncr_form_2',
+    title: 'NCR Form 2 — Credit Provider Application',
+    description: 'Statutory Form NCR 2 ready for client signature and NCR submission.',
+    category: 'NCR & Credit'
+  },
+  {
+    id: 'power_of_attorney',
+    title: 'Special Power of Attorney & Authorizing Resolution',
+    description: 'Formal mandate authorising My Accountant to act before CIPC, NCR, and SARS.',
+    category: 'Legal & CIPC'
+  },
+  {
+    id: 'share_certificate',
+    title: 'Official Company Share Certificate (100 Ordinary Shares)',
+    description: 'Ornate Share Certificate in terms of the Companies Act 71 of 2008.',
+    category: 'CIPC & Secretarial'
+  },
+  {
+    id: 'accountants_letter',
+    title: "Accountant's Confirmation & Compliance Letter",
+    description: 'Official confirmation on My Accountant letterhead for regulatory compliance.',
+    category: 'Accounting & Compliance'
+  },
+];
 
 export type FulfillmentStep = {
   id: string;
@@ -52,6 +92,7 @@ export type FulfillmentStep = {
   requiredRole?: string;
   automatedSkill?: string;
   estimatedDays?: number;
+  templateIds?: string[];
 };
 
 export type Service = {
@@ -261,6 +302,7 @@ export type OrderChecklistItem = {
   artifactName?: string;
   isAiRecommended?: boolean;
   aiNotes?: string;
+  templateIds?: string[];
 };
 
 export type OrderServiceSnapshot = {

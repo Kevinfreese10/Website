@@ -74,17 +74,26 @@ export default function ServicePreview({ service }: { service: Service }) {
                     {service.fulfillmentChecklist.map((step, index) => (
                         <div key={index} className="p-2.5 rounded-md border bg-primary/5 border-primary/20 text-xs flex items-start gap-2">
                             <span className="font-bold text-primary">{index + 1}.</span>
-                            <div className="flex-grow">
+                            <div className="flex-grow space-y-1">
                                 <div className="flex items-center justify-between">
                                     <span className="font-bold text-foreground">{step.title}</span>
                                     {step.type && (
                                         <Badge variant="secondary" className="text-[10px]">
-                                            {step.type}
+                                            {step.type === 'document_drafting' ? '🤖 Document Drafting' : step.type}
                                         </Badge>
                                     )}
                                 </div>
                                 {step.description && (
                                     <p className="text-muted-foreground text-[11px] mt-0.5">{step.description}</p>
+                                )}
+                                {step.templateIds && step.templateIds.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 pt-1">
+                                        {step.templateIds.map(tId => (
+                                            <Badge key={tId} variant="outline" className="text-[9px] bg-indigo-50/50 text-indigo-900 border-indigo-200">
+                                                📄 {tId.replace(/_/g, ' ')}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         </div>

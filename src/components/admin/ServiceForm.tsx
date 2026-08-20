@@ -3,7 +3,7 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Service, PrerequisiteItem, FulfillmentStep } from '@/lib/types';
+import { Service, PrerequisiteItem, FulfillmentStep, AVAILABLE_DOCUMENT_TEMPLATES } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
   Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload, 
   ArrowUp, ArrowDown, HelpCircle, ListChecks, CheckCircle2, DollarSign, Package, 
-  ClipboardList, Globe, Clock, Layers, Star, ExternalLink, Search, Copy, BookOpen
+  ClipboardList, Globe, Clock, Layers, Star, ExternalLink, Search, Copy, BookOpen,
+  FileText, FileSignature, ScrollText, Check
 } from 'lucide-react';
 import { generateServiceDetails } from '@/ai/flows/generate-service-details';
 import { generateBlogPostSeo } from '@/ai/flows/generate-blog-post-seo';
@@ -93,9 +94,10 @@ const formSchema = z.object({
     id: z.string(),
     title: z.string().min(1, 'Title is required.'),
     description: z.string().optional(),
-    type: z.enum(['doc_verification', 'external_filing', 'internal_calc', 'manual', 'signoff']).default('manual'),
+    type: z.enum(['doc_verification', 'document_drafting', 'external_filing', 'internal_calc', 'manual', 'signoff']).default('manual'),
     requiredRole: z.string().optional(),
     estimatedDays: z.preprocess(val => (val !== undefined && val !== '' ? Number(val) : undefined), z.number().min(0).optional()),
+    templateIds: z.array(z.string()).optional(),
   })).optional(),
   metaTitle: z.string().min(1, 'Meta Title is required.').max(59, 'Meta Title must be under 60 characters.'),
   metaDescription: z.string().max(160, 'Meta Description must be 160 characters or less.').optional().or(z.literal('')),
@@ -448,6 +450,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         type: step.type || 'manual',
         requiredRole: step.requiredRole || undefined,
         estimatedDays: typeof step.estimatedDays === 'number' ? step.estimatedDays : undefined,
+        templateIds: step.templateIds && step.templateIds.length > 0 ? step.templateIds : undefined,
       }));
 
     const finalChecklist = normalizedChecklist.length > 0 ? normalizedChecklist : DEFAULT_FULFILLMENT_CHECKLIST;
@@ -1307,7 +1310,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                       Sequential tasks followed by the AI Agent and human accountants to fulfill this service end-to-end.
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Button
                       type="button"
                       variant="outline"
@@ -1320,9 +1323,26 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                         type: s.type,
                         requiredRole: s.requiredRole || '',
                         estimatedDays: s.estimatedDays || 1,
+                        templateIds: s.templateIds || [],
                       })))}
                     >
                       <CheckCircle2 className="h-3 w-3 text-primary" /> Reset to Standard 3-Step
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="xs"
+                      className="h-7 text-xs font-semibold gap-1 border-indigo-300 text-indigo-900 dark:text-indigo-200 bg-indigo-50/50 hover:bg-indigo-100/60 shadow-2xs"
+                      onClick={() => appendChecklist({
+                        id: `step_${Date.now().toString(36)}`,
+                        title: 'Prepare Draft Documents from Templates',
+                        description: 'Generate pre-filled statutory drafts, resolutions, and application forms from verified client information.',
+                        type: 'document_drafting',
+                        estimatedDays: 1,
+                        templateIds: [],
+                      })}
+                    >
+                      <ScrollText className="h-3 w-3 text-indigo-600" /> + Prepare Drafts Step
                     </Button>
                     <Button 
                       type="button" 
@@ -1335,6 +1355,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                         description: '',
                         type: 'manual',
                         estimatedDays: 1,
+                        templateIds: [],
                       })}
                     >
                       <Plus className="h-3 w-3" /> Add SOP Step
@@ -1343,66 +1364,134 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                 </div>
 
                 <div className="space-y-3">
-                  {checklistFields.map((field, index) => (
-                    <div key={field.id} className="p-3.5 rounded-lg border bg-card shadow-sm space-y-2.5">
-                      <div className="flex items-start gap-2">
-                        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary font-bold text-xs mt-1 shrink-0">
-                          {index + 1}
-                        </div>
-                        
-                        <FormField
-                          control={form.control}
-                          name={`fulfillmentChecklist.${index}.title`}
-                          render={({ field }) => (
-                            <FormItem className="flex-grow space-y-1">
-                              <FormLabel className="text-xs font-semibold">Step Title *</FormLabel>
-                              <FormControl>
-                                <Input className="h-8 text-xs font-semibold" placeholder="e.g. 2. Statutory CIPC Filing" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                  {checklistFields.map((field, index) => {
+                    const currentStepType = form.watch(`fulfillmentChecklist.${index}.type`);
+                    const currentTemplateIds: string[] = form.watch(`fulfillmentChecklist.${index}.templateIds`) || [];
 
-                        <FormField
-                          control={form.control}
-                          name={`fulfillmentChecklist.${index}.type`}
-                          render={({ field }) => (
-                            <FormItem className="w-48 shrink-0 space-y-1">
-                              <FormLabel className="text-xs font-semibold">Step Type</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value || 'manual'}>
+                    const toggleTemplate = (tmplId: string) => {
+                      const exists = currentTemplateIds.includes(tmplId);
+                      const updated = exists 
+                        ? currentTemplateIds.filter(id => id !== tmplId)
+                        : [...currentTemplateIds, tmplId];
+                      form.setValue(`fulfillmentChecklist.${index}.templateIds`, updated, { shouldDirty: true });
+                    };
+
+                    return (
+                      <div key={field.id} className="p-3.5 rounded-lg border bg-card shadow-sm space-y-2.5">
+                        <div className="flex items-start gap-2">
+                          <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary font-bold text-xs mt-1 shrink-0">
+                            {index + 1}
+                          </div>
+                          
+                          <FormField
+                            control={form.control}
+                            name={`fulfillmentChecklist.${index}.title`}
+                            render={({ field }) => (
+                              <FormItem className="flex-grow space-y-1">
+                                <FormLabel className="text-xs font-semibold">Step Title *</FormLabel>
                                 <FormControl>
-                                  <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
+                                  <Input className="h-8 text-xs font-semibold" placeholder="e.g. 2. Statutory CIPC Filing" {...field} />
                                 </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="doc_verification">Document Verification</SelectItem>
-                                  <SelectItem value="external_filing">External Filing (CIPC/SARS)</SelectItem>
-                                  <SelectItem value="internal_calc">Internal Prep / Calculation</SelectItem>
-                                  <SelectItem value="signoff">Sign-off & Client Dispatch</SelectItem>
-                                  <SelectItem value="manual">Manual Execution</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`fulfillmentChecklist.${index}.type`}
+                            render={({ field }) => (
+                              <FormItem className="w-56 shrink-0 space-y-1">
+                                <FormLabel className="text-xs font-semibold">Step Type</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value || 'manual'}>
+                                  <FormControl>
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="doc_verification">Document Verification & KYC</SelectItem>
+                                    <SelectItem value="document_drafting">🤖 Prepare Drafts from Templates</SelectItem>
+                                    <SelectItem value="external_filing">External Filing (CIPC/SARS)</SelectItem>
+                                    <SelectItem value="internal_calc">Internal Prep / Calculation</SelectItem>
+                                    <SelectItem value="signoff">Sign-off & Client Dispatch</SelectItem>
+                                    <SelectItem value="manual">Manual Execution</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`fulfillmentChecklist.${index}.estimatedDays`}
+                            render={({ field }) => (
+                              <FormItem className="w-20 shrink-0 space-y-1">
+                                <FormLabel className="text-xs font-semibold">Est. Days</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    className="h-8 text-xs text-center"
+                                    placeholder="1"
+                                    {...field}
+                                    value={field.value !== undefined ? field.value : ''}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="flex items-center gap-0.5 mt-5 shrink-0">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground"
+                              disabled={index === 0}
+                              onClick={() => moveChecklist(index, index - 1)}
+                              title="Move Up"
+                            >
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground"
+                              disabled={index === checklistFields.length - 1}
+                              onClick={() => moveChecklist(index, index + 1)}
+                              title="Move Down"
+                            >
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => removeChecklist(index)}
+                              title="Delete"
+                            >
+                              <Trash className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
 
                         <FormField
                           control={form.control}
-                          name={`fulfillmentChecklist.${index}.estimatedDays`}
+                          name={`fulfillmentChecklist.${index}.description`}
                           render={({ field }) => (
-                            <FormItem className="w-20 shrink-0 space-y-1">
-                              <FormLabel className="text-xs font-semibold">Est. Days</FormLabel>
+                            <FormItem className="space-y-1">
+                              <FormLabel className="text-[11px] text-muted-foreground">Standard Operating Procedure Instructions</FormLabel>
                               <FormControl>
                                 <Input
-                                  type="number"
-                                  min={0}
-                                  className="h-8 text-xs text-center"
-                                  placeholder="1"
+                                  className="h-7 text-xs bg-muted/30"
+                                  placeholder="Detailed operational steps for the staff member or AI agent completing this task..."
                                   {...field}
-                                  value={field.value !== undefined ? field.value : ''}
+                                  value={field.value || ''}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -1410,62 +1499,60 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                           )}
                         />
 
-                        <div className="flex items-center gap-0.5 mt-5 shrink-0">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground"
-                            disabled={index === 0}
-                            onClick={() => moveChecklist(index, index - 1)}
-                            title="Move Up"
-                          >
-                            <ArrowUp className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground"
-                            disabled={index === checklistFields.length - 1}
-                            onClick={() => moveChecklist(index, index + 1)}
-                            title="Move Down"
-                          >
-                            <ArrowDown className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            onClick={() => removeChecklist(index)}
-                            title="Delete"
-                          >
-                            <Trash className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
+                        {/* Interactive Template Selector when step type is document_drafting */}
+                        {(currentStepType === 'document_drafting' || (currentTemplateIds && currentTemplateIds.length > 0)) && (
+                          <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 rounded-lg space-y-2 mt-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                                <ScrollText className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                                Select Statutory Document Templates to Draft:
+                              </div>
+                              <Badge variant="outline" className="text-[10px] font-mono border-indigo-300 text-indigo-900 dark:text-indigo-200">
+                                {currentTemplateIds.length} Template(s) Selected
+                              </Badge>
+                            </div>
 
-                      <FormField
-                        control={form.control}
-                        name={`fulfillmentChecklist.${index}.description`}
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <FormLabel className="text-[11px] text-muted-foreground">Standard Operating Procedure Instructions</FormLabel>
-                            <FormControl>
-                              <Input
-                                className="h-7 text-xs bg-muted/30"
-                                placeholder="Detailed operational steps for the staff member or AI agent completing this task..."
-                                {...field}
-                                value={field.value || ''}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                              {AVAILABLE_DOCUMENT_TEMPLATES.map((tmpl) => {
+                                const isSelected = currentTemplateIds.includes(tmpl.id);
+                                return (
+                                  <div
+                                    key={tmpl.id}
+                                    onClick={() => toggleTemplate(tmpl.id)}
+                                    className={cn(
+                                      "p-2.5 rounded-md border cursor-pointer transition-all flex items-start gap-2.5 select-none",
+                                      isSelected
+                                        ? "bg-indigo-100/80 dark:bg-indigo-900/50 border-indigo-400 dark:border-indigo-500 shadow-2xs"
+                                        : "bg-background/90 hover:bg-muted/60 border-border/80"
+                                    )}
+                                  >
+                                    <Checkbox
+                                      checked={isSelected}
+                                      onCheckedChange={() => toggleTemplate(tmpl.id)}
+                                      className="mt-0.5"
+                                    />
+                                    <div className="space-y-0.5 min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-bold text-foreground leading-tight truncate">
+                                          {tmpl.title}
+                                        </span>
+                                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 font-normal">
+                                          {tmpl.category}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-[11px] text-muted-foreground line-clamp-1">
+                                        {tmpl.description}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         )}
-                      />
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
 
                   {checklistFields.length === 0 && (
                     <p className="text-xs text-muted-foreground italic py-3 text-center">
