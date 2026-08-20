@@ -65,6 +65,14 @@ const rejectionFormSchema = z.object({
   reason: z.string().min(10, 'Please provide a reason for rejection.'),
 });
 
+function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return '';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
 export default function PartnerOrderDetailsPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItemsWithServices, setOrderItemsWithServices] = useState<OrderItemWithService[]>([]);
@@ -912,13 +920,44 @@ export default function PartnerOrderDetailsPage() {
                                                         </div>
                                                         {upload ? (
                                                             <div className="mt-2 space-y-2">
-                                                                {upload.type === 'file' ? (
-                                                                    <a href={upload.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
-                                                                        <Download className="h-4 w-4" /> {upload.fileName}
-                                                                    </a>
-                                                                ) : (
-                                                                    <p className="text-sm p-2 bg-muted rounded-md mt-1">"{upload.textValue}"</p>
+                                                                {/* Missing Document Explanation */}
+                                                                {upload.notAvailableReason && (
+                                                                    <div className="p-2.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs space-y-1">
+                                                                        <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                                                                            Client Stated Document is Unavailable
+                                                                        </div>
+                                                                        <p className="text-muted-foreground italic font-medium">"{upload.notAvailableReason}"</p>
+                                                                    </div>
                                                                 )}
+
+                                                                {/* Multiple Files List */}
+                                                                {upload.files && upload.files.length > 0 ? (
+                                                                    <div className="space-y-1.5">
+                                                                        <div className="text-[11px] font-semibold text-muted-foreground">
+                                                                            {upload.files.length} {upload.files.length === 1 ? 'file uploaded' : 'files uploaded'}:
+                                                                        </div>
+                                                                        <div className="grid grid-cols-1 gap-1.5">
+                                                                            {upload.files.map((f, fIdx) => (
+                                                                                <div key={f.id || fIdx} className="flex items-center justify-between bg-card p-2 rounded-md border text-xs gap-2">
+                                                                                    <a href={f.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline flex items-center gap-1.5 truncate max-w-md">
+                                                                                        <Download className="h-3.5 w-3.5 shrink-0 text-primary" /> {f.fileName || `Attachment ${fIdx + 1}`}
+                                                                                    </a>
+                                                                                    {f.fileSize && (
+                                                                                        <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                                                                                            {formatFileSize(f.fileSize)}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                ) : upload.fileUrl ? (
+                                                                    <a href={upload.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
+                                                                        <Download className="h-4 w-4" /> {upload.fileName || 'View Document'}
+                                                                    </a>
+                                                                ) : upload.textValue ? (
+                                                                    <p className="text-sm p-2 bg-muted rounded-md mt-1">"{upload.textValue}"</p>
+                                                                ) : null}
                                                                 {upload.status === 'pending' && (
                                                                     <div className="flex items-center gap-2">
                                                                         <Button size="xs" variant="outline" onClick={() => handleDocumentStatusUpdate(identifier, 'approved')}>Approve</Button>

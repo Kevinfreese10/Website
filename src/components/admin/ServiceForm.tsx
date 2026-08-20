@@ -1,20 +1,27 @@
 'use client';
+
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Service, PrerequisiteItem } from '@/lib/types';
+import { Service, PrerequisiteItem, FulfillmentStep } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload, ArrowUp, ArrowDown, HelpCircle } from 'lucide-react';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { 
+  Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload, 
+  ArrowUp, ArrowDown, HelpCircle, ListChecks, CheckCircle2, DollarSign, Package, 
+  ClipboardList, Globe, Clock, Layers, Star, ExternalLink, Search, Copy, BookOpen
+} from 'lucide-react';
 import { generateServiceDetails } from '@/ai/flows/generate-service-details';
 import { generateBlogPostSeo } from '@/ai/flows/generate-blog-post-seo';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Separator } from '../ui/separator';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import MediaLibrary from './MediaLibrary';
 import Image from 'next/image';
 import { getFirestore, collection, getDocs, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -24,22 +31,31 @@ import { Checkbox } from '../ui/checkbox';
 import { Switch } from '../ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-
+import { DEFAULT_FULFILLMENT_CHECKLIST, getServiceChecklist, normalizeRequirementsWithIds } from '@/lib/service-utils';
+import { 
+  STANDARD_PREREQUISITE_GROUPS, 
+  STANDARD_DOCUMENT_REQUIREMENT_GROUPS, 
+  extractUniquePrerequisitesFromServices, 
+  extractUniqueDocumentsFromServices,
+  DocumentRequirementPreset
+} from '@/lib/service-presets';
+import PrerequisiteMultiSelectDialog from './PrerequisiteMultiSelectDialog';
+import DocumentMultiSelectDialog from './DocumentMultiSelectDialog';
 
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
 const departments = ['Accounting and Tax', 'Administration', 'CAP'] as const;
 
 type Category = { 
-    id: string; 
-    name: string; 
+  id: string; 
+  name: string; 
 };
 
 const returnPolicyCategories = [
-    { value: 'https://schema.org/MerchantReturnFiniteReturnPeriod', label: 'Finite Period (e.g. 48 hours)' },
-    { value: 'https://schema.org/MerchantReturnNotPermitted', label: 'Returns Not Permitted' },
-    { value: 'https://schema.org/MerchantReturnUnlimitedWindow', label: 'Unlimited Window' },
-    { value: 'https://schema.org/MerchantReturnSayNo', label: 'No Return Policy' },
+  { value: 'https://schema.org/MerchantReturnFiniteReturnPeriod', label: 'Finite Period (e.g. 48 hours)' },
+  { value: 'https://schema.org/MerchantReturnNotPermitted', label: 'Returns Not Permitted (Recommended)' },
+  { value: 'https://schema.org/MerchantReturnUnlimitedWindow', label: 'Unlimited Window' },
+  { value: 'https://schema.org/MerchantReturnSayNo', label: 'No Return Policy' },
 ];
 
 const formSchema = z.object({
@@ -65,6 +81,7 @@ const formSchema = z.object({
     productId: z.string().optional(),
   })),
   informationToProvide: z.array(z.object({
+    id: z.string().optional(),
     label: z.string().min(1, 'Label cannot be empty.'),
     type: z.enum(['text', 'pdf', 'excel', 'image', 'any']).optional(),
     helpText: z.string().optional(),
@@ -72,6 +89,14 @@ const formSchema = z.object({
     conditionalQuestion: z.string().optional(),
     isRequired: z.boolean().optional(),
   })),
+  fulfillmentChecklist: z.array(z.object({
+    id: z.string(),
+    title: z.string().min(1, 'Title is required.'),
+    description: z.string().optional(),
+    type: z.enum(['doc_verification', 'external_filing', 'internal_calc', 'manual', 'signoff']).default('manual'),
+    requiredRole: z.string().optional(),
+    estimatedDays: z.preprocess(val => (val !== undefined && val !== '' ? Number(val) : undefined), z.number().min(0).optional()),
+  })).optional(),
   metaTitle: z.string().min(1, 'Meta Title is required.').max(59, 'Meta Title must be under 60 characters.'),
   metaDescription: z.string().max(160, 'Meta Description must be 160 characters or less.').optional().or(z.literal('')),
   metaKeywords: z.array(z.object({ value: z.string() })).optional(),
@@ -94,31 +119,33 @@ type ServiceFormProps = {
   service: Service | null;
   allServices: Service[];
   onSubmit: (data: any) => void;
+  onCancel?: () => void;
 };
 
-
-export default function ServiceForm({ service, allServices, onSubmit }: ServiceFormProps) {
+export default function ServiceForm({ service, allServices, onSubmit, onCancel }: ServiceFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'overview' | 'deliverables' | 'prerequisites' | 'intake' | 'sop' | 'seo'>('overview');
   const [isAiUpdating, setIsAiUpdating] = useState(false);
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [mediaLibraryTarget, setMediaLibraryTarget] = useState<'image' | 'attachment'>('image');
+  const [isPrereqMultiOpen, setIsPrereqMultiOpen] = useState(false);
+  const [isDocMultiOpen, setIsDocMultiOpen] = useState(false);
   const [serviceCategories, setServiceCategories] = useState<Category[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isOptimizingSeo, setIsOptimizingSeo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-
   useEffect(() => {
     const fetchCategories = async () => {
-        try {
-            const q = query(collection(db, "categories"), orderBy("order"));
-            const querySnapshot = await getDocs(q);
-            const fetchedCategories = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Category));
-            setServiceCategories(fetchedCategories);
-        } catch (error) {
-            toast({ title: "Error", description: "Could not fetch service categories.", variant: "destructive"});
-        }
+      try {
+        const q = query(collection(db, "categories"), orderBy("order"));
+        const querySnapshot = await getDocs(q);
+        const fetchedCategories = querySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name as string }));
+        setServiceCategories(fetchedCategories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
     };
     fetchCategories();
   }, []);
@@ -126,7 +153,7 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      id: service?.id || '',
+      id: service?.id || undefined,
       title: service?.title || '',
       description: service?.description || '',
       longDescription: service?.longDescription || '',
@@ -135,8 +162,8 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
       isFeatured: service?.isFeatured || false,
       resellerPrice: service?.resellerPrice || 0,
       subcontractorFee: service?.subcontractorFee || 0,
-      imageUrl: service?.imageUrl || 'https://picsum.photos/seed/new/600/400',
-      imageHint: service?.imageHint || 'abstract',
+      imageUrl: service?.imageUrl || '',
+      imageHint: service?.imageHint || '',
       attachmentUrl: service?.attachmentUrl || '',
       category: service?.category || '',
       department: service?.department || 'Administration',
@@ -151,14 +178,8 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
           return { type: 'text' as const, value: (item as any)?.text || '', productId: '' };
         }
       }) || [{ type: 'text', value: '', productId: '' }],
-      informationToProvide: service?.informationToProvide?.map(v => ({
-        label: v.label,
-        type: v.type || 'text',
-        helpText: v.helpText || '',
-        isConditional: v.isConditional || false,
-        conditionalQuestion: v.conditionalQuestion || '',
-        isRequired: v.isRequired ?? true,
-      })) || [],
+      informationToProvide: normalizeRequirementsWithIds(service?.informationToProvide || []),
+      fulfillmentChecklist: getServiceChecklist(service),
       metaTitle: service?.metaTitle || '',
       metaDescription: service?.metaDescription || '',
       metaKeywords: service?.metaKeywords?.map(v => ({value: v})) || [{ value: '' }],
@@ -177,10 +198,29 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
       requiredProductIds: service?.requiredProductIds || [],
     },
   });
-  
+
   const isPriceTbc = form.watch('isPriceTbc');
+  const watchedPrice = form.watch('price') || 0;
+  const watchedResellerPrice = form.watch('resellerPrice') || 0;
+  const watchedTitle = form.watch('title') || '';
   const metaTitleLength = form.watch('metaTitle')?.length || 0;
   const metaDescriptionLength = form.watch('metaDescription')?.length || 0;
+
+  // Margin calculation
+  const partnerDiscountPercent = useMemo(() => {
+    if (!watchedPrice || watchedPrice <= 0 || !watchedResellerPrice || watchedResellerPrice <= 0) return null;
+    const discount = ((watchedPrice - watchedResellerPrice) / watchedPrice) * 100;
+    return Math.round(discount);
+  }, [watchedPrice, watchedResellerPrice]);
+
+  // Extract previously used items across other services
+  const previouslyUsedPrerequisites = useMemo(() => {
+    return extractUniquePrerequisitesFromServices(allServices || []);
+  }, [allServices]);
+
+  const previouslyUsedDocuments = useMemo(() => {
+    return extractUniqueDocumentsFromServices(allServices || []);
+  }, [allServices]);
 
   const { fields: includedFields, append: appendIncluded, remove: removeIncluded } = useFieldArray({
     control: form.control,
@@ -196,53 +236,91 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
     control: form.control,
     name: 'informationToProvide',
   });
+
+  const { fields: checklistFields, append: appendChecklist, remove: removeChecklist, move: moveChecklist, replace: replaceChecklist } = useFieldArray({
+    control: form.control,
+    name: 'fulfillmentChecklist',
+  });
   
   const { fields: keywordFields, append: appendKeyword, remove: removeKeyword, replace: replaceKeywords } = useFieldArray({
     control: form.control,
     name: 'metaKeywords',
   });
 
+  const handleAddMultiplePrerequisites = (selectedTexts: string[]) => {
+    selectedTexts.forEach(text => {
+      appendPrereq({ type: 'text', value: text, productId: '' });
+    });
+    toast({
+      title: 'Prerequisites Added',
+      description: `Added ${selectedTexts.length} standard prerequisite notice${selectedTexts.length > 1 ? 's' : ''}.`,
+    });
+  };
+
+  const handleAddMultipleDocuments = (selectedPresets: DocumentRequirementPreset[]) => {
+    selectedPresets.forEach(preset => {
+      appendInfo({
+        id: `req_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
+        label: preset.label,
+        type: preset.type,
+        helpText: preset.helpText || '',
+        isRequired: preset.isRequired ?? true,
+      });
+    });
+    toast({
+      title: 'Documents Added',
+      description: `Added ${selectedPresets.length} standard client document requirement${selectedPresets.length > 1 ? 's' : ''}.`,
+    });
+  };
+
   const handleAiUpdate = async () => {
     const title = form.getValues('title');
     if (!title) {
-        toast({
-            title: 'Title is missing',
-            description: 'Please enter a service title before using AI.',
-            variant: 'destructive',
-        });
-        return;
+      toast({
+        title: 'Title is missing',
+        description: 'Please enter a product title before using AI auto-fill.',
+        variant: 'destructive',
+      });
+      return;
     }
     
     setIsAiUpdating(true);
     toast({
-        title: 'Generating Content...',
-        description: 'The AI is creating content for your service. Please wait.',
+      title: 'Generating Content...',
+      description: 'The AI is creating structured descriptions, deliverables, and SEO details.',
     });
 
     try {
-        const result = await generateServiceDetails({ title });
-        form.setValue('title', result.correctedTitle);
-        form.setValue('description', result.shortDescription);
-        form.setValue('longDescription', result.longDescription);
-        form.setValue('turnaroundTime', result.turnaroundTime);
-        form.setValue('whatsIncluded', result.whatsIncluded.map(item => ({ value: item })));
-        form.setValue('clientRequirements', result.clientRequirements.map(item => ({ type: 'text' as const, value: item, productId: '' })));
-        form.setValue('metaTitle', result.metaTitle);
-        form.setValue('metaDescription', result.metaDescription);
-        form.setValue('metaKeywords', result.metaKeywords.map(k => ({ value: k })));
-        toast({
-            title: 'Content Updated',
-            description: 'The service details have been populated by AI.',
-        });
-    } catch (error) {
-        console.error("AI Generation Error: ", error);
-        toast({
-            title: 'AI Update Failed',
-            description: 'There was an error generating content. Please try again.',
-            variant: 'destructive',
-        });
+      const price = form.getValues('price');
+      const isPriceTbc = form.getValues('isPriceTbc');
+      const turnaroundTime = form.getValues('turnaroundTime');
+      const result = await generateServiceDetails({ 
+        title, 
+        price: typeof price === 'number' ? price : undefined,
+        isPriceTbc: Boolean(isPriceTbc),
+        turnaroundTime: turnaroundTime || undefined
+      });
+      form.setValue('title', result.correctedTitle, { shouldDirty: true });
+      form.setValue('description', result.shortDescription, { shouldDirty: true });
+      form.setValue('longDescription', result.longDescription, { shouldDirty: true });
+      form.setValue('turnaroundTime', result.turnaroundTime, { shouldDirty: true });
+      form.setValue('whatsIncluded', result.whatsIncluded.map(item => ({ value: item })), { shouldDirty: true });
+      form.setValue('clientRequirements', result.clientRequirements.map(item => ({ type: 'text' as const, value: item, productId: '' })), { shouldDirty: true });
+      form.setValue('metaTitle', result.metaTitle, { shouldDirty: true });
+      form.setValue('metaDescription', result.metaDescription, { shouldDirty: true });
+      toast({
+        title: 'AI Auto-Fill Completed',
+        description: 'Product content and deliverables have been populated.',
+      });
+    } catch (error: any) {
+      console.error("AI Update Error: ", error);
+      toast({
+        title: 'AI Update Failed',
+        description: 'There was an error generating content. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
-        setIsAiUpdating(false);
+      setIsAiUpdating(false);
     }
   };
 
@@ -260,17 +338,11 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
     }
 
     setIsUploadingImage(true);
-    toast({
-      title: 'Uploading Image...',
-      description: `Uploading "${file.name}" to storage.`,
-    });
-
     try {
       const storageRef = ref(storage, `uploads/${user.uid}/${Date.now()}-${file.name}`);
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
 
-      // Save to media collection so it shows up in media library
       await addDoc(collection(db, 'media'), {
         name: file.name,
         url: downloadURL,
@@ -301,47 +373,50 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
     const content = form.getValues('longDescription') || form.getValues('description');
 
     if (!title) {
-        toast({
-            title: 'Title is missing',
-            description: 'Please enter a product title before optimizing SEO.',
-            variant: 'destructive',
-        });
-        return;
+      toast({
+        title: 'Title is missing',
+        description: 'Please enter a product title before optimizing SEO.',
+        variant: 'destructive',
+      });
+      return;
     }
     
     setIsOptimizingSeo(true);
-    toast({
-        title: 'Optimizing SEO...',
-        description: 'Generating optimized SEO title, description, and keywords.',
-    });
-
     try {
-        const result = await generateBlogPostSeo({ title, content });
-        if (!result.success) {
-            throw new Error(result.error.message);
-        }
-        const data = result.data;
-        form.setValue('metaTitle', data.metaTitle, { shouldDirty: true, shouldValidate: true });
-        form.setValue('metaDescription', data.metaDescription, { shouldDirty: true, shouldValidate: true });
-        if (data.metaKeywords && data.metaKeywords.length > 0) {
-            replaceKeywords(data.metaKeywords);
-        }
-        toast({
-            title: 'SEO Optimized',
-            description: 'SEO title, description, and keywords have been generated.',
-        });
+      const price = form.getValues('price');
+      const isPriceTbc = form.getValues('isPriceTbc');
+      const turnaroundTime = form.getValues('turnaroundTime');
+      const result = await generateBlogPostSeo({ 
+        title, 
+        content,
+        price: typeof price === 'number' ? price : undefined,
+        isPriceTbc: Boolean(isPriceTbc),
+        turnaroundTime: turnaroundTime || undefined
+      });
+      if (!result.success) {
+        throw new Error(result.error.message);
+      }
+      const data = result.data;
+      form.setValue('metaTitle', data.metaTitle, { shouldDirty: true, shouldValidate: true });
+      form.setValue('metaDescription', data.metaDescription, { shouldDirty: true, shouldValidate: true });
+      if (data.metaKeywords && data.metaKeywords.length > 0) {
+        replaceKeywords(data.metaKeywords);
+      }
+      toast({
+        title: 'SEO Optimized',
+        description: 'SEO title, description, and keywords have been generated.',
+      });
     } catch (error: any) {
-        console.error("SEO Optimization Error: ", error);
-        toast({
-            title: 'SEO Optimization Failed',
-            description: error?.message || 'There was an error generating SEO content. Please try again.',
-            variant: 'destructive',
-        });
+      console.error("SEO Optimization Error: ", error);
+      toast({
+        title: 'SEO Optimization Failed',
+        description: error?.message || 'There was an error generating SEO content.',
+        variant: 'destructive',
+      });
     } finally {
-        setIsOptimizingSeo(false);
+      setIsOptimizingSeo(false);
     }
   };
-
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     const slug = values.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
@@ -362,16 +437,32 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
       .map(r => (r as any).productId)
       .filter(Boolean);
 
+    const normalizedInfo = normalizeRequirementsWithIds(values.informationToProvide.filter(v => v.label));
+
+    const normalizedChecklist: FulfillmentStep[] = (values.fulfillmentChecklist || [])
+      .filter(step => step.title?.trim().length > 0)
+      .map((step, idx) => ({
+        id: step.id || `step_${idx + 1}_${Date.now().toString(36)}`,
+        title: step.title.trim(),
+        description: step.description?.trim() || '',
+        type: step.type || 'manual',
+        requiredRole: step.requiredRole || undefined,
+        estimatedDays: typeof step.estimatedDays === 'number' ? step.estimatedDays : undefined,
+      }));
+
+    const finalChecklist = normalizedChecklist.length > 0 ? normalizedChecklist : DEFAULT_FULFILLMENT_CHECKLIST;
+
     const serviceData = {
-        ...values,
-        slug,
-        seoImageUrl: values.imageUrl,
-        whatsIncluded: values.whatsIncluded.map(v => v.value).filter(Boolean),
-        clientRequirements: structuredRequirements,
-        informationToProvide: values.informationToProvide.filter(v => v.label),
-        metaKeywords: values.metaKeywords?.map(v => v.value).filter(Boolean),
-        returnPolicyCategory: values.returnPolicyCategory === 'none' ? '' : values.returnPolicyCategory,
-        requiredProductIds: Array.from(new Set(productPrereqIds)),
+      ...values,
+      slug,
+      seoImageUrl: values.imageUrl,
+      whatsIncluded: values.whatsIncluded.map(v => v.value).filter(Boolean),
+      clientRequirements: structuredRequirements,
+      informationToProvide: normalizedInfo,
+      fulfillmentChecklist: finalChecklist,
+      metaKeywords: values.metaKeywords?.map(v => v.value).filter(Boolean),
+      returnPolicyCategory: values.returnPolicyCategory === 'none' ? '' : values.returnPolicyCategory,
+      requiredProductIds: Array.from(new Set(productPrereqIds)),
     };
     onSubmit(serviceData);
   };
@@ -395,685 +486,1339 @@ export default function ServiceForm({ service, allServices, onSubmit }: ServiceF
   const currentAttachmentUrl = form.watch('attachmentUrl');
   const attachmentFilename = currentAttachmentUrl ? currentAttachmentUrl.split('/').pop()?.split('?')[0].split('%2F').pop() : '';
 
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto p-1 pr-4">
-        <div className="flex items-center justify-between gap-4">
-            <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-                <FormItem className="flex-grow">
-                <FormLabel>Product Title</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <Button type="button" onClick={handleAiUpdate} disabled={isAiUpdating} className="mt-8">
-              {isAiUpdating ? <Loader2 className="animate-spin" /> : <Sparkles />}
-              <span className="ml-2 hidden sm:inline">Update with AI</span>
-            </Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Public Price (R)</FormLabel>
-                <FormControl><Input type="number" step="0.01" {...field} disabled={isPriceTbc} /></FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-             <FormField
-            control={form.control}
-            name="resellerPrice"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Reseller Price (R)</FormLabel>
-                <FormControl><Input type="number" step="0.01" {...field} disabled={isPriceTbc} /></FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-             <FormField
-            control={form.control}
-            name="subcontractorFee"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Subcontractor Fee (R)</FormLabel>
-                <FormControl><Input type="number" step="0.01" {...field} disabled={isPriceTbc} /></FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Category</FormLabel>
-                 <Select onValueChange={field.onChange} value={field.value || ''}>
-                    <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        {serviceCategories.map(cat => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Responsible Department</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
-                    <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select a department" /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                        {departments.map(dep => <SelectItem key={dep} value={dep}>{dep}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
-        <FormField
-            control={form.control}
-            name="isPriceTbc"
-            render={({ field }) => (
-                <FormItem className="flex flex-row items-center space-x-2">
-                <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <FormLabel className="!mt-0">Price to be confirmed (Quote Based)</FormLabel>
-                </FormItem>
-            )}
-        />
-        <FormField
-            control={form.control}
-            name="isFeatured"
-            render={({ field }) => (
-                <FormItem className="flex flex-row items-center space-x-2">
-                <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <div>
-                  <FormLabel className="!mt-0">Mark as &ldquo;Popular&rdquo;</FormLabel>
-                  <p className="text-[10px] text-muted-foreground">Shows a ⭐ Popular badge on the public product listing page.</p>
-                </div>
-                </FormItem>
-            )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Short Description</FormLabel>
-              <FormControl><Textarea {...field} rows={2} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="longDescription"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Long Description</FormLabel>
-              <FormControl><Textarea {...field} rows={4} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="turnaroundTime"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Turnaround Time</FormLabel>
-              <FormControl><Input {...field} placeholder="e.g., 5-7 working days" /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div>
-            <FormLabel>What's Included</FormLabel>
-            {includedFields.map((field, index) => (
-                 <FormField
-                    key={field.id}
-                    control={form.control}
-                    name={`whatsIncluded.${index}.value`}
-                    render={({ field }) => (
-                        <FormItem className="flex items-center gap-2 mt-2">
-                             <FormControl><Input {...field} /></FormControl>
-                             <Button type="button" variant="destructive" size="icon" onClick={() => removeIncluded(index)}><Trash className="h-4 w-4"/></Button>
-                        </FormItem>
-                    )}
-                />
-            ))}
-            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendIncluded({ value: '' })}>Add Item</Button>
-        </div>
-        <div className="space-y-4 rounded-lg border p-4 bg-muted/10">
-            <div>
-                <h3 className="text-sm font-bold text-foreground">Prerequisites (Shown on public product page)</h3>
-                <p className="text-xs text-muted-foreground">
-                    Add requirements for this service. You can specify custom text requirements or link required products from your store.
-                </p>
-            </div>
-
-            <div className="space-y-3">
-                {prereqFields.map((field, index) => {
-                    const currentType = form.watch(`clientRequirements.${index}.type`) || 'text';
-                    return (
-                        <div key={field.id} className="p-3 border rounded-lg bg-card space-y-2">
-                            <div className="flex items-center gap-2">
-                                <Select
-                                    value={currentType}
-                                    onValueChange={(val: 'text' | 'product') => {
-                                        form.setValue(`clientRequirements.${index}.type`, val);
-                                        if (val === 'text') form.setValue(`clientRequirements.${index}.productId`, '');
-                                    }}
-                                >
-                                    <SelectTrigger className="w-[150px] h-9 text-xs font-semibold">
-                                        <SelectValue placeholder="Select type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="text">Text Requirement</SelectItem>
-                                        <SelectItem value="product">Required Product</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                {currentType === 'text' ? (
-                                    <FormField
-                                        control={form.control}
-                                        name={`clientRequirements.${index}.value`}
-                                        render={({ field }) => (
-                                            <FormItem className="flex-1 space-y-0">
-                                                <FormControl>
-                                                    <Input {...field} placeholder="e.g. Bank confirmation letter not older than 3 months" className="h-9 text-xs" />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                ) : (
-                                    <FormField
-                                        control={form.control}
-                                        name={`clientRequirements.${index}.productId`}
-                                        render={({ field }) => (
-                                            <FormItem className="flex-1 space-y-0">
-                                                <Select value={field.value || ''} onValueChange={field.onChange}>
-                                                    <FormControl>
-                                                        <SelectTrigger className="h-9 text-xs font-medium">
-                                                            <SelectValue placeholder="Select required product..." />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        {allServices.filter(s => s.id !== service?.id).map((s) => (
-                                                            <SelectItem key={s.id} value={s.id}>
-                                                                {s.title} ({s.isPriceTbc ? 'Quote' : `R${s.price?.toFixed(2)}`})
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </FormItem>
-                                        )}
-                                    />
-                                )}
-
-                                <Button 
-                                    type="button" 
-                                    variant="destructive" 
-                                    size="icon" 
-                                    className="h-9 w-9 shrink-0" 
-                                    onClick={() => removePrereq(index)}
-                                >
-                                    <Trash className="h-4 w-4"/>
-                                </Button>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-                <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => appendPrereq({ type: 'text', value: '', productId: '' })}
-                >
-                    + Add Text Requirement
-                </Button>
-                <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    className="border-primary/40 text-primary hover:bg-primary/5 font-semibold"
-                    onClick={() => appendPrereq({ type: 'product', value: '', productId: '' })}
-                >
-                    + Add Required Product
-                </Button>
-            </div>
-        </div>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full overflow-hidden bg-background">
         
-        <div className="space-y-2 rounded-lg border p-4">
-            <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">Information to be provided by the client</h3>
-                <Select onValueChange={handleCopyFrom}>
-                    <SelectTrigger className="w-[200px] h-8">
-                        <SelectValue placeholder="Copy from..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {allServices.filter(s => s.id !== service?.id).map(s => (
-                            <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+        {/* Top Header Bar */}
+        <div className="flex items-center justify-between px-6 py-3.5 border-b bg-muted/20 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold">
+              <Package className="h-5 w-5" />
             </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-foreground truncate max-w-md">
+                  {watchedTitle || (service ? 'Edit Product' : 'Create New Product')}
+                </h2>
+                {form.watch('category') && (
+                  <Badge variant="secondary" className="text-xs font-semibold">
+                    {form.watch('category')}
+                  </Badge>
+                )}
+                {form.watch('isFeatured') && (
+                  <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-xs font-bold gap-1">
+                    <Star className="h-3 w-3 fill-amber-500" /> Popular
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {isPriceTbc ? 'Quote-based' : `R${watchedPrice.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`} · {infoFields.length} Client Documents · {checklistFields.length} SOP Steps
+              </p>
+            </div>
+          </div>
 
-            {infoFields.map((field, index) => (
-              <div key={field.id} className="flex flex-col gap-3 p-3 border rounded-lg bg-card shadow-sm">
-                <div className="flex items-end gap-2">
-                    <FormField
-                        control={form.control}
-                        name={`informationToProvide.${index}.label`}
-                        render={({ field }) => (
-                            <FormItem className="flex-grow">
-                              <FormLabel>Field Label</FormLabel>
-                              <FormControl><Input placeholder="e.g. Bank Statement (12 Months)" {...field} /></FormControl>
-                              <FormMessage/>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name={`informationToProvide.${index}.type`}
-                        render={({ field }) => (
-                            <FormItem className="w-48">
-                                <FormLabel>Field Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value || 'text'}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select a type" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="text">Text Input</SelectItem>
-                                        <SelectItem value="pdf">File Upload (PDF)</SelectItem>
-                                        <SelectItem value="excel">File Upload (Excel/CSV)</SelectItem>
-                                        <SelectItem value="image">File Upload (Image/Photo)</SelectItem>
-                                        <SelectItem value="any">File Upload (Any Format)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={index === 0}
-                        onClick={() => moveInfo(index, index - 1)}
-                        title="Move Up"
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={index === infoFields.length - 1}
-                        onClick={() => moveInfo(index, index + 1)}
-                        title="Move Down"
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                      <Button type="button" variant="destructive" size="icon" onClick={() => removeInfo(index)} title="Delete Requirement">
-                        <Trash className="h-4 w-4"/>
-                      </Button>
-                    </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm"
+              onClick={handleAiUpdate} 
+              disabled={isAiUpdating} 
+              className="gap-1.5 text-xs font-bold border-primary/30 text-primary hover:bg-primary/5"
+            >
+              {isAiUpdating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 text-primary" />}
+              <span>AI Auto-Fill</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)} className="flex flex-col flex-grow overflow-hidden">
+          <div className="px-6 pt-2 border-b bg-muted/10 shrink-0">
+            <TabsList className="bg-muted/60 p-1 h-10 gap-1 w-full sm:w-auto justify-start">
+              <TabsTrigger value="overview" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
+                <DollarSign className="h-3.5 w-3.5" />
+                Overview & Pricing
+              </TabsTrigger>
+              <TabsTrigger value="deliverables" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
+                <Layers className="h-3.5 w-3.5" />
+                What's Included ({includedFields.length})
+              </TabsTrigger>
+              <TabsTrigger value="prerequisites" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
+                <ExternalLink className="h-3.5 w-3.5" />
+                Prerequisites ({prereqFields.length})
+              </TabsTrigger>
+              <TabsTrigger value="intake" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
+                <ClipboardList className="h-3.5 w-3.5" />
+                Client Documents ({infoFields.length})
+              </TabsTrigger>
+              <TabsTrigger value="sop" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
+                <ListChecks className="h-3.5 w-3.5 text-primary" />
+                Fulfillment SOP ({checklistFields.length})
+              </TabsTrigger>
+              <TabsTrigger value="seo" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
+                <Globe className="h-3.5 w-3.5" />
+                SEO & Google Trust
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* Scrollable Tab Content Container */}
+          <div className="flex-grow overflow-y-auto px-6 py-5 space-y-6">
+            
+            {/* TAB 1: OVERVIEW & PRICING */}
+            <TabsContent value="overview" className="space-y-6 m-0 focus-visible:outline-none">
+              
+              {/* Basic Details Card */}
+              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
+                <div className="flex items-center gap-2 pb-1 border-b">
+                  <Package className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">General Product Information</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2 space-y-1.5">
+                        <FormLabel className="text-xs font-semibold">Product Title *</FormLabel>
+                        <FormControl>
+                          <Input className="h-9 font-semibold text-sm" placeholder="e.g. Annual Financial Statements (Compilation)" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="turnaroundTime"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-xs font-semibold">Turnaround Time *</FormLabel>
+                        <FormControl>
+                          <Input className="h-9 text-xs" placeholder="e.g. 5-7 working days" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Category *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger className="h-9 text-xs">
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {serviceCategories.map(cat => (
+                              <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="department"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Responsible Department *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger className="h-9 text-xs">
+                              <SelectValue placeholder="Select a department" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {departments.map(dep => (
+                              <SelectItem key={dep} value={dep}>{dep}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-4 pt-2">
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Short Summary (Grid & Search Card)</FormLabel>
+                        <FormControl>
+                          <Textarea rows={2} className="text-xs resize-none" placeholder="One or two punchy sentences describing what this service solves..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="longDescription"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Full Description (Product Page)</FormLabel>
+                        <FormControl>
+                          <Textarea rows={4} className="text-xs leading-relaxed" placeholder="Comprehensive description of the compliance requirements, benefits, and process..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex items-center gap-6 pt-2">
+                  <FormField
+                    control={form.control}
+                    name="isFeatured"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-2 space-y-0">
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                        <div>
+                          <FormLabel className="text-xs font-semibold cursor-pointer">Mark as "Popular"</FormLabel>
+                          <p className="text-[10px] text-muted-foreground">Displays a ⭐ Popular badge on storefront.</p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Pricing & Profit Margins Card */}
+              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
+                <div className="flex items-center justify-between pb-1 border-b">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <h3 className="text-sm font-bold text-foreground">Pricing & Commercials</h3>
+                  </div>
+                  {partnerDiscountPercent !== null && (
+                    <Badge variant="outline" className="text-xs font-semibold bg-green-50 text-green-700 border-green-200">
+                      Partner Margin: {partnerDiscountPercent}% (R{(watchedPrice - watchedResellerPrice).toFixed(2)})
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Public Client Price (ZAR) *</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" className="h-9 font-bold text-sm" {...field} disabled={isPriceTbc} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="resellerPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Accounting Partner Price (ZAR)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" className="h-9 text-xs" {...field} disabled={isPriceTbc} />
+                        </FormControl>
+                        <FormDescription className="text-[10px]">Wholesale cost charged to white-label partners.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="subcontractorFee"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Subcontractor / Direct Cost (ZAR)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" className="h-9 text-xs" {...field} disabled={isPriceTbc} />
+                        </FormControl>
+                        <FormDescription className="text-[10px]">Internal fulfillment or filing cost.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <FormField
-                    control={form.control}
-                    name={`informationToProvide.${index}.helpText`}
-                    render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs text-muted-foreground flex items-center gap-1">
-                            <HelpCircle className="h-3.5 w-3.5" /> Client Helper Text / Instructions (Optional)
-                          </FormLabel>
+                  control={form.control}
+                  name="isPriceTbc"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2 pt-1">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="!mt-0 text-xs font-medium cursor-pointer">
+                        Price to be confirmed (Quote-based service — requires consultation first)
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Display Image & Attachment Card */}
+              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
+                <div className="flex items-center gap-2 pb-1 border-b">
+                  <Images className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">Media & Display Assets</h3>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-semibold">Display Image</FormLabel>
+                      <div className="flex items-start gap-4">
+                        <div className="relative h-20 w-20 flex-shrink-0 border rounded-lg overflow-hidden bg-muted/30">
+                          {currentImageUrl ? (
+                            <Image src={currentImageUrl} alt="Current service image" fill className="object-cover" />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground text-[10px] text-center p-1">
+                              No Image
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-grow space-y-2">
                           <FormControl>
-                            <Input
-                              className="h-8 text-xs"
-                              placeholder="e.g. Please ensure statements are in PDF format and cover the full financial year."
-                              {...field}
-                              value={field.value || ''}
-                            />
+                            <Input {...field} placeholder="https://..." className="h-8 text-xs font-mono" />
                           </FormControl>
-                        </FormItem>
-                    )}
+                          <div className="flex flex-wrap gap-2">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="xs" 
+                              className="h-7 text-xs font-semibold gap-1"
+                              onClick={() => { setMediaLibraryTarget('image'); setIsMediaLibraryOpen(true); }}
+                            >
+                              <Images className="h-3 w-3" /> Select from Media Library
+                            </Button>
+                            <input 
+                              type="file" 
+                              ref={fileInputRef} 
+                              onChange={handleImageUpload} 
+                              accept="image/*" 
+                              className="hidden" 
+                            />
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="xs" 
+                              className="h-7 text-xs font-semibold gap-1"
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={isUploadingImage}
+                            >
+                              {isUploadingImage ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                              Upload from Computer
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
 
-                <div className="flex items-center justify-between pt-1 border-t border-border/60">
-                    <div className="flex items-center gap-6">
-                        <FormField
-                            control={form.control}
-                            name={`informationToProvide.${index}.isRequired`}
-                            render={({ field }) => (
-                                <FormItem className="flex items-center gap-2 space-y-0">
-                                    <FormControl>
-                                        <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                    <FormLabel className="!mt-0 text-xs font-semibold cursor-pointer">Required for Completion</FormLabel>
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name={`informationToProvide.${index}.isConditional`}
-                            render={({ field }) => (
-                                <FormItem className="flex items-center gap-2 space-y-0">
-                                    <FormControl>
-                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                    <FormLabel className="!mt-0 text-xs font-semibold cursor-pointer">Conditional Question</FormLabel>
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
-                    {form.watch(`informationToProvide.${index}.isConditional`) && (
-                        <FormField
-                            control={form.control}
-                            name={`informationToProvide.${index}.conditionalQuestion`}
-                            render={({ field }) => (
-                                <FormItem className="flex-grow max-w-md ml-4 space-y-0">
-                                    <FormControl>
-                                      <Input
-                                        className="h-8 text-xs"
-                                        placeholder="Question (e.g. Do you have previous financial statements?)"
-                                        {...field}
-                                        value={field.value || ''}
-                                      />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  <FormField
+                    control={form.control}
+                    name="imageHint"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Display Image AI Hint</FormLabel>
+                        <FormControl>
+                          <Input className="h-8 text-xs" placeholder="e.g. professional accountant reviewing balance sheet" {...field} />
+                        </FormControl>
+                        <FormDescription className="text-[10px]">Context for AI image generation.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
                     )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="attachmentUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Sample Output / Brochure (Optional)</FormLabel>
+                        <FormControl>
+                          <div className="flex gap-2 items-center">
+                            {attachmentFilename && (
+                              <p className="text-xs text-muted-foreground truncate max-w-xs">{decodeURIComponent(attachmentFilename)}</p>
+                            )}
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="xs"
+                              className="h-8 text-xs gap-1" 
+                              onClick={() => { setMediaLibraryTarget('attachment'); setIsMediaLibraryOpen(true); }}
+                            >
+                              <Paperclip className="h-3.5 w-3.5" />
+                              {attachmentFilename ? 'Change' : 'Select'} PDF
+                            </Button>
+                            {attachmentFilename && (
+                              <Button type="button" variant="ghost" size="xs" className="h-8 text-destructive" onClick={() => field.onChange('')}>
+                                Remove
+                              </Button>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </div>
-            ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => appendInfo({ label: '', type: 'text', helpText: '', isRequired: true })}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Information Field
-            </Button>
-        </div>
+            </TabsContent>
 
-        <Separator />
-
-        <div className="space-y-4 rounded-lg border p-4">
-            <Dialog open={isMediaLibraryOpen} onOpenChange={setIsMediaLibraryOpen}>
-                <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                        <DialogTitle>Media Library</DialogTitle>
-                        <DialogDescription>
-                            {mediaLibraryTarget === 'image' ? 'Select an image for this product.' : 'Select a file to attach to the email.'}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <MediaLibrary onSelectImage={(url) => {
-                        if (mediaLibraryTarget === 'image') {
-                           form.setValue('imageUrl', url);
-                        } else {
-                           form.setValue('attachmentUrl', url);
-                        }
-                        setIsMediaLibraryOpen(false);
-                    }} 
-                    accept={mediaLibraryTarget === 'image' ? 'image/*' : 'application/pdf'}
-                    />
-                </DialogContent>
-            </Dialog>
-            <div className="flex items-center justify-between gap-4">
-                <h3 className="text-lg font-medium">Marketing & SEO</h3>
-                <Button 
+            {/* TAB 2: WHAT'S INCLUDED & DELIVERABLES */}
+            <TabsContent value="deliverables" className="space-y-4 m-0 focus-visible:outline-none">
+              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
+                <div className="flex items-center justify-between pb-1 border-b">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold text-foreground">What's Included (Deliverables List)</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Bullet points displayed on the product page and checkout confirmation explaining what the customer receives.
+                    </p>
+                  </div>
+                  <Button 
                     type="button" 
                     variant="outline" 
                     size="sm" 
-                    onClick={handleOptimizeSeo} 
-                    disabled={isOptimizingSeo}
-                    className="gap-1 font-bold text-primary border-primary/30 hover:bg-primary/5"
-                >
-                    {isOptimizingSeo ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4" />}
-                    <span>Optimize SEO</span>
-                </Button>
-            </div>
-             <FormField
-                control={form.control}
-                name="imageUrl"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Display Image</FormLabel>
-                        <div className="flex items-center gap-4">
-                             <div className="relative h-24 w-24 flex-shrink-0 border rounded-md overflow-hidden">
-                                {currentImageUrl && <Image src={currentImageUrl} alt="Current service image" fill className="object-cover"/>}
-                            </div>
-                            <div className="flex-grow space-y-2">
-                                <FormControl><Input {...field} placeholder="https://example.com/image.jpg" /></FormControl>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button type="button" variant="outline" size="sm" onClick={() => { setMediaLibraryTarget('image'); setIsMediaLibraryOpen(true); }}>
-                                        <Images className="mr-2 h-4 w-4"/>
-                                        Select from Media Library
-                                    </Button>
-                                    <input 
-                                        type="file" 
-                                        ref={fileInputRef} 
-                                        onChange={handleImageUpload} 
-                                        accept="image/*" 
-                                        className="hidden" 
-                                    />
-                                    <Button 
-                                        type="button" 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={isUploadingImage}
-                                    >
-                                        {isUploadingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4"/>}
-                                        Upload from Computer
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="imageHint"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Display Image AI Hint</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="attachmentUrl"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Attachment (Optional)</FormLabel>
-                        <FormControl>
-                             <div className="flex gap-2 items-center">
-                                {attachmentFilename && <p className="text-sm text-muted-foreground truncate">{decodeURIComponent(attachmentFilename)}</p>}
-                                <Button type="button" variant="outline" size="sm" onClick={() => { setMediaLibraryTarget('attachment'); setIsMediaLibraryOpen(true); }}>
-                                    <Paperclip className="mr-2 h-4 w-4"/>
-                                    {attachmentFilename ? 'Change' : 'Select'} Attachment
-                                </Button>
-                                {attachmentFilename && (
-                                    <Button type="button" variant="destructive" size="sm" onClick={() => field.onChange('')}>
-                                        Remove
-                                    </Button>
-                                )}
-                            </div>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
+                    className="gap-1 text-xs font-semibold h-8"
+                    onClick={() => appendIncluded({ value: '' })}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add Deliverable
+                  </Button>
+                </div>
 
-            <FormField control={form.control} name="returnPolicyCategory" render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Google Return Policy Category</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || 'none'}>
-                        <FormControl>
-                            <SelectTrigger><SelectValue placeholder="Select policy type..." /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
+                <div className="space-y-2.5">
+                  {includedFields.map((field, index) => (
+                    <div key={field.id} className="flex items-center gap-2">
+                      <div className="flex items-center justify-center h-7 w-7 rounded-md bg-green-500/10 text-green-700 dark:text-green-300 font-bold text-xs shrink-0">
+                        ✓
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name={`whatsIncluded.${index}.value`}
+                        render={({ field }) => (
+                          <FormItem className="flex-grow space-y-0">
+                            <FormControl>
+                              <Input className="h-8 text-xs font-medium" placeholder="e.g. CIPC Confirmation Certificate & Share Certificates" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" 
+                        onClick={() => removeIncluded(index)}
+                      >
+                        <Trash className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+
+                  {includedFields.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic py-3 text-center">
+                      No deliverables added yet. Click "+ Add Deliverable" to add bullet points.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* TAB 3: PREREQUISITES */}
+            <TabsContent value="prerequisites" className="space-y-4 m-0 focus-visible:outline-none">
+              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold text-foreground">Prerequisites (Public Notice & Linked Store Products)</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Standard prerequisite notices and linked store products shown to clients on the storefront.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 text-xs font-bold border-primary/40 text-primary hover:bg-primary/5 gap-1.5 shadow-xs"
+                      onClick={() => setIsPrereqMultiOpen(true)}
+                    >
+                      <BookOpen className="h-3.5 w-3.5 text-primary" /> + Select Standard Notices (Multi)
+                    </Button>
+
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 text-xs font-semibold"
+                      onClick={() => appendPrereq({ type: 'text', value: '', productId: '' })}
+                    >
+                      + Custom Text
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 text-xs border-primary/30 text-primary hover:bg-primary/5 font-semibold"
+                      onClick={() => appendPrereq({ type: 'product', value: '', productId: '' })}
+                    >
+                      + Linked Product
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5">
+                  {prereqFields.map((field, index) => {
+                    const currentType = form.watch(`clientRequirements.${index}.type`) || 'text';
+                    return (
+                      <div key={field.id} className="flex items-center gap-2 p-2.5 rounded-lg border bg-muted/20 text-xs">
+                        <Select
+                          value={currentType}
+                          onValueChange={(val: 'text' | 'product') => {
+                            form.setValue(`clientRequirements.${index}.type`, val);
+                            if (val === 'text') form.setValue(`clientRequirements.${index}.productId`, '');
+                          }}
+                        >
+                          <SelectTrigger className="w-[140px] h-8 text-xs font-semibold shrink-0">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="text">Text Notice</SelectItem>
+                            <SelectItem value="product">Linked Product</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {currentType === 'text' ? (
+                          <FormField
+                            control={form.control}
+                            name={`clientRequirements.${index}.value`}
+                            render={({ field }) => (
+                              <FormItem className="flex-1 space-y-0">
+                                <FormControl>
+                                  <Input {...field} placeholder="e.g. Certified ID copies of all active directors" className="h-8 text-xs font-medium" />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        ) : (
+                          <FormField
+                            control={form.control}
+                            name={`clientRequirements.${index}.productId`}
+                            render={({ field }) => (
+                              <FormItem className="flex-1 space-y-0">
+                                <Select value={field.value || ''} onValueChange={field.onChange}>
+                                  <FormControl>
+                                    <SelectTrigger className="h-8 text-xs font-medium">
+                                      <SelectValue placeholder="Select required prerequisite service..." />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {allServices.filter(s => s.id !== service?.id).map((s) => (
+                                      <SelectItem key={s.id} value={s.id}>
+                                        {s.title} ({s.isPriceTbc ? 'Quote' : `R${s.price?.toFixed(2)}`})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" 
+                          onClick={() => removePrereq(index)}
+                        >
+                          <Trash className="h-3.5 w-3.5"/>
+                        </Button>
+                      </div>
+                    );
+                  })}
+
+                  {prereqFields.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic py-3 text-center">
+                      No prerequisites configured. Click "+ Select Standard Notices (Multi)" or "+ Custom Text" above.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* TAB 4: CLIENT DOCUMENTS & INTAKE */}
+            <TabsContent value="intake" className="space-y-4 m-0 focus-visible:outline-none">
+              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold text-foreground">Client Document Uploads & Required Data</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Standardized intake documents the client must upload on their dashboard. The AI agent validates these during KYC.
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 text-xs font-bold border-primary/40 text-primary hover:bg-primary/5 gap-1.5 shadow-xs"
+                      onClick={() => setIsDocMultiOpen(true)}
+                    >
+                      <BookOpen className="h-3.5 w-3.5 text-primary" /> + Select Standard Documents (Multi)
+                    </Button>
+
+                    <Select onValueChange={handleCopyFrom}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <Copy className="h-3 w-3 mr-1 text-muted-foreground" />
+                        <SelectValue placeholder="Copy from service..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allServices.filter(s => s.id !== service?.id).map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-1 text-xs font-semibold h-8"
+                      onClick={() => appendInfo({ id: `req_${Date.now().toString(36)}`, label: '', type: 'pdf', helpText: '', isRequired: true })}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Custom Field
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {infoFields.map((field, index) => (
+                    <div key={field.id} className="p-3.5 rounded-lg border bg-muted/10 space-y-3">
+                      <div className="flex items-start gap-2">
+                        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary font-bold text-xs mt-1 shrink-0">
+                          {index + 1}
+                        </div>
+                        
+                        <FormField
+                          control={form.control}
+                          name={`informationToProvide.${index}.label`}
+                          render={({ field }) => (
+                            <FormItem className="flex-grow space-y-1">
+                              <FormLabel className="text-xs font-semibold">Requirement Name / Label *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. Certified ID Copy / Passport" className="h-8 text-xs font-medium" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name={`informationToProvide.${index}.type`}
+                          render={({ field }) => (
+                            <FormItem className="w-44 shrink-0 space-y-1">
+                              <FormLabel className="text-xs font-semibold">Accepted Format</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || 'pdf'}>
+                                <FormControl>
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="Format" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="pdf">File (PDF Document)</SelectItem>
+                                  <SelectItem value="image">File (Image/Photo)</SelectItem>
+                                  <SelectItem value="excel">File (Excel/CSV)</SelectItem>
+                                  <SelectItem value="any">File (Any format)</SelectItem>
+                                  <SelectItem value="text">Text / Number Input</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex items-center gap-0.5 mt-5 shrink-0">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground"
+                            disabled={index === 0}
+                            onClick={() => moveInfo(index, index - 1)}
+                            title="Move Up"
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground"
+                            disabled={index === infoFields.length - 1}
+                            onClick={() => moveInfo(index, index + 1)}
+                            title="Move Down"
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeInfo(index)} 
+                            title="Delete"
+                          >
+                            <Trash className="h-3.5 w-3.5"/>
+                          </Button>
+                        </div>
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name={`informationToProvide.${index}.helpText`}
+                        render={({ field }) => (
+                          <FormItem className="space-y-1">
+                            <FormLabel className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <HelpCircle className="h-3 w-3" /> Client Instructions & Upload Guidelines (Optional)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                className="h-7 text-xs bg-background"
+                                placeholder="e.g. Must not be older than 3 months. Color scan required."
+                                {...field}
+                                value={field.value || ''}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="flex items-center justify-between pt-1 border-t border-border/40 text-xs">
+                        <div className="flex items-center gap-5">
+                          <FormField
+                            control={form.control}
+                            name={`informationToProvide.${index}.isRequired`}
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-1.5 space-y-0">
+                                <FormControl>
+                                  <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="!mt-0 text-xs font-medium cursor-pointer">Mandatory</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`informationToProvide.${index}.isConditional`}
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-1.5 space-y-0">
+                                <FormControl>
+                                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="!mt-0 text-xs font-medium cursor-pointer">Conditional Question</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {form.watch(`informationToProvide.${index}.isConditional`) && (
+                          <FormField
+                            control={form.control}
+                            name={`informationToProvide.${index}.conditionalQuestion`}
+                            render={({ field }) => (
+                              <FormItem className="flex-grow max-w-sm ml-3 space-y-0">
+                                <FormControl>
+                                  <Input
+                                    className="h-7 text-xs"
+                                    placeholder="Question to prompt client (e.g. Are you registered for VAT?)"
+                                    {...field}
+                                    value={field.value || ''}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {infoFields.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic py-3 text-center">
+                      No document requirements configured. Select "+ Standard Document..." above to add from library.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* TAB 4: FULFILLMENT SOP & AI WORKFLOW */}
+            <TabsContent value="sop" className="space-y-4 m-0 focus-visible:outline-none">
+              <div className="p-4 rounded-xl border border-primary/20 bg-gradient-to-b from-card to-primary/[0.02] space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <ListChecks className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold text-foreground">Standard Operating Procedure (SOP Checklist)</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Sequential tasks followed by the AI Agent and human accountants to fulfill this service end-to-end.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="xs"
+                      className="h-7 text-xs gap-1 border-primary/30"
+                      onClick={() => replaceChecklist(DEFAULT_FULFILLMENT_CHECKLIST.map(s => ({
+                        id: s.id,
+                        title: s.title,
+                        description: s.description || '',
+                        type: s.type,
+                        requiredRole: s.requiredRole || '',
+                        estimatedDays: s.estimatedDays || 1,
+                      })))}
+                    >
+                      <CheckCircle2 className="h-3 w-3 text-primary" /> Reset to Standard 3-Step
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="xs"
+                      className="h-7 text-xs font-semibold gap-1"
+                      onClick={() => appendChecklist({
+                        id: `step_${Date.now().toString(36)}`,
+                        title: '',
+                        description: '',
+                        type: 'manual',
+                        estimatedDays: 1,
+                      })}
+                    >
+                      <Plus className="h-3 w-3" /> Add SOP Step
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {checklistFields.map((field, index) => (
+                    <div key={field.id} className="p-3.5 rounded-lg border bg-card shadow-sm space-y-2.5">
+                      <div className="flex items-start gap-2">
+                        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary font-bold text-xs mt-1 shrink-0">
+                          {index + 1}
+                        </div>
+                        
+                        <FormField
+                          control={form.control}
+                          name={`fulfillmentChecklist.${index}.title`}
+                          render={({ field }) => (
+                            <FormItem className="flex-grow space-y-1">
+                              <FormLabel className="text-xs font-semibold">Step Title *</FormLabel>
+                              <FormControl>
+                                <Input className="h-8 text-xs font-semibold" placeholder="e.g. 2. Statutory CIPC Filing" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name={`fulfillmentChecklist.${index}.type`}
+                          render={({ field }) => (
+                            <FormItem className="w-48 shrink-0 space-y-1">
+                              <FormLabel className="text-xs font-semibold">Step Type</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value || 'manual'}>
+                                <FormControl>
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="doc_verification">Document Verification</SelectItem>
+                                  <SelectItem value="external_filing">External Filing (CIPC/SARS)</SelectItem>
+                                  <SelectItem value="internal_calc">Internal Prep / Calculation</SelectItem>
+                                  <SelectItem value="signoff">Sign-off & Client Dispatch</SelectItem>
+                                  <SelectItem value="manual">Manual Execution</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name={`fulfillmentChecklist.${index}.estimatedDays`}
+                          render={({ field }) => (
+                            <FormItem className="w-20 shrink-0 space-y-1">
+                              <FormLabel className="text-xs font-semibold">Est. Days</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  className="h-8 text-xs text-center"
+                                  placeholder="1"
+                                  {...field}
+                                  value={field.value !== undefined ? field.value : ''}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex items-center gap-0.5 mt-5 shrink-0">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground"
+                            disabled={index === 0}
+                            onClick={() => moveChecklist(index, index - 1)}
+                            title="Move Up"
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground"
+                            disabled={index === checklistFields.length - 1}
+                            onClick={() => moveChecklist(index, index + 1)}
+                            title="Move Down"
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeChecklist(index)}
+                            title="Delete"
+                          >
+                            <Trash className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name={`fulfillmentChecklist.${index}.description`}
+                        render={({ field }) => (
+                          <FormItem className="space-y-1">
+                            <FormLabel className="text-[11px] text-muted-foreground">Standard Operating Procedure Instructions</FormLabel>
+                            <FormControl>
+                              <Input
+                                className="h-7 text-xs bg-muted/30"
+                                placeholder="Detailed operational steps for the staff member or AI agent completing this task..."
+                                {...field}
+                                value={field.value || ''}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  ))}
+
+                  {checklistFields.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic py-3 text-center">
+                      No SOP checklist steps defined. Click "Reset to Standard 3-Step" to populate.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* TAB 5: SEO, MARKETING & GOOGLE TRUST */}
+            <TabsContent value="seo" className="space-y-6 m-0 focus-visible:outline-none">
+              
+              {/* Live Google Search Preview Card */}
+              <div className="p-4 rounded-xl border bg-card space-y-3 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b">
+                  <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-bold text-foreground">Google Search Snippet Preview</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="xs" 
+                      className="gap-1 font-semibold text-primary border-primary/30 hover:bg-primary/5 h-7 text-xs"
+                      asChild
+                    >
+                      <a 
+                        href={`/products/${service?.slug || (watchedTitle ? watchedTitle.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '') : 'product-slug')}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        <span>View Live Page</span>
+                      </a>
+                    </Button>
+
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="xs" 
+                      onClick={handleOptimizeSeo} 
+                      disabled={isOptimizingSeo}
+                      className="gap-1 font-bold text-primary border-primary/30 hover:bg-primary/5 h-7 text-xs"
+                    >
+                      {isOptimizingSeo ? <Loader2 className="h-3 w-3 animate-spin"/> : <Sparkles className="h-3 w-3" />}
+                      <span>1-Click AI SEO Optimize</span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-lg bg-muted/20 border text-left space-y-1 font-sans">
+                  {(() => {
+                    const currentSlug = service?.slug || (watchedTitle ? watchedTitle.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '') : 'product-slug');
+                    const targetUrl = `/products/${currentSlug}`;
+                    return (
+                      <>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                          <span>https://myacc.co.za</span>
+                          <span>›</span>
+                          <span>products</span>
+                          <span>›</span>
+                          <span className="text-foreground font-semibold">
+                            {currentSlug}
+                          </span>
+                        </div>
+                        <h4 className="text-base font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer truncate">
+                          <a href={targetUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 group">
+                            <span>{form.watch('metaTitle') || watchedTitle || 'Professional Accounting & Tax Services'} | My Accountant</span>
+                            <ExternalLink className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 shrink-0" />
+                          </a>
+                        </h4>
+                        {form.watch('enableAggregateRating') && (
+                          <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                            <span>Rating: {form.watch('aggregateRatingValue') || 4.9}/5</span>
+                            <span>·</span>
+                            <span>{form.watch('reviewCount') || 187} reviews</span>
+                            <span>·</span>
+                            <span>{isPriceTbc ? 'Quote based' : `ZAR ${watchedPrice.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`}</span>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                          {form.watch('metaDescription') || form.watch('description') || 'Expert South African Chartered Accountants and CIPC compliance specialists. Professional, fast turnaround guaranteed.'}
+                        </p>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Meta Tags */}
+              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
+                <div className="flex items-center gap-2 pb-1 border-b">
+                  <Globe className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">Meta Tags & Search Engine Keywords</h3>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="metaTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex justify-between items-end mb-1">
+                        <FormLabel className="text-xs font-semibold">Meta Title (Under 60 chars)</FormLabel>
+                        <span className={cn(
+                          "text-[10px] font-bold px-2 py-0.5 rounded",
+                          metaTitleLength >= 60 ? 'bg-red-100 text-red-800' : metaTitleLength === 0 ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'
+                        )}>
+                          {metaTitleLength}/59 chars
+                        </span>
+                      </div>
+                      <FormControl><Input className="h-9 text-xs" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="metaDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex justify-between items-end mb-1">
+                        <FormLabel className="text-xs font-semibold">Meta Description (Under 160 chars)</FormLabel>
+                        <span className={cn(
+                          "text-[10px] font-bold px-2 py-0.5 rounded",
+                          metaDescriptionLength > 160 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                        )}>
+                          {metaDescriptionLength}/160 chars
+                        </span>
+                      </div>
+                      <FormControl><Textarea rows={2} className="text-xs" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <FormLabel className="text-xs font-semibold">Meta Keywords</FormLabel>
+                    <Button type="button" variant="outline" size="xs" className="h-6 text-[11px]" onClick={() => appendKeyword({ value: '' })}>
+                      + Add Keyword
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {keywordFields.map((field, index) => (
+                      <div key={field.id} className="flex items-center gap-1">
+                        <FormField
+                          control={form.control}
+                          name={`metaKeywords.${index}.value`}
+                          render={({ field }) => (
+                            <FormItem className="flex-1 space-y-0">
+                              <FormControl><Input className="h-7 text-xs" placeholder="keyword..." {...field} /></FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => removeKeyword(index)}>
+                          <Trash className="h-3 w-3"/>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Google Merchant & Schema Trust */}
+              <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 space-y-4 shadow-sm">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
+                  <ShieldCheck className="h-4 w-4" /> Google Merchant Schema & Search Console Compliance
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField 
+                    control={form.control} 
+                    name="returnPolicyCategory" 
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Google Return Policy</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || 'https://schema.org/MerchantReturnNotPermitted'}>
+                          <FormControl>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Policy" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
                             <SelectItem value="none">None (Omit from Schema)</SelectItem>
                             {returnPolicyCategories.map(item => (
-                                <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                              <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
                             ))}
-                        </SelectContent>
-                    </Select>
-                    <FormDescription className="text-[10px]">Required for Google rich snippets. Most accounting services use "Returns Not Permitted".</FormDescription>
-                </FormItem>
-            )} />
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )} 
+                  />
 
-            <Separator className="my-4" />
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <FormField control={form.control} name="brand" render={({ field }) => ( <FormItem><FormLabel>Brand</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                 <FormField control={form.control} name="product_type" render={({ field }) => ( <FormItem><FormLabel>Product Type</FormLabel><FormControl><Input {...field} placeholder="e.g. Accounting > Tax" /></FormControl><FormMessage /></FormItem> )} />
-                 <FormField control={form.control} name="google_product_category" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Google Product Category</FormLabel><FormControl><Input {...field} placeholder="e.g. Business & Industrial > Business Services" /></FormControl><FormMessage /></FormItem> )} />
-            </div>
-            <Separator className="my-4" />
-            <FormField
-                control={form.control}
-                name="metaTitle"
-                render={({ field }) => (
-                    <FormItem>
-                    <div className="flex justify-between items-end mb-1">
-                        <FormLabel>Meta Title</FormLabel>
-                        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded", metaTitleLength >= 60 ? 'bg-red-100 text-red-800' : metaTitleLength === 0 ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800')}>
-                            {metaTitleLength}/59 chars
-                        </span>
-                    </div>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="metaDescription"
-                render={({ field }) => (
-                    <FormItem>
-                    <div className="flex justify-between items-end mb-1">
-                        <FormLabel>Meta Description</FormLabel>
-                        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded", metaDescriptionLength > 160 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800')}>
-                            {metaDescriptionLength}/160 chars
-                        </span>
-                    </div>
-                    <FormControl><Textarea {...field} rows={2} /></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <div>
-                <FormLabel>Meta Keywords</FormLabel>
-                {keywordFields.map((field, index) => (
-                    <FormField
-                        key={field.id}
-                        control={form.control}
-                        name={`metaKeywords.${index}.value`}
-                        render={({ field }) => (
-                            <FormItem className="flex items-center gap-2 mt-2">
-                                <FormControl><Input {...field} /></FormControl>
-                                <Button type="button" variant="destructive" size="icon" onClick={() => removeKeyword(index)}><Trash className="h-4 w-4"/></Button>
-                            </FormItem>
-                        )}
-                    />
-                ))}
-                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => appendKeyword({ value: '' })}>Add Keyword</Button>
-            </div>
-
-            <Separator className="my-6" />
-
-            <div className="space-y-4 rounded-lg border-2 border-primary/20 bg-primary/5 p-4 animate-in fade-in">
-                <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-widest">
-                    <ShieldCheck className="h-4 w-4" /> Schema & Trust Signals (GSC Fix)
+                  <FormField 
+                    control={form.control} 
+                    name="schemaType" 
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Structured Data Schema Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Product">Product (Uses Offers)</SelectItem>
+                            <SelectItem value="Service">Service (No Price Required)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )} 
+                  />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="schemaType" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Structured Data Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    <SelectItem value="Product">Product (Uses Offers)</SelectItem>
-                                    <SelectItem value="Service">Service (No Price Required)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormDescription className="text-[10px]">Use 'Service' for quote-based items to avoid GSC errors.</FormDescription>
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="priceValidUntilOverride" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Price Valid Until</FormLabel>
-                            <FormControl><Input type="date" {...field} /></FormControl>
-                            <FormDescription className="text-[10px]">Override automated year-end expiry.</FormDescription>
-                        </FormItem>
-                    )} />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  <FormField 
+                    control={form.control} 
+                    name="brand" 
+                    render={({ field }) => ( 
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Brand</FormLabel>
+                        <FormControl><Input className="h-8 text-xs" {...field} /></FormControl>
+                      </FormItem> 
+                    )} 
+                  />
+                  <FormField 
+                    control={form.control} 
+                    name="google_product_category" 
+                    render={({ field }) => ( 
+                      <FormItem>
+                        <FormLabel className="text-xs font-semibold">Google Product Category</FormLabel>
+                        <FormControl><Input className="h-8 text-xs" placeholder="e.g. Business & Industrial > Business Services" {...field} /></FormControl>
+                      </FormItem> 
+                    )} 
+                  />
                 </div>
-                
-                <Separator className="bg-primary/10" />
-                
-                <div className="space-y-4">
-                    <FormField control={form.control} name="enableAggregateRating" render={({ field }) => (
-                        <FormItem className="flex items-center justify-between">
-                            <div>
-                                <FormLabel>Enable Aggregate Rating</FormLabel>
-                                <p className="text-[10px] text-muted-foreground">Show 4.9/5 stars in search results.</p>
-                            </div>
-                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                        </FormItem>
-                    )} />
-                    
-                    {form.watch('enableAggregateRating') && (
-                        <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
-                            <FormField control={form.control} name="aggregateRatingValue" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] uppercase font-bold">Rating Value</FormLabel>
-                                    <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="reviewCount" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] uppercase font-bold">Review Count</FormLabel>
-                                    <FormControl><Input type="number" {...field} /></FormControl>
-                                </FormItem>
-                            )} />
+
+                <div className="pt-2 border-t border-primary/10">
+                  <FormField 
+                    control={form.control} 
+                    name="enableAggregateRating" 
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between">
+                        <div>
+                          <FormLabel className="text-xs font-semibold cursor-pointer">Enable Aggregate Star Rating in Search</FormLabel>
+                          <p className="text-[10px] text-muted-foreground">Generates Schema.org AggregateRating rich snippet badge.</p>
                         </div>
-                    )}
+                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      </FormItem>
+                    )} 
+                  />
+
+                  {form.watch('enableAggregateRating') && (
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <FormField control={form.control} name="aggregateRatingValue" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] uppercase font-bold">Star Rating (1-5)</FormLabel>
+                          <FormControl><Input type="number" step="0.1" className="h-8 text-xs" {...field} /></FormControl>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="reviewCount" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] uppercase font-bold">Review Count</FormLabel>
+                          <FormControl><Input type="number" className="h-8 text-xs" {...field} /></FormControl>
+                        </FormItem>
+                      )} />
+                    </div>
+                  )}
                 </div>
-            </div>
+              </div>
+            </TabsContent>
+
+          </div>
+        </Tabs>
+
+        {/* Media Library Dialog Sub-Modal */}
+        <Dialog open={isMediaLibraryOpen} onOpenChange={setIsMediaLibraryOpen}>
+          <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Media Asset Library</DialogTitle>
+              <DialogDescription>
+                {mediaLibraryTarget === 'image' ? 'Select a visual display asset for this service.' : 'Select a PDF document to attach.'}
+              </DialogDescription>
+            </DialogHeader>
+            <MediaLibrary 
+              onSelectImage={(url) => {
+                if (mediaLibraryTarget === 'image') {
+                  form.setValue('imageUrl', url, { shouldDirty: true, shouldValidate: true });
+                } else {
+                  form.setValue('attachmentUrl', url, { shouldDirty: true, shouldValidate: true });
+                }
+                setIsMediaLibraryOpen(false);
+              }} 
+              accept={mediaLibraryTarget === 'image' ? 'image/*' : 'application/pdf'}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Prerequisites Multi-Select Library Dialog */}
+        <PrerequisiteMultiSelectDialog
+          open={isPrereqMultiOpen}
+          onOpenChange={setIsPrereqMultiOpen}
+          existingTexts={form.watch('clientRequirements')?.map((r: any) => typeof r === 'string' ? r : r?.value).filter(Boolean) || []}
+          previouslyUsed={previouslyUsedPrerequisites}
+          onAddSelected={handleAddMultiplePrerequisites}
+        />
+
+        {/* Client Documents Multi-Select Library Dialog */}
+        <DocumentMultiSelectDialog
+          open={isDocMultiOpen}
+          onOpenChange={setIsDocMultiOpen}
+          existingLabels={form.watch('informationToProvide')?.map((i: any) => i?.label).filter(Boolean) || []}
+          previouslyUsed={previouslyUsedDocuments}
+          onAddSelected={handleAddMultipleDocuments}
+        />
+
+        {/* Sticky Bottom Action Bar */}
+        <div className="flex items-center justify-between px-6 py-3.5 border-t bg-muted/40 shrink-0">
+          <div className="text-xs text-muted-foreground">
+            {form.formState.isDirty ? (
+              <span className="text-amber-600 dark:text-amber-400 font-semibold">● Unsaved changes</span>
+            ) : (
+              <span>All changes saved</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {onCancel && (
+              <Button type="button" variant="outline" size="sm" onClick={onCancel} className="text-xs">
+                Cancel
+              </Button>
+            )}
+            <Button 
+              type="submit" 
+              size="sm" 
+              className="font-bold text-xs bg-primary hover:bg-primary/90 min-w-[120px]"
+              disabled={form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Saving...
+                </>
+              ) : (
+                'Save Product'
+              )}
+            </Button>
+          </div>
         </div>
 
-        <Button type="submit" className="w-full">Save Product</Button>
       </form>
     </Form>
   );

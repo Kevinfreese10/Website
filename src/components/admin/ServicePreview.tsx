@@ -49,18 +49,49 @@ export default function ServicePreview({ service }: { service: Service }) {
             </div>
         )}
 
-        <div>
-            <h2 className="text-lg font-semibold">Prerequisites</h2>
-            <Separator className="my-2" />
-            <ul className="space-y-2 text-sm">
-            {service.clientRequirements.map((doc, index) => (
-                <li key={index} className="flex items-start">
-                <ClipboardCheck className="h-5 w-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
-                <span>{typeof doc === 'string' ? doc : (doc.type === 'text' ? doc.text : doc.productId)}</span>
-                </li>
-            ))}
-            </ul>
-        </div>
+        {service.informationToProvide && service.informationToProvide.length > 0 && (
+            <div>
+                <h2 className="text-lg font-semibold">Information & Documents Needed</h2>
+                <Separator className="my-2" />
+                <ul className="space-y-2 text-sm">
+                    {service.informationToProvide.map((info, index) => (
+                        <li key={index} className="flex items-center justify-between p-2 rounded-md bg-muted/40 border text-xs">
+                            <span className="font-semibold text-foreground">{info.label}</span>
+                            <Badge variant="outline" className="text-[10px] uppercase">
+                                {info.type || 'text'}
+                            </Badge>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        )}
+
+        {service.fulfillmentChecklist && service.fulfillmentChecklist.length > 0 && (
+            <div>
+                <h2 className="text-lg font-semibold">Fulfillment SOP Checklist (AI & Staff)</h2>
+                <Separator className="my-2" />
+                <div className="space-y-2">
+                    {service.fulfillmentChecklist.map((step, index) => (
+                        <div key={index} className="p-2.5 rounded-md border bg-primary/5 border-primary/20 text-xs flex items-start gap-2">
+                            <span className="font-bold text-primary">{index + 1}.</span>
+                            <div className="flex-grow">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-bold text-foreground">{step.title}</span>
+                                    {step.type && (
+                                        <Badge variant="secondary" className="text-[10px]">
+                                            {step.type}
+                                        </Badge>
+                                    )}
+                                </div>
+                                {step.description && (
+                                    <p className="text-muted-foreground text-[11px] mt-0.5">{step.description}</p>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        )}
     </div>
   );
 }

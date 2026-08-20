@@ -56,6 +56,7 @@ import {
 } from '@/app/actions/order-actions';
 import {
   updateOrderStatusAtomic,
+  transitionOrderStatusAtomic,
   reassignOrderStaffAtomic,
   getNextStaffMemberPersisted
 } from '@/app/actions/order-admin-actions';
@@ -313,59 +314,50 @@ export default function AdminOrdersPage() {
         return;
     }
 
+    const performer = {
+        id: user.id,
+        name: user.name || user.email || 'Admin',
+    };
+
     let assignedStaffIds = orderToUpdate.assignedTo;
     let assignedStaffMember = assignedStaffIds?.[0] ? allStaff.find(s => s.id === assignedStaffIds![0]) : undefined;
 
-    if (newStatus === 'Completed' && orderToUpdate.dependsOnOrderIds && orderToUpdate.dependsOnOrderIds.length > 0) {
-        const incomplete = orders.filter(o => orderToUpdate.dependsOnOrderIds?.includes(o.id) && o.status !== 'Completed');
-        if (incomplete.length > 0) {
-            toast({
-                title: '⚠️ Prerequisite Incomplete Warning',
-                description: `Order #${orderId} depends on Order(s) ${incomplete.map(i => `#${i.id}`).join(', ')} which are still ${incomplete[0].status}.`,
-            });
-        }
-    }
-
-
-    // New Logic: Assign staff only when moving to "Processing"
+    // Persisted assignment when moving to "Processing"
     if (newStatus === 'Processing' && !assignedStaffIds?.length) {
         const department = orderToUpdate.department as 'Accounting and Tax' | 'Administration' | 'CAP' | undefined;
         if (department) {
-            const newStaffAssignment = getNextStaffMember(department);
-            if (newStaffAssignment) {
-                assignedStaffMember = newStaffAssignment;
-                assignedStaffIds = [newStaffAssignment.id];
-                 toast({
+            const activeStaffInDept = allStaff.filter(u => 
+                (u.role === 'staff' || u.role === 'admin') && 
+                u.isActive !== false && 
+                u.status !== 'Inactive' && 
+                (u.department === department || (Array.isArray(u.departments) && u.departments.includes(department)))
+            );
+            const nextStaff = await getNextStaffMemberPersisted(department, activeStaffInDept.map(s => ({ id: s.id, name: s.name, department: s.department })));
+            if (nextStaff) {
+                assignedStaffMember = allStaff.find(s => s.id === nextStaff.id);
+                assignedStaffIds = [nextStaff.id];
+                await reassignOrderStaffAtomic(orderId, assignedStaffIds, department, performer);
+                toast({
                     title: 'Order Assigned',
-                    description: `Order has been assigned to ${assignedStaffMember.name}.`
+                    description: `Order has been assigned to ${nextStaff.name}.`
                 });
 
-                // Send email to staff member
-                if (assignedStaffMember.email) {
-                    await notifyStaffOfAssignment(orderId, assignedStaffMember.id);
+                if (assignedStaffMember?.email) {
+                    await notifyStaffOfAssignment(orderId, nextStaff.id);
                 }
             }
         }
     }
-    
-    try {
-      const orderRef = doc(db, 'orders', orderId);
-      await updateDoc(orderRef, {
-        status: newStatus,
-        assignedTo: assignedStaffIds || null,
-      });
 
-      // SYNC STATUS TO ORIGINAL ORDER IF OUTSOURCED
-      if (orderToUpdate.originalOrderId) {
-          const originalRef = doc(db, 'orders', orderToUpdate.originalOrderId);
-          updateDoc(originalRef, { status: newStatus }).catch(async (error) => {
-              const permissionError = new FirestorePermissionError({
-                  path: originalRef.path,
-                  operation: 'update',
-                  requestResourceData: { status: newStatus }
-              } satisfies SecurityRuleContext);
-              errorEmitter.emit('permission-error', permissionError);
+    try {
+      const res = await transitionOrderStatusAtomic(orderId, newStatus, performer);
+      if (!res.success) {
+          toast({
+              title: 'Status Update Blocked',
+              description: res.error,
+              variant: 'destructive',
           });
+          return;
       }
 
       // Create a task if moving to processing and a staff member is assigned

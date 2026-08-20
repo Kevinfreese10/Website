@@ -386,6 +386,7 @@ export async function POST(req: NextRequest) {
               await originalOrderRef.update({
                   isOutsourced: true,
                   status: 'Processing',
+                  fulfillmentStatus: 'Awaiting Documents',
                   documentContact: currentOrderData.documentContact || 'partner',
               });
               

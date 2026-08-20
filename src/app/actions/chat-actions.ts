@@ -107,8 +107,23 @@ const googleProvider = createGoogleGenerativeAI({
 
 export async function generateFollowUpEmailDraft(chatHistoryText: string, clientName: string) {
   try {
+    const adminDb = getAdminDb();
+    let productCatalogText = '';
+    try {
+      const servicesSnap = await adminDb.collection('services').get();
+      productCatalogText = servicesSnap.docs
+        .map(d => {
+          const data = d.data();
+          const slug = data.slug || d.id;
+          return `- Product: "${data.title}" -> Link: ${SITE_URL}/products/${slug}`;
+        })
+        .join('\n');
+    } catch (dbErr) {
+      console.warn("Could not fetch product catalog for email generation:", dbErr);
+    }
+
     const { object } = await generateObject({
-      model: googleProvider('gemini-3.5-flash-lite'),
+      model: googleProvider('gemini-2.5-flash-lite'),
       schema: z.object({
         subject: z.string().describe('The subject line of the email.'),
         body: z.string().describe('The body of the email in plain text.'),
@@ -117,11 +132,16 @@ export async function generateFollowUpEmailDraft(chatHistoryText: string, client
 The email should ask the client if they still need assistance and include a mention/link to the specific product or service they were inquiring about. 
 Be polite, concise, and helpful. 
 
-CRITICAL RULES:
+CRITICAL RULES & URL GUIDELINES:
 1. Address the client by their first name (extracted from "${clientName}") in the greeting, instead of using generic terms like "Dear Client".
 2. You MUST use proper formatting. Include newline characters (\\n\\n) to separate paragraphs, the greeting, and the sign-off. Do NOT return a single solid block of text.
-3. If you include a link to a page, you MUST use the full absolute URL (e.g., instead of just "/products", use "${SITE_URL}/products").
-4. The email signature MUST always be exactly:
+3. ABSOLUTE DOMAIN & PATH RULE:
+   - The website domain is ALWAYS "${SITE_URL}" (https://www.myacc.co.za). NEVER invent or use "myaccountant.co.za".
+   - Product pages are ALWAYS located at "${SITE_URL}/products/[slug]" (NEVER use "/services/[slug]" or "myaccountant.co.za/services/...").
+4. If you include a link to a product, ONLY use the exact corresponding URL from this verified catalog:
+${productCatalogText || `- NCR Registration: ${SITE_URL}/products/ncr-registration`}
+
+5. The email signature MUST always be exactly:
 Kevin Freese
 The My Accountant Team
 010 109 1625
@@ -130,7 +150,22 @@ Conversation History:
 ${chatHistoryText}
 `,
     });
-    return { success: true, draft: object };
+
+    // Sanitize any potential hallucinated domain or /services/ paths
+    let sanitizedBody = object.body
+      .replace(/https?:\/\/(www\.)?myaccountant\.co\.za\/services\//gi, `${SITE_URL}/products/`)
+      .replace(/https?:\/\/(www\.)?myaccountant\.co\.za\/products\//gi, `${SITE_URL}/products/`)
+      .replace(/https?:\/\/(www\.)?myaccountant\.co\.za/gi, SITE_URL)
+      .replace(/https?:\/\/(www\.)?myacc\.co\.za\/services\//gi, `${SITE_URL}/products/`)
+      .replace(/https?:\/\/myacc\.co\.za\/services\//gi, `${SITE_URL}/products/`);
+
+    return { 
+      success: true, 
+      draft: {
+        subject: object.subject,
+        body: sanitizedBody,
+      } 
+    };
   } catch (error: any) {
     console.error("Error generating follow-up email draft:", error);
     return { success: false, error: error.message || 'Unknown error' };

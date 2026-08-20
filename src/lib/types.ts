@@ -10,15 +10,28 @@ export type AIDocumentVerification = {
   reason?: string;
 };
 
+export type UploadedFileItem = {
+  id: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize?: number;
+  uploadedAt: any;
+  status?: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  aiVerification?: AIDocumentVerification;
+};
+
 export type DocumentUpload = {
   id?: string;
   serviceId: string;
   requirementId?: string;
   requirementLabel: string;
-  type: 'file' | 'text';
+  type: 'file' | 'text' | 'explanation';
   fileUrl?: string;
   fileName?: string;
+  files?: UploadedFileItem[]; // Multiple files for the same requirement
   textValue?: string;
+  notAvailableReason?: string; // Client reason for why document cannot be provided
   uploadedAt: any; // Firestore Timestamp
   status: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string;

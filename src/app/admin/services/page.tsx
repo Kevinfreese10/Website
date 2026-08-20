@@ -487,8 +487,8 @@ export default function AdminServicesPage() {
                         Create Product
                     </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-xl">
-                    <DialogHeader>
+            <DialogContent className="max-w-5xl w-[95vw] h-[90vh] max-h-[880px] p-0 flex flex-col overflow-hidden">
+                    <DialogHeader className="sr-only">
                         <DialogTitle>{selectedService ? 'Edit Product' : 'Create New Product'}</DialogTitle>
                         <DialogDescription>
                             {selectedService ? 'Update the details of this product.' : 'Fill out the form to add a new product.'}
@@ -498,6 +498,7 @@ export default function AdminServicesPage() {
                         service={selectedService} 
                         allServices={services}
                         onSubmit={handleFormSubmit}
+                        onCancel={() => setIsFormOpen(false)}
                     />
             </DialogContent>
             </Dialog>

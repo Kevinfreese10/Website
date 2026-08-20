@@ -5,13 +5,18 @@ import { notFound, useParams } from 'next/navigation';
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { firebaseApp } from '@/lib/firebase';
-import { Order, Service, User, OrderNote, DocumentUpload } from '@/lib/types';
+import { Order, Service, User, OrderNote, DocumentUpload, UploadedFileItem } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Upload, ClipboardCheck, MessageSquare, Send, Mail, CheckCircle, AlertTriangle, Paperclip } from 'lucide-react';
+import { 
+  ArrowLeft, Loader2, Upload, ClipboardCheck, MessageSquare, Send, Mail, 
+  CheckCircle, AlertTriangle, Paperclip, FileText, FileSpreadsheet, FileImage, 
+  File as FileIcon, Trash2, ExternalLink, HelpCircle, Info, Plus, RefreshCw, Edit3, CheckCircle2,
+  MessageSquareQuote
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -25,9 +30,31 @@ import { Textarea } from '@/components/ui/textarea';
 import { notifyStaffOfDocumentUpload, notifyOfNewNote, notifyStaffOfClientNote } from '@/app/actions';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 
-
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return '';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function getFileIcon(fileName?: string) {
+  if (!fileName) return <FileText className="h-4 w-4 text-primary shrink-0" />;
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  if (['xls', 'xlsx', 'csv'].includes(ext || '')) {
+    return <FileSpreadsheet className="h-4 w-4 text-emerald-600 shrink-0" />;
+  }
+  if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'heic'].includes(ext || '')) {
+    return <FileImage className="h-4 w-4 text-indigo-600 shrink-0" />;
+  }
+  if (ext === 'pdf') {
+    return <FileText className="h-4 w-4 text-red-600 shrink-0" />;
+  }
+  return <FileIcon className="h-4 w-4 text-primary shrink-0" />;
+}
 
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-ZA', {
@@ -59,6 +86,11 @@ export default function ClientOrderDetailsPage() {
   const [uploadingFiles, setUploadingFiles] = useState<{ [key: string]: number }>({});
   const [textInputs, setTextInputs] = useState<{ [key: string]: string }>({});
   const [conditionalAnswers, setConditionalAnswers] = useState<Record<string, boolean>>({});
+  
+  // Missing document explanations state
+  const [unavailableReasons, setUnavailableReasons] = useState<Record<string, string>>({});
+  const [activeUnavailableForms, setActiveUnavailableForms] = useState<Record<string, boolean>>({});
+  const [editingRequirements, setEditingRequirements] = useState<Record<string, boolean>>({});
 
   // Attached files & screenshots state for live preview
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -119,52 +151,48 @@ export default function ClientOrderDetailsPage() {
               fetchOrderAndServices();
           } catch (error) {
               console.error("Error submitting answer:", error);
-              toast({ title: "Submission Failed", description: "Could not save.", variant: "destructive" });
           }
       }
-  };   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
+  };
+
+  const noteForm = useForm<z.infer<typeof noteFormSchema>>({
     resolver: zodResolver(noteFormSchema),
-    defaultValues: { noteText: "" },
+    defaultValues: {
+      noteText: '',
+      attachment: null,
+    }
   });
 
-  const fetchOrderAndServices = async () => {
+    const fetchOrderAndServices = async () => {
       if (!id) return;
       setIsLoading(true);
       try {
-        let fetchedStaff: User[] = [];
-        if (currentUser?.role === 'admin') {
-            try {
-                const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant']));
-                const staffSnapshot = await getDocs(staffQuery);
-                fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User));
-            } catch (err) {
-                console.error("Error fetching staff:", err);
-            }
-        }
-        setAllStaff(fetchedStaff);
+        const orderRef = doc(db, 'orders', id);
+        const orderSnap = await getDoc(orderRef);
 
-        const servicesQuery = query(collection(db, 'services'));
-        const servicesSnapshot = await getDocs(servicesQuery);
-        const fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
-        setAllServices(fetchedServices);
-
-        const docRef = doc(db, 'orders', id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setOrder({
-            ...data,
-            id: docSnap.id,
-            date: data.date?.toDate ? data.date.toDate().toISOString() : new Date().toISOString(),
-            notes: (data.notes || []).map((note: any) => ({...note, date: note.date?.toDate ? note.date.toDate() : new Date(note.date), attachments: note.attachments || null })),
-            documentUploads: (data.documentUploads || []).map((doc: any) => ({...doc, uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : (doc.uploadedAt ? (typeof doc.uploadedAt === 'string' ? doc.uploadedAt : new Date(doc.uploadedAt).toISOString()) : new Date().toISOString())})),
-          } as Order);
+        if (orderSnap.exists()) {
+          const orderData = { id: orderSnap.id, ...orderSnap.data() } as Order;
+          setOrder(orderData);
         } else {
-          notFound();
+          setOrder(null);
         }
+
+        const servicesSnap = await getDocs(collection(db, 'services'));
+        const servicesList = servicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+        setAllServices(servicesList);
+
+        const staffQuery = query(collection(db, 'users'), where('role', 'in', ['admin', 'consultant', 'senior_accountant', 'accountant', 'support_agent', 'partner']));
+        const staffSnap = await getDocs(staffQuery);
+        const staffList = staffSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+        setAllStaff(staffList);
+
       } catch (error) {
-        console.error("Error fetching order details: ", error);
-        notFound();
+        console.error("Error fetching order/services:", error);
+        toast({
+            title: "Error loading order",
+            description: "Could not fetch the order details. Please try again later.",
+            variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -174,123 +202,287 @@ export default function ClientOrderDetailsPage() {
     fetchOrderAndServices();
   }, [id]);
   
-  const handleFileUpload = (file: File, serviceId: string, requirementLabel: string) => {
+  const handleFilesUpload = async (filesList: FileList | File[], serviceId: string, requirementLabel: string, isAppend = true) => {
     if (!currentUser || !order) return;
-    
-    if (file.size > 25 * 1024 * 1024) {
-      toast({
-        title: 'File Exceeds Size Limit',
-        description: 'Maximum file size allowed is 25MB. Please compress or select a smaller file.',
-        variant: 'destructive',
-      });
-      return;
+    const filesArray = Array.from(filesList);
+    if (filesArray.length === 0) return;
+
+    for (const file of filesArray) {
+      if (file.size > 25 * 1024 * 1024) {
+        toast({
+          title: 'File Exceeds Size Limit',
+          description: `${file.name} is larger than 25MB. Please compress or select a smaller file.`,
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const uniqueFileName = `${Date.now()}-${sanitizedFileName}`;
-    const storageRef = ref(storage, `uploads/${currentUser.uid}/orders/${order.id}/${uniqueFileName}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-    
     const uploadKey = `${serviceId}-${requirementLabel}`;
     setUploadingFiles(prev => ({ ...prev, [uploadKey]: 0 }));
 
-    uploadTask.on('state_changed',
-        (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadingFiles(prev => ({ ...prev, [uploadKey]: progress }));
-        },
-        (error) => {
-            console.error("Upload failed:", error);
-            toast({ title: 'Upload Failed', description: error.message || 'Could not upload your file.', variant: 'destructive'});
-            setUploadingFiles(prev => {
-                const newUploading = { ...prev };
-                delete newUploading[uploadKey];
-                return newUploading;
-            });
-        },
-        async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            const newUpload: DocumentUpload = {
-                serviceId,
-                requirementLabel,
-                type: 'file',
+    try {
+      const uploadPromises = filesArray.map(async (file, idx) => {
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const uniqueFileName = `${Date.now()}_${idx}_${sanitizedFileName}`;
+        const storageRef = ref(storage, `uploads/${currentUser.uid}/orders/${order.id}/${uniqueFileName}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        return new Promise<UploadedFileItem>((resolve, reject) => {
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUploadingFiles(prev => ({ ...prev, [uploadKey]: pct }));
+            },
+            (error) => {
+              console.error("Upload error for file:", file.name, error);
+              reject(error);
+            },
+            async () => {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve({
+                id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
                 fileUrl: downloadURL,
                 fileName: file.name,
-                uploadedAt: Timestamp.now(),
+                fileSize: file.size,
+                uploadedAt: new Date().toISOString(),
                 status: 'pending',
-            };
-            
-            const orderRef = doc(db, 'orders', order.id);
-            const currentUploads = order.documentUploads || [];
-            const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
-            
-            let updatedUploads;
-            if (existingIndex > -1) {
-                updatedUploads = [...currentUploads];
-                updatedUploads[existingIndex] = newUpload;
-            } else {
-                updatedUploads = [...currentUploads, newUpload];
+              });
             }
-            
-            await updateDoc(orderRef, {
-                documentUploads: updatedUploads
-            });
+          );
+        });
+      });
 
-            toast({ title: 'File Uploaded', description: `${file.name} has been submitted for review.`});
-            setUploadingFiles(prev => {
-                const newUploading = { ...prev };
-                delete newUploading[uploadKey];
-                return newUploading;
-            });
-            fetchOrderAndServices(); // Re-fetch to update UI
+      const newUploadedItems = await Promise.all(uploadPromises);
+
+      const orderRef = doc(db, 'orders', order.id);
+      const currentUploads = order.documentUploads || [];
+      const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
+
+      let existingFiles: UploadedFileItem[] = [];
+      if (existingIndex > -1) {
+        const existingUpload = currentUploads[existingIndex];
+        if (existingUpload.files && existingUpload.files.length > 0) {
+          existingFiles = existingUpload.files;
+        } else if (existingUpload.fileUrl) {
+          existingFiles = [{
+            id: `${Date.now()}_legacy`,
+            fileUrl: existingUpload.fileUrl,
+            fileName: existingUpload.fileName || 'Uploaded Document',
+            uploadedAt: existingUpload.uploadedAt?.toDate ? existingUpload.uploadedAt.toDate().toISOString() : new Date().toISOString(),
+            status: existingUpload.status || 'pending',
+          }];
         }
-    );
+      }
+
+      const mergedFiles = isAppend ? [...existingFiles, ...newUploadedItems] : newUploadedItems;
+      const primaryFile = mergedFiles[0];
+
+      const newUpload: DocumentUpload = {
+        serviceId,
+        requirementLabel,
+        type: 'file',
+        fileUrl: primaryFile?.fileUrl || '',
+        fileName: primaryFile?.fileName || '',
+        files: mergedFiles,
+        uploadedAt: Timestamp.now(),
+        status: 'pending',
+        notAvailableReason: undefined, // Clear unavailable reason since files are uploaded
+      };
+
+      let updatedUploads;
+      if (existingIndex > -1) {
+        updatedUploads = [...currentUploads];
+        updatedUploads[existingIndex] = newUpload;
+      } else {
+        updatedUploads = [...currentUploads, newUpload];
+      }
+
+      await updateDoc(orderRef, {
+        documentUploads: updatedUploads
+      });
+
+      toast({ 
+        title: filesArray.length === 1 ? 'File Uploaded' : `${filesArray.length} Files Uploaded`, 
+        description: `${filesArray.length} document(s) saved for review.` 
+      });
+
+      setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }));
+      setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
+      fetchOrderAndServices();
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({ title: 'Upload Failed', description: error.message || 'Could not upload selected file(s).', variant: 'destructive'});
+    } finally {
+      setUploadingFiles(prev => {
+        const newUploading = { ...prev };
+        delete newUploading[uploadKey];
+        return newUploading;
+      });
+    }
+  };
+
+  const handleRemoveSingleFile = async (serviceId: string, requirementLabel: string, fileId: string) => {
+    if (!currentUser || !order) return;
+    const orderRef = doc(db, 'orders', order.id);
+    const currentUploads = order.documentUploads || [];
+    const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
+    if (existingIndex === -1) return;
+
+    const existingUpload = currentUploads[existingIndex];
+    let currentFiles: UploadedFileItem[] = existingUpload.files || [];
+    if (currentFiles.length === 0 && existingUpload.fileUrl) {
+      currentFiles = [{
+        id: 'legacy',
+        fileUrl: existingUpload.fileUrl,
+        fileName: existingUpload.fileName || 'Uploaded Document',
+        uploadedAt: new Date().toISOString(),
+      }];
+    }
+
+    const remainingFiles = currentFiles.filter(f => f.id !== fileId && f.fileUrl !== fileId);
+
+    let updatedUploads = [...currentUploads];
+    if (remainingFiles.length > 0) {
+      updatedUploads[existingIndex] = {
+        ...existingUpload,
+        fileUrl: remainingFiles[0].fileUrl,
+        fileName: remainingFiles[0].fileName,
+        files: remainingFiles,
+      };
+    } else {
+      updatedUploads[existingIndex] = {
+        ...existingUpload,
+        fileUrl: '',
+        fileName: '',
+        files: [],
+        status: 'pending',
+      };
+    }
+
+    try {
+      await updateDoc(orderRef, { documentUploads: updatedUploads });
+      toast({ title: 'File Removed' });
+      fetchOrderAndServices();
+    } catch (err) {
+      console.error('Error removing file:', err);
+      toast({ title: 'Failed to remove file', variant: 'destructive' });
+    }
+  };
+
+  const handleSaveExplanation = async (serviceId: string, requirementLabel: string) => {
+    const uploadKey = `${serviceId}-${requirementLabel}`;
+    const reason = unavailableReasons[uploadKey];
+    if (!currentUser || !order || !reason || !reason.trim()) {
+      toast({ title: 'Please enter a note', description: 'Explain why you cannot provide this document at this time.', variant: 'destructive' });
+      return;
+    }
+
+    const newUpload: DocumentUpload = {
+      serviceId,
+      requirementLabel,
+      type: 'explanation',
+      notAvailableReason: reason.trim(),
+      uploadedAt: Timestamp.now(),
+      status: 'pending',
+    };
+
+    try {
+      const orderRef = doc(db, 'orders', order.id);
+      const currentUploads = order.documentUploads || [];
+      const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
+      
+      let updatedUploads;
+      if (existingIndex > -1) {
+        updatedUploads = [...currentUploads];
+        updatedUploads[existingIndex] = { ...currentUploads[existingIndex], ...newUpload };
+      } else {
+        updatedUploads = [...currentUploads, newUpload];
+      }
+
+      await updateDoc(orderRef, { documentUploads: updatedUploads });
+      toast({ title: 'Note Saved', description: 'Your consultant has been informed of why this document is unavailable.' });
+      setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
+      setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }));
+      fetchOrderAndServices();
+    } catch (err) {
+      console.error('Error saving explanation:', err);
+      toast({ title: 'Failed to save note', variant: 'destructive' });
+    }
+  };
+
+  const handleClearExplanation = async (serviceId: string, requirementLabel: string) => {
+    if (!currentUser || !order) return;
+    const uploadKey = `${serviceId}-${requirementLabel}`;
+    const orderRef = doc(db, 'orders', order.id);
+    const currentUploads = order.documentUploads || [];
+    const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
+    if (existingIndex === -1) return;
+
+    const existingUpload = currentUploads[existingIndex];
+    const updatedUploads = [...currentUploads];
+    updatedUploads[existingIndex] = {
+      ...existingUpload,
+      notAvailableReason: '',
+      type: (existingUpload.files && existingUpload.files.length > 0) || existingUpload.fileUrl ? 'file' : 'text',
+    };
+
+    try {
+      await updateDoc(orderRef, { documentUploads: updatedUploads });
+      setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
+      setUnavailableReasons(prev => ({ ...prev, [uploadKey]: '' }));
+      fetchOrderAndServices();
+    } catch (err) {
+      console.error('Error clearing explanation:', err);
+    }
   };
   
-    const handleTextChange = (requirementLabel: string, value: string) => {
-        setTextInputs(prev => ({ ...prev, [requirementLabel]: value }));
-    };
+  const handleTextChange = (requirementLabel: string, value: string) => {
+      setTextInputs(prev => ({ ...prev, [requirementLabel]: value }));
+  };
 
-    const handleTextSubmit = async (serviceId: string, requirementLabel: string) => {
-        const text = textInputs[requirementLabel];
-        if (!currentUser || !order || !text || !text.trim()) {
-             toast({ title: "Cannot Submit", description: "The field cannot be empty.", variant: "destructive" });
-             return;
-        }
+  const handleTextSubmit = async (serviceId: string, requirementLabel: string) => {
+      const text = textInputs[requirementLabel];
+      if (!currentUser || !order || !text || !text.trim()) {
+            toast({ title: "Cannot Submit", description: "The field cannot be empty.", variant: "destructive" });
+            return;
+      }
 
-        const newUpload: DocumentUpload = {
-            serviceId,
-            requirementLabel,
-            type: 'text',
-            textValue: text,
-            uploadedAt: Timestamp.now(),
-            status: 'pending',
-        };
+      const newUpload: DocumentUpload = {
+          serviceId,
+          requirementLabel,
+          type: 'text',
+          textValue: text,
+          uploadedAt: Timestamp.now(),
+          status: 'pending',
+      };
 
-        try {
-            const orderRef = doc(db, 'orders', order.id);
-            const currentUploads = order.documentUploads || [];
-            const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
-            
-            let updatedUploads;
-            if (existingIndex > -1) {
-                updatedUploads = [...currentUploads];
-                updatedUploads[existingIndex] = newUpload;
-            } else {
-                updatedUploads = [...currentUploads, newUpload];
-            }
+      try {
+          const orderRef = doc(db, 'orders', order.id);
+          const currentUploads = order.documentUploads || [];
+          const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
+          
+          let updatedUploads;
+          if (existingIndex > -1) {
+              updatedUploads = [...currentUploads];
+              updatedUploads[existingIndex] = newUpload;
+          } else {
+              updatedUploads = [...currentUploads, newUpload];
+          }
 
-            await updateDoc(orderRef, {
-                documentUploads: updatedUploads
-            });
-            toast({ title: 'Information Submitted', description: 'Your information has been securely saved.' });
-            setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
-            fetchOrderAndServices(); // Re-fetch to update UI
-        } catch (error) {
-            console.error("Error submitting text:", error);
-            toast({ title: "Submission Failed", description: "Could not save the information.", variant: "destructive" });
-        }
-    };
+          await updateDoc(orderRef, {
+              documentUploads: updatedUploads
+          });
+          toast({ title: 'Information Submitted', description: 'Your information has been securely saved.' });
+          setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
+          setEditingRequirements(prev => ({ ...prev, [`${serviceId}-${requirementLabel}`]: false }));
+          fetchOrderAndServices();
+      } catch (error) {
+          console.error("Error submitting text:", error);
+          toast({ title: "Submission Failed", description: "Could not save the information.", variant: "destructive" });
+      }
+  };
 
 
   const onNoteSubmit = async (values: z.infer<typeof noteFormSchema>) => {
@@ -463,13 +655,18 @@ export default function ClientOrderDetailsPage() {
   const allRequirements = orderedItemsWithServices.flatMap(item => item.combinedRequirements || []);
   const requiredRequirements = allRequirements.filter(req => req.isRequired !== false);
 
-  const allSubmitted = requiredRequirements.every(req => 
-      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected' && (doc.fileUrl || doc.textValue))
-  );
+  const isRequirementComplete = (reqLabel: string) => {
+    return order.documentUploads?.some(doc => {
+      if (doc.requirementLabel !== reqLabel || doc.status === 'rejected') return false;
+      const hasFiles = Boolean((doc.files && doc.files.length > 0) || (doc.fileUrl && doc.fileUrl.length > 0));
+      const hasExplanation = Boolean(doc.notAvailableReason && doc.notAvailableReason.trim().length > 0);
+      const hasText = Boolean(doc.textValue && doc.textValue.length > 0 && doc.textValue !== 'Applicable (Yes)');
+      return hasFiles || hasExplanation || hasText;
+    });
+  };
 
-  const submittedCount = requiredRequirements.filter(req => 
-      order.documentUploads?.some(doc => doc.requirementLabel === req.label && doc.status !== 'rejected' && (doc.fileUrl || doc.textValue))
-  ).length;
+  const allSubmitted = requiredRequirements.every(req => isRequirementComplete(req.label));
+  const submittedCount = requiredRequirements.filter(req => isRequirementComplete(req.label)).length;
   const consultantNotified = order.notes?.some(note => note.text === "Client has submitted their documents for review.") || false;
 
   return (
@@ -500,7 +697,7 @@ export default function ClientOrderDetailsPage() {
                                 <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                                 <div>
                                     <p className="font-semibold text-amber-900 dark:text-amber-200">Action Required: Submit for Review</p>
-                                    <p className="text-sm">All required documents have been uploaded. Please submit them so your consultant can start processing your order.</p>
+                                    <p className="text-sm">All required items have been completed or explained. Please submit them so your consultant can start processing your order.</p>
                                 </div>
                             </div>
                             <Button onClick={handleNotifyConsultant} disabled={isSubmitting} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
@@ -554,25 +751,58 @@ export default function ClientOrderDetailsPage() {
                                 </div>
                                 {item.combinedRequirements && item.combinedRequirements.length > 0 && (
                                     <div className="mt-4 pl-4 ml-4 border-l-2 space-y-4">
-                                        <h4 className="font-medium text-md">Documents Required:</h4>
+                                        <h4 className="font-medium text-md">Documents & Data Required:</h4>
                                         {item.combinedRequirements.map((info: any, infoIndex: number) => {
                                             const upload = order.documentUploads?.find(d => (d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === info.label);
                                             const uploadKey = `${item.service?.id || item.id}-${info.label}`;
                                             const isUploading = uploadingFiles[uploadKey] !== undefined;
                                             const isRejected = upload?.status === 'rejected';
+                                            const isApproved = upload?.status === 'approved';
                                             const hasPassedConditional = upload?.textValue === 'Applicable (Yes)' || conditionalAnswers[uploadKey] === true;
-                                            const isNotUploaded = !upload || (upload.status === 'pending' && !upload.fileUrl && upload.textValue === 'Applicable (Yes)') || (!upload.fileUrl && !upload.textValue);
+                                            const isEditing = editingRequirements[uploadKey] === true;
+                                            const showUnavailableForm = activeUnavailableForms[uploadKey] === true;
 
-                                             return (
-                                            <div key={infoIndex} className={`space-y-2 p-3 rounded-md border ${isRejected ? 'border-destructive bg-destructive/5 dark:bg-destructive/10' : ''}`}>
-                                                <div className="flex justify-between items-center">
+                                            // Extract files list
+                                            let filesList: UploadedFileItem[] = [];
+                                            if (upload?.files && upload.files.length > 0) {
+                                                filesList = upload.files;
+                                            } else if (upload?.fileUrl) {
+                                                filesList = [{
+                                                    id: 'legacy',
+                                                    fileUrl: upload.fileUrl,
+                                                    fileName: upload.fileName || 'Uploaded Document',
+                                                    uploadedAt: upload.uploadedAt,
+                                                    status: upload.status,
+                                                }];
+                                            }
+
+                                            const hasFiles = filesList.length > 0;
+                                            const hasExplanation = Boolean(upload?.notAvailableReason && upload.notAvailableReason.trim().length > 0);
+                                            const hasTextValue = Boolean(upload?.textValue && upload.textValue !== 'Applicable (Yes)' && upload.textValue !== 'N/A (No)');
+                                            const isNotUploaded = !upload || (!hasFiles && !hasExplanation && !hasTextValue);
+
+                                            return (
+                                            <div key={infoIndex} className={`space-y-3 p-3.5 rounded-lg border transition-all ${
+                                                isRejected 
+                                                    ? 'border-destructive bg-destructive/5 dark:bg-destructive/10' 
+                                                    : hasFiles || hasExplanation || hasTextValue 
+                                                    ? 'border-border bg-card shadow-2xs' 
+                                                    : 'border-dashed border-muted-foreground/30 bg-muted/20'
+                                            }`}>
+                                                {/* Header Row */}
+                                                <div className="flex justify-between items-start gap-2 flex-wrap">
                                                     <div>
-                                                        <label className="text-sm font-medium flex items-center gap-2">
-                                                            <ClipboardCheck className="h-4 w-4" />
+                                                        <label className="text-sm font-semibold flex items-center gap-2">
+                                                            <ClipboardCheck className="h-4 w-4 text-primary" />
                                                             {info.label}
                                                             {info.isRequired === false && (
                                                                 <Badge variant="outline" className="text-[10px] py-0 font-normal border-dashed text-muted-foreground">
                                                                     Optional
+                                                                </Badge>
+                                                            )}
+                                                            {info.type && (
+                                                                <Badge variant="secondary" className="text-[10px] uppercase font-mono py-0">
+                                                                    {info.type}
                                                                 </Badge>
                                                             )}
                                                         </label>
@@ -580,21 +810,180 @@ export default function ClientOrderDetailsPage() {
                                                             <p className="text-xs text-muted-foreground mt-0.5 pl-6">{info.helpText}</p>
                                                         )}
                                                     </div>
-                                                    {upload && (upload.fileUrl || (upload.textValue && upload.textValue !== 'Applicable (Yes)')) && ( <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'}>{upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}{upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}{upload.status.charAt(0).toUpperCase() + upload.status.slice(1).replace('_', ' ')}</Badge> )}
+
+                                                    {/* Status Badge */}
+                                                    <div>
+                                                        {isApproved && (
+                                                            <Badge variant="success" className="text-xs">
+                                                                <CheckCircle className="mr-1 h-3 w-3" /> Verified & Approved
+                                                            </Badge>
+                                                        )}
+                                                        {isRejected && (
+                                                            <Badge variant="destructive" className="text-xs">
+                                                                <AlertTriangle className="mr-1 h-3 w-3" /> Needs Revision
+                                                            </Badge>
+                                                        )}
+                                                        {upload && !isApproved && !isRejected && (hasFiles || hasExplanation || hasTextValue) && (
+                                                            <Badge variant="warning" className="text-xs">
+                                                                {hasExplanation ? <HelpCircle className="mr-1 h-3 w-3" /> : <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                                                                {hasExplanation ? 'Note Provided / Awaiting Review' : 'Under Review'}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
+
+                                                {/* Rejection Alert */}
                                                 {isRejected && (
-                                                    <div className="p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive flex items-start gap-2 mt-1">
+                                                    <div className="p-2.5 bg-destructive/10 border border-destructive/20 rounded-md text-xs text-destructive flex items-start gap-2">
                                                         <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                                                         <div>
-                                                            <span className="font-semibold">Rejection Reason:</span> {upload.rejectionReason}
-                                                            <p className="mt-1 text-muted-foreground font-normal">Please upload a corrected version below.</p>
+                                                            <span className="font-semibold">Revision Required:</span> {upload.rejectionReason}
+                                                            <p className="mt-1 text-muted-foreground font-normal">Please upload replacement files or provide clarification below.</p>
                                                         </div>
                                                     </div>
                                                 )}
-                                                {isRejected || isNotUploaded ? (
-                                                    <>
+
+                                                {/* Active Uploading Indicator */}
+                                                {isUploading && (
+                                                    <div className="p-3 bg-primary/5 rounded-md border border-primary/20 flex items-center gap-2.5">
+                                                        <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0"/>
+                                                        <div className="flex-1 space-y-1">
+                                                            <p className="text-xs font-semibold text-primary">Uploading document(s)...</p>
+                                                            <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden">
+                                                                <div 
+                                                                    className="bg-primary h-full transition-all duration-200" 
+                                                                    style={{ width: `${Math.round(uploadingFiles[uploadKey] || 0)}%` }} 
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-xs font-mono font-bold text-primary">{Math.round(uploadingFiles[uploadKey] || 0)}%</span>
+                                                    </div>
+                                                )}
+
+                                                {/* 1. Missing Document / Explanation Display */}
+                                                {hasExplanation && !isEditing && (
+                                                    <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-md text-xs dark:bg-amber-950/20 dark:border-amber-900/40 space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                                                                <MessageSquareQuote className="h-4 w-4 text-amber-600" />
+                                                                Your Explanation for Missing Document:
+                                                            </span>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <Button 
+                                                                    type="button" 
+                                                                    size="xs" 
+                                                                    variant="ghost" 
+                                                                    className="h-7 text-xs text-amber-900 hover:text-amber-950 dark:text-amber-200"
+                                                                    onClick={() => {
+                                                                        setUnavailableReasons(prev => ({ ...prev, [uploadKey]: upload?.notAvailableReason || '' }));
+                                                                        setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: true }));
+                                                                    }}
+                                                                >
+                                                                    <Edit3 className="h-3 w-3 mr-1" /> Edit Note
+                                                                </Button>
+                                                                <Button 
+                                                                    type="button" 
+                                                                    size="xs" 
+                                                                    variant="outline" 
+                                                                    className="h-7 text-xs bg-background"
+                                                                    onClick={() => setEditingRequirements(prev => ({ ...prev, [uploadKey]: true }))}
+                                                                >
+                                                                    <Upload className="h-3 w-3 mr-1" /> Upload File Instead
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                        <p className="pl-5 text-muted-foreground italic">"{upload?.notAvailableReason}"</p>
+                                                    </div>
+                                                )}
+
+                                                {/* 2. Uploaded Files List Display (Supports Multiple Files) */}
+                                                {hasFiles && !isEditing && (
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-xs font-semibold text-muted-foreground">
+                                                                {filesList.length} {filesList.length === 1 ? 'file uploaded' : 'files uploaded (e.g. multi-month statements / multi-page documents)'}:
+                                                            </span>
+                                                            <div className="flex items-center gap-2">
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="xs"
+                                                                    className="h-7 text-xs text-primary"
+                                                                    onClick={() => setEditingRequirements(prev => ({ ...prev, [uploadKey]: true }))}
+                                                                >
+                                                                    <Plus className="h-3.5 w-3.5 mr-1" /> Add / Replace Files
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-1 gap-1.5">
+                                                            {filesList.map((fileItem, fIdx) => (
+                                                                <div 
+                                                                    key={fileItem.id || `file_${fIdx}`} 
+                                                                    className="flex items-center justify-between p-2.5 rounded-md bg-muted/40 border text-xs gap-3"
+                                                                >
+                                                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                        {getFileIcon(fileItem.fileName)}
+                                                                        <span className="font-medium truncate text-foreground" title={fileItem.fileName}>
+                                                                            {fileItem.fileName}
+                                                                        </span>
+                                                                        {fileItem.fileSize && (
+                                                                            <span className="text-[10px] text-muted-foreground shrink-0 font-mono">
+                                                                                ({formatFileSize(fileItem.fileSize)})
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-1 shrink-0">
+                                                                        <a
+                                                                            href={fileItem.fileUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="px-2 py-1 rounded text-primary hover:underline inline-flex items-center gap-1 font-semibold"
+                                                                        >
+                                                                            <ExternalLink className="h-3.5 w-3.5" /> View
+                                                                        </a>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                                            title="Remove this file"
+                                                                            onClick={() => handleRemoveSingleFile(item.service?.id || item.id, info.label, fileItem.id || fileItem.fileUrl)}
+                                                                        >
+                                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* 3. Text Requirement Submitted Display */}
+                                                {hasTextValue && !hasFiles && !hasExplanation && !isEditing && (
+                                                    <div className="p-2.5 bg-green-50 text-green-900 rounded-md border border-green-200 text-xs flex items-center justify-between gap-2">
+                                                        <span className="font-medium truncate">Submitted: "{upload?.textValue}"</span>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="xs"
+                                                            className="h-7 text-xs text-green-900 hover:text-green-950 shrink-0"
+                                                            onClick={() => {
+                                                                setTextInputs(prev => ({ ...prev, [info.label]: upload?.textValue || '' }));
+                                                                setEditingRequirements(prev => ({ ...prev, [uploadKey]: true }));
+                                                            }}
+                                                        >
+                                                            <Edit3 className="h-3 w-3 mr-1" /> Edit
+                                                        </Button>
+                                                    </div>
+                                                )}
+
+                                                {/* 4. Upload Input / Edit Controls */}
+                                                {(isNotUploaded || isEditing) && (
+                                                    <div className="space-y-3 pt-1">
                                                         {info.isConditional && !hasPassedConditional && (!upload || upload.textValue !== 'N/A (No)') ? (
-                                                            <div className="flex flex-col gap-2 p-4 bg-muted/50 rounded-lg border">
+                                                            <div className="flex flex-col gap-2 p-3 bg-muted/50 rounded-lg border">
                                                                 <p className="text-sm font-medium">{info.conditionalQuestion || info.label}</p>
                                                                 <div className="flex gap-2">
                                                                     <Button size="sm" onClick={() => handleConditionalAnswer(item.service?.id || item.id, info.label, true)}>Yes</Button>
@@ -603,44 +992,134 @@ export default function ClientOrderDetailsPage() {
                                                             </div>
                                                         ) : (
                                                             <>
-                                                                {isUploading ? (
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Loader2 className="h-4 w-4 animate-spin"/>
-                                                                        <p className="text-sm">Uploading... {Math.round(uploadingFiles[uploadKey])}%</p>
+                                                                {showUnavailableForm ? (
+                                                                    /* Explanation Form */
+                                                                    <div className="p-3 bg-muted/40 rounded-lg border space-y-2.5">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                                                                <HelpCircle className="h-3.5 w-3.5 text-primary" />
+                                                                                Why is this document unavailable?
+                                                                            </span>
+                                                                            <Button 
+                                                                                type="button" 
+                                                                                variant="ghost" 
+                                                                                size="xs" 
+                                                                                className="h-6 text-xs text-muted-foreground"
+                                                                                onClick={() => setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }))}
+                                                                            >
+                                                                                Cancel
+                                                                            </Button>
+                                                                        </div>
+                                                                        <Textarea 
+                                                                            rows={2}
+                                                                            placeholder="e.g. Bank account not opened yet, company is newly registered, director is currently abroad..."
+                                                                            value={unavailableReasons[uploadKey] || ''}
+                                                                            onChange={(e) => setUnavailableReasons(prev => ({ ...prev, [uploadKey]: e.target.value }))}
+                                                                            className="text-xs"
+                                                                        />
+                                                                        <div className="flex justify-end gap-2">
+                                                                            <Button 
+                                                                                type="button" 
+                                                                                size="sm" 
+                                                                                className="h-7 text-xs"
+                                                                                onClick={() => handleSaveExplanation(item.service?.id || item.id, info.label)}
+                                                                            >
+                                                                                Save Note
+                                                                            </Button>
+                                                                        </div>
                                                                     </div>
                                                                 ) : (
-                                                                    info.type === 'pdf' ? (
-                                                                        <Input type="file" accept="application/pdf" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} />
-                                                                    ) : info.type === 'excel' ? (
-                                                                        <Input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} />
-                                                                    ) : info.type === 'image' ? (
-                                                                        <Input type="file" accept="image/*, .png, .jpg, .jpeg, .webp, .heic" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} />
-                                                                    ) : info.type === 'any' ? (
-                                                                        <Input type="file" accept="*" className="h-9" onChange={(e) => e.target.files && handleFileUpload(e.target.files[0], item.service?.id || item.id, info.label)} />
-                                                                    ) : (
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Input type="text" className="h-9" placeholder="Enter information here..." value={textInputs[info.label] || ''} onChange={(e) => handleTextChange(info.label, e.target.value)} />
-                                                                            <Button size="sm" onClick={() => handleTextSubmit(item.service?.id || item.id, info.label)}>Save</Button>
+                                                                    /* Main Upload / Input */
+                                                                    <div className="space-y-2">
+                                                                        {info.type === 'pdf' ? (
+                                                                            <div className="space-y-1">
+                                                                                <Input 
+                                                                                    type="file" 
+                                                                                    multiple
+                                                                                    accept="application/pdf" 
+                                                                                    className="h-9 text-xs cursor-pointer" 
+                                                                                    onChange={(e) => e.target.files && handleFilesUpload(e.target.files, item.service?.id || item.id, info.label, true)} 
+                                                                                />
+                                                                                <p className="text-[11px] text-muted-foreground">Tip: You can select multiple PDF files at once (e.g. 12 monthly statements).</p>
+                                                                            </div>
+                                                                        ) : info.type === 'excel' ? (
+                                                                            <div className="space-y-1">
+                                                                                <Input 
+                                                                                    type="file" 
+                                                                                    multiple
+                                                                                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+                                                                                    className="h-9 text-xs cursor-pointer" 
+                                                                                    onChange={(e) => e.target.files && handleFilesUpload(e.target.files, item.service?.id || item.id, info.label, true)} 
+                                                                                />
+                                                                                <p className="text-[11px] text-muted-foreground">Select one or multiple Excel / CSV sheets.</p>
+                                                                            </div>
+                                                                        ) : info.type === 'image' ? (
+                                                                            <div className="space-y-1">
+                                                                                <Input 
+                                                                                    type="file" 
+                                                                                    multiple
+                                                                                    accept="image/*, .png, .jpg, .jpeg, .webp, .heic" 
+                                                                                    className="h-9 text-xs cursor-pointer" 
+                                                                                    onChange={(e) => e.target.files && handleFilesUpload(e.target.files, item.service?.id || item.id, info.label, true)} 
+                                                                                />
+                                                                                <p className="text-[11px] text-muted-foreground">Select one or multiple clear photo scans.</p>
+                                                                            </div>
+                                                                        ) : info.type === 'any' ? (
+                                                                            <div className="space-y-1">
+                                                                                <Input 
+                                                                                    type="file" 
+                                                                                    multiple
+                                                                                    accept="*" 
+                                                                                    className="h-9 text-xs cursor-pointer" 
+                                                                                    onChange={(e) => e.target.files && handleFilesUpload(e.target.files, item.service?.id || item.id, info.label, true)} 
+                                                                                />
+                                                                                <p className="text-[11px] text-muted-foreground">You can select multiple files of any type.</p>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Input 
+                                                                                    type="text" 
+                                                                                    className="h-8 text-xs font-medium" 
+                                                                                    placeholder="Enter information here..." 
+                                                                                    value={textInputs[info.label] || ''} 
+                                                                                    onChange={(e) => handleTextChange(info.label, e.target.value)} 
+                                                                                />
+                                                                                <Button size="sm" className="h-8 text-xs shrink-0" onClick={() => handleTextSubmit(item.service?.id || item.id, info.label)}>
+                                                                                    Save
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* "Don't have this document" trigger */}
+                                                                        <div className="flex items-center justify-between pt-1">
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="xs"
+                                                                                className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-1"
+                                                                                onClick={() => setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: true }))}
+                                                                            >
+                                                                                <HelpCircle className="h-3 w-3 mr-1 text-primary" />
+                                                                                I don't have this document / Explain why
+                                                                            </Button>
+
+                                                                            {isEditing && (hasFiles || hasExplanation || hasTextValue) && (
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
+                                                                                    size="xs"
+                                                                                    className="h-6 text-[11px] text-muted-foreground"
+                                                                                    onClick={() => setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }))}
+                                                                                >
+                                                                                    Done Editing
+                                                                                </Button>
+                                                                            )}
                                                                         </div>
-                                                                    )
+                                                                    </div>
                                                                 )}
                                                             </>
                                                         )}
-                                                    </>
-                                                ) : ( 
-                                                    <div className="p-2.5 bg-green-50 text-green-800 rounded-md border border-green-200 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                                                        <span>{upload.type === 'file' ? `Submitted: ${upload.fileName}` : `Submitted: "${upload.textValue}"`}</span>
-                                                        {upload.type === 'file' && upload.fileUrl && (
-                                                            <a 
-                                                                href={upload.fileUrl} 
-                                                                target="_blank" 
-                                                                rel="noopener noreferrer" 
-                                                                className="text-xs font-bold text-green-900 underline hover:text-green-950 inline-flex items-center gap-1 shrink-0"
-                                                            >
-                                                                View / Download
-                                                            </a>
-                                                        )}
-                                                    </div> 
+                                                    </div>
                                                 )}
                                             </div>
                                         )})}

@@ -72,6 +72,24 @@ service cloud.firestore {
              (after.get('role', null) == before.get('role', null) || after.get('role', null) == 'client');
     }
 
+    /**
+     * Prevents non-staff clients from modifying order status, assignedTo, total, checklist,
+     * auditLog, or fulfillmentStatus directly. Clients may only submit document uploads and notes.
+     */
+    function isSafeClientOrderUpdate() {
+      let after = request.resource.data;
+      let before = resource != null ? resource.data : {};
+      return after.get('status', null) == before.get('status', null) &&
+             after.get('fulfillmentStatus', null) == before.get('fulfillmentStatus', null) &&
+             after.get('assignedTo', null) == before.get('assignedTo', null) &&
+             after.get('department', null) == before.get('department', null) &&
+             after.get('total', null) == before.get('total', null) &&
+             after.get('items', null) == before.get('items', null) &&
+             after.get('auditLog', null) == before.get('auditLog', null) &&
+             after.get('checklist', null) == before.get('checklist', null) &&
+             after.get('serviceSnapshots', null) == before.get('serviceSnapshots', null);
+    }
+
     // ─── Users ──────────────────────────────────────────────────────────────
     match /users/{userId} {
       // Scoped read access: self, admins/staff, partner practice owners & staff
@@ -196,14 +214,14 @@ service cloud.firestore {
       allow update: if isAuthenticated() && (
         isAdminOrStaff() ||
         hasModule('Manage Orders') ||
-        request.auth.uid == resource.data.userId ||
-        request.auth.uid == resource.data.resellerId ||
-        (resource != null && 'partnerId' in resource.data && request.auth.uid == resource.data.partnerId) ||
-        request.auth.uid == resource.data.clientId ||
-        (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
-        (resource != null && 'partnerId' in resource.data && isPartnerStaffOf(resource.data.partnerId)) ||
-        (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
-        (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
+        ((request.auth.uid == resource.data.userId ||
+          request.auth.uid == resource.data.resellerId ||
+          (resource != null && 'partnerId' in resource.data && request.auth.uid == resource.data.partnerId) ||
+          request.auth.uid == resource.data.clientId ||
+          (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
+          (resource != null && 'partnerId' in resource.data && isPartnerStaffOf(resource.data.partnerId)) ||
+          (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
+          (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)) && isSafeClientOrderUpdate())
       );
       allow delete: if isAdmin();
     }

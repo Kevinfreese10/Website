@@ -4,8 +4,9 @@ import { getAdminDb, getAdminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { checkExistingUserByEmail } from './auth-checks';
 import { sendOrderConfirmationEmailAction } from './notifications';
-import { Order } from '@/lib/types';
+import { Order, OrderServiceSnapshot, OrderChecklistItem } from '@/lib/types';
 import { checkRateLimit } from '@/lib/rate-limiter';
+import { getServiceChecklist, normalizeRequirementsWithIds } from '@/lib/services';
 
 export async function validateDiscountCodeAction({
   code,
@@ -170,6 +171,9 @@ export async function createCheckoutOrderAction({
     }
 
     let calculatedTotal = 0;
+    const serviceSnapshots: OrderServiceSnapshot[] = [];
+    const initialChecklist: OrderChecklistItem[] = [];
+
     const validatedItems = await Promise.all(
       items.map(async (item) => {
         const serviceDoc = await adminDb.collection('services').doc(item.id).get();
@@ -204,6 +208,29 @@ export async function createCheckoutOrderAction({
 
         const qty = item.quantity && item.quantity > 0 ? item.quantity : 1;
         calculatedTotal += finalUnitPrice * qty;
+
+        const normalizedReqs = normalizeRequirementsWithIds(serviceData.informationToProvide || []);
+        const serviceChecklist = getServiceChecklist(serviceData);
+
+        serviceSnapshots.push({
+          serviceId: item.id,
+          title: serviceData.title || item.title,
+          department: serviceData.department || 'Administration',
+          requirements: normalizedReqs,
+          checklist: serviceChecklist,
+        });
+
+        serviceChecklist.forEach((step, idx) => {
+          initialChecklist.push({
+            id: `chk_${item.id}_${step.id || idx}`,
+            serviceId: item.id,
+            serviceTitle: serviceData.title || item.title,
+            title: step.title,
+            description: step.description || '',
+            type: step.type || 'manual',
+            status: 'pending',
+          });
+        });
 
         return {
           id: item.id,
@@ -246,6 +273,9 @@ export async function createCheckoutOrderAction({
       discountAmount: appliedDiscountAmount,
       paymentMethod: finalPaymentMethod,
       status: 'Pending Payment',
+      fulfillmentStatus: 'Awaiting Documents',
+      serviceSnapshots,
+      checklist: initialChecklist,
       date: new Date(),
       source: partnerId ? 'Partner Landing Page' : 'Client',
       originalOrderId: null,

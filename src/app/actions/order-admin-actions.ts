@@ -1,18 +1,89 @@
 'use server';
 
 import { getAdminDb } from '@/lib/firebase-admin';
-import { AuditEntry } from '@/lib/types';
+import { AuditEntry, Order, OrderChecklistItem, DocumentUpload, AIDocumentVerification } from '@/lib/types';
 import { sendOrderStatusUpdateEmailAction } from './order-actions';
+import { getServiceChecklist, normalizeRequirementsWithIds } from '@/lib/service-utils';
+
+export type StatusTransitionOptions = {
+  details?: string;
+  bypassChecks?: boolean;
+  bypassReason?: string;
+  fulfillmentStatus?: Order['fulfillmentStatus'];
+};
 
 /**
- * Updates order status atomically across both primary and original/linked partner orders.
- * Logs an AuditEntry to both documents.
+ * Initializes the SOP checklist and service snapshots for an existing order if missing.
  */
-export async function updateOrderStatusAtomic(
+export async function ensureOrderChecklistInitialized(orderId: string): Promise<OrderChecklistItem[]> {
+  const db = getAdminDb();
+  const orderRef = db.collection('orders').doc(orderId);
+  const orderDoc = await orderRef.get();
+  if (!orderDoc.exists) return [];
+
+  const orderData = orderDoc.data() || {};
+  if (orderData.checklist && Array.isArray(orderData.checklist) && orderData.checklist.length > 0) {
+    return orderData.checklist;
+  }
+
+  const items = orderData.items || [];
+  const checklist: OrderChecklistItem[] = [];
+  const serviceSnapshots: any[] = [];
+
+  for (const item of items) {
+    const serviceId = item.id || item.serviceId;
+    if (!serviceId) continue;
+
+    let serviceData: any = null;
+    const serviceDoc = await db.collection('services').doc(serviceId).get();
+    if (serviceDoc.exists) {
+      serviceData = serviceDoc.data();
+    }
+
+    const serviceChecklist = getServiceChecklist(serviceData);
+    const normalizedReqs = normalizeRequirementsWithIds(serviceData?.informationToProvide || []);
+
+    serviceSnapshots.push({
+      serviceId,
+      title: serviceData?.title || item.title || 'Service',
+      department: serviceData?.department || 'Administration',
+      requirements: normalizedReqs,
+      checklist: serviceChecklist,
+    });
+
+    serviceChecklist.forEach((step, idx) => {
+      checklist.push({
+        id: `chk_${serviceId}_${step.id || idx}`,
+        serviceId,
+        serviceTitle: serviceData?.title || item.title || 'Service',
+        title: step.title,
+        description: step.description || '',
+        type: step.type || 'manual',
+        status: 'pending',
+      });
+    });
+  }
+
+  await orderRef.update({
+    checklist,
+    serviceSnapshots,
+    fulfillmentStatus: orderData.fulfillmentStatus || 'Awaiting Documents',
+    updatedAt: new Date().toISOString(),
+  });
+
+  return checklist;
+}
+
+/**
+ * Canonical State Machine Transition Engine for Orders.
+ * Enforces deterministic validation rules before permitting state changes:
+ * - Completed: Checks incomplete dependencies, pending/rejected uploads, uncompleted checklist items.
+ */
+export async function transitionOrderStatusAtomic(
   orderId: string,
   newStatus: 'Pending Payment' | 'Processing' | 'Completed' | 'Cancelled',
   performer: { id: string; name: string },
-  details?: string
+  options?: StatusTransitionOptions
 ) {
   try {
     const db = getAdminDb();
@@ -24,8 +95,70 @@ export async function updateOrderStatusAtomic(
       throw new Error(`Order ${orderId} not found`);
     }
 
-    const orderData = orderDoc.data() || {};
+    const orderData = (orderDoc.data() || {}) as Order;
     const previousStatus = orderData.status;
+
+    // ─── Guardrails for Completion ──────────────────────────────────────────
+    if (newStatus === 'Completed' && !options?.bypassChecks) {
+      // 1. Check prerequisite orders
+      if (orderData.dependsOnOrderIds && orderData.dependsOnOrderIds.length > 0) {
+        const prereqSnaps = await Promise.all(
+          orderData.dependsOnOrderIds.map(id => db.collection('orders').doc(id).get())
+        );
+        const incompletePrereqs = prereqSnaps
+          .filter(snap => snap.exists && snap.data()?.status !== 'Completed')
+          .map(snap => `#${snap.id} (${snap.data()?.status || 'Unknown'})`);
+
+        if (incompletePrereqs.length > 0) {
+          return {
+            success: false,
+            error: `Cannot complete Order #${orderId}. Incomplete prerequisite orders: ${incompletePrereqs.join(', ')}. Resolve prerequisites or specify a bypass reason.`,
+            isBlockedByPrerequisites: true,
+            incompletePrerequisites: incompletePrereqs,
+          };
+        }
+      }
+
+      // 2. Check document uploads
+      const uploads = orderData.documentUploads || [];
+      const pendingUploads = uploads.filter(u => u.status === 'pending');
+      const rejectedUploads = uploads.filter(u => u.status === 'rejected');
+
+      if (pendingUploads.length > 0 || rejectedUploads.length > 0) {
+        const docIssues: string[] = [];
+        if (pendingUploads.length > 0) docIssues.push(`${pendingUploads.length} pending review`);
+        if (rejectedUploads.length > 0) docIssues.push(`${rejectedUploads.length} rejected/outstanding`);
+
+        return {
+          success: false,
+          error: `Cannot complete Order #${orderId}. Document issues: ${docIssues.join(', ')}. All documents must be approved before completion.`,
+          isBlockedByDocuments: true,
+        };
+      }
+
+      // 3. Check checklist items
+      const checklist = orderData.checklist || [];
+      const incompleteSteps = checklist.filter(s => s.status !== 'completed' && s.status !== 'skipped');
+      if (incompleteSteps.length > 0) {
+        return {
+          success: false,
+          error: `Cannot complete Order #${orderId}. ${incompleteSteps.length} SOP checklist step(s) remain incomplete: ${incompleteSteps.map(s => `"${s.title}"`).join(', ')}. Complete all steps or mark as skipped.`,
+          isBlockedByChecklist: true,
+          incompleteSteps: incompleteSteps.map(s => s.title),
+        };
+      }
+    }
+
+    // Determine appropriate fulfillmentStatus
+    let targetFulfillmentStatus: Order['fulfillmentStatus'] = options?.fulfillmentStatus || orderData.fulfillmentStatus;
+    if (newStatus === 'Completed') {
+      targetFulfillmentStatus = 'Completed';
+    } else if (newStatus === 'Cancelled') {
+      targetFulfillmentStatus = 'Blocked';
+    } else if (newStatus === 'Processing' && (!targetFulfillmentStatus || targetFulfillmentStatus === 'Awaiting Documents')) {
+      const allDocsApproved = (orderData.documentUploads || []).length > 0 && (orderData.documentUploads || []).every(d => d.status === 'approved');
+      targetFulfillmentStatus = allDocsApproved ? 'In Execution' : 'Awaiting Documents';
+    }
 
     const auditEntry: AuditEntry = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -35,16 +168,19 @@ export async function updateOrderStatusAtomic(
       timestamp: new Date().toISOString(),
       previousValue: previousStatus,
       newValue: newStatus,
-      details: details || `Status changed from ${previousStatus} to ${newStatus}`,
+      details: options?.details || (options?.bypassReason ? `Status changed to ${newStatus} (Bypass reason: ${options.bypassReason})` : `Status changed from ${previousStatus} to ${newStatus}`),
     };
 
     const auditLog = [...(orderData.auditLog || []), auditEntry];
 
-    batch.update(orderRef, {
+    const updatePayload: Record<string, any> = {
       status: newStatus,
+      fulfillmentStatus: targetFulfillmentStatus,
       auditLog,
       updatedAt: new Date().toISOString(),
-    });
+    };
+
+    batch.update(orderRef, updatePayload);
 
     // If this order is linked to an original partner order, update that atomically as well
     if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
@@ -55,6 +191,7 @@ export async function updateOrderStatusAtomic(
         const originalAuditLog = [...(originalData.auditLog || []), auditEntry];
         batch.update(originalRef, {
           status: newStatus,
+          fulfillmentStatus: targetFulfillmentStatus,
           auditLog: originalAuditLog,
           updatedAt: new Date().toISOString(),
         });
@@ -67,12 +204,208 @@ export async function updateOrderStatusAtomic(
     try {
       await sendOrderStatusUpdateEmailAction(orderId, newStatus);
     } catch (emailErr) {
-      console.error('[updateOrderStatusAtomic] Email notification failed:', emailErr);
+      console.error('[transitionOrderStatusAtomic] Email notification failed:', emailErr);
     }
 
-    return { success: true, message: `Status updated to ${newStatus}` };
+    return { success: true, message: `Status updated to ${newStatus}`, fulfillmentStatus: targetFulfillmentStatus };
   } catch (error: any) {
-    console.error('Error updating order status atomically:', error);
+    console.error('Error transitioning order status atomically:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Backward compatibility alias for updateOrderStatusAtomic.
+ */
+export const updateOrderStatusAtomic = transitionOrderStatusAtomic;
+
+/**
+ * Updates a checklist step atomically.
+ */
+export async function updateOrderChecklistItemAtomic(
+  orderId: string,
+  stepId: string,
+  update: {
+    status: OrderChecklistItem['status'];
+    notes?: string;
+    artifactUrl?: string;
+    artifactName?: string;
+    isAiRecommended?: boolean;
+    aiNotes?: string;
+  },
+  performer: { id: string; name: string }
+) {
+  try {
+    const db = getAdminDb();
+    const orderRef = db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+    if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
+
+    const orderData = orderDoc.data() || {};
+    let checklist: OrderChecklistItem[] = orderData.checklist || [];
+
+    if (checklist.length === 0) {
+      checklist = await ensureOrderChecklistInitialized(orderId);
+    }
+
+    const stepIndex = checklist.findIndex(s => s.id === stepId);
+    if (stepIndex === -1) throw new Error(`Checklist step "${stepId}" not found on order #${orderId}`);
+
+    const existingStep = checklist[stepIndex];
+    const previousStatus = existingStep.status;
+
+    checklist[stepIndex] = {
+      ...existingStep,
+      status: update.status,
+      notes: update.notes !== undefined ? update.notes : existingStep.notes,
+      artifactUrl: update.artifactUrl !== undefined ? update.artifactUrl : existingStep.artifactUrl,
+      artifactName: update.artifactName !== undefined ? update.artifactName : existingStep.artifactName,
+      isAiRecommended: update.isAiRecommended !== undefined ? update.isAiRecommended : existingStep.isAiRecommended,
+      aiNotes: update.aiNotes !== undefined ? update.aiNotes : existingStep.aiNotes,
+      completedAt: update.status === 'completed' ? new Date().toISOString() : existingStep.completedAt,
+      completedBy: update.status === 'completed' ? performer.id : existingStep.completedBy,
+      completedByName: update.status === 'completed' ? performer.name : existingStep.completedByName,
+    };
+
+    // Calculate new fulfillment status based on checklist progress
+    const allCompletedOrSkipped = checklist.every(s => s.status === 'completed' || s.status === 'skipped');
+    const anyInProgress = checklist.some(s => s.status === 'in_progress' || s.status === 'completed');
+    
+    let newFulfillmentStatus: Order['fulfillmentStatus'] = orderData.fulfillmentStatus || 'Awaiting Documents';
+    if (allCompletedOrSkipped) {
+      newFulfillmentStatus = 'Ready for Signoff';
+    } else if (anyInProgress) {
+      newFulfillmentStatus = 'In Execution';
+    }
+
+    const auditEntry: AuditEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      action: 'CHECKLIST_STEP_UPDATE',
+      performedBy: performer.id,
+      performedByName: performer.name,
+      timestamp: new Date().toISOString(),
+      previousValue: previousStatus,
+      newValue: update.status,
+      details: `Updated checklist step "${existingStep.title}" to ${update.status}${update.notes ? ` (${update.notes})` : ''}`,
+    };
+
+    const batch = db.batch();
+    batch.update(orderRef, {
+      checklist,
+      fulfillmentStatus: newFulfillmentStatus,
+      auditLog: [...(orderData.auditLog || []), auditEntry],
+      updatedAt: new Date().toISOString(),
+    });
+
+    if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
+      const originalRef = db.collection('orders').doc(orderData.originalOrderId);
+      batch.update(originalRef, {
+        checklist,
+        fulfillmentStatus: newFulfillmentStatus,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    await batch.commit();
+
+    return {
+      success: true,
+      message: `Step "${existingStep.title}" marked as ${update.status}`,
+      fulfillmentStatus: newFulfillmentStatus,
+      updatedChecklist: checklist,
+    };
+  } catch (error: any) {
+    console.error('Error updating order checklist item:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Reviews an uploaded document atomically (Approve/Reject), updates AI recommendation, and logs audit trail.
+ */
+export async function reviewOrderDocumentAtomic(
+  orderId: string,
+  identifier: string, // requirementId, fileUrl, or textValue
+  status: 'approved' | 'rejected',
+  performer: { id: string; name: string },
+  reason?: string,
+  aiVerification?: AIDocumentVerification
+) {
+  try {
+    const db = getAdminDb();
+    const orderRef = db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+    if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
+
+    const orderData = orderDoc.data() || {};
+    const uploads: DocumentUpload[] = orderData.documentUploads || [];
+
+    let targetDocLabel = '';
+    const updatedUploads = uploads.map(doc => {
+      const isMatch = (doc.id && doc.id === identifier) ||
+                      (doc.requirementId && doc.requirementId === identifier) ||
+                      doc.fileUrl === identifier ||
+                      doc.textValue === identifier ||
+                      doc.requirementLabel === identifier;
+
+      if (isMatch) {
+        targetDocLabel = doc.requirementLabel;
+        return {
+          ...doc,
+          status,
+          rejectionReason: status === 'rejected' ? (reason || null) : null,
+          aiVerification: aiVerification || doc.aiVerification,
+        };
+      }
+      return doc;
+    });
+
+    const allApproved = updatedUploads.length > 0 && updatedUploads.every(d => d.status === 'approved');
+    let newFulfillmentStatus: Order['fulfillmentStatus'] = orderData.fulfillmentStatus;
+    if (allApproved && orderData.status === 'Processing' && (!orderData.fulfillmentStatus || orderData.fulfillmentStatus === 'Awaiting Documents')) {
+      newFulfillmentStatus = 'In Execution';
+    } else if (status === 'rejected') {
+      newFulfillmentStatus = 'Awaiting Documents';
+    }
+
+    const auditEntry: AuditEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      action: 'DOCUMENT_REVIEW',
+      performedBy: performer.id,
+      performedByName: performer.name,
+      timestamp: new Date().toISOString(),
+      previousValue: 'pending',
+      newValue: status,
+      details: `${status === 'approved' ? 'Approved' : 'Rejected'} document: "${targetDocLabel || identifier}"${reason ? ` (Reason: ${reason})` : ''}`,
+    };
+
+    const batch = db.batch();
+    batch.update(orderRef, {
+      documentUploads: updatedUploads,
+      fulfillmentStatus: newFulfillmentStatus,
+      auditLog: [...(orderData.auditLog || []), auditEntry],
+      updatedAt: new Date().toISOString(),
+    });
+
+    if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
+      const originalRef = db.collection('orders').doc(orderData.originalOrderId);
+      batch.update(originalRef, {
+        documentUploads: updatedUploads,
+        fulfillmentStatus: newFulfillmentStatus,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    await batch.commit();
+
+    return {
+      success: true,
+      message: `Document "${targetDocLabel || identifier}" marked as ${status}`,
+      fulfillmentStatus: newFulfillmentStatus,
+      documentUploads: updatedUploads,
+    };
+  } catch (error: any) {
+    console.error('Error reviewing order document:', error);
     return { success: false, error: error.message };
   }
 }

@@ -40,9 +40,16 @@ export const getServices = cache(async (): Promise<Service[]> => {
   return cachedServicesPromise;
 });
 
+export {
+  DEFAULT_FULFILLMENT_CHECKLIST,
+  getServiceChecklist,
+  normalizeRequirementsWithIds
+} from './service-utils';
+
 /**
  * Invalidates the cached services. Call this after updating services in the admin dashboard.
  */
 export function clearServicesCache() {
   cachedServicesPromise = null;
 }
+

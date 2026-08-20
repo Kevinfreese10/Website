@@ -11,7 +11,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Eye, EyeOff, Calendar, ShoppingBag, CreditCard, Link as LinkIcon, Unlink, Plus, CheckCircle2, Search, AlertCircle, ExternalLink } from 'lucide-react';
+import { 
+  updateOrderStatusAtomic, 
+  transitionOrderStatusAtomic,
+  reassignOrderStaffAtomic, 
+  linkOrderDependencyAtomic, 
+  unlinkOrderDependencyAtomic,
+  updateOrderChecklistItemAtomic,
+  reviewOrderDocumentAtomic,
+  ensureOrderChecklistInitialized
+} from '@/app/actions/order-admin-actions';
+import { runAiDocumentVerification, confirmDocumentAiRecommendation } from '@/lib/ai/order-fulfillment-tools';
+import { 
+  ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, 
+  Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, 
+  Briefcase, Clock, Lock, Eye, EyeOff, Calendar, ShoppingBag, CreditCard, Link as LinkIcon, 
+  Unlink, Plus, CheckCircle2, Search, AlertCircle, ExternalLink, ListChecks, CheckSquare, 
+  Square, Bot, ShieldCheck, FileCheck, RefreshCw, HelpCircle 
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -30,7 +47,7 @@ import PartnerAssignmentEmail from '@/components/emails/PartnerAssignmentEmail';
 import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
-import { updateOrderStatusAtomic, reassignOrderStaffAtomic, linkOrderDependencyAtomic, unlinkOrderDependencyAtomic } from '@/app/actions/order-admin-actions';
+import { cn } from '@/lib/utils';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 
@@ -68,6 +85,14 @@ const safeFormatDate = (rawDate: any, formatStr = 'dd MMM yyyy'): string => {
     return '';
   }
 };
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return '';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
 const noteFormSchema = z.object({
   noteText: z.string().optional(),
@@ -116,7 +141,10 @@ export default function AdminOrderDetailsPage() {
   const [isSearchingCandidates, setIsSearchingCandidates] = useState(false);
   const [isLinkingDependency, setIsLinkingDependency] = useState(false);
   const [isOverrideDialogOpen, setIsOverrideDialogOpen] = useState(false);
+  const [overrideReason, setOverrideReason] = useState('');
   const [pendingStatusChange, setPendingStatusChange] = useState<Order['status'] | null>(null);
+  const [verifyingDocId, setVerifyingDocId] = useState<string | null>(null);
+  const [updatingStepId, setUpdatingStepId] = useState<string | null>(null);
 
   // Attached files & Screenshots state for live preview
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -173,6 +201,17 @@ export default function AdminOrderDetailsPage() {
                         uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : (doc.uploadedAt ? (typeof doc.uploadedAt === 'string' ? doc.uploadedAt : new Date(doc.uploadedAt).toISOString()) : new Date().toISOString())
                     }));
                 }
+          }
+
+          if (!fetchedOrder.checklist || fetchedOrder.checklist.length === 0) {
+            try {
+              const initializedChecklist = await ensureOrderChecklistInitialized(fetchedOrder.id);
+              if (initializedChecklist.length > 0) {
+                fetchedOrder.checklist = initializedChecklist;
+              }
+            } catch (chkErr) {
+              console.error("Error initializing checklist:", chkErr);
+            }
           }
 
           setOrder(fetchedOrder);
@@ -378,36 +417,39 @@ export default function AdminOrderDetailsPage() {
     }
   };
 
-  const executeStatusChange = async (newStatus: Order['status'], isOverride = false) => {
+  const executeStatusChange = async (newStatus: Order['status'], isOverride = false, overrideReasonText?: string) => {
     if (!order || !currentUser) return;
-    const details = isOverride
-      ? `Status changed to ${newStatus} (Overrode incomplete prerequisite orders: ${incompletePrerequisites.map(p => `#${p.id}`).join(', ')})`
-      : undefined;
+    const performer = {
+      id: currentUser.id || currentUser.uid,
+      name: currentUser.name || currentUser.email || 'Admin',
+    };
 
-    const res = await updateOrderStatusAtomic(
+    const res = await transitionOrderStatusAtomic(
       order.id,
       newStatus,
+      performer,
       {
-        id: currentUser.id || currentUser.uid,
-        name: currentUser.name || currentUser.email || 'Admin',
-      },
-      details
+        bypassChecks: isOverride,
+        bypassReason: overrideReasonText,
+      }
     );
 
     if (res.success) {
-      setOrder((prev) => (prev ? { ...prev, status: newStatus } : null));
+      setOrder((prev) => (prev ? { ...prev, status: newStatus, fulfillmentStatus: res.fulfillmentStatus || prev.fulfillmentStatus } : null));
       toast({ title: 'Status Updated', description: `Status changed to ${newStatus}` });
+      setIsOverrideDialogOpen(false);
+      setOverrideReason('');
+      setPendingStatusChange(null);
     } else {
-      toast({ title: 'Error', description: res.error, variant: 'destructive' });
+      if (!isOverride && (res.isBlockedByPrerequisites || res.isBlockedByDocuments || res.isBlockedByChecklist)) {
+        setPendingStatusChange(newStatus);
+        setIsOverrideDialogOpen(true);
+      }
+      toast({ title: 'Status Transition Blocked', description: res.error, variant: 'destructive' });
     }
   };
 
   const handleStatusChangeRequest = (newStatus: Order['status']) => {
-    if (newStatus === 'Completed' && incompletePrerequisites.length > 0) {
-      setPendingStatusChange(newStatus);
-      setIsOverrideDialogOpen(true);
-      return;
-    }
     executeStatusChange(newStatus);
   };
 
@@ -534,54 +576,112 @@ export default function AdminOrderDetailsPage() {
     }
   };
 
-   const handleDocumentStatusUpdate = async (identifier: string, status: 'approved' | 'rejected', reason?: string) => {
+  const handleRunAiVerification = async (identifier: string) => {
     if (!order) return;
-    const updatedUploads = (order.documentUploads || []).map(doc => {
-      const docId = doc.type === 'file' ? doc.fileUrl : doc.textValue;
-      if (docId === identifier) {
-        return { ...doc, status, rejectionReason: reason || null };
+    setVerifyingDocId(identifier);
+    toast({ title: 'AI Inspecting Document...', description: 'Analyzing with multimodal Gemini compliance model.' });
+    try {
+      const res = await runAiDocumentVerification(order.id, identifier);
+      if (res.success && res.aiVerification) {
+        toast({
+          title: `AI: ${res.aiVerification.recommendation.toUpperCase()}`,
+          description: `${res.aiVerification.confidence}% confidence. ${res.aiVerification.summary}`,
+        });
+        await fetchOrderAndStaff();
+      } else {
+        throw new Error(res.error || 'AI verification failed.');
       }
-      return doc;
-    });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: 'AI Verification Error', description: e.message || 'Could not verify document.', variant: 'destructive' });
+    } finally {
+      setVerifyingDocId(null);
+    }
+  };
+
+  const handleConfirmAiRecommendation = async (identifier: string) => {
+    if (!order || !currentUser) return;
+    const performer = {
+      id: currentUser.id || currentUser.uid,
+      name: currentUser.name || currentUser.email || 'Admin',
+    };
+    try {
+      const res = await confirmDocumentAiRecommendation(order.id, identifier, performer);
+      if (res.success) {
+        toast({ title: 'Confirmed AI Review', description: res.message });
+        await fetchOrderAndStaff();
+      } else {
+        throw new Error(res.error || 'Failed to confirm AI recommendation.');
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  const handleDocumentStatusUpdate = async (identifier: string, status: 'approved' | 'rejected', reason?: string) => {
+    if (!order || !currentUser) return;
+    const performer = {
+      id: currentUser.id || currentUser.uid,
+      name: currentUser.name || currentUser.email || 'Admin',
+    };
+    try {
+      const res = await reviewOrderDocumentAtomic(order.id, identifier, status, performer, reason);
+      if (res.success) {
+        toast({ title: 'Document Status Updated', description: res.message });
+        await fetchOrderAndStaff();
+      } else {
+        throw new Error(res.error || 'Failed to update document status.');
+      }
+    } catch (error: any) {
+      console.error("Error updating document status:", error);
+      toast({ title: 'Error', description: error.message || 'Failed to update document status.', variant: "destructive" });
+    }
+  };
+
+  const handleToggleChecklistStep = async (stepId: string, currentStatus: string) => {
+    if (!order || !currentUser) return;
+    setUpdatingStepId(stepId);
+    const performer = {
+      id: currentUser.id || currentUser.uid,
+      name: currentUser.name || currentUser.email || 'Admin',
+    };
+    const targetStatus = currentStatus === 'completed' ? 'pending' : 'completed';
 
     try {
-      const orderRef = doc(db, 'orders', order.id);
-      await updateDoc(orderRef, { documentUploads: updatedUploads });
-      
-      if (order.originalOrderId) {
-        const originalOrderRef = doc(db, 'orders', order.originalOrderId);
-        await updateDoc(originalOrderRef, { documentUploads: updatedUploads });
+      const res = await updateOrderChecklistItemAtomic(order.id, stepId, { status: targetStatus }, performer);
+      if (res.success) {
+        setOrder(prev => prev ? { ...prev, checklist: res.updatedChecklist, fulfillmentStatus: res.fulfillmentStatus } : null);
+        toast({ title: 'Checklist Updated', description: res.message });
+      } else {
+        throw new Error(res.error || 'Failed to update checklist step.');
       }
-      
-      toast({ title: 'Document Status Updated', description: `The document has been ${status}.`});
-      fetchOrderAndStaff();
-    } catch (error) {
-      console.error("Error updating document status:", error);
-      toast({ title: 'Error', description: 'Failed to update document status.', variant: "destructive" });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: 'Error', description: e.message || 'Could not update step.', variant: 'destructive' });
+    } finally {
+      setUpdatingStepId(null);
     }
   };
 
   const handleBatchApprove = async () => {
-    if (!order || !order.documentUploads) return;
-    const updatedUploads = (order.documentUploads || []).map(doc => {
-      if (doc.status === 'pending') {
-        return { ...doc, status: 'approved' as const, rejectionReason: null };
-      }
-      return doc;
-    });
+    if (!order || !order.documentUploads || !currentUser) return;
+    const performer = {
+      id: currentUser.id || currentUser.uid,
+      name: currentUser.name || currentUser.email || 'Admin',
+    };
 
     try {
-      const orderRef = doc(db, 'orders', order.id);
-      await updateDoc(orderRef, { documentUploads: updatedUploads });
-      
-      if (order.originalOrderId) {
-        const originalOrderRef = doc(db, 'orders', order.originalOrderId);
-        await updateDoc(originalOrderRef, { documentUploads: updatedUploads });
+      for (const doc of order.documentUploads) {
+        if (doc.status === 'pending') {
+          const docId = doc.requirementId || doc.id || (doc.type === 'file' ? doc.fileUrl : doc.textValue) || doc.requirementLabel;
+          await reviewOrderDocumentAtomic(order.id, docId, 'approved', performer);
+        }
       }
       
       toast({ title: 'Documents Approved', description: 'All pending documents have been approved.'});
-      fetchOrderAndStaff();
-    } catch (error) {
+      await fetchOrderAndStaff();
+    } catch (error: any) {
       console.error("Error batch approving documents:", error);
       toast({ title: 'Error', description: 'Failed to batch approve documents.', variant: "destructive" });
     }
@@ -1057,46 +1157,83 @@ export default function AdminOrderDetailsPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Incomplete Prerequisite Override Warning Alert Dialog */}
+            {/* Status Transition Validation Blocked / Override Dialog */}
             <AlertDialog open={isOverrideDialogOpen} onOpenChange={setIsOverrideDialogOpen}>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
                         <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
-                            <AlertTriangle className="h-5 w-5" /> Incomplete Prerequisite Warning
+                            <AlertTriangle className="h-5 w-5 shrink-0" /> Order Completion Validation Blocked
                         </AlertDialogTitle>
-                        <AlertDialogDescription className="space-y-2 pt-2">
-                            <p>
-                                Order #{order.id} has <strong>{incompletePrerequisites.length} prerequisite {incompletePrerequisites.length === 1 ? 'order' : 'orders'}</strong> that have not been completed yet:
+                        <AlertDialogDescription className="space-y-3 pt-2 text-left">
+                            <p className="text-sm text-foreground">
+                                Order #{order.id} has unmet criteria for transition to <strong>{pendingStatusChange || 'Completed'}</strong>:
                             </p>
-                            <div className="bg-amber-500/10 p-3 rounded-md border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 space-y-1">
-                                {incompletePrerequisites.map((p) => (
-                                    <div key={p.id} className="flex items-center justify-between font-semibold">
-                                        <span>Order #{p.id} ({p.items?.map(i => i.title).join(', ') || 'Custom'})</span>
-                                        <Badge variant={getStatusVariant(p.status)} className="text-[9px] uppercase">
-                                            {p.status}
-                                        </Badge>
-                                    </div>
-                                ))}
+                            
+                            {incompletePrerequisites.length > 0 && (
+                                <div className="bg-amber-500/10 p-3 rounded-md border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                                    <p className="font-bold">Incomplete Prerequisite Orders:</p>
+                                    {incompletePrerequisites.map((p) => (
+                                        <div key={p.id} className="flex items-center justify-between">
+                                            <span>Order #{p.id} ({p.items?.map(i => i.title).join(', ') || 'Custom'})</span>
+                                            <Badge variant={getStatusVariant(p.status)} className="text-[9px] uppercase">
+                                                {p.status}
+                                            </Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {order.documentUploads && order.documentUploads.some(d => d.status === 'pending' || d.status === 'rejected') && (
+                                <div className="bg-destructive/10 p-3 rounded-md border border-destructive/20 text-xs text-destructive space-y-1">
+                                    <p className="font-bold">Outstanding Documents:</p>
+                                    {order.documentUploads.filter(d => d.status === 'pending' || d.status === 'rejected').map((d, dIdx) => (
+                                        <div key={dIdx} className="flex items-center justify-between">
+                                            <span>{d.requirementLabel}</span>
+                                            <span className="font-bold uppercase">{d.status}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {order.checklist && order.checklist.some(s => s.status !== 'completed' && s.status !== 'skipped') && (
+                                <div className="bg-blue-500/10 p-3 rounded-md border border-blue-500/20 text-xs text-blue-900 dark:text-blue-200 space-y-1">
+                                    <p className="font-bold">Incomplete SOP Checklist Steps:</p>
+                                    {order.checklist.filter(s => s.status !== 'completed' && s.status !== 'skipped').map((s, sIdx) => (
+                                        <div key={sIdx} className="flex items-center justify-between">
+                                            <span>{s.title}</span>
+                                            <span className="font-bold uppercase">{s.status}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="space-y-1 pt-2">
+                                <label className="text-xs font-bold text-foreground">
+                                    Staff Override Reason (Required to Bypass):
+                                </label>
+                                <Input
+                                    value={overrideReason}
+                                    onChange={(e) => setOverrideReason(e.target.value)}
+                                    placeholder="e.g. Verified manually with client & partner on phone"
+                                    className="text-xs"
+                                />
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                Completing this order before its prerequisites are finished may result in missing dependencies. Are you sure you want to proceed and mark this order as <strong>Completed</strong>?
-                            </p>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setPendingStatusChange(null)}>
+                    <AlertDialogFooter className="mt-2">
+                        <AlertDialogCancel onClick={() => { setPendingStatusChange(null); setOverrideReason(''); }}>
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction 
                             className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                            disabled={!overrideReason.trim()}
                             onClick={() => {
                                 if (pendingStatusChange) {
-                                    executeStatusChange(pendingStatusChange, true);
-                                    setPendingStatusChange(null);
+                                    executeStatusChange(pendingStatusChange, true, overrideReason.trim());
                                 }
                             }}
                         >
-                            Yes, Mark as Completed
+                            Override & Complete Order
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -1241,61 +1378,330 @@ export default function AdminOrderDetailsPage() {
                         </CardContent>
                     </Card>
 
+                    {/* Order Fulfillment Checklist (SOP) Card */}
+                    <Card className="border-primary/20 bg-gradient-to-b from-card to-primary/[0.02]">
+                        <CardHeader className="pb-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <ListChecks className="h-5 w-5 text-primary" />
+                                        <CardTitle className="text-base font-bold">Fulfillment SOP Checklist</CardTitle>
+                                        {order.fulfillmentStatus && (
+                                            <Badge variant={
+                                                order.fulfillmentStatus === 'Completed' ? 'success' :
+                                                order.fulfillmentStatus === 'Ready for Signoff' ? 'default' :
+                                                order.fulfillmentStatus === 'In Execution' ? 'warning' : 'secondary'
+                                            } className="text-xs font-semibold">
+                                                {order.fulfillmentStatus}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <CardDescription className="text-xs mt-0.5">
+                                        Standard operating procedure & step-by-step tasks for order fulfillment.
+                                    </CardDescription>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                                    <span>
+                                        {order.checklist ? order.checklist.filter(s => s.status === 'completed' || s.status === 'skipped').length : 0} of {order.checklist?.length || 0} Steps Complete
+                                    </span>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-0">
+                            {order.checklist && order.checklist.length > 0 ? (
+                                <div className="space-y-2.5">
+                                    {order.checklist.map((step, sIdx) => {
+                                        const isDone = step.status === 'completed';
+                                        const isUpdating = updatingStepId === step.id;
+                                        return (
+                                            <div
+                                                key={step.id || sIdx}
+                                                className={cn(
+                                                    "flex items-start justify-between p-3 rounded-lg border transition-colors",
+                                                    isDone ? "bg-muted/30 border-muted-foreground/20" : "bg-card border-border hover:border-primary/40"
+                                                )}
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <button
+                                                        type="button"
+                                                        disabled={isUpdating}
+                                                        onClick={() => handleToggleChecklistStep(step.id, step.status)}
+                                                        className="mt-0.5 text-muted-foreground hover:text-primary transition-colors shrink-0 disabled:opacity-50"
+                                                    >
+                                                        {isUpdating ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                                        ) : isDone ? (
+                                                            <CheckSquare className="h-4 w-4 text-green-600" />
+                                                        ) : (
+                                                            <Square className="h-4 w-4" />
+                                                        )}
+                                                    </button>
+                                                    <div>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <p className={cn("text-sm font-semibold", isDone && "line-through text-muted-foreground")}>
+                                                                {step.title}
+                                                            </p>
+                                                            {step.type && (
+                                                                <Badge variant="outline" className="text-[10px] py-0 font-normal">
+                                                                    {step.type === 'doc_verification' ? 'Doc Review' :
+                                                                     step.type === 'external_filing' ? 'CIPC/SARS Filing' :
+                                                                     step.type === 'internal_calc' ? 'Calculation' :
+                                                                     step.type === 'signoff' ? 'Sign-off' : 'Task'}
+                                                                </Badge>
+                                                            )}
+                                                            {step.isAiRecommended && (
+                                                                <Badge variant="secondary" className="text-[10px] py-0 bg-primary/10 text-primary border-primary/20">
+                                                                    <Bot className="h-2.5 w-2.5 mr-1" /> AI Action
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        {step.description && (
+                                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                                                {step.description}
+                                                            </p>
+                                                        )}
+                                                        {isDone && step.completedAt && (
+                                                            <p className="text-[11px] text-green-600 dark:text-green-400 mt-1 font-medium flex items-center gap-1">
+                                                                <CheckCircle className="h-3 w-3" />
+                                                                Completed {safeFormatDate(step.completedAt, 'dd MMM yyyy, HH:mm')} {step.completedByName ? `by ${step.completedByName}` : ''}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    size="xs"
+                                                    variant={isDone ? "ghost" : "outline"}
+                                                    disabled={isUpdating}
+                                                    onClick={() => handleToggleChecklistStep(step.id, step.status)}
+                                                    className="text-xs shrink-0 ml-2"
+                                                >
+                                                    {isDone ? 'Undo' : 'Mark Done'}
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-muted-foreground italic py-2">
+                                    No checklist initialized yet. Order tasks will generate automatically.
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Required Information & Document Review Card */}
                     <Card>
                         <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div><CardTitle>Required Information</CardTitle><CardDescription>Information needed from the client.</CardDescription></div>
-                                <div className="flex items-center gap-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div>
+                                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                                        <FileCheck className="h-5 w-5 text-primary" />
+                                        Required Documents & Information
+                                    </CardTitle>
+                                    <CardDescription className="text-xs">
+                                        Client uploads with automated multimodal AI verification and compliance inspection.
+                                    </CardDescription>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
                                     {order.documentUploads && order.documentUploads.some(d => d.status === 'pending') && (
-                                        <Button variant="outline" size="sm" className="text-green-600 hover:text-green-700 border-green-200 hover:bg-green-50" onClick={handleBatchApprove}>
-                                            <CheckCircle className="h-4 w-4 mr-2"/>Approve All Pending
+                                        <Button variant="outline" size="sm" className="text-green-600 hover:text-green-700 border-green-200 hover:bg-green-50 text-xs h-8" onClick={handleBatchApprove}>
+                                            <CheckCircle className="h-3.5 w-3.5 mr-1.5"/>Approve All Pending
                                         </Button>
                                     )}
-                                    <Button variant="outline" size="sm" onClick={() => setIsCustomDocOpen(true)}>
-                                        <FileText className="h-4 w-4 mr-2"/>Request Custom Doc
+                                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setIsCustomDocOpen(true)}>
+                                        <FileText className="h-3.5 w-3.5 mr-1.5"/>Request Custom Doc
                                     </Button>
-                                    <Button variant="outline" size="sm" onClick={handleSendFollowUp} disabled={isSendingReminder}>{isSendingReminder ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <MessageSquare className="h-4 w-4 mr-2"/>}Follow Up</Button>
+                                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={handleSendFollowUp} disabled={isSendingReminder}>
+                                        {isSendingReminder ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin"/> : <MessageSquare className="h-3.5 w-3.5 mr-1.5"/>}Follow Up
+                                    </Button>
                                 </div>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {orderItemsWithServices.map(item => (
-                                <div key={item.id}><h4 className="font-semibold">{item.title}</h4>
+                                <div key={item.id} className="space-y-2">
+                                    <h4 className="font-bold text-sm text-foreground">{item.title}</h4>
                                     {item.service.informationToProvide.length > 0 ? (
-                                        <ul className="mt-2 space-y-3 pl-4 border-l">
+                                        <ul className="space-y-3 pl-3 border-l-2 border-primary/20">
                                             {item.service.informationToProvide.map((req, index) => {
-                                                const upload = order.documentUploads?.find(d => (d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === req.label);
-                                                const identifier = upload ? (upload.type === 'file' ? upload.fileUrl! : upload.textValue!) : '';
+                                                const upload = order.documentUploads?.find(d => 
+                                                    (req.id && d.requirementId === req.id) ||
+                                                    ((d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === req.label)
+                                                );
+                                                const identifier = upload ? (upload.requirementId || upload.id || (upload.type === 'file' ? upload.fileUrl! : upload.textValue!) || upload.requirementLabel) : (req.id || req.label);
+                                                const isVerifying = Boolean(verifyingDocId && (verifyingDocId === identifier || (upload?.fileUrl && verifyingDocId === upload.fileUrl)));
+
                                                 return (
-                                                    <li key={index} className="pt-3">
-                                                        <div className="flex items-center justify-between">
-                                                            <p className="font-medium text-sm flex items-center gap-2">
-                                                                {req.label}
+                                                    <li key={index} className="pt-2 p-3 rounded-lg bg-muted/20 border border-border/50 space-y-2.5">
+                                                        <div className="flex items-center justify-between flex-wrap gap-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="font-semibold text-sm text-foreground">
+                                                                    {req.label}
+                                                                </p>
                                                                 {req.isRequired === false && (
                                                                     <Badge variant="outline" className="text-[10px] py-0 font-normal border-dashed text-muted-foreground">
                                                                         Optional
                                                                     </Badge>
                                                                 )}
-                                                            </p>
-                                                            {upload ? ( 
-                                                                <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'}>
-                                                                    {upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}
-                                                                    {upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}
-                                                                    {upload.status}
-                                                                </Badge> 
-                                                            ) : <Badge variant="secondary">Pending</Badge>}
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                {upload ? ( 
+                                                                    <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'} className="text-xs font-semibold">
+                                                                        {upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}
+                                                                        {upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}
+                                                                        {upload.status.toUpperCase()}
+                                                                    </Badge> 
+                                                                ) : <Badge variant="secondary" className="text-xs">Awaiting Client Upload</Badge>}
+                                                            </div>
                                                         </div>
-                                                        {upload && ( <div className="mt-2 space-y-2">{upload.type === 'file' ? ( <a href={upload.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><Download className="h-4 w-4" /> {upload.fileName}</a> ) : ( <p className="text-sm p-2 bg-muted rounded-md mt-1">"{upload.textValue}"</p> )}{upload.status === 'pending' && ( <div className="flex items-center gap-2"><Button size="xs" variant="outline" onClick={() => handleDocumentStatusUpdate(identifier, 'approved')}>Approve</Button><Button size="xs" variant="destructive" onClick={() => handleOpenRejectionDialog(upload)}>Reject</Button></div> )}{upload.status === 'rejected' && upload.rejectionReason && ( <p className="text-xs text-destructive italic">Reason: {upload.rejectionReason}</p> )}</div> )}
+
+                                                        {upload && (
+                                                            <div className="space-y-2.5 pt-1">
+                                                                {/* Missing Document Explanation */}
+                                                                {upload.notAvailableReason && (
+                                                                    <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs space-y-1.5">
+                                                                        <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                                                                            <HelpCircle className="h-4 w-4" /> Client Note: Document is Not Available
+                                                                        </div>
+                                                                        <p className="pl-5 text-muted-foreground italic font-medium">"{upload.notAvailableReason}"</p>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Multiple Files List */}
+                                                                {upload.files && upload.files.length > 0 ? (
+                                                                    <div className="space-y-1.5">
+                                                                        <div className="text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
+                                                                            <span>{upload.files.length} {upload.files.length === 1 ? 'file uploaded' : 'files uploaded'}:</span>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="xs"
+                                                                                disabled={isVerifying}
+                                                                                onClick={() => handleRunAiVerification(identifier)}
+                                                                                className="gap-1 font-semibold text-primary border-primary/30 hover:bg-primary/5 h-6 text-[11px]"
+                                                                            >
+                                                                                {isVerifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
+                                                                                {upload.aiVerification ? 'Re-Verify with AI' : 'AI Verify'}
+                                                                            </Button>
+                                                                        </div>
+                                                                        <div className="grid grid-cols-1 gap-1.5">
+                                                                            {upload.files.map((f, fIdx) => (
+                                                                                <div key={f.id || fIdx} className="flex items-center justify-between bg-card p-2 rounded-md border text-xs gap-2">
+                                                                                    <a href={f.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline flex items-center gap-1.5 truncate max-w-md">
+                                                                                        <Download className="h-3.5 w-3.5 shrink-0 text-primary" /> {f.fileName || `Attachment ${fIdx + 1}`}
+                                                                                    </a>
+                                                                                    {f.fileSize && (
+                                                                                        <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                                                                                            {formatFileSize(f.fileSize)}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                ) : upload.fileUrl ? (
+                                                                    <div className="flex items-center justify-between bg-card p-2.5 rounded-md border text-xs">
+                                                                        <a href={upload.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline flex items-center gap-1.5 truncate max-w-md">
+                                                                            <Download className="h-4 w-4 shrink-0 text-primary" /> {upload.fileName || 'View Uploaded Document'}
+                                                                        </a>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="xs"
+                                                                            disabled={isVerifying}
+                                                                            onClick={() => handleRunAiVerification(identifier)}
+                                                                            className="gap-1 font-semibold text-primary border-primary/30 hover:bg-primary/5 shrink-0 ml-2"
+                                                                        >
+                                                                            {isVerifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
+                                                                            {upload.aiVerification ? 'Re-Verify with AI' : 'AI Verify'}
+                                                                        </Button>
+                                                                    </div>
+                                                                ) : upload.textValue ? (
+                                                                    <p className="text-xs p-2.5 bg-muted rounded-md border font-medium text-foreground">
+                                                                        "{upload.textValue}"
+                                                                    </p>
+                                                                ) : null}
+
+                                                                {/* AI Multimodal Verification Box */}
+                                                                {upload.aiVerification && (
+                                                                    <div className={cn(
+                                                                        "p-3 rounded-lg border text-xs space-y-1.5",
+                                                                        upload.aiVerification.recommendation === 'approve' ? "bg-green-500/10 border-green-500/30 text-green-950 dark:text-green-200" :
+                                                                        upload.aiVerification.recommendation === 'reject' ? "bg-red-500/10 border-red-500/30 text-red-950 dark:text-red-200" :
+                                                                        "bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-200"
+                                                                    )}>
+                                                                        <div className="flex items-center justify-between font-bold">
+                                                                            <span className="flex items-center gap-1.5">
+                                                                                <Bot className="h-3.5 w-3.5" />
+                                                                                AI Assessment: Recommended {upload.aiVerification.recommendation.toUpperCase()} ({upload.aiVerification.confidence}% Confidence)
+                                                                            </span>
+                                                                            {upload.aiVerification.detectedType && (
+                                                                                <Badge variant="outline" className="text-[10px] bg-background/60">
+                                                                                    {upload.aiVerification.detectedType}
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
+                                                                        {upload.aiVerification.summary && (
+                                                                            <p className="text-[11px] opacity-90">{upload.aiVerification.summary}</p>
+                                                                        )}
+                                                                        {upload.aiVerification.issues && upload.aiVerification.issues.length > 0 && (
+                                                                            <div className="pt-1 text-[11px] text-destructive font-semibold">
+                                                                                Issues Detected: {upload.aiVerification.issues.join('; ')}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {upload.status === 'pending' && (
+                                                                            <div className="pt-1.5 flex items-center gap-2">
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    size="xs"
+                                                                                    className="bg-green-600 hover:bg-green-700 text-white font-bold h-7 gap-1"
+                                                                                    onClick={() => handleConfirmAiRecommendation(identifier)}
+                                                                                >
+                                                                                    <ShieldCheck className="h-3.5 w-3.5" />
+                                                                                    1-Click Confirm AI Recommendation
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Manual Review Actions */}
+                                                                {upload.status === 'pending' && (
+                                                                    <div className="flex items-center gap-2 pt-1">
+                                                                        <Button size="xs" variant="outline" className="h-7 text-xs font-semibold text-green-700 hover:bg-green-50 border-green-300" onClick={() => handleDocumentStatusUpdate(identifier, 'approved')}>
+                                                                            <CheckCircle className="h-3 w-3 mr-1" /> Approve
+                                                                        </Button>
+                                                                        <Button size="xs" variant="destructive" className="h-7 text-xs font-semibold" onClick={() => handleOpenRejectionDialog(upload)}>
+                                                                            <XCircle className="h-3 w-3 mr-1" /> Reject with Reason
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
+
+                                                                {upload.status === 'rejected' && upload.rejectionReason && (
+                                                                    <p className="text-xs text-destructive italic font-medium">
+                                                                        Rejection Reason: {upload.rejectionReason}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </li>
-                                                )
+                                                );
                                             })}
                                         </ul>
-                                    ) : <p className="text-sm text-muted-foreground mt-2 pl-4">No specific information required.</p>}
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground mt-1 pl-3">No specific document requirements configured.</p>
+                                    )}
                                 </div>
                             ))}
                         </CardContent>
                         {order.documentUploads && order.documentUploads.length > 0 && allDocumentsReviewed && (
-                            <CardFooter><Button onClick={handleSendFeedback} disabled={isSendingFeedback}>{isSendingFeedback && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Notify Client of Review</Button></CardFooter>
+                            <CardFooter>
+                                <Button onClick={handleSendFeedback} disabled={isSendingFeedback}>
+                                    {isSendingFeedback && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Notify Client of Review Outcome
+                                </Button>
+                            </CardFooter>
                         )}
                     </Card>
 
