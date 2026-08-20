@@ -138,6 +138,26 @@ export const OrderStatusUpdateEmail = ({ order, reseller, message }: OrderStatus
               </Button>
             </Section>
 
+            {/* Friendly Dashboard Response Reminder */}
+            <div style={unattendedNoticeBoxStyle}>
+              <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                <tbody>
+                  <tr>
+                    <td width="28" style={{ verticalAlign: 'top', paddingTop: '2px' }}>
+                      <span style={{ fontSize: '16px' }}>💬</span>
+                    </td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <Text style={unattendedNoticeTextStyle}>
+                        <strong>Need to reply or have questions about this status update?</strong>
+                        <br />
+                        Please log into your <a href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders/${order.id}`} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to message your dedicated consultant. Please note that <em>no_reply@myacc.co.za</em> is an automated notification mailbox and is not monitored for incoming replies.
+                      </Text>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             <Hr style={dividerStyle} />
 
             <Text style={paragraphStyle}>
@@ -291,6 +311,21 @@ const dividerStyle: React.CSSProperties = {
   margin: '24px 0',
 };
 
+const unattendedNoticeBoxStyle: React.CSSProperties = {
+  backgroundColor: '#f8fafc',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  padding: '14px 16px',
+  margin: '20px 0 8px 0',
+};
+
+const unattendedNoticeTextStyle: React.CSSProperties = {
+  fontSize: '13px',
+  lineHeight: '20px',
+  color: '#475569',
+  margin: 0,
+};
+
 const footerSectionStyle: React.CSSProperties = {
   marginTop: '24px',
   paddingTop: '16px',
@@ -303,4 +338,5 @@ const footerTextStyle: React.CSSProperties = {
   color: '#94a3b8',
   margin: '0 0 8px 0',
 };
+
 

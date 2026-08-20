@@ -126,6 +126,28 @@ export const NewNoteNotificationEmail = ({
               </Button>
             </Section>
 
+            {/* Friendly Dashboard Response Reminder (For Client Notes) */}
+            {!isInternalNote && (
+              <div style={unattendedNoticeBoxStyle}>
+                <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
+                  <tbody>
+                    <tr>
+                      <td width="28" style={{ verticalAlign: 'top', paddingTop: '2px' }}>
+                        <span style={{ fontSize: '16px' }}>💬</span>
+                      </td>
+                      <td style={{ verticalAlign: 'middle' }}>
+                        <Text style={unattendedNoticeTextStyle}>
+                          <strong>Need to respond to this note?</strong>
+                          <br />
+                          Please log into your <a href={actionUrl} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to post a reply. Please note that <em>no_reply@myacc.co.za</em> is an automated notification address and is not monitored for incoming replies.
+                        </Text>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             <Hr style={dividerStyle} />
 
             <Text style={paragraphStyle}>
@@ -139,7 +161,7 @@ export const NewNoteNotificationEmail = ({
               <Text style={footerTextStyle}>
                 {isInternalNote
                   ? "This is an internal staff notification. Do not forward outside the organization."
-                  : `This is an automated message regarding your order #${orderId} on ${brandName}.`}
+                  : `This is an automated notification from ${brandName}. Please log in to your dashboard to manage your order or message your consultant.`}
               </Text>
               <Text style={footerTextStyle}>
                 © {new Date().getFullYear()} {brandName}. All rights reserved.
@@ -290,6 +312,21 @@ const dividerStyle: React.CSSProperties = {
   margin: '24px 0',
 };
 
+const unattendedNoticeBoxStyle: React.CSSProperties = {
+  backgroundColor: '#f8fafc',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  padding: '14px 16px',
+  margin: '20px 0 8px 0',
+};
+
+const unattendedNoticeTextStyle: React.CSSProperties = {
+  fontSize: '13px',
+  lineHeight: '20px',
+  color: '#475569',
+  margin: 0,
+};
+
 const footerSectionStyle: React.CSSProperties = {
   marginTop: '24px',
   paddingTop: '16px',
@@ -302,4 +339,5 @@ const footerTextStyle: React.CSSProperties = {
   color: '#94a3b8',
   margin: '0 0 8px 0',
 };
+
 
