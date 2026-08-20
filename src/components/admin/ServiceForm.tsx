@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Service, PrerequisiteItem, FulfillmentStep, AVAILABLE_DOCUMENT_TEMPLATES, DocumentTemplateOption } from '@/lib/types';
@@ -125,6 +125,325 @@ type ServiceFormProps = {
   onSubmit: (data: any) => void;
   onCancel?: () => void;
 };
+
+interface ChecklistStepItemProps {
+  index: number;
+  control: any;
+  onRemove: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+  onPreviewTemplate: (tmpl: DocumentTemplateOption) => void;
+}
+
+function ChecklistStepItem({
+  index,
+  control,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
+  onPreviewTemplate,
+}: ChecklistStepItemProps) {
+  const stepType = useWatch({ control, name: `fulfillmentChecklist.${index}.type` }) || 'manual';
+  const selectedTemplateIds: string[] = useWatch({ control, name: `fulfillmentChecklist.${index}.templateIds` }) || [];
+
+  return (
+    <div className="p-3.5 rounded-lg border bg-card shadow-sm space-y-3">
+      <div className="flex items-start gap-2">
+        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary font-bold text-xs mt-1 shrink-0">
+          {index + 1}
+        </div>
+        
+        <FormField
+          control={control}
+          name={`fulfillmentChecklist.${index}.title`}
+          render={({ field }) => (
+            <FormItem className="flex-grow space-y-1">
+              <FormLabel className="text-xs font-semibold">Step Title *</FormLabel>
+              <FormControl>
+                <Input className="h-8 text-xs font-semibold" placeholder="e.g. 1. Review Required Information & AI Validation Checks" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name={`fulfillmentChecklist.${index}.type`}
+          render={({ field: typeField }) => (
+            <FormItem className="w-56 shrink-0 space-y-1">
+              <FormLabel className="text-xs font-semibold">Step Type</FormLabel>
+              <Select onValueChange={typeField.onChange} value={typeField.value || 'manual'}>
+                <FormControl>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="doc_verification">Document Verification & KYC</SelectItem>
+                  <SelectItem value="document_drafting">🤖 Prepare Drafts from Templates</SelectItem>
+                  <SelectItem value="external_filing">External Filing (CIPC/SARS/NCR)</SelectItem>
+                  <SelectItem value="internal_calc">Internal Prep / Calculation</SelectItem>
+                  <SelectItem value="signoff">Sign-off & Client Dispatch</SelectItem>
+                  <SelectItem value="manual">Manual Execution</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name={`fulfillmentChecklist.${index}.estimatedDays`}
+          render={({ field }) => (
+            <FormItem className="w-20 shrink-0 space-y-1">
+              <FormLabel className="text-xs font-semibold">Est. Days</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={0}
+                  className="h-8 text-xs text-center"
+                  placeholder="1"
+                  {...field}
+                  value={field.value !== undefined ? field.value : ''}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex items-center gap-0.5 mt-5 shrink-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground"
+            disabled={isFirst}
+            onClick={onMoveUp}
+            title="Move Up"
+          >
+            <ArrowUp className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground"
+            disabled={isLast}
+            onClick={onMoveDown}
+            title="Move Down"
+          >
+            <ArrowDown className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            onClick={onRemove}
+            title="Delete"
+          >
+            <Trash className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* SOP Instructions (Human & Operational) */}
+      <FormField
+        control={control}
+        name={`fulfillmentChecklist.${index}.description`}
+        render={({ field }) => (
+          <FormItem className="space-y-1">
+            <FormLabel className="text-[11px] font-semibold text-foreground/90 flex items-center justify-between">
+              <span>Standard Operating Procedure Instructions</span>
+              <span className="text-[10px] font-normal text-muted-foreground">Detailed process guidelines for staff & fulfillment</span>
+            </FormLabel>
+            <FormControl>
+              <Textarea
+                className="text-xs min-h-[64px] bg-muted/20 resize-y leading-relaxed font-sans"
+                placeholder="Audit and verify all submitted client information and uploads against statutory compliance standards..."
+                {...field}
+                value={field.value || ''}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Dedicated AI Agent Directives & Custom Execution Rules */}
+      <FormField
+        control={control}
+        name={`fulfillmentChecklist.${index}.aiInstructions`}
+        render={({ field }) => {
+          const val = field.value || '';
+          const addPromptChip = (chipText: string) => {
+            const updated = val ? `${val}\n• ${chipText}` : `• ${chipText}`;
+            field.onChange(updated);
+          };
+
+          return (
+            <FormItem className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between">
+                <FormLabel className="text-[11px] font-bold text-indigo-950 dark:text-indigo-300 flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                  Additional Instructions for AI Agent to Follow:
+                </FormLabel>
+                <span className="text-[10px] text-indigo-600/80 dark:text-indigo-400/80 font-mono">
+                  Enforced during AI automated fulfillment
+                </span>
+              </div>
+              <FormControl>
+                <Textarea
+                  className="text-xs min-h-[58px] bg-indigo-50/30 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/60 font-mono text-[11px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 resize-y"
+                  placeholder="Enter custom AI validation logic, OCR requirements, regex checks, or prompt directives for the AI Agent..."
+                  {...field}
+                  value={val}
+                />
+              </FormControl>
+              
+              {/* Quick Rule Insertion Chips */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                <span className="text-[10px] text-muted-foreground font-semibold">Quick Directives:</span>
+                <button
+                  type="button"
+                  onClick={() => addPromptChip('Verify certifications are not older than 3 months')}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
+                >
+                  + 3-Month Cert Check
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addPromptChip('Strict single-page layout with dedicated signature box')}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
+                >
+                  + Single Page PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addPromptChip('Check SARS Tax Compliance Status is in Good Standing')}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
+                >
+                  + SARS Good Standing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addPromptChip('Post updates and documents into Communication History (Do not email client directly)')}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
+                >
+                  + Post Note Policy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addPromptChip('Validate 10-digit SA mobile numbers starting with 0 (e.g. 076/082/084)')}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
+                >
+                  + SA Phone Validation
+                </button>
+              </div>
+              <FormMessage />
+            </FormItem>
+          );
+        }}
+      />
+
+      {/* Interactive Template Selector with FormField control */}
+      {(stepType === 'document_drafting' || selectedTemplateIds.length > 0) && (
+        <FormField
+          control={control}
+          name={`fulfillmentChecklist.${index}.templateIds`}
+          render={({ field }) => {
+            const currentIds: string[] = Array.isArray(field.value) ? field.value : [];
+
+            const toggleTemplate = (tmplId: string) => {
+              const updated = currentIds.includes(tmplId)
+                ? currentIds.filter(id => id !== tmplId)
+                : [...currentIds, tmplId];
+              field.onChange(updated);
+            };
+
+            return (
+              <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 rounded-lg space-y-2 mt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                    <ScrollText className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                    Select Statutory Document Templates to Draft:
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-mono border-indigo-300 text-indigo-900 dark:text-indigo-200">
+                    {currentIds.length} Template(s) Selected
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                  {AVAILABLE_DOCUMENT_TEMPLATES.map((tmpl) => {
+                    const isSelected = currentIds.includes(tmpl.id);
+                    return (
+                      <div
+                        key={tmpl.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => toggleTemplate(tmpl.id)}
+                        className={cn(
+                          "p-2.5 rounded-md border cursor-pointer transition-all flex items-start justify-between gap-2 select-none",
+                          isSelected
+                            ? "bg-indigo-100/80 dark:bg-indigo-900/50 border-indigo-400 dark:border-indigo-500 shadow-2xs"
+                            : "bg-background/90 hover:bg-muted/60 border-border/80"
+                        )}
+                      >
+                        <div className="flex items-start gap-2.5 min-w-0 flex-grow">
+                          <Checkbox
+                            checked={isSelected}
+                            tabIndex={-1}
+                            className="pointer-events-none mt-0.5"
+                          />
+                          <div className="space-y-0.5 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-bold text-foreground leading-tight">
+                                {tmpl.title}
+                              </span>
+                              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 font-normal">
+                                {tmpl.category}
+                              </Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground line-clamp-1">
+                              {tmpl.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Dedicated Preview Button */}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="xs"
+                          className="h-6 text-[10px] px-1.5 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200/50 dark:hover:bg-indigo-800/50 shrink-0 font-medium"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            onPreviewTemplate(tmpl);
+                          }}
+                          title={`Preview ${tmpl.title}`}
+                        >
+                          <Eye className="h-3 w-3 mr-1" /> Preview
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
 export default function ServiceForm({ service, allServices, onSubmit, onCancel }: ServiceFormProps) {
   const { toast } = useToast();
@@ -1371,309 +1690,23 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                 </div>
 
                 <div className="space-y-3">
-                  {checklistFields.map((field, index) => {
-                    return (
-                      <div key={field.id} className="p-3.5 rounded-lg border bg-card shadow-sm space-y-3">
-                        <div className="flex items-start gap-2">
-                          <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary font-bold text-xs mt-1 shrink-0">
-                            {index + 1}
-                          </div>
-                          
-                          <FormField
-                            control={form.control}
-                            name={`fulfillmentChecklist.${index}.title`}
-                            render={({ field }) => (
-                              <FormItem className="flex-grow space-y-1">
-                                <FormLabel className="text-xs font-semibold">Step Title *</FormLabel>
-                                <FormControl>
-                                  <Input className="h-8 text-xs font-semibold" placeholder="e.g. 1. Review Required Information & AI Validation Checks" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name={`fulfillmentChecklist.${index}.type`}
-                            render={({ field: typeField }) => (
-                              <FormItem className="w-56 shrink-0 space-y-1">
-                                <FormLabel className="text-xs font-semibold">Step Type</FormLabel>
-                                <Select onValueChange={typeField.onChange} value={typeField.value || 'manual'}>
-                                  <FormControl>
-                                    <SelectTrigger className="h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="doc_verification">Document Verification & KYC</SelectItem>
-                                    <SelectItem value="document_drafting">🤖 Prepare Drafts from Templates</SelectItem>
-                                    <SelectItem value="external_filing">External Filing (CIPC/SARS/NCR)</SelectItem>
-                                    <SelectItem value="internal_calc">Internal Prep / Calculation</SelectItem>
-                                    <SelectItem value="signoff">Sign-off & Client Dispatch</SelectItem>
-                                    <SelectItem value="manual">Manual Execution</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name={`fulfillmentChecklist.${index}.estimatedDays`}
-                            render={({ field }) => (
-                              <FormItem className="w-20 shrink-0 space-y-1">
-                                <FormLabel className="text-xs font-semibold">Est. Days</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    min={0}
-                                    className="h-8 text-xs text-center"
-                                    placeholder="1"
-                                    {...field}
-                                    value={field.value !== undefined ? field.value : ''}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <div className="flex items-center gap-0.5 mt-5 shrink-0">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground"
-                              disabled={index === 0}
-                              onClick={() => moveChecklist(index, index - 1)}
-                              title="Move Up"
-                            >
-                              <ArrowUp className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground"
-                              disabled={index === checklistFields.length - 1}
-                              onClick={() => moveChecklist(index, index + 1)}
-                              title="Move Down"
-                            >
-                              <ArrowDown className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => removeChecklist(index)}
-                              title="Delete"
-                            >
-                              <Trash className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* SOP Instructions (Human & Operational) */}
-                        <FormField
-                          control={form.control}
-                          name={`fulfillmentChecklist.${index}.description`}
-                          render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <FormLabel className="text-[11px] font-semibold text-foreground/90 flex items-center justify-between">
-                                <span>Standard Operating Procedure Instructions</span>
-                                <span className="text-[10px] font-normal text-muted-foreground">Detailed process guidelines for staff & fulfillment</span>
-                              </FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  className="text-xs min-h-[64px] bg-muted/20 resize-y leading-relaxed font-sans"
-                                  placeholder="Audit and verify all submitted client information and uploads against statutory compliance standards..."
-                                  {...field}
-                                  value={field.value || ''}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        {/* Dedicated AI Agent Directives & Custom Execution Rules */}
-                        <FormField
-                          control={form.control}
-                          name={`fulfillmentChecklist.${index}.aiInstructions`}
-                          render={({ field }) => {
-                            const val = field.value || '';
-                            const addPromptChip = (chipText: string) => {
-                              const updated = val ? `${val}\n• ${chipText}` : `• ${chipText}`;
-                              field.onChange(updated);
-                            };
-
-                            return (
-                              <FormItem className="space-y-1.5 pt-1">
-                                <div className="flex items-center justify-between">
-                                  <FormLabel className="text-[11px] font-bold text-indigo-950 dark:text-indigo-300 flex items-center gap-1.5">
-                                    <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                                    Additional Instructions for AI Agent to Follow:
-                                  </FormLabel>
-                                  <span className="text-[10px] text-indigo-600/80 dark:text-indigo-400/80 font-mono">
-                                    Enforced during AI automated fulfillment
-                                  </span>
-                                </div>
-                                <FormControl>
-                                  <Textarea
-                                    className="text-xs min-h-[58px] bg-indigo-50/30 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/60 font-mono text-[11px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 resize-y"
-                                    placeholder="Enter custom AI validation logic, OCR requirements, regex checks, or prompt directives for the AI Agent..."
-                                    {...field}
-                                    value={val}
-                                  />
-                                </FormControl>
-                                
-                                {/* Quick Rule Insertion Chips */}
-                                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                                  <span className="text-[10px] text-muted-foreground font-semibold">Quick Directives:</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => addPromptChip('Verify certifications are not older than 3 months')}
-                                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
-                                  >
-                                    + 3-Month Cert Check
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => addPromptChip('Strict single-page layout with dedicated signature box')}
-                                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
-                                  >
-                                    + Single Page PDF
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => addPromptChip('Check SARS Tax Compliance Status is in Good Standing')}
-                                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
-                                  >
-                                    + SARS Good Standing
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => addPromptChip('Post updates and documents into Communication History (Do not email client directly)')}
-                                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
-                                  >
-                                    + Post Note Policy
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => addPromptChip('Validate 10-digit SA mobile numbers starting with 0 (e.g. 076/082/084)')}
-                                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
-                                  >
-                                    + SA Phone Validation
-                                  </button>
-                                </div>
-                                <FormMessage />
-                              </FormItem>
-                            );
-                          }}
-                        />
-
-                        {/* Interactive Template Selector with FormField control */}
-                        <FormField
-                          control={form.control}
-                          name={`fulfillmentChecklist.${index}.templateIds`}
-                          render={({ field: templateField }) => {
-                            const stepType = form.getValues(`fulfillmentChecklist.${index}.type`);
-                            const selectedTemplateIds: string[] = Array.isArray(templateField.value) ? templateField.value : [];
-                            
-                            if (stepType !== 'document_drafting' && selectedTemplateIds.length === 0) {
-                              return <></>;
-                            }
-
-                            const toggleTemplate = (tmplId: string) => {
-                              const exists = selectedTemplateIds.includes(tmplId);
-                              const updated = exists
-                                ? selectedTemplateIds.filter(id => id !== tmplId)
-                                : [...selectedTemplateIds, tmplId];
-                              templateField.onChange(updated);
-                            };
-
-                            return (
-                              <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 rounded-lg space-y-2 mt-2">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-950 dark:text-indigo-200">
-                                    <ScrollText className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                                    Select Statutory Document Templates to Draft:
-                                  </div>
-                                  <Badge variant="outline" className="text-[10px] font-mono border-indigo-300 text-indigo-900 dark:text-indigo-200">
-                                    {selectedTemplateIds.length} Template(s) Selected
-                                  </Badge>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
-                                  {AVAILABLE_DOCUMENT_TEMPLATES.map((tmpl) => {
-                                    const isSelected = selectedTemplateIds.includes(tmpl.id);
-                                    return (
-                                      <div
-                                        key={tmpl.id}
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={() => toggleTemplate(tmpl.id)}
-                                        className={cn(
-                                          "p-2.5 rounded-md border cursor-pointer transition-all flex items-start justify-between gap-2 select-none",
-                                          isSelected
-                                            ? "bg-indigo-100/80 dark:bg-indigo-900/50 border-indigo-400 dark:border-indigo-500 shadow-2xs"
-                                            : "bg-background/90 hover:bg-muted/60 border-border/80"
-                                        )}
-                                      >
-                                        <div className="flex items-start gap-2.5 min-w-0 flex-grow">
-                                          <Checkbox
-                                            checked={isSelected}
-                                            tabIndex={-1}
-                                            className="pointer-events-none mt-0.5"
-                                          />
-                                          <div className="space-y-0.5 min-w-0">
-                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                              <span className="text-xs font-bold text-foreground leading-tight">
-                                                {tmpl.title}
-                                              </span>
-                                              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 font-normal">
-                                                {tmpl.category}
-                                              </Badge>
-                                            </div>
-                                            <p className="text-[11px] text-muted-foreground line-clamp-1">
-                                              {tmpl.description}
-                                            </p>
-                                          </div>
-                                        </div>
-
-                                        {/* Dedicated Preview Button */}
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="xs"
-                                          className="h-6 text-[10px] px-1.5 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200/50 dark:hover:bg-indigo-800/50 shrink-0 font-medium"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            setPreviewTemplate(tmpl);
-                                          }}
-                                          title={`Preview ${tmpl.title}`}
-                                        >
-                                          <Eye className="h-3 w-3 mr-1" /> Preview
-                                        </Button>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
+                  {checklistFields.map((field, index) => (
+                    <ChecklistStepItem
+                      key={field.id}
+                      index={index}
+                      control={form.control}
+                      onRemove={() => removeChecklist(index)}
+                      onMoveUp={() => moveChecklist(index, index - 1)}
+                      onMoveDown={() => moveChecklist(index, index + 1)}
+                      isFirst={index === 0}
+                      isLast={index === checklistFields.length - 1}
+                      onPreviewTemplate={(tmpl) => setPreviewTemplate(tmpl)}
+                    />
+                  ))}
 
                   {checklistFields.length === 0 && (
                     <p className="text-xs text-muted-foreground italic py-3 text-center">
-                      No SOP checklist steps defined. Click "Reset to Standard 3-Step" to populate.
+                      No SOP checklist steps defined. Click "Reset to Standard SOP (4-Step)" to populate.
                     </p>
                   )}
                 </div>
@@ -1976,7 +2009,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         <PrerequisiteMultiSelectDialog
           open={isPrereqMultiOpen}
           onOpenChange={setIsPrereqMultiOpen}
-          existingTexts={form.watch('clientRequirements')?.map((r: any) => typeof r === 'string' ? r : r?.value).filter(Boolean) || []}
+          existingTexts={isPrereqMultiOpen ? (form.getValues('clientRequirements')?.map((r: any) => typeof r === 'string' ? r : r?.value).filter(Boolean) || []) : []}
           previouslyUsed={previouslyUsedPrerequisites}
           onAddSelected={handleAddMultiplePrerequisites}
         />
@@ -1985,7 +2018,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         <DocumentMultiSelectDialog
           open={isDocMultiOpen}
           onOpenChange={setIsDocMultiOpen}
-          existingLabels={form.watch('informationToProvide')?.map((i: any) => i?.label).filter(Boolean) || []}
+          existingLabels={isDocMultiOpen ? (form.getValues('informationToProvide')?.map((i: any) => i?.label).filter(Boolean) || []) : []}
           previouslyUsed={previouslyUsedDocuments}
           onAddSelected={handleAddMultipleDocuments}
         />
