@@ -1,6 +1,6 @@
 'use server';
 
-import { getAdminDb, cleanFirestoreData } from '@/lib/firebase-admin';
+import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
 import { AuditEntry, Order, OrderChecklistItem, DocumentUpload, AIDocumentVerification } from '@/lib/types';
 import { sendOrderStatusUpdateEmailAction } from './order-actions';
 import { getServiceChecklist, normalizeRequirementsWithIds } from '@/lib/service-utils';
@@ -71,7 +71,7 @@ export async function ensureOrderChecklistInitialized(orderId: string): Promise<
     updatedAt: new Date().toISOString(),
   });
 
-  return checklist;
+  return serializeDbData(checklist);
 }
 
 /**
@@ -306,12 +306,12 @@ export async function updateOrderChecklistItemAtomic(
 
     await batch.commit();
 
-    return {
+    return serializeDbData({
       success: true,
       message: `Step "${existingStep.title}" marked as ${update.status}`,
       fulfillmentStatus: newFulfillmentStatus,
       updatedChecklist: checklist,
-    };
+    });
   } catch (error: any) {
     console.error('Error updating order checklist item:', error);
     return { success: false, error: error.message };
@@ -402,12 +402,12 @@ export async function reviewOrderDocumentAtomic(
 
     await batch.commit();
 
-    return {
+    return serializeDbData({
       success: true,
       message: `Document "${targetDocLabel || identifier}" marked as ${status}`,
       fulfillmentStatus: newFulfillmentStatus,
       documentUploads: cleanedUploads,
-    };
+    });
   } catch (error: any) {
     console.error('Error reviewing order document:', error);
     return { success: false, error: error.message };

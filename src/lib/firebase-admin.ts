@@ -107,16 +107,27 @@ export function serializeDbData(data: any): any {
     return data.map(item => serializeDbData(item));
   }
 
-  // Handle firestore Timestamp (Node SDK uses admin firestore.Timestamp, which has toDate)
-  if (data && typeof data === 'object' && typeof data.toDate === 'function') {
-    return data.toDate().toISOString();
-  }
+  // Handle firestore Timestamp / Date / Raw Timestamp
+  if (data && typeof data === 'object') {
+    if (typeof data.toDate === 'function') {
+      return data.toDate().toISOString();
+    }
+    if (data._seconds !== undefined && typeof data._seconds === 'number') {
+      return new Date(data._seconds * 1000).toISOString();
+    }
+    if (data.seconds !== undefined && typeof data.seconds === 'number' && data.nanoseconds !== undefined) {
+      return new Date(data.seconds * 1000).toISOString();
+    }
+    if (data instanceof Date) {
+      return data.toISOString();
+    }
 
-  // Handle standard Object
-  if (typeof data === 'object') {
+    // Handle standard Object
     const serialized: Record<string, any> = {};
     for (const key of Object.keys(data)) {
-      serialized[key] = serializeDbData(data[key]);
+      if (data[key] !== undefined) {
+        serialized[key] = serializeDbData(data[key]);
+      }
     }
     return serialized;
   }
