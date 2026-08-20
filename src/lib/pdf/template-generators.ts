@@ -1460,11 +1460,27 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
   currentY -= 16;
 
   // 3. Metadata Table
+  const metaRows: { label: string; value: string }[] = [
+    { label: 'Applicant Entity:', value: details.companyName },
+    { label: 'Registration Number:', value: details.regNumber },
+  ];
+
+  if (details.taxNumber && details.taxNumber !== '9000000000' && details.taxNumber !== 'N/A' && details.taxNumber.trim() !== '') {
+    metaRows.push({ label: 'SARS Tax Reference Number:', value: details.taxNumber });
+  }
+
+  metaRows.push(
+    { label: 'Director / Applicant:', value: `${details.customerName}${details.idNumber && details.idNumber !== '0000000000000' ? ` (ID: ${details.idNumber})` : ''}` },
+    { label: 'Registered Office Address:', value: details.address },
+    { label: 'Addressed To:', value: 'The National Credit Regulator (NCR) - Registration Department' }
+  );
+
+  const tableHeight = metaRows.length * 10.5 + 8;
   page.drawRectangle({
     x: margin,
-    y: currentY - 68,
+    y: currentY - tableHeight,
     width: contentWidth,
-    height: 68,
+    height: tableHeight,
     color: rgb(0.98, 0.98, 0.99),
     borderColor: rgb(0.88, 0.91, 0.94),
     borderWidth: 0.75,
@@ -1472,24 +1488,15 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
 
   const leftColX = margin + 12;
   const valColX = margin + 145;
-  let metaY = currentY - 12;
-
-  const metaRows = [
-    { label: 'Applicant Entity:', value: details.companyName },
-    { label: 'Registration Number:', value: details.regNumber },
-    { label: 'SARS Tax Reference Number:', value: details.taxNumber && details.taxNumber !== '9000000000' ? details.taxNumber : 'N/A' },
-    { label: 'Director / Applicant:', value: `${details.customerName}${details.idNumber && details.idNumber !== '0000000000000' ? ` (ID: ${details.idNumber})` : ''}` },
-    { label: 'Registered Office Address:', value: details.address },
-    { label: 'Addressed To:', value: 'The National Credit Regulator (NCR) - Registration Department' },
-  ];
+  let metaY = currentY - 10;
 
   for (const row of metaRows) {
     page.drawText(row.label, { x: leftColX, y: metaY, size: 7.2, font: fontBold, color: rgb(0.2, 0.25, 0.3) });
     page.drawText(row.value, { x: valColX, y: metaY, size: 7.2, font: fontRegular, color: rgb(0.06, 0.13, 0.22) });
-    metaY -= 9.5;
+    metaY -= 10.5;
   }
 
-  currentY -= 80;
+  currentY -= (tableHeight + 12);
 
   // 4. Salutation & Subject
   page.drawText('To Whom It May Concern,', { x: margin, y: currentY, size: 8, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
