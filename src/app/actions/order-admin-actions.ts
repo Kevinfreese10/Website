@@ -58,6 +58,7 @@ export async function ensureOrderChecklistInitialized(orderId: string): Promise<
         serviceTitle: serviceData?.title || item.title || 'Service',
         title: step.title,
         description: step.description || '',
+        aiInstructions: step.aiInstructions || '',
         type: step.type || 'manual',
         status: 'pending',
         templateIds: step.templateIds && step.templateIds.length > 0 ? step.templateIds : undefined,

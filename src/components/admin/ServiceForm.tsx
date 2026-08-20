@@ -95,6 +95,7 @@ const formSchema = z.object({
     id: z.string(),
     title: z.string().min(1, 'Title is required.'),
     description: z.string().optional(),
+    aiInstructions: z.string().optional(),
     type: z.enum(['doc_verification', 'document_drafting', 'external_filing', 'internal_calc', 'manual', 'signoff']).default('manual'),
     requiredRole: z.string().optional(),
     estimatedDays: z.preprocess(val => (val !== undefined && val !== '' ? Number(val) : undefined), z.number().min(0).optional()),
@@ -1323,13 +1324,14 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                         id: s.id,
                         title: s.title,
                         description: s.description || '',
+                        aiInstructions: s.aiInstructions || '',
                         type: s.type,
                         requiredRole: s.requiredRole || '',
                         estimatedDays: s.estimatedDays || 1,
                         templateIds: s.templateIds || [],
                       })))}
                     >
-                      <CheckCircle2 className="h-3 w-3 text-primary" /> Reset to Standard 3-Step
+                      <CheckCircle2 className="h-3 w-3 text-primary" /> Reset to Standard SOP (4-Step)
                     </Button>
                     <Button 
                       type="button" 
@@ -1339,7 +1341,8 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                       onClick={() => appendChecklist({
                         id: `step_${Date.now().toString(36)}`,
                         title: 'Prepare Draft Documents from Templates',
-                        description: 'Generate pre-filled statutory drafts, resolutions, and application forms from verified client information.',
+                        description: 'Generate pre-filled statutory drafts, resolutions, and application forms from verified client information and attach for consultant review.',
+                        aiInstructions: 'Generate pre-filled statutory drafts only once all KYC items are approved. Follow executive single-page formatting and Kevin Freese CBA (SA) credentials.',
                         type: 'document_drafting',
                         estimatedDays: 1,
                         templateIds: [],
@@ -1356,6 +1359,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                         id: `step_${Date.now().toString(36)}`,
                         title: '',
                         description: '',
+                        aiInstructions: '',
                         type: 'manual',
                         estimatedDays: 1,
                         templateIds: [],
@@ -1380,7 +1384,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                     };
 
                     return (
-                      <div key={field.id} className="p-3.5 rounded-lg border bg-card shadow-sm space-y-2.5">
+                      <div key={field.id} className="p-3.5 rounded-lg border bg-card shadow-sm space-y-3">
                         <div className="flex items-start gap-2">
                           <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary font-bold text-xs mt-1 shrink-0">
                             {index + 1}
@@ -1393,7 +1397,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                               <FormItem className="flex-grow space-y-1">
                                 <FormLabel className="text-xs font-semibold">Step Title *</FormLabel>
                                 <FormControl>
-                                  <Input className="h-8 text-xs font-semibold" placeholder="e.g. 2. Statutory CIPC Filing" {...field} />
+                                  <Input className="h-8 text-xs font-semibold" placeholder="e.g. 1. Review Required Information & AI Validation Checks" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1415,7 +1419,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                                   <SelectContent>
                                     <SelectItem value="doc_verification">Document Verification & KYC</SelectItem>
                                     <SelectItem value="document_drafting">🤖 Prepare Drafts from Templates</SelectItem>
-                                    <SelectItem value="external_filing">External Filing (CIPC/SARS)</SelectItem>
+                                    <SelectItem value="external_filing">External Filing (CIPC/SARS/NCR)</SelectItem>
                                     <SelectItem value="internal_calc">Internal Prep / Calculation</SelectItem>
                                     <SelectItem value="signoff">Sign-off & Client Dispatch</SelectItem>
                                     <SelectItem value="manual">Manual Execution</SelectItem>
@@ -1483,16 +1487,20 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                           </div>
                         </div>
 
+                        {/* SOP Instructions (Human & Operational) */}
                         <FormField
                           control={form.control}
                           name={`fulfillmentChecklist.${index}.description`}
                           render={({ field }) => (
                             <FormItem className="space-y-1">
-                              <FormLabel className="text-[11px] text-muted-foreground">Standard Operating Procedure Instructions</FormLabel>
+                              <FormLabel className="text-[11px] font-semibold text-foreground/90 flex items-center justify-between">
+                                <span>Standard Operating Procedure Instructions</span>
+                                <span className="text-[10px] font-normal text-muted-foreground">Detailed process guidelines for staff & fulfillment</span>
+                              </FormLabel>
                               <FormControl>
-                                <Input
-                                  className="h-7 text-xs bg-muted/30"
-                                  placeholder="Detailed operational steps for the staff member or AI agent completing this task..."
+                                <Textarea
+                                  className="text-xs min-h-[64px] bg-muted/20 resize-y leading-relaxed font-sans"
+                                  placeholder="Audit and verify all submitted client information and uploads against statutory compliance standards..."
                                   {...field}
                                   value={field.value || ''}
                                 />
@@ -1500,6 +1508,82 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                               <FormMessage />
                             </FormItem>
                           )}
+                        />
+
+                        {/* Dedicated AI Agent Directives & Custom Execution Rules */}
+                        <FormField
+                          control={form.control}
+                          name={`fulfillmentChecklist.${index}.aiInstructions`}
+                          render={({ field }) => {
+                            const val = field.value || '';
+                            const addPromptChip = (chipText: string) => {
+                              const updated = val ? `${val}\n• ${chipText}` : `• ${chipText}`;
+                              field.onChange(updated);
+                            };
+
+                            return (
+                              <FormItem className="space-y-1.5 pt-1">
+                                <div className="flex items-center justify-between">
+                                  <FormLabel className="text-[11px] font-bold text-indigo-950 dark:text-indigo-300 flex items-center gap-1.5">
+                                    <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                                    Additional Instructions for AI Agent to Follow:
+                                  </FormLabel>
+                                  <span className="text-[10px] text-indigo-600/80 dark:text-indigo-400/80 font-mono">
+                                    Enforced during AI automated fulfillment
+                                  </span>
+                                </div>
+                                <FormControl>
+                                  <Textarea
+                                    className="text-xs min-h-[58px] bg-indigo-50/30 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/60 font-mono text-[11px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 resize-y"
+                                    placeholder="Enter custom AI validation logic, OCR requirements, regex checks, or prompt directives for the AI Agent..."
+                                    {...field}
+                                    value={val}
+                                  />
+                                </FormControl>
+                                
+                                {/* Quick Rule Insertion Chips */}
+                                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                  <span className="text-[10px] text-muted-foreground font-semibold">Quick Directives:</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => addPromptChip('Verify certifications are not older than 3 months')}
+                                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
+                                  >
+                                    + 3-Month Cert Check
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => addPromptChip('Strict single-page layout with dedicated signature box')}
+                                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
+                                  >
+                                    + Single Page PDF
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => addPromptChip('Check SARS Tax Compliance Status is in Good Standing')}
+                                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
+                                  >
+                                    + SARS Good Standing
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => addPromptChip('Post updates and documents into Communication History (Do not email client directly)')}
+                                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
+                                  >
+                                    + Post Note Policy
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => addPromptChip('Validate 10-digit SA mobile numbers starting with 0 (e.g. 076/082/084)')}
+                                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
+                                  >
+                                    + SA Phone Validation
+                                  </button>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
 
                         {/* Interactive Template Selector when step type is document_drafting */}

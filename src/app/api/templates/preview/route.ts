@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Order } from '@/lib/types';
-import {
-  generateNcrForm2Draft,
-  generatePowerOfAttorneyResolutionDraft,
-  generateShareCertificateDraft,
-  generateAccountantsLetterDraft,
-  generateSarsPublicOfficerResolutionDraft,
-} from '@/lib/pdf/template-generators';
+import { getAdminDb } from '@/lib/firebase-admin';
+import fs from 'fs';
+import path from 'path';
 
 export const runtime = 'nodejs';
+
+// Local fallbacks if running locally
+const LOCAL_TEMPLATE_PATHS: Record<string, string> = {
+  ncr_form_2: 'C:/Users/kev/Downloads/NCR_Form_2_Fillable.pdf',
+  ncr_director_resolution: 'C:/Users/kev/OneDrive/Documents/NCR Director Resolution Template.pdf',
+  director_resolution: 'C:/Users/kev/OneDrive/Documents/NCR Director Resolution Template.pdf',
+  ncr_annexure_fees: 'C:/Users/kev/OneDrive/Documents/Example - Annexure Confirmation of Fees (MOOLA HUB).pdf',
+  accounting_officer_letter: 'C:/Users/kev/OneDrive/Documents/Accountant Appointment Letter - K2025577398 (South Africa) - Xolani Kumalo.pdf',
+  accountants_letter: 'C:/Users/kev/OneDrive/Documents/My Accountants Letterhead - Order 9788 Final.pdf',
+  engagement_letter: 'C:/Users/kev/OneDrive/Documents/My Accountant Engagement Letter.pdf',
+  power_of_attorney: 'C:/Users/kev/OneDrive/Documents/Power of Attorney - Kevin Freese - Khula Financial Services.pdf',
+  share_certificate: 'C:/Users/kev/OneDrive/Documents/SHARE CERTIFICATE.pdf',
+  sars_public_officer_resolution: 'C:/Users/kev/Downloads/TPPOA-Special-Power-of-Attorney-to-Tax-Practitioner-External-Form.pdf',
+  coida_cf1b_application: 'C:/Users/kev/OneDrive/Documents/Power of Attorney - Kevin Freese - Super Valet Paarl.pdf',
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,61 +29,50 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing template ID query parameter (id)' }, { status: 400 });
     }
 
-    const sampleOrder: Order = {
-      id: 'PREVIEW-101',
-      customerName: 'Nqobi Sithole',
-      customerEmail: 'nqobi.sithole@example.co.za',
-      customerPhone: '+27 82 123 4567',
-      endCustomerName: 'ACME HOLDINGS (PTY) LTD',
-      date: new Date().toISOString(),
-      items: [{ id: 'srv_preview', title: 'Statutory Compliance Service', price: 1500, quantity: 1 }],
-      total: 1500,
-      discountCode: null,
-      discountAmount: null,
-      status: 'Processing',
-      documentUploads: [
-        { serviceId: 'srv_preview', requirementLabel: 'COR14.3 (Company Registration)', type: 'file', status: 'approved', fileName: 'COR14.3.pdf', uploadedAt: new Date().toISOString() },
-        { serviceId: 'srv_preview', requirementLabel: 'Company Name', type: 'text', textValue: 'ACME HOLDINGS (PTY) LTD', status: 'approved', uploadedAt: new Date().toISOString() },
-        { serviceId: 'srv_preview', requirementLabel: 'Registration Number', type: 'text', textValue: '2024/987654/07', status: 'approved', uploadedAt: new Date().toISOString() },
-        { serviceId: 'srv_preview', requirementLabel: 'ID copy of Director', type: 'file', status: 'approved', fileName: 'Director_ID_Copy.pdf', uploadedAt: new Date().toISOString() },
-        { serviceId: 'srv_preview', requirementLabel: 'ID Number', type: 'text', textValue: '8501015009087', status: 'approved', uploadedAt: new Date().toISOString() },
-        { serviceId: 'srv_preview', requirementLabel: 'Registered Address', type: 'text', textValue: '123 Commercial Avenue, Sandton, Johannesburg, 2196', status: 'approved', uploadedAt: new Date().toISOString() },
-      ],
-    };
+    // 1. Try fetching from Firestore 'templates' collection
+    try {
+      const db = getAdminDb();
+      const templateDoc = await db.collection('templates').doc(templateId).get();
 
-    let pdfResult: { buffer: Buffer; fileName: string };
-
-    switch (templateId) {
-      case 'sars_public_officer_resolution':
-      case 'director_resolution':
-        pdfResult = await generateSarsPublicOfficerResolutionDraft(sampleOrder);
-        break;
-      case 'ncr_form_2':
-        pdfResult = await generateNcrForm2Draft(sampleOrder);
-        break;
-      case 'power_of_attorney':
-        pdfResult = await generatePowerOfAttorneyResolutionDraft(sampleOrder);
-        break;
-      case 'share_certificate':
-        pdfResult = await generateShareCertificateDraft(sampleOrder);
-        break;
-      case 'accountants_letter':
-        pdfResult = await generateAccountantsLetterDraft(sampleOrder);
-        break;
-      default:
-        return NextResponse.json({ error: `Unknown template ID: ${templateId}` }, { status: 404 });
+      if (templateDoc.exists) {
+        const data = templateDoc.data();
+        if (data?.fileUrl) {
+          // Fetch the authentic PDF buffer from Firebase Storage URL
+          const res = await fetch(data.fileUrl);
+          if (res.ok) {
+            const arrayBuf = await res.arrayBuffer();
+            return new NextResponse(Buffer.from(arrayBuf), {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `inline; filename="${data.fileName || `${templateId}.pdf`}"`,
+                'Cache-Control': 'public, max-age=3600',
+              },
+            });
+          }
+        }
+      }
+    } catch (dbErr) {
+      console.warn('Firestore template lookup error, trying local fallback:', dbErr);
     }
 
-    return new NextResponse(pdfResult.buffer, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="${pdfResult.fileName}"`,
-        'Cache-Control': 'no-store, max-age=0',
-      },
-    });
+    // 2. Fallback to direct authentic local file on disk
+    const localPath = LOCAL_TEMPLATE_PATHS[templateId];
+    if (localPath && fs.existsSync(localPath)) {
+      const fileBuf = fs.readFileSync(localPath);
+      return new NextResponse(fileBuf, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `inline; filename="${path.basename(localPath)}"`,
+          'Cache-Control': 'no-store, max-age=0',
+        },
+      });
+    }
+
+    return NextResponse.json({ error: `Template document not found for ID: ${templateId}` }, { status: 404 });
   } catch (error: any) {
-    console.error('Error generating sample template preview PDF:', error);
-    return NextResponse.json({ error: error.message || 'Failed to generate PDF preview' }, { status: 500 });
+    console.error('Error serving template preview PDF:', error);
+    return NextResponse.json({ error: error.message || 'Failed to serve template preview' }, { status: 500 });
   }
 }

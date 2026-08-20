@@ -35,6 +35,8 @@ export type DocumentUpload = {
   uploadedAt: any; // Firestore Timestamp
   status: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string;
+  adminComment?: string;
+  verifiedAt?: any;
   aiVerification?: AIDocumentVerification;
 };
 
@@ -53,34 +55,64 @@ export type DocumentTemplateOption = {
 
 export const AVAILABLE_DOCUMENT_TEMPLATES: DocumentTemplateOption[] = [
   {
-    id: 'sars_public_officer_resolution',
-    title: 'SARS Public Officer Appointment & Director Resolution',
-    description: 'Statutory Board Resolution in terms of Section 246 of Tax Administration Act.',
-    category: 'SARS & Tax'
-  },
-  {
     id: 'ncr_form_2',
     title: 'NCR Form 2 — Credit Provider Application',
-    description: 'Statutory Form NCR 2 ready for client signature and NCR submission.',
-    category: 'NCR & Credit'
+    description: 'Statutory Form NCR 2 application for National Credit Regulator credit provider registration.',
+    category: 'NCR & Credit',
+  },
+  {
+    id: 'ncr_director_resolution',
+    title: 'NCR Director Resolution & Signatory Mandate',
+    description: 'Board Resolution authorizing NCR credit provider application, appointed signatory, and accounting officer mandate.',
+    category: 'NCR & Credit',
+  },
+  {
+    id: 'ncr_annexure_fees',
+    title: 'NCR Annexure: Confirmation of Payment of Fees',
+    description: 'Statutory fee calculation schedule (R550 App Fee + R1,000 Initial Reg + R250 Branch Fee = R1,800 Total).',
+    category: 'NCR & Credit',
+  },
+  {
+    id: 'accounting_officer_letter',
+    title: 'Accounting Officer Consent & Appointment Letter (Reg 67/68)',
+    description: 'Formal consent & confirmation of appointment as independent Accounting Officer under Regulations 67 & 68 of National Credit Act, CBA (SA) signed.',
+    category: 'Accounting & Compliance',
+  },
+  {
+    id: 'accountants_letter',
+    title: "Accountant's Financial Confirmation & Compliance Letter",
+    description: 'Official confirmation of financial position, capital adequacy, or bank records on My Accountant letterhead.',
+    category: 'Accounting & Compliance',
+  },
+  {
+    id: 'engagement_letter',
+    title: 'Professional Engagement Letter & Service Agreement',
+    description: 'Formal engagement contract with Kevin Freese CBA (SA) signature, scope of services, and statutory terms.',
+    category: 'Agreements & Retainers',
   },
   {
     id: 'power_of_attorney',
-    title: 'Special Power of Attorney & Authorizing Resolution',
-    description: 'Formal mandate authorising My Accountant to act before CIPC, NCR, and SARS.',
-    category: 'Legal & CIPC'
+    title: 'Special Power of Attorney & Authorizing Mandate',
+    description: 'Strict 1-page executive mandate with dedicated "Sign Here" box authorizing representation before CIPC, NCR, SARS, and Labour.',
+    category: 'Legal & Statutory',
   },
   {
     id: 'share_certificate',
     title: 'Official Company Share Certificate (100 Ordinary Shares)',
-    description: 'Ornate Share Certificate in terms of the Companies Act 71 of 2008.',
-    category: 'CIPC & Secretarial'
+    description: 'Ornate corporate Share Certificate in terms of the Companies Act 71 of 2008.',
+    category: 'CIPC & Secretarial',
   },
   {
-    id: 'accountants_letter',
-    title: "Accountant's Confirmation & Compliance Letter",
-    description: 'Official confirmation on My Accountant letterhead for regulatory compliance.',
-    category: 'Accounting & Compliance'
+    id: 'sars_public_officer_resolution',
+    title: 'SARS Public Officer Appointment & Director Resolution',
+    description: 'Statutory Board Resolution appointing Public Officer in terms of Section 246 of Tax Administration Act.',
+    category: 'SARS & Tax',
+  },
+  {
+    id: 'coida_cf1b_application',
+    title: 'COIDA CF-1B Change of Nature of Business Application',
+    description: 'Department of Employment & Labour compensation fund application pack with mandate & proof of operations.',
+    category: 'Labour & COIDA',
   },
 ];
 
@@ -88,6 +120,7 @@ export type FulfillmentStep = {
   id: string;
   title: string;
   description?: string;
+  aiInstructions?: string; // Custom operational rules, prompts & validations for the AI Agent
   type: FulfillmentStepType;
   requiredRole?: string;
   automatedSkill?: string;
@@ -292,6 +325,7 @@ export type OrderChecklistItem = {
   serviceTitle?: string;
   title: string;
   description?: string;
+  aiInstructions?: string; // Custom operational rules for AI agent
   type?: FulfillmentStepType;
   status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
   completedAt?: string;

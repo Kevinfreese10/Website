@@ -6,11 +6,16 @@ import { verifyOrderDocument } from '@/ai/flows/verify-order-document';
 import { ensureOrderChecklistInitialized } from '@/app/actions/order-admin-actions';
 import {
   generateNcrForm2Draft,
+  generateNcrDirectorResolutionDraft,
+  generateNcrAnnexureFeesDraft,
+  generateAccountingOfficerConsentDraft,
+  generateAccountantsLetterDraft,
+  generateEngagementLetterDraft,
   generatePowerOfAttorneyResolutionDraft,
   generateShareCertificateDraft,
-  generateAccountantsLetterDraft,
-  generateOrderIntakeSummaryPdf,
   generateSarsPublicOfficerResolutionDraft,
+  generateCoidaCf1bApplicationDraft,
+  generateOrderIntakeSummaryPdf,
 } from '@/lib/pdf/template-generators';
 import { sendEmail } from '@/lib/email';
 
@@ -37,6 +42,9 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
     const uploads: DocumentUpload[] = order.documentUploads || [];
     const updatedUploads: DocumentUpload[] = [];
 
+    const verificationStep = checklist.find(s => s.type === 'doc_verification' || s.title?.toLowerCase().includes('verification'));
+    const customAiInstructions = verificationStep?.aiInstructions;
+
     for (const docItem of uploads) {
       // If doc already has AI verification, keep it unless pending
       if (docItem.aiVerification && docItem.aiVerification.recommendation) {
@@ -51,6 +59,7 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
             requirementLabel: docItem.requirementLabel,
             serviceTitle: order.items?.[0]?.title,
             clientName: order.customerName,
+            customAiInstructions,
           });
 
           const aiVerification: AIDocumentVerification = {
@@ -103,13 +112,21 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
 
     const updatedChecklist = checklist.map(step => {
       const stepTitleLower = step.title.toLowerCase();
-      if (stepTitleLower.includes('intake') || stepTitleLower.includes('document verification') || stepTitleLower.includes('verify client upload') || stepTitleLower.includes('gather client requirements')) {
+      if (
+        step.id === 'step_doc_verification' ||
+        stepTitleLower.includes('review required information') ||
+        stepTitleLower.includes('validation checks') ||
+        stepTitleLower.includes('intake') ||
+        stepTitleLower.includes('document verification') ||
+        stepTitleLower.includes('verify client upload') ||
+        stepTitleLower.includes('gather client requirements')
+      ) {
         return {
           ...step,
           status: (allApprovedOrRecommended ? 'completed' : 'in_progress') as any,
           completedAt: allApprovedOrRecommended ? new Date().toISOString() : step.completedAt,
           isAiRecommended: true,
-          aiNotes: `AI Verified: ${verifiedCount}/${totalDocs} documents approved or recommended with average confidence > 85%.`,
+          aiNotes: `AI Verified: ${verifiedCount}/${totalDocs} documents audited and passed compliance validation checks with high confidence (>85%).`,
         };
       }
       return step;
@@ -202,35 +219,14 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
 
   // --- PATH A: Explicit Template IDs Configured on the Product's SOP Checklist ---
   if (explicitTemplateIds.size > 0) {
-    if (explicitTemplateIds.has('sars_public_officer_resolution')) {
-      const poaPdf = await generateSarsPublicOfficerResolutionDraft(order, feedbackNotes);
-      const poaUrl = await uploadBufferToStorage(
-        poaPdf.buffer,
-        `orders/${orderId}/generated_drafts/${poaPdf.fileName}`
-      );
-      addDraft({
-        id: `draft_sars_po_${Date.now()}`,
-        templateType: 'director_resolution',
-        title: 'SARS Public Officer Appointment & Director Resolution',
-        description: 'Statutory Resolution appointing Public Officer in terms of Section 246 of Tax Administration Act.',
-        fileUrl: poaUrl,
-        fileName: poaPdf.fileName,
-        generatedAt: new Date().toISOString(),
-        status: 'draft',
-      });
-    }
-
     if (explicitTemplateIds.has('ncr_form_2')) {
       const form2Pdf = await generateNcrForm2Draft(order, feedbackNotes);
-      const form2Url = await uploadBufferToStorage(
-        form2Pdf.buffer,
-        `orders/${orderId}/generated_drafts/${form2Pdf.fileName}`
-      );
+      const form2Url = await uploadBufferToStorage(form2Pdf.buffer, `orders/${orderId}/generated_drafts/${form2Pdf.fileName}`);
       addDraft({
         id: `draft_ncr2_${Date.now()}`,
         templateType: 'ncr_form_2',
         title: 'NCR Form 2 — Application for Registration as Credit Provider',
-        description: 'Pre-filled statutory Form NCR 2 ready for client signature and NCR submission.',
+        description: 'Statutory Form NCR 2 application for National Credit Regulator registration.',
         fileUrl: form2Url,
         fileName: form2Pdf.fileName,
         generatedAt: new Date().toISOString(),
@@ -238,17 +234,89 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
       });
     }
 
+    if (explicitTemplateIds.has('ncr_director_resolution')) {
+      const resPdf = await generateNcrDirectorResolutionDraft(order, feedbackNotes);
+      const resUrl = await uploadBufferToStorage(resPdf.buffer, `orders/${orderId}/generated_drafts/${resPdf.fileName}`);
+      addDraft({
+        id: `draft_ncr_res_${Date.now()}`,
+        templateType: 'director_resolution',
+        title: 'NCR Director Resolution & Signatory Mandate',
+        description: 'Board Resolution authorizing NCR credit provider application, appointed signatory, and accounting officer mandate.',
+        fileUrl: resUrl,
+        fileName: resPdf.fileName,
+        generatedAt: new Date().toISOString(),
+        status: 'draft',
+      });
+    }
+
+    if (explicitTemplateIds.has('ncr_annexure_fees')) {
+      const feePdf = await generateNcrAnnexureFeesDraft(order, feedbackNotes);
+      const feeUrl = await uploadBufferToStorage(feePdf.buffer, `orders/${orderId}/generated_drafts/${feePdf.fileName}`);
+      addDraft({
+        id: `draft_ncr_fee_${Date.now()}`,
+        templateType: 'ncr_annexure_fees' as any,
+        title: 'NCR Annexure: Confirmation of Payment of Fees',
+        description: 'Statutory fee calculation schedule (R550 App Fee + R1,000 Initial Reg + R250 Branch Fee = R1,800 Total).',
+        fileUrl: feeUrl,
+        fileName: feePdf.fileName,
+        generatedAt: new Date().toISOString(),
+        status: 'draft',
+      });
+    }
+
+    if (explicitTemplateIds.has('accounting_officer_letter')) {
+      const aoPdf = await generateAccountingOfficerConsentDraft(order, feedbackNotes);
+      const aoUrl = await uploadBufferToStorage(aoPdf.buffer, `orders/${orderId}/generated_drafts/${aoPdf.fileName}`);
+      addDraft({
+        id: `draft_ao_letter_${Date.now()}`,
+        templateType: 'accountants_letter',
+        title: 'Accounting Officer Consent & Appointment Letter (Reg 67/68)',
+        description: 'Formal consent & confirmation of appointment as independent Accounting Officer under Regulations 67 & 68, CBA (SA) signed.',
+        fileUrl: aoUrl,
+        fileName: aoPdf.fileName,
+        generatedAt: new Date().toISOString(),
+        status: 'draft',
+      });
+    }
+
+    if (explicitTemplateIds.has('accountants_letter')) {
+      const letterPdf = await generateAccountantsLetterDraft(order, feedbackNotes);
+      const letterUrl = await uploadBufferToStorage(letterPdf.buffer, `orders/${orderId}/generated_drafts/${letterPdf.fileName}`);
+      addDraft({
+        id: `draft_letter_${Date.now()}`,
+        templateType: 'accountants_letter',
+        title: "Accountant's Financial Confirmation & Compliance Letter",
+        description: 'Official confirmation on My Accountant letterhead for regulatory compliance.',
+        fileUrl: letterUrl,
+        fileName: letterPdf.fileName,
+        generatedAt: new Date().toISOString(),
+        status: 'draft',
+      });
+    }
+
+    if (explicitTemplateIds.has('engagement_letter')) {
+      const engPdf = await generateEngagementLetterDraft(order, feedbackNotes);
+      const engUrl = await uploadBufferToStorage(engPdf.buffer, `orders/${orderId}/generated_drafts/${engPdf.fileName}`);
+      addDraft({
+        id: `draft_eng_${Date.now()}`,
+        templateType: 'engagement_letter' as any,
+        title: 'Professional Engagement Letter & Service Agreement',
+        description: 'Formal engagement contract with Kevin Freese CBA (SA) signature, scope of services, and statutory terms.',
+        fileUrl: engUrl,
+        fileName: engPdf.fileName,
+        generatedAt: new Date().toISOString(),
+        status: 'draft',
+      });
+    }
+
     if (explicitTemplateIds.has('power_of_attorney')) {
       const poaPdf = await generatePowerOfAttorneyResolutionDraft(order, feedbackNotes);
-      const poaUrl = await uploadBufferToStorage(
-        poaPdf.buffer,
-        `orders/${orderId}/generated_drafts/${poaPdf.fileName}`
-      );
+      const poaUrl = await uploadBufferToStorage(poaPdf.buffer, `orders/${orderId}/generated_drafts/${poaPdf.fileName}`);
       addDraft({
         id: `draft_poa_${Date.now()}`,
         templateType: 'power_of_attorney',
-        title: 'Special Power of Attorney & Director Authorizing Resolution',
-        description: 'Mandate authorising My Accountant to act before statutory bodies.',
+        title: 'Special Power of Attorney & Authorizing Mandate',
+        description: 'Strict 1-page executive mandate with dedicated "Sign Here" box authorizing representation.',
         fileUrl: poaUrl,
         fileName: poaPdf.fileName,
         generatedAt: new Date().toISOString(),
@@ -258,10 +326,7 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
 
     if (explicitTemplateIds.has('share_certificate')) {
       const sharePdf = await generateShareCertificateDraft(order, feedbackNotes);
-      const shareUrl = await uploadBufferToStorage(
-        sharePdf.buffer,
-        `orders/${orderId}/generated_drafts/${sharePdf.fileName}`
-      );
+      const shareUrl = await uploadBufferToStorage(sharePdf.buffer, `orders/${orderId}/generated_drafts/${sharePdf.fileName}`);
       addDraft({
         id: `draft_share_${Date.now()}`,
         templateType: 'share_certificate',
@@ -274,19 +339,31 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
       });
     }
 
-    if (explicitTemplateIds.has('accountants_letter')) {
-      const letterPdf = await generateAccountantsLetterDraft(order, feedbackNotes);
-      const letterUrl = await uploadBufferToStorage(
-        letterPdf.buffer,
-        `orders/${orderId}/generated_drafts/${letterPdf.fileName}`
-      );
+    if (explicitTemplateIds.has('sars_public_officer_resolution')) {
+      const poaPdf = await generateSarsPublicOfficerResolutionDraft(order, feedbackNotes);
+      const poaUrl = await uploadBufferToStorage(poaPdf.buffer, `orders/${orderId}/generated_drafts/${poaPdf.fileName}`);
       addDraft({
-        id: `draft_letter_${Date.now()}`,
-        templateType: 'accountants_letter',
-        title: "Accountant's Confirmation & Compliance Letter",
-        description: 'Official confirmation on My Accountant letterhead for regulatory compliance.',
-        fileUrl: letterUrl,
-        fileName: letterPdf.fileName,
+        id: `draft_sars_po_${Date.now()}`,
+        templateType: 'director_resolution',
+        title: 'SARS Public Officer Appointment & Director Resolution',
+        description: 'Statutory Resolution appointing Public Officer in terms of Section 246 of Tax Administration Act.',
+        fileUrl: poaUrl,
+        fileName: poaPdf.fileName,
+        generatedAt: new Date().toISOString(),
+        status: 'draft',
+      });
+    }
+
+    if (explicitTemplateIds.has('coida_cf1b_application')) {
+      const coidaPdf = await generateCoidaCf1bApplicationDraft(order, feedbackNotes);
+      const coidaUrl = await uploadBufferToStorage(coidaPdf.buffer, `orders/${orderId}/generated_drafts/${coidaPdf.fileName}`);
+      addDraft({
+        id: `draft_coida_${Date.now()}`,
+        templateType: 'coida_cf1b' as any,
+        title: 'COIDA CF-1B Change of Nature of Business Application',
+        description: 'Department of Employment & Labour compensation fund application pack with mandate & proof of operations.',
+        fileUrl: coidaUrl,
+        fileName: coidaPdf.fileName,
         generatedAt: new Date().toISOString(),
         status: 'draft',
       });
