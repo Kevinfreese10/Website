@@ -265,12 +265,15 @@ export type ItnLog = {
 export type Order = {
   id: string;
   userId?: string | null;
+  clientId?: string | null;
+  partnerId?: string | null;
   resellerId?: string;
   customerName: string;
   customerEmail: string;
   customerPhone?: string;
   endCustomerName?: string; 
   endCustomerEmail?: string; 
+  endCustomerPhone?: string;
   date: any;
   items: OrderItem[];
   total: number;

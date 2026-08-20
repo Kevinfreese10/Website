@@ -111,6 +111,26 @@ export function drawJustifiedParagraph(
 export function extractOrderEntityDetails(order: Order) {
   const uploads = order.documentUploads || [];
   
+  // Look for any AI verified extracted data across uploads
+  let aiExtractedCompany = '';
+  let aiExtractedReg = '';
+  let aiExtractedAddress = '';
+  let aiExtractedDirector = '';
+  let aiExtractedId = '';
+  let aiExtractedTax = '';
+
+  for (const u of uploads) {
+    const ext = (u as any).aiVerification?.extractedData;
+    if (ext) {
+      if (ext.companyName || ext.enterpriseName) aiExtractedCompany = ext.companyName || ext.enterpriseName;
+      if (ext.registrationNumber || ext.regNumber) aiExtractedReg = ext.registrationNumber || ext.regNumber;
+      if (ext.registeredAddress || ext.address) aiExtractedAddress = ext.registeredAddress || ext.address;
+      if (ext.directorName || ext.director || ext.directors?.[0]?.name) aiExtractedDirector = ext.directorName || ext.director || ext.directors?.[0]?.name;
+      if (ext.idNumber || ext.directors?.[0]?.idNumber) aiExtractedId = ext.idNumber || ext.directors?.[0]?.idNumber;
+      if (ext.taxNumber || ext.incomeTaxNumber) aiExtractedTax = ext.taxNumber || ext.incomeTaxNumber;
+    }
+  }
+
   // Find text inputs or metadata
   const companyNameDoc = uploads.find(u => 
     u.requirementLabel.toLowerCase().includes('company name') || 
@@ -134,14 +154,14 @@ export function extractOrderEntityDetails(order: Order) {
     u.requirementLabel.toLowerCase().includes('sars')
   );
 
-  const customerName = order.endCustomerName || order.customerName || 'Valued Client';
-  const companyName = companyNameDoc?.textValue || order.endCustomerName || order.customerName || 'THE APPLICANT (PTY) LTD';
-  const regNumber = regNoDoc?.textValue || '2026/000000/07';
-  const idNumber = idNoDoc?.textValue || '0000000000000';
-  const address = addressDoc?.textValue || 'Ground Floor, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195';
-  const taxNumber = taxNoDoc?.textValue || '9000000000';
-  const email = order.customerEmail || 'client@example.com';
-  const phone = order.customerPhone || '+27 (0)11 000 0000';
+  const customerName = aiExtractedDirector || (order as any).companyRepresentative || order.endCustomerName || order.customerName || '';
+  const companyName = companyNameDoc?.textValue || (order as any).companyName || (order as any).businessName || aiExtractedCompany || order.endCustomerName || order.customerName || '';
+  const regNumber = regNoDoc?.textValue || (order as any).registrationNumber || (order as any).companyRegistrationNumber || aiExtractedReg || '';
+  const idNumber = idNoDoc?.textValue || (order as any).idNumber || aiExtractedId || '';
+  const address = addressDoc?.textValue || (order as any).companyAddress || (order as any).address || aiExtractedAddress || '';
+  const taxNumber = taxNoDoc?.textValue || (order as any).taxNumber || aiExtractedTax || '';
+  const email = order.endCustomerEmail || order.customerEmail || '';
+  const phone = order.endCustomerPhone || order.customerPhone || '';
 
   return {
     customerName,
@@ -156,6 +176,32 @@ export function extractOrderEntityDetails(order: Order) {
     orderId: order.id,
     orderDate: order.date ? (order.date.toDate ? order.date.toDate().toLocaleDateString('en-ZA') : new Date(order.date).toLocaleDateString('en-ZA')) : new Date().toLocaleDateString('en-ZA'),
   };
+}
+
+/**
+ * Validates that all required statutory fields exist before generating official regulatory documents.
+ * Throws a descriptive error instead of silently substituting fake or placeholder data.
+ */
+export function validateStatutoryPrerequisites(
+  details: ReturnType<typeof extractOrderEntityDetails>,
+  requiredFields: (keyof ReturnType<typeof extractOrderEntityDetails>)[],
+  documentType: string
+) {
+  const missing = requiredFields.filter(f => !details[f] || (typeof details[f] === 'string' && !details[f].trim()));
+  if (missing.length > 0) {
+    const fieldLabels: Record<string, string> = {
+      customerName: 'Director / Representative Full Name',
+      companyName: 'Company / Enterprise Legal Name',
+      regNumber: 'CIPC Registration Number',
+      idNumber: 'South African ID / Passport Number',
+      address: 'Physical Registered Address',
+      taxNumber: 'SARS Tax Reference Number',
+      email: 'Contact Email Address',
+      phone: 'Contact Phone Number',
+    };
+    const missingLabels = missing.map(m => fieldLabels[m as string] || m);
+    throw new Error(`Cannot generate official ${documentType}: Missing essential statutory details (${missingLabels.join(', ')}). Please provide or request these details before drafting.`);
+  }
 }
 
 /**
@@ -211,6 +257,7 @@ export function drawMyAccHeader(page: any, width: number, height: number, fontBo
  */
 export async function generateNcrForm2Draft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
   const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
+  validateStatutoryPrerequisites(details, ['companyName', 'customerName', 'idNumber'], 'NCR Form 2 Application');
   const pdfDoc = await PDFDocument.create();
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -448,6 +495,7 @@ export async function generateNcrForm2Draft(order: Order, extractedInfo?: any): 
  */
 export async function generateNcrDirectorResolutionDraft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
   const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
+  validateStatutoryPrerequisites(details, ['companyName', 'customerName'], 'NCR Director Resolution');
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -765,6 +813,7 @@ export async function generateNcrAnnexureFeesDraft(order: Order, extractedInfo?:
  */
 export async function generateShareCertificateDraft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
   const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
+  validateStatutoryPrerequisites(details, ['companyName', 'customerName'], 'Share Certificate');
   const pdfDoc = await PDFDocument.create();
   // Landscape A4 for Share Certificate
   const page = pdfDoc.addPage([841.89, 595.28]);
@@ -917,6 +966,7 @@ export async function generateShareCertificateDraft(order: Order, extractedInfo?
  */
 export async function generatePowerOfAttorneyResolutionDraft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
   const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
+  validateStatutoryPrerequisites(details, ['companyName', 'customerName', 'idNumber'], 'Power of Attorney');
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -1182,6 +1232,7 @@ export async function generateEngagementLetterDraft(order: Order, extractedInfo?
  */
 export async function generateSarsPublicOfficerResolutionDraft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
   const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
+  validateStatutoryPrerequisites(details, ['companyName', 'customerName', 'idNumber'], 'SARS Public Officer Resolution');
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -1342,71 +1393,175 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
 
   const { width, height } = page.getSize();
   const margin = 40;
+  const contentWidth = width - margin * 2;
 
-  drawMyAccHeader(page, width, height, fontBold, fontRegular);
-
-  let currentY = height - 88;
-
-  page.drawText('LETTER OF CONSENT TO ACT AS ACCOUNTING OFFICER', {
+  // 1. Header
+  page.drawText('MY ACCOUNTANT', {
     x: margin,
-    y: currentY,
-    size: 11,
+    y: height - 38,
+    size: 15,
     font: fontBold,
     color: rgb(0.06, 0.13, 0.22),
   });
 
-  page.drawText(`IN TERMS OF SECTION 60 OF THE CLOSE CORPORATIONS ACT / COMPANIES ACT 71 OF 2008`, {
+  page.drawText('ACCOUNTING  •  PAYROLL  •  TAX  •  ADVISORY', {
     x: margin,
-    y: currentY - 12,
-    size: 7.5,
+    y: height - 48,
+    size: 7,
     font: fontBold,
     color: rgb(0.77, 0.63, 0.35),
   });
 
-  currentY -= 28;
-
-  page.drawText(`TO: The Directors / Members of ${details.companyName}`, { x: margin, y: currentY, size: 8.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  currentY -= 12;
-  page.drawText(`Registration Number: ${details.regNumber}`, { x: margin, y: currentY, size: 8, font: fontRegular, color: rgb(0.4, 0.45, 0.5) });
-  currentY -= 12;
-  page.drawText(`Registered Address: ${details.address}`, { x: margin, y: currentY, size: 8, font: fontRegular, color: rgb(0.4, 0.45, 0.5) });
-
-  currentY -= 22;
-
-  const p1 = `We, My Accountant (Pty) Ltd, hereby confirm our formal consent to act as the appointed ACCOUNTING OFFICER and COMPLIANCE PRACTICE for ${details.companyName} with immediate effect.`;
-  currentY = drawJustifiedParagraph(page, p1, margin, currentY, width - margin * 2, fontRegular, 8.5, rgb(0.18, 0.22, 0.28), 12);
-
-  currentY -= 8;
-  const p2 = `We confirm that our practice and signing accounting officers are duly registered and in good standing with the Chartered Institute of Business Accountants (CIBA) as Chartered Business Accountants in Practice (CBAP SA #3561) and recognized in terms of the statutory requirements of the Republic of South Africa.`;
-  currentY = drawJustifiedParagraph(page, p2, margin, currentY, width - margin * 2, fontRegular, 8.5, rgb(0.18, 0.22, 0.28), 12);
-
-  currentY -= 8;
-  const p3 = `We are not disqualified in terms of the Companies Act or Close Corporations Act from acting as Accounting Officer for the entity.`;
-  currentY = drawJustifiedParagraph(page, p3, margin, currentY, width - margin * 2, fontRegular, 8.5, rgb(0.18, 0.22, 0.28), 12);
-
-  currentY -= 25;
-
-  // Signature Block
-  page.drawRectangle({
-    x: margin,
-    y: currentY - 75,
-    width: (width - margin * 2) * 0.55,
-    height: 75,
-    color: rgb(0.97, 0.98, 0.99),
-    borderColor: rgb(0.88, 0.91, 0.94),
-    borderWidth: 1,
+  const headerRightText = 'Ground Floor, Waterstone Building, Stonemill Office Park\n300 Acacia Road, Darrenwood, Johannesburg, 2195\nTel: 010 109 1625 | Email: info@myacc.co.za | Web: www.myacc.co.za';
+  page.drawText(headerRightText, {
+    x: width - margin - 240,
+    y: height - 36,
+    size: 6.5,
+    font: fontRegular,
+    color: rgb(0.4, 0.45, 0.5),
+    lineHeight: 8.5,
   });
 
-  page.drawText('FOR & ON BEHALF OF MY ACCOUNTANT (PTY) LTD:', { x: margin + 10, y: currentY - 12, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  page.drawText('Kevin Freese', { x: margin + 10, y: currentY - 30, size: 14, font: fontBold, color: rgb(0, 0.2, 0.4) });
-  page.drawText('DIGITALLY SIGNED • CBA (SA) #3561', { x: margin + 10, y: currentY - 40, size: 6.5, font: fontBold, color: rgb(0.17, 0.42, 0.69) });
-  page.drawText('Chartered Business Accountant in Practice (CIBA #3561)', { x: margin + 10, y: currentY - 52, size: 7, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  page.drawText(`Date: ${details.orderDate}`, { x: margin + 10, y: currentY - 62, size: 6.5, font: fontRegular, color: rgb(0.4, 0.45, 0.5) });
+  page.drawLine({
+    start: { x: margin, y: height - 62 },
+    end: { x: width - margin, y: height - 62 },
+    thickness: 0.75,
+    color: rgb(0.06, 0.13, 0.22),
+  });
+
+  let currentY = height - 80;
+
+  // 2. Title
+  page.drawText('CONSENT & CONFIRMATION OF APPOINTMENT AS ACCOUNTING OFFICER', {
+    x: margin,
+    y: currentY,
+    size: 10,
+    font: fontBold,
+    color: rgb(0.06, 0.13, 0.22),
+  });
+
+  currentY -= 16;
+
+  // 3. Metadata Table
+  page.drawRectangle({
+    x: margin,
+    y: currentY - 66,
+    width: contentWidth,
+    height: 66,
+    color: rgb(0.98, 0.98, 0.99),
+    borderColor: rgb(0.88, 0.91, 0.94),
+    borderWidth: 0.75,
+  });
+
+  const leftColX = margin + 10;
+  const valColX = margin + 140;
+  let metaY = currentY - 11;
+
+  const metaRows = [
+    { label: 'Applicant Entity:', value: details.companyName },
+    { label: 'Registration Number:', value: details.regNumber },
+    { label: 'SARS Tax Reference Number:', value: details.taxNumber && details.taxNumber !== '9000000000' ? details.taxNumber : 'N/A' },
+    { label: 'Director / Applicant:', value: `${details.customerName}${details.idNumber && details.idNumber !== '0000000000000' ? ` (ID: ${details.idNumber})` : ''}` },
+    { label: 'Registered Office Address:', value: details.address },
+    { label: 'Addressed To:', value: 'The National Credit Regulator (NCR) - Registration Department' },
+  ];
+
+  for (const row of metaRows) {
+    page.drawText(row.label, { x: leftColX, y: metaY, size: 7.2, font: fontBold, color: rgb(0.2, 0.25, 0.3) });
+    page.drawText(row.value, { x: valColX, y: metaY, size: 7.2, font: fontRegular, color: rgb(0.06, 0.13, 0.22) });
+    metaY -= 9;
+  }
+
+  currentY -= 76;
+
+  // 4. Salutation & Subject
+  page.drawText('To Whom It May Concern,', { x: margin, y: currentY, size: 8, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
+  currentY -= 12;
+
+  page.drawText('RE: APPOINTMENT AS ACCOUNTING OFFICER & VERIFICATION OF FINANCIAL INFORMATION IN TERMS OF THE NATIONAL CREDIT ACT (ACT NO. 34 OF 2005)', {
+    x: margin,
+    y: currentY,
+    size: 7.5,
+    font: fontBold,
+    color: rgb(0.06, 0.13, 0.22),
+  });
+  currentY -= 14;
+
+  // 5. Body Paragraphs
+  const p1 = `We, My Accountant (Pty) Ltd, hereby confirm our consent and formal appointment as the independent Accounting Officer / Assurance Practitioner for ${details.companyName} (Registration Number: ${details.regNumber}) in support of their application for registration as a Credit Provider with the National Credit Regulator (NCR).`;
+  currentY = drawJustifiedParagraph(page, p1, margin, currentY, contentWidth, fontRegular, 8, rgb(0.18, 0.22, 0.28), 10.5);
+
+  currentY -= 4;
+  const p2 = `We confirm that our practice and signing accounting officers are duly registered and in good standing with recognized South African accounting and regulatory bodies:`;
+  currentY = drawJustifiedParagraph(page, p2, margin, currentY, contentWidth, fontRegular, 8, rgb(0.18, 0.22, 0.28), 10.5);
+
+  currentY -= 2;
+  const bullets1 = [
+    '• Professional Body: Chartered Institute of Business Accountants (CIBA / SAIBA)',
+    '• Designation: Chartered Business Accountant in Practice — (CBAP) SA #3561',
+    '• SARS Tax Practitioner Registration: PR-0098553',
+  ];
+  for (const b of bullets1) {
+    page.drawText(b, { x: margin + 12, y: currentY, size: 7.8, font: fontRegular, color: rgb(0.18, 0.22, 0.28) });
+    currentY -= 10;
+  }
+
+  currentY -= 4;
+  page.drawText('Financial & Operational Verification:', { x: margin, y: currentY, size: 8, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
+  currentY -= 10;
+
+  const p3 = `Based on our review of the company's CIPC statutory incorporation documents, bank records, and representations provided by the director, we confirm that:`;
+  currentY = drawJustifiedParagraph(page, p3, margin, currentY, contentWidth, fontRegular, 8, rgb(0.18, 0.22, 0.28), 10.5);
+
+  currentY -= 2;
+  const bullets2 = [
+    '• The financial records and source documentation provided in support of the NCR Form 2 application have been reviewed by our practice and are, to the best of our professional knowledge, accurate and fairly presented.',
+    '• As the appointed Accounting Officer, My Accountant (Pty) Ltd will oversee the ongoing financial management, statutory bookkeeping, and annual assurance engagements required under Regulations 67 and 68 of the National Credit Act, including the timely preparation and submission of NCR Form 39 and Form 40 statutory annual returns.'
+  ];
+  for (const b of bullets2) {
+    currentY = drawJustifiedParagraph(page, b, margin + 12, currentY, contentWidth - 12, fontRegular, 7.8, rgb(0.18, 0.22, 0.28), 10);
+    currentY -= 2;
+  }
+
+  currentY -= 2;
+  const pClosing = `Please do not hesitate to contact our offices directly should you require any further information or verification.`;
+  currentY = drawJustifiedParagraph(page, pClosing, margin, currentY, contentWidth, fontRegular, 8, rgb(0.18, 0.22, 0.28), 10.5);
+
+  currentY -= 8;
+
+  // 6. Sign-off Block
+  page.drawText('FOR MY ACCOUNTANT (PTY) LTD:', { x: margin, y: currentY, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
+  currentY -= 14;
+
+  page.drawText('Kevin Freese', { x: margin, y: currentY, size: 12, font: fontBold, color: rgb(0, 0.2, 0.4) });
+  currentY -= 10;
+
+  page.drawText('DIGITALLY SIGNED • CBA (SA) #3561', { x: margin, y: currentY, size: 6.5, font: fontBold, color: rgb(0.17, 0.42, 0.69) });
+  currentY -= 10;
+
+  page.drawText('Kevin Freese', { x: margin, y: currentY, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
+  currentY -= 9;
+  page.drawText('Chartered Business Accountant in Practice (CBAP SA #3561)', { x: margin, y: currentY, size: 7, font: fontRegular, color: rgb(0.3, 0.35, 0.4) });
+  currentY -= 9;
+  page.drawText('SARS Registered Tax Practitioner (PR-0098553)', { x: margin, y: currentY, size: 7, font: fontRegular, color: rgb(0.3, 0.35, 0.4) });
+  currentY -= 9;
+  page.drawText('Director, My Accountant (Pty) Ltd', { x: margin, y: currentY, size: 7, font: fontRegular, color: rgb(0.3, 0.35, 0.4) });
+
+  // 7. Footer
+  page.drawLine({
+    start: { x: margin, y: 35 },
+    end: { x: width - margin, y: 35 },
+    thickness: 0.5,
+    color: rgb(0.85, 0.88, 0.92),
+  });
+
+  page.drawText(`Date: ${details.orderDate}`, { x: margin, y: 24, size: 7, font: fontRegular, color: rgb(0.5, 0.55, 0.6) });
+  page.drawText('Tel: 010 109 1625', { x: width - margin - 60, y: 24, size: 7, font: fontRegular, color: rgb(0.5, 0.55, 0.6) });
 
   const pdfBytes = await pdfDoc.save();
   return {
     buffer: Buffer.from(pdfBytes),
-    fileName: `Accounting_Officer_Consent_${details.orderId}.pdf`,
+    fileName: `Accounting_Officer_Appointment_Letter_${details.orderId}.pdf`,
   };
 }
 
@@ -1495,6 +1650,7 @@ export async function generateAccountantsLetterDraft(order: Order, extractedInfo
  */
 export async function generateCoidaCf1bApplicationDraft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
   const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
+  validateStatutoryPrerequisites(details, ['companyName', 'customerName'], 'COIDA CF-1B Application');
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
