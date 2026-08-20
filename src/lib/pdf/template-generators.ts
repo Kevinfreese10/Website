@@ -1435,7 +1435,7 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
   page.drawText('CONSENT & CONFIRMATION OF APPOINTMENT AS ACCOUNTING OFFICER', {
     x: margin,
     y: currentY,
-    size: 10,
+    size: 10.5,
     font: fontBold,
     color: rgb(0.06, 0.13, 0.22),
   });
@@ -1445,17 +1445,17 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
   // 3. Metadata Table
   page.drawRectangle({
     x: margin,
-    y: currentY - 66,
+    y: currentY - 68,
     width: contentWidth,
-    height: 66,
+    height: 68,
     color: rgb(0.98, 0.98, 0.99),
     borderColor: rgb(0.88, 0.91, 0.94),
     borderWidth: 0.75,
   });
 
-  const leftColX = margin + 10;
-  const valColX = margin + 140;
-  let metaY = currentY - 11;
+  const leftColX = margin + 12;
+  const valColX = margin + 145;
+  let metaY = currentY - 12;
 
   const metaRows = [
     { label: 'Applicant Entity:', value: details.companyName },
@@ -1469,26 +1469,21 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
   for (const row of metaRows) {
     page.drawText(row.label, { x: leftColX, y: metaY, size: 7.2, font: fontBold, color: rgb(0.2, 0.25, 0.3) });
     page.drawText(row.value, { x: valColX, y: metaY, size: 7.2, font: fontRegular, color: rgb(0.06, 0.13, 0.22) });
-    metaY -= 9;
+    metaY -= 9.5;
   }
 
-  currentY -= 76;
+  currentY -= 80;
 
   // 4. Salutation & Subject
   page.drawText('To Whom It May Concern,', { x: margin, y: currentY, size: 8, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
   currentY -= 12;
 
-  page.drawText('RE: APPOINTMENT AS ACCOUNTING OFFICER & VERIFICATION OF FINANCIAL INFORMATION IN TERMS OF THE NATIONAL CREDIT ACT (ACT NO. 34 OF 2005)', {
-    x: margin,
-    y: currentY,
-    size: 7.5,
-    font: fontBold,
-    color: rgb(0.06, 0.13, 0.22),
-  });
-  currentY -= 14;
+  const subjectText = 'RE: APPOINTMENT AS ACCOUNTING OFFICER & VERIFICATION OF FINANCIAL INFORMATION IN TERMS OF THE NATIONAL CREDIT ACT (ACT NO. 34 OF 2005)';
+  currentY = drawJustifiedParagraph(page, subjectText, margin, currentY, contentWidth, fontBold, 7.5, rgb(0.06, 0.13, 0.22), 10);
+  currentY -= 4;
 
   // 5. Body Paragraphs
-  const p1 = `We, My Accountant (Pty) Ltd, hereby confirm our consent and formal appointment as the independent Accounting Officer / Assurance Practitioner for ${details.companyName} (Registration Number: ${details.regNumber}) in support of their application for registration as a Credit Provider with the National Credit Regulator (NCR).`;
+  const p1 = `I, Kevin Freese from My Accountant (Pty) Ltd, hereby confirm our consent and formal appointment as the independent Accounting Officer / Assurance Practitioner for ${details.companyName} (Registration Number: ${details.regNumber}) in support of their application for registration as a Credit Provider with the National Credit Regulator (NCR).`;
   currentY = drawJustifiedParagraph(page, p1, margin, currentY, contentWidth, fontRegular, 8, rgb(0.18, 0.22, 0.28), 10.5);
 
   currentY -= 4;
@@ -1527,25 +1522,23 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
   const pClosing = `Please do not hesitate to contact our offices directly should you require any further information or verification.`;
   currentY = drawJustifiedParagraph(page, pClosing, margin, currentY, contentWidth, fontRegular, 8, rgb(0.18, 0.22, 0.28), 10.5);
 
-  currentY -= 8;
+  currentY -= 10;
 
   // 6. Sign-off Block
   page.drawText('FOR MY ACCOUNTANT (PTY) LTD:', { x: margin, y: currentY, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  currentY -= 14;
+  currentY -= 15;
 
-  page.drawText('Kevin Freese', { x: margin, y: currentY, size: 12, font: fontBold, color: rgb(0, 0.2, 0.4) });
-  currentY -= 10;
+  page.drawText('Kevin Freese', { x: margin, y: currentY, size: 13, font: fontBold, color: rgb(0, 0.2, 0.4) });
+  currentY -= 11;
 
   page.drawText('DIGITALLY SIGNED • CBA (SA) #3561', { x: margin, y: currentY, size: 6.5, font: fontBold, color: rgb(0.17, 0.42, 0.69) });
-  currentY -= 10;
+  currentY -= 11;
 
-  page.drawText('Kevin Freese', { x: margin, y: currentY, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  currentY -= 9;
-  page.drawText('Chartered Business Accountant in Practice (CBAP SA #3561)', { x: margin, y: currentY, size: 7, font: fontRegular, color: rgb(0.3, 0.35, 0.4) });
-  currentY -= 9;
-  page.drawText('SARS Registered Tax Practitioner (PR-0098553)', { x: margin, y: currentY, size: 7, font: fontRegular, color: rgb(0.3, 0.35, 0.4) });
-  currentY -= 9;
-  page.drawText('Director, My Accountant (Pty) Ltd', { x: margin, y: currentY, size: 7, font: fontRegular, color: rgb(0.3, 0.35, 0.4) });
+  page.drawText('Chartered Business Accountant in Practice (CBAP SA #3561)', { x: margin, y: currentY, size: 7.5, font: fontRegular, color: rgb(0.2, 0.25, 0.3) });
+  currentY -= 9.5;
+  page.drawText('SARS Registered Tax Practitioner (PR-0098553)', { x: margin, y: currentY, size: 7.5, font: fontRegular, color: rgb(0.2, 0.25, 0.3) });
+  currentY -= 9.5;
+  page.drawText('Director, My Accountant (Pty) Ltd', { x: margin, y: currentY, size: 7.5, font: fontRegular, color: rgb(0.2, 0.25, 0.3) });
 
   // 7. Footer
   page.drawLine({
