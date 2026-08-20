@@ -8,6 +8,9 @@ export type AIDocumentVerification = {
   reviewedAt?: string;
   recommendation: 'approve' | 'reject' | 'manual_review';
   reason?: string;
+  modelName?: string;
+  modelVersion?: string;
+  adversarialCheckPassed?: boolean;
 };
 
 export type UploadedFileItem = {

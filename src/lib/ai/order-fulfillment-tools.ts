@@ -115,12 +115,21 @@ export async function runAiDocumentVerification(orderId: string, requirementIden
       };
     }
 
-    // Call Genkit Flow
+    // Call Genkit Flow with cross-checking parameters
+    const expectedCompanyName = (orderData as any).companyName || (orderData as any).clientEntityName || orderData.customerName;
+    const expectedRegNumber = (orderData as any).companyRegistrationNumber || (orderData as any).regNumber || (orderData as any).registrationNumber;
+    const expectedIdNumber = (orderData as any).idNumber || (orderData as any).directorIdNumber || (orderData as any).idPassportNumber;
+    const expectedDirectorName = (orderData as any).directorName || orderData.customerName;
+
     const aiResult = await verifyOrderDocument({
       fileUrl: targetDoc.fileUrl,
       requirementLabel: targetDoc.requirementLabel,
       serviceTitle: orderData.items?.[0]?.title,
       clientName: orderData.customerName,
+      expectedCompanyName,
+      expectedRegistrationNumber: expectedRegNumber,
+      expectedIdNumber,
+      expectedDirectorName,
     });
 
     const aiVerification: AIDocumentVerification = {
@@ -132,7 +141,10 @@ export async function runAiDocumentVerification(orderId: string, requirementIden
       summary: aiResult.summary,
       recommendation: aiResult.recommendation,
       reason: aiResult.reason,
-      reviewedAt: new Date().toISOString(),
+      adversarialCheckPassed: aiResult.adversarialCheckPassed,
+      modelName: aiResult.modelName,
+      modelVersion: aiResult.modelVersion,
+      reviewedAt: aiResult.reviewedAt || new Date().toISOString(),
     };
 
     // Update document in Firestore with AI metadata
@@ -165,8 +177,8 @@ export async function runAiDocumentVerification(orderId: string, requirementIden
 
     return {
       success: true,
+      message: `Document verified. Recommendation: ${aiResult.recommendation.toUpperCase()} (${aiResult.confidence}% confidence)`,
       aiVerification,
-      message: `AI analysis complete: Recommended ${aiVerification.recommendation.toUpperCase()} (${aiVerification.confidence}% confidence)`,
     };
   } catch (error: any) {
     console.error('Error running AI document verification:', error);
@@ -180,7 +192,7 @@ export async function runAiDocumentVerification(orderId: string, requirementIden
 export async function confirmDocumentAiRecommendation(
   orderId: string,
   requirementIdentifier: string,
-  performer: { id: string; name: string }
+  performer: any
 ) {
   try {
     const db = getAdminDb();

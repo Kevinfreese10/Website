@@ -18,8 +18,10 @@ import {
 } from '@/app/actions/order-fulfillment-pipeline';
 import { 
   reviewOrderDocumentAtomic, 
-  transitionOrderStatusAtomic 
+  transitionOrderStatusAtomic,
+  requestCustomDocumentAtomic 
 } from '@/app/actions/order-admin-actions';
+import { submitClientDocumentUploadAction } from '@/app/actions/client-order-actions';
 import { getAuth } from 'firebase/auth';
 import { GeneratedDocumentDraft } from '@/lib/types';
 import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Bot, ExternalLink, RefreshCw, FileSignature, History, Plus, ScrollText } from 'lucide-react';
@@ -476,28 +478,38 @@ export default function PartnerOrderDetailsPage() {
     if (!order || !customDocLabel.trim()) return;
 
     setIsSubmittingCustomDoc(true);
-    
-    const newRequest: DocumentUpload = {
-      serviceId: order.items[0]?.id || 'custom',
-      requirementLabel: customDocLabel.trim(),
-      type: customDocType === 'pdf' ? 'file' : 'text',
-      uploadedAt: Timestamp.now(),
-      status: 'pending',
-    };
 
     try {
-      const orderRef = doc(db, 'orders', order.id);
-      await updateDoc(orderRef, {
-        documentUploads: arrayUnion(newRequest)
-      });
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      const performer = idToken || {
+        id: currentUser?.id || 'partner',
+        name: currentUser?.name || 'Partner',
+        email: currentUser?.email || '',
+        role: 'partner' as any,
+      };
+
+      const res = await requestCustomDocumentAtomic(
+        order.id,
+        order.items[0]?.id || 'custom',
+        customDocLabel.trim(),
+        customDocType === 'pdf' ? 'file' : 'text',
+        performer
+      );
+
+      if (!res.success) {
+        toast({ title: 'Error', description: res.error || 'Failed to request document.', variant: 'destructive' });
+        return;
+      }
+
       toast({ title: 'Request Sent', description: `Requested: "${customDocLabel}"` });
       setIsCustomDocOpen(false);
       setCustomDocLabel('');
       setCustomDocType('pdf');
       fetchOrder();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error requesting custom document:", error);
-      toast({ title: 'Error', description: 'Failed to request document.', variant: "destructive" });
+      toast({ title: 'Error', description: error.message || 'Failed to request document.', variant: "destructive" });
     } finally {
       setIsSubmittingCustomDoc(false);
     }
@@ -557,43 +569,33 @@ export default function PartnerOrderDetailsPage() {
         async () => {
             try {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                const newUpload: DocumentUpload = {
+                const auth = getAuth(firebaseApp);
+                const idToken = await auth.currentUser?.getIdToken();
+
+                if (!idToken) {
+                    toast({ title: 'Authentication Error', description: 'Please log in again.', variant: 'destructive' });
+                    return;
+                }
+
+                const res = await submitClientDocumentUploadAction({
+                    idToken,
+                    orderId: order.id,
                     serviceId,
                     requirementLabel,
                     type: 'file',
                     fileUrl: downloadURL,
-                    fileName: file.name,
-                    uploadedAt: Timestamp.now(),
-                    status: order.isOutsourced ? 'pending' : 'approved',
-                };
-
-                const currentUploads = order.documentUploads || [];
-                const filteredUploads = currentUploads.filter(
-                    d => !(d.serviceId === serviceId && d.requirementLabel === requirementLabel)
-                );
-                const updatedUploads = [...filteredUploads, newUpload];
-
-                const orderRef = doc(db, 'orders', order.id);
-                await updateDoc(orderRef, {
-                    documentUploads: updatedUploads
                 });
 
-                if (order.isOutsourced) {
-                    const outsourcedQuery = query(collection(db, 'orders'), where('originalOrderId', '==', order.id));
-                    const outsourcedSnap = await getDocs(outsourcedQuery);
-                    if (!outsourcedSnap.empty) {
-                        const outsourcedDoc = outsourcedSnap.docs[0];
-                        await updateDoc(outsourcedDoc.ref, {
-                            documentUploads: updatedUploads
-                        });
-                    }
+                if (!res.success) {
+                    toast({ title: 'Upload Failed', description: res.error, variant: 'destructive' });
+                    return;
                 }
 
-                toast({ title: 'File Uploaded', description: order.isOutsourced ? `${file.name} has been successfully submitted for review.` : `${file.name} has been successfully submitted and approved.`});
+                toast({ title: 'File Uploaded', description: `${file.name} has been successfully submitted for review.` });
                 await fetchOrder();
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error saving document:", error);
-                toast({ title: 'Error', description: 'Failed to save document record.', variant: 'destructive' });
+                toast({ title: 'Error', description: error.message || 'Failed to save document record.', variant: 'destructive' });
             } finally {
                 setUploadingFiles(prev => {
                     const newUploading = { ...prev };
@@ -616,44 +618,35 @@ export default function PartnerOrderDetailsPage() {
          return;
     }
 
-    const newUpload: DocumentUpload = {
-        serviceId,
-        requirementLabel,
-        type: 'text',
-        textValue: text,
-        uploadedAt: Timestamp.now(),
-        status: order.isOutsourced ? 'pending' : 'approved',
-    };
-
     try {
-        const currentUploads = order.documentUploads || [];
-        const filteredUploads = currentUploads.filter(
-            d => !(d.serviceId === serviceId && d.requirementLabel === requirementLabel)
-        );
-        const updatedUploads = [...filteredUploads, newUpload];
+        const auth = getAuth(firebaseApp);
+        const idToken = await auth.currentUser?.getIdToken();
 
-        const orderRef = doc(db, 'orders', order.id);
-        await updateDoc(orderRef, {
-            documentUploads: updatedUploads
-        });
-
-        if (order.isOutsourced) {
-            const outsourcedQuery = query(collection(db, 'orders'), where('originalOrderId', '==', order.id));
-            const outsourcedSnap = await getDocs(outsourcedQuery);
-            if (!outsourcedSnap.empty) {
-                const outsourcedDoc = outsourcedSnap.docs[0];
-                await updateDoc(outsourcedDoc.ref, {
-                    documentUploads: updatedUploads
-                });
-            }
+        if (!idToken) {
+            toast({ title: 'Authentication Error', description: 'Please log in again.', variant: 'destructive' });
+            return;
         }
 
-        toast({ title: 'Information Submitted', description: order.isOutsourced ? 'Your information has been successfully submitted for review.' : 'Your information has been successfully saved.' });
+        const res = await submitClientDocumentUploadAction({
+            idToken,
+            orderId: order.id,
+            serviceId,
+            requirementLabel,
+            type: 'text',
+            textValue: text.trim(),
+        });
+
+        if (!res.success) {
+            toast({ title: 'Submission Failed', description: res.error, variant: 'destructive' });
+            return;
+        }
+
+        toast({ title: 'Information Submitted', description: 'Your information has been successfully submitted for review.' });
         setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
         await fetchOrder();
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error submitting text:", error);
-        toast({ title: "Submission Failed", description: "Could not save the information.", variant: "destructive" });
+        toast({ title: "Submission Failed", description: error.message || "Could not save the information.", variant: "destructive" });
     }
   };
 

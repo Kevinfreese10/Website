@@ -503,6 +503,70 @@ export async function reviewOrderDocumentAtomic(
 }
 
 /**
+ * Requests a custom document from the client atomically and logs an audit trail.
+ */
+export async function requestCustomDocumentAtomic(
+  orderId: string,
+  serviceId: string,
+  requirementLabel: string,
+  type: 'file' | 'text',
+  performer: PerformerInput
+) {
+  try {
+    const db = getAdminDb();
+    const orderRef = db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+    if (!orderDoc.exists) {
+      return { success: false, error: 'Order not found' };
+    }
+
+    const orderData = orderDoc.data() as Order;
+    const actor = await resolveVerifiedActor(performer, orderData);
+
+    const nowIso = new Date().toISOString();
+    const newRequest: DocumentUpload = {
+      id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      serviceId,
+      requirementLabel: requirementLabel.trim(),
+      type,
+      uploadedAt: nowIso,
+      status: 'pending',
+    };
+
+    const updatedUploads = [...(orderData.documentUploads || []), newRequest];
+    const auditEntry: AuditEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      timestamp: nowIso,
+      action: 'DOCUMENT_UPLOADED',
+      performedBy: actor.id,
+      performedByName: actor.name,
+      details: `Requested custom document: "${requirementLabel.trim()}"`,
+    };
+
+    const updatePayload = cleanFirestoreData({
+      documentUploads: updatedUploads,
+      fulfillmentStatus: 'Awaiting Documents',
+      auditLog: [...(orderData.auditLog || []), auditEntry],
+      updatedAt: nowIso,
+    });
+
+    const batch = db.batch();
+    batch.update(orderRef, updatePayload);
+
+    if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
+      const origRef = db.collection('orders').doc(orderData.originalOrderId);
+      batch.update(origRef, updatePayload);
+    }
+
+    await batch.commit();
+    return { success: true, message: `Requested: "${requirementLabel.trim()}"` };
+  } catch (error: any) {
+    console.error('Error requesting custom document:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Reassigns staff members to an order atomically, updates original partner order if present, and logs audit trail.
  */
 export async function reassignOrderStaffAtomic(

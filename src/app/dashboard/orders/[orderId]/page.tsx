@@ -28,7 +28,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { notifyStaffOfDocumentUpload, notifyOfNewNote, notifyStaffOfClientNote } from '@/app/actions';
 import { triggerOrderAutomatedFulfillmentReview } from '@/app/actions/order-fulfillment-pipeline';
-import { submitClientDocumentUploadAction } from '@/app/actions/client-order-actions';
+import { 
+  submitClientDocumentUploadAction, 
+  removeClientDocumentFileAction, 
+  syncClientQuestionnaireAction 
+} from '@/app/actions/client-order-actions';
 import { getAuth } from 'firebase/auth';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 import { db, firebaseApp } from '@/lib/firebase';
@@ -120,60 +124,30 @@ export default function ClientOrderDetailsPage() {
 
   const handleConditionalAnswer = async (serviceId: string, requirementLabel: string, answer: boolean) => {
       const uploadKey = `${serviceId}-${requirementLabel}`;
-      if (answer) {
-          setConditionalAnswers(prev => ({ ...prev, [uploadKey]: true }));
-          if (!currentUser || !order) return;
-          const newUpload: DocumentUpload = {
+      if (!currentUser || !order) return;
+
+      try {
+          const auth = getAuth(firebaseApp);
+          const idToken = await auth.currentUser?.getIdToken();
+          if (!idToken) return;
+
+          const answerVal = answer ? 'Applicable (Yes)' : 'N/A (No)';
+          setConditionalAnswers(prev => ({ ...prev, [uploadKey]: answer }));
+
+          await syncClientQuestionnaireAction({
+              idToken,
+              orderId: order.id,
               serviceId,
               requirementLabel,
-              type: 'text',
-              textValue: 'Applicable (Yes)',
-              uploadedAt: Timestamp.now(),
-              status: 'pending',
-          };
-          try {
-              const orderRef = doc(db, 'orders', order.id);
-              const currentUploads = order.documentUploads || [];
-              const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
-              let updatedUploads;
-              if (existingIndex > -1) {
-                  updatedUploads = [...currentUploads];
-                  updatedUploads[existingIndex] = newUpload;
-              } else {
-                  updatedUploads = [...currentUploads, newUpload];
-              }
-              await updateDoc(orderRef, { documentUploads: cleanClientFirestoreData(updatedUploads) });
-              fetchOrderAndServices();
-          } catch (error) {
-              console.error("Error submitting answer:", error);
+              answerValue: answerVal,
+          });
+
+          if (!answer) {
+              toast({ title: 'Information Saved', description: 'Marked requirement as not applicable.' });
           }
-      } else {
-          if (!currentUser || !order) return;
-          const newUpload: DocumentUpload = {
-              serviceId,
-              requirementLabel,
-              type: 'text',
-              textValue: 'N/A (No)',
-              uploadedAt: Timestamp.now(),
-              status: 'approved', // Mark as approved so it counts as completed
-          };
-          try {
-              const orderRef = doc(db, 'orders', order.id);
-              const currentUploads = order.documentUploads || [];
-              const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
-              let updatedUploads;
-              if (existingIndex > -1) {
-                  updatedUploads = [...currentUploads];
-                  updatedUploads[existingIndex] = newUpload;
-              } else {
-                  updatedUploads = [...currentUploads, newUpload];
-              }
-              await updateDoc(orderRef, { documentUploads: cleanClientFirestoreData(updatedUploads) });
-              toast({ title: 'Information Saved', description: 'Your answer has been saved.' });
-              fetchOrderAndServices();
-          } catch (error) {
-              console.error("Error submitting answer:", error);
-          }
+          fetchOrderAndServices();
+      } catch (error) {
+          console.error("Error submitting answer:", error);
       }
   };
 
@@ -342,49 +316,33 @@ export default function ClientOrderDetailsPage() {
 
   const handleRemoveSingleFile = async (serviceId: string, requirementLabel: string, fileId: string) => {
     if (!currentUser || !order) return;
-    const orderRef = doc(db, 'orders', order.id);
-    const currentUploads = order.documentUploads || [];
-    const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
-    if (existingIndex === -1) return;
-
-    const existingUpload = currentUploads[existingIndex];
-    let currentFiles: UploadedFileItem[] = existingUpload.files || [];
-    if (currentFiles.length === 0 && existingUpload.fileUrl) {
-      currentFiles = [{
-        id: 'legacy',
-        fileUrl: existingUpload.fileUrl,
-        fileName: existingUpload.fileName || 'Uploaded Document',
-        uploadedAt: new Date().toISOString(),
-      }];
-    }
-
-    const remainingFiles = currentFiles.filter(f => f.id !== fileId && f.fileUrl !== fileId);
-
-    let updatedUploads = [...currentUploads];
-    if (remainingFiles.length > 0) {
-      updatedUploads[existingIndex] = {
-        ...existingUpload,
-        fileUrl: remainingFiles[0].fileUrl,
-        fileName: remainingFiles[0].fileName,
-        files: remainingFiles,
-      };
-    } else {
-      updatedUploads[existingIndex] = {
-        ...existingUpload,
-        fileUrl: '',
-        fileName: '',
-        files: [],
-        status: 'pending',
-      };
-    }
 
     try {
-      await updateDoc(orderRef, { documentUploads: cleanClientFirestoreData(updatedUploads) });
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({ title: 'Authentication required', variant: 'destructive' });
+        return;
+      }
+
+      const res = await removeClientDocumentFileAction({
+        idToken,
+        orderId: order.id,
+        serviceId,
+        requirementLabel,
+        fileId,
+      });
+
+      if (!res.success) {
+        toast({ title: 'Failed to remove file', description: res.error, variant: 'destructive' });
+        return;
+      }
+
       toast({ title: 'File Removed' });
       fetchOrderAndServices();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error removing file:', err);
-      toast({ title: 'Failed to remove file', variant: 'destructive' });
+      toast({ title: 'Failed to remove file', description: err.message, variant: 'destructive' });
     }
   };
 

@@ -18,6 +18,7 @@ import {
   unlinkOrderDependencyAtomic,
   updateOrderChecklistItemAtomic,
   reviewOrderDocumentAtomic,
+  requestCustomDocumentAtomic,
   ensureOrderChecklistInitialized
 } from '@/app/actions/order-admin-actions';
 import { runAiDocumentVerification, confirmDocumentAiRecommendation } from '@/lib/ai/order-fulfillment-tools';
@@ -36,6 +37,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAuth } from 'firebase/auth';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -617,11 +619,14 @@ export default function AdminOrderDetailsPage() {
 
   const handleConfirmAiRecommendation = async (identifier: string) => {
     if (!order || !currentUser) return;
-    const performer = {
-      id: currentUser.id || currentUser.uid,
-      name: currentUser.name || currentUser.email || 'Admin',
-    };
     try {
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      const performer = idToken || {
+        id: currentUser.id || currentUser.uid,
+        name: currentUser.name || currentUser.email || 'Admin',
+      };
+
       const res = await confirmDocumentAiRecommendation(order.id, identifier, performer);
       if (res.success) {
         toast({ title: 'Confirmed AI Review', description: res.message });
@@ -637,11 +642,14 @@ export default function AdminOrderDetailsPage() {
 
   const handleDocumentStatusUpdate = async (identifier: string, status: 'approved' | 'rejected', reason?: string) => {
     if (!order || !currentUser) return;
-    const performer = {
-      id: currentUser.id || currentUser.uid,
-      name: currentUser.name || currentUser.email || 'Admin',
-    };
     try {
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      const performer = idToken || {
+        id: currentUser.id || currentUser.uid,
+        name: currentUser.name || currentUser.email || 'Admin',
+      };
+
       const res = await reviewOrderDocumentAtomic(order.id, identifier, status, performer, reason);
       if (res.success) {
         toast({ title: 'Document Status Updated', description: res.message });
@@ -658,13 +666,16 @@ export default function AdminOrderDetailsPage() {
   const handleToggleChecklistStep = async (stepId: string, currentStatus: string) => {
     if (!order || !currentUser) return;
     setUpdatingStepId(stepId);
-    const performer = {
-      id: currentUser.id || currentUser.uid,
-      name: currentUser.name || currentUser.email || 'Admin',
-    };
     const targetStatus = currentStatus === 'completed' ? 'pending' : 'completed';
 
     try {
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      const performer = idToken || {
+        id: currentUser.id || currentUser.uid,
+        name: currentUser.name || currentUser.email || 'Admin',
+      };
+
       const res = await updateOrderChecklistItemAtomic(order.id, stepId, { status: targetStatus }, performer);
       if (res.success) {
         setOrder(prev => prev ? { ...prev, checklist: res.updatedChecklist, fulfillmentStatus: res.fulfillmentStatus } : null);
@@ -682,12 +693,15 @@ export default function AdminOrderDetailsPage() {
 
   const handleBatchApprove = async () => {
     if (!order || !order.documentUploads || !currentUser) return;
-    const performer = {
-      id: currentUser.id || currentUser.uid,
-      name: currentUser.name || currentUser.email || 'Admin',
-    };
 
     try {
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      const performer = idToken || {
+        id: currentUser.id || currentUser.uid,
+        name: currentUser.name || currentUser.email || 'Admin',
+      };
+
       for (const doc of order.documentUploads) {
         if (doc.status === 'pending') {
           const docId = doc.requirementId || doc.id || (doc.type === 'file' ? doc.fileUrl : doc.textValue) || doc.requirementLabel;
@@ -708,26 +722,28 @@ export default function AdminOrderDetailsPage() {
     if (!order || !customDocLabel.trim()) return;
 
     setIsSubmittingCustomDoc(true);
-    
-    const newRequest: DocumentUpload = {
-      serviceId: order.items[0]?.id || 'custom',
-      requirementLabel: customDocLabel.trim(),
-      type: customDocType === 'pdf' ? 'file' : 'text',
-      uploadedAt: Timestamp.now(),
-      status: 'pending',
-    };
 
     try {
-      const orderRef = doc(db, 'orders', order.id);
-      await updateDoc(orderRef, {
-        documentUploads: arrayUnion(newRequest)
-      });
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      const performer = idToken || {
+        id: currentUser?.id || 'admin',
+        name: currentUser?.name || 'Staff Member',
+        email: currentUser?.email || '',
+        role: (currentUser?.role || 'admin') as 'admin' | 'staff',
+      };
 
-      if (order.originalOrderId) {
-        const originalOrderRef = doc(db, 'orders', order.originalOrderId);
-        await updateDoc(originalOrderRef, {
-          documentUploads: arrayUnion(newRequest)
-        });
+      const res = await requestCustomDocumentAtomic(
+        order.id,
+        order.items[0]?.id || 'custom',
+        customDocLabel.trim(),
+        customDocType === 'pdf' ? 'file' : 'text',
+        performer
+      );
+
+      if (!res.success) {
+        toast({ title: 'Error', description: res.error || 'Failed to request document.', variant: 'destructive' });
+        return;
       }
 
       toast({ title: 'Request Sent', description: `Requested: "${customDocLabel}"` });
@@ -735,9 +751,9 @@ export default function AdminOrderDetailsPage() {
       setCustomDocLabel('');
       setCustomDocType('pdf');
       fetchOrderAndStaff();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error requesting custom document:", error);
-      toast({ title: 'Error', description: 'Failed to request document.', variant: "destructive" });
+      toast({ title: 'Error', description: error.message || 'Failed to request document.', variant: "destructive" });
     } finally {
       setIsSubmittingCustomDoc(false);
     }

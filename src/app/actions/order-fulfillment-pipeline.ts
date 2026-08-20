@@ -51,14 +51,23 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
         updatedUploads.push(docItem);
         continue;
       }
-
       if (docItem.fileUrl) {
         try {
+          // Extract expected company and director details from order for cross-checking
+          const expectedCompanyName = (order as any).companyName || (order as any).clientEntityName || order.customerName;
+          const expectedRegNumber = (order as any).companyRegistrationNumber || (order as any).regNumber || (order as any).registrationNumber;
+          const expectedIdNumber = (order as any).idNumber || (order as any).directorIdNumber || (order as any).idPassportNumber;
+          const expectedDirectorName = (order as any).directorName || order.customerName;
+
           const aiResult = await verifyOrderDocument({
             fileUrl: docItem.fileUrl,
             requirementLabel: docItem.requirementLabel,
             serviceTitle: order.items?.[0]?.title,
             clientName: order.customerName,
+            expectedCompanyName,
+            expectedRegistrationNumber: expectedRegNumber,
+            expectedIdNumber,
+            expectedDirectorName,
             customAiInstructions,
           });
 
@@ -71,7 +80,10 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
             summary: aiResult.summary,
             recommendation: aiResult.recommendation,
             reason: aiResult.reason,
-            reviewedAt: new Date().toISOString(),
+            adversarialCheckPassed: aiResult.adversarialCheckPassed,
+            modelName: aiResult.modelName,
+            modelVersion: aiResult.modelVersion,
+            reviewedAt: aiResult.reviewedAt || new Date().toISOString(),
           };
 
           updatedUploads.push({
