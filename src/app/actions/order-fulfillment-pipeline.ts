@@ -10,6 +10,7 @@ import {
   generateShareCertificateDraft,
   generateAccountantsLetterDraft,
   generateOrderIntakeSummaryPdf,
+  generateSarsPublicOfficerResolutionDraft,
 } from '@/lib/pdf/template-generators';
 import { sendEmail } from '@/lib/email';
 
@@ -168,27 +169,45 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
   const serviceTitle = order.items?.[0]?.title || '';
   const serviceTitleLower = serviceTitle.toLowerCase();
 
-  const generatedDrafts: GeneratedDocumentDraft[] = [...(order.generatedDrafts || [])];
+  const generatedDrafts: GeneratedDocumentDraft[] = [];
 
-  // Helper to store generated draft in array and update
-  const addOrUpdateDraft = (draft: GeneratedDocumentDraft) => {
-    const existingIdx = generatedDrafts.findIndex(d => d.templateType === draft.templateType);
-    if (existingIdx > -1) {
-      generatedDrafts[existingIdx] = draft;
-    } else {
-      generatedDrafts.push(draft);
-    }
+  // Helper to store generated draft in array
+  const addDraft = (draft: GeneratedDocumentDraft) => {
+    generatedDrafts.push(draft);
   };
 
-  // 1. NCR Registration -> Generate NCR Form 2 & Special Power of Attorney
-  if (serviceTitleLower.includes('ncr') || serviceTitleLower.includes('credit provider')) {
+  // 1. Tax Representative / Public Officer Appointment -> ONLY SARS Public Officer Resolution
+  if (
+    serviceTitleLower.includes('tax representative') || 
+    serviceTitleLower.includes('public officer') || 
+    serviceTitleLower.includes('sars representative')
+  ) {
+    const poaPdf = await generateSarsPublicOfficerResolutionDraft(order, feedbackNotes);
+    const poaUrl = await uploadBufferToStorage(
+      poaPdf.buffer,
+      `orders/${orderId}/generated_drafts/${poaPdf.fileName}`
+    );
+
+    addDraft({
+      id: `draft_sars_po_${Date.now()}`,
+      templateType: 'director_resolution',
+      title: 'SARS Public Officer Appointment & Director Resolution',
+      description: 'Statutory Resolution appointing Public Officer in terms of Section 246 of Tax Administration Act.',
+      fileUrl: poaUrl,
+      fileName: poaPdf.fileName,
+      generatedAt: new Date().toISOString(),
+      status: 'draft',
+    });
+  }
+  // 2. NCR Registration -> ONLY NCR Form 2 & Special Power of Attorney
+  else if (serviceTitleLower.includes('ncr') || serviceTitleLower.includes('credit provider')) {
     const form2Pdf = await generateNcrForm2Draft(order, feedbackNotes);
     const form2Url = await uploadBufferToStorage(
       form2Pdf.buffer,
       `orders/${orderId}/generated_drafts/${form2Pdf.fileName}`
     );
 
-    addOrUpdateDraft({
+    addDraft({
       id: `draft_ncr2_${Date.now()}`,
       templateType: 'ncr_form_2',
       title: 'NCR Form 2 — Application for Registration as Credit Provider',
@@ -205,7 +224,7 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
       `orders/${orderId}/generated_drafts/${poaPdf.fileName}`
     );
 
-    addOrUpdateDraft({
+    addDraft({
       id: `draft_poa_${Date.now()}`,
       templateType: 'power_of_attorney',
       title: 'Special Power of Attorney & Director Authorizing Resolution',
@@ -216,16 +235,15 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
       status: 'draft',
     });
   }
-
-  // 2. Share Certificates / Company Amendments / Registration
-  if (serviceTitleLower.includes('share') || serviceTitleLower.includes('company registration') || serviceTitleLower.includes('director') || serviceTitleLower.includes('cipc')) {
+  // 3. Share Certificates -> ONLY Share Certificate & Resolution
+  else if (serviceTitleLower.includes('share certificate') || serviceTitleLower.includes('share transfer') || serviceTitleLower.includes('issue shares')) {
     const sharePdf = await generateShareCertificateDraft(order, feedbackNotes);
     const shareUrl = await uploadBufferToStorage(
       sharePdf.buffer,
       `orders/${orderId}/generated_drafts/${sharePdf.fileName}`
     );
 
-    addOrUpdateDraft({
+    addDraft({
       id: `draft_share_${Date.now()}`,
       templateType: 'share_certificate',
       title: 'Official Company Share Certificate (100 Ordinary Shares)',
@@ -235,17 +253,52 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
       generatedAt: new Date().toISOString(),
       status: 'draft',
     });
-  }
 
-  // 3. Tax / Accounting / Financial Services
-  if (serviceTitleLower.includes('accounting') || serviceTitleLower.includes('tax') || serviceTitleLower.includes('vat') || serviceTitleLower.includes('afs') || serviceTitleLower.includes('ncr')) {
+    const poaPdf = await generatePowerOfAttorneyResolutionDraft(order, feedbackNotes);
+    const poaUrl = await uploadBufferToStorage(
+      poaPdf.buffer,
+      `orders/${orderId}/generated_drafts/${poaPdf.fileName}`
+    );
+
+    addDraft({
+      id: `draft_poa_${Date.now()}`,
+      templateType: 'power_of_attorney',
+      title: 'Special Power of Attorney & Director Authorizing Resolution',
+      description: 'Mandate authorising share issuance and statutory filing.',
+      fileUrl: poaUrl,
+      fileName: poaPdf.fileName,
+      generatedAt: new Date().toISOString(),
+      status: 'draft',
+    });
+  }
+  // 4. Company Registration & Director Amendments -> ONLY Power of Attorney / Resolution
+  else if (serviceTitleLower.includes('company registration') || serviceTitleLower.includes('director amendment') || serviceTitleLower.includes('cipc amendment')) {
+    const poaPdf = await generatePowerOfAttorneyResolutionDraft(order, feedbackNotes);
+    const poaUrl = await uploadBufferToStorage(
+      poaPdf.buffer,
+      `orders/${orderId}/generated_drafts/${poaPdf.fileName}`
+    );
+
+    addDraft({
+      id: `draft_poa_${Date.now()}`,
+      templateType: 'power_of_attorney',
+      title: 'Special Power of Attorney & Director Authorizing Resolution',
+      description: 'Mandate authorising My Accountant to act before CIPC and statutory bodies.',
+      fileUrl: poaUrl,
+      fileName: poaPdf.fileName,
+      generatedAt: new Date().toISOString(),
+      status: 'draft',
+    });
+  }
+  // 5. Accountant's Letter / Confirmation services -> ONLY Accountant's Letter
+  else if (serviceTitleLower.includes('confirmation letter') || serviceTitleLower.includes('accountant letter') || serviceTitleLower.includes('accounting letter')) {
     const letterPdf = await generateAccountantsLetterDraft(order, feedbackNotes);
     const letterUrl = await uploadBufferToStorage(
       letterPdf.buffer,
       `orders/${orderId}/generated_drafts/${letterPdf.fileName}`
     );
 
-    addOrUpdateDraft({
+    addDraft({
       id: `draft_letter_${Date.now()}`,
       templateType: 'accountants_letter',
       title: "Accountant's Confirmation & Compliance Letter",
@@ -256,24 +309,6 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
       status: 'draft',
     });
   }
-
-  // 4. Standard Intake Summary PDF for all orders
-  const summaryPdf = await generateOrderIntakeSummaryPdf(order, feedbackNotes);
-  const summaryUrl = await uploadBufferToStorage(
-    summaryPdf.buffer,
-    `orders/${orderId}/generated_drafts/${summaryPdf.fileName}`
-  );
-
-  addOrUpdateDraft({
-    id: `draft_summary_${Date.now()}`,
-    templateType: 'intake_summary',
-    title: 'Order Intake & Document Verification Dossier',
-    description: 'Consolidated verification record and client upload index.',
-    fileUrl: summaryUrl,
-    fileName: summaryPdf.fileName,
-    generatedAt: new Date().toISOString(),
-    status: 'draft',
-  });
 
   // Attach relevant draft URLs to checklist steps
   const updatedChecklist = (order.checklist || []).map(step => {

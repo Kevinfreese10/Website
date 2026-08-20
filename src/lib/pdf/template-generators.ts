@@ -677,3 +677,149 @@ export async function generateOrderIntakeSummaryPdf(order: Order, verificationSu
     fileName: `Order_Intake_Verification_Summary_Order_${details.orderId}.pdf`,
   };
 }
+
+/**
+ * 6. Generates SARS Public Officer Appointment & Director Resolution Draft
+ */
+export async function generateSarsPublicOfficerResolutionDraft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
+  const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595.28, 841.89]);
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const { width, height } = page.getSize();
+  const margin = 50;
+
+  // Header Letterhead
+  page.drawText('MY ACCOUNTANT (PTY) LTD', {
+    x: margin,
+    y: height - 60,
+    size: 13,
+    font: fontBold,
+    color: rgb(0.08, 0.15, 0.28),
+  });
+
+  page.drawText('Statutory Compliance & SARS Tax Practitioner Practice', {
+    x: margin,
+    y: height - 74,
+    size: 8.5,
+    font: fontRegular,
+    color: rgb(0.85, 0.45, 0.05),
+  });
+
+  page.drawLine({
+    start: { x: margin, y: height - 84 },
+    end: { x: width - margin, y: height - 84 },
+    thickness: 1.5,
+    color: rgb(0.08, 0.15, 0.28),
+  });
+
+  let currentY = height - 115;
+
+  page.drawText('DIRECTOR RESOLUTION & APPOINTMENT OF PUBLIC OFFICER', {
+    x: margin,
+    y: currentY,
+    size: 12,
+    font: fontBold,
+    color: rgb(0.08, 0.15, 0.28),
+  });
+
+  currentY -= 16;
+  page.drawText('IN TERMS OF SECTION 246 OF THE TAX ADMINISTRATION ACT NO. 28 OF 2011', {
+    x: margin,
+    y: currentY,
+    size: 8.5,
+    font: fontBold,
+    color: rgb(0.85, 0.45, 0.05),
+  });
+
+  currentY -= 25;
+  page.drawRectangle({
+    x: margin,
+    y: currentY - 36,
+    width: width - margin * 2,
+    height: 48,
+    color: rgb(0.96, 0.97, 0.99),
+    borderColor: rgb(0.8, 0.85, 0.9),
+    borderWidth: 1,
+  });
+
+  page.drawText(`COMPANY NAME: ${details.companyName}`, {
+    x: margin + 12,
+    y: currentY - 6,
+    size: 9.5,
+    font: fontBold,
+    color: rgb(0.08, 0.15, 0.28),
+  });
+
+  page.drawText(`REGISTRATION NUMBER: ${details.regNumber} | ORDER REF: #${details.orderId}`, {
+    x: margin + 12,
+    y: currentY - 22,
+    size: 8.5,
+    font: fontRegular,
+    color: rgb(0.3, 0.35, 0.4),
+  });
+
+  currentY -= 55;
+
+  const res1 = `IT WAS NOTED THAT in terms of Section 246 of the Tax Administration Act, every company carrying on business or having an office in the Republic of South Africa must at all times be represented by an individual who is a registered Public Officer / Tax Representative.`;
+  const res1Lines = wrapText(res1, width - margin * 2, fontRegular, 9);
+  for (const line of res1Lines) {
+    page.drawText(line, { x: margin, y: currentY, size: 9, font: fontRegular, color: rgb(0.1, 0.1, 0.1) });
+    currentY -= 14;
+  }
+
+  currentY -= 10;
+  page.drawText('IT WAS UNANIMOUSLY RESOLVED THAT:', { x: margin, y: currentY, size: 9.5, font: fontBold, color: rgb(0.08, 0.15, 0.28) });
+  currentY -= 18;
+
+  const res2 = `1. ${details.customerName} (Identity / Passport Number: ${details.idNumber}) be and is hereby appointed as the official PUBLIC OFFICER and REGISTERED TAX REPRESENTATIVE of ${details.companyName} with the South African Revenue Service (SARS).`;
+  const res2Lines = wrapText(res2, width - margin * 2, fontRegular, 9);
+  for (const line of res2Lines) {
+    page.drawText(line, { x: margin, y: currentY, size: 9, font: fontRegular, color: rgb(0.1, 0.1, 0.1) });
+    currentY -= 14;
+  }
+
+  currentY -= 8;
+  const res3 = `2. The appointed Public Officer is authorised to maintain and manage the SARS eFiling profile of the Company, sign statutory declarations, submit tax returns (Income Tax, VAT, PAYE), and attend to all tax compliance correspondence on behalf of the entity.`;
+  const res3Lines = wrapText(res3, width - margin * 2, fontRegular, 9);
+  for (const line of res3Lines) {
+    page.drawText(line, { x: margin, y: currentY, size: 9, font: fontRegular, color: rgb(0.1, 0.1, 0.1) });
+    currentY -= 14;
+  }
+
+  currentY -= 8;
+  const res4 = `3. MY ACCOUNTANT (PTY) LTD (and nominated Tax Practitioners) is authorised as the mandated Tax Advisory Practice to lodge this appointment and statutory profile update with SARS.`;
+  const res4Lines = wrapText(res4, width - margin * 2, fontRegular, 9);
+  for (const line of res4Lines) {
+    page.drawText(line, { x: margin, y: currentY, size: 9, font: fontRegular, color: rgb(0.1, 0.1, 0.1) });
+    currentY -= 14;
+  }
+
+  currentY -= 25;
+  page.drawText(`SIGNED AT _____________________ ON THIS _______ DAY OF ______________ 20___`, {
+    x: margin,
+    y: currentY,
+    size: 8.5,
+    font: fontBold,
+    color: rgb(0.1, 0.1, 0.1),
+  });
+
+  currentY -= 55;
+  page.drawLine({ start: { x: margin, y: currentY }, end: { x: margin + 210, y: currentY }, thickness: 1, color: rgb(0.2, 0.2, 0.2) });
+  page.drawLine({ start: { x: width - margin - 210, y: currentY }, end: { x: width - margin, y: currentY }, thickness: 1, color: rgb(0.2, 0.2, 0.2) });
+
+  page.drawText('SIGNATURE OF APPOINTED PUBLIC OFFICER', { x: margin, y: currentY - 14, size: 8, font: fontBold, color: rgb(0.08, 0.15, 0.28) });
+  page.drawText(`Name: ${details.customerName} (ID: ${details.idNumber})`, { x: margin, y: currentY - 25, size: 7.5, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+
+  page.drawText('SIGNATURE OF DIRECTOR / SHAREHOLDER', { x: width - margin - 210, y: currentY - 14, size: 8, font: fontBold, color: rgb(0.08, 0.15, 0.28) });
+  page.drawText('For & On Behalf of Board of Directors', { x: width - margin - 210, y: currentY - 25, size: 7.5, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+
+  const pdfBytes = await pdfDoc.save();
+  return {
+    buffer: Buffer.from(pdfBytes),
+    fileName: `SARS_Public_Officer_Appointment_Resolution_Order_${details.orderId}.pdf`,
+  };
+}
+
