@@ -12,9 +12,9 @@ import { PlusCircle, CalendarIcon, Loader2, Repeat, Check, Eye, ClipboardList, E
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where, onSnapshot, serverTimestamp, Timestamp, writeBatch, arrayUnion, limit } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where, onSnapshot, serverTimestamp, Timestamp, writeBatch, arrayUnion, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { firebaseApp } from '@/lib/firebase';
+import { db, firebaseApp } from '@/lib/firebase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateNextTaskOccurrence } from '@/app/actions';
 import TaskForm, { TaskFormValues } from '@/components/admin/TaskForm';
@@ -35,8 +35,6 @@ type RecentCommunication = {
     subject?: string | null;
     latestNote?: string;
 };
-
-const db = getFirestore(firebaseApp);
 
 const getTaskDate = (task: Task): Date => {
   if (task.dueDate instanceof Date) return task.dueDate;

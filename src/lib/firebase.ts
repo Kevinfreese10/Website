@@ -1,7 +1,13 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore, enableIndexedDbPersistence, memoryLocalCache } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager,
+  Firestore 
+} from 'firebase/firestore';
 import { getAnalytics, Analytics } from 'firebase/analytics';
 
 export const firebaseConfig = {
@@ -20,9 +26,8 @@ type FirebaseServices = {
   db: Firestore;
 };
 
-// Use a global variable to ensure Firebase is initialized only once.
+// Use a global variable to ensure Firebase is initialized only once across hot reloads.
 let firebaseServices: FirebaseServices | null = null;
-let persistenceEnabled = false;
 
 function initializeFirebase(): FirebaseServices {
   if (firebaseServices) {
@@ -31,25 +36,21 @@ function initializeFirebase(): FirebaseServices {
 
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const db = getFirestore(app);
 
-  if (typeof window !== 'undefined' && !persistenceEnabled) {
-    enableIndexedDbPersistence(db, {
-        forceOwnership: true,
-      })
-      .then(() => {
-        persistenceEnabled = true;
-        console.log("Firestore persistence enabled.");
-      })
-      .catch((err) => {
-        if (err.code === 'failed-precondition') {
-          console.warn('Firestore persistence failed: Multiple tabs open. Using in-memory cache.');
-        } else if (err.code === 'unimplemented') {
-          console.warn('Firestore persistence not supported in this browser.');
-        } else {
-            console.error("Error enabling Firestore persistence:", err);
-        }
+  let db: Firestore;
+  if (typeof window !== 'undefined') {
+    try {
+      db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
       });
+    } catch {
+      // If Firestore is already initialized on this app instance, get existing instance
+      db = getFirestore(app);
+    }
+  } else {
+    db = getFirestore(app);
   }
 
   firebaseServices = { app, auth, db };
@@ -61,7 +62,11 @@ const { app: firebaseApp, auth, db } = initializeFirebase();
 
 let analytics: Analytics | undefined;
 if (typeof window !== 'undefined') {
-  analytics = getAnalytics(firebaseApp);
+  try {
+    analytics = getAnalytics(firebaseApp);
+  } catch {
+    // Analytics ignored if blocked or unsupported
+  }
 }
 
 export { firebaseApp, auth, db, analytics };
