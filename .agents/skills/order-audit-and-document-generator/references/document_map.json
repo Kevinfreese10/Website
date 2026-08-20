@@ -1,0 +1,84 @@
+{
+  "documents": [
+    {
+      "id": "accounting-officer-letter",
+      "name": "Accounting Officer Consent & Confirmation Letter",
+      "generator": "generateAccountingOfficerConsentDraft",
+      "category": "NCR / Statutory",
+      "applicableServices": ["NCR Registration", "NCR Form 2", "Credit Provider Application", "Accounting Officer Appointment"],
+      "sopStepKeywords": ["accounting officer", "consent letter", "appointment letter", "ao letter"]
+    },
+    {
+      "id": "ncr-form-2",
+      "name": "NCR Form 2 — Credit Provider Application",
+      "generator": "generateNcrForm2Draft",
+      "category": "NCR",
+      "applicableServices": ["NCR Registration", "NCR Form 2", "Credit Provider Application"],
+      "sopStepKeywords": ["ncr form 2", "application form", "form 2"]
+    },
+    {
+      "id": "ncr-director-resolution",
+      "name": "NCR Director Resolution & Signatory Mandate",
+      "generator": "generateNcrDirectorResolutionDraft",
+      "category": "NCR",
+      "applicableServices": ["NCR Registration", "Credit Provider Application"],
+      "sopStepKeywords": ["director resolution", "signatory mandate", "board resolution"]
+    },
+    {
+      "id": "ncr-annexure-fees",
+      "name": "NCR Annexure: Confirmation of Payment of Fees",
+      "generator": "generateNcrAnnexureFeesDraft",
+      "category": "NCR",
+      "applicableServices": ["NCR Registration", "Credit Provider Application"],
+      "sopStepKeywords": ["annexure", "fee confirmation", "payment of fees"]
+    },
+    {
+      "id": "tp-poa",
+      "name": "Third Party Power of Attorney (TP-POA)",
+      "generator": "generatePowerOfAttorneyResolutionDraft",
+      "category": "Statutory / Mandates",
+      "applicableServices": ["NCR Registration", "SARS Registration", "CIPC Mandate", "Tax Representative"],
+      "sopStepKeywords": ["power of attorney", "tp-poa", "poa", "mandate"]
+    },
+    {
+      "id": "share-certificate",
+      "name": "Share Certificate",
+      "generator": "generateShareCertificateDraft",
+      "category": "Secretarial / CIPC",
+      "applicableServices": ["Company Registration", "Share Issue", "Shareholder Transfer", "CIPC"],
+      "sopStepKeywords": ["share certificate", "shares", "allotment"]
+    },
+    {
+      "id": "engagement-letter",
+      "name": "Professional Services Engagement Letter",
+      "generator": "generateEngagementLetterDraft",
+      "category": "Practice / Retainers",
+      "applicableServices": ["Monthly Accounting Retainer", "Payroll Retainer", "Annual Financial Statements", "Advisory"],
+      "sopStepKeywords": ["engagement letter", "mandate letter", "service agreement"]
+    },
+    {
+      "id": "sars-public-officer-resolution",
+      "name": "SARS Public Officer Appointment Resolution",
+      "generator": "generateSarsPublicOfficerResolutionDraft",
+      "category": "SARS / Tax",
+      "applicableServices": ["SARS Public Officer", "Tax Representative", "Income Tax Registration"],
+      "sopStepKeywords": ["public officer", "sars resolution", "sars appointment"]
+    },
+    {
+      "id": "accountants-letter",
+      "name": "Accountant's Confirmation Letter",
+      "generator": "generateAccountantsLetterDraft",
+      "category": "Practice / Banking",
+      "applicableServices": ["Accountant Letter", "Visa Financial Support", "Bank Account Confirmation", "Tender Support"],
+      "sopStepKeywords": ["accountant letter", "confirmation of income", "bank confirmation"]
+    },
+    {
+      "id": "coida-cf1b",
+      "name": "COIDA Return of Earnings / CF-1B Application",
+      "generator": "generateCoidaCf1bApplicationDraft",
+      "category": "Compliance / Labour",
+      "applicableServices": ["COIDA Registration", "Letter of Good Standing", "Return of Earnings", "CF-1B"],
+      "sopStepKeywords": ["coida", "cf1b", "cf-1b", "return of earnings", "good standing"]
+    }
+  ]
+}
