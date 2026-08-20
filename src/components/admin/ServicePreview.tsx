@@ -1,9 +1,11 @@
 
 'use client';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Service } from '@/lib/types';
-import { BadgeCheck, Clock, ClipboardCheck } from 'lucide-react';
+import { Service, AVAILABLE_DOCUMENT_TEMPLATES, DocumentTemplateOption } from '@/lib/types';
+import { BadgeCheck, Clock, ClipboardCheck, Eye } from 'lucide-react';
+import TemplatePreviewDialog from './TemplatePreviewDialog';
 
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-ZA', {
@@ -15,6 +17,8 @@ const formatPrice = (price: number) => {
 };
 
 export default function ServicePreview({ service }: { service: Service }) {
+  const [previewTemplate, setPreviewTemplate] = useState<DocumentTemplateOption | null>(null);
+
   if (!service) return null;
 
   return (
@@ -38,12 +42,9 @@ export default function ServicePreview({ service }: { service: Service }) {
             <div>
                 <h2 className="text-lg font-semibold">What's Included</h2>
                 <Separator className="my-2" />
-                <ul className="space-y-2 text-sm">
+                <ul className="space-y-1.5 list-disc list-inside text-sm text-muted-foreground">
                     {service.whatsIncluded.map((item, index) => (
-                    <li key={index} className="flex items-start">
-                        <BadgeCheck className="h-5 w-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
-                        <span>{item}</span>
-                    </li>
+                        <li key={index}>{item}</li>
                     ))}
                 </ul>
             </div>
@@ -51,12 +52,15 @@ export default function ServicePreview({ service }: { service: Service }) {
 
         {service.informationToProvide && service.informationToProvide.length > 0 && (
             <div>
-                <h2 className="text-lg font-semibold">Information & Documents Needed</h2>
+                <h2 className="text-lg font-semibold">Information & Documents Required from Client</h2>
                 <Separator className="my-2" />
-                <ul className="space-y-2 text-sm">
+                <ul className="space-y-2">
                     {service.informationToProvide.map((info, index) => (
-                        <li key={index} className="flex items-center justify-between p-2 rounded-md bg-muted/40 border text-xs">
-                            <span className="font-semibold text-foreground">{info.label}</span>
+                        <li key={index} className="p-2 rounded-md border text-xs flex justify-between items-center bg-muted/40">
+                            <div>
+                                <span className="font-semibold">{info.label}</span>
+                                {info.helpText && <p className="text-muted-foreground text-[10px] mt-0.5">{info.helpText}</p>}
+                            </div>
                             <Badge variant="outline" className="text-[10px] uppercase">
                                 {info.type || 'text'}
                             </Badge>
@@ -87,12 +91,22 @@ export default function ServicePreview({ service }: { service: Service }) {
                                     <p className="text-muted-foreground text-[11px] mt-0.5">{step.description}</p>
                                 )}
                                 {step.templateIds && step.templateIds.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 pt-1">
-                                        {step.templateIds.map(tId => (
-                                            <Badge key={tId} variant="outline" className="text-[9px] bg-indigo-50/50 text-indigo-900 border-indigo-200">
-                                                📄 {tId.replace(/_/g, ' ')}
-                                            </Badge>
-                                        ))}
+                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                        {step.templateIds.map(tId => {
+                                            const matchedTmpl = AVAILABLE_DOCUMENT_TEMPLATES.find(t => t.id === tId);
+                                            return (
+                                                <button
+                                                    key={tId}
+                                                    type="button"
+                                                    onClick={() => matchedTmpl && setPreviewTemplate(matchedTmpl)}
+                                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-800 transition-colors shadow-2xs cursor-pointer"
+                                                    title={matchedTmpl ? `Click to preview ${matchedTmpl.title}` : undefined}
+                                                >
+                                                    <Eye className="h-3 w-3 text-indigo-600" />
+                                                    {matchedTmpl ? matchedTmpl.title : tId.replace(/_/g, ' ')}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -101,6 +115,13 @@ export default function ServicePreview({ service }: { service: Service }) {
                 </div>
             </div>
         )}
+
+        {/* Statutory Template Live Preview Dialog */}
+        <TemplatePreviewDialog
+            template={previewTemplate}
+            open={!!previewTemplate}
+            onOpenChange={(open) => !open && setPreviewTemplate(null)}
+        />
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Service, PrerequisiteItem, FulfillmentStep, AVAILABLE_DOCUMENT_TEMPLATES } from '@/lib/types';
+import { Service, PrerequisiteItem, FulfillmentStep, AVAILABLE_DOCUMENT_TEMPLATES, DocumentTemplateOption } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -15,8 +15,9 @@ import {
   Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload, 
   ArrowUp, ArrowDown, HelpCircle, ListChecks, CheckCircle2, DollarSign, Package, 
   ClipboardList, Globe, Clock, Layers, Star, ExternalLink, Search, Copy, BookOpen,
-  FileText, FileSignature, ScrollText, Check
+  FileText, FileSignature, ScrollText, Check, Eye
 } from 'lucide-react';
+import TemplatePreviewDialog from './TemplatePreviewDialog';
 import { generateServiceDetails } from '@/ai/flows/generate-service-details';
 import { generateBlogPostSeo } from '@/ai/flows/generate-blog-post-seo';
 import { useToast } from '@/hooks/use-toast';
@@ -248,6 +249,8 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
     control: form.control,
     name: 'metaKeywords',
   });
+
+  const [previewTemplate, setPreviewTemplate] = useState<DocumentTemplateOption | null>(null);
 
   const handleAddMultiplePrerequisites = (selectedTexts: string[]) => {
     selectedTexts.forEach(text => {
@@ -1520,30 +1523,47 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                                     key={tmpl.id}
                                     onClick={() => toggleTemplate(tmpl.id)}
                                     className={cn(
-                                      "p-2.5 rounded-md border cursor-pointer transition-all flex items-start gap-2.5 select-none",
+                                      "p-2.5 rounded-md border cursor-pointer transition-all flex items-start justify-between gap-2 select-none",
                                       isSelected
                                         ? "bg-indigo-100/80 dark:bg-indigo-900/50 border-indigo-400 dark:border-indigo-500 shadow-2xs"
                                         : "bg-background/90 hover:bg-muted/60 border-border/80"
                                     )}
                                   >
-                                    <Checkbox
-                                      checked={isSelected}
-                                      onCheckedChange={() => toggleTemplate(tmpl.id)}
-                                      className="mt-0.5"
-                                    />
-                                    <div className="space-y-0.5 min-w-0">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-xs font-bold text-foreground leading-tight truncate">
-                                          {tmpl.title}
-                                        </span>
-                                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 font-normal">
-                                          {tmpl.category}
-                                        </Badge>
+                                    <div className="flex items-start gap-2.5 min-w-0 flex-grow">
+                                      <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={() => toggleTemplate(tmpl.id)}
+                                        className="mt-0.5"
+                                      />
+                                      <div className="space-y-0.5 min-w-0">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="text-xs font-bold text-foreground leading-tight">
+                                            {tmpl.title}
+                                          </span>
+                                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 font-normal">
+                                            {tmpl.category}
+                                          </Badge>
+                                        </div>
+                                        <p className="text-[11px] text-muted-foreground line-clamp-1">
+                                          {tmpl.description}
+                                        </p>
                                       </div>
-                                      <p className="text-[11px] text-muted-foreground line-clamp-1">
-                                        {tmpl.description}
-                                      </p>
                                     </div>
+
+                                    {/* Dedicated Preview Button */}
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="xs"
+                                      className="h-6 text-[10px] px-1.5 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200/50 dark:hover:bg-indigo-800/50 shrink-0 font-medium"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPreviewTemplate(tmpl);
+                                      }}
+                                      title={`Preview ${tmpl.title}`}
+                                    >
+                                      <Eye className="h-3 w-3 mr-1" /> Preview
+                                    </Button>
                                   </div>
                                 );
                               })}
@@ -1907,6 +1927,13 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         </div>
 
       </form>
+
+      {/* Statutory Template Live Preview Dialog */}
+      <TemplatePreviewDialog
+        template={previewTemplate}
+        open={!!previewTemplate}
+        onOpenChange={(open) => !open && setPreviewTemplate(null)}
+      />
     </Form>
   );
 }
