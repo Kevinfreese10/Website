@@ -63,7 +63,34 @@ export function getAdminApp() {
 
 export function getAdminDb() {
   getAdminApp();
-  return getFirestore();
+  const db = getFirestore();
+  try {
+    db.settings({ ignoreUndefinedProperties: true });
+  } catch {
+    // Settings can only be set once per instance
+  }
+  return db;
+}
+
+export function cleanFirestoreData<T>(data: T): T {
+  if (data === null || data === undefined) return data;
+  if (Array.isArray(data)) {
+    return data.map(item => cleanFirestoreData(item)) as any;
+  }
+  if (typeof data === 'object' && !(data instanceof Date)) {
+    // Check if it's a Firestore Timestamp or other special class with toMillis/toDate
+    if (typeof (data as any)?.toDate === 'function') {
+      return data;
+    }
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        cleaned[key] = cleanFirestoreData(value);
+      }
+    }
+    return cleaned;
+  }
+  return data;
 }
 
 export function getAdminAuth() {

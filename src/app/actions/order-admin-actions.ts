@@ -1,6 +1,6 @@
 'use server';
 
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getAdminDb, cleanFirestoreData } from '@/lib/firebase-admin';
 import { AuditEntry, Order, OrderChecklistItem, DocumentUpload, AIDocumentVerification } from '@/lib/types';
 import { sendOrderStatusUpdateEmailAction } from './order-actions';
 import { getServiceChecklist, normalizeRequirementsWithIds } from '@/lib/service-utils';
@@ -290,20 +290,18 @@ export async function updateOrderChecklistItemAtomic(
     };
 
     const batch = db.batch();
-    batch.update(orderRef, {
+    const updatePayload = cleanFirestoreData({
       checklist,
       fulfillmentStatus: newFulfillmentStatus,
       auditLog: [...(orderData.auditLog || []), auditEntry],
       updatedAt: new Date().toISOString(),
     });
 
+    batch.update(orderRef, updatePayload);
+
     if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
       const originalRef = db.collection('orders').doc(orderData.originalOrderId);
-      batch.update(originalRef, {
-        checklist,
-        fulfillmentStatus: newFulfillmentStatus,
-        updatedAt: new Date().toISOString(),
-      });
+      batch.update(originalRef, updatePayload);
     }
 
     await batch.commit();
@@ -350,17 +348,25 @@ export async function reviewOrderDocumentAtomic(
 
       if (isMatch) {
         targetDocLabel = doc.requirementLabel;
-        return {
+        const updatedItem: DocumentUpload = {
           ...doc,
           status,
-          rejectionReason: status === 'rejected' ? (reason || null) : null,
-          aiVerification: aiVerification || doc.aiVerification,
+          rejectionReason: status === 'rejected' ? (reason || '') : '',
         };
+        const finalAi = aiVerification || doc.aiVerification;
+        if (finalAi) {
+          updatedItem.aiVerification = finalAi;
+        } else {
+          delete (updatedItem as any).aiVerification;
+        }
+        return updatedItem;
       }
       return doc;
     });
 
-    const allApproved = updatedUploads.length > 0 && updatedUploads.every(d => d.status === 'approved');
+    const cleanedUploads = cleanFirestoreData(updatedUploads);
+
+    const allApproved = cleanedUploads.length > 0 && cleanedUploads.every((d: any) => d.status === 'approved');
     let newFulfillmentStatus: Order['fulfillmentStatus'] = orderData.fulfillmentStatus;
     if (allApproved && orderData.status === 'Processing' && (!orderData.fulfillmentStatus || orderData.fulfillmentStatus === 'Awaiting Documents')) {
       newFulfillmentStatus = 'In Execution';
@@ -380,20 +386,18 @@ export async function reviewOrderDocumentAtomic(
     };
 
     const batch = db.batch();
-    batch.update(orderRef, {
-      documentUploads: updatedUploads,
+    const updatePayload = cleanFirestoreData({
+      documentUploads: cleanedUploads,
       fulfillmentStatus: newFulfillmentStatus,
       auditLog: [...(orderData.auditLog || []), auditEntry],
       updatedAt: new Date().toISOString(),
     });
 
+    batch.update(orderRef, updatePayload);
+
     if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
       const originalRef = db.collection('orders').doc(orderData.originalOrderId);
-      batch.update(originalRef, {
-        documentUploads: updatedUploads,
-        fulfillmentStatus: newFulfillmentStatus,
-        updatedAt: new Date().toISOString(),
-      });
+      batch.update(originalRef, updatePayload);
     }
 
     await batch.commit();
@@ -402,7 +406,7 @@ export async function reviewOrderDocumentAtomic(
       success: true,
       message: `Document "${targetDocLabel || identifier}" marked as ${status}`,
       fulfillmentStatus: newFulfillmentStatus,
-      documentUploads: updatedUploads,
+      documentUploads: cleanedUploads,
     };
   } catch (error: any) {
     console.error('Error reviewing order document:', error);
