@@ -1372,17 +1372,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
 
                 <div className="space-y-3">
                   {checklistFields.map((field, index) => {
-                    const currentStepType = form.watch(`fulfillmentChecklist.${index}.type`);
-                    const currentTemplateIds: string[] = form.watch(`fulfillmentChecklist.${index}.templateIds`) || [];
-
-                    const toggleTemplate = (tmplId: string) => {
-                      const exists = currentTemplateIds.includes(tmplId);
-                      const updated = exists 
-                        ? currentTemplateIds.filter(id => id !== tmplId)
-                        : [...currentTemplateIds, tmplId];
-                      form.setValue(`fulfillmentChecklist.${index}.templateIds`, updated, { shouldDirty: true });
-                    };
-
                     return (
                       <div key={field.id} className="p-3.5 rounded-lg border bg-card shadow-sm space-y-3">
                         <div className="flex items-start gap-2">
@@ -1407,10 +1396,10 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                           <FormField
                             control={form.control}
                             name={`fulfillmentChecklist.${index}.type`}
-                            render={({ field }) => (
+                            render={({ field: typeField }) => (
                               <FormItem className="w-56 shrink-0 space-y-1">
                                 <FormLabel className="text-xs font-semibold">Step Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value || 'manual'}>
+                                <Select onValueChange={typeField.onChange} value={typeField.value || 'manual'}>
                                   <FormControl>
                                     <SelectTrigger className="h-8 text-xs">
                                       <SelectValue />
@@ -1586,74 +1575,98 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                           }}
                         />
 
-                        {/* Interactive Template Selector when step type is document_drafting */}
-                        {(currentStepType === 'document_drafting' || (currentTemplateIds && currentTemplateIds.length > 0)) && (
-                          <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 rounded-lg space-y-2 mt-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-950 dark:text-indigo-200">
-                                <ScrollText className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                                Select Statutory Document Templates to Draft:
-                              </div>
-                              <Badge variant="outline" className="text-[10px] font-mono border-indigo-300 text-indigo-900 dark:text-indigo-200">
-                                {currentTemplateIds.length} Template(s) Selected
-                              </Badge>
-                            </div>
+                        {/* Interactive Template Selector with FormField control */}
+                        <FormField
+                          control={form.control}
+                          name={`fulfillmentChecklist.${index}.templateIds`}
+                          render={({ field: templateField }) => {
+                            const stepType = form.getValues(`fulfillmentChecklist.${index}.type`);
+                            const selectedTemplateIds: string[] = Array.isArray(templateField.value) ? templateField.value : [];
+                            
+                            if (stepType !== 'document_drafting' && selectedTemplateIds.length === 0) {
+                              return <></>;
+                            }
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
-                              {AVAILABLE_DOCUMENT_TEMPLATES.map((tmpl) => {
-                                const isSelected = currentTemplateIds.includes(tmpl.id);
-                                return (
-                                  <div
-                                    key={tmpl.id}
-                                    onClick={() => toggleTemplate(tmpl.id)}
-                                    className={cn(
-                                      "p-2.5 rounded-md border cursor-pointer transition-all flex items-start justify-between gap-2 select-none",
-                                      isSelected
-                                        ? "bg-indigo-100/80 dark:bg-indigo-900/50 border-indigo-400 dark:border-indigo-500 shadow-2xs"
-                                        : "bg-background/90 hover:bg-muted/60 border-border/80"
-                                    )}
-                                  >
-                                    <div className="flex items-start gap-2.5 min-w-0 flex-grow">
-                                      <Checkbox
-                                        checked={isSelected}
-                                        onCheckedChange={() => toggleTemplate(tmpl.id)}
-                                        className="mt-0.5"
-                                      />
-                                      <div className="space-y-0.5 min-w-0">
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="text-xs font-bold text-foreground leading-tight">
-                                            {tmpl.title}
-                                          </span>
-                                          <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 font-normal">
-                                            {tmpl.category}
-                                          </Badge>
-                                        </div>
-                                        <p className="text-[11px] text-muted-foreground line-clamp-1">
-                                          {tmpl.description}
-                                        </p>
-                                      </div>
-                                    </div>
+                            const toggleTemplate = (tmplId: string) => {
+                              const exists = selectedTemplateIds.includes(tmplId);
+                              const updated = exists
+                                ? selectedTemplateIds.filter(id => id !== tmplId)
+                                : [...selectedTemplateIds, tmplId];
+                              templateField.onChange(updated);
+                            };
 
-                                    {/* Dedicated Preview Button */}
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="xs"
-                                      className="h-6 text-[10px] px-1.5 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200/50 dark:hover:bg-indigo-800/50 shrink-0 font-medium"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPreviewTemplate(tmpl);
-                                      }}
-                                      title={`Preview ${tmpl.title}`}
-                                    >
-                                      <Eye className="h-3 w-3 mr-1" /> Preview
-                                    </Button>
+                            return (
+                              <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 rounded-lg space-y-2 mt-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                                    <ScrollText className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                                    Select Statutory Document Templates to Draft:
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
+                                  <Badge variant="outline" className="text-[10px] font-mono border-indigo-300 text-indigo-900 dark:text-indigo-200">
+                                    {selectedTemplateIds.length} Template(s) Selected
+                                  </Badge>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                                  {AVAILABLE_DOCUMENT_TEMPLATES.map((tmpl) => {
+                                    const isSelected = selectedTemplateIds.includes(tmpl.id);
+                                    return (
+                                      <div
+                                        key={tmpl.id}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => toggleTemplate(tmpl.id)}
+                                        className={cn(
+                                          "p-2.5 rounded-md border cursor-pointer transition-all flex items-start justify-between gap-2 select-none",
+                                          isSelected
+                                            ? "bg-indigo-100/80 dark:bg-indigo-900/50 border-indigo-400 dark:border-indigo-500 shadow-2xs"
+                                            : "bg-background/90 hover:bg-muted/60 border-border/80"
+                                        )}
+                                      >
+                                        <div className="flex items-start gap-2.5 min-w-0 flex-grow">
+                                          <Checkbox
+                                            checked={isSelected}
+                                            tabIndex={-1}
+                                            className="pointer-events-none mt-0.5"
+                                          />
+                                          <div className="space-y-0.5 min-w-0">
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                              <span className="text-xs font-bold text-foreground leading-tight">
+                                                {tmpl.title}
+                                              </span>
+                                              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 font-normal">
+                                                {tmpl.category}
+                                              </Badge>
+                                            </div>
+                                            <p className="text-[11px] text-muted-foreground line-clamp-1">
+                                              {tmpl.description}
+                                            </p>
+                                          </div>
+                                        </div>
+
+                                        {/* Dedicated Preview Button */}
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="xs"
+                                          className="h-6 text-[10px] px-1.5 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200/50 dark:hover:bg-indigo-800/50 shrink-0 font-medium"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            setPreviewTemplate(tmpl);
+                                          }}
+                                          title={`Preview ${tmpl.title}`}
+                                        >
+                                          <Eye className="h-3 w-3 mr-1" /> Preview
+                                        </Button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
                       </div>
                     );
                   })}
