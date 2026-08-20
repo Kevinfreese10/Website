@@ -211,18 +211,26 @@ export function drawMyAccHeader(page: any, width: number, height: number, fontBo
   const margin = 40;
   
   // Brand Header
-  page.drawText('MY ACCOUNTANT', {
+  page.drawText('MY ACCOUNTANT (PTY) LTD', {
     x: margin,
-    y: height - 42,
-    size: 16,
+    y: height - 38,
+    size: 14,
     font: fontBold,
     color: rgb(0.06, 0.13, 0.22), // #0F2137
   });
 
+  page.drawText('REGISTRATION NUMBER: 2020 / 548105 / 07', {
+    x: margin,
+    y: height - 48,
+    size: 6.5,
+    font: fontBold,
+    color: rgb(0.44, 0.5, 0.59),
+  });
+
   page.drawText('ACCOUNTING • PAYROLL • TAX • ADVISORY', {
     x: margin,
-    y: height - 54,
-    size: 7,
+    y: height - 57,
+    size: 6.5,
     font: fontBold,
     color: rgb(0.77, 0.63, 0.35), // #C5A059 Gold
   });
@@ -232,21 +240,21 @@ export function drawMyAccHeader(page: any, width: number, height: number, fontBo
   const contactLines = contactText.split('\n');
   let cy = height - 38;
   for (const cl of contactLines) {
-    const textW = fontRegular.widthOfTextAtSize(cl, 7.5);
+    const textW = fontRegular.widthOfTextAtSize(cl, 7.2);
     page.drawText(cl, {
       x: width - margin - textW,
       y: cy,
-      size: 7.5,
+      size: 7.2,
       font: fontRegular,
       color: rgb(0.44, 0.5, 0.59),
     });
-    cy -= 10;
+    cy -= 9.5;
   }
 
   // Gold dividing line
   page.drawLine({
-    start: { x: margin, y: height - 70 },
-    end: { x: width - margin, y: height - 70 },
+    start: { x: margin, y: height - 68 },
+    end: { x: width - margin, y: height - 68 },
     thickness: 1.5,
     color: rgb(0.77, 0.63, 0.35),
   });
@@ -1390,24 +1398,33 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
   const page = pdfDoc.addPage([595.28, 841.89]);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontItalicBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
 
   const { width, height } = page.getSize();
   const margin = 40;
   const contentWidth = width - margin * 2;
 
   // 1. Header
-  page.drawText('MY ACCOUNTANT', {
+  page.drawText('MY ACCOUNTANT (PTY) LTD', {
     x: margin,
-    y: height - 38,
-    size: 15,
+    y: height - 36,
+    size: 14,
     font: fontBold,
     color: rgb(0.06, 0.13, 0.22),
   });
 
+  page.drawText('REGISTRATION NUMBER: 2020 / 548105 / 07', {
+    x: margin,
+    y: height - 46,
+    size: 6.5,
+    font: fontBold,
+    color: rgb(0.44, 0.5, 0.59),
+  });
+
   page.drawText('ACCOUNTING  •  PAYROLL  •  TAX  •  ADVISORY', {
     x: margin,
-    y: height - 48,
-    size: 7,
+    y: height - 55,
+    size: 6.5,
     font: fontBold,
     color: rgb(0.77, 0.63, 0.35),
   });
@@ -1423,13 +1440,13 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
   });
 
   page.drawLine({
-    start: { x: margin, y: height - 62 },
-    end: { x: width - margin, y: height - 62 },
-    thickness: 0.75,
+    start: { x: margin, y: height - 66 },
+    end: { x: width - margin, y: height - 66 },
+    thickness: 1,
     color: rgb(0.06, 0.13, 0.22),
   });
 
-  let currentY = height - 80;
+  let currentY = height - 82;
 
   // 2. Title
   page.drawText('CONSENT & CONFIRMATION OF APPOINTMENT AS ACCOUNTING OFFICER', {
@@ -1526,18 +1543,63 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
 
   // 6. Sign-off Block
   page.drawText('FOR MY ACCOUNTANT (PTY) LTD:', { x: margin, y: currentY, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  currentY -= 15;
+  currentY -= 9;
+  page.drawText('Registration Number: 2020 / 548105 / 07', { x: margin, y: currentY, size: 7, font: fontRegular, color: rgb(0.35, 0.4, 0.45) });
+  currentY -= 14;
 
-  page.drawText('Kevin Freese', { x: margin, y: currentY, size: 13, font: fontBold, color: rgb(0, 0.2, 0.4) });
-  currentY -= 11;
+  const sigDateFormatted = '20 August 2026';
 
-  page.drawText('DIGITALLY SIGNED • CBA (SA) #3561', { x: margin, y: currentY, size: 6.5, font: fontBold, color: rgb(0.17, 0.42, 0.69) });
-  currentY -= 11;
+  // Digital Signature Box
+  const sigBoxW = 270;
+  const sigBoxH = 46;
+  page.drawRectangle({
+    x: margin,
+    y: currentY - sigBoxH + 10,
+    width: sigBoxW,
+    height: sigBoxH,
+    color: rgb(0.97, 0.98, 1.0),
+    borderColor: rgb(0.8, 0.86, 0.94),
+    borderWidth: 0.75,
+  });
+
+  page.drawRectangle({
+    x: margin,
+    y: currentY - sigBoxH + 10,
+    width: 3.5,
+    height: sigBoxH,
+    color: rgb(0.06, 0.24, 0.46),
+  });
+
+  page.drawText('Kevin Freese', { 
+    x: margin + 10, 
+    y: currentY - 8, 
+    size: 15, 
+    font: fontItalicBold, 
+    color: rgb(0.04, 0.22, 0.48) 
+  });
+
+  page.drawText('DIGITALLY SIGNED • CBA (SA) #3561', { 
+    x: margin + 10, 
+    y: currentY - 18, 
+    size: 6.5, 
+    font: fontBold, 
+    color: rgb(0.17, 0.42, 0.69) 
+  });
+
+  page.drawText(`Date: ${sigDateFormatted}`, { 
+    x: margin + 10, 
+    y: currentY - 27, 
+    size: 6.8, 
+    font: fontBold, 
+    color: rgb(0.2, 0.25, 0.3) 
+  });
+
+  currentY -= (sigBoxH + 2);
 
   page.drawText('Chartered Business Accountant in Practice (CBAP SA #3561)', { x: margin, y: currentY, size: 7.5, font: fontRegular, color: rgb(0.2, 0.25, 0.3) });
-  currentY -= 9.5;
+  currentY -= 9;
   page.drawText('SARS Registered Tax Practitioner (PR-0098553)', { x: margin, y: currentY, size: 7.5, font: fontRegular, color: rgb(0.2, 0.25, 0.3) });
-  currentY -= 9.5;
+  currentY -= 9;
   page.drawText('Director, My Accountant (Pty) Ltd', { x: margin, y: currentY, size: 7.5, font: fontRegular, color: rgb(0.2, 0.25, 0.3) });
 
   // 7. Footer
@@ -1548,7 +1610,7 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
     color: rgb(0.85, 0.88, 0.92),
   });
 
-  page.drawText(`Date: ${details.orderDate}`, { x: margin, y: 24, size: 7, font: fontRegular, color: rgb(0.5, 0.55, 0.6) });
+  page.drawText(`Date: ${sigDateFormatted}`, { x: margin, y: 24, size: 7, font: fontRegular, color: rgb(0.5, 0.55, 0.6) });
   page.drawText('Tel: 010 109 1625', { x: width - margin - 60, y: 24, size: 7, font: fontRegular, color: rgb(0.5, 0.55, 0.6) });
 
   const pdfBytes = await pdfDoc.save();
@@ -1567,6 +1629,7 @@ export async function generateAccountantsLetterDraft(order: Order, extractedInfo
   const page = pdfDoc.addPage([595.28, 841.89]);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontItalicBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
 
   const { width, height } = page.getSize();
   const margin = 40;
@@ -1612,24 +1675,62 @@ export async function generateAccountantsLetterDraft(order: Order, extractedInfo
   const p3 = `Should you require any further validation or statutory schedules regarding this confirmation, please do not hesitate to contact our office directly at info@myacc.co.za or 010 109 1625.`;
   currentY = drawJustifiedParagraph(page, p3, margin, currentY, width - margin * 2, fontRegular, 8.5, rgb(0.18, 0.22, 0.28), 12);
 
-  currentY -= 25;
+  currentY -= 22;
 
   // Signature Block
+  const sigDateFormatted = '20 August 2026';
+  const sigBoxW = (width - margin * 2) * 0.65;
+  const sigBoxH = 50;
+
   page.drawRectangle({
     x: margin,
-    y: currentY - 70,
-    width: (width - margin * 2) * 0.55,
-    height: 70,
-    color: rgb(0.97, 0.98, 0.99),
-    borderColor: rgb(0.88, 0.91, 0.94),
-    borderWidth: 1,
+    y: currentY - sigBoxH + 10,
+    width: sigBoxW,
+    height: sigBoxH,
+    color: rgb(0.97, 0.98, 1.0),
+    borderColor: rgb(0.8, 0.86, 0.94),
+    borderWidth: 0.75,
   });
 
-  page.drawText('FOR MY ACCOUNTANT (PTY) LTD:', { x: margin + 10, y: currentY - 12, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  page.drawText('Kevin Freese', { x: margin + 10, y: currentY - 28, size: 13, font: fontBold, color: rgb(0, 0.2, 0.4) });
-  page.drawText('DIGITALLY SIGNED • CBA (SA) #3561', { x: margin + 10, y: currentY - 38, size: 6.5, font: fontBold, color: rgb(0.17, 0.42, 0.69) });
-  page.drawText('Chartered Business Accountant in Practice (CIBA #3561)', { x: margin + 10, y: currentY - 49, size: 6.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  page.drawText(`Director, My Accountant (Pty) Ltd | Date: ${details.orderDate}`, { x: margin + 10, y: currentY - 58, size: 6.5, font: fontRegular, color: rgb(0.4, 0.45, 0.5) });
+  page.drawRectangle({
+    x: margin,
+    y: currentY - sigBoxH + 10,
+    width: 3.5,
+    height: sigBoxH,
+    color: rgb(0.06, 0.24, 0.46),
+  });
+
+  page.drawText('FOR MY ACCOUNTANT (PTY) LTD (REG: 2020 / 548105 / 07):', { 
+    x: margin + 10, 
+    y: currentY - 2, 
+    size: 7, 
+    font: fontBold, 
+    color: rgb(0.06, 0.13, 0.22) 
+  });
+
+  page.drawText('Kevin Freese', { 
+    x: margin + 10, 
+    y: currentY - 18, 
+    size: 15, 
+    font: fontItalicBold, 
+    color: rgb(0.04, 0.22, 0.48) 
+  });
+
+  page.drawText(`DIGITALLY SIGNED • CBA (SA) #3561 • Date: ${sigDateFormatted}`, { 
+    x: margin + 10, 
+    y: currentY - 29, 
+    size: 6.5, 
+    font: fontBold, 
+    color: rgb(0.17, 0.42, 0.69) 
+  });
+
+  page.drawText('Chartered Business Accountant in Practice (CBAP SA #3561) • PR-0098553', { 
+    x: margin + 10, 
+    y: currentY - 38, 
+    size: 6.5, 
+    font: fontRegular, 
+    color: rgb(0.2, 0.25, 0.3) 
+  });
 
   const pdfBytes = await pdfDoc.save();
   return {
