@@ -56,6 +56,26 @@ function getFileIcon(fileName?: string) {
   return <FileIcon className="h-4 w-4 text-primary shrink-0" />;
 }
 
+function cleanClientFirestoreData<T>(data: T): T {
+  if (data === null || data === undefined) return data;
+  if (Array.isArray(data)) {
+    return data.map(item => cleanClientFirestoreData(item)) as any;
+  }
+  if (typeof data === 'object' && !(data instanceof Date)) {
+    if (typeof (data as any)?.toDate === 'function') {
+      return data;
+    }
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        cleaned[key] = cleanClientFirestoreData(value);
+      }
+    }
+    return cleaned;
+  }
+  return data;
+}
+
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-ZA', {
       style: 'currency',
@@ -120,7 +140,7 @@ export default function ClientOrderDetailsPage() {
               } else {
                   updatedUploads = [...currentUploads, newUpload];
               }
-              await updateDoc(orderRef, { documentUploads: updatedUploads });
+              await updateDoc(orderRef, { documentUploads: cleanClientFirestoreData(updatedUploads) });
               fetchOrderAndServices();
           } catch (error) {
               console.error("Error submitting answer:", error);
@@ -146,7 +166,7 @@ export default function ClientOrderDetailsPage() {
               } else {
                   updatedUploads = [...currentUploads, newUpload];
               }
-              await updateDoc(orderRef, { documentUploads: updatedUploads });
+              await updateDoc(orderRef, { documentUploads: cleanClientFirestoreData(updatedUploads) });
               toast({ title: 'Information Saved', description: 'Your answer has been saved.' });
               fetchOrderAndServices();
           } catch (error) {
@@ -288,7 +308,6 @@ export default function ClientOrderDetailsPage() {
         files: mergedFiles,
         uploadedAt: Timestamp.now(),
         status: 'pending',
-        notAvailableReason: undefined, // Clear unavailable reason since files are uploaded
       };
 
       let updatedUploads;
@@ -300,7 +319,7 @@ export default function ClientOrderDetailsPage() {
       }
 
       await updateDoc(orderRef, {
-        documentUploads: updatedUploads
+        documentUploads: cleanClientFirestoreData(updatedUploads)
       });
 
       toast({ 
@@ -362,7 +381,7 @@ export default function ClientOrderDetailsPage() {
     }
 
     try {
-      await updateDoc(orderRef, { documentUploads: updatedUploads });
+      await updateDoc(orderRef, { documentUploads: cleanClientFirestoreData(updatedUploads) });
       toast({ title: 'File Removed' });
       fetchOrderAndServices();
     } catch (err) {
@@ -401,7 +420,7 @@ export default function ClientOrderDetailsPage() {
         updatedUploads = [...currentUploads, newUpload];
       }
 
-      await updateDoc(orderRef, { documentUploads: updatedUploads });
+      await updateDoc(orderRef, { documentUploads: cleanClientFirestoreData(updatedUploads) });
       toast({ title: 'Note Saved', description: 'Your consultant has been informed of why this document is unavailable.' });
       setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
       setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }));
@@ -429,7 +448,7 @@ export default function ClientOrderDetailsPage() {
     };
 
     try {
-      await updateDoc(orderRef, { documentUploads: updatedUploads });
+      await updateDoc(orderRef, { documentUploads: cleanClientFirestoreData(updatedUploads) });
       setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
       setUnavailableReasons(prev => ({ ...prev, [uploadKey]: '' }));
       fetchOrderAndServices();
@@ -472,7 +491,7 @@ export default function ClientOrderDetailsPage() {
           }
 
           await updateDoc(orderRef, {
-              documentUploads: updatedUploads
+              documentUploads: cleanClientFirestoreData(updatedUploads)
           });
           toast({ title: 'Information Submitted', description: 'Your information has been securely saved.' });
           setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
@@ -994,17 +1013,26 @@ export default function ClientOrderDetailsPage() {
                                                             <>
                                                                 {showUnavailableForm ? (
                                                                     /* Explanation Form */
-                                                                    <div className="p-3 bg-muted/40 rounded-lg border space-y-2.5">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                                                                <HelpCircle className="h-3.5 w-3.5 text-primary" />
-                                                                                Why is this document unavailable?
-                                                                            </span>
+                                                                    <div className="p-3.5 bg-amber-50/90 dark:bg-amber-950/40 rounded-lg border border-amber-300 dark:border-amber-700/60 space-y-3 shadow-2xs">
+                                                                        <div className="flex items-start justify-between gap-2">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="p-1.5 bg-amber-200/80 dark:bg-amber-900/80 rounded-md text-amber-900 dark:text-amber-200">
+                                                                                    <HelpCircle className="h-4 w-4" />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <h5 className="text-xs font-bold text-amber-950 dark:text-amber-100">
+                                                                                        Document Unavailable Note
+                                                                                    </h5>
+                                                                                    <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90">
+                                                                                        Explain why you cannot provide this document so your consultant can continue without delay.
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
                                                                             <Button 
                                                                                 type="button" 
                                                                                 variant="ghost" 
                                                                                 size="xs" 
-                                                                                className="h-6 text-xs text-muted-foreground"
+                                                                                className="h-6 text-xs text-amber-900/70 hover:text-amber-950 dark:text-amber-300"
                                                                                 onClick={() => setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }))}
                                                                             >
                                                                                 Cancel
@@ -1012,35 +1040,37 @@ export default function ClientOrderDetailsPage() {
                                                                         </div>
                                                                         <Textarea 
                                                                             rows={2}
-                                                                            placeholder="e.g. Bank account not opened yet, company is newly registered, director is currently abroad..."
+                                                                            placeholder="e.g. Company newly registered and bank account not opened yet, director overseas, etc."
                                                                             value={unavailableReasons[uploadKey] || ''}
                                                                             onChange={(e) => setUnavailableReasons(prev => ({ ...prev, [uploadKey]: e.target.value }))}
-                                                                            className="text-xs"
+                                                                            className="text-xs bg-background border-amber-300 dark:border-amber-700 focus-visible:ring-amber-500"
                                                                         />
                                                                         <div className="flex justify-end gap-2">
                                                                             <Button 
                                                                                 type="button" 
                                                                                 size="sm" 
-                                                                                className="h-7 text-xs"
+                                                                                className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-xs"
                                                                                 onClick={() => handleSaveExplanation(item.service?.id || item.id, info.label)}
                                                                             >
-                                                                                Save Note
+                                                                                Save Explanation
                                                                             </Button>
                                                                         </div>
                                                                     </div>
                                                                 ) : (
                                                                     /* Main Upload / Input */
-                                                                    <div className="space-y-2">
+                                                                    <div className="space-y-2.5">
                                                                         {info.type === 'pdf' ? (
                                                                             <div className="space-y-1">
                                                                                 <Input 
                                                                                     type="file" 
                                                                                     multiple
                                                                                     accept="application/pdf" 
-                                                                                    className="h-9 text-xs cursor-pointer" 
+                                                                                    className="h-9 text-xs cursor-pointer border-dashed border-primary/30 hover:border-primary/60 bg-background" 
                                                                                     onChange={(e) => e.target.files && handleFilesUpload(e.target.files, item.service?.id || item.id, info.label, true)} 
                                                                                 />
-                                                                                <p className="text-[11px] text-muted-foreground">Tip: You can select multiple PDF files at once (e.g. 12 monthly statements).</p>
+                                                                                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                                                                    <span>Tip:</span> You can select multiple PDF files at once (e.g. 12 monthly statements).
+                                                                                </p>
                                                                             </div>
                                                                         ) : info.type === 'excel' ? (
                                                                             <div className="space-y-1">
@@ -1048,7 +1078,7 @@ export default function ClientOrderDetailsPage() {
                                                                                     type="file" 
                                                                                     multiple
                                                                                     accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
-                                                                                    className="h-9 text-xs cursor-pointer" 
+                                                                                    className="h-9 text-xs cursor-pointer border-dashed border-emerald-500/30 hover:border-emerald-500/60 bg-background" 
                                                                                     onChange={(e) => e.target.files && handleFilesUpload(e.target.files, item.service?.id || item.id, info.label, true)} 
                                                                                 />
                                                                                 <p className="text-[11px] text-muted-foreground">Select one or multiple Excel / CSV sheets.</p>
@@ -1059,10 +1089,10 @@ export default function ClientOrderDetailsPage() {
                                                                                     type="file" 
                                                                                     multiple
                                                                                     accept="image/*, .png, .jpg, .jpeg, .webp, .heic" 
-                                                                                    className="h-9 text-xs cursor-pointer" 
+                                                                                    className="h-9 text-xs cursor-pointer border-dashed border-indigo-500/30 hover:border-indigo-500/60 bg-background" 
                                                                                     onChange={(e) => e.target.files && handleFilesUpload(e.target.files, item.service?.id || item.id, info.label, true)} 
                                                                                 />
-                                                                                <p className="text-[11px] text-muted-foreground">Select one or multiple clear photo scans.</p>
+                                                                                <p className="text-[11px] text-muted-foreground">Select one or multiple clear photo scans or images.</p>
                                                                             </div>
                                                                         ) : info.type === 'any' ? (
                                                                             <div className="space-y-1">
@@ -1070,7 +1100,7 @@ export default function ClientOrderDetailsPage() {
                                                                                     type="file" 
                                                                                     multiple
                                                                                     accept="*" 
-                                                                                    className="h-9 text-xs cursor-pointer" 
+                                                                                    className="h-9 text-xs cursor-pointer border-dashed border-primary/30 hover:border-primary/60 bg-background" 
                                                                                     onChange={(e) => e.target.files && handleFilesUpload(e.target.files, item.service?.id || item.id, info.label, true)} 
                                                                                 />
                                                                                 <p className="text-[11px] text-muted-foreground">You can select multiple files of any type.</p>
@@ -1094,13 +1124,13 @@ export default function ClientOrderDetailsPage() {
                                                                         <div className="flex items-center justify-between pt-1">
                                                                             <Button
                                                                                 type="button"
-                                                                                variant="ghost"
+                                                                                variant="outline"
                                                                                 size="xs"
-                                                                                className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-1"
+                                                                                className="h-7 text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-500/30 hover:border-amber-500/50 rounded-md px-2.5 shadow-2xs transition-all flex items-center gap-1.5"
                                                                                 onClick={() => setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: true }))}
                                                                             >
-                                                                                <HelpCircle className="h-3 w-3 mr-1 text-primary" />
-                                                                                I don't have this document / Explain why
+                                                                                <HelpCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                                                                <span>I don't have this document / Explain why</span>
                                                                             </Button>
 
                                                                             {isEditing && (hasFiles || hasExplanation || hasTextValue) && (
@@ -1108,7 +1138,7 @@ export default function ClientOrderDetailsPage() {
                                                                                     type="button"
                                                                                     variant="ghost"
                                                                                     size="xs"
-                                                                                    className="h-6 text-[11px] text-muted-foreground"
+                                                                                    className="h-7 text-xs text-muted-foreground"
                                                                                     onClick={() => setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }))}
                                                                                 >
                                                                                     Done Editing
