@@ -17,7 +17,7 @@ import {
   approveAndSendDraftToClientAction 
 } from '@/app/actions/order-fulfillment-pipeline';
 import { GeneratedDocumentDraft } from '@/lib/types';
-import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Bot, ExternalLink, RefreshCw, FileSignature, History } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Bot, ExternalLink, RefreshCw, FileSignature, History, Plus, ScrollText } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
@@ -35,6 +35,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
+import OrderTemplateSelectorDialog from '@/components/admin/OrderTemplateSelectorDialog';
+import { AVAILABLE_DOCUMENT_TEMPLATES } from '@/lib/types';
 import { db, firebaseApp } from '@/lib/firebase';
 
 const storage = getStorage(firebaseApp);
@@ -109,6 +111,7 @@ export default function PartnerOrderDetailsPage() {
 
   // Draft Document Templates States
   const [isGeneratingDrafts, setIsGeneratingDrafts] = useState(false);
+  const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [selectedDraftForFeedback, setSelectedDraftForFeedback] = useState<GeneratedDocumentDraft | null>(null);
   const [draftFeedbackText, setDraftFeedbackText] = useState('');
@@ -682,6 +685,24 @@ export default function PartnerOrderDetailsPage() {
     }
   };
 
+  const handleGenerateSpecificTemplates = async (templateIds: string[]) => {
+    if (!order || templateIds.length === 0) return;
+    setIsGeneratingDrafts(true);
+    try {
+        const res = await generateOrderDocumentDraftsAction(order.id, templateIds);
+        if (res.success) {
+            toast({ title: "Drafts Generated", description: res.message });
+            await fetchOrder();
+        } else {
+            toast({ title: "Draft Generation Failed", description: res.error, variant: "destructive" });
+        }
+    } catch (err: any) {
+        toast({ title: "Draft Generation Error", description: err.message, variant: "destructive" });
+    } finally {
+        setIsGeneratingDrafts(false);
+    }
+  };
+
   const handleOpenFeedbackDialog = (draft: GeneratedDocumentDraft) => {
     setSelectedDraftForFeedback(draft);
     setDraftFeedbackText('');
@@ -1150,16 +1171,29 @@ export default function PartnerOrderDetailsPage() {
                                     Pre-filled statutory applications, resolutions, share certificates, and confirmation letters prepared from client intake.
                                 </CardDescription>
                             </div>
-                            <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="h-8 text-xs font-semibold bg-white dark:bg-slate-900 border-indigo-200 hover:bg-indigo-50 text-indigo-900 dark:text-indigo-200 shadow-2xs"
-                                onClick={handleGenerateDrafts}
-                                disabled={isGeneratingDrafts}
-                            >
-                                {isGeneratingDrafts ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin text-indigo-600" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-indigo-600" />}
-                                {order.generatedDrafts && order.generatedDrafts.length > 0 ? "Regenerate All Drafts" : "Generate Drafts Now"}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    size="sm" 
+                                    variant="default"
+                                    className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                                    onClick={() => setIsTemplateSelectorOpen(true)}
+                                    disabled={isGeneratingDrafts}
+                                >
+                                    <Plus className="h-3.5 w-3.5 mr-1" />
+                                    Select Templates
+                                </Button>
+
+                                <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="h-8 text-xs font-semibold bg-white dark:bg-slate-900 border-indigo-200 hover:bg-indigo-50 text-indigo-900 dark:text-indigo-200 shadow-2xs"
+                                    onClick={handleGenerateDrafts}
+                                    disabled={isGeneratingDrafts}
+                                >
+                                    {isGeneratingDrafts ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin text-indigo-600" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-indigo-600" />}
+                                    {order.generatedDrafts && order.generatedDrafts.length > 0 ? "Regenerate All" : "Generate All"}
+                                </Button>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent className="p-4 sm:p-5 space-y-4">
@@ -1170,7 +1204,7 @@ export default function PartnerOrderDetailsPage() {
                                 <div className="space-y-1">
                                     <h5 className="text-xs font-bold text-amber-950 dark:text-amber-200">Awaiting Document Approval</h5>
                                     <p className="text-xs text-amber-800 dark:text-amber-300">
-                                        Statutory draft templates will automatically generate the moment all client documents and information requirements are reviewed and approved above. You can also click <em>"Generate Drafts Now"</em> to force early generation.
+                                        Statutory draft templates will automatically generate when all client documents are approved above. You can also select specific templates below to generate them on-demand immediately.
                                     </p>
                                 </div>
                             </div>
@@ -1253,10 +1287,78 @@ export default function PartnerOrderDetailsPage() {
                                         )}
                                     </div>
                                 ))}
+
+                                <div className="pt-2 flex items-center justify-between border-t text-xs">
+                                    <span className="text-muted-foreground text-[11px]">
+                                        Need another document template drafted for this client?
+                                    </span>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-xs font-semibold border-indigo-300 text-indigo-900 dark:text-indigo-200 hover:bg-indigo-50"
+                                        onClick={() => setIsTemplateSelectorOpen(true)}
+                                        disabled={isGeneratingDrafts}
+                                    >
+                                        <Plus className="h-3.5 w-3.5 mr-1 text-indigo-600" />
+                                        Draft Additional Template...
+                                    </Button>
+                                </div>
                             </div>
-                        ) : null}
+                        ) : (
+                            /* Quick Template Picker Grid when no drafts generated yet */
+                            <div className="p-4 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/40 dark:bg-indigo-950/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <ScrollText className="h-4 w-4 text-indigo-600" />
+                                        <h6 className="text-xs font-bold text-foreground">Select Statutory Templates to Draft:</h6>
+                                    </div>
+                                    <Button
+                                        size="xs"
+                                        variant="ghost"
+                                        className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold"
+                                        onClick={() => setIsTemplateSelectorOpen(true)}
+                                    >
+                                        View All 10 Templates →
+                                    </Button>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                    {AVAILABLE_DOCUMENT_TEMPLATES.slice(0, 6).map(tmpl => (
+                                        <button
+                                            key={tmpl.id}
+                                            type="button"
+                                            onClick={() => handleGenerateSpecificTemplates([tmpl.id])}
+                                            disabled={isGeneratingDrafts}
+                                            className="p-2.5 rounded-lg border bg-background hover:bg-indigo-50 hover:border-indigo-300 dark:hover:bg-indigo-950/50 text-left transition-all flex flex-col justify-between gap-1.5 shadow-2xs group"
+                                        >
+                                            <div className="flex items-center justify-between gap-1">
+                                                <span className="text-xs font-bold text-foreground group-hover:text-indigo-600 line-clamp-1">
+                                                    {tmpl.title}
+                                                </span>
+                                                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 shrink-0 font-normal">
+                                                    {tmpl.category}
+                                                </Badge>
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                                {tmpl.description}
+                                            </p>
+                                            <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 mt-1 flex items-center gap-1">
+                                                <Sparkles className="h-3 w-3" /> Draft This Document →
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
+
+                {/* Statutory Document Template Selector Dialog */}
+                <OrderTemplateSelectorDialog
+                    open={isTemplateSelectorOpen}
+                    onOpenChange={setIsTemplateSelectorOpen}
+                    onGenerateTemplates={handleGenerateSpecificTemplates}
+                    isGenerating={isGeneratingDrafts}
+                />
 
                 {/* Feedback & Regeneration Dialog */}
                 <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>

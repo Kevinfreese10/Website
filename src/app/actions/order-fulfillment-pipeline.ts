@@ -177,7 +177,11 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
 /**
  * Internal core engine to generate and upload draft document templates for an Order.
  */
-export async function generateOrderDocumentDraftsInternal(orderId: string, feedbackNotes?: Record<string, string>) {
+export async function generateOrderDocumentDraftsInternal(
+  orderId: string, 
+  feedbackNotes?: Record<string, string>,
+  selectedTemplateIds?: string[]
+) {
   const db = getAdminDb();
   const orderDoc = await db.collection('orders').doc(orderId).get();
   if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
@@ -193,27 +197,32 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
     generatedDrafts.push(draft);
   };
 
-  // Check for explicit templateIds configured on the order's SOP checklist or the underlying service
+  // Check for explicit templateIds configured on the order's SOP checklist or the underlying service, or passed directly
   const explicitTemplateIds = new Set<string>();
-  (order.checklist || []).forEach(step => {
-    if (step.templateIds && Array.isArray(step.templateIds)) {
-      step.templateIds.forEach(id => explicitTemplateIds.add(id));
-    }
-  });
 
-  if (explicitTemplateIds.size === 0 && order.items?.[0]?.id) {
-    try {
-      const serviceDoc = await db.collection('services').doc(order.items[0].id).get();
-      if (serviceDoc.exists) {
-        const sData = serviceDoc.data();
-        (sData?.fulfillmentChecklist || []).forEach((step: any) => {
-          if (step.templateIds && Array.isArray(step.templateIds)) {
-            step.templateIds.forEach((id: string) => explicitTemplateIds.add(id));
-          }
-        });
+  if (selectedTemplateIds && Array.isArray(selectedTemplateIds) && selectedTemplateIds.length > 0) {
+    selectedTemplateIds.forEach(id => explicitTemplateIds.add(id));
+  } else {
+    (order.checklist || []).forEach(step => {
+      if (step.templateIds && Array.isArray(step.templateIds)) {
+        step.templateIds.forEach(id => explicitTemplateIds.add(id));
       }
-    } catch (e) {
-      console.warn('Error reading service checklist for templates:', e);
+    });
+
+    if (explicitTemplateIds.size === 0 && order.items?.[0]?.id) {
+      try {
+        const serviceDoc = await db.collection('services').doc(order.items[0].id).get();
+        if (serviceDoc.exists) {
+          const sData = serviceDoc.data();
+          (sData?.fulfillmentChecklist || []).forEach((step: any) => {
+            if (step.templateIds && Array.isArray(step.templateIds)) {
+              step.templateIds.forEach((id: string) => explicitTemplateIds.add(id));
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Error reading service checklist for templates:', e);
+      }
     }
   }
 
@@ -550,9 +559,9 @@ export async function generateOrderDocumentDraftsInternal(orderId: string, feedb
 /**
  * Public Action for Consultants to manually trigger Document Template Generation.
  */
-export async function generateOrderDocumentDraftsAction(orderId: string) {
+export async function generateOrderDocumentDraftsAction(orderId: string, templateIds?: string[]) {
   try {
-    const drafts = await generateOrderDocumentDraftsInternal(orderId);
+    const drafts = await generateOrderDocumentDraftsInternal(orderId, undefined, templateIds);
     return serializeDbData({
       success: true,
       message: `${drafts.length} draft document template(s) generated successfully!`,
