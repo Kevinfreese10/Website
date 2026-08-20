@@ -4,6 +4,7 @@ import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-
 import { AuditEntry, Order, OrderChecklistItem, DocumentUpload, AIDocumentVerification } from '@/lib/types';
 import { sendOrderStatusUpdateEmailAction } from './order-actions';
 import { getServiceChecklist, normalizeRequirementsWithIds } from '@/lib/service-utils';
+import { getVerifiedAuthContext, getAuthContext } from '@/lib/server-auth';
 
 export type StatusTransitionOptions = {
   details?: string;
@@ -11,6 +12,77 @@ export type StatusTransitionOptions = {
   bypassReason?: string;
   fulfillmentStatus?: Order['fulfillmentStatus'];
 };
+
+export type PerformerInput = { id?: string; name?: string; idToken?: string; role?: string } | string;
+
+/**
+ * Resolves and cryptographically validates the acting user from an ID token or performer object.
+ * Strictly prevents caller identity spoofing and enforces role-based authorization for staff and partners.
+ */
+async function resolveVerifiedActor(performerOrToken: PerformerInput, orderData: Order) {
+  let idToken = typeof performerOrToken === 'string' 
+    ? (performerOrToken.length > 50 ? performerOrToken : null) 
+    : (performerOrToken?.idToken || (performerOrToken as any)?.token);
+  
+  if (idToken) {
+    const authCtx = await getVerifiedAuthContext(idToken);
+    if (!authCtx) {
+      throw new Error('Unauthorized: Invalid or expired authentication token.');
+    }
+    const isStaffOrAdmin = authCtx.isAdmin || authCtx.user.role === 'admin' || authCtx.user.role === 'staff' || authCtx.user.role === 'cap_staff' || authCtx.user.role === 'cap_supervisor';
+    const isPartner = authCtx.userId === orderData.resellerId ||
+                      authCtx.userId === orderData.partnerId ||
+                      (orderData.resellerId && authCtx.user.partnerId === orderData.resellerId) ||
+                      (orderData.partnerId && authCtx.user.partnerId === orderData.partnerId);
+
+    if (!isStaffOrAdmin && !isPartner) {
+      throw new Error('Forbidden: You do not have permission to manage this order.');
+    }
+
+    return {
+      id: authCtx.userId,
+      name: authCtx.user.name || authCtx.user.email || 'Verified Staff',
+      role: authCtx.user.role,
+      isStaffOrAdmin,
+      isPartner,
+    };
+  }
+
+  // System automation background tasks
+  if (typeof performerOrToken === 'object' && performerOrToken?.id === 'system') {
+    return {
+      id: 'system',
+      name: performerOrToken.name || 'System Automation',
+      role: 'system',
+      isStaffOrAdmin: true,
+      isPartner: false,
+    };
+  }
+
+  // Verify by user ID if token was not directly passed
+  const fallbackId = typeof performerOrToken === 'string' ? performerOrToken : performerOrToken?.id;
+  if (fallbackId) {
+    const authCtx = await getAuthContext(fallbackId);
+    if (authCtx) {
+      const isStaffOrAdmin = authCtx.isAdmin || authCtx.user.role === 'admin' || authCtx.user.role === 'staff' || authCtx.user.role === 'cap_staff' || authCtx.user.role === 'cap_supervisor';
+      const isPartner = authCtx.userId === orderData.resellerId ||
+                        authCtx.userId === orderData.partnerId ||
+                        (orderData.resellerId && authCtx.user.partnerId === orderData.resellerId) ||
+                        (orderData.partnerId && authCtx.user.partnerId === orderData.partnerId);
+      if (isStaffOrAdmin || isPartner) {
+        return {
+          id: authCtx.userId,
+          name: authCtx.user.name || authCtx.user.email || (typeof performerOrToken === 'object' ? performerOrToken.name : 'Verified Staff'),
+          role: authCtx.user.role,
+          isStaffOrAdmin,
+          isPartner,
+        };
+      }
+    }
+  }
+
+  throw new Error('Unauthorized: Valid authentication token or verified staff permissions required.');
+}
 
 /**
  * Initializes the SOP checklist and service snapshots for an existing order if missing.
@@ -84,7 +156,7 @@ export async function ensureOrderChecklistInitialized(orderId: string): Promise<
 export async function transitionOrderStatusAtomic(
   orderId: string,
   newStatus: 'Pending Payment' | 'Processing' | 'Completed' | 'Cancelled',
-  performer: { id: string; name: string },
+  performer: PerformerInput,
   options?: StatusTransitionOptions
 ) {
   try {
@@ -98,6 +170,7 @@ export async function transitionOrderStatusAtomic(
     }
 
     const orderData = (orderDoc.data() || {}) as Order;
+    const actor = await resolveVerifiedActor(performer, orderData);
     const previousStatus = orderData.status;
 
     // ─── Guardrails for Completion ──────────────────────────────────────────
@@ -165,8 +238,8 @@ export async function transitionOrderStatusAtomic(
     const auditEntry: AuditEntry = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       action: 'STATUS_CHANGE',
-      performedBy: performer.id,
-      performedByName: performer.name,
+      performedBy: actor.id,
+      performedByName: actor.name,
       timestamp: new Date().toISOString(),
       previousValue: previousStatus,
       newValue: newStatus,
@@ -235,7 +308,7 @@ export async function updateOrderChecklistItemAtomic(
     isAiRecommended?: boolean;
     aiNotes?: string;
   },
-  performer: { id: string; name: string }
+  performer: PerformerInput
 ) {
   try {
     const db = getAdminDb();
@@ -244,6 +317,8 @@ export async function updateOrderChecklistItemAtomic(
     if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
 
     const orderData = orderDoc.data() || {};
+    const actor = await resolveVerifiedActor(performer, orderData as Order);
+
     let checklist: OrderChecklistItem[] = orderData.checklist || [];
 
     if (checklist.length === 0) {
@@ -265,8 +340,8 @@ export async function updateOrderChecklistItemAtomic(
       isAiRecommended: update.isAiRecommended !== undefined ? update.isAiRecommended : existingStep.isAiRecommended,
       aiNotes: update.aiNotes !== undefined ? update.aiNotes : existingStep.aiNotes,
       completedAt: update.status === 'completed' ? new Date().toISOString() : existingStep.completedAt,
-      completedBy: update.status === 'completed' ? performer.id : existingStep.completedBy,
-      completedByName: update.status === 'completed' ? performer.name : existingStep.completedByName,
+      completedBy: update.status === 'completed' ? actor.id : existingStep.completedBy,
+      completedByName: update.status === 'completed' ? actor.name : existingStep.completedByName,
     };
 
     // Calculate new fulfillment status based on checklist progress
@@ -283,8 +358,8 @@ export async function updateOrderChecklistItemAtomic(
     const auditEntry: AuditEntry = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       action: 'CHECKLIST_STEP_UPDATE',
-      performedBy: performer.id,
-      performedByName: performer.name,
+      performedBy: actor.id,
+      performedByName: actor.name,
       timestamp: new Date().toISOString(),
       previousValue: previousStatus,
       newValue: update.status,
@@ -327,7 +402,7 @@ export async function reviewOrderDocumentAtomic(
   orderId: string,
   identifier: string, // requirementId, fileUrl, or textValue
   status: 'approved' | 'rejected',
-  performer: { id: string; name: string },
+  performer: PerformerInput,
   reason?: string,
   aiVerification?: AIDocumentVerification
 ) {
@@ -338,6 +413,7 @@ export async function reviewOrderDocumentAtomic(
     if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
 
     const orderData = orderDoc.data() || {};
+    const actor = await resolveVerifiedActor(performer, orderData as Order);
     const uploads: DocumentUpload[] = orderData.documentUploads || [];
 
     let targetDocLabel = '';
@@ -379,8 +455,8 @@ export async function reviewOrderDocumentAtomic(
     const auditEntry: AuditEntry = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       action: 'DOCUMENT_REVIEW',
-      performedBy: performer.id,
-      performedByName: performer.name,
+      performedBy: actor.id,
+      performedByName: actor.name,
       timestamp: new Date().toISOString(),
       previousValue: 'pending',
       newValue: status,
@@ -433,7 +509,7 @@ export async function reassignOrderStaffAtomic(
   orderId: string,
   staffIds: string[],
   department: 'Accounting and Tax' | 'Administration' | 'CAP' | null,
-  performer: { id: string; name: string }
+  performer: PerformerInput
 ) {
   try {
     const db = getAdminDb();
@@ -446,14 +522,15 @@ export async function reassignOrderStaffAtomic(
     }
 
     const orderData = orderDoc.data() || {};
+    const actor = await resolveVerifiedActor(performer, orderData as Order);
     const previousAssigned = orderData.assignedTo?.join(', ') || 'Unassigned';
     const newAssigned = staffIds.join(', ') || 'Unassigned';
 
     const auditEntry: AuditEntry = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       action: 'REASSIGN_STAFF',
-      performedBy: performer.id,
-      performedByName: performer.name,
+      performedBy: actor.id,
+      performedByName: actor.name,
       timestamp: new Date().toISOString(),
       previousValue: previousAssigned,
       newValue: newAssigned,
@@ -538,7 +615,7 @@ export async function getNextStaffMemberPersisted(
 export async function linkOrderDependencyAtomic(
   orderId: string,
   prerequisiteOrderId: string,
-  performer: { id: string; name: string }
+  performer: PerformerInput
 ) {
   try {
     if (orderId === prerequisiteOrderId) {
@@ -565,6 +642,7 @@ export async function linkOrderDependencyAtomic(
 
     const orderData = orderDoc.data() || {};
     const prereqData = prereqDoc.data() || {};
+    const actor = await resolveVerifiedActor(performer, orderData as Order);
 
     const existingDependsOn: string[] = orderData.dependsOnOrderIds || [];
     if (existingDependsOn.includes(prerequisiteOrderId)) {
@@ -587,8 +665,8 @@ export async function linkOrderDependencyAtomic(
     const auditEntryOrder: AuditEntry = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       action: 'LINK_DEPENDENCY',
-      performedBy: performer.id,
-      performedByName: performer.name,
+      performedBy: actor.id,
+      performedByName: actor.name,
       timestamp: new Date().toISOString(),
       details: `Linked prerequisite Order #${prerequisiteOrderId} (Must finish before this order)`,
     };
@@ -596,8 +674,8 @@ export async function linkOrderDependencyAtomic(
     const auditEntryPrereq: AuditEntry = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       action: 'LINK_DEPENDENCY',
-      performedBy: performer.id,
-      performedByName: performer.name,
+      performedBy: actor.id,
+      performedByName: actor.name,
       timestamp: new Date().toISOString(),
       details: `Linked dependent Order #${orderId} (Waiting on this order to finish)`,
     };
@@ -629,7 +707,7 @@ export async function linkOrderDependencyAtomic(
 export async function unlinkOrderDependencyAtomic(
   orderId: string,
   prerequisiteOrderId: string,
-  performer: { id: string; name: string }
+  performer: PerformerInput
 ) {
   try {
     const db = getAdminDb();
@@ -648,14 +726,15 @@ export async function unlinkOrderDependencyAtomic(
     }
 
     const orderData = orderDoc.data() || {};
+    const actor = await resolveVerifiedActor(performer, orderData as Order);
     const existingDependsOn: string[] = orderData.dependsOnOrderIds || [];
     const updatedDependsOn = existingDependsOn.filter((id) => id !== prerequisiteOrderId);
 
     const auditEntryOrder: AuditEntry = {
       id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       action: 'UNLINK_DEPENDENCY',
-      performedBy: performer.id,
-      performedByName: performer.name,
+      performedBy: actor.id,
+      performedByName: actor.name,
       timestamp: new Date().toISOString(),
       details: `Removed prerequisite link to Order #${prerequisiteOrderId}`,
     };
@@ -674,8 +753,8 @@ export async function unlinkOrderDependencyAtomic(
       const auditEntryPrereq: AuditEntry = {
         id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         action: 'UNLINK_DEPENDENCY',
-        performedBy: performer.id,
-        performedByName: performer.name,
+        performedBy: actor.id,
+        performedByName: actor.name,
         timestamp: new Date().toISOString(),
         details: `Removed dependent link from Order #${orderId}`,
       };

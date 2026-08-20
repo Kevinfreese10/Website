@@ -14,20 +14,22 @@ import {
   ArrowLeft, Loader2, Upload, ClipboardCheck, MessageSquare, Send, Mail, 
   CheckCircle, AlertTriangle, Paperclip, FileText, FileSpreadsheet, FileImage, 
   File as FileIcon, Trash2, ExternalLink, HelpCircle, Info, Plus, RefreshCw, Edit3, CheckCircle2,
-  MessageSquareQuote
+  MessageSquareQuote, Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
 import { notifyStaffOfDocumentUpload, notifyOfNewNote, notifyStaffOfClientNote } from '@/app/actions';
 import { triggerOrderAutomatedFulfillmentReview } from '@/app/actions/order-fulfillment-pipeline';
+import { submitClientDocumentUploadAction } from '@/app/actions/client-order-actions';
+import { getAuth } from 'firebase/auth';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 import { db, firebaseApp } from '@/lib/firebase';
 
@@ -295,36 +297,32 @@ export default function ClientOrderDetailsPage() {
           }];
         }
       }
+      const primaryFile = newUploadedItems[0];
 
-      const mergedFiles = isAppend ? [...existingFiles, ...newUploadedItems] : newUploadedItems;
-      const primaryFile = mergedFiles[0];
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({ title: 'Authentication Error', description: 'Please log in to upload documents.', variant: 'destructive' });
+        return;
+      }
 
-      const newUpload: DocumentUpload = {
+      const res = await submitClientDocumentUploadAction({
+        idToken,
+        orderId: order.id,
         serviceId,
         requirementLabel,
         type: 'file',
         fileUrl: primaryFile?.fileUrl || '',
-        fileName: primaryFile?.fileName || '',
-        files: mergedFiles,
-        uploadedAt: Timestamp.now(),
-        status: 'pending',
-      };
-
-      let updatedUploads;
-      if (existingIndex > -1) {
-        updatedUploads = [...currentUploads];
-        updatedUploads[existingIndex] = newUpload;
-      } else {
-        updatedUploads = [...currentUploads, newUpload];
-      }
-
-      await updateDoc(orderRef, {
-        documentUploads: cleanClientFirestoreData(updatedUploads)
       });
+
+      if (!res.success) {
+        toast({ title: 'Upload Failed', description: res.error, variant: 'destructive' });
+        return;
+      }
 
       toast({ 
         title: filesArray.length === 1 ? 'File Uploaded' : `${filesArray.length} Files Uploaded`, 
-        description: `${filesArray.length} document(s) saved for review.` 
+        description: `${filesArray.length} document(s) saved for verification.` 
       });
 
       setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }));
@@ -398,57 +396,54 @@ export default function ClientOrderDetailsPage() {
       return;
     }
 
-    const newUpload: DocumentUpload = {
-      serviceId,
-      requirementLabel,
-      type: 'explanation',
-      notAvailableReason: reason.trim(),
-      uploadedAt: Timestamp.now(),
-      status: 'pending',
-    };
-
     try {
-      const orderRef = doc(db, 'orders', order.id);
-      const currentUploads = order.documentUploads || [];
-      const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
-      
-      let updatedUploads;
-      if (existingIndex > -1) {
-        updatedUploads = [...currentUploads];
-        updatedUploads[existingIndex] = { ...currentUploads[existingIndex], ...newUpload };
-      } else {
-        updatedUploads = [...currentUploads, newUpload];
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({ title: 'Authentication Error', description: 'Please log in to save note.', variant: 'destructive' });
+        return;
       }
 
-      await updateDoc(orderRef, { documentUploads: cleanClientFirestoreData(updatedUploads) });
-      toast({ title: 'Note Saved', description: 'Your consultant has been informed of why this document is unavailable.' });
-      setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
-      setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }));
-      fetchOrderAndServices();
-    } catch (err) {
+      const res = await submitClientDocumentUploadAction({
+        idToken,
+        orderId: order.id,
+        serviceId,
+        requirementLabel,
+        type: 'text',
+        notAvailableReason: reason.trim(),
+      });
+
+      if (res.success) {
+        toast({ title: 'Note Saved', description: 'Your consultant has been informed of why this document is unavailable.' });
+        setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
+        setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }));
+        fetchOrderAndServices();
+      } else {
+        toast({ title: 'Failed to save note', description: res.error, variant: 'destructive' });
+      }
+    } catch (err: any) {
       console.error('Error saving explanation:', err);
-      toast({ title: 'Failed to save note', variant: 'destructive' });
+      toast({ title: 'Failed to save note', description: err?.message, variant: 'destructive' });
     }
   };
 
   const handleClearExplanation = async (serviceId: string, requirementLabel: string) => {
     if (!currentUser || !order) return;
     const uploadKey = `${serviceId}-${requirementLabel}`;
-    const orderRef = doc(db, 'orders', order.id);
-    const currentUploads = order.documentUploads || [];
-    const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
-    if (existingIndex === -1) return;
-
-    const existingUpload = currentUploads[existingIndex];
-    const updatedUploads = [...currentUploads];
-    updatedUploads[existingIndex] = {
-      ...existingUpload,
-      notAvailableReason: '',
-      type: (existingUpload.files && existingUpload.files.length > 0) || existingUpload.fileUrl ? 'file' : 'text',
-    };
-
     try {
-      await updateDoc(orderRef, { documentUploads: cleanClientFirestoreData(updatedUploads) });
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) return;
+
+      await submitClientDocumentUploadAction({
+        idToken,
+        orderId: order.id,
+        serviceId,
+        requirementLabel,
+        type: 'text',
+        notAvailableReason: '',
+      });
+
       setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
       setUnavailableReasons(prev => ({ ...prev, [uploadKey]: '' }));
       fetchOrderAndServices();
@@ -468,38 +463,34 @@ export default function ClientOrderDetailsPage() {
             return;
       }
 
-      const newUpload: DocumentUpload = {
-          serviceId,
-          requirementLabel,
-          type: 'text',
-          textValue: text,
-          uploadedAt: Timestamp.now(),
-          status: 'pending',
-      };
-
       try {
-          const orderRef = doc(db, 'orders', order.id);
-          const currentUploads = order.documentUploads || [];
-          const existingIndex = currentUploads.findIndex(d => (d.serviceId === serviceId || d.serviceId === order.items[0]?.id) && d.requirementLabel === requirementLabel);
-          
-          let updatedUploads;
-          if (existingIndex > -1) {
-              updatedUploads = [...currentUploads];
-              updatedUploads[existingIndex] = newUpload;
-          } else {
-              updatedUploads = [...currentUploads, newUpload];
+          const auth = getAuth(firebaseApp);
+          const idToken = await auth.currentUser?.getIdToken();
+          if (!idToken) {
+            toast({ title: 'Authentication Error', description: 'Please log in to submit information.', variant: 'destructive' });
+            return;
           }
 
-          await updateDoc(orderRef, {
-              documentUploads: cleanClientFirestoreData(updatedUploads)
+          const res = await submitClientDocumentUploadAction({
+            idToken,
+            orderId: order.id,
+            serviceId,
+            requirementLabel,
+            type: 'text',
+            textValue: text.trim(),
           });
-          toast({ title: 'Information Submitted', description: 'Your information has been securely saved.' });
-          setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
-          setEditingRequirements(prev => ({ ...prev, [`${serviceId}-${requirementLabel}`]: false }));
-          fetchOrderAndServices();
-      } catch (error) {
+
+          if (res.success) {
+            toast({ title: 'Information Submitted', description: 'Your information has been securely saved.' });
+            setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
+            setEditingRequirements(prev => ({ ...prev, [`${serviceId}-${requirementLabel}`]: false }));
+            fetchOrderAndServices();
+          } else {
+            toast({ title: "Submission Failed", description: res.error, variant: "destructive" });
+          }
+      } catch (error: any) {
           console.error("Error submitting text:", error);
-          toast({ title: "Submission Failed", description: "Could not save the information.", variant: "destructive" });
+          toast({ title: "Submission Failed", description: error?.message || "Could not save the information.", variant: "destructive" });
       }
   };
 
@@ -755,6 +746,54 @@ export default function ClientOrderDetailsPage() {
                         )}
                     </CardHeader>
                     <CardContent className="space-y-6">
+                        {/* Fulfillment Progress Timeline */}
+                        {order.status !== 'Cancelled' && (
+                            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border space-y-3">
+                                <div className="flex justify-between items-center text-sm font-semibold">
+                                    <span className="flex items-center gap-1.5 text-primary">
+                                        <Clock className="h-4 w-4" /> Fulfillment Status
+                                    </span>
+                                    <Badge variant={order.status === 'Completed' ? 'success' : 'default'} className="text-xs">
+                                        {order.fulfillmentStatus || (order.status === 'Completed' ? 'Completed' : 'Processing')}
+                                    </Badge>
+                                </div>
+                                <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-medium pt-1">
+                                    <div className={`p-2 rounded-lg border ${
+                                        order.fulfillmentStatus === 'Awaiting Documents' 
+                                            ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold' 
+                                            : 'bg-green-50 border-green-200 text-green-800'
+                                    }`}>
+                                        1. Documents
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${
+                                        order.fulfillmentStatus === 'Under Review' 
+                                            ? 'bg-blue-50 border-blue-300 text-blue-900 font-bold' 
+                                            : (order.fulfillmentStatus === 'In Execution' || order.fulfillmentStatus === 'Ready for Signoff' || order.status === 'Completed') 
+                                            ? 'bg-green-50 border-green-200 text-green-800' 
+                                            : 'bg-muted/40 border-muted text-muted-foreground'
+                                    }`}>
+                                        2. Compliance Review
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${
+                                        (order.fulfillmentStatus === 'In Execution' || order.fulfillmentStatus === 'Ready for Signoff') 
+                                            ? 'bg-blue-50 border-blue-300 text-blue-900 font-bold' 
+                                            : order.status === 'Completed' 
+                                            ? 'bg-green-50 border-green-200 text-green-800' 
+                                            : 'bg-muted/40 border-muted text-muted-foreground'
+                                    }`}>
+                                        3. Drafting & Filing
+                                    </div>
+                                    <div className={`p-2 rounded-lg border ${
+                                        order.status === 'Completed' 
+                                            ? 'bg-green-50 border-green-300 text-green-900 font-bold' 
+                                            : 'bg-muted/40 border-muted text-muted-foreground'
+                                    }`}>
+                                        4. Completed
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {requiredRequirements.length > 0 && (
                             <div className="p-4 bg-muted/60 rounded-lg border space-y-2">
                                 <div className="flex justify-between items-center text-sm font-semibold">
@@ -780,7 +819,11 @@ export default function ClientOrderDetailsPage() {
                                     <div className="mt-4 pl-4 ml-4 border-l-2 space-y-4">
                                         <h4 className="font-medium text-md">Documents & Data Required:</h4>
                                         {item.combinedRequirements.map((info: any, infoIndex: number) => {
-                                            const upload = order.documentUploads?.find(d => (d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === info.label);
+                                            const upload = order.documentUploads?.find(d => 
+                                                (info.id && d.requirementId === info.id) ||
+                                                (info.id && d.id === info.id) ||
+                                                ((d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === info.label)
+                                            );
                                             const uploadKey = `${item.service?.id || item.id}-${info.label}`;
                                             const isUploading = uploadingFiles[uploadKey] !== undefined;
                                             const isRejected = upload?.status === 'rejected';

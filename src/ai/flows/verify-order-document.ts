@@ -119,7 +119,29 @@ const verifyOrderDocumentFlow = ai.defineFlow(
     if (!output) {
       throw new Error('AI document verification did not return an analysis.');
     }
-    return output;
+
+    // ─── Code-Enforced Compliance Post-Processing ──────────────────────────────
+    // 1. Strict Confidence Floor: automated approval requires >= 85% confidence
+    const sanitizedConfidence = Math.max(0, Math.min(100, Math.round(output.confidence || 0)));
+    let sanitizedRecommendation = output.recommendation;
+    let issues = Array.isArray(output.issues) ? [...output.issues] : [];
+
+    if (sanitizedRecommendation === 'approve' && sanitizedConfidence < 85) {
+      sanitizedRecommendation = 'manual_review';
+      issues.push(`Confidence score (${sanitizedConfidence}%) is below the 85% automated approval threshold.`);
+    }
+
+    // 2. If issues are detected, do not permit silent approval
+    if (sanitizedRecommendation === 'approve' && issues.length > 0) {
+      sanitizedRecommendation = 'manual_review';
+    }
+
+    return {
+      ...output,
+      confidence: sanitizedConfidence,
+      recommendation: sanitizedRecommendation,
+      issues,
+    };
   }
 );
 

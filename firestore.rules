@@ -74,7 +74,8 @@ service cloud.firestore {
 
     /**
      * Prevents non-staff clients from modifying order status, assignedTo, total, checklist,
-     * auditLog, or fulfillmentStatus directly. Clients may only submit document uploads and notes.
+     * auditLog, fulfillmentStatus, documentUploads, or generatedDrafts directly.
+     * Document uploads and status changes are processed securely via authenticated server actions.
      */
     function isSafeClientOrderUpdate() {
       let after = request.resource.data;
@@ -87,7 +88,9 @@ service cloud.firestore {
              after.get('items', null) == before.get('items', null) &&
              after.get('auditLog', null) == before.get('auditLog', null) &&
              after.get('checklist', null) == before.get('checklist', null) &&
-             after.get('serviceSnapshots', null) == before.get('serviceSnapshots', null);
+             after.get('serviceSnapshots', null) == before.get('serviceSnapshots', null) &&
+             after.get('documentUploads', null) == before.get('documentUploads', null) &&
+             after.get('generatedDrafts', null) == before.get('generatedDrafts', null);
     }
 
     // ─── Users ──────────────────────────────────────────────────────────────

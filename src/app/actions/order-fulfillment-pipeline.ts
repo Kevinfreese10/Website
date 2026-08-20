@@ -83,16 +83,16 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
           updatedUploads.push(docItem);
         }
       } else if (docItem.notAvailableReason) {
-        // Client explained why document is missing
+        // Client explained why document is missing: mark as inconclusive/manual_review, NOT auto-approved
         const aiVerification: AIDocumentVerification = {
-          status: 'verified',
-          confidence: 85,
+          status: 'inconclusive',
+          confidence: 50,
           detectedType: 'client_explanation',
           extractedData: { reason: docItem.notAvailableReason },
-          issues: [],
-          summary: `Client provided note: "${docItem.notAvailableReason}"`,
-          recommendation: 'approve',
-          reason: 'Client explanation provided for missing requirement.',
+          issues: ['Client indicated requirement is missing and provided a written explanation. Human staff review required.'],
+          summary: `Missing document note provided: "${docItem.notAvailableReason}"`,
+          recommendation: 'manual_review',
+          reason: 'Client explanation provided for missing requirement. Must be verified and approved by a consultant.',
           reviewedAt: new Date().toISOString(),
         };
 
@@ -105,8 +105,11 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
       }
     }
 
-    // 3. Auto-progress initial SOP checklist steps
-    const verifiedCount = updatedUploads.filter(d => d.aiVerification?.recommendation === 'approve' || d.status === 'approved').length;
+    // 3. Auto-progress initial SOP checklist steps (strictly require >=85% confidence and 'approve' recommendation)
+    const verifiedCount = updatedUploads.filter(d => 
+      (d.aiVerification?.recommendation === 'approve' && (d.aiVerification.confidence ?? 0) >= 85 && d.aiVerification.status === 'verified') || 
+      d.status === 'approved'
+    ).length;
     const totalDocs = updatedUploads.length;
     const allApprovedOrRecommended = totalDocs > 0 && verifiedCount === totalDocs;
 
@@ -126,7 +129,7 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
           status: (allApprovedOrRecommended ? 'completed' : 'in_progress') as any,
           completedAt: allApprovedOrRecommended ? new Date().toISOString() : step.completedAt,
           isAiRecommended: true,
-          aiNotes: `AI Verified: ${verifiedCount}/${totalDocs} documents audited and passed compliance validation checks with high confidence (>85%).`,
+          aiNotes: `AI Verified: ${verifiedCount}/${totalDocs} documents audited and passed compliance validation checks with high confidence (≥85%).`,
         };
       }
       return step;

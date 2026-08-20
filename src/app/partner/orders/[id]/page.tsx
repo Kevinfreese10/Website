@@ -16,6 +16,11 @@ import {
   regenerateOrderDraftWithFeedbackAction, 
   approveAndSendDraftToClientAction 
 } from '@/app/actions/order-fulfillment-pipeline';
+import { 
+  reviewOrderDocumentAtomic, 
+  transitionOrderStatusAtomic 
+} from '@/app/actions/order-admin-actions';
+import { getAuth } from 'firebase/auth';
 import { GeneratedDocumentDraft } from '@/lib/types';
 import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Bot, ExternalLink, RefreshCw, FileSignature, History, Plus, ScrollText } from 'lucide-react';
 import { format } from 'date-fns';
@@ -398,42 +403,71 @@ export default function PartnerOrderDetailsPage() {
 
   const handleDocumentStatusUpdate = async (identifier: string, status: 'approved' | 'rejected', reason?: string) => {
     if (!order) return;
-    const updatedUploads = (order.documentUploads || []).map(doc => {
-      const docIdentifier = doc.type === 'file' ? doc.fileUrl : doc.textValue;
-      if (docIdentifier === identifier) {
-        return { ...doc, status, rejectionReason: reason || null };
-      }
-      return doc;
-    });
-
     try {
-      const orderRef = doc(db, 'orders', order.id);
-      await updateDoc(orderRef, { documentUploads: updatedUploads });
-      toast({ title: 'Document Status Updated', description: `The document has been ${status}.`});
-      fetchOrder();
-    } catch (error) {
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({ title: 'Authentication Error', description: 'Please log in to review documents.', variant: 'destructive' });
+        return;
+      }
+
+      const res = await reviewOrderDocumentAtomic(order.id, identifier, status, idToken, reason);
+      if (res.success) {
+        toast({ title: 'Document Status Updated', description: `The document has been ${status}.`});
+        fetchOrder();
+      } else {
+        toast({ title: 'Update Failed', description: res.error || 'Failed to update document status.', variant: 'destructive' });
+      }
+    } catch (error: any) {
       console.error("Error updating document status:", error);
-      toast({ title: 'Error', description: 'Failed to update document status.', variant: "destructive" });
+      toast({ title: 'Error', description: error?.message || 'Failed to update document status.', variant: "destructive" });
     }
   };
 
   const handleBatchApprove = async () => {
     if (!order || !order.documentUploads) return;
-    const updatedUploads = (order.documentUploads || []).map(doc => {
-      if (doc.status === 'pending') {
-        return { ...doc, status: 'approved' as const, rejectionReason: null };
-      }
-      return doc;
-    });
-
     try {
-      const orderRef = doc(db, 'orders', order.id);
-      await updateDoc(orderRef, { documentUploads: updatedUploads });
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({ title: 'Authentication Error', description: 'Please log in to review documents.', variant: 'destructive' });
+        return;
+      }
+
+      const pendingDocs = order.documentUploads.filter(d => d.status === 'pending');
+      for (const doc of pendingDocs) {
+        const identifier = doc.requirementId || doc.id || (doc.type === 'file' ? doc.fileUrl : doc.textValue) || doc.requirementLabel;
+        await reviewOrderDocumentAtomic(order.id, identifier, 'approved', idToken);
+      }
+
       toast({ title: 'Documents Approved', description: 'All pending documents have been approved.'});
       fetchOrder();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error batch approving documents:", error);
-      toast({ title: 'Error', description: 'Failed to batch approve documents.', variant: "destructive" });
+      toast({ title: 'Error', description: error?.message || 'Failed to batch approve documents.', variant: "destructive" });
+    }
+  };
+
+  const handleOrderStatusTransition = async (newStatus: Order['status']) => {
+    if (!order) return;
+    try {
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({ title: 'Authentication Error', description: 'Please log in to update order status.', variant: 'destructive' });
+        return;
+      }
+
+      const res = await transitionOrderStatusAtomic(order.id, newStatus as any, idToken);
+      if (res.success) {
+        toast({ title: 'Order Status Updated', description: `Order is now ${newStatus}.` });
+        fetchOrder();
+      } else {
+        toast({ title: 'Status Transition Blocked', description: res.error || 'Failed to update order status.', variant: 'destructive' });
+      }
+    } catch (error: any) {
+      console.error("Error updating order status:", error);
+      toast({ title: 'Error', description: error?.message || 'Failed to update order status.', variant: 'destructive' });
     }
   };
 
@@ -921,9 +955,32 @@ export default function PartnerOrderDetailsPage() {
                 />
                 <Card>
                     <CardHeader>
-                        <CardTitle>Order {order.id}</CardTitle>
-                        <div className="text-sm text-muted-foreground">
-                            Date: {formatDate(order.date, 'long')} | Status: <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <CardTitle>Order {order.id}</CardTitle>
+                                <div className="text-sm text-muted-foreground mt-1">
+                                    Date: {formatDate(order.date, 'long')} | Status: <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                                </div>
+                            </div>
+                            {!order.isOutsourced && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-muted-foreground">Change Status:</span>
+                                    <Select
+                                        value={order.status}
+                                        onValueChange={(val) => handleOrderStatusTransition(val as Order['status'])}
+                                    >
+                                        <SelectTrigger className="w-[140px] h-8 text-xs">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Pending Payment">Pending Payment</SelectItem>
+                                            <SelectItem value="Processing">Processing</SelectItem>
+                                            <SelectItem value="Completed">Completed</SelectItem>
+                                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                         </div>
                     </CardHeader>
                     <CardContent>

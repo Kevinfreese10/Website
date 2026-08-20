@@ -46,7 +46,11 @@ Always verify prices against Firestore `services` collection. Standard default r
 - **VAT Registration:** R 1,400.00 &bull; `https://www.myacc.co.za/products/vat-registration`
 - **Private Company Registration:** R 950.00 &bull; `https://www.myacc.co.za/products/private-company-registration`
 
----
+## Automated Price Verification Engine
+
+Before drafting or emailing any formal quotation, the agent MUST programmatically run the pricing verification engine:
+- Call `validateQuotationPricing(items)` from `src/lib/quotes/quote-service.ts`.
+- If `valid === false`, DO NOT send the quote. Immediately log the pricing discrepancies and resolve them against the official Firestore catalog.
 
 ## Email Formatting Requirements (Outlook Desktop Compatible)
 
