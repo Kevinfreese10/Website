@@ -11,12 +11,14 @@ import { formatPrice } from '@/lib/utils';
 interface ProductPageInteractiveContainerProps {
   service: Service;
   partnerId?: string;
+  partnerSlug?: string;
   clientRequirements?: (string | PrerequisiteItem)[];
 }
 
 export default function ProductPageInteractiveContainer({
   service,
   partnerId,
+  partnerSlug,
   clientRequirements,
 }: ProductPageInteractiveContainerProps) {
   // Single Source of Truth for selected prerequisite IDs
@@ -116,6 +118,7 @@ export default function ProductPageInteractiveContainer({
           <ServiceCheckoutForm
             service={service}
             partnerId={partnerId}
+            partnerSlug={partnerSlug}
             selectedPrereqIds={selectedPrereqIds}
             onTogglePrereq={handleTogglePrereq}
             arePrereqsConfirmed={arePrereqsConfirmed}

@@ -95,8 +95,11 @@ export default async function PartnerLandingLayout({
     md: '0.5rem',
     lg: '1rem',
   };
-  const borderRadius = lp?.borderRadius || 'md';
-  const radiusValue = radiusMap[borderRadius as keyof typeof radiusMap] || '0.5rem';
+  const rawRadius = lp?.borderRadius || (lp?.cardRadius === '0' ? 'none' : lp?.cardRadius === '0.5rem' ? 'sm' : lp?.cardRadius === '1.5rem' ? 'lg' : 'md');
+  const radiusValue = radiusMap[rawRadius as keyof typeof radiusMap] || lp?.cardRadius || '0.5rem';
+
+  const cardBgColor = lp?.cardBackgroundColor || lp?.cardBg || '#ffffff';
+  const cardBorderColor = lp?.cardBorderColor || lp?.cardBorder || '#e5e7eb';
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -147,8 +150,8 @@ export default async function PartnerLandingLayout({
           --partner-secondary: ${lp?.secondaryColor || lp?.primaryColor || '#214392'};
           --partner-bg: ${lp?.backgroundColor || '#ffffff'};
           --partner-text: ${lp?.textColor || '#111827'};
-          --partner-card-bg: ${lp?.cardBackgroundColor || '#ffffff'};
-          --partner-card-border: ${lp?.cardBorderColor || '#e5e7eb'};
+          --partner-card-bg: ${cardBgColor};
+          --partner-card-border: ${cardBorderColor};
           --partner-btn-bg: ${lp?.buttonColor || lp?.primaryColor || '#214392'};
           --partner-btn-text: ${lp?.buttonTextColor || '#ffffff'};
 
@@ -205,10 +208,10 @@ export default async function PartnerLandingLayout({
         /* Glassmorphism custom controls overrides */
         ${lp?.glassmorphism ? `
         .partner-card, .glass-card, .glass {
-          background: ${lp?.cardBackgroundColor ? `${lp.cardBackgroundColor}70` : 'rgba(255, 255, 255, 0.45)'} !important;
+          background: ${cardBgColor ? `${cardBgColor}70` : 'rgba(255, 255, 255, 0.45)'} !important;
           backdrop-filter: blur(20px) saturate(180%) !important;
           -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-          border: 1px solid ${lp?.cardBorderColor || 'rgba(255, 255, 255, 0.25)'} !important;
+          border: 1px solid ${cardBorderColor || 'rgba(255, 255, 255, 0.25)'} !important;
           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05) !important;
         }
         ` : ''}

@@ -38,13 +38,15 @@ export default function PartnerLandingPagePreview({
   companyName = 'My Accounting Practice',
   partnerEmail = 'contact@practice.co.za',
   partnerPhone = '011 123 4567',
-  partnerAddress = { street: '123 Main Road', city: 'Johannesburg', province: 'Gauteng', zip: '2000' }
+  partnerAddress = { street: '123 Main Road', city: 'Johannesburg', province: 'Gauteng', zip: '2000' },
+  services: customServices,
 }: {
   watchedLp: any;
   companyName?: string;
   partnerEmail?: string;
   partnerPhone?: string;
   partnerAddress?: any;
+  services?: any[];
 }) {
   const lp = watchedLp || {};
   const isOutline = lp.buttonStyle === 'outline';
@@ -55,8 +57,8 @@ export default function PartnerLandingPagePreview({
   const secondaryColor = lp.secondaryColor || '#214392';
   const backgroundColor = lp.backgroundColor || '#ffffff';
   const textColor = lp.textColor || '#111827';
-  const cardBackgroundColor = lp.cardBackgroundColor || '#ffffff';
-  const cardBorderColor = lp.cardBorderColor || '#e5e7eb';
+  const cardBackgroundColor = lp.cardBackgroundColor || lp.cardBg || '#ffffff';
+  const cardBorderColor = lp.cardBorderColor || lp.cardBorder || '#e5e7eb';
   const buttonColor = lp.buttonColor || '#214392';
   const buttonTextColor = lp.buttonTextColor || '#ffffff';
 
@@ -67,13 +69,14 @@ export default function PartnerLandingPagePreview({
     lg: '16px',
   };
   const fontValue = fontFamilies[lp.fontFamily as keyof typeof fontFamilies] || fontFamilies.sans;
-  const radiusValue = radiusMap[lp.borderRadius as keyof typeof radiusMap] || '8px';
+  const radiusValue = radiusMap[lp.borderRadius as keyof typeof radiusMap] || 
+    (lp.cardRadius === '0' ? '0px' : lp.cardRadius === '0.5rem' ? '4px' : lp.cardRadius === '1.5rem' ? '16px' : '8px');
 
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [selectedMockIds, setSelectedMockIds] = useState<string[]>(['1']);
 
-  // Mock services for preview
-  const mockServices = [
+  // Services for preview (custom provided or default curated preview items)
+  const previewServices = customServices && customServices.length > 0 ? customServices.slice(0, 6) : [
     {
       id: '1',
       title: 'Monthly Bookkeeping',
@@ -312,7 +315,7 @@ export default function PartnerLandingPagePreview({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {mockServices.map((service) => (
+              {previewServices.map((service: any) => (
                 <Card key={service.id} className="preview-card border flex flex-col rounded-lg shadow-sm overflow-hidden text-[11px]">
                   <CardHeader className="p-3 pb-2 space-y-1">
                     <CardTitle className="text-xs font-bold leading-tight truncate">
@@ -324,7 +327,7 @@ export default function PartnerLandingPagePreview({
                       </span>
                       <span className="text-[9px] text-muted-foreground flex items-center">
                         <Clock className="h-3 w-3 mr-0.5" />
-                        {service.turnaroundTime}
+                        {service.turnaroundTime || '2-3 days'}
                       </span>
                     </div>
                   </CardHeader>
@@ -332,14 +335,16 @@ export default function PartnerLandingPagePreview({
                     <p className="text-muted-foreground leading-snug line-clamp-2">
                       {service.description}
                     </p>
-                    <ul className="space-y-1 text-slate-600">
-                      {service.whatsIncluded.map((item, i) => (
-                        <li key={i} className="flex items-center gap-1.5">
-                          <CheckCircle2 className="h-3.5 w-3.5 preview-icon shrink-0" />
-                          <span className="truncate">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {service.whatsIncluded && (
+                      <ul className="space-y-1 text-slate-600">
+                        {service.whatsIncluded.map((item: string, i: number) => (
+                          <li key={i} className="flex items-center gap-1.5">
+                            <CheckCircle2 className="h-3.5 w-3.5 preview-icon shrink-0" />
+                            <span className="truncate">{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </CardContent>
                   <CardFooter className="p-3 pt-0">
                     <Button size="xs" className="w-full preview-btn text-[10px] h-7">
@@ -352,25 +357,27 @@ export default function PartnerLandingPagePreview({
           </section>
 
           {/* Testimonials Section */}
-          <section className="px-4 py-8 bg-slate-50/50 border-y space-y-6">
-            <h2 className="text-lg font-bold text-center" style={{ color: textColor }}>Client Reviews</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-              {testimonials.map((t: any, i: number) => (
-                <Card key={i} className="p-4 preview-card border rounded-lg shadow-sm space-y-2">
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: t.rating || 5 }).map((_, rIdx) => (
-                      <Star key={rIdx} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 shrink-0" />
-                    ))}
-                  </div>
-                  <p className="text-[10px] italic text-muted-foreground leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
-                  <div>
-                    <p className="font-bold text-[10px] text-slate-800">{t.name}</p>
-                    {t.role && <p className="text-[9px] text-muted-foreground">{t.role}{t.company ? ` at ${t.company}` : ''}</p>}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </section>
+          {testimonials && testimonials.length > 0 && (
+            <section className="px-4 py-8 bg-slate-50/50 border-y space-y-6">
+              <h2 className="text-lg font-bold text-center" style={{ color: textColor }}>Client Reviews</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                {testimonials.map((t: any, i: number) => (
+                  <Card key={i} className="p-4 preview-card border rounded-lg shadow-sm space-y-2">
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: t.rating || 5 }).map((_, rIdx) => (
+                        <Star key={rIdx} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 shrink-0" />
+                      ))}
+                    </div>
+                    <p className="text-[10px] italic text-muted-foreground leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
+                    <div>
+                      <p className="font-bold text-[10px] text-slate-800">{t.name}</p>
+                      {t.role && <p className="text-[9px] text-muted-foreground">{t.role}{t.company ? ` at ${t.company}` : ''}</p>}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Pricing Calculator Mockup */}
           {lp.showCalculator && (
@@ -383,7 +390,7 @@ export default function PartnerLandingPagePreview({
                 <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x border-b">
                   {/* Left checklist */}
                   <div className="p-3 md:col-span-7 space-y-2">
-                    {mockServices.map((service) => {
+                    {previewServices.map((service: any) => {
                       const isSelected = selectedMockIds.includes(service.id);
                       return (
                         <div
@@ -422,9 +429,9 @@ export default function PartnerLandingPagePreview({
                           <span>Monthly Total:</span>
                           <span className="preview-text">
                             {formatPrice(
-                              mockServices
-                                .filter(s => selectedMockIds.includes(s.id) && s.id === '1')
-                                .reduce((acc, curr) => acc + curr.price, 0)
+                              previewServices
+                                .filter((s: any) => selectedMockIds.includes(s.id) && s.id === '1')
+                                .reduce((acc: number, curr: any) => acc + curr.price, 0)
                             )}/mo
                           </span>
                         </div>
@@ -432,9 +439,9 @@ export default function PartnerLandingPagePreview({
                           <span>Once-off Setup:</span>
                           <span>
                             {formatPrice(
-                              mockServices
-                                .filter(s => selectedMockIds.includes(s.id) && s.id !== '1')
-                                .reduce((acc, curr) => acc + curr.price, 0)
+                              previewServices
+                                .filter((s: any) => selectedMockIds.includes(s.id) && s.id !== '1')
+                                .reduce((acc: number, curr: any) => acc + curr.price, 0)
                             )}
                           </span>
                         </div>

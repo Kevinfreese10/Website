@@ -76,6 +76,11 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
   const lp = partner.landingPage;
   const override = await getPartnerOverride(partner.id, rawService.id);
 
+  // If partner has explicitly disabled this service, return 404
+  if (override && override.enabled === false) {
+    notFound();
+  }
+
   const service = override ? {
       ...rawService,
       ...override,
@@ -98,6 +103,7 @@ export default async function PartnerProductDetailPage({ params }: { params: Pro
         <ProductPageInteractiveContainer
           service={service}
           partnerId={partner.id}
+          partnerSlug={slug}
           clientRequirements={service.clientRequirements}
         />
       </div>

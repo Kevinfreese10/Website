@@ -1,5 +1,19 @@
+export type AIDocumentVerification = {
+  status: 'verified' | 'flagged' | 'inconclusive' | 'pending';
+  confidence: number; // 0 to 100
+  detectedType?: string;
+  extractedData?: Record<string, any>;
+  issues?: string[];
+  summary?: string;
+  reviewedAt?: string;
+  recommendation: 'approve' | 'reject' | 'manual_review';
+  reason?: string;
+};
+
 export type DocumentUpload = {
+  id?: string;
   serviceId: string;
+  requirementId?: string;
   requirementLabel: string;
   type: 'file' | 'text';
   fileUrl?: string;
@@ -8,11 +22,24 @@ export type DocumentUpload = {
   uploadedAt: any; // Firestore Timestamp
   status: 'pending' | 'approved' | 'rejected';
   rejectionReason?: string;
+  aiVerification?: AIDocumentVerification;
 };
 
 export type PrerequisiteItem = 
   | { type: 'text'; text: string }
   | { type: 'product'; productId: string; text?: string };
+
+export type FulfillmentStepType = 'doc_verification' | 'external_filing' | 'internal_calc' | 'manual' | 'signoff';
+
+export type FulfillmentStep = {
+  id: string;
+  title: string;
+  description?: string;
+  type: FulfillmentStepType;
+  requiredRole?: string;
+  automatedSkill?: string;
+  estimatedDays?: number;
+};
 
 export type Service = {
   id: string;
@@ -33,6 +60,7 @@ export type Service = {
   turnaroundTime: string;
   clientRequirements: (string | PrerequisiteItem)[];
   informationToProvide: {
+    id?: string;
     label: string;
     type?: 'text' | 'pdf' | 'excel' | 'image' | 'any';
     helpText?: string;
@@ -40,6 +68,7 @@ export type Service = {
     conditionalQuestion?: string;
     isRequired?: boolean;
   }[];
+  fulfillmentChecklist?: FulfillmentStep[];
   attachmentUrl?: string;
   metaTitle?: string;
   metaDescription?: string;
@@ -178,12 +207,43 @@ export type Order = {
   overflowPartnerId?: string | null;
   overflowPayout?: number;
   overflowDeadline?: any;
-  overflowClaimedAt?: any;
-  overflowSubmittedAt?: any;
-  overflowCompletedAt?: any;
-  overflowPayoutStatus?: 'none' | 'pending' | 'can_request' | 'requested' | 'paid';
   dependsOnOrderIds?: string[];
   blockedOrderIds?: string[];
+  fulfillmentStatus?: 'Awaiting Documents' | 'Under Review' | 'In Execution' | 'Ready for Signoff' | 'Completed' | 'Blocked';
+  checklist?: OrderChecklistItem[];
+  serviceSnapshots?: OrderServiceSnapshot[];
+};
+
+export type OrderChecklistItem = {
+  id: string;
+  serviceId: string;
+  serviceTitle?: string;
+  title: string;
+  description?: string;
+  type?: FulfillmentStepType;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
+  completedAt?: string;
+  completedBy?: string;
+  completedByName?: string;
+  notes?: string;
+  artifactUrl?: string;
+  artifactName?: string;
+  isAiRecommended?: boolean;
+  aiNotes?: string;
+};
+
+export type OrderServiceSnapshot = {
+  serviceId: string;
+  title: string;
+  department?: 'Accounting and Tax' | 'Administration' | 'CAP' | null;
+  requirements: {
+    id: string;
+    label: string;
+    type?: 'text' | 'pdf' | 'excel' | 'image' | 'any';
+    helpText?: string;
+    isRequired?: boolean;
+  }[];
+  checklist: FulfillmentStep[];
 };
 
 export type Invoice = {
@@ -341,6 +401,10 @@ export type PartnerLandingPageConfig = {
   googleAnalyticsId?: string;
   metaPixelId?: string;
   showCalculator?: boolean;
+  showStats?: boolean;
+  customStats?: Array<{ value: string; label: string; icon?: any; color?: string }>;
+  showPricingPackages?: boolean;
+  pricingPackages?: Array<any>;
   customDomain?: string;
 };
 

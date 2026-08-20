@@ -63,7 +63,7 @@ import { Label } from '../ui/label';
 import { User } from '@/lib/types';
 import { generateCopywritingCopy } from '@/app/actions/ai-copywriter';
 import { editLandingPageWithAI } from '@/app/actions/ai-landing-page';
-import { syncCustomDomainMapping } from '@/app/actions/partner-settings';
+import { syncCustomDomainMapping, checkSlugAvailability, revalidatePartnerStorefront } from '@/app/actions/partner-settings';
 import PartnerLandingPagePreview from './PartnerLandingPagePreview';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -794,7 +794,22 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
     try {
         const oldDomain = targetUser.landingPage?.customDomain || null;
         const newDomain = values.landingPage.customDomain || null;
-        const slug = values.landingPage.slug;
+        const slug = values.landingPage.slug?.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+        const oldSlug = targetUser.landingPage?.slug;
+
+        // 1. Verify slug availability if changed or set
+        if (slug) {
+            const auth = getAuth(firebaseApp);
+            const idToken = await auth.currentUser?.getIdToken();
+            if (idToken) {
+                const slugCheck = await checkSlugAvailability(idToken, slug);
+                if (!slugCheck.available) {
+                    toast({ title: 'URL Not Available', description: slugCheck.message, variant: 'destructive' });
+                    setIsSaving(false);
+                    return;
+                }
+            }
+        }
 
         const userRef = doc(db, 'users', targetUser.uid);
         const updateData = {
@@ -805,6 +820,7 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
             name: `${values.name} ${values.surname}`,
             landingPage: {
                 ...values.landingPage,
+                slug,
                 enabled: hasPlatformFee ? values.landingPage.enabled : false,
             },
         };
@@ -818,7 +834,7 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
             const syncResult = await syncCustomDomainMapping(idToken, oldDomain, newDomain, slug);
             if (!syncResult.success) {
                 console.error("Domain sync failed:", syncResult.error);
-                toast({ title: 'Domain Sync Failed', description: syncResult.error, variant: 'destructive' });
+                toast({ title: 'Domain Notice', description: syncResult.error, variant: 'destructive' });
             }
         }
         
@@ -826,11 +842,19 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
         if (!propPartner && authUser?.uid === targetUser.uid) {
             updateUser({ ...authUser, ...updateData });
         }
+
+        // 2. Instantly bust the ISR cache so changes appear immediately
+        if (slug) {
+            await revalidatePartnerStorefront(slug);
+        }
+        if (oldSlug && oldSlug !== slug) {
+            await revalidatePartnerStorefront(oldSlug);
+        }
         
-        toast({ title: 'Profile Updated!' });
-    } catch (error) {
+        toast({ title: 'Profile Updated!', description: 'Your practice storefront and branding have been saved.' });
+    } catch (error: any) {
         console.error("Profile update failed:", error);
-        toast({ title: 'Update Failed', description: "There was a problem saving the profile settings.", variant: 'destructive' });
+        toast({ title: 'Update Failed', description: error?.message || "There was a problem saving the profile settings.", variant: 'destructive' });
     } finally {
         setIsSaving(false);
     }

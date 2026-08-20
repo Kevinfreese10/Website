@@ -14,6 +14,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getFirestore, doc, updateDoc, writeBatch, Timestamp, setDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { services as baseServices } from '@/lib/data';
 import { CheckCircle2, Sparkles, Banknote, Building, Briefcase, Loader2, ArrowRight, Paintbrush, ChevronRight, Settings, ShieldCheck } from 'lucide-react';
@@ -22,8 +23,11 @@ import { Progress } from '@/components/ui/progress';
 import { getNextOrderId } from '@/lib/sequence';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Order } from '@/lib/types';
+import { checkSlugAvailability, revalidatePartnerStorefront } from '@/app/actions/partner-settings';
 
 const db = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 const themePresets = [
   { id: 'custom', name: 'Custom Theme', primaryColor: '#214392', hoverColor: '#1a3575' },
@@ -87,16 +91,17 @@ export default function PartnerOnboardingPage() {
       setPrimaryColor(user.landingPage?.primaryColor || '#0866FF');
       setHoverColor(user.landingPage?.hoverColor || '#0054d1');
       setSecondaryColor(user.landingPage?.secondaryColor || '#f3f4f6');
-      setCardBg(user.landingPage?.cardBg || '#ffffff');
-      setCardBorder(user.landingPage?.cardBorder || '#e5e7eb');
+      setCardBg(user.landingPage?.cardBackgroundColor || user.landingPage?.cardBg || '#ffffff');
+      setCardBorder(user.landingPage?.cardBorderColor || user.landingPage?.cardBorder || '#e5e7eb');
       setTextColor(user.landingPage?.textColor || '#1C1E21');
       setGlassmorphism(user.landingPage?.glassmorphism || false);
-      setCardRadius(user.landingPage?.cardRadius || '0.75rem');
+
+      const r = user.landingPage?.borderRadius;
+      const convertedRadius = r === 'none' ? '0' : r === 'sm' ? '0.5rem' : r === 'lg' ? '1.5rem' : '0.75rem';
+      setCardRadius(user.landingPage?.cardRadius || convertedRadius);
       setSlug(user.landingPage?.slug || user.companyName?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || '');
       
       if (user.onboardingStep !== undefined && user.onboardingStep > activeStep) {
-        // Do not auto-jump if they are already further, but it's an option.
-        // For now, let's let them resume if they load at step 0
         if (activeStep === 0 && user.onboardingStep > 0 && user.onboardingStep < 4) {
            setActiveStep(user.onboardingStep);
         }
@@ -108,157 +113,30 @@ export default function PartnerOnboardingPage() {
     }
   }, [user]);
 
-  const handleBuyPlatformFee = async () => {
-    if (!user) return;
-    setIsProcessingDFY(true);
-    try {
-      const orderId = await getNextOrderId();
-      const platformOrder: Order = {
-        id: orderId,
-        userId: user.uid,
-        customerName: user.companyName || user.name,
-        customerEmail: user.email,
-        items: [{
-          id: 'partner_platform_fee',
-          title: 'Partner Platform Access Fee',
-          price: 1950,
-          quantity: 1,
-        }],
-        total: 1950,
-        discountCode: null,
-        discountAmount: null,
-        status: 'Pending Payment',
-        date: Timestamp.now(),
-        source: 'Partner',
-        resellerId: user.uid,
-        originalOrderId: null,
-      };
-
-      await setDoc(doc(db, 'orders', orderId), platformOrder);
-
-      const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = payfastUrl;
-
-      const data = {
-        merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-        merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-        return_url: process.env.NEXT_PUBLIC_APP_URL + '/partner/onboarding?platform_success=true',
-        cancel_url: process.env.NEXT_PUBLIC_APP_URL + '/partner/onboarding',
-        notify_url: process.env.NEXT_PUBLIC_APP_URL + '/api/payfast/notify',
-        name_first: user.name.split(' ')[0],
-        name_last: user.name.split(' ').slice(1).join(' ') || 'Partner',
-        email_address: user.email,
-        m_payment_id: orderId,
-        amount: '1950.00',
-        item_name: 'Partner Platform Access Fee',
-      };
-
-      for (const key in data) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = (data as any)[key];
-        form.appendChild(input);
-      }
-      document.body.appendChild(form);
-      form.submit();
-    } catch (e) {
-      console.error('Platform fee payment error:', e);
-      toast({ title: 'Error', description: 'Could not initiate payment. Please try again.', variant: 'destructive' });
-      setIsProcessingDFY(false);
-    }
-  };
-
-  if (!hasPlatformFee) {
-    return (
-      <div className="flex items-center justify-center min-h-[70vh]">
-        <div className="max-w-lg w-full border border-primary/20 shadow-xl rounded-2xl overflow-hidden bg-card">
-          <div className="bg-primary/5 border-b border-primary/10 text-center py-8 px-6">
-            <div className="inline-flex items-center gap-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-4">
-              <ShieldCheck className="h-3 w-3" /> One-Time Fee
-            </div>
-            <h2 className="text-3xl font-black text-slate-900">Unlock Your Storefront</h2>
-            <p className="text-base text-muted-foreground mt-2">
-              Pay the once-off R1,950 platform access fee to activate your client-facing white-label storefront.
-            </p>
-          </div>
-          <div className="py-8 px-6 space-y-6">
-            <div className="bg-primary/5 p-5 rounded-xl border border-primary/10 space-y-3">
-              <h3 className="font-bold flex items-center gap-2 text-slate-900">
-                <Briefcase className="h-5 w-5 text-primary" /> What you get:
-              </h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" /><span><strong>Branded storefront</strong> — your clients can place orders directly on your page.</span></li>
-                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" /><span><strong>Custom domain</strong> — link your own domain to your storefront.</span></li>
-                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" /><span><strong>Service pricing control</strong> — set your own markup on all services.</span></li>
-                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" /><span><strong>Automated document collection</strong> — clients submit docs directly in the platform.</span></li>
-              </ul>
-            </div>
-            <Button
-              onClick={handleBuyPlatformFee}
-              disabled={isProcessingDFY}
-              className="w-full h-14 text-lg font-bold shadow-lg"
-            >
-              {isProcessingDFY ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Banknote className="mr-2 h-5 w-5" />}
-              Pay R1,950 — Unlock Storefront
-            </Button>
-            <p className="text-center text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Secure Once-Off Payment via PayFast</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    setIsUploadingLogo(true);
-    try {
-      const storage = getStorage(firebaseApp);
-      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const storageRef = ref(storage, `users/${user.uid}/landing-page/logo_${Date.now()}_${safeName}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setLogoUrl(url);
-      toast({ title: 'Logo Uploaded', description: 'Your logo has been successfully uploaded.' });
-    } catch (error: any) {
-      console.error('Logo upload error:', error);
-      toast({ title: 'Upload Failed', description: error.message || 'Could not upload logo.', variant: 'destructive' });
-    } finally {
-      setIsUploadingLogo(false);
-    }
-  };
-
   const handleSaveBanking = async () => {
     if (!user) return;
     setIsSaving(true);
     try {
       const userRef = doc(db, 'users', user.uid);
+      const bankingDetails = {
+        bankName,
+        accountHolder,
+        accountNumber,
+        branchCode,
+        accountType,
+      };
       await updateDoc(userRef, {
-        bankingDetails: {
-          bankName,
-          accountHolder,
-          accountNumber,
-          branchCode,
-          accountType,
-        } as any
+        bankingDetails,
+        onboardingStep: 2,
       });
       updateUser({
         ...user,
-        bankingDetails: {
-          bankName,
-          accountHolder,
-          accountNumber,
-          branchCode,
-          accountType,
-        } as any
+        bankingDetails,
+        onboardingStep: 2,
       });
-      toast({ title: 'Banking Details Saved', description: 'Your EFT information is configured.' });
-      setActiveStep(2); if(user) { updateDoc(doc(db, 'users', user.uid), { onboardingStep: 2 }); updateUser({...user, onboardingStep: 2}); }
-    } catch (e) {
+      toast({ title: 'Banking Details Saved', description: 'Your EFT invoice instructions have been updated.' });
+      setActiveStep(2);
+    } catch (e: any) {
       console.error(e);
       toast({ title: 'Error', description: 'Failed to save banking details.', variant: 'destructive' });
     } finally {
@@ -266,56 +144,92 @@ export default function PartnerOnboardingPage() {
     }
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setIsUploadingLogo(true);
+    try {
+      const storageRef = ref(storage, `partners/${user.uid}/logo-${Date.now()}-${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+      setLogoUrl(downloadUrl);
+      toast({ title: 'Logo Uploaded', description: 'Your practice logo has been uploaded.' });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: 'Upload Failed', description: e?.message || 'Could not upload logo.', variant: 'destructive' });
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
   const handleSaveLanding = async () => {
     if (!user) return;
+    const cleanSlug = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (!cleanSlug || cleanSlug.length < 3) {
+      toast({ title: 'Invalid URL Slug', description: 'Please enter a valid slug with at least 3 characters.', variant: 'destructive' });
+      return;
+    }
+
     setIsSaving(true);
-    const theme = themePresets.find(t => t.id === selectedTheme) || themePresets[0];
     try {
+      // 1. Verify slug uniqueness
+      const idToken = await (auth.currentUser ? auth.currentUser.getIdToken() : null);
+      if (idToken) {
+        const slugCheck = await checkSlugAvailability(idToken, cleanSlug);
+        if (!slugCheck.available) {
+          toast({ title: 'URL Not Available', description: slugCheck.message, variant: 'destructive' });
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      const stdBorderRadius: 'none' | 'sm' | 'md' | 'lg' = 
+        cardRadius === '0' ? 'none' : cardRadius === '0.5rem' ? 'sm' : cardRadius === '1.5rem' ? 'lg' : 'md';
+
+      // 2. Preserve all existing landing page data (testimonials, FAQs, policies, domain, etc.)
+      const updatedLandingPage = {
+        ...(user.landingPage || {}),
+        themePreset: selectedTheme as any,
+        primaryColor,
+        hoverColor,
+        secondaryColor,
+        backgroundColor: user.landingPage?.backgroundColor || '#ffffff',
+        cardBackgroundColor: cardBg,
+        cardBg,
+        cardBorderColor: cardBorder,
+        cardBorder,
+        textColor,
+        glassmorphism,
+        borderRadius: stdBorderRadius,
+        cardRadius,
+        logoUrl: logoUrl || user.landingPage?.logoUrl || '',
+        heroTitle: user.landingPage?.heroTitle || user.companyName || 'Welcome to Our Practice',
+        heroSubtitle: heroSubheadline,
+        aboutUs,
+        enabled: true,
+        slug: cleanSlug,
+      };
+
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
-        landingPage: {
-          themePreset: selectedTheme as any,
-          primaryColor,
-          hoverColor,
-          secondaryColor,
-          cardBg,
-          cardBorder,
-          textColor,
-          glassmorphism,
-          cardRadius,
-          logoUrl,
-          heroTitle: user.landingPage?.heroTitle || user.companyName || 'Welcome to Our Practice',
-          heroSubtitle: heroSubheadline,
-          aboutUs,
-          enabled: true,
-          slug,
-} as any
+        landingPage: updatedLandingPage as any,
+        onboardingStep: 3
       });
+
       updateUser({
         ...user,
-        landingPage: {
-          themePreset: selectedTheme as any,
-          primaryColor,
-          hoverColor,
-          secondaryColor,
-          cardBg,
-          cardBorder,
-          textColor,
-          glassmorphism,
-          cardRadius,
-          logoUrl,
-          heroTitle: user.landingPage?.heroTitle || user.companyName || 'Welcome to Our Practice',
-          heroSubtitle: heroSubheadline,
-          aboutUs,
-          enabled: true,
-          slug,
-        } as any
+        landingPage: updatedLandingPage as any,
+        onboardingStep: 3
       });
-      toast({ title: 'Branding Saved', description: 'Your landing page customization is updated.' });
-      setActiveStep(3); if(user) { updateDoc(doc(db, 'users', user.uid), { onboardingStep: 3 }); updateUser({...user, onboardingStep: 3}); }
-    } catch (e) {
+
+      // 3. Invalidate storefront ISR cache
+      await revalidatePartnerStorefront(cleanSlug);
+
+      toast({ title: 'Branding Saved', description: 'Your landing page customization has been saved.' });
+      setActiveStep(3);
+    } catch (e: any) {
       console.error(e);
-      toast({ title: 'Error', description: 'Failed to update website branding.', variant: 'destructive' });
+      toast({ title: 'Error', description: e?.message || 'Failed to update website branding.', variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }

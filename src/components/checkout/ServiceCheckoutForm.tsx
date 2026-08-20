@@ -123,6 +123,7 @@ function PriceOnRequestForm({ service }: { service: Service }) {
 interface ServiceCheckoutFormProps {
   service: Service;
   partnerId?: string;
+  partnerSlug?: string;
   selectedPrereqIds?: Set<string>;
   onTogglePrereq?: (serviceId: string) => void;
   arePrereqsConfirmed?: boolean;
@@ -131,6 +132,7 @@ interface ServiceCheckoutFormProps {
 export default function ServiceCheckoutForm({
   service,
   partnerId,
+  partnerSlug,
   selectedPrereqIds,
   onTogglePrereq,
   arePrereqsConfirmed,
@@ -140,6 +142,7 @@ export default function ServiceCheckoutForm({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
+  const refundPolicyUrl = partnerSlug ? `/p/${partnerSlug}/refund-policy` : '/refund-policy';
   const [linkedUser, setLinkedUser] = useState<{name: string, id: string} | null>(null);
 
   const allPrereqsMet = arePrereqsConfirmed !== undefined ? arePrereqsConfirmed : true;
@@ -563,7 +566,7 @@ export default function ServiceCheckoutForm({
                                     <FormControl><Checkbox checked={field.value ?? false} onCheckedChange={(c) => field.onChange(Boolean(c))} /></FormControl>
                                     <div className="space-y-1 leading-none">
                                         <FormLabel className="text-xs sm:text-sm font-semibold cursor-pointer text-slate-800">
-                                            I agree to the <Link href="/refund-policy" className="text-primary underline font-bold" target="_blank">refund policy</Link>.
+                                            I agree to the <Link href={refundPolicyUrl} className="text-primary underline font-bold" target="_blank">refund policy</Link>.
                                         </FormLabel>
                                         <FormMessage />
                                     </div>
@@ -701,7 +704,9 @@ export default function ServiceCheckoutForm({
               <span className="text-slate-300">·</span>
               <span className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-blue-600" />SARS Compliant</span>
               <span className="text-slate-300">·</span>
-              <span className="flex items-center gap-1"><RefreshCw className="h-3 w-3 text-amber-600" />Refund Policy</span>
+              <Link href={refundPolicyUrl} target="_blank" className="flex items-center gap-1 hover:underline text-muted-foreground hover:text-foreground">
+                <RefreshCw className="h-3 w-3 text-amber-600" />Refund Policy
+              </Link>
             </div>
 
             {!user && (

@@ -346,7 +346,7 @@ export default function CheckoutForm({
                 <div className="space-y-1 leading-tight">
                   <FormLabel className="text-xs font-semibold text-slate-700 cursor-pointer">
                     I agree to the{' '}
-                    <Link href="/terms" target="_blank" className="text-primary underline font-bold">
+                    <Link href="/refund-policy" target="_blank" className="text-primary underline font-bold">
                       refund policy
                     </Link>.
                   </FormLabel>

@@ -46,7 +46,12 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
   const showServicesHero = lp?.showServicesHero !== false;
   const ctaTarget = lp?.showCalculator ? '#calculator' : '#contact';
 
-  const services = globalServices.map(s => {
+  const services = globalServices
+    .filter(s => {
+      const override = overrides[s.id];
+      return override ? override.enabled !== false : true;
+    })
+    .map(s => {
       const override = overrides[s.id];
       if (!override) return s;
       return {
@@ -223,25 +228,27 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
         </div>
       </AnimatedSection>
 
-      {/* Stats Counter Section */}
-      <AnimatedSection className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-            {[
-              { value: '10+', label: 'Years of Experience', icon: TrendingUp, color: 'text-blue-500' },
-              { value: '500+', label: 'Businesses Served', icon: Users, color: 'text-emerald-500' },
-              { value: '2,000+', label: 'Tax Returns Filed', icon: CheckCircle2, color: 'text-violet-500' },
-              { value: '99%', label: 'Client Satisfaction', icon: Star, color: 'text-orange-500' },
-            ].map((stat, i) => (
-              <div key={i} className="text-center space-y-2">
-                <stat.icon className={cn("h-6 w-6 mx-auto opacity-80", stat.color)} />
-                <div className={cn("text-3xl md:text-4xl font-extrabold", stat.color)}>{stat.value}</div>
-                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{stat.label}</div>
-              </div>
-            ))}
+      {/* Stats Counter Section (Only shown when configured/enabled by partner) */}
+      {lp?.showStats && (
+        <AnimatedSection className="py-16">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+              {[
+                { value: '10+', label: 'Years of Experience', icon: TrendingUp, color: 'text-blue-500' },
+                { value: '500+', label: 'Businesses Served', icon: Users, color: 'text-emerald-500' },
+                { value: '2,000+', label: 'Tax Returns Filed', icon: CheckCircle2, color: 'text-violet-500' },
+                { value: '99%', label: 'Client Satisfaction', icon: Star, color: 'text-orange-500' },
+              ].map((stat, i) => (
+                <div key={i} className="text-center space-y-2">
+                  <stat.icon className={cn("h-6 w-6 mx-auto opacity-80", stat.color)} />
+                  <div className={cn("text-3xl md:text-4xl font-extrabold", stat.color)}>{stat.value}</div>
+                  <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{stat.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </AnimatedSection>
+        </AnimatedSection>
+      )}
 
       {/* Online Process Steps */}
       <AnimatedSection className="py-16 bg-muted/20 border-y">
@@ -412,155 +419,157 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
               </AnimatedSection>
           )}
 
-        {/* Pricing / Packages Comparison Section */}
-        <AnimatedSection>
-          <section id="pricing" className="container mx-auto px-4 scroll-m-24 max-w-5xl space-y-12">
-            <div className="text-center space-y-4 max-w-2xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Simple, Transparent Packages</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">Choose the plan that fits your business stage.</p>
-              <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-              {/* Essential Card */}
-              <Card className="flex flex-col partner-card shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
-                <div className="p-6 border-b">
-                  <h3 className="text-xl font-bold text-foreground/90">Essential</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Best for small startups & sole proprietors</p>
-                  <div className="flex items-baseline mt-4">
-                    <span className="text-4xl font-extrabold text-foreground">R3,500</span>
-                    <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
+        {/* Pricing / Packages Comparison Section (Only shown when explicitly enabled/configured by partner) */}
+        {lp?.showPricingPackages && (
+          <AnimatedSection>
+            <section id="pricing" className="container mx-auto px-4 scroll-m-24 max-w-5xl space-y-12">
+              <div className="text-center space-y-4 max-w-2xl mx-auto">
+                <h2 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Simple, Transparent Packages</h2>
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">Choose the plan that fits your business stage.</p>
+                <Separator className="w-16 mx-auto partner-border border-b-2 opacity-30" />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+                {/* Essential Card */}
+                <Card className="flex flex-col partner-card shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
+                  <div className="p-6 border-b">
+                    <h3 className="text-xl font-bold text-foreground/90">Essential</h3>
+                    <p className="text-xs text-muted-foreground mt-1">Best for small startups & sole proprietors</p>
+                    <div className="flex items-baseline mt-4">
+                      <span className="text-4xl font-extrabold text-foreground">R3,500</span>
+                      <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wide">For turnover under R1M</p>
                   </div>
-                  <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wide">For turnover under R1M</p>
-                </div>
-                <CardContent className="flex-grow p-6">
-                  <ul className="space-y-3">
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Monthly Bookkeeping & Reconciliations</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Quarterly Management Reports</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Annual Financial Statements</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Income Tax & CIPC Annual Returns</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Payroll Processing & PAYE / UIF</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Dedicated Accountant</span>
-                    </li>
-                  </ul>
-                </CardContent>
-                <div className="p-6 pt-0">
-                  <Button className="w-full partner-btn text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all" asChild>
-                    <Link href="#contact">Get Started</Link>
-                  </Button>
-                </div>
-              </Card>
+                  <CardContent className="flex-grow p-6">
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Monthly Bookkeeping & Reconciliations</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Quarterly Management Reports</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Annual Financial Statements</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Income Tax & CIPC Annual Returns</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Payroll Processing & PAYE / UIF</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Dedicated Accountant</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                  <div className="p-6 pt-0">
+                    <Button className="w-full partner-btn text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all" asChild>
+                      <Link href="#contact">Get Started</Link>
+                    </Button>
+                  </div>
+                </Card>
 
-              {/* Growth Card (Most Popular) */}
-              <Card className="flex flex-col glass-card border-2 partner-border shadow-lg relative hover:shadow-2xl hover:scale-[1.03] transition-all duration-300">
-                <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-background border border-border partner-text font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-full shadow-md select-none">
-                  Most Popular
-                </div>
-                <div className="p-6 border-b partner-bg/5 rounded-t-xl partner-card">
-                  <h3 className="text-xl font-bold text-foreground/90">Growth</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Perfect for growing SME businesses</p>
-                  <div className="flex items-baseline mt-4">
-                    <span className="text-4xl font-extrabold text-foreground">R7,000</span>
-                    <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
+                {/* Growth Card (Most Popular) */}
+                <Card className="flex flex-col glass-card border-2 partner-border shadow-lg relative hover:shadow-2xl hover:scale-[1.03] transition-all duration-300">
+                  <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-background border border-border partner-text font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-full shadow-md select-none">
+                    Most Popular
                   </div>
-                  <p className="text-[11px] font-bold partner-text mt-2 uppercase tracking-wide">For turnover up to R7M</p>
-                </div>
-                <CardContent className="flex-grow p-6">
-                  <ul className="space-y-3">
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Everything in Essential</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>VAT Returns & Submissions</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Bi-Monthly Management Reports</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Financial Manager Support</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Cash Flow & Budgeting Assistance</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>CFO Advisory & Monthly Reviews</span>
-                    </li>
-                  </ul>
-                </CardContent>
-                <div className="p-6 pt-0">
-                  <Button className="w-full partner-btn text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all" asChild>
-                    <Link href="#contact">Get Started</Link>
-                  </Button>
-                </div>
-              </Card>
+                  <div className="p-6 border-b partner-bg/5 rounded-t-xl partner-card">
+                    <h3 className="text-xl font-bold text-foreground/90">Growth</h3>
+                    <p className="text-xs text-muted-foreground mt-1">Perfect for growing SME businesses</p>
+                    <div className="flex items-baseline mt-4">
+                      <span className="text-4xl font-extrabold text-foreground">R7,000</span>
+                      <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
+                    </div>
+                    <p className="text-[11px] font-bold partner-text mt-2 uppercase tracking-wide">For turnover up to R7M</p>
+                  </div>
+                  <CardContent className="flex-grow p-6">
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Everything in Essential</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>VAT Returns & Submissions</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Bi-Monthly Management Reports</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Financial Manager Support</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Cash Flow & Budgeting Assistance</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>CFO Advisory & Monthly Reviews</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                  <div className="p-6 pt-0">
+                    <Button className="w-full partner-btn text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all" asChild>
+                      <Link href="#contact">Get Started</Link>
+                    </Button>
+                  </div>
+                </Card>
 
-              {/* Executive Card */}
-              <Card className="flex flex-col partner-card shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
-                <div className="p-6 border-b">
-                  <h3 className="text-xl font-bold text-foreground/90">Executive</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Comprehensive CFO & tax governance</p>
-                  <div className="flex items-baseline mt-4">
-                    <span className="text-4xl font-extrabold text-foreground">R11,500</span>
-                    <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
+                {/* Executive Card */}
+                <Card className="flex flex-col partner-card shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
+                  <div className="p-6 border-b">
+                    <h3 className="text-xl font-bold text-foreground/90">Executive</h3>
+                    <p className="text-xs text-muted-foreground mt-1">Comprehensive CFO & tax governance</p>
+                    <div className="flex items-baseline mt-4">
+                      <span className="text-4xl font-extrabold text-foreground">R11,500</span>
+                      <span className="text-sm font-semibold text-muted-foreground ml-1">/ month</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wide">For turnover up to R25M</p>
                   </div>
-                  <p className="text-[11px] font-bold text-muted-foreground mt-2 uppercase tracking-wide">For turnover up to R25M</p>
-                </div>
-                <CardContent className="flex-grow p-6">
-                  <ul className="space-y-3">
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Everything in Growth</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Monthly Management Reports</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Unlimited CFO Advisory Services</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Unlimited Strategic Business Reviews</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
-                      <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
-                      <span>Priority Support Response</span>
-                    </li>
-                  </ul>
-                </CardContent>
-                <div className="p-6 pt-0">
-                  <Button className="w-full partner-btn text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all" asChild>
-                    <Link href="#contact">Get Started</Link>
-                  </Button>
-                </div>
-              </Card>
-            </div>
-          </section>
-        </AnimatedSection>
+                  <CardContent className="flex-grow p-6">
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Everything in Growth</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Monthly Management Reports</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Unlimited CFO Advisory Services</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Unlimited Strategic Business Reviews</span>
+                      </li>
+                      <li className="flex items-start gap-2.5 text-xs text-foreground/80 font-medium">
+                        <CheckCircle2 className="h-4 w-4 partner-text shrink-0" />
+                        <span>Priority Support Response</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                  <div className="p-6 pt-0">
+                    <Button className="w-full partner-btn text-white font-bold h-11 rounded-lg shadow-md active:scale-95 transition-all" asChild>
+                      <Link href="#contact">Get Started</Link>
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            </section>
+          </AnimatedSection>
+        )}
           <PartnerServicesList 
             categories={categories} 
             services={services} 
