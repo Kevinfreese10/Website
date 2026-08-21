@@ -1841,10 +1841,28 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
   page2.drawText(details.orderDate || new Date().toLocaleDateString('en-ZA'), { x: 360, y: 149.9, size: 9.5, font: fontBold, color: navy });
 
   // --- Commissioner of Oaths Stamp & Signature ---
+  // 1. Mask the old template text and trailing black line on the bottom left
+  page2.drawRectangle({
+    x: 80,
+    y: 10,
+    width: 230,
+    height: 140,
+    color: rgb(1, 1, 1), // white mask
+  });
+
+  // 2. Commissioner of Oaths Heading
+  page2.drawText('Commissioner of Oaths:', {
+    x: 85,
+    y: 145,
+    size: 9,
+    font: fontBold,
+    color: navy,
+  });
+
   const possibleSigPaths = [
     path.join(process.cwd(), 'public/templates/Signature_Kevin_New.png'),
-    'C:\\Users\\kev\\Downloads\\ChatGPT Image Aug 21, 2026, 10_03_09 AM.png',
     path.join(process.cwd(), 'public/templates/Signature.png'),
+    'C:\\Users\\kev\\Downloads\\ChatGPT Image Aug 21, 2026, 10_03_09 AM.png',
     'C:\\Users\\kev\\OneDrive\\Documents\\Signature.png',
   ];
 
@@ -1856,14 +1874,20 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
     }
   }
 
+  const stampX = 85;
+  const stampW = 215;
+  const stampY = 15;
+  const stampH = 68;
+
   if (sigImageBytes) {
     try {
       const sigImage = await pdfDoc.embedPng(sigImageBytes);
-      const sigW = 110;
+      const sigW = 90;
       const sigH = sigW / (sigImage.width / sigImage.height);
+      const sigX = stampX + (stampW - sigW) / 2; // perfectly centered above stamp box
       page2.drawImage(sigImage, {
-        x: 90,
-        y: 78,
+        x: sigX,
+        y: 86,
         width: sigW,
         height: sigH,
       });
@@ -1874,10 +1898,6 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
 
   // Draw Commissioner Stamp Box
   const stampBlue = rgb(0.08, 0.2, 0.45);
-  const stampX = 90;
-  const stampY = 10;
-  const stampW = 200;
-  const stampH = 65;
 
   page2.drawRectangle({
     x: stampX,
@@ -1899,19 +1919,19 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
   });
 
   let sY = stampY + stampH - 10;
-  page2.drawText('COMMISSIONER OF OATHS (RSA)', { x: stampX + 18, y: sY, size: 7.5, font: fontBold, color: stampBlue });
+  page2.drawText('COMMISSIONER OF OATHS (RSA)', { x: stampX + 25, y: sY, size: 7.5, font: fontBold, color: stampBlue });
   sY -= 9;
-  page2.drawText('KEVIN WILLIAM FREESE', { x: stampX + 38, y: sY, size: 8, font: fontBold, color: stampBlue });
+  page2.drawText('KEVIN WILLIAM FREESE', { x: stampX + 45, y: sY, size: 8, font: fontBold, color: stampBlue });
   sY -= 8;
-  page2.drawText('Chartered Business Accountant in Practice (SA)', { x: stampX + 12, y: sY, size: 6.5, font: fontBold, color: stampBlue });
+  page2.drawText('Chartered Business Accountant in Practice (SA)', { x: stampX + 20, y: sY, size: 6.5, font: fontBold, color: stampBlue });
   sY -= 8;
-  page2.drawText('CIBA #3561 | EX OFFICIO – REPUBLIC OF SOUTH AFRICA', { x: stampX + 6, y: sY, size: 6, font: fontBold, color: stampBlue });
+  page2.drawText('CIBA #3561 | EX OFFICIO – REPUBLIC OF SOUTH AFRICA', { x: stampX + 14, y: sY, size: 6, font: fontBold, color: stampBlue });
   sY -= 8;
-  page2.drawText('Ground Floor, Waterstone Building, Stonemill Office Park', { x: stampX + 8, y: sY, size: 5.8, font: fontRegular, color: stampBlue });
+  page2.drawText('Ground Floor, Waterstone Building, Stonemill Office Park', { x: stampX + 16, y: sY, size: 5.8, font: fontRegular, color: stampBlue });
   sY -= 7;
-  page2.drawText('300 Acacia Road, Darrenwood, Randburg, 2195', { x: stampX + 22, y: sY, size: 5.8, font: fontRegular, color: stampBlue });
+  page2.drawText('300 Acacia Road, Darrenwood, Randburg, 2195', { x: stampX + 30, y: sY, size: 5.8, font: fontRegular, color: stampBlue });
   sY -= 8;
-  page2.drawText(`Date: ${details.orderDate || new Date().toLocaleDateString('en-ZA')}`, { x: stampX + 55, y: sY, size: 6.8, font: fontBold, color: stampBlue });
+  page2.drawText(`Date: ${details.orderDate || new Date().toLocaleDateString('en-ZA')}`, { x: stampX + 65, y: sY, size: 6.8, font: fontBold, color: stampBlue });
 
   const pdfBytes = await pdfDoc.save();
   return {
