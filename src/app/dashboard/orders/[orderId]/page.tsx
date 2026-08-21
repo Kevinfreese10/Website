@@ -552,15 +552,8 @@ export default function ClientOrderDetailsPage() {
       const orderRef = doc(db, 'orders', order.id);
       await updateDoc(orderRef, { notes: arrayUnion(newNote) });
       
-      // Trigger automated AI review, checklist progression, and consolidated alert
-      const reviewResult = await triggerOrderAutomatedFulfillmentReview(order.id, currentUser.name);
-
-      await notifyStaffOfDocumentUpload({
-          orderId: order.id,
-          clientName: currentUser.name,
-          assignedStaffName: assignedStaffName,
-          assignedStaffEmail: assignedStaffEmail,
-      });
+      // Trigger automated AI review, checklist progression, and single consolidated alert
+      const reviewResult = await triggerOrderAutomatedFulfillmentReview(order.id, currentUser.name, { notifyStaff: true });
 
       toast({ 
         title: "Documents Submitted & Verified!", 

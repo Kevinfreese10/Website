@@ -306,6 +306,7 @@ export type Order = {
   checklist?: OrderChecklistItem[];
   serviceSnapshots?: OrderServiceSnapshot[];
   generatedDrafts?: GeneratedDocumentDraft[];
+  lastIntakeAlertSentAt?: string;
 };
 
 export interface GeneratedDocumentDraft {

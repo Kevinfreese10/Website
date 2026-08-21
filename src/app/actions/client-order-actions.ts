@@ -123,8 +123,9 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
       });
     }
 
-    // Asynchronously kick off the AI automated review pipeline
-    triggerOrderAutomatedFulfillmentReview(params.orderId, authCtx.user.name).catch(err => {
+    // Asynchronously kick off the AI automated review pipeline silently on upload
+    const isAllRequirementsComplete = updatedUploads.length > 0 && updatedUploads.every(d => Boolean((d.files && d.files.length > 0) || d.fileUrl || d.textValue || d.notAvailableReason));
+    triggerOrderAutomatedFulfillmentReview(params.orderId, authCtx.user.name, { notifyStaff: isAllRequirementsComplete }).catch(err => {
       console.error('[client-order-actions] Error kicking off AI review pipeline:', err);
     });
 

@@ -9,7 +9,7 @@ import { Plus, Trash2, Loader2, Save, Calculator, Landmark, ShieldCheck, User as
 import { Separator } from "@/components/ui/separator";
 import { PayrollService } from '@/services/PayrollService';
 import { useToast } from '@/hooks/use-toast';
-import { updatePayslipAction } from '@/app/actions';
+import { updatePayslipAction } from '@/app/actions/payroll-core';
 import { Badge } from "@/components/ui/badge";
 import PayslipDownloadButton from '@/components/pdf/PayslipDownloadButton';
 import { Label } from '../ui/label';
@@ -538,7 +538,16 @@ export default function PayslipEditor({
             }
         } catch (e: any) {
             console.error("Error saving payslip:", e);
-            toast({ title: "Error", description: e?.message || "Could not save payslip.", variant: "destructive" });
+            const isStaleAction = e?.message?.includes('Server Action') || e?.message?.includes('was not found');
+            if (isStaleAction) {
+                toast({ 
+                    title: "New Version Deployed", 
+                    description: "Please refresh your browser (Ctrl+F5 or reload) to sync with the latest server update.", 
+                    variant: "destructive" 
+                });
+            } else {
+                toast({ title: "Error", description: e?.message || "Could not save payslip.", variant: "destructive" });
+            }
         } finally {
             setIsSaving(false);
         }

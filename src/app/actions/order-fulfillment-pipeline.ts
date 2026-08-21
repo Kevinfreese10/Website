@@ -23,7 +23,11 @@ import { sendEmail } from '@/lib/email';
 /**
  * Triggers the Automated AI Review & SOP Progression Pipeline for an Order when client submits documents.
  */
-export async function triggerOrderAutomatedFulfillmentReview(orderId: string, clientName?: string) {
+export async function triggerOrderAutomatedFulfillmentReview(
+  orderId: string, 
+  clientName?: string,
+  options?: { notifyStaff?: boolean }
+) {
   try {
     const db = getAdminDb();
     const orderRef = db.collection('orders').doc(orderId);
@@ -173,8 +177,10 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
       generatedDraftsResult = await generateOrderDocumentDraftsInternal(orderId);
     }
 
-    // 6. Send Consolidated Notification Email to Assigned Staff / Admin
-    await sendConsolidatedStaffIntakeAlert(order, updatedUploads, allApprovedOrRecommended);
+    // 6. Send Consolidated Notification Email to Assigned Staff / Admin (if requested)
+    if (options?.notifyStaff) {
+      await sendConsolidatedStaffIntakeAlert(order, updatedUploads, allApprovedOrRecommended);
+    }
 
     return serializeDbData({
       success: true,
@@ -740,6 +746,19 @@ export async function approveAndSendDraftToClientAction(
  */
 async function sendConsolidatedStaffIntakeAlert(order: Order, uploads: DocumentUpload[], allRecommended: boolean) {
   try {
+    const db = getAdminDb();
+    const orderDoc = await db.collection('orders').doc(order.id).get();
+    const orderData = (orderDoc.exists ? orderDoc.data() : order) as Order;
+
+    // Rate limit: Prevent duplicate alerts for the same order within 10 minutes
+    if (orderData.lastIntakeAlertSentAt) {
+      const lastSent = new Date(orderData.lastIntakeAlertSentAt).getTime();
+      if (!isNaN(lastSent) && Date.now() - lastSent < 10 * 60 * 1000) {
+        console.log(`[sendConsolidatedStaffIntakeAlert] Skipping alert for Order #${order.id} — already sent at ${orderData.lastIntakeAlertSentAt}`);
+        return;
+      }
+    }
+
     const staffEmail = order.assignedTo?.[0] ? 'info@myacc.co.za' : 'info@myacc.co.za';
     const clientName = order.endCustomerName || order.customerName || 'Client';
     const orderUrl = `https://www.myacc.co.za/admin/orders/${order.id}`;
@@ -755,7 +774,7 @@ async function sendConsolidatedStaffIntakeAlert(order: Order, uploads: DocumentU
         </div>
         <div style="padding: 24px;">
           <p style="font-size: 15px; line-height: 1.5; margin-top: 0;">
-            <strong>${clientName}</strong> has clicked <em>"Notify Consultant of All Submissions"</em>. The automated AI verification pipeline has processed the uploads.
+            <strong>${clientName}</strong> has submitted documents. The automated AI verification pipeline has processed the uploads.
           </p>
           
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin: 18px 0;">
@@ -781,6 +800,10 @@ async function sendConsolidatedStaffIntakeAlert(order: Order, uploads: DocumentU
       to: staffEmail,
       subject: `[AI Intake Alert] Client Submitted Documents for Order #${order.id} (${clientName})`,
       html,
+    });
+
+    await db.collection('orders').doc(order.id).update({
+      lastIntakeAlertSentAt: new Date().toISOString(),
     });
   } catch (err) {
     console.error('Error sending staff intake alert email:', err);
