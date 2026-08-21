@@ -32,13 +32,6 @@ const formSchema = z.object({
       user: z.string().min(1, "Username is required."),
       pass: z.string().min(1, "Password is required."),
   }),
-  imapDetails: z.object({
-      host: z.string().min(1, "Host is required."),
-      port: z.string().min(1, "Port is required."),
-      user: z.string().min(1, "Username is required."),
-      pass: z.string().min(1, "Password is required."),
-      secure: z.boolean().default(true),
-  }),
 });
 
 export default function EmailSettingsForm() {
@@ -56,13 +49,6 @@ export default function EmailSettingsForm() {
           user: user?.smtpDetails?.user || user?.email || '', 
           pass: user?.smtpDetails?.pass || ''
       },
-      imapDetails: { 
-          host: user?.imapDetails?.host || '', 
-          port: user?.imapDetails?.port || '993', 
-          user: user?.imapDetails?.user || user?.email || '', 
-          pass: user?.imapDetails?.pass || '',
-          secure: user?.imapDetails?.secure === undefined ? true : user.imapDetails.secure,
-      },
     },
   });
   
@@ -73,9 +59,8 @@ export default function EmailSettingsForm() {
           const userRef = doc(db, 'users', user.uid);
           await updateDoc(userRef, { 
               smtpDetails: values.smtpDetails,
-              imapDetails: values.imapDetails,
           });
-          updateUser({ ...user, smtpDetails: values.smtpDetails, imapDetails: values.imapDetails });
+          updateUser({ ...user, smtpDetails: values.smtpDetails });
           toast({ title: 'Settings Saved', description: 'Your email settings have been updated.' });
       } catch (e) {
           console.error(e);
@@ -99,11 +84,17 @@ export default function EmailSettingsForm() {
     });
 
     try {
-        await sendAdminEmail({
-            idToken: await getIdToken(),
+        const idToken = await getIdToken();
+        const res = await sendAdminEmail({
+            idToken,
             to: values.smtpDetails.user,
             subject: 'SMTP Settings Test from My Accountant',
-            html: `<p>This is a test email to confirm your SMTP settings are working correctly.</p>`,
+            html: `
+                <p>Hello,</p>
+                <p>This is a test email sent from your application to verify that your personal SMTP settings are configured correctly.</p>
+                <p>If you are receiving this, your email configuration is working as expected.</p>
+                <p>Sent at: ${new Date().toLocaleString()}</p>
+            `,
             smtpOverride: {
                 host: values.smtpDetails.host,
                 port: values.smtpDetails.port,
@@ -111,15 +102,23 @@ export default function EmailSettingsForm() {
                 pass: values.smtpDetails.pass,
             },
         });
+
+        if (res.success) {
+            toast({
+                title: 'Test Email Sent',
+                description: `An email has been sent to ${values.smtpDetails.user}. Please check your inbox.`,
+            });
+        } else {
+            toast({
+                title: 'Test Email Failed',
+                description: res.error || 'Failed to send test email. Please check your credentials.',
+                variant: 'destructive',
+            });
+        }
+    } catch (e: any) {
         toast({
-            title: 'Test Email Sent!',
-            description: `An email has been sent to ${values.smtpDetails.user}. Please check your inbox.`,
-        });
-    } catch (error) {
-        console.error("Failed to send test email:", error);
-        toast({
-            title: 'Test Failed',
-            description: 'Could not send test email. Please check your SMTP credentials and try again.',
+            title: 'Test Email Failed',
+            description: e.message || 'An error occurred while sending the test email.',
             variant: 'destructive',
         });
     } finally {
@@ -129,46 +128,15 @@ export default function EmailSettingsForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSave)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSave)} className="space-y-6">
         <div className="space-y-4">
             <h3 className="text-lg font-medium">SMTP Details (Sending Emails)</h3>
-            <p className="text-sm text-muted-foreground">These are your personal email sending credentials. They are stored securely and used only for sending emails on your behalf from within the application.</p>
+            <p className="text-sm text-muted-foreground">These are your email sending credentials. They are stored securely and used for sending outgoing emails on your behalf from within the application.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <FormField control={form.control} name="smtpDetails.host" render={({ field }) => ( <FormItem><FormLabel>SMTP Host</FormLabel><FormControl><Input {...field} placeholder="e.g., smtp.gmail.com" /></FormControl><FormMessage /></FormItem>)} />
                  <FormField control={form.control} name="smtpDetails.port" render={({ field }) => ( <FormItem><FormLabel>SMTP Port</FormLabel><FormControl><Input {...field} placeholder="e.g., 465 or 587" /></FormControl><FormMessage /></FormItem>)} />
                  <FormField control={form.control} name="smtpDetails.user" render={({ field }) => ( <FormItem><FormLabel>Username (Your Email)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                  <FormField control={form.control} name="smtpDetails.pass" render={({ field }) => ( <FormItem><FormLabel>Password / App Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>)} />
-            </div>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-4">
-            <h3 className="text-lg font-medium">IMAP Details (Fetching Emails)</h3>
-            <p className="text-sm text-muted-foreground">These credentials are used to connect to your mailbox and fetch incoming emails for the AI Email Inbox.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <FormField control={form.control} name="imapDetails.host" render={({ field }) => ( <FormItem><FormLabel>IMAP Host</FormLabel><FormControl><Input {...field} placeholder="e.g., imap.gmail.com" /></FormControl><FormMessage /></FormItem>)} />
-                 <FormField control={form.control} name="imapDetails.port" render={({ field }) => ( <FormItem><FormLabel>IMAP Port</FormLabel><FormControl><Input {...field} placeholder="e.g., 993" /></FormControl><FormMessage /></FormItem>)} />
-                 <FormField control={form.control} name="imapDetails.user" render={({ field }) => ( <FormItem><FormLabel>Username (Your Email)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                 <FormField control={form.control} name="imapDetails.pass" render={({ field }) => ( <FormItem><FormLabel>Password / App Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField
-                    control={form.control}
-                    name="imapDetails.secure"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm col-span-1 md:col-span-2">
-                            <div className="space-y-0.5">
-                                <FormLabel>Connection Security (SSL/TLS)</FormLabel>
-                                <p className="text-xs text-muted-foreground">Enable for standard secure ports like 993.</p>
-                            </div>
-                            <FormControl>
-                                <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                />
-                            </FormControl>
-                        </FormItem>
-                    )}
-                    />
             </div>
         </div>
         

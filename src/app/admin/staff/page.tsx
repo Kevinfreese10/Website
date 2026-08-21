@@ -41,7 +41,6 @@ export const AVAILABLE_MODULES = [
   { id: 'Manage Products', label: 'Manage Products' },
   { id: 'Social Marketing', label: 'Social Marketing' },
   { id: 'Community', label: 'Community' },
-  { id: 'Email Inbox', label: 'Email Inbox' },
   { id: 'Manage Tasks', label: 'Manage Tasks' },
   { id: 'Task Templates', label: 'Task Templates' },
   { id: 'Manage Categories', label: 'Manage Categories' },
