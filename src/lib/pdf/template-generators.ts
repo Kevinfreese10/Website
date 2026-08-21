@@ -1842,6 +1842,8 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
 
   // --- Commissioner of Oaths Stamp & Signature ---
   const possibleSigPaths = [
+    path.join(process.cwd(), 'public/templates/Signature_Kevin_New.png'),
+    'C:\\Users\\kev\\Downloads\\ChatGPT Image Aug 21, 2026, 10_03_09 AM.png',
     path.join(process.cwd(), 'public/templates/Signature.png'),
     'C:\\Users\\kev\\OneDrive\\Documents\\Signature.png',
   ];
@@ -1857,12 +1859,13 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
   if (sigImageBytes) {
     try {
       const sigImage = await pdfDoc.embedPng(sigImageBytes);
-      const sigDims = sigImage.scale(0.35);
+      const sigW = 110;
+      const sigH = sigW / (sigImage.width / sigImage.height);
       page2.drawImage(sigImage, {
-        x: 95,
-        y: 85,
-        width: sigDims.width,
-        height: sigDims.height,
+        x: 90,
+        y: 78,
+        width: sigW,
+        height: sigH,
       });
     } catch (e) {
       console.warn('Could not embed Commissioner signature image:', e);
@@ -1872,9 +1875,9 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
   // Draw Commissioner Stamp Box
   const stampBlue = rgb(0.08, 0.2, 0.45);
   const stampX = 90;
-  const stampY = 15;
+  const stampY = 10;
   const stampW = 200;
-  const stampH = 68;
+  const stampH = 65;
 
   page2.drawRectangle({
     x: stampX,
