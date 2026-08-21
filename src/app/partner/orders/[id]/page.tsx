@@ -457,6 +457,13 @@ export default function PartnerOrderDetailsPage() {
 
   const handleOrderStatusTransition = async (newStatus: Order['status']) => {
     if (!order) return;
+
+    // Intercept: show modal for Processing (wallet payment required)
+    if (newStatus === 'Processing' && !order.isOutsourced) {
+      setProcessModalOpen(true);
+      return;
+    }
+
     try {
       const auth = getAuth(firebaseApp);
       const idToken = await auth.currentUser?.getIdToken();

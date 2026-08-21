@@ -58,17 +58,35 @@ export default function OrderPrerequisiteRequirementsCard({
         let customerOrders: Order[] = [];
 
         if (customerEmail) {
-          const partnerId = order.resellerId || order.partnerId || order.userId;
-          const q = query(collection(db, 'orders'), where('customerEmail', '==', customerEmail), where('resellerId', '==', partnerId));
-          const snap = await getDocs(q);
-          customerOrders = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Order));
+          const partnerId = order.resellerId || order.partnerId;
+          let customerOrdersQuery;
+          if (partnerId) {
+            customerOrdersQuery = query(collection(db, 'orders'), where('resellerId', '==', partnerId));
+          } else if (order.userId) {
+            customerOrdersQuery = query(collection(db, 'orders'), where('userId', '==', order.userId));
+          } else {
+            customerOrdersQuery = query(collection(db, 'orders'), where('customerEmail', '==', customerEmail));
+          }
+          const snap = await getDocs(customerOrdersQuery);
+          customerOrders = snap.docs
+            .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Order))
+            .filter((o) => o.customerEmail === customerEmail || o.endCustomerEmail === customerEmail);
         }
 
         // 2. Fetch child orders linked directly to this order
-        const partnerId2 = order.resellerId || order.partnerId || order.userId;
-        const childQ = query(collection(db, 'orders'), where('originalOrderId', '==', order.id), where('resellerId', '==', partnerId2));
-        const childSnap = await getDocs(childQ);
-        const childOrders = childSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Order));
+        const partnerId2 = order.resellerId || order.partnerId;
+        let childQuery;
+        if (partnerId2) {
+          childQuery = query(collection(db, 'orders'), where('resellerId', '==', partnerId2));
+        } else if (order.userId) {
+          childQuery = query(collection(db, 'orders'), where('userId', '==', order.userId));
+        } else {
+          childQuery = query(collection(db, 'orders'), where('originalOrderId', '==', order.id));
+        }
+        const childSnap = await getDocs(childQuery);
+        const childOrders = childSnap.docs
+          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Order))
+          .filter((o) => o.originalOrderId === order.id);
 
         if (isMounted) {
           setLinkedChildOrders(childOrders);
