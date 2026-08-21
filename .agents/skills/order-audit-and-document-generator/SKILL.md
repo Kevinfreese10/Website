@@ -111,6 +111,7 @@ Use `src/lib/pdf/template-generators.ts` generators:
 
 ## Safeguards & Rules
 
-1. **Strict Communication History Policy**: Never send raw emails to end clients. All client communication must go through `orders/{orderId}/notes`.
-2. **WinAnsi Encoding Constraint**: In pdf-lib, avoid unicode bullets or smart quotes. Use standard ASCII characters (`•` as ASCII bullet or dash).
-3. **Single Page Strictness**: Letters and statutory certificates must fit neatly on a single page unless inherently multi-page (e.g. NCR Form 2).
+1. **Strict Statutory Prerequisite Gate (No Drafting on Incomplete Info)**: Never generate or process statutory registration documents until ALL prerequisite source documents have been verified and extracted. For NCR registrations, a valid **SARS Tax Clearance Certificate / PIN** is a strict prerequisite because the official SARS Income Tax Reference Number and VAT status are extracted directly from the Tax Clearance. If Tax Clearance is missing, the order MUST NOT proceed to document generation; it must remain in `Waiting for Client Info` and a document request note posted for the client.
+2. **Strict Communication History Policy**: Never send raw emails to end clients. All client communication must go through `orders/{orderId}/notes`.
+3. **WinAnsi Encoding Constraint**: In pdf-lib, avoid unicode bullets or smart quotes. Use standard ASCII characters (`•` as ASCII bullet or dash).
+4. **Single Page Strictness**: Letters and statutory certificates must fit neatly on a single page unless inherently multi-page (e.g. NCR Form 2).

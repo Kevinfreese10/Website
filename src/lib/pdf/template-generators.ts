@@ -268,7 +268,8 @@ export function drawMyAccHeader(page: any, width: number, height: number, fontBo
  */
 export async function generateNcrForm2Draft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
   const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
-  validateStatutoryPrerequisites(details, ['companyName', 'customerName', 'idNumber'], 'NCR Form 2 Application');
+  // Strictly enforce that all statutory prerequisites including SARS Tax Clearance (taxNumber) are present before processing
+  validateStatutoryPrerequisites(details, ['companyName', 'customerName', 'idNumber', 'regNumber', 'address', 'taxNumber'], 'NCR Form 2 Application');
 
   const possibleTemplatePaths = [
     path.join(process.cwd(), 'public/templates/NCR_Form_2_Fillable.pdf'),
