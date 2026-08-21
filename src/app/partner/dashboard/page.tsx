@@ -281,7 +281,7 @@ export default function PartnerDashboardPage() {
             return {
               ...data,
               id: doc.id,
-              date: data.date.toDate(),
+              date: data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date()),
             } as Order;
           });
           // Sort in memory descending by date
@@ -302,7 +302,7 @@ export default function PartnerDashboardPage() {
               return {
                   ...data,
                   id: doc.id,
-                  date: data.date.toDate(),
+                  date: data.date?.toDate ? data.date.toDate() : (data.date ? new Date(data.date) : new Date()),
               } as Order;
           });
           // Sort in memory descending by date
@@ -373,7 +373,7 @@ export default function PartnerDashboardPage() {
             .filter(note => note.authorId !== user.id && note.type === 'note')
             .map(note => ({
               ...note,
-              date: note.date instanceof Date ? note.date : note.date.toDate(),
+              date: note.date?.toDate ? note.date.toDate() : (note.date ? new Date(note.date) : new Date()),
               orderId: order.id,
               orderTitle: order.items[0]?.title || 'Untitled Order',
               customerName: order.customerName,
@@ -388,7 +388,7 @@ export default function PartnerDashboardPage() {
             .filter(note => note.authorId !== user.id && note.type === 'note')
             .map(note => ({
               ...note,
-              date: note.date instanceof Date ? note.date : note.date.toDate(),
+              date: note.date?.toDate ? note.date.toDate() : (note.date ? new Date(note.date) : new Date()),
               orderId: order.id,
               orderTitle: order.items[0]?.title || 'Untitled Order',
               customerName: order.customerName,
