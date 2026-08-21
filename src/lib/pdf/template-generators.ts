@@ -304,31 +304,58 @@ export async function generateNcrForm2Draft(order: Order, extractedInfo?: any): 
     } catch (e) {}
   };
 
-  // Part 1: Applicant & Entity Details
+  // Part 1: Applicant & Entity Details (From CIPC COR14.3)
   setField('p1_applicant_name', details.companyName);
   setField('p1_trading_name', details.companyName);
-  setField('p1_reg_number', details.regNumber);
-  setField('p1_cipc_reg_date', details.orderDate);
+  checkField('p1_legal_status_private_company');
+  setField('p1_cipro_reg_number', details.regNumber);
+  setField('p1_date_commencement_trading', (details as any).cipcRegDate || '27/06/2026');
+  setField('p1_financial_year_end', 'February');
+  setField('p1_income_tax_number', details.taxNumber && details.taxNumber !== '9000000000' ? details.taxNumber : 'N/A');
+  setField('p1_vat_registration_number', 'N/A');
   
   const addressParts = (details.address || '').split(',').map((s: string) => s.trim());
-  setField('p1_physical_address_line1', addressParts[0] || details.address);
-  setField('p1_physical_address_line2', addressParts[1] || '');
-  setField('p1_physical_address_line3_city', addressParts[2] || 'South Africa');
-  setField('p1_physical_postal_code', addressParts[addressParts.length - 1] || '');
+  if (addressParts.length >= 4) {
+    setField('p1_physical_address_line1', `${addressParts[0]}, ${addressParts[1]}`);
+    setField('p1_physical_address_line2', addressParts[2]);
+    setField('p1_physical_address_line3_city', addressParts[3] || 'South Africa');
+    setField('p1_physical_postal_code', addressParts[addressParts.length - 1] || '');
 
-  setField('p1_postal_address_line1', addressParts[0] || details.address);
-  setField('p1_postal_address_line2', addressParts[1] || '');
-  setField('p1_postal_address_line3_city', addressParts[2] || 'South Africa');
-  setField('p1_postal_code', addressParts[addressParts.length - 1] || '');
+    setField('p1_postal_address_line1', `${addressParts[0]}, ${addressParts[1]}`);
+    setField('p1_postal_address_line2', addressParts[2]);
+    setField('p1_postal_address_line3_city', addressParts[3] || 'South Africa');
+    setField('p1_postal_code', addressParts[addressParts.length - 1] || '');
+  } else {
+    setField('p1_physical_address_line1', addressParts[0] || details.address);
+    setField('p1_physical_address_line2', addressParts[1] || '');
+    setField('p1_physical_address_line3_city', addressParts[2] || '');
+    setField('p1_physical_postal_code', addressParts[addressParts.length - 1] || '');
 
-  setField('p1_telephone_number', details.phone || '010 109 1625');
-  setField('p1_email_address', details.email || 'info@myacc.co.za');
+    setField('p1_postal_address_line1', addressParts[0] || details.address);
+    setField('p1_postal_address_line2', addressParts[1] || '');
+    setField('p1_postal_address_line3_city', addressParts[2] || '');
+    setField('p1_postal_code', addressParts[addressParts.length - 1] || '');
+  }
+
+  const cleanPhone = (details.phone || '').replace(/[^0-9]/g, '');
+  if (cleanPhone.length >= 10) {
+    setField('p1_tel_code', cleanPhone.slice(0, 3));
+    setField('p1_telephone_number', cleanPhone.slice(3));
+  } else {
+    setField('p1_telephone_number', details.phone || '');
+  }
+  setField('p1_email_address', details.email || '');
 
   // Part 2: Contact Person & Auditor Details
   const nameParts = (details.customerName || '').split(' ');
   setField('p2_contact_name', nameParts.slice(0, -1).join(' ') || details.customerName);
   setField('p2_contact_surname', nameParts[nameParts.length - 1] || details.customerName);
-  setField('p2_contact_cell_number', details.phone || '');
+  if (cleanPhone.length >= 10) {
+    setField('p2_contact_cell_code', cleanPhone.slice(0, 3));
+    setField('p2_contact_cell_number', cleanPhone.slice(3));
+  } else {
+    setField('p2_contact_cell_number', details.phone || '');
+  }
   setField('p2_contact_email', details.email || '');
 
   // Designated Accounting Officer: My Accountant (Pty) Ltd / Kevin Freese CBA (SA) #3561
@@ -354,6 +381,12 @@ export async function generateNcrForm2Draft(order: Order, extractedInfo?: any): 
   setField('p3_language_area1_desc', addressParts[2] || 'Head Office Region');
   setField('p3_language_area1_lang1', 'English');
   setField('p3_language_area1_lang2', 'Sepedi');
+
+  // Part 2 — Financial Information (New company = 0 for all financial fields)
+  setField('p3_fin_net_loan_book_value', '0');
+  setField('p3_fin_total_agreements_count', '0');
+  setField('p3_fin_total_principal_debt_value', '0');
+  setField('p3_fin_agreements_during_year_count', '0');
 
   // Part 4: Regulatory Disqualifications (all default to No)
   checkField('p4_control_credit_bureau_no');
