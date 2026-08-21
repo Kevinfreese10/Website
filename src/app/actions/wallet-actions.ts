@@ -6,6 +6,7 @@ import { sendEmail } from '@/lib/email';
 import { notifyStaffOfAssignment, sendDocumentRequestEmailAction } from './order-actions';
 import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { getVerifiedAuthContext } from '@/lib/server-auth';
+import { isStaffActive } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -384,11 +385,7 @@ export async function outsourceOrderFromWallet(
           const staffSnap = await db.collection('users').where('role', 'in', ['staff', 'admin']).get();
           const allActiveStaff = staffSnap.docs
             .map(d => ({ id: d.id, ...d.data() } as any))
-            .filter(staff => {
-              if (staff.isActive === false || staff.disabled === true) return false;
-              if (staff.status === 'Inactive' || staff.status === 'Archived' || staff.status === 'Deactivated') return false;
-              return true;
-            });
+            .filter(isStaffActive);
 
           const matchingStaff = allActiveStaff.filter(staff => {
             if (staff.role !== 'staff') return false;

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, MoreHorizontal, Check, Paperclip, X } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
+import { cn, isStaffActive } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList, CommandGroup } from '@/components/ui/command';
 import { Separator } from '@/components/ui/separator';
@@ -72,6 +72,13 @@ export default function TaskForm({
     const { user } = useAuth();
     const [isCommenting, setIsCommenting] = useState(false);
     const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+    const assignableStaff = useMemo(() => {
+        const active = allStaff.filter(isStaffActive);
+        const currentAssigned = task?.assignedTo || [];
+        const inactiveCurrent = allStaff.filter(s => currentAssigned.includes(s.id) && !isStaffActive(s));
+        return [...active, ...inactiveCurrent];
+    }, [allStaff, task?.assignedTo]);
 
     const getTaskDate = (task: Partial<Task>): Date => {
       if (!task?.dueDate) return new Date();
@@ -166,37 +173,42 @@ export default function TaskForm({
                                     <CommandEmpty>No results found.</CommandEmpty>
                                     <CommandGroup heading="Teams">
                                         {Object.keys(staffByDept).map(dept => (
-                                            <CommandItem key={dept} onSelect={() => field.onChange(staffByDept[dept]?.map(s => s.id) || [])}>{dept} Dept</CommandItem>
+                                            <CommandItem key={dept} onSelect={() => field.onChange(staffByDept[dept]?.filter(isStaffActive).map(s => s.id) || [])}>{dept} Dept</CommandItem>
                                         ))}
                                     </CommandGroup>
                                     <CommandGroup heading="Assignable Members">
-                                        {allStaff.map((staff) => (
-                                        <CommandItem
-                                            key={staff.id}
-                                            value={staff.name}
-                                            onSelect={() => {
-                                            const selection = new Set(field.value);
-                                            if (selection.has(staff.id)) {
-                                                selection.delete(staff.id);
-                                            } else {
-                                                selection.add(staff.id);
-                                            }
-                                            field.onChange(Array.from(selection));
-                                            }}
-                                        >
-                                            <div
-                                            className={cn(
-                                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                                field.value?.includes(staff.id)
-                                                ? "bg-primary text-primary-foreground"
-                                                : "opacity-50 [&_svg]:invisible"
-                                            )}
-                                            >
-                                            <Check className={cn("h-4 w-4")} />
-                                            </div>
-                                            <span>{staff.name}</span>
-                                        </CommandItem>
-                                        ))}
+                                        {assignableStaff.map((staff: User) => {
+                                            const isInactive = !isStaffActive(staff);
+                                            return (
+                                                <CommandItem
+                                                    key={staff.id}
+                                                    value={`${staff.name} ${staff.email || ''}`}
+                                                    onSelect={() => {
+                                                        const selection = new Set(field.value);
+                                                        if (selection.has(staff.id)) {
+                                                            selection.delete(staff.id);
+                                                        } else {
+                                                            selection.add(staff.id);
+                                                        }
+                                                        field.onChange(Array.from(selection));
+                                                    }}
+                                                >
+                                                    <div
+                                                        className={cn(
+                                                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                            field.value?.includes(staff.id)
+                                                            ? "bg-primary text-primary-foreground"
+                                                            : "opacity-50 [&_svg]:invisible"
+                                                        )}
+                                                    >
+                                                        <Check className={cn("h-4 w-4")} />
+                                                    </div>
+                                                    <span className={cn(isInactive && "text-muted-foreground line-through opacity-75")}>
+                                                        {staff.name} {isInactive ? '(Inactive)' : ''}
+                                                    </span>
+                                                </CommandItem>
+                                            );
+                                        })}
                                     </CommandGroup>
                                     </CommandList>
                                 </Command>
@@ -276,10 +288,10 @@ export default function TaskForm({
                                 <CommandList>
                                 <CommandEmpty>No results found.</CommandEmpty>
                                 <CommandGroup heading="Members">
-                                    {allStaff.map((staff) => (
+                                    {allStaff.filter(isStaffActive).map((staff: User) => (
                                     <CommandItem
                                         key={staff.id}
-                                        value={staff.name}
+                                        value={`${staff.name} ${staff.email || ''}`}
                                         onSelect={() => {
                                         const selection = new Set(field.value);
                                         if (selection.has(staff.id)) {

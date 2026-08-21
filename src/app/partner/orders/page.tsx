@@ -8,6 +8,7 @@ import { Order, User, Service, OrderNote, Task, ItnLog } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePartner } from '@/contexts/PartnerContext';
 import { services as staticServices } from '@/lib/data';
+import { isStaffActive } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -115,11 +116,7 @@ export default function PartnerOrdersPage() {
   const getNextStaffMember = (department: 'Accounting and Tax' | 'Administration' | 'CAP'): User | undefined => {
       const activeStaff = allStaff.filter(u => 
         (u.role === 'staff' || u.role === 'admin') && 
-        u.isActive !== false && 
-        u.status !== 'Inactive' && 
-        u.status !== 'Archived' && 
-        u.status !== 'Deactivated' && 
-        !(u as any).disabled
+        isStaffActive(u)
       );
 
       const staffInDept = activeStaff.filter(u => u.department === department && u.role === 'staff');

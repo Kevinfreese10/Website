@@ -185,8 +185,12 @@ export async function adminToggleUserActiveAction({ uid, isActive }: { uid: stri
     const adminAuth = getAdminAuth();
     const adminDb = getAdminDb();
 
-    // 1. Update Firestore user document
-    await adminDb.collection('users').doc(uid).set({ isActive }, { merge: true });
+    // 1. Update Firestore user document with synchronized status fields
+    await adminDb.collection('users').doc(uid).set({
+      isActive,
+      status: isActive ? 'Active' : 'Deactivated',
+      disabled: !isActive,
+    }, { merge: true });
 
     // 2. Enable or disable user in Firebase Authentication and revoke sessions if deactivating
     try {

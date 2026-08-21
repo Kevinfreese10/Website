@@ -10,6 +10,7 @@ import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
 import PartnerOnboardingEmail from '@/components/emails/PartnerOnboardingEmail';
 import { sendEmail } from '@/lib/email';
 import { services as allServices } from '@/lib/data';
+import { isStaffActive } from '@/lib/utils';
 
 // PayFast's valid IP ranges (combining legacy ranges, sandbox, and new AWS IP blocks)
 const PAYFAST_IP_RANGES = [
@@ -445,11 +446,7 @@ export async function POST(req: NextRequest) {
               
               const allActiveStaff = staffSnapshot.docs
                   .map(doc => ({ id: doc.id, ...doc.data() } as User))
-                  .filter(staff => {
-                      if (staff.isActive === false || (staff as any).disabled === true) return false;
-                      if (staff.status === 'Inactive' || staff.status === 'Archived' || staff.status === 'Deactivated') return false;
-                      return true;
-                  });
+                  .filter(isStaffActive);
 
               const matchingStaff = allActiveStaff.filter(staff => {
                   if (staff.role !== 'staff') return false;
@@ -490,7 +487,7 @@ export async function POST(req: NextRequest) {
                   });
                   
                   let minWorkload = Infinity;
-                  matchingStaff.forEach(staff => {
+                  candidateStaff.forEach(staff => {
                       const workload = workloadMap[staff.id] || 0;
                       if (workload < minWorkload) {
                           minWorkload = workload;

@@ -16,6 +16,7 @@ import { Task, User } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { render } from '@react-email/components';
 import NewTaskEmail from '@/components/emails/NewTaskEmail';
+import { isStaffActive } from '@/lib/utils';
 
 const db = getFirestore(firebaseApp);
 
@@ -40,13 +41,14 @@ export default function AdminCompliancePage() {
   const staffCounters = useRef<{ [key: string]: number }>({});
   
   const getNextAdminStaff = (): User | undefined => {
-      const adminStaff = allStaff.filter(u => u.department === 'Administration' && u.role === 'staff');
-      if (adminStaff.length === 0) return undefined;
+      const adminStaff = allStaff.filter(u => u.department === 'Administration' && u.role === 'staff' && isStaffActive(u));
+      const candidates = adminStaff.length > 0 ? adminStaff : allStaff.filter(u => (u.role === 'staff' || u.role === 'admin') && isStaffActive(u));
+      if (candidates.length === 0) return undefined;
 
       const currentIndex = staffCounters.current['Administration'] || 0;
-      const nextStaff = adminStaff[currentIndex];
+      const nextStaff = candidates[currentIndex % candidates.length];
       
-      staffCounters.current['Administration'] = (currentIndex + 1) % adminStaff.length;
+      staffCounters.current['Administration'] = (currentIndex + 1) % candidates.length;
       
       return nextStaff;
   }

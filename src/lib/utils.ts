@@ -64,3 +64,22 @@ export function formatPrice(price: number): string {
   // Replace commas or normal spaces with non-breaking spaces to prevent line breaks
   return `R\u00A0${formatted.replace(/,/g, '\u00A0').replace(/\s/g, '\u00A0')}`;
 }
+
+/**
+ * Determines whether a staff/user account is active and eligible for task/order assignment.
+ * Checks all active flags across the database: isActive !== false, disabled !== true,
+ * and status !== 'Inactive' | 'Deactivated' | 'Archived'.
+ */
+export function isStaffActive(user?: { isActive?: boolean; disabled?: boolean; status?: string } | null): boolean {
+  if (!user) return false;
+  if (user.isActive === false) return false;
+  if (user.disabled === true) return false;
+  if (typeof user.status === 'string') {
+    const s = user.status.trim().toLowerCase();
+    if (s === 'inactive' || s === 'deactivated' || s === 'archived' || s === 'pending setup payment') {
+      return false;
+    }
+  }
+  return true;
+}
+

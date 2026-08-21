@@ -8,7 +8,7 @@ import { getAuth } from 'firebase/auth';
 import { Order, User, Service, OrderNote, Task, ItnLog } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { services as allServices } from '@/lib/data';
-import { cn } from '@/lib/utils';
+import { cn, isStaffActive } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -85,11 +85,7 @@ export default function AdminOrdersPage() {
   const getNextStaffMember = (department: 'Accounting and Tax' | 'Administration' | 'CAP'): User | undefined => {
       const activeStaff = allStaff.filter(u => 
         (u.role === 'staff' || u.role === 'admin') && 
-        u.isActive !== false && 
-        u.status !== 'Inactive' && 
-        u.status !== 'Archived' && 
-        u.status !== 'Deactivated' && 
-        !(u as any).disabled
+        isStaffActive(u)
       );
 
       const staffInDept = activeStaff.filter(u => u.department === department && u.role === 'staff');
@@ -835,7 +831,7 @@ export default function AdminOrdersPage() {
                                         <DropdownMenuSub>
                                         <DropdownMenuSubTrigger>Assign To</DropdownMenuSubTrigger>
                                         <DropdownMenuSubContent>
-                                            {allStaff.filter(staff => staff.isActive !== false && staff.status !== 'Inactive' && staff.status !== 'Archived' && staff.status !== 'Deactivated' && !(staff as any).disabled).map(staff => (
+                                            {allStaff.filter(staff => isStaffActive(staff)).map(staff => (
                                             <DropdownMenuItem 
                                                 key={staff.id} 
                                                 onClick={() => handleAssignment(order.id, staff.id)}

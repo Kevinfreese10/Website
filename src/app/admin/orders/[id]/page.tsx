@@ -45,7 +45,7 @@ import PartnerAssignmentEmail from '@/components/emails/PartnerAssignmentEmail';
 import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
-import { cn, formatDate } from '@/lib/utils';
+import { cn, formatDate, isStaffActive } from '@/lib/utils';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 import { db, firebaseApp } from '@/lib/firebase';
@@ -1706,11 +1706,16 @@ export default function AdminOrderDetailsPage() {
                                     <SelectValue placeholder="Reassign Staff..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {allStaff.filter(s => (s.role === 'staff' || s.role === 'admin') && s.isActive !== false && s.status !== 'Inactive' && s.status !== 'Archived' && s.status !== 'Deactivated' && !(s as any).disabled).map((staff) => (
+                                    {allStaff.filter(s => (s.role === 'staff' || s.role === 'admin') && isStaffActive(s)).map((staff) => (
                                         <SelectItem key={staff.id || (staff as any).uid} value={staff.id || (staff as any).uid}>
                                             {staff.name} ({staff.department || 'General'})
                                         </SelectItem>
                                     ))}
+                                    {assignee && !isStaffActive(assignee) && (
+                                        <SelectItem key={assignee.id || (assignee as any).uid} value={assignee.id || (assignee as any).uid} disabled>
+                                            {assignee.name} (Inactive - {assignee.department || 'General'})
+                                        </SelectItem>
+                                    )}
                                 </SelectContent>
                             </Select>
                         </CardContent>

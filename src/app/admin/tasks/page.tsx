@@ -14,7 +14,7 @@ import { Task, User, TaskComment } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, isStaffActive } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, arrayUnion, Timestamp, where, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -79,7 +79,7 @@ export default function AdminTasksPage() {
   const staffByDept = useMemo(() => {
     const result: Record<string, User[]> = {};
     departments.forEach(dept => {
-        result[dept] = allStaff.filter(u => u.department === dept);
+        result[dept] = allStaff.filter(u => u.department === dept && isStaffActive(u));
     });
     return result;
   }, [allStaff]);
