@@ -10,7 +10,8 @@ import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
 import PartnerOnboardingEmail from '@/components/emails/PartnerOnboardingEmail';
 import { sendEmail } from '@/lib/email';
 import { services as allServices } from '@/lib/data';
-import { ensureOrderChecklistInitialized, INTERNAL_SYSTEM_ACTOR } from '@/app/actions/order-admin-actions';
+import { ensureOrderChecklistInitialized } from '@/app/actions/order-admin-actions';
+import { INTERNAL_SYSTEM_ACTOR } from '@/lib/internal-actor';
 import { triggerOrderAutomatedFulfillmentReview } from '@/app/actions/order-fulfillment-pipeline';
 
 // PayFast's valid IP ranges (combining legacy ranges, sandbox, and new AWS IP blocks)

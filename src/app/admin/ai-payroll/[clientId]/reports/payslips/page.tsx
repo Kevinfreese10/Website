@@ -42,6 +42,8 @@ export default function PayslipsBatchDownloadPage() {
     const [selectedPayslipIds, setSelectedPayslipIds] = useState<string[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
     const [isEmailing, setIsEmailing] = useState(false);
+    const [hideRatePerHour, setHideRatePerHour] = useState<boolean>(false);
+    const [hidePayDate, setHidePayDate] = useState<boolean>(false);
 
     // Fetch Initial Data
     useEffect(() => {
@@ -52,6 +54,8 @@ export default function PayslipsBatchDownloadPage() {
             if (snap.exists()) {
                 const data = snap.data();
                 setClient({ ...data, id: snap.id } as User);
+                if (data.hideRatePerHour !== undefined) setHideRatePerHour(!!data.hideRatePerHour);
+                if (data.hidePayDate !== undefined) setHidePayDate(!!data.hidePayDate);
                 if (!selectedMonth) {
                     const isFortnightly = data.payrollFrequency === 'Fortnightly';
                     let defaultMonth = data.firstProcessingMonth || format(new Date(), 'MMMM yyyy');
@@ -225,7 +229,7 @@ export default function PayslipsBatchDownloadPage() {
         if (!client) return;
         try {
             const doc = new jsPDF();
-            generatePayslipPdfPage(doc, ps, employee, client);
+            generatePayslipPdfPage(doc, ps, employee, client, undefined, undefined, { hideRatePerHour, hidePayDate });
             doc.save(`Payslip-${employee.surname}-${(ps.period || 'Current').replace(/\s/g, '-')}.pdf`);
             toast({ title: 'Download Successful' });
         } catch (err) {
@@ -253,7 +257,7 @@ export default function PayslipsBatchDownloadPage() {
                 if (addedPages > 0) {
                     doc.addPage();
                 }
-                generatePayslipPdfPage(doc, ps, emp, client);
+                generatePayslipPdfPage(doc, ps, emp, client, undefined, undefined, { hideRatePerHour, hidePayDate });
                 addedPages++;
             });
 
@@ -280,7 +284,7 @@ export default function PayslipsBatchDownloadPage() {
 
         setIsEmailing(true);
         try {
-            const res = await emailBatchPayslips(clientId, selectedMonth, selectedPayslipIds);
+            const res = await emailBatchPayslips(clientId, selectedMonth, selectedPayslipIds, { hideRatePerHour, hidePayDate });
             
             if (!res.success) {
                 toast({ title: 'Emailing Failed', description: res.error || 'Unknown error occurred.', variant: 'destructive' });
@@ -386,7 +390,24 @@ export default function PayslipsBatchDownloadPage() {
                         <CardTitle>Employee Payslips</CardTitle>
                         <CardDescription>Select employees to include in the batch download.</CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-3 bg-muted/40 px-3 py-1.5 rounded-lg border border-primary/10 text-xs">
+                            <span className="font-bold text-muted-foreground mr-0.5">Template Options:</span>
+                            <label className="flex items-center gap-1.5 cursor-pointer select-none font-medium text-foreground">
+                                <Checkbox 
+                                    checked={hideRatePerHour} 
+                                    onCheckedChange={(c) => setHideRatePerHour(!!c)} 
+                                />
+                                <span>Hide Rate Per Hour</span>
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer select-none font-medium text-foreground">
+                                <Checkbox 
+                                    checked={hidePayDate} 
+                                    onCheckedChange={(c) => setHidePayDate(!!c)} 
+                                />
+                                <span>Hide Pay Date</span>
+                            </label>
+                        </div>
                         <Button 
                             onClick={handleEmailBatch} 
                             disabled={isEmailing || isDownloading || selectedPayslipIds.length === 0}

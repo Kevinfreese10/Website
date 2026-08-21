@@ -3,8 +3,9 @@
 import { getAdminDb, cleanFirestoreData, serializeDbData, uploadBufferToStorage } from '@/lib/firebase-admin';
 import { Order, DocumentUpload, AIDocumentVerification, GeneratedDocumentDraft, OrderChecklistItem } from '@/lib/types';
 import { verifyOrderDocument } from '@/ai/flows/verify-order-document';
-import { resolveOrderEntityContext, stripInternalAiData, stripInternalChecklistAiData, resolvePartnerMirrorOrderId } from '@/lib/service-utils';
-import { ensureOrderChecklistInitialized, INTERNAL_SYSTEM_ACTOR } from '@/app/actions/order-admin-actions';
+import { resolveOrderEntityContext, stripInternalAiData, stripInternalChecklistAiData, resolvePartnerMirrorOrderId, formatOrderCommunicationHistory } from '@/lib/service-utils';
+import { ensureOrderChecklistInitialized } from '@/app/actions/order-admin-actions';
+import { INTERNAL_SYSTEM_ACTOR } from '@/lib/internal-actor';
 import { getVerifiedAuthContext } from '@/lib/server-auth';
 import {
   generateNcrForm2Draft,
@@ -18,6 +19,7 @@ import {
   generateSarsPublicOfficerResolutionDraft,
   generateCoidaCf1bApplicationDraft,
   generateOrderIntakeSummaryPdf,
+  generateBeeAffidavitDraft,
 } from '@/lib/pdf/template-generators';
 import { sendEmail } from '@/lib/email';
 
@@ -191,6 +193,7 @@ export async function triggerOrderAutomatedFulfillmentReview(
             expectedIdNumber: entityContext.idNumber,
             expectedDirectorName: entityContext.directorName,
             currentDate: new Date().toISOString().split('T')[0],
+            communicationHistory: formatOrderCommunicationHistory(order),
             customAiInstructions,
           });
 
@@ -525,6 +528,21 @@ export async function generateOrderDocumentDraftsInternal(
         status: 'draft',
       });
     }
+
+    if (explicitTemplateIds.has('bee_affidavit')) {
+      const beePdf = await generateBeeAffidavitDraft(order, feedbackNotes);
+      const beeUrl = await uploadBufferToStorage(beePdf.buffer, `orders/${orderId}/generated_drafts/${beePdf.fileName}`);
+      addDraft({
+        id: `draft_bee_${Date.now()}`,
+        templateType: 'bee_affidavit',
+        title: 'B-BBEE Sworn Affidavit — Exempted Micro Enterprise (EME)',
+        description: 'Statutory DTI B-BBEE Sworn Affidavit for Exempted Micro Enterprises (<R10m turnover), formatted for commissioner of oaths.',
+        fileUrl: beeUrl,
+        fileName: beePdf.fileName,
+        generatedAt: new Date().toISOString(),
+        status: 'draft',
+      });
+    }
   } 
   // --- PATH B: Smart Fallback matching based on Service Title ---
   else {
@@ -643,7 +661,11 @@ export async function generateOrderDocumentDraftsInternal(
       });
     }
     // 5. Accountant's Letter / Confirmation services -> ONLY Accountant's Letter
-    else if (serviceTitleLower.includes('confirmation letter') || serviceTitleLower.includes('accountant letter') || serviceTitleLower.includes('accounting letter')) {
+    else if (
+      serviceTitleLower.includes('accountant') ||
+      serviceTitleLower.includes('confirmation letter') ||
+      serviceTitleLower.includes('accounting letter')
+    ) {
       const letterPdf = await generateAccountantsLetterDraft(order, feedbackNotes);
       const letterUrl = await uploadBufferToStorage(
         letterPdf.buffer,
@@ -657,6 +679,25 @@ export async function generateOrderDocumentDraftsInternal(
         description: 'Official confirmation on My Accountant letterhead for regulatory compliance.',
         fileUrl: letterUrl,
         fileName: letterPdf.fileName,
+        generatedAt: new Date().toISOString(),
+        status: 'draft',
+      });
+    }
+    // 6. BEE Sworn Affidavit / Certificate -> BEE Sworn Affidavit EME
+    else if (serviceTitleLower.includes('bee') || serviceTitleLower.includes('b-bbee') || serviceTitleLower.includes('affidavit')) {
+      const beePdf = await generateBeeAffidavitDraft(order, feedbackNotes);
+      const beeUrl = await uploadBufferToStorage(
+        beePdf.buffer,
+        `orders/${orderId}/generated_drafts/${beePdf.fileName}`
+      );
+
+      addDraft({
+        id: `draft_bee_${Date.now()}`,
+        templateType: 'bee_affidavit',
+        title: 'B-BBEE Sworn Affidavit — Exempted Micro Enterprise (EME)',
+        description: 'Statutory DTI B-BBEE Sworn Affidavit for Exempted Micro Enterprises (<R10m turnover), formatted for commissioner of oaths.',
+        fileUrl: beeUrl,
+        fileName: beePdf.fileName,
         generatedAt: new Date().toISOString(),
         status: 'draft',
       });

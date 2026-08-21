@@ -6,9 +6,9 @@ import { format } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { generatePayslipPdfPage } from '@/lib/payslipPdf';
-import { Payslip, Employee, User } from '@/lib/types';
+import { Payslip, Employee, User, PayslipPdfOptions } from '@/lib/types';
 
-export async function emailBatchPayslips(clientId: string, selectedMonth: string, payslipIds: string[]) {
+export async function emailBatchPayslips(clientId: string, selectedMonth: string, payslipIds: string[], options?: PayslipPdfOptions) {
     if (!clientId || !payslipIds || payslipIds.length === 0) {
         return { success: false, error: 'Invalid parameters provided.' };
     }
@@ -86,7 +86,7 @@ export async function emailBatchPayslips(clientId: string, selectedMonth: string
                     }
                 } as any);
                 
-                generatePayslipPdfPage(doc, ps, emp, client);
+                generatePayslipPdfPage(doc, ps, emp, client, undefined, undefined, options);
                 const pdfArrayBuffer = doc.output('arraybuffer');
                 const pdfBuffer = Buffer.from(pdfArrayBuffer);
 

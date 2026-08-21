@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Payslip, Employee, User, PayslipItem } from '@/lib/types';
+import { Payslip, Employee, User, PayslipItem, PayslipPdfOptions } from '@/lib/types';
 import jsPDF from 'jspdf';
 import { generatePayslipPdfPage } from '@/lib/payslipPdf';
 
@@ -12,6 +12,7 @@ interface PayslipDownloadButtonProps {
   payslip: Payslip;
   employee: Employee;
   client: User;
+  options?: PayslipPdfOptions;
   currentData?: {
       earnings: PayslipItem[];
       deductions: PayslipItem[];
@@ -28,7 +29,7 @@ interface PayslipDownloadButtonProps {
   };
 }
 
-export default function PayslipDownloadButton({ payslip, employee, client, currentData, ytdTotals }: PayslipDownloadButtonProps) {
+export default function PayslipDownloadButton({ payslip, employee, client, options, currentData, ytdTotals }: PayslipDownloadButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -36,7 +37,7 @@ export default function PayslipDownloadButton({ payslip, employee, client, curre
     setIsLoading(true);
     try {
       const doc = new jsPDF();
-      generatePayslipPdfPage(doc, payslip, employee, client, currentData, ytdTotals);
+      generatePayslipPdfPage(doc, payslip, employee, client, currentData, ytdTotals, options);
       doc.save(`Payslip-${employee.surname}-${(payslip.period || 'Current').replace(/\s/g, '-')}.pdf`);
       toast({ title: 'Download Successful' });
     } catch (err) {

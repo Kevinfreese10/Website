@@ -21,7 +21,7 @@ import {
   requestCustomDocumentAtomic,
   ensureOrderChecklistInitialized
 } from '@/app/actions/order-admin-actions';
-import { runAiDocumentVerification, confirmDocumentAiRecommendation } from '@/lib/ai/order-fulfillment-tools';
+import { runAiDocumentVerification, confirmDocumentAiRecommendation, getOrderFulfillmentAiAdviceAction } from '@/lib/ai/order-fulfillment-tools';
 import { 
   generateOrderDocumentDraftsAction, 
   regenerateOrderDraftWithFeedbackAction, 
@@ -167,6 +167,7 @@ export default function AdminOrderDetailsPage() {
   const [draftFeedbackText, setDraftFeedbackText] = useState('');
   const [isRegeneratingDraft, setIsRegeneratingDraft] = useState(false);
   const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
+  const [isRunningAiAdvisor, setIsRunningAiAdvisor] = useState(false);
 
   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
     resolver: zodResolver(noteFormSchema),
@@ -380,6 +381,47 @@ export default function AdminOrderDetailsPage() {
       return matchEmail || matchUser;
     });
   }, [candidateOrders, order]);
+
+  const sopTemplatesForOrder = useMemo(() => {
+    if (!order) return [];
+    const serviceTitles = (order.items || []).map(i => i.title?.toLowerCase() || '');
+    const isNcr = serviceTitles.some(t => t.includes('ncr') || t.includes('credit provider'));
+    const isBee = serviceTitles.some(t => t.includes('bee') || t.includes('b-bbee') || t.includes('affidavit'));
+    const isAccountantLetter = serviceTitles.some(t => t.includes('accountant') || t.includes('confirmation letter'));
+    const isPublicOfficer = serviceTitles.some(t => t.includes('public officer') || t.includes('tax representative'));
+    const isShareCert = serviceTitles.some(t => t.includes('share certificate') || t.includes('shares'));
+    const isCompanyReg = serviceTitles.some(t => t.includes('company registration') || t.includes('director amendment'));
+    const isCoida = serviceTitles.some(t => t.includes('coida') || t.includes('nature of business'));
+
+    const list: typeof AVAILABLE_DOCUMENT_TEMPLATES = [];
+    if (isBee) {
+      const t = AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'bee_affidavit');
+      if (t) list.push(t);
+    }
+    if (isNcr) {
+      AVAILABLE_DOCUMENT_TEMPLATES.filter(x => ['ncr_form_2', 'ncr_director_resolution', 'ncr_annexure_fees', 'accounting_officer_letter'].includes(x.id)).forEach(t => list.push(t));
+    }
+    if (isAccountantLetter && !isNcr) {
+      const t = AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'accountants_letter');
+      if (t) list.push(t);
+    }
+    if (isPublicOfficer) {
+      const t = AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'sars_public_officer_resolution');
+      if (t) list.push(t);
+    }
+    if (isShareCert) {
+      AVAILABLE_DOCUMENT_TEMPLATES.filter(x => ['share_certificate', 'power_of_attorney'].includes(x.id)).forEach(t => list.push(t));
+    }
+    if (isCompanyReg && !isShareCert) {
+      const t = AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'power_of_attorney');
+      if (t) list.push(t);
+    }
+    if (isCoida) {
+      const t = AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'coida_cf1b_application');
+      if (t) list.push(t);
+    }
+    return list.length > 0 ? list : [AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'engagement_letter') || AVAILABLE_DOCUMENT_TEMPLATES[0]];
+  }, [order]);
 
   const handleLinkPrerequisite = async (targetOrderId: string) => {
     if (!order || !currentUser) return;
@@ -934,6 +976,29 @@ export default function AdminOrderDetailsPage() {
             toast({ title: "Draft Generation Error", description: err.message, variant: "destructive" });
         } finally {
             setIsGeneratingDrafts(false);
+        }
+    };
+
+    const handleRunAiAdvisor = async () => {
+        if (!order) return;
+        setIsRunningAiAdvisor(true);
+        try {
+            const auth = getAuth();
+            const idToken = await auth.currentUser?.getIdToken();
+            const res = await getOrderFulfillmentAiAdviceAction(order.id, idToken);
+            if (res.success && res.advice) {
+                toast({ 
+                    title: "AI Order Audit Complete", 
+                    description: `Health Score: ${res.advice.fulfillmentHealthScore}% • State: ${res.advice.overallState.replace(/_/g, ' ').toUpperCase()}` 
+                });
+                await fetchOrderAndStaff();
+            } else {
+                toast({ title: "AI Audit Failed", description: res.error, variant: "destructive" });
+            }
+        } catch (err: any) {
+            toast({ title: "AI Audit Error", description: err.message, variant: "destructive" });
+        } finally {
+            setIsRunningAiAdvisor(false);
         }
     };
 
@@ -1845,17 +1910,182 @@ export default function AdminOrderDetailsPage() {
                         )}
                     </Card>
 
-                    {/* 🤖 AI Generated Drafts & Pre-Filled Templates Card */}
+                    {/* 🧠 Proactive AI Order Fulfillment Advisor Card */}
+                    <Card className="border-indigo-200 dark:border-indigo-900/60 shadow-xs bg-gradient-to-br from-indigo-50/40 via-background to-blue-50/30 dark:from-indigo-950/20 dark:via-background dark:to-blue-950/10">
+                        <CardHeader className="border-b pb-3.5 bg-indigo-50/60 dark:bg-indigo-950/40">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <CardTitle className="text-base font-bold flex items-center gap-2 text-indigo-950 dark:text-indigo-200">
+                                            <Bot className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                                            AI Order Fulfillment Advisor
+                                        </CardTitle>
+                                        {order.aiFulfillmentAdvice && (
+                                            <>
+                                                <Badge 
+                                                    className={cn(
+                                                        "text-xs font-bold px-2 py-0.5",
+                                                        order.aiFulfillmentAdvice.fulfillmentHealthScore >= 80 ? "bg-emerald-600 text-white" :
+                                                        order.aiFulfillmentAdvice.fulfillmentHealthScore >= 50 ? "bg-amber-600 text-white" :
+                                                        "bg-rose-600 text-white"
+                                                    )}
+                                                >
+                                                    Health Score: {order.aiFulfillmentAdvice.fulfillmentHealthScore}%
+                                                </Badge>
+                                                <Badge variant="outline" className="text-xs uppercase font-bold text-indigo-800 dark:text-indigo-300 border-indigo-300">
+                                                    {order.aiFulfillmentAdvice.overallState.replace(/_/g, ' ')}
+                                                </Badge>
+                                                {order.aiFulfillmentAdvice.lodgementReadiness && (
+                                                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 font-bold text-[11px]">
+                                                        ✓ Ready for Lodgement
+                                                    </Badge>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                    <CardDescription className="text-xs text-muted-foreground">
+                                        Autonomous audit synthesizing ordered products, client documents, Communication History notes, and SOP progression.
+                                    </CardDescription>
+                                </div>
+
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 text-xs font-bold border-indigo-300 hover:bg-indigo-50 text-indigo-900 dark:text-indigo-200 shadow-2xs self-start sm:self-auto shrink-0"
+                                    onClick={handleRunAiAdvisor}
+                                    disabled={isRunningAiAdvisor}
+                                >
+                                    {isRunningAiAdvisor ? (
+                                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin text-indigo-600" />
+                                    ) : (
+                                        <Sparkles className="h-3.5 w-3.5 mr-1.5 text-indigo-600" />
+                                    )}
+                                    {order.aiFulfillmentAdvice ? "Re-Audit Order" : "Run AI Order Audit"}
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-4 sm:p-5 space-y-4">
+                            {order.aiFulfillmentAdvice ? (
+                                <div className="space-y-4">
+                                    {/* Executive Summary */}
+                                    <div className="p-3.5 rounded-lg bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-xs text-foreground space-y-1">
+                                        <span className="font-bold text-indigo-950 dark:text-indigo-200 uppercase tracking-wide text-[10px] block">
+                                            Executive Assessment:
+                                        </span>
+                                        <p className="leading-relaxed text-indigo-950 dark:text-indigo-100 font-medium">
+                                            {order.aiFulfillmentAdvice.summary}
+                                        </p>
+                                    </div>
+
+                                    {/* Communication History Insights */}
+                                    {order.aiFulfillmentAdvice.communicationInsights && order.aiFulfillmentAdvice.communicationInsights.length > 0 && (
+                                        <div className="space-y-2 p-3 rounded-lg border bg-background/80">
+                                            <h6 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                                <MessageSquare className="h-3.5 w-3.5 text-indigo-600" />
+                                                Communication History Intelligence:
+                                            </h6>
+                                            <ul className="space-y-1.5 pl-4 list-disc text-xs text-muted-foreground">
+                                                {order.aiFulfillmentAdvice.communicationInsights.map((insight, idx) => (
+                                                    <li key={idx} className="leading-relaxed">
+                                                        <span className="text-foreground">{insight}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {/* Actionable AI Recommendations */}
+                                    {order.aiFulfillmentAdvice.aiRecommendations && order.aiFulfillmentAdvice.aiRecommendations.length > 0 && (
+                                        <div className="space-y-2 p-3 rounded-lg border bg-background/80">
+                                            <h6 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                                <ListChecks className="h-3.5 w-3.5 text-indigo-600" />
+                                                Prioritized Next Steps & Recommendations:
+                                            </h6>
+                                            <ul className="space-y-1.5 pl-4 list-disc text-xs text-muted-foreground">
+                                                {order.aiFulfillmentAdvice.aiRecommendations.map((rec, idx) => (
+                                                    <li key={idx} className="leading-relaxed">
+                                                        <span className="text-foreground font-medium">{rec}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {/* Missing Items Warning */}
+                                    {order.aiFulfillmentAdvice.missingItems && order.aiFulfillmentAdvice.missingItems.length > 0 && (
+                                        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg text-xs space-y-1">
+                                            <div className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                                                <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                                                Outstanding Compliance Prerequisites:
+                                            </div>
+                                            <ul className="list-disc pl-5 text-amber-800 dark:text-amber-300 space-y-0.5">
+                                                {order.aiFulfillmentAdvice.missingItems.map((item, idx) => (
+                                                    <li key={idx}>{item}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {/* Primary Recommended Action CTA */}
+                                    <div className="flex items-center justify-between pt-2 border-t text-xs">
+                                        <span className="text-muted-foreground text-[11px]">
+                                            AI Recommended Next Action: <strong>{order.aiFulfillmentAdvice.nextActionLabel}</strong>
+                                        </span>
+                                        {(!order.generatedDrafts || order.generatedDrafts.length === 0) && (
+                                            <Button
+                                                size="sm"
+                                                className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                                                onClick={handleGenerateDrafts}
+                                                disabled={isGeneratingDrafts}
+                                            >
+                                                {isGeneratingDrafts ? (
+                                                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                                                ) : (
+                                                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                                                )}
+                                                Auto-Generate SOP Deliverables
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-6 text-center space-y-3 rounded-lg border border-dashed bg-background/60">
+                                    <Bot className="h-8 w-8 text-indigo-500 mx-auto" />
+                                    <div className="space-y-1">
+                                        <h5 className="text-sm font-bold text-foreground">AI Order Fulfillment Audit Ready</h5>
+                                        <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                                            Run the AI Order Advisor to audit all documents against product SOPs, analyze Communication History, calculate health score, and generate recommended statutory deliverables.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
+                                        onClick={handleRunAiAdvisor}
+                                        disabled={isRunningAiAdvisor}
+                                    >
+                                        {isRunningAiAdvisor ? (
+                                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                                        ) : (
+                                            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                                        )}
+                                        Run AI Order Audit & Advisor
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* 🤖 AI SOP Statutory Deliverables & Drafts Card */}
                     <Card className="border-indigo-200 dark:border-indigo-900/50 shadow-xs">
                         <CardHeader className="bg-gradient-to-r from-indigo-50/70 to-blue-50/50 dark:from-indigo-950/30 dark:to-blue-950/20 border-b pb-4">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
                                     <CardTitle className="text-base font-bold flex items-center gap-2 text-indigo-950 dark:text-indigo-200">
-                                        <Bot className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                                        AI Generated Drafts & Statutory Templates
+                                        <ScrollText className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                                        AI SOP Statutory Deliverables & Drafts
                                     </CardTitle>
                                     <CardDescription className="text-xs text-indigo-900/70 dark:text-indigo-300/70">
-                                        Pre-filled statutory applications, resolutions, share certificates, and confirmation letters prepared from client intake.
+                                        Official South African statutory application drafts determined automatically by the product's Standard Operating Procedure.
                                     </CardDescription>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -1863,22 +2093,11 @@ export default function AdminOrderDetailsPage() {
                                         size="sm" 
                                         variant="default"
                                         className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
-                                        onClick={() => setIsTemplateSelectorOpen(true)}
-                                        disabled={isGeneratingDrafts}
-                                    >
-                                        <Plus className="h-3.5 w-3.5 mr-1" />
-                                        Select Templates
-                                    </Button>
-
-                                    <Button 
-                                        size="sm" 
-                                        variant="outline"
-                                        className="h-8 text-xs font-semibold bg-white dark:bg-slate-900 border-indigo-200 hover:bg-indigo-50 text-indigo-900 dark:text-indigo-200 shadow-2xs"
                                         onClick={handleGenerateDrafts}
                                         disabled={isGeneratingDrafts}
                                     >
-                                        {isGeneratingDrafts ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin text-indigo-600" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-indigo-600" />}
-                                        {order.generatedDrafts && order.generatedDrafts.length > 0 ? "Regenerate All" : "Generate All"}
+                                        {isGeneratingDrafts ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin text-white" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
+                                        {order.generatedDrafts && order.generatedDrafts.length > 0 ? "Regenerate All SOP Drafts" : "Auto-Generate SOP Drafts"}
                                     </Button>
                                 </div>
                             </div>
@@ -1891,7 +2110,7 @@ export default function AdminOrderDetailsPage() {
                                     <div className="space-y-1">
                                         <h5 className="text-xs font-bold text-amber-950 dark:text-amber-200">Awaiting Document Approval</h5>
                                         <p className="text-xs text-amber-800 dark:text-amber-300">
-                                            Statutory draft templates will automatically generate when all client documents are approved above. You can also select specific templates below to generate them on-demand immediately.
+                                            Statutory draft templates will automatically generate when all client documents are approved above. You can also click "Auto-Generate SOP Drafts" above to generate them on-demand immediately.
                                         </p>
                                     </div>
                                 </div>
@@ -1977,69 +2196,83 @@ export default function AdminOrderDetailsPage() {
 
                                     <div className="pt-2 flex items-center justify-between border-t text-xs">
                                         <span className="text-muted-foreground text-[11px]">
-                                            Need another document template drafted for this client?
+                                            Need an optional statutory template override?
                                         </span>
                                         <Button
                                             size="sm"
-                                            variant="outline"
-                                            className="h-7 text-xs font-semibold border-indigo-300 text-indigo-900 dark:text-indigo-200 hover:bg-indigo-50"
+                                            variant="ghost"
+                                            className="h-7 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
                                             onClick={() => setIsTemplateSelectorOpen(true)}
                                             disabled={isGeneratingDrafts}
                                         >
-                                            <Plus className="h-3.5 w-3.5 mr-1 text-indigo-600" />
-                                            Draft Additional Template...
+                                            <Plus className="h-3.5 w-3.5 mr-1" />
+                                            Draft custom template override...
                                         </Button>
                                     </div>
                                 </div>
                             ) : (
-                                /* Quick Template Picker Grid when no drafts generated yet */
-                                <div className="p-4 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/40 dark:bg-indigo-950/20 space-y-3">
+                                /* AI SOP Deliverables Queue (When no drafts generated yet) */
+                                <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/30 dark:bg-indigo-950/20 space-y-3">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <ScrollText className="h-4 w-4 text-indigo-600" />
-                                            <h6 className="text-xs font-bold text-foreground">Select Statutory Templates to Draft:</h6>
+                                            <Sparkles className="h-4 w-4 text-indigo-600" />
+                                            <h6 className="text-xs font-bold text-foreground">SOP Mandated Statutory Deliverables for this Product:</h6>
                                         </div>
-                                        <Button
-                                            size="xs"
-                                            variant="ghost"
-                                            className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold"
-                                            onClick={() => setIsTemplateSelectorOpen(true)}
-                                        >
-                                            View All 10 Templates →
-                                        </Button>
+                                        <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 dark:text-indigo-300 font-bold">
+                                            {sopTemplatesForOrder.length} Mandatory Deliverable{sopTemplatesForOrder.length > 1 ? 's' : ''}
+                                        </Badge>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                                        {AVAILABLE_DOCUMENT_TEMPLATES.slice(0, 6).map(tmpl => (
-                                            <button
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                        {sopTemplatesForOrder.map(tmpl => (
+                                            <div
                                                 key={tmpl.id}
-                                                type="button"
-                                                onClick={() => handleGenerateSpecificTemplates([tmpl.id])}
-                                                disabled={isGeneratingDrafts}
-                                                className="p-2.5 rounded-lg border bg-background hover:bg-indigo-50 hover:border-indigo-300 dark:hover:bg-indigo-950/50 text-left transition-all flex flex-col justify-between gap-1.5 shadow-2xs group"
+                                                className="p-3 rounded-lg border bg-background text-left transition-all flex flex-col justify-between gap-1.5 shadow-2xs"
                                             >
                                                 <div className="flex items-center justify-between gap-1">
-                                                    <span className="text-xs font-bold text-foreground group-hover:text-indigo-600 line-clamp-1">
+                                                    <span className="text-xs font-bold text-foreground line-clamp-1">
                                                         {tmpl.title}
                                                     </span>
-                                                    <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 shrink-0 font-normal">
+                                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 shrink-0 font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
                                                         {tmpl.category}
                                                     </Badge>
                                                 </div>
-                                                <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+                                                <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
                                                     {tmpl.description}
                                                 </p>
-                                                <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 mt-1 flex items-center gap-1">
-                                                    <Sparkles className="h-3 w-3" /> Draft This Document →
-                                                </span>
-                                            </button>
+                                                <div className="flex items-center justify-between pt-1 border-t text-[10px] text-muted-foreground">
+                                                    <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold">
+                                                        <ShieldCheck className="h-3 w-3" /> SOP Required
+                                                    </span>
+                                                    <span>Pre-fills from verified intake</span>
+                                                </div>
+                                            </div>
                                         ))}
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-2 border-t border-indigo-200 dark:border-indigo-800/40">
+                                        <span className="text-[11px] text-muted-foreground">
+                                            The AI engine will compile verified director, company, and financial data into compliant PDFs.
+                                        </span>
+                                        <Button
+                                            size="sm"
+                                            className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                                            onClick={handleGenerateDrafts}
+                                            disabled={isGeneratingDrafts}
+                                        >
+                                            {isGeneratingDrafts ? (
+                                                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                                            ) : (
+                                                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                                            )}
+                                            Auto-Generate All SOP Deliverables
+                                        </Button>
                                     </div>
                                 </div>
                             )}
                         </CardContent>
                     </Card>
 
-                    {/* Statutory Document Template Selector Dialog */}
+                    {/* Statutory Document Template Selector Dialog (Optional Override) */}
                     <OrderTemplateSelectorDialog
                         open={isTemplateSelectorOpen}
                         onOpenChange={setIsTemplateSelectorOpen}

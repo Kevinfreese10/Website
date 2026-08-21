@@ -13,7 +13,7 @@ const VerifyOrderDocumentInputSchema = z.object({
   fileUrl: z.string().describe('URL to the uploaded document (PDF or Image) or data URI.'),
   requirementLabel: z.string().describe('The requirement name requested from the client, e.g. "Certified South African ID Copy", "Proof of Residence", "Tax Clearance Certificate (TCC)", "Bank Account Confirmation Letter", "Monthly Bank Statements (PDF)".'),
   requirementAiHint: z.string().optional().describe('Authoritative operational directive describing what acceptable documents look like and specific validation rules for this requirement.'),
-  requirementType: z.enum(['pdf', 'excel', 'image', 'text', 'any']).optional().describe('Expected format type for this requirement.'),
+  requirementType: z.string().optional().describe('Expected format type for this requirement.'),
   serviceTitle: z.string().optional().describe('Title of the primary ordered service, e.g. "NCR Registration", "BEE Sworn Affidavit", "Monthly Bookkeeping", "COIDA Nature of Business Change".'),
   allServiceTitles: z.string().optional().describe('Comma-separated list of all service titles in the order dossier.'),
   clientName: z.string().optional().describe('DEPRECATED — use orderingContactName. Retained for backwards compatibility with older call sites.'),
@@ -23,6 +23,7 @@ const VerifyOrderDocumentInputSchema = z.object({
   expectedIdNumber: z.string().optional().describe('The 13-digit South African ID number expected for the primary applicant/director.'),
   expectedDirectorName: z.string().optional().describe('The legal full name of the primary director/applicant expected.'),
   currentDate: z.string().describe('Today\'s date in ISO format (YYYY-MM-DD), supplied by the server. This is the authoritative present date — all recency and expiry calculations MUST be made relative to it.'),
+  communicationHistory: z.string().optional().describe('Full message and communication history between client and staff on this order, including clarifications and special instructions.'),
   customAiInstructions: z.string().optional().describe('Custom operational directives and validation rules configured on the SOP step by the administrator.'),
 });
 
@@ -91,6 +92,11 @@ comparing the document's dates against {{currentDate}}. A document date that is 
 {{#if customAiInstructions}}
 - **CUSTOM SOP DIRECTIVES & AI RULES CONFIGURED FOR THIS STEP**:
   {{{customAiInstructions}}}
+{{/if}}
+{{#if communicationHistory}}
+- **ORDER COMMUNICATION HISTORY & CLIENT CLARIFICATIONS (CRITICAL CONTEXT)**:
+  Below is the complete transcript of client notes, messages, and special requests. You MUST take these into account (e.g. if the client explained a name discrepancy, provided alternate contact info, or clarified the document purpose):
+  {{{communicationHistory}}}
 {{/if}}
 
 Document Media:

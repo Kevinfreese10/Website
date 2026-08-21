@@ -5,7 +5,7 @@ import { getVerifiedAuthContext } from '@/lib/server-auth';
 import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { Order, DocumentUpload, AuditEntry } from '@/lib/types';
 import { triggerOrderAutomatedFulfillmentReview } from './order-fulfillment-pipeline';
-import { INTERNAL_SYSTEM_ACTOR } from './order-admin-actions';
+import { INTERNAL_SYSTEM_ACTOR } from '@/lib/internal-actor';
 
 export interface SubmitClientDocParams {
   idToken: string;

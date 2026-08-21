@@ -117,6 +117,12 @@ export const AVAILABLE_DOCUMENT_TEMPLATES: DocumentTemplateOption[] = [
     description: 'Department of Employment & Labour compensation fund application pack with mandate & proof of operations.',
     category: 'Labour & COIDA',
   },
+  {
+    id: 'bee_affidavit',
+    title: 'B-BBEE Sworn Affidavit — Exempted Micro Enterprise (EME)',
+    description: 'Statutory DTI B-BBEE Sworn Affidavit for Exempted Micro Enterprises (<R10m annual turnover), formatted for commissioner of oaths.',
+    category: 'B-BBEE & Compliance',
+  },
 ];
 
 export type FulfillmentStep = {
@@ -310,11 +316,32 @@ export type Order = {
   serviceSnapshots?: OrderServiceSnapshot[];
   generatedDrafts?: GeneratedDocumentDraft[];
   lastIntakeAlertSentAt?: string;
+  aiFulfillmentAdvice?: AIOrderFulfillmentAdvice;
 };
+
+export interface AIOrderFulfillmentAdvice {
+  fulfillmentHealthScore: number; // 0 - 100
+  overallState: 'ready_to_lodge' | 'awaiting_documents' | 'in_review' | 'blocked' | 'drafts_ready' | 'complete';
+  summary: string;
+  lodgementReadiness: boolean;
+  communicationInsights?: string[];
+  aiRecommendations: string[];
+  sopDeliverables: {
+    templateId: string;
+    title: string;
+    description: string;
+    isGenerated: boolean;
+    fileUrl?: string;
+  }[];
+  missingItems?: string[];
+  nextActionLabel?: string;
+  nextActionType?: 'generate_drafts' | 'request_documents' | 'client_followup' | 'finalize_order' | 'review_drafts';
+  reviewedAt: string;
+}
 
 export interface GeneratedDocumentDraft {
   id: string;
-  templateType: 'ncr_form_2' | 'director_resolution' | 'power_of_attorney' | 'share_certificate' | 'accountants_letter' | 'intake_summary';
+  templateType: 'ncr_form_2' | 'director_resolution' | 'power_of_attorney' | 'share_certificate' | 'accountants_letter' | 'intake_summary' | 'bee_affidavit' | 'coida_cf1b_application' | string;
   title: string;
   description?: string;
   fileUrl: string;
@@ -664,6 +691,11 @@ export type Payslip = {
   hoursWorked?: number;
 };
 
+export type PayslipPdfOptions = {
+  hideRatePerHour?: boolean;
+  hidePayDate?: boolean;
+};
+
 export type User = {
   uid: string; // Firebase Authentication UID
   id: string; // Document ID
@@ -759,6 +791,8 @@ export type User = {
   payeReference?: string;
   firstProcessingMonth?: string;
   excludeSdl?: boolean;
+  hideRatePerHour?: boolean;
+  hidePayDate?: boolean;
   payrollFrequency?: 'Monthly' | 'Weekly' | 'Fortnightly';
   firstRunStartDate?: any;
   allocationRules?: AllocationRule[];

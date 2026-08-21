@@ -155,6 +155,18 @@ export function extractOrderEntityDetails(order: Order) {
     u.requirementLabel.toLowerCase().includes('tax') || 
     u.requirementLabel.toLowerCase().includes('sars')
   );
+  const blackOwnedDoc = uploads.find(u =>
+    u.requirementLabel.toLowerCase().includes('black owned') && !u.requirementLabel.toLowerCase().includes('female')
+  );
+  const whiteOwnedDoc = uploads.find(u =>
+    u.requirementLabel.toLowerCase().includes('white owned')
+  );
+  const purposeDoc = uploads.find(u =>
+    u.requirementLabel.toLowerCase().includes('purpose') || u.requirementLabel.toLowerCase().includes('explain')
+  );
+
+  // Ingest Communication History for client instructions or entity clarifications
+  const notesText = (order.notes || []).map(n => n.text || '').join('\n');
 
   const customerName = aiExtractedDirector || (order as any).companyRepresentative || order.endCustomerName || order.customerName || '';
   const companyName = companyNameDoc?.textValue || (order as any).companyName || (order as any).businessName || aiExtractedCompany || order.endCustomerName || order.customerName || '';
@@ -165,6 +177,8 @@ export function extractOrderEntityDetails(order: Order) {
   const email = order.endCustomerEmail || order.customerEmail || '';
   const phone = order.endCustomerPhone || order.customerPhone || '';
 
+  const blackOwnedPercent = blackOwnedDoc?.textValue?.trim() || (whiteOwnedDoc?.textValue?.includes('100') ? '0' : undefined);
+
   return {
     customerName,
     companyName: companyName.toUpperCase(),
@@ -174,9 +188,12 @@ export function extractOrderEntityDetails(order: Order) {
     taxNumber,
     email,
     phone,
+    blackOwnedPercent,
     serviceTitle: order.items?.[0]?.title || 'Professional Business Service',
     orderId: order.id,
     orderDate: order.date ? (order.date.toDate ? order.date.toDate().toLocaleDateString('en-ZA') : new Date(order.date).toLocaleDateString('en-ZA')) : new Date().toLocaleDateString('en-ZA'),
+    purposeStatement: purposeDoc?.textValue || '',
+    communicationNotes: notesText,
   };
 }
 

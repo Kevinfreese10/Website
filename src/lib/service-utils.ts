@@ -222,3 +222,33 @@ export function normalizeRequirementsWithIds(items: any[] = []): { id: string; l
     };
   });
 }
+
+/**
+ * Formats an Order's communication history and notes into a clean, chronological transcript
+ * suitable for ingestion by AI audit flows and template generators.
+ */
+export function formatOrderCommunicationHistory(order: Order): string {
+  const notes = order.notes || [];
+  if (notes.length === 0) return '';
+
+  return notes
+    .map(n => {
+      const rawDate = (n as any).createdAt || n.date;
+      const dateStr = rawDate
+        ? (typeof rawDate?.toDate === 'function' ? rawDate.toDate().toISOString().replace('T', ' ').slice(0, 16) : String(rawDate).replace('T', ' ').slice(0, 16))
+        : 'Recent';
+      const isClient = (n as any).isClientNote || n.authorId === order.userId || n.authorId === 'client';
+      const role = isClient ? 'CLIENT' : n.isInternal ? 'INTERNAL STAFF NOTE' : 'STAFF / CONSULTANT';
+      const authorName = (n as any).authorName || (n as any).authorEmail || (isClient ? (order.customerName || 'Client') : 'Staff Consultant');
+      const author = `${authorName} (${role})`;
+      let text = `[${dateStr}] [${author}]${n.subject ? ` Subject: ${n.subject}\n` : ''}: ${n.text || ''}`;
+      if (n.attachments && n.attachments.length > 0) {
+        const attNames = n.attachments.map(a => `${a.name} (${a.url})`).join(', ');
+        text += `\n  (Attached Files: ${attNames})`;
+      } else if (n.attachmentUrl) {
+        text += `\n  (Attached File: ${n.attachmentName || 'Attachment'} - ${n.attachmentUrl})`;
+      }
+      return text;
+    })
+    .join('\n\n');
+}

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '../ui/separator';
 import { Switch } from '../ui/switch';
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Trash2, CheckCircle2, AlertCircle, Building, Landmark, CreditCard, Image as ImageIcon, ShieldAlert, Settings, Eraser, Info, CalendarIcon } from 'lucide-react';
+import { Loader2, Trash2, CheckCircle2, AlertCircle, Building, Landmark, CreditCard, Image as ImageIcon, ShieldAlert, Settings, Eraser, Info, CalendarIcon, ReceiptText } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -51,6 +51,8 @@ const formSchema = z.object({
   firstRunStartDate: z.date().optional().nullable(),
   payrollFrequency: z.enum(['Monthly', 'Fortnightly']).default('Monthly'),
   excludeSdl: z.boolean().default(false),
+  hideRatePerHour: z.boolean().default(false),
+  hidePayDate: z.boolean().default(false),
   yearEnd: z.string().optional(),
   isVatRegistered: z.boolean().default(false),
   vatCategory: z.enum(['A', 'B', 'C']).optional().nullable(),
@@ -107,6 +109,8 @@ export default function ClientForm({
             firstRunStartDate: client?.firstRunStartDate ? (client.firstRunStartDate.toDate ? client.firstRunStartDate.toDate() : new Date(client.firstRunStartDate)) : null,
             payrollFrequency: (client?.payrollFrequency as any) || 'Monthly',
             excludeSdl: client?.excludeSdl || false,
+            hideRatePerHour: (client as any)?.hideRatePerHour || false,
+            hidePayDate: (client as any)?.hidePayDate || false,
             yearEnd: client?.yearEnd || 'February',
             isVatRegistered: client?.isVatRegistered || false,
             vatCategory: client?.vatCategory || null,
@@ -332,6 +336,34 @@ export default function ClientForm({
                                     <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                                 </FormItem>
                             )} />
+
+                            {/* Payslip Template Display Options */}
+                            <div className="pt-2 space-y-3">
+                                <div className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide">
+                                    <ReceiptText className="h-3.5 w-3.5 text-primary" /> Payslip Template Display Options
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <FormField control={form.control} name="hideRatePerHour" render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-muted/10">
+                                            <div className="space-y-0.5 pr-2">
+                                                <FormLabel className="text-xs font-bold">Hide Rate Per Hour</FormLabel>
+                                                <p className="text-[10px] text-muted-foreground">Omit the calculated hourly rate (Gross / 160) from employee payslips.</p>
+                                            </div>
+                                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        </FormItem>
+                                    )} />
+
+                                    <FormField control={form.control} name="hidePayDate" render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-muted/10">
+                                            <div className="space-y-0.5 pr-2">
+                                                <FormLabel className="text-xs font-bold">Hide Pay Date</FormLabel>
+                                                <p className="text-[10px] text-muted-foreground">Omit the specific Pay Date header from employee payslips (only Pay Period is displayed).</p>
+                                            </div>
+                                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                </div>
+                            </div>
                         </div>
                     )}
 

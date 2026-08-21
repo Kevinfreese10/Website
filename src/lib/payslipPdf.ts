@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, parse, isValid } from 'date-fns';
-import { Payslip, Employee, User, PayslipItem } from '@/lib/types';
+import { Payslip, Employee, User, PayslipItem, PayslipPdfOptions } from '@/lib/types';
 
 function getPayDate(period?: string): Date {
   if (!period) return new Date();
@@ -49,9 +49,12 @@ export function generatePayslipPdfPage(
       tax: number;
       contributions: number;
       fringe: number;
-  }
+  },
+  options?: PayslipPdfOptions
 ) {
   const p = currentData || payslip;
+  const shouldHidePayDate = options?.hidePayDate ?? (client as any)?.hidePayDate ?? false;
+  const shouldHideRatePerHour = options?.hideRatePerHour ?? (client as any)?.hideRatePerHour ?? false;
   
   const formatCurr = (num: number) => {
       if (num === 0) return '0.00';
@@ -96,13 +99,15 @@ export function generatePayslipPdfPage(
 
   const dividerY = Math.max(currentY + 5, 48);
 
-  // --- 2. Pay Date (Far Right) ---
-  const payDate = getPayDate(payslip.period);
-  const payDateStr = format(payDate, 'yyyy/MM/dd');
-  doc.setFont('helvetica', 'bold');
-  doc.text('Pay Date:', 140, dividerY - 9);
-  doc.setFont('helvetica', 'normal');
-  doc.text(payDateStr, 195, dividerY - 9, { align: 'right' });
+  // --- 2. Pay Date & Period (Far Right) ---
+  if (!shouldHidePayDate) {
+    const payDate = getPayDate(payslip.period);
+    const payDateStr = format(payDate, 'yyyy/MM/dd');
+    doc.setFont('helvetica', 'bold');
+    doc.text('Pay Date:', 140, dividerY - 9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(payDateStr, 195, dividerY - 9, { align: 'right' });
+  }
 
   // --- Pay Period (Far Right) ---
   doc.setFont('helvetica', 'bold');
@@ -196,8 +201,10 @@ export function generatePayslipPdfPage(
   drawCol2Item('Identity Number', employee.idNumber);
   const joinDateStr = employee.joinDate?.toDate ? format(employee.joinDate.toDate(), 'yyyy/MM/dd') : (employee.joinDate ? format(new Date(employee.joinDate), 'yyyy/MM/dd') : '');
   drawCol2Item('Employed from', joinDateStr);
-  const hourlyRate = p.grossPay / 160;
-  drawCol2Item('Rate per hour', formatCurr(hourlyRate));
+  if (!shouldHideRatePerHour) {
+    const hourlyRate = p.grossPay / 160;
+    drawCol2Item('Rate per hour', formatCurr(hourlyRate));
+  }
 
   // Column 3: Pay Method, Bank Name, Branch Code, Account Number, Account Holder
   let col3Y = startGridY;

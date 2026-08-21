@@ -15,18 +15,7 @@ export type StatusTransitionOptions = {
 
 export type PerformerInput = { id?: string; name?: string; idToken?: string; role?: string } | string;
 
-/**
- * Sentinel used by trusted server-side automation (webhooks, scheduled pipelines) that legitimately
- * acts without a user token.
- *
- * This is compared by REFERENCE identity, not by value. A remote caller can post
- * `{ id: 'system' }` to a Server Action, but cannot transmit a reference to this exact object —
- * so the previous string-based `id === 'system'` check was effectively an open door granting full
- * staff authority to anyone who guessed the magic word. Only code running inside this server bundle
- * can import and pass this symbol.
- */
-export const INTERNAL_SYSTEM_ACTOR = Symbol('internalSystemActor');
-type InternalActor = typeof INTERNAL_SYSTEM_ACTOR;
+import { INTERNAL_SYSTEM_ACTOR, InternalActor } from '@/lib/internal-actor';
 
 /**
  * Resolves and cryptographically validates the acting user from an ID token or performer object.
@@ -151,7 +140,7 @@ export async function ensureOrderChecklistInitialized(orderId: string): Promise<
 export async function transitionOrderStatusAtomic(
   orderId: string,
   newStatus: Order['status'] | string,
-  performer: PerformerInput,
+  performer: PerformerInput | InternalActor,
   options?: StatusTransitionOptions
 ) {
   try {
@@ -286,9 +275,16 @@ export async function transitionOrderStatusAtomic(
 }
 
 /**
- * Backward compatibility alias for updateOrderStatusAtomic.
+ * Backward compatibility alias for transitionOrderStatusAtomic.
  */
-export const updateOrderStatusAtomic = transitionOrderStatusAtomic;
+export async function updateOrderStatusAtomic(
+  orderId: string,
+  newStatus: Order['status'],
+  performerOrToken: PerformerInput | InternalActor,
+  options?: StatusTransitionOptions
+) {
+  return transitionOrderStatusAtomic(orderId, newStatus, performerOrToken, options);
+}
 
 /**
  * Updates a checklist step atomically.

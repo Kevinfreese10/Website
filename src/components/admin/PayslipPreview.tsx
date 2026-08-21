@@ -75,6 +75,12 @@ export default function PayslipPreview({ payslip, employee, client }: PayslipPre
                   <span className="font-semibold">{employee.taxNumber}</span>
                 </>
               )}
+              {!client.hideRatePerHour && (
+                <>
+                  <span className="text-muted-foreground">Rate per hour:</span>
+                  <span className="font-semibold">{formatPrice((payslip.grossPay || 0) / 160)}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
