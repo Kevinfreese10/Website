@@ -124,32 +124,34 @@ export function generatePayslipPdfPage(
   doc.line(15, currentY, 195, currentY);
   currentY += 7;
 
-  // --- 4. Employee Info Grid (3 Columns) ---
+  // --- 4. Employee Info Grid (3 Independent Columns with Text Wrapping) ---
+  const startGridY = currentY;
   const col1X = 15;
-  const col2X = 80;
-  const col3X = 140;
+  const col2X = 82;
+  const col3X = 142;
 
-  const drawLabelValue = (label: string, value: string | undefined | null, x: number, y: number) => {
-      if (!value || value === 'N/A') return;
-      doc.setFont('helvetica', 'bold');
-      doc.text(label, x, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(value, x + 30, y);
-  };
+  // Column 1: Employee, Job title, Address
+  let col1Y = startGridY;
+  
+  // 1. Employee Name
+  doc.setFont('helvetica', 'bold');
+  doc.text('Employee', col1X, col1Y);
+  doc.setFont('helvetica', 'normal');
+  const empNameLines = doc.splitTextToSize(`${employee.name} ${employee.surname}`, 45);
+  doc.text(empNameLines, col1X + 20, col1Y);
+  col1Y += Math.max(empNameLines.length * 4.2, 5.2);
 
-  // Row 1
-  drawLabelValue('Employee', `${employee.name} ${employee.surname}`, col1X, currentY);
-  drawLabelValue('Employee Code', employee.employeeCode, col2X, currentY);
-  drawLabelValue('Pay Method', 'EFT', col3X, currentY);
-  currentY += 6;
+  // 2. Job Title
+  if (employee.jobTitle && employee.jobTitle !== 'N/A') {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Job title', col1X, col1Y);
+    doc.setFont('helvetica', 'normal');
+    const jobTitleLines = doc.splitTextToSize(employee.jobTitle, 45);
+    doc.text(jobTitleLines, col1X + 20, col1Y);
+    col1Y += Math.max(jobTitleLines.length * 4.2, 5.2);
+  }
 
-  // Row 2
-  drawLabelValue('Job title', employee.jobTitle, col1X, currentY);
-  drawLabelValue('Identity Number', employee.idNumber, col2X, currentY);
-  drawLabelValue('Bank Name', employee.bankingDetails?.bankName, col3X, currentY);
-  currentY += 6;
-
-  // Row 3
+  // 3. Address
   const cleanAddressField = (val: any) => {
       if (!val) return '';
       const s = String(val).trim();
@@ -165,35 +167,58 @@ export function generatePayslipPdfPage(
   const addrZip = cleanAddressField(employee.address?.zip);
 
   const unitComplex = [addrUnit, addrComplex].filter(Boolean).join(', ');
-  const lines = [unitComplex, addrStreet, addrSuburb, addrCity, addrZip].filter(Boolean);
-  const hasAddress = lines.length > 0;
+  const addressLines = [unitComplex, addrStreet, addrSuburb, addrCity, addrZip].filter(Boolean);
 
-  if (hasAddress) {
+  if (addressLines.length > 0) {
       doc.setFont('helvetica', 'bold');
-      doc.text('Address', col1X, currentY);
-  }
-
-  const joinDateStr = employee.joinDate?.toDate ? format(employee.joinDate.toDate(), 'yyyy/MM/dd') : (employee.joinDate ? format(new Date(employee.joinDate), 'yyyy/MM/dd') : '');
-  drawLabelValue('Employed from', joinDateStr, col2X, currentY);
-  drawLabelValue('Branch Code', employee.bankingDetails?.branchCode, col3X, currentY);
-  
-  let addrY = currentY;
-  if (hasAddress) {
-      lines.forEach(line => {
-          const wrapped = doc.splitTextToSize(String(line), 30);
-          wrapped.forEach((subLine: string) => {
-              doc.text(subLine, col1X + 30, addrY);
-              addrY += 5;
-          });
+      doc.text('Address', col1X, col1Y);
+      doc.setFont('helvetica', 'normal');
+      addressLines.forEach(line => {
+          const wrapped = doc.splitTextToSize(String(line), 45);
+          doc.text(wrapped, col1X + 20, col1Y);
+          col1Y += wrapped.length * 4.0;
       });
   }
-  
-  const hourlyRate = p.grossPay / 160;
-  drawLabelValue('Rate per hour', formatCurr(hourlyRate), col2X, currentY + 6);
-  drawLabelValue('Account Number', employee.bankingDetails?.accountNumber, col3X, currentY + 6);
-  drawLabelValue('Account Holder', employee.bankingDetails?.accountHolder, col3X, currentY + 12);
 
-  currentY = Math.max(addrY, currentY + 20);
+  // Column 2: Employee Code, Identity Number, Employed from, Rate per hour
+  let col2Y = startGridY;
+  const drawCol2Item = (label: string, value: string | undefined | null) => {
+    if (!value || value === 'N/A') return;
+    doc.setFont('helvetica', 'bold');
+    doc.text(label, col2X, col2Y);
+    doc.setFont('helvetica', 'normal');
+    const valLines = doc.splitTextToSize(String(value), 32);
+    doc.text(valLines, col2X + 27, col2Y);
+    col2Y += Math.max(valLines.length * 4.2, 5.2);
+  };
+
+  drawCol2Item('Employee Code', employee.employeeCode);
+  drawCol2Item('Identity Number', employee.idNumber);
+  const joinDateStr = employee.joinDate?.toDate ? format(employee.joinDate.toDate(), 'yyyy/MM/dd') : (employee.joinDate ? format(new Date(employee.joinDate), 'yyyy/MM/dd') : '');
+  drawCol2Item('Employed from', joinDateStr);
+  const hourlyRate = p.grossPay / 160;
+  drawCol2Item('Rate per hour', formatCurr(hourlyRate));
+
+  // Column 3: Pay Method, Bank Name, Branch Code, Account Number, Account Holder
+  let col3Y = startGridY;
+  const drawCol3Item = (label: string, value: string | undefined | null) => {
+    if (!value || value === 'N/A') return;
+    doc.setFont('helvetica', 'bold');
+    doc.text(label, col3X, col3Y);
+    doc.setFont('helvetica', 'normal');
+    const valLines = doc.splitTextToSize(String(value), 28);
+    doc.text(valLines, col3X + 25, col3Y);
+    col3Y += Math.max(valLines.length * 4.2, 5.2);
+  };
+
+  drawCol3Item('Pay Method', 'EFT');
+  drawCol3Item('Bank Name', employee.bankingDetails?.bankName);
+  drawCol3Item('Branch Code', employee.bankingDetails?.branchCode);
+  drawCol3Item('Account Number', employee.bankingDetails?.accountNumber);
+  drawCol3Item('Account Holder', employee.bankingDetails?.accountHolder);
+
+  currentY = Math.max(col1Y, col2Y, col3Y, startGridY + 24);
+  doc.setDrawColor(200);
   doc.line(15, currentY, 195, currentY);
   currentY += 2;
 
