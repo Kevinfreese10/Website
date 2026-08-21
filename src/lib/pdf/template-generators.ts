@@ -1739,3 +1739,110 @@ export async function generateOrderIntakeSummaryPdf(order: Order, aiVerification
     fileName: `Order_Intake_Audit_Summary_${details.orderId}.pdf`,
   };
 }
+
+/**
+ * 11. B-BBEE Sworn Affidavit — Exempted Micro Enterprise (EME - General)
+ * Always uses the official dti / dtic template (C:\Users\kev\OneDrive\Documents\Affidavit-EME-Gen.pdf or public/templates/Affidavit-EME-Gen.pdf)
+ */
+export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
+  const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
+  validateStatutoryPrerequisites(details, ['companyName', 'customerName', 'idNumber', 'regNumber', 'address'], 'B-BBEE Sworn Affidavit (EME General)');
+
+  const possibleTemplatePaths = [
+    path.join(process.cwd(), 'public/templates/Affidavit-EME-Gen.pdf'),
+    'C:\\Users\\kev\\OneDrive\\Documents\\Affidavit-EME-Gen.pdf',
+  ];
+
+  let templateBytes: Buffer | null = null;
+  for (const p of possibleTemplatePaths) {
+    if (fs.existsSync(p)) {
+      templateBytes = fs.readFileSync(p);
+      break;
+    }
+  }
+
+  if (!templateBytes) {
+    throw new Error('Official B-BBEE Sworn Affidavit template (Affidavit-EME-Gen.pdf) not found.');
+  }
+
+  const pdfDoc = await PDFDocument.load(templateBytes);
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const navy = rgb(0.06, 0.13, 0.22);
+
+  // Ownership percentages
+  const blackOwned = String(details.blackOwnedPercent ?? '0').replace('%', '');
+  const blackFemaleOwned = String(details.blackFemaleOwnedPercent ?? '0').replace('%', '');
+  const blackDesignatedOwned = String(details.blackDesignatedGroupPercent ?? '0').replace('%', '');
+  const blackYouth = String(details.blackYouthPercent ?? '0').replace('%', '');
+  const blackDisabled = String(details.blackDisabledPercent ?? '0').replace('%', '');
+  const blackUnemployed = String(details.blackUnemployedPercent ?? '0').replace('%', '');
+  const blackRural = String(details.blackRuralPercent ?? '0').replace('%', '');
+  const blackMilitary = String(details.blackMilitaryVeteransPercent ?? '0').replace('%', '');
+  const finYearEnd = details.financialYearEnd || '28 February 2026';
+  const natureOfBusiness = details.natureOfBusiness || 'Information Technology & Professional Services';
+  const entityType = details.enterpriseType || 'Private Company ((Pty) Ltd)';
+
+  // --- PAGE 1 ---
+  const page1 = pdfDoc.getPage(0);
+  // Deponent Full Name & Surname:
+  page1.drawText(details.customerName.toUpperCase(), { x: 220, y: 694.7, size: 9.5, font: fontBold, color: navy });
+  // Identity number:
+  page1.drawText(details.idNumber, { x: 220, y: 681.6, size: 9.5, font: fontBold, color: navy });
+
+  // Enterprise details
+  page1.drawText(details.companyName.toUpperCase(), { x: 220, y: 567.0, size: 9.5, font: fontBold, color: navy });
+  page1.drawText(details.companyName.toUpperCase(), { x: 220, y: 544.0, size: 9.5, font: fontRegular, color: navy });
+  page1.drawText(details.regNumber, { x: 220, y: 528.1, size: 9.5, font: fontBold, color: navy });
+  
+  // Physical Address (wrap if long)
+  const addrLines = wrapText(details.address, 330, fontRegular, 8.5);
+  if (addrLines.length === 1) {
+    page1.drawText(addrLines[0], { x: 220, y: 508.0, size: 8.5, font: fontRegular, color: navy });
+  } else {
+    page1.drawText(addrLines[0], { x: 220, y: 512.0, size: 8, font: fontRegular, color: navy });
+    page1.drawText(addrLines.slice(1).join(' '), { x: 220, y: 501.0, size: 8, font: fontRegular, color: navy });
+  }
+
+  page1.drawText(entityType, { x: 220, y: 455.0, size: 9, font: fontRegular, color: navy });
+  page1.drawText(natureOfBusiness, { x: 220, y: 437.7, size: 9, font: fontRegular, color: navy });
+
+  // --- PAGE 2 ---
+  const page2 = pdfDoc.getPage(1);
+  // Declarations
+  page2.drawText(blackOwned, { x: 235, y: 721.2, size: 9.5, font: fontBold, color: navy });
+  page2.drawText(blackFemaleOwned, { x: 235, y: 682.7, size: 9.5, font: fontBold, color: navy });
+  page2.drawText(blackDesignatedOwned, { x: 235, y: 644.0, size: 9.5, font: fontBold, color: navy });
+
+  // Breakdown
+  page2.drawText(blackYouth, { x: 245, y: 579.3, size: 9, font: fontBold, color: navy });
+  page2.drawText(blackDisabled, { x: 255, y: 559.6, size: 9, font: fontBold, color: navy });
+  page2.drawText(blackUnemployed, { x: 275, y: 540.0, size: 9, font: fontBold, color: navy });
+  page2.drawText(blackRural, { x: 335, y: 520.3, size: 9, font: fontBold, color: navy });
+  page2.drawText(blackMilitary, { x: 290, y: 500.6, size: 9, font: fontBold, color: navy });
+
+  // Financial Year End date
+  page2.drawText(finYearEnd, { x: 255, y: 455.7, size: 9, font: fontBold, color: navy });
+
+  // Level Contributor Table Checkbox
+  const numBlackOwned = parseFloat(blackOwned) || 0;
+  if (numBlackOwned === 100) {
+    // Row 1: 100% Black Owned -> Level 1
+    page2.drawText('X', { x: 476, y: 385.0, size: 12, font: fontBold, color: navy });
+  } else if (numBlackOwned >= 51) {
+    // Row 2: At least 51% Black Owned -> Level 2
+    page2.drawText('X', { x: 476, y: 359.0, size: 12, font: fontBold, color: navy });
+  } else {
+    // Row 3: Less than 51% Black Owned -> Level 4
+    page2.drawText('X', { x: 476, y: 333.0, size: 12, font: fontBold, color: navy });
+  }
+
+  // Deponent Signature Date
+  page2.drawText(details.orderDate || new Date().toLocaleDateString('en-ZA'), { x: 360, y: 149.9, size: 9.5, font: fontBold, color: navy });
+
+  const pdfBytes = await pdfDoc.save();
+  return {
+    buffer: Buffer.from(pdfBytes),
+    fileName: `BEE_Sworn_Affidavit_EME_${details.orderId}.pdf`,
+  };
+}
