@@ -1412,7 +1412,7 @@ export default function PartnerOrderDetailsPage() {
                                                         <p className="text-sm italic text-muted-foreground">"{note.text}"</p>
                                                     </div>
                                                 ) : (
-                                                    <p className="text-sm" dangerouslySetInnerHTML={{ __html: note.text.replace(/\n/g, '<br />') }} />
+                                                    <p className="text-sm" dangerouslySetInnerHTML={{ __html: (note.text || '').replace(/\n/g, '<br />') }} />
                                                 )}
                                                  {note.attachments && note.attachments.length > 0 && (
                                                     <div className="mt-2 space-y-1">
