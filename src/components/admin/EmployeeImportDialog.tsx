@@ -13,7 +13,8 @@ import { firebaseApp } from '@/lib/firebase';
 import { Employee } from '@/lib/types';
 import Papa from 'papaparse';
 import { isValid } from 'date-fns';
-import { generateEmployeePayslipAction, updateDraftPayslipHoursAction } from '@/app/actions';
+import { generateEmployeePayslipAction, updateDraftPayslipHoursAction } from '@/app/actions/payroll-core';
+import * as XLSX from 'xlsx-js-style';
 
 const db = getFirestore(firebaseApp);
 
@@ -58,6 +59,25 @@ export default function EmployeeImportDialog({
         document.body.removeChild(link);
     };
 
+    const parseRowsFromFile = async (file: File): Promise<any[]> => {
+        const fileName = file.name.toLowerCase();
+        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+            const buffer = await file.arrayBuffer();
+            const workbook = XLSX.read(buffer, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            return XLSX.utils.sheet_to_json(firstSheet);
+        } else {
+            return new Promise((resolve, reject) => {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => resolve(results.data as any[]),
+                    error: (error) => reject(error),
+                });
+            });
+        }
+    };
+
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !clientId) return;
@@ -65,40 +85,39 @@ export default function EmployeeImportDialog({
         setIsImporting(true);
         toast({ title: "Importing...", description: "Parsing file and updating records." });
 
-        Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: async (results) => {
-                try {
-                    const rows = results.data as any[];
-                    let createCount = 0;
-                    let updateCount = 0;
+        try {
+            const rows = await parseRowsFromFile(file);
+            let createCount = 0;
+            let updateCount = 0;
 
-                    const empRef = collection(db, 'aiPayrollClients', clientId, 'employees');
-                    const empSnap = await getDocs(empRef);
-                    const existingMap = new Map<string, string>();
-                    empSnap.docs.forEach(d => {
-                        const data = d.data();
-                        if (data.employeeCode) existingMap.set(data.employeeCode, d.id);
-                    });
+            const empRef = collection(db, 'aiPayrollClients', clientId, 'employees');
+            const empSnap = await getDocs(empRef);
+            const existingMap = new Map<string, string>();
+            empSnap.docs.forEach(d => {
+                const data = d.data();
+                if (data.employeeCode) existingMap.set(data.employeeCode, d.id);
+            });
 
-                    for (const row of rows) {
-                        const code = row['Code']?.trim();
-                        if (!code) continue;
+            for (const row of rows) {
+                const code = String(row['Code'] || '').trim();
+                if (!code) continue;
 
-                        const existingId = existingMap.get(code);
-                        const targetRef = existingId 
-                            ? doc(db, 'aiPayrollClients', clientId, 'employees', existingId)
-                            : doc(collection(db, 'aiPayrollClients', clientId, 'employees'));
+                const existingId = existingMap.get(code);
+                const targetRef = existingId 
+                    ? doc(db, 'aiPayrollClients', clientId, 'employees', existingId)
+                    : doc(collection(db, 'aiPayrollClients', clientId, 'employees'));
 
-                        let joinDate;
-                        const joinDateStr = row['Join Date (YYYY-MM-DD)']?.trim();
-                        if (joinDateStr) {
-                            const parsed = new Date(joinDateStr);
-                            joinDate = isValid(parsed) ? Timestamp.fromDate(parsed) : Timestamp.fromDate(new Date());
-                        } else {
-                            joinDate = Timestamp.fromDate(new Date());
-                        }
+                let joinDate;
+                const rawJoinDate = row['Join Date (YYYY-MM-DD)'];
+                if (typeof rawJoinDate === 'number') {
+                    const jsDate = new Date(Math.round((rawJoinDate - 25569) * 86400 * 1000));
+                    joinDate = isValid(jsDate) ? Timestamp.fromDate(jsDate) : Timestamp.fromDate(new Date());
+                } else if (rawJoinDate) {
+                    const parsed = new Date(String(rawJoinDate).trim());
+                    joinDate = isValid(parsed) ? Timestamp.fromDate(parsed) : Timestamp.fromDate(new Date());
+                } else {
+                    joinDate = Timestamp.fromDate(new Date());
+                }
 
                         const employeeData: any = {
                             employeeCode: code,
@@ -168,19 +187,17 @@ export default function EmployeeImportDialog({
                         }
                     }
 
-                    toast({ 
-                        title: "Import Successful", 
-                        description: `Created ${createCount} and updated ${updateCount} records with hours.` 
-                    });
-                    onOpenChange(false);
-                } catch (error) {
-                    console.error("Import failed:", error);
-                    toast({ title: "Import Failed", description: "An unexpected error occurred.", variant: "destructive" });
-                } finally {
-                    setIsImporting(false);
-                }
-            }
-        });
+            toast({ 
+                title: "Import Successful", 
+                description: `Created ${createCount} and updated ${updateCount} records with hours.` 
+            });
+            onOpenChange(false);
+        } catch (error) {
+            console.error("Import failed:", error);
+            toast({ title: "Import Failed", description: "An unexpected error occurred while parsing the file.", variant: "destructive" });
+        } finally {
+            setIsImporting(false);
+        }
     };
 
     return (
@@ -192,7 +209,7 @@ export default function EmployeeImportDialog({
                         Bulk Employee & Hours Import
                     </DialogTitle>
                     <DialogDescription>
-                        Upload a CSV to update employee records and <strong>bulk upload hours worked</strong> for the current period.
+                        Upload an Excel (.xlsx) or CSV file to update employee records and <strong>bulk upload hours worked</strong> for the current period.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-6 space-y-6">
@@ -210,11 +227,11 @@ export default function EmployeeImportDialog({
                     <Separator />
 
                     <div className="space-y-4">
-                        <Label>2. Upload Your File</Label>
+                        <Label>2. Upload Your File (.xlsx, .xls, .csv)</Label>
                         <div className="relative">
                             <Input 
                                 type="file" 
-                                accept=".csv" 
+                                accept=".xlsx,.xls,.csv" 
                                 onChange={handleFileChange}
                                 disabled={isImporting}
                                 className="h-12 pt-3"
