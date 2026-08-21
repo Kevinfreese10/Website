@@ -1821,8 +1821,8 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
   page2.drawText(blackRural, { x: 335, y: 520.3, size: 9, font: fontBold, color: navy });
   page2.drawText(blackMilitary, { x: 290, y: 500.6, size: 9, font: fontBold, color: navy });
 
-  // Financial Year End date
-  page2.drawText(finYearEnd, { x: 255, y: 455.7, size: 9, font: fontBold, color: navy });
+  // Financial Year End date (size 7.2 to fit precisely in the ~67pt blank line without overlapping)
+  page2.drawText(finYearEnd, { x: 247, y: 455.7, size: 7.2, font: fontBold, color: navy });
 
   // Level Contributor Table Checkbox
   const numBlackOwned = parseFloat(blackOwned) || 0;
@@ -1846,15 +1846,20 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
     x: 80,
     y: 10,
     width: 230,
-    height: 140,
+    height: 145,
     color: rgb(1, 1, 1), // white mask
   });
 
+  const stampX = 85;
+  const stampW = 215;
+  const stampY = 15;
+  const stampH = 68;
+
   // 2. Commissioner of Oaths Heading
   page2.drawText('Commissioner of Oaths:', {
-    x: 85,
-    y: 145,
-    size: 9,
+    x: stampX,
+    y: 125,
+    size: 8.5,
     font: fontBold,
     color: navy,
   });
@@ -1874,20 +1879,14 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
     }
   }
 
-  const stampX = 85;
-  const stampW = 215;
-  const stampY = 15;
-  const stampH = 68;
-
   if (sigImageBytes) {
     try {
       const sigImage = await pdfDoc.embedPng(sigImageBytes);
-      const sigW = 90;
+      const sigW = 68;
       const sigH = sigW / (sigImage.width / sigImage.height);
-      const sigX = stampX + (stampW - sigW) / 2; // perfectly centered above stamp box
       page2.drawImage(sigImage, {
-        x: sigX,
-        y: 86,
+        x: stampX + 115,
+        y: 105,
         width: sigW,
         height: sigH,
       });
