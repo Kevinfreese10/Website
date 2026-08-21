@@ -20,6 +20,7 @@ export type DocumentRequirementPreset = {
   type: 'pdf' | 'excel' | 'image' | 'text' | 'any';
   helpText: string;
   isRequired: boolean;
+  aiHint?: string;
 };
 
 /**
@@ -179,6 +180,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'pdf',
         helpText: 'Certified within the last 3 months by a Commissioner of Oaths / Police Station. Clear color scan.',
         isRequired: true,
+        aiHint: 'Certified SA Smart ID Card, Green Barcoded ID Book, or Passport. Check for visible Commissioner of Oaths or Police certification stamp dated within 3 months, legible ID number and name.',
       },
       {
         id: 'doc_proof_address',
@@ -186,6 +188,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'pdf',
         helpText: 'Utility bill, municipal statement, or formal lease agreement not older than 3 months.',
         isRequired: true,
+        aiHint: 'Proof of residential address dated within 3 months (utility bill, rates/taxes, lease, or bank statement).',
       },
       {
         id: 'doc_cipc_cor143',
@@ -193,6 +196,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'pdf',
         helpText: 'Official CIPC company registration certificate showing all active directors.',
         isRequired: true,
+        aiHint: 'Official CIPC COR 14.3, CK1, CK2, or MOI document showing company registration number, registered enterprise name, and active directors.',
       },
       {
         id: 'doc_share_certificates',
@@ -200,6 +204,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'pdf',
         helpText: 'Share certificates detailing shareholder percentages and issued share capital.',
         isRequired: false,
+        aiHint: 'Share certificates or securities register showing company name, shareholder names, and share allocation.',
       },
       {
         id: 'doc_signed_poa',
@@ -207,6 +212,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'pdf',
         helpText: 'Mandate document signed by authorized director authorizing My Accountant to act on behalf.',
         isRequired: true,
+        aiHint: 'Signed Power of Attorney or appointment mandate authorizing My Accountant to perform statutory filings. Verify presence of director signature and date.',
       },
     ],
   },
@@ -219,6 +225,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'pdf',
         helpText: 'Official stamped letter from your bank confirming account name and number, dated within 3 months.',
         isRequired: true,
+        aiHint: 'Official Bank Account Confirmation Letter from a registered South African bank dated within 3 months. Accept letters with official bank stamp OR digital verification reference/QR code.',
       },
       {
         id: 'doc_bank_statements_12m',
@@ -226,6 +233,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'pdf',
         helpText: 'Consecutive monthly bank statements downloaded directly from online banking in original PDF.',
         isRequired: true,
+        aiHint: 'Operational source bank statements for accounting/tax compilation. Accept consecutive bank statements showing transaction records. Do NOT treat as a KYC confirmation letter.',
       },
       {
         id: 'doc_bank_statements_csv',
@@ -233,6 +241,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'excel',
         helpText: 'Electronic CSV/Excel export containing transaction dates, descriptions, and amounts.',
         isRequired: false,
+        aiHint: 'Electronic spreadsheet or CSV export of bank transactions.',
       },
       {
         id: 'doc_sales_invoices',
@@ -240,6 +249,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'pdf',
         helpText: 'All client invoices issued during the period, compiled into a PDF or ZIP archive.',
         isRequired: true,
+        aiHint: 'Customer sales invoices or tax invoices issued by the entity.',
       },
       {
         id: 'doc_purchase_receipts',
@@ -247,6 +257,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'pdf',
         helpText: 'All valid vendor tax invoices, purchase slips, and operational expenses.',
         isRequired: true,
+        aiHint: 'Supplier purchase invoices, expense receipts, or till slips incurred for business operations.',
       },
       {
         id: 'doc_prior_afs',
@@ -254,6 +265,7 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         type: 'pdf',
         helpText: 'Signed balance sheet and income statement from the preceding financial period.',
         isRequired: false,
+        aiHint: 'Signed prior year annual financial statements, trial balance, or management accounts.',
       },
     ],
   },

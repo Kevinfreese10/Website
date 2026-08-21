@@ -1744,9 +1744,22 @@ export default function AdminOrderDetailsPage() {
                                                                         </Button>
                                                                     </div>
                                                                 ) : upload.textValue ? (
-                                                                    <p className="text-xs p-2.5 bg-muted rounded-md border font-medium text-foreground">
-                                                                        "{upload.textValue}"
-                                                                    </p>
+                                                                    <div className="flex items-center justify-between bg-muted p-2.5 rounded-md border text-xs gap-2">
+                                                                        <p className="font-medium text-foreground truncate max-w-md">
+                                                                            "{upload.textValue}"
+                                                                        </p>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="xs"
+                                                                            disabled={isVerifying}
+                                                                            onClick={() => handleRunAiVerification(identifier)}
+                                                                            className="gap-1 font-semibold text-primary border-primary/30 hover:bg-primary/5 shrink-0 ml-2"
+                                                                        >
+                                                                            {isVerifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
+                                                                            {upload.aiVerification ? 'Re-Verify Format' : 'Verify Format'}
+                                                                        </Button>
+                                                                    </div>
                                                                 ) : null}
 
                                                                 {/* AI Multimodal Verification Box */}

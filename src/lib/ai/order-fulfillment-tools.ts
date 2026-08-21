@@ -138,43 +138,142 @@ export async function runAiDocumentVerification(orderId: string, requirementIden
       throw new Error(`Document "${requirementIdentifier}" not found on Order #${orderId}`);
     }
 
-    if (!targetDoc.fileUrl) {
+    // Helper for validating text input requirements
+    const validateTextInputRequirement = (label: string, text: string): AIDocumentVerification => {
+      const clean = text.trim();
+      const labelLower = label.toLowerCase();
+      const issues: string[] = [];
+
+      if (!clean) {
+        return {
+          status: 'flagged',
+          confidence: 100,
+          detectedType: 'empty_text_input',
+          extractedData: { value: '' },
+          issues: ['Value is empty.'],
+          summary: 'Required text field is empty.',
+          recommendation: 'reject',
+          reason: 'A value must be provided.',
+          reviewedAt: new Date().toISOString(),
+        };
+      }
+
+      // 1. South African ID Number (13 digits)
+      if (labelLower.includes('id number') || labelLower.includes('identity number')) {
+        const digitsOnly = clean.replace(/\D/g, '');
+        if (digitsOnly.length !== 13) {
+          issues.push(`Invalid SA ID number format: expected 13 digits, received ${digitsOnly.length} digits (${clean}).`);
+        }
+      }
+      // 2. CIPC Company Registration Number
+      else if (labelLower.includes('registration number') || labelLower.includes('reg no') || labelLower.includes('cipc number')) {
+        const isCipc = /^(\d{4}\/\d{6}\/\d{2}|CK\d{2,4}\/\d{4,6}\/\d{2}|\d{10})$/i.test(clean);
+        if (!isCipc && clean.length < 8) {
+          issues.push(`Unrecognized CIPC registration number format: "${clean}". Expected format like "2024/123456/07" or "CK98/12345/23".`);
+        }
+      }
+      // 3. SARS Tax Number (10 digits)
+      else if (labelLower.includes('tax number') || labelLower.includes('tax ref') || labelLower.includes('income tax')) {
+        const digitsOnly = clean.replace(/\D/g, '');
+        if (digitsOnly.length !== 10) {
+          issues.push(`Invalid SARS tax reference number format: expected 10 digits, received ${digitsOnly.length} digits.`);
+        }
+      }
+      // 4. Email address
+      else if (labelLower.includes('email')) {
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
+        if (!isEmail) {
+          issues.push(`Invalid email address format: "${clean}".`);
+        }
+      }
+      // 5. Phone / Cell Number
+      else if (labelLower.includes('cell') || labelLower.includes('phone') || labelLower.includes('mobile')) {
+        const isPhone = /^(0\d{9}|\+27\d{9}|\d{10})$/.test(clean.replace(/[\s\-()]/g, ''));
+        if (!isPhone) {
+          issues.push(`Invalid South African phone number format: "${clean}". Expected 10 digits starting with 0.`);
+        }
+      }
+
+      const isValid = issues.length === 0;
+
+      return {
+        status: isValid ? 'verified' : 'flagged',
+        confidence: isValid ? 95 : 40,
+        detectedType: 'text_input_validation',
+        extractedData: { value: clean },
+        issues,
+        summary: isValid ? `Valid format confirmed for "${label}": ${clean}` : `Format issues in "${label}": ${issues.join(' ')}`,
+        recommendation: isValid ? 'approve' : 'reject',
+        reason: isValid ? 'Input successfully passed South African statutory format validation checks.' : issues.join(' '),
+        reviewedAt: new Date().toISOString(),
+      };
+    };
+
+    let aiVerification: AIDocumentVerification;
+
+    if (!targetDoc.fileUrl && targetDoc.textValue) {
+      aiVerification = validateTextInputRequirement(targetDoc.requirementLabel, targetDoc.textValue);
+    } else if (targetDoc.fileUrl) {
+      // Resolve the SUBJECT ENTITY the service is for (often a company, not the person who ordered).
+      const entityContext = resolveOrderEntityContext(orderData);
+
+      // Resolve matching service and aiHint for this requirement
+      const allServiceTitles = (orderData.items || []).map(i => i.title).filter(Boolean).join(', ');
+      const matchedItem = (orderData.items || []).find(i => i.id === targetDoc.serviceId) || orderData.items?.[0];
+      const serviceTitle = matchedItem?.title || orderData.items?.[0]?.title;
+
+      let requirementAiHint: string | undefined;
+      let requirementType: any = targetDoc.type;
+
+      try {
+        const { services: staticServices } = await import('@/lib/data');
+        const matchedService = staticServices.find(s => s.id === targetDoc.serviceId || s.slug === targetDoc.serviceId || s.title === serviceTitle);
+        const matchedReq = matchedService?.informationToProvide?.find(r => r.label === targetDoc.requirementLabel || (r.id && r.id === targetDoc.requirementId));
+        if (matchedReq?.aiHint) {
+          requirementAiHint = matchedReq.aiHint;
+        }
+        if (matchedReq?.type) {
+          requirementType = matchedReq.type;
+        }
+      } catch (err) {
+        console.warn('Could not resolve static service aiHint:', err);
+      }
+
+      const aiResult = await verifyOrderDocument({
+        fileUrl: targetDoc.fileUrl,
+        requirementLabel: targetDoc.requirementLabel,
+        requirementAiHint,
+        requirementType,
+        serviceTitle,
+        allServiceTitles,
+        orderingContactName: entityContext.orderingContactName,
+        expectedCompanyName: entityContext.entityName,
+        expectedRegistrationNumber: entityContext.registrationNumber,
+        expectedIdNumber: entityContext.idNumber,
+        expectedDirectorName: entityContext.directorName,
+        currentDate: new Date().toISOString().split('T')[0],
+      });
+
+      aiVerification = {
+        status: aiResult.status,
+        confidence: aiResult.confidence,
+        detectedType: aiResult.detectedType,
+        extractedData: aiResult.extractedData,
+        issues: aiResult.issues,
+        summary: aiResult.summary,
+        recommendation: aiResult.recommendation,
+        reason: aiResult.reason,
+        adversarialCheckPassed: aiResult.adversarialCheckPassed,
+        modelName: aiResult.modelName,
+        modelVersion: aiResult.modelVersion,
+        reviewedAt: aiResult.reviewedAt || new Date().toISOString(),
+      };
+    } else {
       return {
         success: false,
-        error: 'Text inputs do not require automated vision verification.',
+        error: 'No document file or text input found to verify.',
       };
     }
-
-    // Resolve the SUBJECT ENTITY the service is for (often a company, not the person who ordered).
-    // Left undefined when it cannot be determined, rather than defaulting to the ordering contact.
-    const entityContext = resolveOrderEntityContext(orderData);
-
-    const aiResult = await verifyOrderDocument({
-      fileUrl: targetDoc.fileUrl,
-      requirementLabel: targetDoc.requirementLabel,
-      serviceTitle: orderData.items?.[0]?.title,
-      orderingContactName: entityContext.orderingContactName,
-      expectedCompanyName: entityContext.entityName,
-      expectedRegistrationNumber: entityContext.registrationNumber,
-      expectedIdNumber: entityContext.idNumber,
-      expectedDirectorName: entityContext.directorName,
-      currentDate: new Date().toISOString().split('T')[0],
-    });
-
-    const aiVerification: AIDocumentVerification = {
-      status: aiResult.status,
-      confidence: aiResult.confidence,
-      detectedType: aiResult.detectedType,
-      extractedData: aiResult.extractedData,
-      issues: aiResult.issues,
-      summary: aiResult.summary,
-      recommendation: aiResult.recommendation,
-      reason: aiResult.reason,
-      adversarialCheckPassed: aiResult.adversarialCheckPassed,
-      modelName: aiResult.modelName,
-      modelVersion: aiResult.modelVersion,
-      reviewedAt: aiResult.reviewedAt || new Date().toISOString(),
-    };
 
     // Update document in Firestore with AI metadata
     const updatedUploads = uploads.map(doc => {
@@ -208,7 +307,7 @@ export async function runAiDocumentVerification(orderId: string, requirementIden
 
     return {
       success: true,
-      message: `Document verified. Recommendation: ${aiResult.recommendation.toUpperCase()} (${aiResult.confidence}% confidence)`,
+      message: `Document verified. Recommendation: ${aiVerification.recommendation.toUpperCase()} (${aiVerification.confidence}% confidence)`,
       aiVerification,
     };
   } catch (error: any) {

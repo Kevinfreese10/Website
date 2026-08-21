@@ -78,6 +78,80 @@ export async function triggerOrderAutomatedFulfillmentReview(
 
     const verificationStep = checklist.find(s => s.type === 'doc_verification' || s.title?.toLowerCase().includes('verification'));
     const customAiInstructions = verificationStep?.aiInstructions;
+    const allServiceTitles = (order.items || []).map(i => i.title).filter(Boolean).join(', ');
+
+    // Helper for validating text input requirements
+    const validateTextInputRequirement = (label: string, text: string): AIDocumentVerification => {
+      const clean = text.trim();
+      const labelLower = label.toLowerCase();
+      const issues: string[] = [];
+
+      if (!clean) {
+        return {
+          status: 'flagged',
+          confidence: 100,
+          detectedType: 'empty_text_input',
+          extractedData: { value: '' },
+          issues: ['Value is empty.'],
+          summary: 'Required text field is empty.',
+          recommendation: 'reject',
+          reason: 'A value must be provided.',
+          reviewedAt: new Date().toISOString(),
+        };
+      }
+
+      // 1. South African ID Number (13 digits)
+      if (labelLower.includes('id number') || labelLower.includes('identity number')) {
+        const digitsOnly = clean.replace(/\D/g, '');
+        if (digitsOnly.length !== 13) {
+          issues.push(`Invalid SA ID number format: expected 13 digits, received ${digitsOnly.length} digits (${clean}).`);
+        }
+      }
+      // 2. CIPC Company Registration Number
+      else if (labelLower.includes('registration number') || labelLower.includes('reg no') || labelLower.includes('cipc number')) {
+        const isCipc = /^(\d{4}\/\d{6}\/\d{2}|CK\d{2,4}\/\d{4,6}\/\d{2}|\d{10})$/i.test(clean);
+        if (!isCipc && clean.length < 8) {
+          issues.push(`Unrecognized CIPC registration number format: "${clean}". Expected format like "2024/123456/07" or "CK98/12345/23".`);
+        }
+      }
+      // 3. SARS Tax Number (10 digits)
+      else if (labelLower.includes('tax number') || labelLower.includes('tax ref') || labelLower.includes('income tax')) {
+        const digitsOnly = clean.replace(/\D/g, '');
+        if (digitsOnly.length !== 10) {
+          issues.push(`Invalid SARS tax reference number format: expected 10 digits, received ${digitsOnly.length} digits.`);
+        }
+      }
+      // 4. Email address
+      else if (labelLower.includes('email')) {
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean);
+        if (!isEmail) {
+          issues.push(`Invalid email address format: "${clean}".`);
+        }
+      }
+      // 5. Phone / Cell Number
+      else if (labelLower.includes('cell') || labelLower.includes('phone') || labelLower.includes('mobile')) {
+        const isPhone = /^(0\d{9}|\+27\d{9}|\d{10})$/.test(clean.replace(/[\s\-()]/g, ''));
+        if (!isPhone) {
+          issues.push(`Invalid South African phone number format: "${clean}". Expected 10 digits starting with 0.`);
+        }
+      }
+
+      const isValid = issues.length === 0;
+
+      return {
+        status: isValid ? 'verified' : 'flagged',
+        confidence: isValid ? 95 : 40,
+        detectedType: 'text_input_validation',
+        extractedData: { value: clean },
+        issues,
+        summary: isValid ? `Valid format confirmed for "${label}": ${clean}` : `Format issues in "${label}": ${issues.join(' ')}`,
+        recommendation: isValid ? 'approve' : 'reject',
+        reason: isValid ? 'Input successfully passed South African statutory format validation checks.' : issues.join(' '),
+        reviewedAt: new Date().toISOString(),
+      };
+    };
+
+    const { services: staticServices } = await import('@/lib/data');
 
     for (const docItem of uploads) {
       // If doc already has AI verification, keep it unless pending
@@ -87,16 +161,30 @@ export async function triggerOrderAutomatedFulfillmentReview(
       }
       if (docItem.fileUrl) {
         try {
-          // Resolve the SUBJECT ENTITY this service is being performed for, which is frequently a
-          // company rather than the individual who placed the order. Deliberately left undefined
-          // when unknown — never defaulted to the ordering contact, since that produced false
-          // "name mismatch" rejections on documents correctly held in the company's name.
           const entityContext = resolveOrderEntityContext(order);
+
+          const matchedItem = (order.items || []).find(i => i.id === docItem.serviceId) || order.items?.[0];
+          const serviceTitle = matchedItem?.title || order.items?.[0]?.title;
+
+          let requirementAiHint: string | undefined;
+          let requirementType: any = docItem.type;
+
+          const matchedService = staticServices.find(s => s.id === docItem.serviceId || s.slug === docItem.serviceId || s.title === serviceTitle);
+          const matchedReq = matchedService?.informationToProvide?.find(r => r.label === docItem.requirementLabel || (r.id && r.id === docItem.requirementId));
+          if (matchedReq?.aiHint) {
+            requirementAiHint = matchedReq.aiHint;
+          }
+          if (matchedReq?.type) {
+            requirementType = matchedReq.type;
+          }
 
           const aiResult = await verifyOrderDocument({
             fileUrl: docItem.fileUrl,
             requirementLabel: docItem.requirementLabel,
-            serviceTitle: order.items?.[0]?.title,
+            requirementAiHint,
+            requirementType,
+            serviceTitle,
+            allServiceTitles,
             orderingContactName: entityContext.orderingContactName,
             expectedCompanyName: entityContext.entityName,
             expectedRegistrationNumber: entityContext.registrationNumber,
@@ -129,6 +217,12 @@ export async function triggerOrderAutomatedFulfillmentReview(
           console.error(`AI verification error for ${docItem.requirementLabel}:`, err);
           updatedUploads.push(docItem);
         }
+      } else if (docItem.textValue) {
+        const aiVerification = validateTextInputRequirement(docItem.requirementLabel, docItem.textValue);
+        updatedUploads.push({
+          ...docItem,
+          aiVerification,
+        });
       } else if (docItem.notAvailableReason) {
         // Client explained why document is missing: mark as inconclusive/manual_review, NOT auto-approved
         const aiVerification: AIDocumentVerification = {

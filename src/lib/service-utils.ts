@@ -202,7 +202,7 @@ export function stripInternalChecklistAiData<T extends Record<string, any>>(chec
 /**
  * Normalizes informationToProvide array by ensuring every item has a stable unique ID.
  */
-export function normalizeRequirementsWithIds(items: any[] = []): { id: string; label: string; type?: 'text' | 'pdf' | 'excel' | 'image' | 'any'; helpText?: string; isConditional?: boolean; conditionalQuestion?: string; isRequired?: boolean }[] {
+export function normalizeRequirementsWithIds(items: any[] = []): { id: string; label: string; type?: 'text' | 'pdf' | 'excel' | 'image' | 'any'; helpText?: string; isConditional?: boolean; conditionalQuestion?: string; isRequired?: boolean; aiHint?: string }[] {
   return items.map((item, index) => {
     if (typeof item === 'string') {
       return {
@@ -218,6 +218,7 @@ export function normalizeRequirementsWithIds(items: any[] = []): { id: string; l
       label: item.label || '',
       type: item.type || 'pdf',
       isRequired: item.isRequired !== false,
+      aiHint: item.aiHint,
     };
   });
 }

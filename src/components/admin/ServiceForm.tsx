@@ -90,6 +90,7 @@ const formSchema = z.object({
     isConditional: z.boolean().optional(),
     conditionalQuestion: z.string().optional(),
     isRequired: z.boolean().optional(),
+    aiHint: z.string().optional(),
   })),
   fulfillmentChecklist: z.array(z.object({
     id: z.string(),

@@ -157,6 +157,7 @@ export type Service = {
     isConditional?: boolean;
     conditionalQuestion?: string;
     isRequired?: boolean;
+    aiHint?: string;
   }[];
   fulfillmentChecklist?: FulfillmentStep[];
   attachmentUrl?: string;
