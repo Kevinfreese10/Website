@@ -1,5 +1,7 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { Order, DocumentUpload } from '@/lib/types';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Helper to wrap text into multiple lines given a max width and font
@@ -262,234 +264,134 @@ export function drawMyAccHeader(page: any, width: number, height: number, fontBo
 
 /**
  * 1. NCR Form 2 — Statutory Application for Registration as a Credit Provider
+ * Always uses the official NCR Form 2 fillable template (C:\Users\kev\Downloads\NCR_Form_2_Fillable.pdf or public/templates/NCR_Form_2_Fillable.pdf)
  */
 export async function generateNcrForm2Draft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
   const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
   validateStatutoryPrerequisites(details, ['companyName', 'customerName', 'idNumber'], 'NCR Form 2 Application');
-  const pdfDoc = await PDFDocument.create();
-  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const fontOblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 
-  // --- PAGE 1: Parts 1, 2 & 3 ---
-  const page1 = pdfDoc.addPage([595.28, 841.89]);
-  const { width, height } = page1.getSize();
-  const margin = 40;
-
-  // Header Banner
-  page1.drawRectangle({
-    x: margin,
-    y: height - 85,
-    width: width - margin * 2,
-    height: 48,
-    color: rgb(0.06, 0.13, 0.22),
-  });
-
-  page1.drawText('NATIONAL CREDIT REGULATOR (NCR)', {
-    x: margin + 15,
-    y: height - 58,
-    size: 13,
-    font: fontBold,
-    color: rgb(1, 1, 1),
-  });
-
-  page1.drawText('FORM NCR 2 — APPLICATION FOR REGISTRATION AS A CREDIT PROVIDER', {
-    x: margin + 15,
-    y: height - 72,
-    size: 8,
-    font: fontBold,
-    color: rgb(0.77, 0.63, 0.35),
-  });
-
-  page1.drawText('(In terms of Section 40 of the National Credit Act, Act 34 of 2005)', {
-    x: margin + 15,
-    y: height - 81,
-    size: 6.5,
-    font: fontOblique,
-    color: rgb(0.85, 0.88, 0.92),
-  });
-
-  let currentY = height - 105;
-
-  const drawSectionHeader = (p: any, title: string, y: number) => {
-    p.drawRectangle({
-      x: margin,
-      y: y - 18,
-      width: width - margin * 2,
-      height: 20,
-      color: rgb(0.95, 0.97, 0.99),
-      borderColor: rgb(0.85, 0.88, 0.92),
-      borderWidth: 1,
-    });
-    p.drawText(title, {
-      x: margin + 10,
-      y: y - 13,
-      size: 9,
-      font: fontBold,
-      color: rgb(0.06, 0.13, 0.22),
-    });
-    return y - 26;
-  };
-
-  const drawFieldRow = (p: any, label: string, value: string, y: number) => {
-    p.drawText(label, { x: margin + 10, y, size: 8, font: fontBold, color: rgb(0.25, 0.3, 0.35) });
-    p.drawText(value || 'N/A', { x: margin + 185, y, size: 8, font: fontRegular, color: rgb(0.05, 0.05, 0.05) });
-    p.drawLine({
-      start: { x: margin + 180, y: y - 2 },
-      end: { x: width - margin - 10, y: y - 2 },
-      thickness: 0.5,
-      color: rgb(0.88, 0.91, 0.94),
-    });
-    return y - 16;
-  };
-
-  currentY = drawSectionHeader(page1, 'PART 1: APPLICANT IDENTIFICATION & REGISTRATION', currentY);
-  currentY = drawFieldRow(page1, 'Registered Legal Entity Name:', details.companyName, currentY);
-  currentY = drawFieldRow(page1, 'Trading Name (if different):', details.companyName, currentY);
-  currentY = drawFieldRow(page1, 'CIPC Company Registration Number:', details.regNumber, currentY);
-  currentY = drawFieldRow(page1, 'SARS Income Tax Reference Number:', details.taxNumber, currentY);
-  currentY = drawFieldRow(page1, 'SARS VAT Registration Number:', 'N/A (Small Business Threshold)', currentY);
-  currentY = drawFieldRow(page1, 'Physical Registered Business Address:', details.address, currentY);
-  currentY = drawFieldRow(page1, 'Postal Address for Notices:', details.address, currentY);
-  currentY = drawFieldRow(page1, 'Contact Person (Primary Officer):', details.customerName, currentY);
-  currentY = drawFieldRow(page1, 'Contact Telephone / Mobile:', details.phone, currentY);
-  currentY = drawFieldRow(page1, 'Contact Email Address:', details.email, currentY);
-
-  currentY -= 6;
-  currentY = drawSectionHeader(page1, 'PART 2: OPERATIONAL STRUCTURE & BRANCH NETWORK', currentY);
-  currentY = drawFieldRow(page1, 'Financial Year End:', '28 February', currentY);
-  currentY = drawFieldRow(page1, 'Head Office / Principal Place of Business:', details.address, currentY);
-  currentY = drawFieldRow(page1, 'Total Number of Operating Branches:', '1 (One Head Office / Branch)', currentY);
-  currentY = drawFieldRow(page1, 'Branch Location / Operating Premises:', details.address, currentY);
-
-  currentY -= 6;
-  currentY = drawSectionHeader(page1, 'PART 3: CATEGORY OF REGISTRATION & CREDIT AGREEMENTS', currentY);
-  
-  const p3Text = 'The applicant hereby applies for registration under Category 9 (Total principal debt < R15,000,000) for the provision of the following credit agreement categories:';
-  currentY = drawJustifiedParagraph(page1, p3Text, margin + 10, currentY, width - margin * 2 - 20, fontRegular, 8, rgb(0.2, 0.25, 0.3), 11);
-  currentY -= 4;
-
-  const creditOptions = [
-    '[X] Unsecured Credit Transactions (Short-term / Micro-loans)',
-    '[X] Incidental Credit Agreements & Credit Facility Accounts',
-    '[  ] Secured Credit Agreements / Mortgage Loans',
-    '[  ] Pawn Transactions / Developmental Credit',
-  ];
-  for (const opt of creditOptions) {
-    page1.drawText(opt, { x: margin + 15, y: currentY, size: 8, font: fontRegular, color: rgb(0.1, 0.15, 0.2) });
-    currentY -= 13;
-  }
-
-  // --- PAGE 2: Parts 4, 5 & Statutory Declaration ---
-  const page2 = pdfDoc.addPage([595.28, 841.89]);
-  let p2Y = height - 50;
-
-  p2Y = drawSectionHeader(page2, 'PART 4: MANAGEMENT, DIRECTORS & SHAREHOLDERS', p2Y);
-  
-  // Table Header
-  page2.drawRectangle({
-    x: margin,
-    y: p2Y - 16,
-    width: width - margin * 2,
-    height: 18,
-    color: rgb(0.06, 0.13, 0.22),
-  });
-  page2.drawText('FULL NAME', { x: margin + 10, y: p2Y - 12, size: 7.5, font: fontBold, color: rgb(1, 1, 1) });
-  page2.drawText('ID / PASSPORT NO', { x: margin + 180, y: p2Y - 12, size: 7.5, font: fontBold, color: rgb(1, 1, 1) });
-  page2.drawText('CAPACITY / ROLE', { x: margin + 310, y: p2Y - 12, size: 7.5, font: fontBold, color: rgb(1, 1, 1) });
-  page2.drawText('SHAREHOLDING', { x: margin + 420, y: p2Y - 12, size: 7.5, font: fontBold, color: rgb(1, 1, 1) });
-  p2Y -= 24;
-
-  // Row 1
-  page2.drawText(details.customerName, { x: margin + 10, y: p2Y, size: 8, font: fontRegular, color: rgb(0.1, 0.1, 0.1) });
-  page2.drawText(details.idNumber, { x: margin + 180, y: p2Y, size: 8, font: fontRegular, color: rgb(0.1, 0.1, 0.1) });
-  page2.drawText('Director / Signatory', { x: margin + 310, y: p2Y, size: 8, font: fontRegular, color: rgb(0.1, 0.1, 0.1) });
-  page2.drawText('100% (100 Shares)', { x: margin + 420, y: p2Y, size: 8, font: fontRegular, color: rgb(0.1, 0.1, 0.1) });
-  page2.drawLine({ start: { x: margin, y: p2Y - 4 }, end: { x: width - margin, y: p2Y - 4 }, thickness: 0.5, color: rgb(0.85, 0.88, 0.92) });
-  p2Y -= 20;
-
-  p2Y = drawSectionHeader(page2, 'PART 5: STATUTORY DECLARATION UNDER OATH (SECTION 40)', p2Y);
-
-  const decIntro = `I, the undersigned ${details.customerName}, in my capacity as duly authorised Director of ${details.companyName}, do hereby solemnly declare under oath that:`;
-  p2Y = drawJustifiedParagraph(page2, decIntro, margin + 10, p2Y, width - margin * 2 - 20, fontBold, 8.5, rgb(0.06, 0.13, 0.22), 12);
-  p2Y -= 6;
-
-  const declarations = [
-    '1. The applicant entity is duly incorporated in accordance with the Companies Act 71 of 2008 and is actively carrying on business within the Republic of South Africa.',
-    '2. No director, member, or executive officer of the applicant is disqualified from registration in terms of Section 46 or 47 of the National Credit Act (no unrehabilitated insolvents, no convictions for theft, fraud, or dishonesty).',
-    '3. The applicant undertakes to comply fully with the National Credit Act, Regulations, and Conditions of Registration, including submitting annual returns (Form 39 & Form 40) and paying annual renewal fees.',
-    '4. All information and documentation furnished in this application, including the Annexure of Fees, Bank Confirmation, Tax Compliance Status, and Share Certificates, is true, complete, and legally authentic.',
+  const possibleTemplatePaths = [
+    path.join(process.cwd(), 'public/templates/NCR_Form_2_Fillable.pdf'),
+    'C:\\Users\\kev\\Downloads\\NCR_Form_2_Fillable.pdf',
   ];
 
-  for (const dec of declarations) {
-    p2Y = drawJustifiedParagraph(page2, dec, margin + 10, p2Y, width - margin * 2 - 20, fontRegular, 8, rgb(0.18, 0.22, 0.28), 11.5);
-    p2Y -= 4;
+  let templateBytes: Buffer | null = null;
+  for (const p of possibleTemplatePaths) {
+    if (fs.existsSync(p)) {
+      templateBytes = fs.readFileSync(p);
+      break;
+    }
   }
 
-  p2Y -= 15;
-  page2.drawText(`SIGNED AT _____________________ ON THIS _______ DAY OF ______________ 20___`, {
-    x: margin + 10,
-    y: p2Y,
-    size: 8.5,
-    font: fontBold,
-    color: rgb(0.06, 0.13, 0.22),
-  });
+  if (!templateBytes) {
+    throw new Error('Official NCR Form 2 Fillable template not found.');
+  }
 
-  p2Y -= 20;
+  const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
+  const form = pdfDoc.getForm();
 
-  // Dual Execution Signature Boxes
-  const boxW = (width - margin * 2 - 20) / 2;
+  const setField = (name: string, val: string) => {
+    try {
+      const field = form.getTextField(name);
+      if (field && val) field.setText(String(val));
+    } catch (e) {}
+  };
 
-  // Director Box
-  page2.drawRectangle({
-    x: margin,
-    y: p2Y - 80,
-    width: boxW,
-    height: 80,
-    color: rgb(0.97, 0.98, 0.99),
-    borderColor: rgb(0.8, 0.85, 0.9),
-    borderWidth: 1,
-  });
+  const checkField = (name: string) => {
+    try {
+      const field = form.getCheckBox(name);
+      if (field) field.check();
+    } catch (e) {}
+  };
 
-  page2.drawText('APPLICANT / AUTHORISED DIRECTOR:', { x: margin + 10, y: p2Y - 12, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  page2.drawRectangle({
-    x: margin + 10,
-    y: p2Y - 48,
-    width: boxW - 20,
-    height: 30,
-    color: rgb(1, 1, 1),
-    borderColor: rgb(0.7, 0.75, 0.8),
-    borderWidth: 0.5,
-  });
-  page2.drawText('× SIGN HERE ×', { x: margin + boxW / 2 - 28, y: p2Y - 34, size: 7.5, font: fontBold, color: rgb(0.6, 0.65, 0.7) });
-  page2.drawText(`Name: ${details.customerName}`, { x: margin + 10, y: p2Y - 60, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  page2.drawText(`ID No: ${details.idNumber} | Capacity: Director`, { x: margin + 10, y: p2Y - 70, size: 7, font: fontRegular, color: rgb(0.4, 0.45, 0.5) });
+  // Part 1: Applicant & Entity Details
+  setField('p1_applicant_name', details.companyName);
+  setField('p1_trading_name', details.companyName);
+  setField('p1_reg_number', details.regNumber);
+  setField('p1_cipc_reg_date', details.orderDate);
+  
+  const addressParts = (details.address || '').split(',').map((s: string) => s.trim());
+  setField('p1_physical_address_line1', addressParts[0] || details.address);
+  setField('p1_physical_address_line2', addressParts[1] || '');
+  setField('p1_physical_address_line3_city', addressParts[2] || 'South Africa');
+  setField('p1_physical_postal_code', addressParts[addressParts.length - 1] || '');
 
-  // Commissioner of Oaths Box
-  const coX = margin + boxW + 20;
-  page2.drawRectangle({
-    x: coX,
-    y: p2Y - 80,
-    width: boxW,
-    height: 80,
-    color: rgb(0.97, 0.98, 0.99),
-    borderColor: rgb(0.8, 0.85, 0.9),
-    borderWidth: 1,
-  });
+  setField('p1_postal_address_line1', addressParts[0] || details.address);
+  setField('p1_postal_address_line2', addressParts[1] || '');
+  setField('p1_postal_address_line3_city', addressParts[2] || 'South Africa');
+  setField('p1_postal_code', addressParts[addressParts.length - 1] || '');
 
-  page2.drawText('COMMISSIONER OF OATHS (OR WITNESS):', { x: coX + 10, y: p2Y - 12, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  page2.drawRectangle({
-    x: coX + 10,
-    y: p2Y - 48,
-    width: boxW - 20,
-    height: 30,
-    color: rgb(1, 1, 1),
-    borderColor: rgb(0.7, 0.75, 0.8),
-    borderWidth: 0.5,
-  });
-  page2.drawText('× OFFICIAL STAMP & SIGNATURE ×', { x: coX + boxW / 2 - 62, y: p2Y - 34, size: 7, font: fontBold, color: rgb(0.6, 0.65, 0.7) });
-  page2.drawText('Full Name: ___________________________', { x: coX + 10, y: p2Y - 60, size: 7.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  page2.drawText('Designation / Force No: __________________', { x: coX + 10, y: p2Y - 70, size: 7, font: fontRegular, color: rgb(0.4, 0.45, 0.5) });
+  setField('p1_telephone_number', details.phone || '010 109 1625');
+  setField('p1_email_address', details.email || 'info@myacc.co.za');
+
+  // Part 2: Contact Person & Auditor Details
+  const nameParts = (details.customerName || '').split(' ');
+  setField('p2_contact_name', nameParts.slice(0, -1).join(' ') || details.customerName);
+  setField('p2_contact_surname', nameParts[nameParts.length - 1] || details.customerName);
+  setField('p2_contact_cell_number', details.phone || '');
+  setField('p2_contact_email', details.email || '');
+
+  // Designated Accounting Officer: My Accountant (Pty) Ltd / Kevin Freese CBA (SA) #3561
+  setField('p2_auditor_firm_name', 'My Accountant (Pty) Ltd');
+  setField('p2_auditor_individual_name', 'Kevin Freese');
+  setField('p2_auditor_physical_address_line1', 'Ground Floor, Waterstone Building, Stonemill Office Park');
+  setField('p2_auditor_physical_address_line2', '300 Acacia Road, Darrenwood');
+  setField('p2_auditor_physical_city', 'Johannesburg');
+  setField('p2_auditor_physical_postal_code', '2195');
+  setField('p2_auditor_postal_address_line1', 'Ground Floor, Waterstone Building, Stonemill Office Park');
+  setField('p2_auditor_postal_address_line2', '300 Acacia Road, Darrenwood');
+  setField('p2_auditor_postal_city', 'Johannesburg');
+  setField('p2_auditor_postal_code', '2195');
+  setField('p2_auditor_tel_number', '010 109 1625');
+  setField('p2_auditor_email', 'info@myacc.co.za');
+  setField('p2_auditor_practice_number', 'CIBA CBAP SA #3561 / PR-0098553');
+  setField('p2_auditor_professional_body', 'Chartered Institute of Business Accountants (CIBA / SAIBA)');
+
+  checkField('p2_product_unsecured_credit');
+  checkField('p2_product_developmental_credit');
+
+  // Part 3: Official Languages & BBBEE
+  setField('p3_language_area1_desc', addressParts[2] || 'Head Office Region');
+  setField('p3_language_area1_lang1', 'English');
+  setField('p3_language_area1_lang2', 'Sepedi');
+
+  // Part 4: Regulatory Disqualifications (all default to No)
+  checkField('p4_control_credit_bureau_no');
+  checkField('p4_control_debt_collection_no');
+  checkField('p4_control_adr_agent_no');
+  checkField('p4_control_credit_repair_no');
+
+  setField('p4_premises_total_count', '1');
+  setField('p4_premises_normal_credit_count', '1');
+  setField('p4_premise1_trading_name', details.companyName);
+  setField('p4_premise1_address_line1', addressParts[0] || details.address);
+  setField('p4_premise1_city', addressParts[1] ? `${addressParts[1]}, ${addressParts[2] || ''}` : details.address);
+  setField('p4_premise1_postal_code', addressParts[addressParts.length - 1] || '');
+  setField('p4_premise1_contact_person', details.customerName);
+  setField('p4_premise1_tel_number', details.phone || '');
+  setField('p4_premise1_email', details.email || '');
+
+  // Part 5: Representative declaration
+  setField('p5_rep_name', details.customerName);
+  setField('p5_rep_capacity', 'Director');
+  setField('p5_rep_date', details.orderDate);
+
+  // Part 6 & 7: Natural Person Disqualifications
+  setField('p6_person_name', details.customerName);
+  setField('p6_person_id_number', details.idNumber);
+  setField('p6_person_date', details.orderDate);
+
+  checkField('p6_q1_gambling_register_no');
+  checkField('p6_q2_mentally_unfit_no');
+  checkField('p6_q3_misconduct_removal_no');
+  checkField('p6_q4_deregistered_entity_no');
+  checkField('p6_q5_disrepute_entity_no');
+  checkField('p6_q6_disregard_consumer_rights_no');
+  checkField('p6_q7_fraud_conviction_no');
+  checkField('p6_q8_violence_conviction_no');
+  checkField('p7_q9_nca_offence_no');
+  checkField('p7_q10_saps_permission_yes');
+  setField('p7_cert_date', details.orderDate);
 
   const pdfBytes = await pdfDoc.save();
   return {
@@ -659,155 +561,60 @@ export async function generateNcrDirectorResolutionDraft(order: Order, extracted
 
 /**
  * 3. NCR Annexure: Confirmation of Payment of Fees
+ * Always uses the official fillable template (C:\Users\kev\Downloads\NCR_Annexure_Confirmation_of_Fees_Fillable.pdf or public/templates/NCR_Annexure_Confirmation_of_Fees_Fillable.pdf)
  */
 export async function generateNcrAnnexureFeesDraft(order: Order, extractedInfo?: any): Promise<{ buffer: Buffer; fileName: string }> {
   const details = { ...extractOrderEntityDetails(order), ...extractedInfo };
-  const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([595.28, 841.89]);
-  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const { width, height } = page.getSize();
-  const margin = 40;
+  const possibleTemplatePaths = [
+    path.join(process.cwd(), 'public/templates/NCR_Annexure_Confirmation_of_Fees_Fillable.pdf'),
+    'C:\\Users\\kev\\Downloads\\NCR_Annexure_Confirmation_of_Fees_Fillable.pdf',
+  ];
 
-  // NCR Official Top Banner
-  page.drawText('127 - 15th Road, Randjespark, Midrand | PO Box 209, Halfway House, 1685 | Tel (+27) 011 554 2600 | www.ncr.org.za', {
-    x: margin,
-    y: height - 38,
-    size: 7.5,
-    font: fontRegular,
-    color: rgb(0.4, 0.45, 0.5),
-  });
-  page.drawText('Toll share: 0860 627 627 / 0860 NCR NCR', {
-    x: margin,
-    y: height - 48,
-    size: 7.5,
-    font: fontBold,
-    color: rgb(0.06, 0.13, 0.22),
-  });
+  let templateBytes: Buffer | null = null;
+  for (const p of possibleTemplatePaths) {
+    if (fs.existsSync(p)) {
+      templateBytes = fs.readFileSync(p);
+      break;
+    }
+  }
 
-  page.drawLine({
-    start: { x: margin, y: height - 55 },
-    end: { x: width - margin, y: height - 55 },
-    thickness: 1,
-    color: rgb(0.06, 0.13, 0.22),
-  });
+  if (!templateBytes) {
+    throw new Error('Official NCR Annexure Confirmation of Fees Fillable template not found.');
+  }
 
-  let currentY = height - 76;
+  const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
+  const form = pdfDoc.getForm();
 
-  page.drawText('Annexure: Confirmation of payment of fees', {
-    x: margin,
-    y: currentY,
-    size: 12,
-    font: fontBold,
-    color: rgb(0.06, 0.13, 0.22),
-  });
-
-  currentY -= 18;
-
-  // Section 1
-  page.drawRectangle({
-    x: margin,
-    y: currentY - 16,
-    width: width - margin * 2,
-    height: 18,
-    color: rgb(0.94, 0.96, 0.98),
-  });
-  page.drawText('1. Details of Credit Provider', { x: margin + 10, y: currentY - 12, size: 9, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  currentY -= 26;
-
-  const drawRow = (lbl: string, val: string, y: number) => {
-    page.drawText(lbl, { x: margin + 10, y, size: 8, font: fontBold, color: rgb(0.3, 0.35, 0.4) });
-    page.drawText(val, { x: margin + 180, y, size: 8, font: fontRegular, color: rgb(0.05, 0.05, 0.05) });
-    page.drawLine({ start: { x: margin + 175, y: y - 2 }, end: { x: width - margin - 10, y: y - 2 }, thickness: 0.5, color: rgb(0.85, 0.85, 0.85) });
-    return y - 16;
+  const setField = (name: string, val: string) => {
+    try {
+      const field = form.getTextField(name);
+      if (field && val) field.setText(String(val));
+    } catch (e) {}
   };
 
-  currentY = drawRow('Name of credit provider:', details.companyName, currentY);
-  currentY = drawRow('Application Number:', '-', currentY);
-  currentY = drawRow('Application Date:', details.orderDate, currentY);
-  currentY = drawRow('Contact person (Name):', details.customerName, currentY);
-  currentY = drawRow('Contact Telephone number:', details.phone, currentY);
+  setField('credit_provider_name', details.companyName);
+  setField('application_number', details.orderId ? `APP-${details.orderId}` : '-');
+  setField('application_date', details.orderDate);
+  setField('contact_person_name', details.customerName);
+  setField('contact_telephone_number', details.phone || '');
+  setField('amount_paid_rands', 'R 1,800.00');
 
-  currentY -= 8;
-  // Section 2
-  page.drawRectangle({
-    x: margin,
-    y: currentY - 16,
-    width: width - margin * 2,
-    height: 18,
-    color: rgb(0.94, 0.96, 0.98),
-  });
-  page.drawText('2. Payment Details', { x: margin + 10, y: currentY - 12, size: 9, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  currentY -= 26;
+  try {
+    form.getCheckBox('pay_method_electronic_transfer').check();
+  } catch (e) {}
 
-  currentY = drawRow('Amount paid in Rands (R):', 'R 1,800.00 (One Thousand Eight Hundred Rand)', currentY);
-  currentY = drawRow('Payment method:', 'Electronic Funds Transfer (EFT) / Direct Deposit', currentY);
-  currentY = drawRow('Payment date:', details.orderDate, currentY);
-  currentY = drawRow('Payment reference used:', `${details.regNumber.replace(/[^0-9]/g, '')}`, currentY);
+  setField('fee_application_amount', 'R 550.00');
+  setField('fee_principal_debt_date', details.orderDate);
+  setField('fee_principal_debt_amount', 'R 0.00');
+  setField('fee_initial_reg_amount', 'R 1,250.00');
+  setField('fee_branches_count', '1');
+  setField('fee_branches_amount', 'R 0.00');
+  setField('fee_total_amount', 'R 1,800.00');
 
-  currentY -= 8;
-  // Section 3
-  page.drawRectangle({
-    x: margin,
-    y: currentY - 16,
-    width: width - margin * 2,
-    height: 18,
-    color: rgb(0.94, 0.96, 0.98),
-  });
-  page.drawText('3. Basis of Calculation of Fees Paid', { x: margin + 10, y: currentY - 12, size: 9, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  currentY -= 26;
-
-  const drawFeeRow = (lbl: string, val: string, y: number, isTotal = false) => {
-    page.drawText(lbl, { x: margin + 10, y, size: 8, font: fontBold, color: isTotal ? rgb(0.06, 0.13, 0.22) : rgb(0.3, 0.35, 0.4) });
-    const valWidth = fontBold.widthOfTextAtSize(val, 8);
-    page.drawText(val, { x: width - margin - 20 - valWidth, y, size: 8, font: fontBold, color: isTotal ? rgb(0.06, 0.13, 0.22) : rgb(0.1, 0.1, 0.1) });
-    page.drawLine({ start: { x: margin + 10, y: y - 2 }, end: { x: width - margin - 10, y: y - 2 }, thickness: isTotal ? 1 : 0.5, color: isTotal ? rgb(0.06, 0.13, 0.22) : rgb(0.85, 0.85, 0.85) });
-    return y - 16;
-  };
-
-  currentY = drawFeeRow('(a) Application fee (Schedule 2, Item 2):', 'R 550.00', currentY);
-  currentY = drawFeeRow('(b) Initial registration fee (Schedule 2, Item 3(1)(a)(i) - Cat 9):', 'R 1,000.00', currentY);
-  currentY = drawFeeRow('(c) Branch fee (Schedule 2, Item 3(1)(a)(ii) - 1 Branch):', 'R 250.00', currentY);
-  currentY = drawFeeRow('TOTAL STATUTORY AMOUNT PAID:', 'R 1,800.00', currentY, true);
-
-  currentY -= 8;
-  // Section 4: Banking Reference
-  page.drawRectangle({
-    x: margin,
-    y: currentY - 16,
-    width: width - margin * 2,
-    height: 18,
-    color: rgb(0.94, 0.96, 0.98),
-  });
-  page.drawText('4. Banking Details for NCR Direct Deposit', { x: margin + 10, y: currentY - 12, size: 9, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  currentY -= 26;
-
-  currentY = drawRow('Bank Name & Account Holder:', 'Standard Bank | National Credit Regulator', currentY);
-  currentY = drawRow('Account Number & Branch Code:', '200456490 | 004805 (Promenade Branch)', currentY);
-  currentY = drawRow('Account Type:', 'Current / Cheque Account', currentY);
-
-  currentY -= 12;
-  const decNote = 'The applicant confirms that the information contained herein is true, complete, and correct, and that the attached Proof of Payment reflects the statutory registration fee transferred to the NCR.';
-  currentY = drawJustifiedParagraph(page, decNote, margin + 10, currentY, width - margin * 2 - 20, fontRegular, 8, rgb(0.3, 0.35, 0.4), 11);
-
-  currentY -= 18;
-
-  // Signatures
-  page.drawText(`Date: ${details.orderDate}`, { x: margin + 10, y: currentY, size: 8.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  page.drawText(`Authorized Representative: ${details.customerName}`, { x: margin + 10, y: currentY - 14, size: 8.5, font: fontBold, color: rgb(0.06, 0.13, 0.22) });
-  page.drawText(`Designation: Director`, { x: margin + 10, y: currentY - 26, size: 8, font: fontRegular, color: rgb(0.3, 0.35, 0.4) });
-
-  page.drawRectangle({
-    x: width - margin - 200,
-    y: currentY - 45,
-    width: 200,
-    height: 50,
-    color: rgb(0.97, 0.98, 0.99),
-    borderColor: rgb(0.7, 0.75, 0.8),
-    borderWidth: 0.5,
-  });
-  page.drawText('× AUTHORIZED SIGNATURE ×', { x: width - margin - 170, y: currentY - 24, size: 7.5, font: fontBold, color: rgb(0.6, 0.65, 0.7) });
+  setField('declaration_date', details.orderDate);
+  setField('representative_name', details.customerName);
+  setField('representative_designation', 'Director');
 
   const pdfBytes = await pdfDoc.save();
   return {
