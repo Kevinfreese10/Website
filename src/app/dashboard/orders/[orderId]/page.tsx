@@ -577,6 +577,12 @@ export default function ClientOrderDetailsPage() {
       case 'Outsourced':
         return 'info';
       case 'Pending Payment': return 'warning';
+      case 'Waiting on Customer':
+      case 'Waiting for Information':
+      case 'Waiting on Client':
+        return 'waiting';
+      case 'Under Review':
+        return 'review';
       case 'Cancelled': return 'destructive';
       default: return 'secondary';
     }

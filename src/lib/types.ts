@@ -284,7 +284,7 @@ export type Order = {
   discountAmount: number | null;
   paymentMethod?: string;
   clientTotal?: number;
-  status: 'Pending Payment' | 'Processing' | 'Completed' | 'Cancelled';
+  status: 'Pending Payment' | 'Processing' | 'Waiting on Customer' | 'Waiting for Information' | 'Under Review' | 'Completed' | 'Cancelled' | string;
   isOutsourced?: boolean;
   assignedTo?: string[] | null;
   department?: 'Accounting and Tax' | 'Administration' | 'CAP' | null;

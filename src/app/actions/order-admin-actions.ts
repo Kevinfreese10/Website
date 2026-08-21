@@ -155,7 +155,7 @@ export async function ensureOrderChecklistInitialized(orderId: string): Promise<
  */
 export async function transitionOrderStatusAtomic(
   orderId: string,
-  newStatus: 'Pending Payment' | 'Processing' | 'Completed' | 'Cancelled',
+  newStatus: Order['status'] | string,
   performer: PerformerInput,
   options?: StatusTransitionOptions
 ) {

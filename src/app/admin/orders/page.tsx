@@ -201,9 +201,11 @@ export default function AdminOrdersPage() {
   const statusCounts = useMemo(() => {
     return {
       all: orders.length,
-      active: orders.filter(o => o.status === 'Processing' || o.status === 'Pending Payment').length,
-      processing: orders.filter(o => o.status === 'Processing').length,
+      active: orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length,
+      processing: orders.filter(o => o.status === 'Processing' || (o.status as any) === 'Outsourced').length,
       pending: orders.filter(o => o.status === 'Pending Payment').length,
+      waiting: orders.filter(o => o.status === 'Waiting on Customer' || o.status === 'Waiting for Information' || (o.status as any) === 'Waiting on Client').length,
+      review: orders.filter(o => o.status === 'Under Review').length,
       completed: orders.filter(o => o.status === 'Completed').length,
       cancelled: orders.filter(o => o.status === 'Cancelled').length,
     };
@@ -455,6 +457,12 @@ export default function AdminOrdersPage() {
         return 'info';
       case 'Pending Payment':
         return 'warning';
+      case 'Waiting on Customer':
+      case 'Waiting for Information':
+      case 'Waiting on Client':
+        return 'waiting';
+      case 'Under Review':
+        return 'review';
       case 'Cancelled':
         return 'destructive';
       default:
@@ -566,8 +574,11 @@ export default function AdminOrdersPage() {
                                 <SelectContent>
                                     <SelectItem value="all">All Statuses</SelectItem>
                                     <SelectItem value="active">Active Orders</SelectItem>
-                                    <SelectItem value="Pending Payment">Pending Payment</SelectItem>
                                     <SelectItem value="Processing">Processing</SelectItem>
+                                    <SelectItem value="Waiting on Customer">Waiting on Customer</SelectItem>
+                                    <SelectItem value="Waiting for Information">Waiting for Information</SelectItem>
+                                    <SelectItem value="Under Review">Under Review</SelectItem>
+                                    <SelectItem value="Pending Payment">Pending Payment</SelectItem>
                                     <SelectItem value="Completed">Completed</SelectItem>
                                     <SelectItem value="Cancelled">Cancelled</SelectItem>
                                 </SelectContent>
@@ -600,6 +611,30 @@ export default function AdminOrdersPage() {
                         Processing
                         <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Processing' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-blue-100 text-blue-800")}>
                             {statusCounts.processing}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Waiting on Customer' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => handleStatusFilterChange('Waiting on Customer')}
+                    >
+                        Waiting on Customer
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Waiting on Customer' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-amber-100 text-amber-800")}>
+                            {statusCounts.waiting}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Under Review' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => handleStatusFilterChange('Under Review')}
+                    >
+                        Under Review
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Under Review' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-indigo-100 text-indigo-800")}>
+                            {statusCounts.review}
                         </span>
                     </Button>
                     <Button
