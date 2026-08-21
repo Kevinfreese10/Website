@@ -6,6 +6,9 @@ import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp, collection
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { Order, Service, User, OrderNote, DocumentUpload } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePartner } from '@/contexts/PartnerContext';
+import { ProcessOrderModal } from '@/components/partner/ProcessOrderModal';
+import { completeOrderWithRoyalty, outsourceOrderFromWallet } from '@/app/actions/wallet-actions';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -94,6 +97,8 @@ export default function PartnerOrderDetailsPage() {
   const params = useParams();
   const id = params.id as string;
   const { user: currentUser } = useAuth();
+  const { hasPlatformFee } = usePartner();
+  const [processModalOpen, setProcessModalOpen] = useState(false);
   const { toast } = useToast();
   const [allStaff, setAllStaff] = useState<User[]>([]);
   const [allServices, setAllServices] = useState<Service[]>([]);
@@ -846,6 +851,35 @@ export default function PartnerOrderDetailsPage() {
 
   const allDocumentsReviewed = order?.documentUploads && order.documentUploads.length > 0 && order.documentUploads.every(d => d.status !== 'pending');
 
+  
+  const handleProcessOrderConfirm = async (choice: 'complete' | 'outsource', documentContact?: 'partner' | 'client') => {
+    if (!order || !currentUser?.uid) return;
+    const partnerId = currentUser.partnerId || currentUser.uid;
+    try {
+      if (choice === 'complete') {
+        const result = await completeOrderWithRoyalty(order.id, partnerId);
+        if ('error' in result) {
+          toast({ title: 'Failed', description: result.error === 'INSUFFICIENT_FUNDS' ? 'Insufficient wallet balance. Please top up.' : result.error, variant: 'destructive' });
+          return;
+        }
+        toast({ title: 'Order Processing', description: `Royalty of R${result.royalty.toFixed(2)} deducted from your wallet.` });
+      } else {
+        const result = await outsourceOrderFromWallet(order.id, partnerId, documentContact || 'partner');
+        if ('error' in result) {
+          toast({ title: 'Failed', description: result.error === 'INSUFFICIENT_FUNDS' ? 'Insufficient wallet balance. Please top up.' : result.error, variant: 'destructive' });
+          return;
+        }
+        toast({ title: 'Order Outsourced', description: `R${result.cost.toFixed(2)} deducted from your wallet. My Accountant will begin work immediately.` });
+      }
+      setProcessModalOpen(false);
+      await fetchOrder(); // refresh order state
+    } catch (err) {
+      console.error('Process order failed:', err);
+      toast({ title: 'Error', description: 'Something went wrong. Please try again.', variant: 'destructive' });
+    }
+  };
+
+
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen">
@@ -858,6 +892,15 @@ export default function PartnerOrderDetailsPage() {
 
   return (
     <div className="space-y-8">
+        <ProcessOrderModal
+            open={processModalOpen}
+            onOpenChange={setProcessModalOpen}
+            order={order}
+            walletBalance={currentUser?.creditBalance ?? 0}
+            allServices={allServices}
+            hasPlatformFee={hasPlatformFee}
+            onConfirm={handleProcessOrderConfirm}
+        />
         <Dialog open={isRejectionDialogOpen} onOpenChange={setIsRejectionDialogOpen}>
             <DialogContent>
                 <DialogHeader>
@@ -929,13 +972,19 @@ export default function PartnerOrderDetailsPage() {
             </DialogContent>
         </Dialog>
 
-        <div>
-            <Button variant="outline" asChild>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <Button variant="outline" asChild className="w-fit">
                 <Link href="/partner/orders">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Orders
                 </Link>
             </Button>
+            {order?.status !== 'Outsourced' && order?.status !== 'Cancelled' && order?.status !== 'Completed' && (
+                <Button onClick={() => setProcessModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Process / Outsource Order
+                </Button>
+            )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
