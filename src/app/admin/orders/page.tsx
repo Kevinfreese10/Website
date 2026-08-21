@@ -156,12 +156,15 @@ export default function AdminOrdersPage() {
         // ADMIN VISIBILITY BASE LOGIC:
         // 1. Direct Customer Orders (resellerId is null or empty)
         // 2. Explicitly Outsourced Work (resellerId IS set AND (isOutsourced IS true OR originalOrderId IS set))
-        // 3. HIDE: Internal Partner Orders (resellerId IS set AND isOutsourced IS false) - EXCEPT Partner purchases (setup fees/topups)
+        // 3. Partner Direct Purchases (partner buying services on platform for themselves, e.g. userId === resellerId)
+        // 4. Partner Platform Purchases (setup fees / topups)
+        // 5. HIDE: Internal Partner-only Orders (handled by the partner for their own clients without outsourcing)
         const visibleOrders = ordersWithClientDetails.filter(order => {
             const isDirectOrder = !order.resellerId;
             const isOutsourcedWork = !!(order.resellerId && (order.isOutsourced || order.originalOrderId));
+            const isPartnerDirectPurchase = !!(order.resellerId && order.userId === order.resellerId);
             const isPartnerPurchase = !!(order.resellerId && !order.isOutsourced && !order.originalOrderId && order.items?.some(i => i.id?.startsWith('partner_') || i.id?.includes('topup') || i.id?.includes('setup')));
-            return (isDirectOrder || isOutsourcedWork || isPartnerPurchase);
+            return (isDirectOrder || isOutsourcedWork || isPartnerDirectPurchase || isPartnerPurchase);
         });
 
         setOrders(visibleOrders);
