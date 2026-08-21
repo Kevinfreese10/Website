@@ -1840,6 +1840,76 @@ export async function generateBeeAffidavitDraft(order: Order, extractedInfo?: an
   // Deponent Signature Date
   page2.drawText(details.orderDate || new Date().toLocaleDateString('en-ZA'), { x: 360, y: 149.9, size: 9.5, font: fontBold, color: navy });
 
+  // --- Commissioner of Oaths Stamp & Signature ---
+  const possibleSigPaths = [
+    path.join(process.cwd(), 'public/templates/Signature.png'),
+    'C:\\Users\\kev\\OneDrive\\Documents\\Signature.png',
+  ];
+
+  let sigImageBytes: Buffer | null = null;
+  for (const p of possibleSigPaths) {
+    if (fs.existsSync(p)) {
+      sigImageBytes = fs.readFileSync(p);
+      break;
+    }
+  }
+
+  if (sigImageBytes) {
+    try {
+      const sigImage = await pdfDoc.embedPng(sigImageBytes);
+      const sigDims = sigImage.scale(0.35);
+      page2.drawImage(sigImage, {
+        x: 95,
+        y: 85,
+        width: sigDims.width,
+        height: sigDims.height,
+      });
+    } catch (e) {
+      console.warn('Could not embed Commissioner signature image:', e);
+    }
+  }
+
+  // Draw Commissioner Stamp Box
+  const stampBlue = rgb(0.08, 0.2, 0.45);
+  const stampX = 90;
+  const stampY = 15;
+  const stampW = 200;
+  const stampH = 68;
+
+  page2.drawRectangle({
+    x: stampX,
+    y: stampY,
+    width: stampW,
+    height: stampH,
+    borderColor: stampBlue,
+    borderWidth: 1.2,
+    color: rgb(0.98, 0.99, 1.0),
+  });
+
+  page2.drawRectangle({
+    x: stampX + 2,
+    y: stampY + 2,
+    width: stampW - 4,
+    height: stampH - 4,
+    borderColor: stampBlue,
+    borderWidth: 0.5,
+  });
+
+  let sY = stampY + stampH - 10;
+  page2.drawText('COMMISSIONER OF OATHS (RSA)', { x: stampX + 18, y: sY, size: 7.5, font: fontBold, color: stampBlue });
+  sY -= 9;
+  page2.drawText('KEVIN WILLIAM FREESE', { x: stampX + 38, y: sY, size: 8, font: fontBold, color: stampBlue });
+  sY -= 8;
+  page2.drawText('Chartered Business Accountant in Practice (SA)', { x: stampX + 12, y: sY, size: 6.5, font: fontBold, color: stampBlue });
+  sY -= 8;
+  page2.drawText('CIBA #3561 | EX OFFICIO – REPUBLIC OF SOUTH AFRICA', { x: stampX + 6, y: sY, size: 6, font: fontBold, color: stampBlue });
+  sY -= 8;
+  page2.drawText('Ground Floor, Waterstone Building, Stonemill Office Park', { x: stampX + 8, y: sY, size: 5.8, font: fontRegular, color: stampBlue });
+  sY -= 7;
+  page2.drawText('300 Acacia Road, Darrenwood, Randburg, 2195', { x: stampX + 22, y: sY, size: 5.8, font: fontRegular, color: stampBlue });
+  sY -= 8;
+  page2.drawText(`Date: ${details.orderDate || new Date().toLocaleDateString('en-ZA')}`, { x: stampX + 55, y: sY, size: 6.8, font: fontBold, color: stampBlue });
+
   const pdfBytes = await pdfDoc.save();
   return {
     buffer: Buffer.from(pdfBytes),
