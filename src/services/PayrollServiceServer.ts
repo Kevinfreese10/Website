@@ -19,12 +19,14 @@ export class PayrollServiceServer {
       
       const frequency = clientData.payrollFrequency === 'Fortnightly' ? 26 : 12;
       
-      let periodLabel = '';
-      if (frequency === 26) {
+      let periodLabel = clientData.firstProcessingMonth;
+      if (!periodLabel) {
+        if (frequency === 26) {
           const startDate = clientData.firstRunStartDate ? (clientData.firstRunStartDate.toDate ? clientData.firstRunStartDate.toDate() : new Date(clientData.firstRunStartDate)) : new Date();
           periodLabel = format(startDate, 'dd/MM/yyyy');
-      } else {
-          periodLabel = clientData.firstProcessingMonth || format(new Date(), 'MMMM yyyy');
+        } else {
+          periodLabel = format(new Date(), 'MMMM yyyy');
+        }
       }
 
       const payslipsRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips');

@@ -1,6 +1,6 @@
 'use server';
 
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getAdminDb, cleanFirestoreData } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { User, Employee, Payslip } from '@/lib/types';
 import { format, addDays, addMonths, addYears, parse as parseDate } from 'date-fns';
@@ -236,18 +236,20 @@ export async function updatePayslipAction({ clientId, payslipId, data, employeeI
           ? adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc()
           : adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc(payslipId);
 
-        batch.set(psRef, { ...data, status: 'finalized', updatedAt: new Date() }, { merge: true });
+        const cleanedData = cleanFirestoreData(data || {});
+
+        batch.set(psRef, { ...cleanedData, status: 'finalized', updatedAt: new Date() }, { merge: true });
 
         if (employeeId && recurringItems) {
             const empRef = adminDb.collection('aiPayrollClients').doc(clientId).collection('employees').doc(employeeId);
-            batch.set(empRef, { recurringItems }, { merge: true });
+            batch.set(empRef, { recurringItems: cleanFirestoreData(recurringItems) }, { merge: true });
         }
 
         await batch.commit();
         return { success: true, id: psRef.id };
     } catch (e: any) {
         console.error('updatePayslipAction error:', e);
-        return { success: false, error: e.message };
+        return { success: false, error: e.message || 'Failed to update payslip' };
     }
 }
 

@@ -454,20 +454,45 @@ export default function PayslipEditor({
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            const finalPeriod = payslip.period || client.firstProcessingMonth || format(new Date(), 'MMMM yyyy');
+            const finalFrequency = (client.payrollFrequency as any) || payslip.frequency || 'Monthly';
+
             const finalData: Partial<Payslip> = {
                 employeeId: employee.id,
                 employeeName: `${employee.name} ${employee.surname}`,
-                period: payslip.period,
+                period: finalPeriod,
                 date: new Date().toISOString() as any,
-                frequency: 'Monthly',
-                earnings,
-                deductions: totals.updatedDeductions,
-                contributions: totals.updatedContributions,
-                fringeBenefits,
-                grossPay: totals.gross,
-                totalDeductions: totals.totalDeductions,
-                netPay: totals.netPay,
-                hoursWorked
+                frequency: finalFrequency,
+                earnings: earnings.map(e => ({
+                    label: e.label || '',
+                    amount: typeof e.amount === 'number' && !isNaN(e.amount) ? e.amount : 0,
+                    taxCategory: e.taxCategory || 'regular',
+                    isStatutory: !!e.isStatutory,
+                    durationMonths: e.durationMonths,
+                })),
+                deductions: totals.updatedDeductions.map(d => ({
+                    label: d.label || '',
+                    amount: typeof d.amount === 'number' && !isNaN(d.amount) ? d.amount : 0,
+                    taxCategory: d.taxCategory || 'regular',
+                    isStatutory: !!d.isStatutory,
+                    durationMonths: d.durationMonths,
+                })),
+                contributions: totals.updatedContributions.map(c => ({
+                    label: c.label || '',
+                    amount: typeof c.amount === 'number' && !isNaN(c.amount) ? c.amount : 0,
+                    taxCategory: c.taxCategory || 'regular',
+                    isStatutory: !!c.isStatutory,
+                })),
+                fringeBenefits: fringeBenefits.map(f => ({
+                    label: f.label || '',
+                    amount: typeof f.amount === 'number' && !isNaN(f.amount) ? f.amount : 0,
+                    taxCategory: f.taxCategory || 'regular',
+                    isStatutory: !!f.isStatutory,
+                })),
+                grossPay: typeof totals.gross === 'number' && !isNaN(totals.gross) ? totals.gross : 0,
+                totalDeductions: typeof totals.totalDeductions === 'number' && !isNaN(totals.totalDeductions) ? totals.totalDeductions : 0,
+                netPay: typeof totals.netPay === 'number' && !isNaN(totals.netPay) ? totals.netPay : 0,
+                hoursWorked: typeof hoursWorked === 'number' && !isNaN(hoursWorked) ? hoursWorked : 0
             };
 
             const newRecurringItems = [...(employee.recurringItems || [])];
@@ -478,12 +503,12 @@ export default function PayslipEditor({
                         const existingIdx = newRecurringItems.findIndex(r => r.label === item.label && r.type === type);
                         const rItem = {
                             id: Date.now().toString() + Math.random().toString(),
-                            label: item.label,
-                            amount: item.amount,
+                            label: item.label || '',
+                            amount: typeof item.amount === 'number' && !isNaN(item.amount) ? item.amount : 0,
                             type,
                             remainingMonths: item.durationMonths,
-                            taxCategory: item.taxCategory,
-                            isStatutory: item.isStatutory
+                            taxCategory: item.taxCategory || 'regular',
+                            isStatutory: !!item.isStatutory
                         };
                         if (existingIdx > -1) {
                             newRecurringItems[existingIdx] = { ...newRecurringItems[existingIdx], ...rItem, id: newRecurringItems[existingIdx].id };
@@ -509,10 +534,11 @@ export default function PayslipEditor({
                 toast({ title: "Payslip Finalized", description: `Updated record for ${employee.name} ${employee.surname}. Reports updated.` });
                 onSave();
             } else {
-                toast({ title: "Save Failed", description: res.error, variant: "destructive" });
+                toast({ title: "Save Failed", description: res.error || "Could not save payslip.", variant: "destructive" });
             }
-        } catch (e) {
-            toast({ title: "Error", description: "Could not save payslip.", variant: "destructive" });
+        } catch (e: any) {
+            console.error("Error saving payslip:", e);
+            toast({ title: "Error", description: e?.message || "Could not save payslip.", variant: "destructive" });
         } finally {
             setIsSaving(false);
         }
