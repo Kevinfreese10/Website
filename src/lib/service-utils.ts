@@ -139,6 +139,35 @@ export function resolveOrderEntityContext(order: Order): {
 }
 
 /**
+ * Strips My Accountant's internal AI audit data from document uploads before they are mirrored onto
+ * a partner-owned order document.
+ *
+ * Partner-linked orders are synced via `originalOrderId`. Because Firestore rules cannot filter
+ * individual fields, anything written to the partner's order record is fully readable by that
+ * partner — so the AI verification payload (confidence scores, extracted client data, model
+ * details, internal auditor reasoning) must never be written there in the first place. Partners
+ * keep what they legitimately need: the document itself and its approval outcome.
+ */
+export function stripInternalAiData<T extends { aiVerification?: any }>(uploads: T[] = []): T[] {
+  return uploads.map(upload => {
+    const { aiVerification, ...clientSafe } = upload as any;
+    return clientSafe as T;
+  });
+}
+
+/**
+ * Strips internal AI annotations from checklist steps before mirroring to a partner order.
+ * Progress (status/titles/timestamps) is retained so a partner can still see how far along an
+ * outsourced order is; the AI reasoning behind that progress is not.
+ */
+export function stripInternalChecklistAiData<T extends Record<string, any>>(checklist: T[] = []): T[] {
+  return checklist.map(step => {
+    const { aiNotes, isAiRecommended, ...clientSafe } = step as any;
+    return clientSafe as T;
+  });
+}
+
+/**
  * Normalizes informationToProvide array by ensuring every item has a stable unique ID.
  */
 export function normalizeRequirementsWithIds(items: any[] = []): { id: string; label: string; type?: 'text' | 'pdf' | 'excel' | 'image' | 'any'; helpText?: string; isConditional?: boolean; conditionalQuestion?: string; isRequired?: boolean }[] {

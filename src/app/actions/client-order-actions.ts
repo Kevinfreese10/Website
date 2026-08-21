@@ -4,6 +4,7 @@ import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-
 import { getVerifiedAuthContext } from '@/lib/server-auth';
 import { Order, DocumentUpload, AuditEntry } from '@/lib/types';
 import { triggerOrderAutomatedFulfillmentReview } from './order-fulfillment-pipeline';
+import { INTERNAL_SYSTEM_ACTOR } from './order-admin-actions';
 
 export interface SubmitClientDocParams {
   idToken: string;
@@ -125,7 +126,8 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
 
     // Asynchronously kick off the AI automated review pipeline silently on upload
     const isAllRequirementsComplete = updatedUploads.length > 0 && updatedUploads.every(d => Boolean((d.files && d.files.length > 0) || d.fileUrl || d.textValue || d.notAvailableReason));
-    triggerOrderAutomatedFulfillmentReview(params.orderId, authCtx.user.name, { notifyStaff: isAllRequirementsComplete }).catch(err => {
+    // Caller identity was already verified above, so this is a trusted in-process invocation.
+    triggerOrderAutomatedFulfillmentReview(params.orderId, authCtx.user.name, { notifyStaff: isAllRequirementsComplete, internal: INTERNAL_SYSTEM_ACTOR }).catch(err => {
       console.error('[client-order-actions] Error kicking off AI review pipeline:', err);
     });
 

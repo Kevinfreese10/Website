@@ -8,7 +8,8 @@
 import { getAdminDb } from '@/lib/firebase-admin';
 import { Order, OrderChecklistItem, DocumentUpload, AIDocumentVerification } from '@/lib/types';
 import { verifyOrderDocument } from '@/ai/flows/verify-order-document';
-import { resolveOrderEntityContext } from '@/lib/service-utils';
+import { resolveOrderEntityContext, stripInternalAiData } from '@/lib/service-utils';
+import { getVerifiedAuthContext } from '@/lib/server-auth';
 import {
   transitionOrderStatusAtomic,
   updateOrderChecklistItemAtomic,
@@ -17,10 +18,37 @@ import {
 } from '@/app/actions/order-admin-actions';
 
 /**
- * Retrieves the full fulfillment context for an order (order, checklist, uploads, snapshots, dependencies).
+ * Verifies the caller is My Accountant staff/admin.
+ *
+ * Everything in this file exposes internal AI audit capability — verification results, confidence
+ * scores, extracted client data and full order dumps. These are `'use server'` exports, which means
+ * they are directly-callable HTTP endpoints: not rendering a button is NOT access control. Partners
+ * and clients must be rejected here, on the server, regardless of what any UI shows.
  */
-export async function getOrderFulfillmentContext(orderId: string) {
+async function requireStaffActor(idToken: string | undefined | null) {
+  const authCtx = await getVerifiedAuthContext(idToken);
+  if (!authCtx) {
+    throw new Error('Unauthorized: A valid authentication token is required.');
+  }
+  const role = authCtx.user.role;
+  const isStaffOrAdmin =
+    authCtx.isAdmin || role === 'admin' || role === 'staff' || role === 'cap_staff' || role === 'cap_supervisor';
+  if (!isStaffOrAdmin) {
+    throw new Error('Forbidden: AI verification is restricted to My Accountant staff.');
+  }
+  return {
+    id: authCtx.userId,
+    name: authCtx.user.name || authCtx.user.email || 'Verified Staff',
+  };
+}
+
+/**
+ * Retrieves the full fulfillment context for an order (order, checklist, uploads, snapshots, dependencies).
+ * Staff-only: returns the complete internal order record including AI verification data.
+ */
+export async function getOrderFulfillmentContext(orderId: string, idToken?: string) {
   try {
+    await requireStaffActor(idToken);
     const db = getAdminDb();
     const orderDoc = await db.collection('orders').doc(orderId).get();
     if (!orderDoc.exists) {
@@ -88,8 +116,9 @@ export async function getOrderFulfillmentContext(orderId: string) {
 /**
  * Triggers AI document verification on an uploaded document and stores the analysis.
  */
-export async function runAiDocumentVerification(orderId: string, requirementIdentifier: string) {
+export async function runAiDocumentVerification(orderId: string, requirementIdentifier: string, idToken?: string) {
   try {
+    await requireStaffActor(idToken);
     const db = getAdminDb();
     const orderDoc = await db.collection('orders').doc(orderId).get();
     if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
@@ -169,8 +198,9 @@ export async function runAiDocumentVerification(orderId: string, requirementIden
     });
 
     if (orderData.originalOrderId) {
+      // Mirror to the partner-owned order WITHOUT the internal AI audit payload.
       await db.collection('orders').doc(orderData.originalOrderId).update({
-        documentUploads: updatedUploads,
+        documentUploads: stripInternalAiData(updatedUploads),
         updatedAt: new Date().toISOString(),
       });
     }

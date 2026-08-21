@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { getFirestore, collection, getDocs, orderBy, query, where, doc, updateDoc, arrayUnion, getDoc, Timestamp, addDoc, writeBatch, onSnapshot } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import { getAuth } from 'firebase/auth';
 import { Order, User, Service, OrderNote, Task, ItnLog } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { services as allServices } from '@/lib/data';
@@ -319,10 +320,16 @@ export default function AdminOrdersPage() {
         return;
     }
 
-    const performer = {
-        id: user.id,
-        name: user.name || user.email || 'Admin',
-    };
+    // Order mutations require a verified ID token — a caller-supplied {id, name} is no longer accepted.
+    const performer = await getAuth(firebaseApp).currentUser?.getIdToken();
+    if (!performer) {
+        toast({
+            title: 'Session expired',
+            description: 'Please sign in again to update this order.',
+            variant: 'destructive',
+        });
+        return;
+    }
 
     let assignedStaffIds = orderToUpdate.assignedTo;
     let assignedStaffMember = assignedStaffIds?.[0] ? allStaff.find(s => s.id === assignedStaffIds![0]) : undefined;

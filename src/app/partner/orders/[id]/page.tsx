@@ -14,12 +14,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { 
-  generateOrderDocumentDraftsAction, 
-  regenerateOrderDraftWithFeedbackAction, 
-  approveAndSendDraftToClientAction 
-} from '@/app/actions/order-fulfillment-pipeline';
-import { 
+// NOTE: AI draft-generation actions (generateOrderDocumentDraftsAction,
+// regenerateOrderDraftWithFeedbackAction, approveAndSendDraftToClientAction) are deliberately NOT
+// imported here. They are My Accountant staff-only capabilities. Importing them into a partner
+// route would compile their Server Action endpoint IDs into the partner's client bundle, making
+// them directly callable even with no button rendered.
+import {
   reviewOrderDocumentAtomic, 
   transitionOrderStatusAtomic,
   requestCustomDocumentAtomic 
@@ -165,6 +165,8 @@ export default function PartnerOrderDetailsPage() {
           
           const targetPartnerId = currentUser.partnerId || currentUser.uid;
           const isAuthorized = 
+            currentUser.role === 'admin' ||
+            currentUser.role === 'staff' ||
             data.resellerId === targetPartnerId ||
             data.partnerId === targetPartnerId ||
             data.userId === targetPartnerId ||
@@ -202,7 +204,7 @@ export default function PartnerOrderDetailsPage() {
             setAssignee(null);
           }
 
-          const itemsWithServices = fetchedOrder.items.map(item => {
+          const itemsWithServices = (fetchedOrder.items || []).map(item => {
             const itemId = item.id || item.serviceId || item.title;
             const serviceDetails = fetchedServices.find(s => 
               s.id === itemId || 
@@ -210,16 +212,30 @@ export default function PartnerOrderDetailsPage() {
               s.title.toLowerCase() === item.title.toLowerCase() ||
               s.slug === itemId
             );
-            if (!serviceDetails) return { ...item, service: null };
-            return { ...item, service: serviceDetails };
-          }).filter(item => item.service !== null) as OrderItemWithService[];
+            return {
+              id: itemId,
+              title: item.title || 'Service',
+              price: item.price || 0,
+              quantity: item.quantity || 1,
+              service: serviceDetails || ({
+                id: itemId,
+                title: item.title || 'Service',
+                price: item.price || 0,
+                department: 'Administration',
+                informationToProvide: [],
+              } as any),
+            };
+          }) as OrderItemWithService[];
 
           setOrderItemsWithServices(itemsWithServices);
 
         } else {
           notFound();
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error?.digest === 'NEXT_NOT_FOUND' || error?.message?.includes('NEXT_NOT_FOUND')) {
+          throw error;
+        }
         console.error("Error fetching order details: ", error);
         notFound();
       } finally {
@@ -706,93 +722,8 @@ export default function PartnerOrderDetailsPage() {
     }
   };
 
-  const handleGenerateDrafts = async () => {
-    if (!order) return;
-    setIsGeneratingDrafts(true);
-    try {
-        const res = await generateOrderDocumentDraftsAction(order.id);
-        if (res.success) {
-            toast({ title: "Drafts Generated", description: res.message });
-            await fetchOrder();
-        } else {
-            toast({ title: "Draft Generation Failed", description: res.error, variant: "destructive" });
-        }
-    } catch (err: any) {
-        toast({ title: "Draft Generation Error", description: err.message, variant: "destructive" });
-    } finally {
-        setIsGeneratingDrafts(false);
-    }
-  };
-
-  const handleGenerateSpecificTemplates = async (templateIds: string[]) => {
-    if (!order || templateIds.length === 0) return;
-    setIsGeneratingDrafts(true);
-    try {
-        const res = await generateOrderDocumentDraftsAction(order.id, templateIds);
-        if (res.success) {
-            toast({ title: "Drafts Generated", description: res.message });
-            await fetchOrder();
-        } else {
-            toast({ title: "Draft Generation Failed", description: res.error, variant: "destructive" });
-        }
-    } catch (err: any) {
-        toast({ title: "Draft Generation Error", description: err.message, variant: "destructive" });
-    } finally {
-        setIsGeneratingDrafts(false);
-    }
-  };
-
-  const handleOpenFeedbackDialog = (draft: GeneratedDocumentDraft) => {
-    setSelectedDraftForFeedback(draft);
-    setDraftFeedbackText('');
-    setFeedbackDialogOpen(true);
-  };
-
-  const handleRegenerateDraftSubmit = async () => {
-    if (!order || !selectedDraftForFeedback || !draftFeedbackText.trim()) return;
-    setIsRegeneratingDraft(true);
-    try {
-        const res = await regenerateOrderDraftWithFeedbackAction(
-            order.id,
-            selectedDraftForFeedback.id,
-            draftFeedbackText,
-            { id: currentUser?.uid || 'partner', name: currentUser?.name || 'Partner' }
-        );
-        if (res.success) {
-            toast({ title: "Draft Regenerated", description: res.message });
-            setFeedbackDialogOpen(false);
-            await fetchOrder();
-        } else {
-            toast({ title: "Regeneration Failed", description: res.error, variant: "destructive" });
-        }
-    } catch (err: any) {
-        toast({ title: "Regeneration Error", description: err.message, variant: "destructive" });
-    } finally {
-        setIsRegeneratingDraft(false);
-    }
-  };
-
-  const handleApproveAndSendDraft = async (draft: GeneratedDocumentDraft) => {
-    if (!order) return;
-    setSendingDraftId(draft.id);
-    try {
-        const res = await approveAndSendDraftToClientAction(
-            order.id,
-            draft.id,
-            { id: currentUser?.uid || 'partner', name: currentUser?.name || 'Partner' }
-        );
-        if (res.success) {
-            toast({ title: "Draft Approved & Sent", description: res.message });
-            await fetchOrder();
-        } else {
-            toast({ title: "Action Failed", description: res.error, variant: "destructive" });
-        }
-    } catch (err: any) {
-        toast({ title: "Send Error", description: err.message, variant: "destructive" });
-    } finally {
-        setSendingDraftId(null);
-    }
-  };
+  // Draft generation / regeneration / approve-and-send handlers were removed along with their
+  // imports — these are My Accountant staff-only AI capabilities and are not available to partners.
 
   const handleSendFollowUp = async () => {
     if (!order) return;

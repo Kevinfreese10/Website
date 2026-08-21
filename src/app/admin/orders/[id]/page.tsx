@@ -437,15 +437,16 @@ export default function AdminOrderDetailsPage() {
 
   const executeStatusChange = async (newStatus: Order['status'], isOverride = false, overrideReasonText?: string) => {
     if (!order || !currentUser) return;
-    const performer = {
-      id: currentUser.id || currentUser.uid,
-      name: currentUser.name || currentUser.email || 'Admin',
-    };
+    const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+    if (!idToken) {
+      toast({ title: 'Session expired', description: 'Please sign in again to change the order status.', variant: 'destructive' });
+      return;
+    }
 
     const res = await transitionOrderStatusAtomic(
       order.id,
       newStatus,
-      performer,
+      idToken,
       {
         bypassChecks: isOverride,
         bypassReason: overrideReasonText,

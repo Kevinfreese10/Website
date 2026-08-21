@@ -3,7 +3,7 @@
 import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
 import { AuditEntry, Order, OrderChecklistItem, DocumentUpload, AIDocumentVerification } from '@/lib/types';
 import { sendOrderStatusUpdateEmailAction } from './order-actions';
-import { getServiceChecklist, normalizeRequirementsWithIds } from '@/lib/service-utils';
+import { getServiceChecklist, normalizeRequirementsWithIds, stripInternalAiData, stripInternalChecklistAiData } from '@/lib/service-utils';
 import { getVerifiedAuthContext, getAuthContext } from '@/lib/server-auth';
 
 export type StatusTransitionOptions = {
@@ -16,14 +16,38 @@ export type StatusTransitionOptions = {
 export type PerformerInput = { id?: string; name?: string; idToken?: string; role?: string } | string;
 
 /**
+ * Sentinel used by trusted server-side automation (webhooks, scheduled pipelines) that legitimately
+ * acts without a user token.
+ *
+ * This is compared by REFERENCE identity, not by value. A remote caller can post
+ * `{ id: 'system' }` to a Server Action, but cannot transmit a reference to this exact object —
+ * so the previous string-based `id === 'system'` check was effectively an open door granting full
+ * staff authority to anyone who guessed the magic word. Only code running inside this server bundle
+ * can import and pass this symbol.
+ */
+export const INTERNAL_SYSTEM_ACTOR = Symbol('internalSystemActor');
+type InternalActor = typeof INTERNAL_SYSTEM_ACTOR;
+
+/**
  * Resolves and cryptographically validates the acting user from an ID token or performer object.
  * Strictly prevents caller identity spoofing and enforces role-based authorization for staff and partners.
  */
-async function resolveVerifiedActor(performerOrToken: PerformerInput, orderData: Order) {
-  let idToken = typeof performerOrToken === 'string' 
-    ? (performerOrToken.length > 50 ? performerOrToken : null) 
-    : (performerOrToken?.idToken || (performerOrToken as any)?.token);
-  
+async function resolveVerifiedActor(performerOrToken: PerformerInput | InternalActor, orderData: Order) {
+  // Trusted in-process automation. Reference identity — unreachable from a network caller.
+  if (performerOrToken === INTERNAL_SYSTEM_ACTOR) {
+    return {
+      id: 'system',
+      name: 'System Automation',
+      role: 'system',
+      isStaffOrAdmin: true,
+      isPartner: false,
+    };
+  }
+
+  let idToken = typeof performerOrToken === 'string'
+    ? (performerOrToken.length > 50 ? performerOrToken : null)
+    : ((performerOrToken as any)?.idToken || (performerOrToken as any)?.token);
+
   if (idToken) {
     const authCtx = await getVerifiedAuthContext(idToken);
     if (!authCtx) {
@@ -48,40 +72,11 @@ async function resolveVerifiedActor(performerOrToken: PerformerInput, orderData:
     };
   }
 
-  // System automation background tasks
-  if (typeof performerOrToken === 'object' && performerOrToken?.id === 'system') {
-    return {
-      id: 'system',
-      name: performerOrToken.name || 'System Automation',
-      role: 'system',
-      isStaffOrAdmin: true,
-      isPartner: false,
-    };
-  }
-
-  // Verify by user ID if token was not directly passed
-  const fallbackId = typeof performerOrToken === 'string' ? performerOrToken : performerOrToken?.id;
-  if (fallbackId) {
-    const authCtx = await getAuthContext(fallbackId);
-    if (authCtx) {
-      const isStaffOrAdmin = authCtx.isAdmin || authCtx.user.role === 'admin' || authCtx.user.role === 'staff' || authCtx.user.role === 'cap_staff' || authCtx.user.role === 'cap_supervisor';
-      const isPartner = authCtx.userId === orderData.resellerId ||
-                        authCtx.userId === orderData.partnerId ||
-                        (orderData.resellerId && authCtx.user.partnerId === orderData.resellerId) ||
-                        (orderData.partnerId && authCtx.user.partnerId === orderData.partnerId);
-      if (isStaffOrAdmin || isPartner) {
-        return {
-          id: authCtx.userId,
-          name: authCtx.user.name || authCtx.user.email || (typeof performerOrToken === 'object' ? performerOrToken.name : 'Verified Staff'),
-          role: authCtx.user.role,
-          isStaffOrAdmin,
-          isPartner,
-        };
-      }
-    }
-  }
-
-  throw new Error('Unauthorized: Valid authentication token or verified staff permissions required.');
+  // No verified token. Previously this fell back to looking the caller-supplied id up in `users`
+  // and adopting that user's role — meaning anyone who knew (or guessed) a staff uid was granted
+  // that staff member's authority. There is no way to authenticate a bare id, so this is now a
+  // hard failure.
+  throw new Error('Unauthorized: A valid authentication token is required to perform this action.');
 }
 
 /**
@@ -308,7 +303,7 @@ export async function updateOrderChecklistItemAtomic(
     isAiRecommended?: boolean;
     aiNotes?: string;
   },
-  performer: PerformerInput
+  performer: PerformerInput | InternalActor
 ) {
   try {
     const db = getAdminDb();
@@ -318,6 +313,20 @@ export async function updateOrderChecklistItemAtomic(
 
     const orderData = orderDoc.data() || {};
     const actor = await resolveVerifiedActor(performer, orderData as Order);
+
+    // The SOP checklist is My Accountant's internal fulfilment process. Partners resell services
+    // but must never see or mutate it — resolveVerifiedActor admits partners (they legitimately
+    // manage their own orders), so the staff/admin distinction has to be enforced here.
+    if (!actor.isStaffOrAdmin) {
+      throw new Error('Forbidden: Only My Accountant staff may update the internal fulfilment checklist.');
+    }
+
+    // `isAiRecommended` and `aiNotes` are written by the verification pipeline itself. Accepting
+    // them from a caller would let anyone forge the appearance of an AI-verified step.
+    const isInternalPipeline = performer === INTERNAL_SYSTEM_ACTOR;
+    if (!isInternalPipeline && (update.isAiRecommended !== undefined || update.aiNotes !== undefined)) {
+      throw new Error('Forbidden: AI verification metadata may only be set by the verification pipeline.');
+    }
 
     let checklist: OrderChecklistItem[] = orderData.checklist || [];
 
@@ -378,7 +387,11 @@ export async function updateOrderChecklistItemAtomic(
 
     if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
       const originalRef = db.collection('orders').doc(orderData.originalOrderId);
-      batch.update(originalRef, updatePayload);
+      // Partner copy gets checklist progress without the internal AI annotations.
+      batch.update(originalRef, cleanFirestoreData({
+        ...updatePayload,
+        checklist: stripInternalChecklistAiData(checklist),
+      }));
     }
 
     await batch.commit();
@@ -475,7 +488,11 @@ export async function reviewOrderDocumentAtomic(
 
     if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
       const originalRef = db.collection('orders').doc(orderData.originalOrderId);
-      batch.update(originalRef, updatePayload);
+      // Partner copy gets document outcomes without the internal AI verification payload.
+      batch.update(originalRef, cleanFirestoreData({
+        ...updatePayload,
+        documentUploads: stripInternalAiData(cleanedUploads),
+      }));
     }
 
     await batch.commit();

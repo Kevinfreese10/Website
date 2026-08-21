@@ -3,8 +3,9 @@
 import { getAdminDb, cleanFirestoreData, serializeDbData, uploadBufferToStorage } from '@/lib/firebase-admin';
 import { Order, DocumentUpload, AIDocumentVerification, GeneratedDocumentDraft, OrderChecklistItem } from '@/lib/types';
 import { verifyOrderDocument } from '@/ai/flows/verify-order-document';
-import { resolveOrderEntityContext } from '@/lib/service-utils';
-import { ensureOrderChecklistInitialized } from '@/app/actions/order-admin-actions';
+import { resolveOrderEntityContext, stripInternalAiData, stripInternalChecklistAiData } from '@/lib/service-utils';
+import { ensureOrderChecklistInitialized, INTERNAL_SYSTEM_ACTOR } from '@/app/actions/order-admin-actions';
+import { getVerifiedAuthContext } from '@/lib/server-auth';
 import {
   generateNcrForm2Draft,
   generateNcrDirectorResolutionDraft,
@@ -24,9 +25,9 @@ import { sendEmail } from '@/lib/email';
  * Triggers the Automated AI Review & SOP Progression Pipeline for an Order when client submits documents.
  */
 export async function triggerOrderAutomatedFulfillmentReview(
-  orderId: string, 
+  orderId: string,
   clientName?: string,
-  options?: { notifyStaff?: boolean }
+  options?: { notifyStaff?: boolean; idToken?: string; internal?: typeof INTERNAL_SYSTEM_ACTOR }
 ) {
   try {
     const db = getAdminDb();
@@ -35,6 +36,34 @@ export async function triggerOrderAutomatedFulfillmentReview(
     if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
 
     let order = { id: orderDoc.id, ...orderDoc.data() } as Order;
+
+    // This runs Gemini vision over every uploaded document and mutates the order's checklist, so it
+    // must not be callable for an arbitrary orderId. Trusted in-process callers (which have already
+    // authenticated the user themselves) pass the internal sentinel; everyone else must supply a
+    // verified token belonging to the order's own client, its partner, or My Accountant staff.
+    if (options?.internal !== INTERNAL_SYSTEM_ACTOR) {
+      const authCtx = await getVerifiedAuthContext(options?.idToken);
+      if (!authCtx) {
+        return { success: false, error: 'Unauthorized: Valid authentication required.' };
+      }
+      const role = authCtx.user.role;
+      const isStaffOrAdmin =
+        authCtx.isAdmin || role === 'admin' || role === 'staff' || role === 'cap_staff' || role === 'cap_supervisor';
+      const isClient =
+        authCtx.userId === order.userId ||
+        authCtx.userId === order.clientId ||
+        authCtx.user.email?.toLowerCase() === order.customerEmail?.toLowerCase() ||
+        authCtx.user.email?.toLowerCase() === order.endCustomerEmail?.toLowerCase();
+      const isPartner =
+        authCtx.userId === order.resellerId ||
+        authCtx.userId === order.partnerId ||
+        (!!order.resellerId && authCtx.user.partnerId === order.resellerId) ||
+        (!!order.partnerId && authCtx.user.partnerId === order.partnerId);
+
+      if (!isStaffOrAdmin && !isClient && !isPartner) {
+        return { success: false, error: 'Forbidden: You do not have access to this order.' };
+      }
+    }
 
     // 1. Ensure Checklist is initialized
     let checklist = order.checklist || [];
@@ -161,9 +190,10 @@ export async function triggerOrderAutomatedFulfillmentReview(
     }));
 
     if (order.originalOrderId) {
+      // Mirror progress to the partner-owned order, minus My Accountant's internal AI audit data.
       await db.collection('orders').doc(order.originalOrderId).update(cleanFirestoreData({
-        documentUploads: updatedUploads,
-        checklist: updatedChecklist,
+        documentUploads: stripInternalAiData(updatedUploads),
+        checklist: stripInternalChecklistAiData(updatedChecklist),
         updatedAt: new Date().toISOString(),
       }));
     }
@@ -571,7 +601,7 @@ export async function generateOrderDocumentDraftsInternal(
   if (order.originalOrderId) {
     await db.collection('orders').doc(order.originalOrderId).update(cleanFirestoreData({
       generatedDrafts,
-      checklist: updatedChecklist,
+      checklist: stripInternalChecklistAiData(updatedChecklist),
       updatedAt: new Date().toISOString(),
     }));
   }
@@ -725,7 +755,7 @@ export async function approveAndSendDraftToClientAction(
       await db.collection('orders').doc(order.originalOrderId).update(cleanFirestoreData({
         generatedDrafts: updatedDrafts,
         notes: [...(order.notes || []), clientNote],
-        checklist: updatedChecklist,
+        checklist: stripInternalChecklistAiData(updatedChecklist),
         updatedAt: new Date().toISOString(),
       }));
     }
