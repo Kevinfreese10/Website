@@ -979,7 +979,7 @@ export default function PartnerOrderDetailsPage() {
                     Back to Orders
                 </Link>
             </Button>
-            {order?.status !== 'Outsourced' && order?.status !== 'Cancelled' && order?.status !== 'Completed' && (
+            {!order?.isOutsourced && order?.status !== 'Cancelled' && order?.status !== 'Completed' && (
                 <Button onClick={() => setProcessModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
                     <Sparkles className="h-4 w-4 mr-2" />
                     Process / Outsource Order
@@ -1010,7 +1010,7 @@ export default function PartnerOrderDetailsPage() {
                                 <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-1">
                                     <span className="flex items-center gap-1.5 font-medium">
                                         <Calendar className="h-3.5 w-3.5 text-primary" />
-                                        {formatDate(order.date, 'dd/MM/yyyy, HH:mm')}
+                                        {formatDate(order.date, 'datetime')}
                                     </span>
                                 </div>
                             </div>

@@ -698,7 +698,7 @@ export default function ClientOrderDetailsPage() {
                                 <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-1">
                                     <span className="flex items-center gap-1.5 font-medium">
                                         <Calendar className="h-3.5 w-3.5 text-primary" />
-                                        {formatDate(order.date, 'dd/MM/yyyy, HH:mm')}
+                                        {formatDate(order.date, 'datetime')}
                                     </span>
                                 </div>
                             </div>
