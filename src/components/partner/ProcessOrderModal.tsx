@@ -63,11 +63,16 @@ export function ProcessOrderModal({
   const calculatedRetailTotal = (order?.items ?? []).reduce((sum, item) => {
     const matchedService = allServices.find((s) => s.id === item.id);
     const itemPrice = item.price || item.unitPrice || 0;
-    const wholesaleUnitPrice = matchedService?.resellerPrice ?? itemPrice * 0.80;
-    // If itemPrice is greater than wholesale price, use itemPrice; otherwise fallback to matchedService.price or itemPrice / 0.80
-    let retailUnitPrice = itemPrice;
-    if (!retailUnitPrice || retailUnitPrice <= wholesaleUnitPrice) {
-      retailUnitPrice = matchedService?.price ?? (wholesaleUnitPrice > 0 ? wholesaleUnitPrice / 0.80 : 0);
+    const clientPrice = item.clientPrice;
+    
+    let retailUnitPrice = clientPrice;
+    
+    if (typeof retailUnitPrice !== 'number' || retailUnitPrice <= 0) {
+      const wholesaleUnitPrice = matchedService?.resellerPrice ?? itemPrice * 0.80;
+      retailUnitPrice = itemPrice;
+      if (!retailUnitPrice || retailUnitPrice <= wholesaleUnitPrice) {
+        retailUnitPrice = matchedService?.price ?? (wholesaleUnitPrice > 0 ? wholesaleUnitPrice / 0.80 : 0);
+      }
     }
     return sum + retailUnitPrice * (item.quantity || 1);
   }, 0);

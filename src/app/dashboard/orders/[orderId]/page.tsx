@@ -14,7 +14,7 @@ import {
   ArrowLeft, Loader2, Upload, ClipboardCheck, MessageSquare, Send, Mail, 
   CheckCircle, AlertTriangle, Paperclip, FileText, FileSpreadsheet, FileImage, 
   File as FileIcon, Trash2, ExternalLink, HelpCircle, Info, Plus, RefreshCw, Edit3, CheckCircle2,
-  MessageSquareQuote, Clock
+  MessageSquareQuote, Clock, Calendar, ShoppingBag, CreditCard, User as UserIcon, Phone
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/utils';
@@ -683,11 +683,25 @@ export default function ClientOrderDetailsPage() {
                     )
                 )}
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Order {order.id}</CardTitle>
-                        <div className="text-sm text-muted-foreground">
-                        <span>Date: {formatDate(order.date, 'long')}</span> | <span>Status: </span><Badge variant={getStatusVariant(order.status)}>{(order.status as any) === 'Outsourced' ? 'Processing' : order.status}</Badge>
+                <Card className="border shadow-md bg-card overflow-hidden">
+                    <CardHeader className="bg-muted/30 border-b pb-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-3">
+                                    <h2 className="text-2xl font-black tracking-tight text-foreground">
+                                        Order #{order.originalOrderId || order.id}
+                                    </h2>
+                                    <Badge variant={getStatusVariant(order.status)} className="px-3 py-1 text-xs font-bold uppercase tracking-wider shadow-sm">
+                                        {(order.status as any) === 'Outsourced' ? 'Processing' : order.status}
+                                    </Badge>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-1">
+                                    <span className="flex items-center gap-1.5 font-medium">
+                                        <Calendar className="h-3.5 w-3.5 text-primary" />
+                                        {formatDate(order.date, 'dd/MM/yyyy, HH:mm')}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                         {order.status === 'Pending Payment' && (
                             <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -768,10 +782,13 @@ export default function ClientOrderDetailsPage() {
                         )}
 
                         {orderedItemsWithServices.map((item, index) => (
-                            <div key={item.id}>
-                                <div className="flex justify-between items-center">
-                                    <div><p className="font-semibold text-lg">{item.title}</p></div>
-                                    <p className="font-semibold text-lg">{formatPrice(item.price)}</p>
+                            <div key={item.id} className="bg-muted/40 p-5 rounded-xl border border-border/60">
+                                <div className="flex justify-between items-center py-2 border-b border-border/40 pb-4 mb-4">
+                                    <div>
+                                        <p className="font-bold text-foreground text-lg">{item.title}</p>
+                                        <p className="text-xs text-muted-foreground font-medium">Quantity: {item.quantity || 1}</p>
+                                    </div>
+                                    <p className="font-bold text-foreground text-lg">{formatPrice(item.price)}</p>
                                 </div>
                                 {item.combinedRequirements && item.combinedRequirements.length > 0 && (
                                     <div className="mt-4 pl-4 ml-4 border-l-2 space-y-4">
@@ -1167,7 +1184,11 @@ export default function ClientOrderDetailsPage() {
                                 {index < orderedItemsWithServices.length - 1 && <Separator className="my-6" />}
                             </div>
                         ))}
-                         <Separator className="my-4" /><div className="flex justify-between font-bold text-xl"><span>Total</span><span>{formatPrice(order.total)}</span></div>
+                        <Separator className="my-6" />
+                        <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex justify-between items-center text-primary font-black text-xl">
+                            <span>Total Amount</span>
+                            <span>{formatPrice(order.total)}</span>
+                        </div>
                     </CardContent>
                     {allRequirements.length > 0 && (
                         <CardFooter>

@@ -27,7 +27,7 @@ import {
 import { submitClientDocumentUploadAction } from '@/app/actions/client-order-actions';
 import { getAuth } from 'firebase/auth';
 import { GeneratedDocumentDraft } from '@/lib/types';
-import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Bot, ExternalLink, RefreshCw, FileSignature, History, Plus, ScrollText } from 'lucide-react';
+import { ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, Briefcase, Clock, Lock, Bot, ExternalLink, RefreshCw, FileSignature, History, Plus, ScrollText, Calendar, ShoppingBag, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/utils';
 import { useForm } from 'react-hook-form';
@@ -995,23 +995,33 @@ export default function PartnerOrderDetailsPage() {
                     baseRoute="/partner/orders" 
                     onOrderUpdated={fetchOrder} 
                 />
-                <Card>
-                    <CardHeader>
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div>
-                                <CardTitle>Order {order.id}</CardTitle>
-                                <div className="text-sm text-muted-foreground mt-1">
-                                    Date: {formatDate(order.date, 'long')} | Status: <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                <Card className="border shadow-md bg-card overflow-hidden">
+                    <CardHeader className="bg-muted/30 border-b pb-4">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-3">
+                                    <h2 className="text-2xl font-black tracking-tight text-foreground">
+                                        Order #{order.originalOrderId || order.id}
+                                    </h2>
+                                    <Badge variant={getStatusVariant(order.status)} className="px-3 py-1 text-xs font-bold uppercase tracking-wider shadow-sm">
+                                        {order.status}
+                                    </Badge>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-1">
+                                    <span className="flex items-center gap-1.5 font-medium">
+                                        <Calendar className="h-3.5 w-3.5 text-primary" />
+                                        {formatDate(order.date, 'dd/MM/yyyy, HH:mm')}
+                                    </span>
                                 </div>
                             </div>
                             {!order.isOutsourced && (
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold text-muted-foreground">Change Status:</span>
+                                <div className="flex items-center gap-2 bg-background p-1.5 rounded-lg border shadow-sm">
+                                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider ml-2">Status:</span>
                                     <Select
                                         value={order.status}
                                         onValueChange={(val) => handleOrderStatusTransition(val as Order['status'])}
                                     >
-                                        <SelectTrigger className="w-[140px] h-8 text-xs">
+                                        <SelectTrigger className="w-[140px] h-8 text-xs font-bold border-0 bg-transparent focus:ring-0">
                                             <SelectValue placeholder="Status" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -1025,35 +1035,47 @@ export default function PartnerOrderDetailsPage() {
                             )}
                         </div>
                     </CardHeader>
-                    <CardContent>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="font-semibold text-muted-foreground mb-2">Order Items</h3>
-                                <div className="space-y-4">
-                                {order.items.map((item: any) => (
-                                    <div key={item.id} className="flex justify-between items-center">
-                                    <div>
-                                        <p className="font-semibold">{item.title}</p>
-                                        <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                                    </div>
-                                    <p>{formatPrice(item.clientPrice || 0)}</p>
-                                    </div>
-                                ))}
+                    <CardContent className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Order Items Container */}
+                            <div className="bg-muted/40 p-5 rounded-xl border border-border/60 space-y-4">
+                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-primary flex items-center gap-2">
+                                    <ShoppingBag className="h-4 w-4" /> Order Items
+                                </h3>
+                                <div className="space-y-3">
+                                    {order.items.map((item: any, idx: number) => (
+                                        <div key={item.id || idx} className="flex justify-between items-center py-2 border-b border-border/40 last:border-0 text-sm">
+                                            <div>
+                                                <p className="font-bold text-foreground">{item.title}</p>
+                                                <p className="text-xs text-muted-foreground font-medium">Quantity: {item.quantity || 1}</p>
+                                            </div>
+                                            <p className="font-bold text-foreground">{formatPrice(item.clientPrice || item.price || item.unitPrice || 0)}</p>
+                                        </div>
+                                    ))}
                                 </div>
-                                <Separator className="my-4" />
-                                <div className="flex justify-between font-bold text-lg">
-                                <span>Total</span>
-                                <span>{formatPrice(order.clientTotal || 0)}</span>
+                                <div className="bg-primary/10 border border-primary/20 p-3.5 rounded-lg flex justify-between items-center text-primary font-black text-lg">
+                                    <span>Total Amount</span>
+                                    <span>{formatPrice(order.clientTotal || order.total || 0)}</span>
                                 </div>
                             </div>
-                            <div>
-                                <h3 className="font-semibold text-muted-foreground mb-2">Client Details</h3>
+
+                            {/* Contact Details Container */}
+                            <div className="bg-muted/40 p-5 rounded-xl border border-border/60 space-y-4">
+                                <h3 className="text-xs font-extrabold uppercase tracking-widest text-primary flex items-center gap-2">
+                                    <UserIcon className="h-4 w-4" /> Client Details
+                                </h3>
                                 <div className="space-y-3">
-                                    <p className="font-semibold text-lg">{order.endCustomerName || order.customerName}</p>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground font-medium">Customer Name</p>
+                                        <p className="font-extrabold text-base text-foreground mt-0.5">{order.endCustomerName || order.customerName}</p>
+                                    </div>
                                     {(order.endCustomerEmail || order.customerEmail) && (
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <Mail className="h-4 w-4 text-muted-foreground" />
-                                            <a href={`mailto:${order.endCustomerEmail || order.customerEmail}`} className="text-primary hover:underline">{order.endCustomerEmail || order.customerEmail}</a>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground font-medium">Email Address</p>
+                                            <a href={`mailto:${order.endCustomerEmail || order.customerEmail}`} className="text-sm font-bold text-primary hover:underline flex items-center gap-2 mt-0.5">
+                                                <Mail className="h-4 w-4 text-primary shrink-0" />
+                                                {order.endCustomerEmail || order.customerEmail}
+                                            </a>
                                         </div>
                                     )}
                                     {order.customerPhone && (

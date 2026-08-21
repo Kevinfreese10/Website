@@ -58,13 +58,15 @@ export default function OrderPrerequisiteRequirementsCard({
         let customerOrders: Order[] = [];
 
         if (customerEmail) {
-          const q = query(collection(db, 'orders'), where('customerEmail', '==', customerEmail));
+          const partnerId = order.resellerId || order.partnerId || order.userId;
+          const q = query(collection(db, 'orders'), where('customerEmail', '==', customerEmail), where('resellerId', '==', partnerId));
           const snap = await getDocs(q);
           customerOrders = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Order));
         }
 
         // 2. Fetch child orders linked directly to this order
-        const childQ = query(collection(db, 'orders'), where('originalOrderId', '==', order.id));
+        const partnerId2 = order.resellerId || order.partnerId || order.userId;
+        const childQ = query(collection(db, 'orders'), where('originalOrderId', '==', order.id), where('resellerId', '==', partnerId2));
         const childSnap = await getDocs(childQ);
         const childOrders = childSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Order));
 
