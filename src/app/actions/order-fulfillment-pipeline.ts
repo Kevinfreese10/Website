@@ -3,6 +3,7 @@
 import { getAdminDb, cleanFirestoreData, serializeDbData, uploadBufferToStorage } from '@/lib/firebase-admin';
 import { Order, DocumentUpload, AIDocumentVerification, GeneratedDocumentDraft, OrderChecklistItem } from '@/lib/types';
 import { verifyOrderDocument } from '@/ai/flows/verify-order-document';
+import { resolveOrderEntityContext } from '@/lib/service-utils';
 import { ensureOrderChecklistInitialized } from '@/app/actions/order-admin-actions';
 import {
   generateNcrForm2Draft,
@@ -53,21 +54,22 @@ export async function triggerOrderAutomatedFulfillmentReview(orderId: string, cl
       }
       if (docItem.fileUrl) {
         try {
-          // Extract expected company and director details from order for cross-checking
-          const expectedCompanyName = (order as any).companyName || (order as any).clientEntityName || order.customerName;
-          const expectedRegNumber = (order as any).companyRegistrationNumber || (order as any).regNumber || (order as any).registrationNumber;
-          const expectedIdNumber = (order as any).idNumber || (order as any).directorIdNumber || (order as any).idPassportNumber;
-          const expectedDirectorName = (order as any).directorName || order.customerName;
+          // Resolve the SUBJECT ENTITY this service is being performed for, which is frequently a
+          // company rather than the individual who placed the order. Deliberately left undefined
+          // when unknown — never defaulted to the ordering contact, since that produced false
+          // "name mismatch" rejections on documents correctly held in the company's name.
+          const entityContext = resolveOrderEntityContext(order);
 
           const aiResult = await verifyOrderDocument({
             fileUrl: docItem.fileUrl,
             requirementLabel: docItem.requirementLabel,
             serviceTitle: order.items?.[0]?.title,
-            clientName: order.customerName,
-            expectedCompanyName,
-            expectedRegistrationNumber: expectedRegNumber,
-            expectedIdNumber,
-            expectedDirectorName,
+            orderingContactName: entityContext.orderingContactName,
+            expectedCompanyName: entityContext.entityName,
+            expectedRegistrationNumber: entityContext.registrationNumber,
+            expectedIdNumber: entityContext.idNumber,
+            expectedDirectorName: entityContext.directorName,
+            currentDate: new Date().toISOString().split('T')[0],
             customAiInstructions,
           });
 

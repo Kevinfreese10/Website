@@ -8,6 +8,7 @@
 import { getAdminDb } from '@/lib/firebase-admin';
 import { Order, OrderChecklistItem, DocumentUpload, AIDocumentVerification } from '@/lib/types';
 import { verifyOrderDocument } from '@/ai/flows/verify-order-document';
+import { resolveOrderEntityContext } from '@/lib/service-utils';
 import {
   transitionOrderStatusAtomic,
   updateOrderChecklistItemAtomic,
@@ -115,21 +116,20 @@ export async function runAiDocumentVerification(orderId: string, requirementIden
       };
     }
 
-    // Call Genkit Flow with cross-checking parameters
-    const expectedCompanyName = (orderData as any).companyName || (orderData as any).clientEntityName || orderData.customerName;
-    const expectedRegNumber = (orderData as any).companyRegistrationNumber || (orderData as any).regNumber || (orderData as any).registrationNumber;
-    const expectedIdNumber = (orderData as any).idNumber || (orderData as any).directorIdNumber || (orderData as any).idPassportNumber;
-    const expectedDirectorName = (orderData as any).directorName || orderData.customerName;
+    // Resolve the SUBJECT ENTITY the service is for (often a company, not the person who ordered).
+    // Left undefined when it cannot be determined, rather than defaulting to the ordering contact.
+    const entityContext = resolveOrderEntityContext(orderData);
 
     const aiResult = await verifyOrderDocument({
       fileUrl: targetDoc.fileUrl,
       requirementLabel: targetDoc.requirementLabel,
       serviceTitle: orderData.items?.[0]?.title,
-      clientName: orderData.customerName,
-      expectedCompanyName,
-      expectedRegistrationNumber: expectedRegNumber,
-      expectedIdNumber,
-      expectedDirectorName,
+      orderingContactName: entityContext.orderingContactName,
+      expectedCompanyName: entityContext.entityName,
+      expectedRegistrationNumber: entityContext.registrationNumber,
+      expectedIdNumber: entityContext.idNumber,
+      expectedDirectorName: entityContext.directorName,
+      currentDate: new Date().toISOString().split('T')[0],
     });
 
     const aiVerification: AIDocumentVerification = {

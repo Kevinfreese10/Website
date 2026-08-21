@@ -1,4 +1,4 @@
-import { Service, FulfillmentStep } from './types';
+import { Service, FulfillmentStep, Order } from './types';
 import { customAlphabet } from 'nanoid';
 
 const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 8);
@@ -50,6 +50,92 @@ export function getServiceChecklist(service?: Partial<Service> | null): Fulfillm
     return service.fulfillmentChecklist;
   }
   return DEFAULT_FULFILLMENT_CHECKLIST;
+}
+
+/**
+ * Resolves the SUBJECT ENTITY of an order — i.e. the company/person the service is actually
+ * being performed for — as distinct from the ordering contact who placed and paid for it.
+ *
+ * These are frequently different: an individual (e.g. a director) commonly orders an NCR or CIPC
+ * registration on behalf of a company. Supporting documents (bank confirmation letters, CIPC
+ * certificates, tax clearances) will correctly be in the ENTITY's name, not the orderer's.
+ *
+ * Critically, this deliberately does NOT fall back to the ordering contact's name when the entity
+ * cannot be determined. Returning the orderer as the "expected entity" is what caused documents
+ * legitimately held in the company's name to be reported as name mismatches. When the entity is
+ * genuinely unknown, callers should omit the expectation entirely and route to human review rather
+ * than assert a mismatch that isn't real.
+ */
+export function resolveOrderEntityContext(order: Order): {
+  orderingContactName: string;
+  entityName?: string;
+  registrationNumber?: string;
+  idNumber?: string;
+  directorName?: string;
+  isEntityResolved: boolean;
+} {
+  const uploads = order.documentUploads || [];
+
+  const textFor = (...keywords: string[]): string | undefined => {
+    const match = uploads.find(u => {
+      const label = (u.requirementLabel || '').toLowerCase();
+      return keywords.some(k => label.includes(k)) && !!u.textValue?.trim();
+    });
+    return match?.textValue?.trim() || undefined;
+  };
+
+  // Entities extracted by prior AI verifications of other documents on the same order.
+  let aiEntity: string | undefined;
+  let aiReg: string | undefined;
+  let aiId: string | undefined;
+  let aiDirector: string | undefined;
+  for (const u of uploads) {
+    const ext = (u as any).aiVerification?.extractedData;
+    if (!ext) continue;
+    aiEntity = aiEntity || ext.companyName || ext.enterpriseName || ext.registeredName;
+    aiReg = aiReg || ext.registrationNumber || ext.regNumber;
+    aiId = aiId || ext.idNumber || ext.directors?.[0]?.idNumber;
+    aiDirector = aiDirector || ext.directorName || ext.director || ext.directors?.[0]?.name;
+  }
+
+  const orderAny = order as any;
+
+  const entityName =
+    textFor('company name', 'entity name', 'registered name', 'business name', 'trading name') ||
+    orderAny.companyName ||
+    orderAny.clientEntityName ||
+    orderAny.businessName ||
+    aiEntity ||
+    undefined;
+
+  const registrationNumber =
+    textFor('registration number', 'reg no', 'cipc', 'enterprise number') ||
+    orderAny.companyRegistrationNumber ||
+    orderAny.registrationNumber ||
+    aiReg ||
+    undefined;
+
+  const idNumber =
+    textFor('id number', 'identity number', 'id/passport') ||
+    orderAny.idNumber ||
+    orderAny.directorIdNumber ||
+    aiId ||
+    undefined;
+
+  const directorName =
+    textFor('director name', 'applicant name', 'representative name', 'public officer') ||
+    orderAny.directorName ||
+    aiDirector ||
+    undefined;
+
+  return {
+    orderingContactName: order.endCustomerName || order.customerName || '',
+    entityName,
+    registrationNumber,
+    idNumber,
+    directorName,
+    isEntityResolved: !!entityName,
+  };
 }
 
 /**
