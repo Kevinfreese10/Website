@@ -3,7 +3,7 @@
 import { getAdminDb, cleanFirestoreData, serializeDbData, uploadBufferToStorage } from '@/lib/firebase-admin';
 import { Order, DocumentUpload, AIDocumentVerification, GeneratedDocumentDraft, OrderChecklistItem } from '@/lib/types';
 import { verifyOrderDocument } from '@/ai/flows/verify-order-document';
-import { resolveOrderEntityContext, stripInternalAiData, stripInternalChecklistAiData } from '@/lib/service-utils';
+import { resolveOrderEntityContext, stripInternalAiData, stripInternalChecklistAiData, resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { ensureOrderChecklistInitialized, INTERNAL_SYSTEM_ACTOR } from '@/app/actions/order-admin-actions';
 import { getVerifiedAuthContext } from '@/lib/server-auth';
 import {
@@ -189,9 +189,10 @@ export async function triggerOrderAutomatedFulfillmentReview(
       updatedAt: new Date().toISOString(),
     }));
 
-    if (order.originalOrderId) {
+    const mirrorId = resolvePartnerMirrorOrderId(order);
+    if (mirrorId) {
       // Mirror progress to the partner-owned order, minus My Accountant's internal AI audit data.
-      await db.collection('orders').doc(order.originalOrderId).update(cleanFirestoreData({
+      await db.collection('orders').doc(mirrorId).update(cleanFirestoreData({
         documentUploads: stripInternalAiData(updatedUploads),
         checklist: stripInternalChecklistAiData(updatedChecklist),
         updatedAt: new Date().toISOString(),
@@ -598,8 +599,9 @@ export async function generateOrderDocumentDraftsInternal(
     updatedAt: new Date().toISOString(),
   }));
 
-  if (order.originalOrderId) {
-    await db.collection('orders').doc(order.originalOrderId).update(cleanFirestoreData({
+  const mirrorId = resolvePartnerMirrorOrderId(order);
+  if (mirrorId) {
+    await db.collection('orders').doc(mirrorId).update(cleanFirestoreData({
       generatedDrafts,
       checklist: stripInternalChecklistAiData(updatedChecklist),
       updatedAt: new Date().toISOString(),
@@ -751,8 +753,9 @@ export async function approveAndSendDraftToClientAction(
       updatedAt: new Date().toISOString(),
     }));
 
-    if (order.originalOrderId) {
-      await db.collection('orders').doc(order.originalOrderId).update(cleanFirestoreData({
+    const mirrorId = resolvePartnerMirrorOrderId(order);
+    if (mirrorId) {
+      await db.collection('orders').doc(mirrorId).update(cleanFirestoreData({
         generatedDrafts: updatedDrafts,
         notes: [...(order.notes || []), clientNote],
         checklist: stripInternalChecklistAiData(updatedChecklist),

@@ -3,7 +3,7 @@
 import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
 import { AuditEntry, Order, OrderChecklistItem, DocumentUpload, AIDocumentVerification } from '@/lib/types';
 import { sendOrderStatusUpdateEmailAction } from './order-actions';
-import { getServiceChecklist, normalizeRequirementsWithIds, stripInternalAiData, stripInternalChecklistAiData } from '@/lib/service-utils';
+import { getServiceChecklist, normalizeRequirementsWithIds, stripInternalAiData, stripInternalChecklistAiData, resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { getVerifiedAuthContext, getAuthContext } from '@/lib/server-auth';
 
 export type StatusTransitionOptions = {
@@ -253,8 +253,9 @@ export async function transitionOrderStatusAtomic(
     batch.update(orderRef, updatePayload);
 
     // If this order is linked to an original partner order, update that atomically as well
-    if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
-      const originalRef = db.collection('orders').doc(orderData.originalOrderId);
+    const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
+    if (mirrorId) {
+      const originalRef = db.collection('orders').doc(mirrorId);
       const originalDoc = await originalRef.get();
       if (originalDoc.exists) {
         const originalData = originalDoc.data() || {};
@@ -385,8 +386,9 @@ export async function updateOrderChecklistItemAtomic(
 
     batch.update(orderRef, updatePayload);
 
-    if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
-      const originalRef = db.collection('orders').doc(orderData.originalOrderId);
+    const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
+    if (mirrorId) {
+      const originalRef = db.collection('orders').doc(mirrorId);
       // Partner copy gets checklist progress without the internal AI annotations.
       batch.update(originalRef, cleanFirestoreData({
         ...updatePayload,
@@ -486,8 +488,9 @@ export async function reviewOrderDocumentAtomic(
 
     batch.update(orderRef, updatePayload);
 
-    if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
-      const originalRef = db.collection('orders').doc(orderData.originalOrderId);
+    const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
+    if (mirrorId) {
+      const originalRef = db.collection('orders').doc(mirrorId);
       // Partner copy gets document outcomes without the internal AI verification payload.
       batch.update(originalRef, cleanFirestoreData({
         ...updatePayload,
@@ -496,6 +499,26 @@ export async function reviewOrderDocumentAtomic(
     }
 
     await batch.commit();
+
+    // If a document was rejected, send immediate feedback email to the client with reasons
+    if (status === 'rejected') {
+      try {
+        const clientEmail = orderData.endCustomerEmail || orderData.customerEmail;
+        const clientName = orderData.endCustomerName || orderData.customerName || 'Valued Client';
+        if (clientEmail) {
+          const { sendDocumentReviewFeedback } = await import('@/app/actions/notifications');
+          await sendDocumentReviewFeedback({
+            orderId,
+            clientName,
+            clientEmail,
+            documentUploads: cleanedUploads,
+            resellerId: orderData.resellerId,
+          });
+        }
+      } catch (emailErr) {
+        console.error('Error sending rejection feedback email:', emailErr);
+      }
+    }
 
     // If all documents are approved, auto-generate statutory document drafts
     if (status === 'approved' && allApproved) {
@@ -570,8 +593,9 @@ export async function requestCustomDocumentAtomic(
     const batch = db.batch();
     batch.update(orderRef, updatePayload);
 
-    if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
-      const origRef = db.collection('orders').doc(orderData.originalOrderId);
+    const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
+    if (mirrorId) {
+      const origRef = db.collection('orders').doc(mirrorId);
       batch.update(origRef, updatePayload);
     }
 
@@ -627,8 +651,9 @@ export async function reassignOrderStaffAtomic(
       updatedAt: new Date().toISOString(),
     });
 
-    if (orderData.originalOrderId && orderData.originalOrderId !== orderId) {
-      const originalRef = db.collection('orders').doc(orderData.originalOrderId);
+    const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
+    if (mirrorId) {
+      const originalRef = db.collection('orders').doc(mirrorId);
       const originalDoc = await originalRef.get();
       if (originalDoc.exists) {
         const originalData = originalDoc.data() || {};

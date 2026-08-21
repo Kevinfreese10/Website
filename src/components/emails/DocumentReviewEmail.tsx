@@ -201,7 +201,7 @@ export const DocumentReviewEmail = ({
                       <Text style={unattendedNoticeTextStyle}>
                         <strong>Need to reply or send us a message?</strong>
                         <br />
-                        Please log into your <a href={orderUrl} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to reply, upload documents, or communicate with our team. Please note that <em>no_reply@myacc.co.za</em> is an automated notification address and is not monitored for replies.
+                        Please log into your <a href={orderUrl} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to reply, upload documents, or communicate with our team. Please note that this is an automated notification address and is not monitored for incoming replies.
                       </Text>
                     </td>
                   </tr>

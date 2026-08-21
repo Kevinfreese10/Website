@@ -801,14 +801,16 @@ export default function PartnerOrderDetailsPage() {
     const partnerId = currentUser.partnerId || currentUser.uid;
     try {
       if (choice === 'complete') {
-        const result = await completeOrderWithRoyalty(order.id, partnerId);
+        const walletIdToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+        const result = await completeOrderWithRoyalty(order.id, partnerId, walletIdToken);
         if ('error' in result) {
           toast({ title: 'Failed', description: result.error === 'INSUFFICIENT_FUNDS' ? 'Insufficient wallet balance. Please top up.' : result.error, variant: 'destructive' });
           return;
         }
         toast({ title: 'Order Processing', description: `Royalty of R${result.royalty.toFixed(2)} deducted from your wallet.` });
       } else {
-        const result = await outsourceOrderFromWallet(order.id, partnerId, documentContact || 'partner');
+        const walletIdToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+        const result = await outsourceOrderFromWallet(order.id, partnerId, documentContact || 'partner', walletIdToken);
         if ('error' in result) {
           toast({ title: 'Failed', description: result.error === 'INSUFFICIENT_FUNDS' ? 'Insufficient wallet balance. Please top up.' : result.error, variant: 'destructive' });
           return;
@@ -939,6 +941,24 @@ export default function PartnerOrderDetailsPage() {
                     baseRoute="/partner/orders" 
                     onOrderUpdated={fetchOrder} 
                 />
+
+                {order?.isOutsourced && (
+                    <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 p-4 rounded-xl flex items-center justify-between gap-3 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-600 text-white rounded-lg">
+                                <Sparkles className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-sm text-foreground">Outsourced to My Accountant</h4>
+                                <p className="text-xs text-muted-foreground">This order is actively being processed and fulfilled by My Accountant staff consultants.</p>
+                            </div>
+                        </div>
+                        <Badge variant="outline" className="font-bold border-blue-500 text-blue-600 dark:text-blue-400">
+                            Wholesale Fulfilled
+                        </Badge>
+                    </div>
+                )}
+
                 <Card className="border shadow-md bg-card overflow-hidden">
                     <CardHeader className="bg-muted/30 border-b pb-4">
                         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -1127,11 +1147,16 @@ export default function PartnerOrderDetailsPage() {
                                                                 ) : upload.textValue ? (
                                                                     <p className="text-sm p-2 bg-muted rounded-md mt-1">"{upload.textValue}"</p>
                                                                 ) : null}
-                                                                {upload.status === 'pending' && (
+                                                                {!order.isOutsourced && upload.status === 'pending' && (
                                                                     <div className="flex items-center gap-2">
                                                                         <Button size="xs" variant="outline" onClick={() => handleDocumentStatusUpdate(identifier, 'approved')}>Approve</Button>
                                                                         <Button size="xs" variant="destructive" onClick={() => handleOpenRejectionDialog(upload)}>Reject</Button>
                                                                     </div>
+                                                                )}
+                                                                {order.isOutsourced && upload.status === 'pending' && (
+                                                                    <span className="text-[11px] font-medium text-muted-foreground italic">
+                                                                        Under review by My Accountant staff
+                                                                    </span>
                                                                 )}
                                                                  {upload.status === 'rejected' && upload.rejectionReason && (
                                                                     <p className="text-xs text-destructive italic">Reason: {upload.rejectionReason}</p>

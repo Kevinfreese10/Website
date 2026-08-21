@@ -139,6 +139,38 @@ export function resolveOrderEntityContext(order: Order): {
 }
 
 /**
+ * Returns the id of the linked PARTNER MIRROR order that this order's changes should be synced to,
+ * or null when there isn't one.
+ *
+ * `originalOrderId` has historically carried two incompatible meanings:
+ *   1. "the linked partner/MA twin of this order" — changes SHOULD be mirrored across, and
+ *   2. "the parent order that required me" (prerequisite child orders) — changes MUST NOT be
+ *      mirrored, because the parent is a completely different order for a different service.
+ *
+ * Meaning (2) now uses `parentOrderId`, but historical documents still carry it in
+ * `originalOrderId`, so this also screens those out defensively. Getting this wrong is destructive:
+ * mirroring a prerequisite child onto its parent overwrites the parent's documents, checklist and
+ * status, and marks it Completed.
+ */
+export function resolvePartnerMirrorOrderId(order: any): string | null {
+  if (!order) return null;
+
+  // Explicitly a prerequisite child — never mirror.
+  if (order.isPrerequisiteOrder === true || order.parentOrderId) return null;
+
+  const linkedId = order.originalOrderId;
+  if (!linkedId || linkedId === order.id) return null;
+
+  // A genuine partner mirror always belongs to a partner-linked or outsourced order. A prerequisite
+  // child created before `parentOrderId` existed generally won't be, so this screens out most
+  // legacy cases without blocking real mirrors.
+  const looksLikePartnerMirror = Boolean(order.resellerId || order.partnerId || order.isOutsourced);
+  if (!looksLikePartnerMirror) return null;
+
+  return linkedId as string;
+}
+
+/**
  * Strips My Accountant's internal AI audit data from document uploads before they are mirrored onto
  * a partner-owned order document.
  *

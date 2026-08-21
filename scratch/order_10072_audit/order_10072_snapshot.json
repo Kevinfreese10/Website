@@ -1,0 +1,512 @@
+{
+  "id": "10072",
+  "userId": "Ckgvnz5TvPO001lHa8P9ZW8twSf1",
+  "customerName": "Zarika Lubbe",
+  "customerEmail": "zarika@zlaccounting.co.za",
+  "customerPhone": "0645395149",
+  "items": [
+    {
+      "id": "MP4D0exEiLpgO6GkBo5F",
+      "title": "COIDA Nature of Business Change",
+      "price": 1400,
+      "quantity": 1
+    }
+  ],
+  "total": 1400,
+  "discountAmount": null,
+  "date": {
+    "_seconds": 1784706460,
+    "_nanoseconds": 48000000
+  },
+  "source": "Partner Landing Page",
+  "originalOrderId": null,
+  "resellerId": "Fs5UYnpDBFVJfs6j7nMelYDxsnl2",
+  "status": "Processing",
+  "department": "Administration",
+  "documentContact": "client",
+  "paymentMethod": "Cash",
+  "isOutsourced": true,
+  "endCustomerName": "Zarika Lubbe",
+  "endCustomerEmail": "zarika@zlaccounting.co.za",
+  "discountCode": "WELCOME-YOE5E2YK",
+  "assignedTo": [
+    "LRM285EOq3gwNMKayY6vtzooaC03"
+  ],
+  "notes": [
+    {
+      "text": "Hi Zarika,\n\nThis is a reminder to please upload the required documents for your order #10072 so that we can begin processing it.\n\nKind regards,\nThe Akeroyd Accounting and Tax Services CC Team",
+      "authorId": "Fs5UYnpDBFVJfs6j7nMelYDxsnl2",
+      "date": {
+        "_seconds": 1784729703,
+        "_nanoseconds": 592000000
+      },
+      "type": "note",
+      "subject": null,
+      "attachments": null
+    },
+    {
+      "text": "Sent \"Payment Confirmed & Request Documents\" email to zarika@zlaccounting.co.za.",
+      "date": {
+        "_seconds": 1784742020,
+        "_nanoseconds": 702000000
+      },
+      "authorId": "Fs5UYnpDBFVJfs6j7nMelYDxsnl2",
+      "type": "email",
+      "subject": "Action Required for Your Order #10072",
+      "attachments": null
+    },
+    {
+      "text": "Client has submitted their documents for review.",
+      "authorId": "Ckgvnz5TvPO001lHa8P9ZW8twSf1",
+      "date": {
+        "_seconds": 1784807915,
+        "_nanoseconds": 991000000
+      },
+      "type": "note",
+      "subject": null,
+      "attachments": null
+    },
+    {
+      "text": "Client has submitted their documents for review.",
+      "authorId": "Ckgvnz5TvPO001lHa8P9ZW8twSf1",
+      "date": {
+        "_seconds": 1784807922,
+        "_nanoseconds": 161000000
+      },
+      "type": "note",
+      "subject": null,
+      "attachments": null
+    },
+    {
+      "text": "Order outsourced to My Accountant main store. Partner paid cash.",
+      "authorId": "system",
+      "date": {
+        "_seconds": 1786000502,
+        "_nanoseconds": 382000000
+      },
+      "type": "note",
+      "subject": null,
+      "attachments": null
+    },
+    {
+      "text": "Sent 'Document Review Feedback' email to zarika@zlaccounting.co.za.",
+      "subject": "Feedback on Your Submitted Documents for Order #10072",
+      "authorId": "UZULuL0Hlncga10rqeiM9g2jeEh1",
+      "date": {
+        "_seconds": 1786023772,
+        "_nanoseconds": 64000000
+      },
+      "type": "email",
+      "attachments": null
+    },
+    {
+      "text": "Sent 'Document Review Feedback' email to zarika@zlaccounting.co.za.",
+      "subject": "Feedback on Your Submitted Documents for Order #10072",
+      "authorId": "UZULuL0Hlncga10rqeiM9g2jeEh1",
+      "date": {
+        "_seconds": 1786087812,
+        "_nanoseconds": 485000000
+      },
+      "type": "email",
+      "attachments": null
+    },
+    {
+      "text": "Good morning, \n\nPlease note the the AFS is not signed, kindly sign and attached in your communication history. And your Signed Instruction Letter on your company letterhead needs to be signed.",
+      "authorId": "UZULuL0Hlncga10rqeiM9g2jeEh1",
+      "date": {
+        "_seconds": 1786429991,
+        "_nanoseconds": 802000000
+      },
+      "type": "note",
+      "subject": null,
+      "attachments": null
+    },
+    {
+      "text": "AFS and signed Instruction Letter on  company letterhead needs to be signed. Once received from client , submit to COIDA and phone every week to follow and obtain the 5000 case number.",
+      "authorId": "UZULuL0Hlncga10rqeiM9g2jeEh1",
+      "date": {
+        "_seconds": 1786687460,
+        "_nanoseconds": 344000000
+      },
+      "type": "note",
+      "isInternal": true,
+      "subject": null,
+      "attachments": null
+    },
+    {
+      "text": "Hi Zarika, Following up on this COIDA Nature of Business Change — please provide the signed AFS and the signed instruction letter on company letterhead so that we can submit the pack to the Compensation Fund.",
+      "date": "2026-08-18T14:16:20.479Z",
+      "authorId": "LRM285EOq3gwNMKayY6vtzooaC03",
+      "type": "note",
+      "isInternal": false,
+      "subject": null,
+      "attachments": null
+    }
+  ],
+  "fulfillmentStatus": "Under Review",
+  "serviceSnapshots": [
+    {
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "title": "COIDA Nature of Business Change",
+      "department": "Administration",
+      "requirements": [
+        {
+          "label": "Annual Financial Statements",
+          "type": "pdf",
+          "id": "req_tq5yxrql",
+          "isRequired": true
+        },
+        {
+          "label": "Signed Instruction Letter on your company letterhead to instruct COIDA to change the nature of your business",
+          "type": "pdf",
+          "id": "req_gpmaq9y3",
+          "isRequired": true
+        },
+        {
+          "label": "Company registration document (COR14.3)",
+          "type": "pdf",
+          "id": "req_rerhzinl",
+          "isRequired": true
+        },
+        {
+          "label": "Pictures of business  - Please furnish us with at least 8 pictures of the business including the business operation site inside and out",
+          "type": "pdf",
+          "id": "req_483csvhv",
+          "isRequired": true
+        },
+        {
+          "label": "Proof of address for the business – not older than 3 months",
+          "type": "pdf",
+          "id": "req_jxvz7m8y",
+          "isRequired": true
+        },
+        {
+          "label": "Blank Letterhead of the employer",
+          "type": "pdf",
+          "id": "req_8ptos7py",
+          "isRequired": true
+        },
+        {
+          "label": "Existing COIDA registration number",
+          "type": "text",
+          "id": "req_qxp3xdxx",
+          "isRequired": true
+        },
+        {
+          "label": "Latest Letter of Good Standing (if available).",
+          "type": "pdf",
+          "id": "req_3iw6cx9p",
+          "isRequired": true
+        }
+      ],
+      "checklist": [
+        {
+          "id": "step_doc_verification",
+          "title": "1. Review Required Information & AI Validation Checks",
+          "description": "Audit and verify all submitted client information and uploads against statutory compliance standards (KYC/FICA certification, CIPC director confirmation, SARS Tax Compliance Status). Mark items as approved or rejected with specific comments before progressing.",
+          "aiInstructions": "Perform automated OCR & validation checks on all client uploads and text inputs. Verify that mobile numbers (10 digits starting with 0), email addresses, 13-digit SA ID numbers, and CIPC enterprise numbers match statutory formats. Check that certifications are valid (< 3 months). Mark approved/rejected in Firestore and queue drafts.",
+          "type": "doc_verification",
+          "estimatedDays": 1
+        },
+        {
+          "id": "step_document_drafting",
+          "title": "2. Prepare Draft Documents from Templates",
+          "description": "Generate pre-filled statutory drafts, resolutions, and application forms from verified client information and attach for consultant review.",
+          "aiInstructions": "Only trigger document generation once all client KYC/information items are marked approved. Use My Accountant Navy & Gold templates, strict 1-page constraints, and official practice credentials (Kevin Freese CBAP SA #3561).",
+          "type": "document_drafting",
+          "estimatedDays": 1,
+          "templateIds": []
+        },
+        {
+          "id": "step_execution_filing",
+          "title": "3. Statutory Lodgement & Service Execution",
+          "description": "Execute compliance filings, calculations, or statutory registrations with authorities (e.g. CIPC, NCR, SARS, Labour).",
+          "aiInstructions": "Compile final verified application dossier, ensure all mandated director signatures are captured, and submit via regulatory gateway or official channel. Log submission reference numbers.",
+          "type": "external_filing",
+          "estimatedDays": 2
+        },
+        {
+          "id": "step_final_signoff",
+          "title": "4. Final Review & Document Dispatch",
+          "description": "Quality audit results, generate output certificates/reports, and post note with downloadable files in Communication History.",
+          "aiInstructions": "Post deliverables, confirmation letters, and client updates exclusively through Order Communication History. Never send direct external emails without portal audit trail.",
+          "type": "signoff",
+          "estimatedDays": 1
+        }
+      ]
+    }
+  ],
+  "auditLog": [
+    {
+      "id": "audit_1786945634325_rbuci",
+      "action": "REASSIGN_STAFF",
+      "performedBy": "LRM285EOq3gwNMKayY6vtzooaC03",
+      "performedByName": "Kevin Freese",
+      "timestamp": "2026-08-17T05:47:14.325Z",
+      "previousValue": "Winifred Beukes",
+      "newValue": "Kevin Freese",
+      "details": "Reassigned staff from winifred@myacc.co.za to kev@thinkestry.co.za"
+    },
+    {
+      "id": "audit_1787305274002_8wg4v",
+      "timestamp": "2026-08-21T09:41:14.002Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "Ckgvnz5TvPO001lHa8P9ZW8twSf1",
+      "performedByName": "Zarika Lubbe",
+      "details": "Submitted requirement \"Signed Instruction Letter on your company letterhead to instruct COIDA to change the nature of your business\" (File Upload). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787305274711_xcnjw",
+      "timestamp": "2026-08-21T09:41:14.711Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "Ckgvnz5TvPO001lHa8P9ZW8twSf1",
+      "performedByName": "Zarika Lubbe",
+      "details": "Submitted requirement \"Annual Financial Statements\" (File Upload). Status: Pending Verification."
+    }
+  ],
+  "checklist": [
+    {
+      "id": "chk_MP4D0exEiLpgO6GkBo5F_step_doc_verification",
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "serviceTitle": "COIDA Nature of Business Change",
+      "title": "1. Review Required Information & AI Validation Checks",
+      "description": "Audit and verify all submitted client information and uploads against statutory compliance standards (KYC/FICA certification, CIPC director confirmation, SARS Tax Compliance Status). Mark items as approved or rejected with specific comments before progressing.",
+      "aiInstructions": "Perform automated OCR & validation checks on all client uploads and text inputs. Verify that mobile numbers (10 digits starting with 0), email addresses, 13-digit SA ID numbers, and CIPC enterprise numbers match statutory formats. Check that certifications are valid (< 3 months). Mark approved/rejected in Firestore and queue drafts.",
+      "type": "doc_verification",
+      "status": "in_progress",
+      "isAiRecommended": true,
+      "aiNotes": "AI Verified: 6/8 documents audited and passed compliance validation checks with high confidence (≥85%)."
+    },
+    {
+      "id": "chk_MP4D0exEiLpgO6GkBo5F_step_document_drafting",
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "serviceTitle": "COIDA Nature of Business Change",
+      "title": "2. Prepare Draft Documents from Templates",
+      "description": "Generate pre-filled statutory drafts, resolutions, and application forms from verified client information and attach for consultant review.",
+      "aiInstructions": "Only trigger document generation once all client KYC/information items are marked approved. Use My Accountant Navy & Gold templates, strict 1-page constraints, and official practice credentials (Kevin Freese CBAP SA #3561).",
+      "type": "document_drafting",
+      "status": "pending"
+    },
+    {
+      "id": "chk_MP4D0exEiLpgO6GkBo5F_step_execution_filing",
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "serviceTitle": "COIDA Nature of Business Change",
+      "title": "3. Statutory Lodgement & Service Execution",
+      "description": "Execute compliance filings, calculations, or statutory registrations with authorities (e.g. CIPC, NCR, SARS, Labour).",
+      "aiInstructions": "Compile final verified application dossier, ensure all mandated director signatures are captured, and submit via regulatory gateway or official channel. Log submission reference numbers.",
+      "type": "external_filing",
+      "status": "pending"
+    },
+    {
+      "id": "chk_MP4D0exEiLpgO6GkBo5F_step_final_signoff",
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "serviceTitle": "COIDA Nature of Business Change",
+      "title": "4. Final Review & Document Dispatch",
+      "description": "Quality audit results, generate output certificates/reports, and post note with downloadable files in Communication History.",
+      "aiInstructions": "Post deliverables, confirmation letters, and client updates exclusively through Order Communication History. Never send direct external emails without portal audit trail.",
+      "type": "signoff",
+      "status": "pending"
+    }
+  ],
+  "lastIntakeAlertSentAt": "2026-08-21T09:47:30.058Z",
+  "documentUploads": [
+    {
+      "fileUrl": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FCkgvnz5TvPO001lHa8P9ZW8twSf1%2Forders%2F10072%2F1787305267826_0_REQUEST.pdf?alt=media&token=4e815c82-e5b4-4c98-bb3a-f78fdb36083c",
+      "fileName": "REQUEST FOR CHANGE OF NATURE OF BUSINESS – COIDA REGISTRATION.pdf",
+      "uploadedAt": "2026-08-21T09:41:14.002Z",
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "requirementLabel": "Signed Instruction Letter on your company letterhead to instruct COIDA to change the nature of your business",
+      "status": "pending",
+      "type": "file",
+      "id": "doc_1787305274002_0fabqy",
+      "aiVerification": {
+        "status": "flagged",
+        "confidence": 85,
+        "detectedType": "COIDA Nature of Business Change Instruction Letter",
+        "extractedData": {},
+        "issues": [
+          "Subject entity for this order could not be determined \naccount/entity name on this document requires human confirmation.",
+          "The 'Expected CIPC Registration Number' provided in the audit context (990000235838) appears to be a COIDA registration number. The document provides a COIDA Registration Number (CF990000235838) which numerically matches the expected value, and a separate CIPC Registration Number (2000/027067/23)."
+        ],
+        "summary": "The document is a well-formatted instruction letter from BUILD X HARDWARE AND BUILDWARE CC to the Compensation Fund, requesting a change in their COIDA Nature of Business from 'BUILDING CONSTRUCTION' to 'Subclass 0710 (Commerce / General Retailers)', effective 2025-09-15. The letter is dated 2026-08-11, which is recent. The COIDA registration number (CF990000235838) numerically matches the expected value provided in the order context. However, the subject entity for this order was not supplied, requiring manual confirmation of the entity named in the document.",
+        "recommendation": "manual_review",
+        "reason": "The document is valid and relevant for the COIDA Nature of Business Change service. All dates are in order, and extracted contact details are in the correct format. The COIDA registration number numerically matches the expected value. However, the subject entity for the order was not provided, necessitating a manual review to confirm that 'BUILD X HARDWARE AND BUILDWARE CC' is the correct client entity for this service.",
+        "adversarialCheckPassed": true,
+        "modelName": "googleai/gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash@2026-v2",
+        "reviewedAt": "2026-08-21T09:43:43.758Z"
+      }
+    },
+    {
+      "rejectionReason": null,
+      "type": "file",
+      "fileName": "CK2A1 1_conf.pdf Document.pdf",
+      "uploadedAt": "2026-07-23T07:21:08.798Z",
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "status": "approved",
+      "requirementLabel": "Company registration document (COR14.3)",
+      "fileUrl": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/orders%2F10072%2F1784790554452-CK2A1%201_conf.pdf%20Document.pdf?alt=media&token=12c1ef07-e5b6-47a5-b217-2fbd8abd86d8",
+      "aiVerification": {
+        "status": "flagged",
+        "confidence": 0,
+        "detectedType": "CIPC Enterprise Information Certificate (CK2A)",
+        "extractedData": {},
+        "issues": [
+          "Document belongs to a different registration number (Extracted: 2000/027067/23 vs Expected: 990000235838)",
+          "Subject entity for this order could not be determined \naccount/entity name on this document requires human confirmation."
+        ],
+        "summary": "The uploaded document is a CIPC Enterprise Information Certificate (CK2A) for 'BUILD X HARDWARE AND BUILDWARE'. However, the registration number on the document (2000/027067/23) critically does not match the expected registration number (990000235838) for this order. The subject entity for the order was not supplied, preventing a direct name match.",
+        "recommendation": "reject",
+        "reason": "The CIPC document provided is for a different legal entity, as evidenced by the critical mismatch between the extracted registration number (2000/027067/23) and the expected registration number (990000235838) for the service being fulfilled. This violates the core principle of identity verification for the subject entity.",
+        "adversarialCheckPassed": true,
+        "modelName": "googleai/gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash@2026-v2",
+        "reviewedAt": "2026-08-21T09:44:02.611Z"
+      }
+    },
+    {
+      "type": "text",
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "rejectionReason": null,
+      "textValue": "990000235838",
+      "uploadedAt": "2026-07-23T07:21:08.798Z",
+      "requirementLabel": "Existing COIDA registration number",
+      "status": "approved"
+    },
+    {
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "rejectionReason": null,
+      "requirementLabel": "Latest Letter of Good Standing (if available).",
+      "uploadedAt": "2026-07-23T07:21:08.798Z",
+      "fileName": "2025-04-30.pdf",
+      "fileUrl": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/orders%2F10072%2F1784790616739-2025-04-30.pdf?alt=media&token=eea3d947-49ac-478d-9cdb-6e8a17033689",
+      "status": "approved",
+      "type": "file",
+      "aiVerification": {
+        "status": "flagged",
+        "confidence": 50,
+        "detectedType": "COIDA Letter of Good Standing",
+        "extractedData": {},
+        "issues": [
+          "Document is expired. Expiry date: 2025-04-30. Today's date: 2026-08-21. The document is no longer valid.",
+          "Document's CIPC registration number (2000/027067/23) does not match the expected CIPC registration number for the order (990000235838).",
+          "Subject entity for this order could not be determined \naccount/entity name on this document requires human confirmation."
+        ],
+        "summary": "The document provided is an expired COIDA Letter of Good Standing for \"BUILD X HARDWARE AND BUILDWARE\". It was issued on 2024-04-25 and expired on 2025-04-30, rendering it invalid as of today's date (2026-08-21). Furthermore, the CIPC registration number extracted from the document (2000/027067/23) does not match the expected CIPC registration number (990000235838) provided in the order context. The Compensation Fund registration number on the document (990000235838) matches the expected CIPC number, but this is a naming inconsistency. The subject entity for the order could not be determined, requiring manual confirmation of the entity name \"BUILD X HARDWARE AND BUILDWARE\".",
+        "recommendation": "reject",
+        "reason": "The COIDA Letter of Good Standing is severely expired (expired on 2025-04-30 against an authoritative date of 2026-08-21), making it invalid. Additionally, there is a mismatch between the document's official CIPC registration number (2000/027067/23) and the expected CIPC registration number for the order (990000235838). The subject entity's name also requires human confirmation.",
+        "adversarialCheckPassed": true,
+        "modelName": "googleai/gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash@2026-v2",
+        "reviewedAt": "2026-08-21T09:44:27.358Z"
+      }
+    },
+    {
+      "fileUrl": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/orders%2F10072%2F1784790946175-LETTERHEAD.pdf?alt=media&token=c420264c-9711-4895-a447-0bf978ad237d",
+      "status": "approved",
+      "fileName": "LETTERHEAD.pdf",
+      "rejectionReason": null,
+      "uploadedAt": "2026-07-23T07:21:08.798Z",
+      "requirementLabel": "Blank Letterhead of the employer",
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "type": "file",
+      "aiVerification": {
+        "status": "inconclusive",
+        "confidence": 75,
+        "detectedType": "Company Letterhead",
+        "extractedData": {},
+        "issues": [
+          "Subject entity for this order could not be determined \nyet the document contains details for \"BUILDX Hardware & Buildware\" \nwhich requires human confirmation.",
+          "The expected CIPC Registration Number (990000235838) was not found on the document. This prevents direct verification that the letterhead belongs to the correct subject entity for the COIDA change."
+        ],
+        "summary": "The uploaded document is a blank company letterhead for 'BUILDX Hardware & Buildware', which fulfills the basic document requirement. However, the subject entity for this order was not provided, and the expected CIPC registration number 990000235838 is missing from the document. This prevents automated confirmation that the letterhead belongs to the correct entity associated with the COIDA nature of business change.",
+        "recommendation": "manual_review",
+        "reason": "The document is a blank letterhead as required. However, the subject entity for this order was not supplied, and the expected CIPC registration number (990000235838) is not present on the letterhead. This prevents automated verification that this letterhead belongs to the intended entity for the COIDA Nature of Business Change. Human confirmation is required to link this document to the correct client account.",
+        "adversarialCheckPassed": true,
+        "modelName": "googleai/gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash@2026-v2",
+        "reviewedAt": "2026-08-21T09:45:20.857Z"
+      }
+    },
+    {
+      "type": "file",
+      "fileUrl": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FCkgvnz5TvPO001lHa8P9ZW8twSf1%2Forders%2F10072%2F1787305261570_0_doc06752720260821112606.pdf?alt=media&token=a826adfa-d163-4a87-90e3-2e6247594163",
+      "status": "pending",
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "requirementLabel": "Annual Financial Statements",
+      "uploadedAt": "2026-08-21T09:41:14.711Z",
+      "fileName": "Financial Statements_2025.pdf",
+      "id": "doc_1787305274711_873lr7",
+      "aiVerification": {
+        "status": "flagged",
+        "confidence": 95,
+        "detectedType": "Annual Financial Statements",
+        "extractedData": {},
+        "issues": [
+          "Document belongs to a different registration number (Extracted: 2000/027067/23 vs Expected: 990000235838)",
+          "The entity type detected (Close Corporation) differs from what is implied by the expected CIPC registration number format (YYYY/XXXXXX/07, typically for a Private Company)."
+        ],
+        "summary": "The uploaded document is a set of Annual Financial Statements for 'BUILD X HARDWARE AND BUILDWARE CC' for the year ended 28 February 2025, approved on 15 February 2026. However, the CIPC registration number found in the document (2000/027067/23) does not match the expected registration number (990000235838) for this order. This indicates the document belongs to a different entity than the one expected.",
+        "recommendation": "reject",
+        "reason": "The CIPC registration number present in the Annual Financial Statements (2000/027067/23) is a critical mismatch with the expected registration number for the service (990000235838). This signifies that the document pertains to an incorrect or unrelated entity, rendering it unsuitable for the requested COIDA Nature of Business Change for the expected entity.",
+        "adversarialCheckPassed": true,
+        "modelName": "googleai/gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash@2026-v2",
+        "reviewedAt": "2026-08-21T09:46:40.959Z"
+      }
+    },
+    {
+      "rejectionReason": null,
+      "fileName": "1_merged (2).pdf",
+      "fileUrl": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/orders%2F10072%2F1784791258938-1_merged%20(2).pdf?alt=media&token=c07c161f-d709-4a16-8fb9-158b4d6fc28c",
+      "status": "approved",
+      "uploadedAt": "2026-07-23T07:21:07.560Z",
+      "type": "file",
+      "requirementLabel": "Pictures of business  - Please furnish us with at least 8 pictures of the business including the business operation site inside and out",
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "aiVerification": {
+        "status": "verified",
+        "confidence": 95,
+        "detectedType": "Business Operation Site Pictures",
+        "extractedData": {},
+        "issues": [
+          "Subject entity for this order could not be determined \\u2014 account/entity name 'BUILD X Hardware & Buildware' on this document requires human confirmation."
+        ],
+        "summary": "Ten images of the business premises and operations were provided, fulfilling the requirement for at least 8 pictures. The images depict a hardware and buildware business with retail sections for plumbing, paint, and pool supplies, as well as outdoor storage and company vehicles. The business name 'BUILD X Hardware & Buildware' is prominently displayed on signage.",
+        "recommendation": "manual_review",
+        "reason": "The document successfully provides the requested business pictures; however, the subject entity for this order was not supplied, requiring human confirmation to verify that the business depicted ('BUILD X Hardware & Buildware') corresponds to the client for whom the COIDA Nature of Business Change is being processed.",
+        "adversarialCheckPassed": true,
+        "modelName": "googleai/gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash@2026-v2",
+        "reviewedAt": "2026-08-21T09:47:24.558Z"
+      }
+    },
+    {
+      "serviceId": "MP4D0exEiLpgO6GkBo5F",
+      "uploadedAt": "2026-07-23T11:53:30.547Z",
+      "status": "approved",
+      "type": "file",
+      "fileName": "BUILD-X ABSA - June 2026.pdf",
+      "requirementLabel": "Proof of address for the business – not older than 3 months",
+      "rejectionReason": null,
+      "fileUrl": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/orders%2F10072%2F1784807608195-BUILD-X%20ABSA%20-%20June%202026.pdf?alt=media&token=9c6e3031-ba13-4170-9ea6-ec4096b39544",
+      "aiVerification": {
+        "status": "inconclusive",
+        "confidence": 75,
+        "detectedType": "ABSA Bank Statement",
+        "extractedData": {},
+        "issues": [
+          "Subject entity for this order could not be determined \\u2014 account/entity name on this document requires human confirmation."
+        ],
+        "summary": "The document is an ABSA Bank Statement for BUILD X HARDWARE AND BUILDWARE CC, with a statement period ending 2026-06-30. The address '127 KERK STREET, FOCHVILLE, 2515' is provided and the document is within the 3-month recency requirement for proof of address. However, as the subject entity for this order was not supplied, human confirmation is required to verify the account holder.",
+        "recommendation": "manual_review",
+        "reason": "The document is a valid and recent proof of address (bank statement ending 2026-06-30, within 3 months of 2026-08-21). However, the subject entity for this order was not provided, therefore, it cannot be definitively confirmed whether the entity 'BUILD X HARDWARE AND BUILDWARE CC' on the document is the intended client for the COIDA Nature of Business Change service.",
+        "adversarialCheckPassed": true,
+        "modelName": "googleai/gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash@2026-v2",
+        "reviewedAt": "2026-08-21T09:47:52.065Z"
+      }
+    }
+  ],
+  "updatedAt": "2026-08-21T09:47:52.065Z"
+}

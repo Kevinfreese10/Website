@@ -280,6 +280,16 @@ export default function ClientOrderDetailsPage() {
         return;
       }
 
+      // When appending, keep previously uploaded files for this requirement; when replacing
+      // (isAppend === false) start clean so a rejected document's old files don't linger.
+      const filesToPersist = (isAppend ? [...existingFiles, ...newUploadedItems] : newUploadedItems)
+        .filter(f => f && f.fileUrl)
+        .map(f => ({
+          fileUrl: f.fileUrl,
+          fileName: f.fileName || 'document',
+          uploadedAt: f.uploadedAt || new Date().toISOString(),
+        }));
+
       const res = await submitClientDocumentUploadAction({
         idToken,
         orderId: order.id,
@@ -287,6 +297,7 @@ export default function ClientOrderDetailsPage() {
         requirementLabel,
         type: 'file',
         fileUrl: primaryFile?.fileUrl || '',
+        files: filesToPersist,
       });
 
       if (!res.success) {
@@ -294,9 +305,9 @@ export default function ClientOrderDetailsPage() {
         return;
       }
 
-      toast({ 
-        title: filesArray.length === 1 ? 'File Uploaded' : `${filesArray.length} Files Uploaded`, 
-        description: `${filesArray.length} document(s) saved for verification.` 
+      toast({
+        title: filesArray.length === 1 ? 'File Uploaded' : `${filesArray.length} Files Uploaded`,
+        description: `${filesToPersist.length} document(s) saved for verification.`
       });
 
       setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }));
@@ -644,7 +655,8 @@ export default function ClientOrderDetailsPage() {
 
   const allSubmitted = requiredRequirements.every(req => isRequirementComplete(req.label));
   const submittedCount = requiredRequirements.filter(req => isRequirementComplete(req.label)).length;
-  const consultantNotified = order.notes?.some(note => note.text === "Client has submitted their documents for review.") || false;
+  const hasRejectedUploads = order.documentUploads?.some(d => d.status === 'rejected');
+  const isCurrentlyUnderReview = order.fulfillmentStatus === 'Under Review';
 
   return (
     <div className="space-y-8">
@@ -660,7 +672,7 @@ export default function ClientOrderDetailsPage() {
         <div className="grid grid-cols-1 gap-8 items-start">
             <div className="space-y-8">
                 {allSubmitted && (
-                    consultantNotified ? (
+                    isCurrentlyUnderReview ? (
                         <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-800 dark:bg-green-950/20 dark:border-green-900 dark:text-green-300">
                             <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
                             <div>
@@ -673,12 +685,12 @@ export default function ClientOrderDetailsPage() {
                             <div className="flex items-start gap-3">
                                 <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                                 <div>
-                                    <p className="font-semibold text-amber-900 dark:text-amber-200">Action Required: Submit for Review</p>
-                                    <p className="text-sm">All required items have been completed or explained. Please submit them so your consultant can start processing your order.</p>
+                                    <p className="font-semibold text-amber-900 dark:text-amber-200">{hasRejectedUploads ? 'Revision Ready: Submit for Re-Review' : 'Action Required: Submit for Review'}</p>
+                                    <p className="text-sm">{hasRejectedUploads ? 'You have updated the requested documents. Please notify your consultant to re-review.' : 'All required items have been completed or explained. Please submit them so your consultant can start processing your order.'}</p>
                                 </div>
                             </div>
                             <Button onClick={handleNotifyConsultant} disabled={isSubmitting} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
-                                Submit Documents Now
+                                {hasRejectedUploads ? 'Submit Re-submission' : 'Submit Documents Now'}
                             </Button>
                         </div>
                     )
@@ -1195,16 +1207,16 @@ export default function ClientOrderDetailsPage() {
                         <CardFooter>
                             <Button 
                                 onClick={handleNotifyConsultant} 
-                                disabled={isSubmitting || !allSubmitted || consultantNotified}
+                                disabled={isSubmitting || !allSubmitted || isCurrentlyUnderReview}
                             >
                                 {isSubmitting ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : consultantNotified ? (
+                                ) : isCurrentlyUnderReview ? (
                                     <CheckCircle className="mr-2 h-4 w-4" />
                                 ) : (
                                     <Send className="mr-2 h-4 w-4" />
                                 )}
-                                {consultantNotified ? "Consultant Notified" : "Notify Consultant of All Submissions"}
+                                {isCurrentlyUnderReview ? "Consultant Reviewing" : "Notify Consultant of All Submissions"}
                             </Button>
                         </CardFooter>
                     )}

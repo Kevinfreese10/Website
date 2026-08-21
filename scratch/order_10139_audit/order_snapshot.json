@@ -1,0 +1,338 @@
+{
+  "id": "10139",
+  "resellerId": "Fs5UYnpDBFVJfs6j7nMelYDxsnl2",
+  "userId": "Fs5UYnpDBFVJfs6j7nMelYDxsnl2",
+  "customerName": "Akeroyd Accounting and Tax Services CC",
+  "customerEmail": "nic@nala-bts.co.za",
+  "customerPhone": "0723845599",
+  "endCustomerName": "Roger Staples",
+  "endCustomerEmail": "nic@nala-bts.co.za",
+  "documentContact": "partner",
+  "date": {
+    "_seconds": 1787279454,
+    "_nanoseconds": 302000000
+  },
+  "items": [
+    {
+      "id": "DExXq3CCX3MSvromXCLq",
+      "title": "BEE Certificate",
+      "price": 360,
+      "clientPrice": 750,
+      "quantity": 1,
+      "discountType": "fixed",
+      "discountValue": 0
+    }
+  ],
+  "total": 360,
+  "clientTotal": 750,
+  "originalOrderId": null,
+  "discountAmount": null,
+  "discountCode": null,
+  "source": "Partner",
+  "fulfillmentStatus": "Under Review",
+  "serviceSnapshots": [
+    {
+      "serviceId": "DExXq3CCX3MSvromXCLq",
+      "title": "BEE Certificate",
+      "department": "Administration",
+      "requirements": [
+        {
+          "label": "Company Registration Documents (COR14.3).",
+          "type": "pdf",
+          "id": "req_r24sfbpa",
+          "isRequired": true
+        },
+        {
+          "label": "Identity documents of directors or members",
+          "type": "pdf",
+          "id": "req_aycgapr4",
+          "isRequired": true
+        },
+        {
+          "label": "What percentage of the company is black owned?",
+          "type": "text",
+          "id": "req_e6iunqp1",
+          "isRequired": true
+        },
+        {
+          "label": "What percentage of the company is white owned?",
+          "type": "text",
+          "id": "req_1bbiuvuv",
+          "isRequired": true
+        }
+      ],
+      "checklist": [
+        {
+          "id": "step_doc_verification",
+          "title": "1. Review Required Information & AI Validation Checks",
+          "description": "Audit and verify all submitted client information and uploads against statutory compliance standards (KYC/FICA certification, CIPC director confirmation, SARS Tax Compliance Status). Mark items as approved or rejected with specific comments before progressing.",
+          "aiInstructions": "Perform automated OCR & validation checks on all client uploads and text inputs. Verify that mobile numbers (10 digits starting with 0), email addresses, 13-digit SA ID numbers, and CIPC enterprise numbers match statutory formats. Check that certifications are valid (< 3 months). Mark approved/rejected in Firestore and queue drafts.",
+          "type": "doc_verification",
+          "estimatedDays": 1
+        },
+        {
+          "id": "step_document_drafting",
+          "title": "2. Prepare Draft Documents from Templates",
+          "description": "Generate pre-filled statutory drafts, resolutions, and application forms from verified client information and attach for consultant review.",
+          "aiInstructions": "Only trigger document generation once all client KYC/information items are marked approved. Use My Accountant Navy & Gold templates, strict 1-page constraints, and official practice credentials (Kevin Freese CBAP SA #3561).",
+          "type": "document_drafting",
+          "estimatedDays": 1,
+          "templateIds": []
+        },
+        {
+          "id": "step_execution_filing",
+          "title": "3. Statutory Lodgement & Service Execution",
+          "description": "Execute compliance filings, calculations, or statutory registrations with authorities (e.g. CIPC, NCR, SARS, Labour).",
+          "aiInstructions": "Compile final verified application dossier, ensure all mandated director signatures are captured, and submit via regulatory gateway or official channel. Log submission reference numbers.",
+          "type": "external_filing",
+          "estimatedDays": 2
+        },
+        {
+          "id": "step_final_signoff",
+          "title": "4. Final Review & Document Dispatch",
+          "description": "Quality audit results, generate output certificates/reports, and post note with downloadable files in Communication History.",
+          "aiInstructions": "Post deliverables, confirmation letters, and client updates exclusively through Order Communication History. Never send direct external emails without portal audit trail.",
+          "type": "signoff",
+          "estimatedDays": 1
+        }
+      ]
+    }
+  ],
+  "checklist": [
+    {
+      "id": "chk_DExXq3CCX3MSvromXCLq_step_doc_verification",
+      "serviceId": "DExXq3CCX3MSvromXCLq",
+      "serviceTitle": "BEE Certificate",
+      "title": "1. Review Required Information & AI Validation Checks",
+      "description": "Audit and verify all submitted client information and uploads against statutory compliance standards (KYC/FICA certification, CIPC director confirmation, SARS Tax Compliance Status). Mark items as approved or rejected with specific comments before progressing.",
+      "aiInstructions": "Perform automated OCR & validation checks on all client uploads and text inputs. Verify that mobile numbers (10 digits starting with 0), email addresses, 13-digit SA ID numbers, and CIPC enterprise numbers match statutory formats. Check that certifications are valid (< 3 months). Mark approved/rejected in Firestore and queue drafts.",
+      "type": "doc_verification",
+      "status": "in_progress",
+      "isAiRecommended": true,
+      "aiNotes": "AI Verified: 0/4 documents audited and passed compliance validation checks with high confidence (≥85%)."
+    },
+    {
+      "id": "chk_DExXq3CCX3MSvromXCLq_step_document_drafting",
+      "serviceId": "DExXq3CCX3MSvromXCLq",
+      "serviceTitle": "BEE Certificate",
+      "title": "2. Prepare Draft Documents from Templates",
+      "description": "Generate pre-filled statutory drafts, resolutions, and application forms from verified client information and attach for consultant review.",
+      "aiInstructions": "Only trigger document generation once all client KYC/information items are marked approved. Use My Accountant Navy & Gold templates, strict 1-page constraints, and official practice credentials (Kevin Freese CBAP SA #3561).",
+      "type": "document_drafting",
+      "status": "pending"
+    },
+    {
+      "id": "chk_DExXq3CCX3MSvromXCLq_step_execution_filing",
+      "serviceId": "DExXq3CCX3MSvromXCLq",
+      "serviceTitle": "BEE Certificate",
+      "title": "3. Statutory Lodgement & Service Execution",
+      "description": "Execute compliance filings, calculations, or statutory registrations with authorities (e.g. CIPC, NCR, SARS, Labour).",
+      "aiInstructions": "Compile final verified application dossier, ensure all mandated director signatures are captured, and submit via regulatory gateway or official channel. Log submission reference numbers.",
+      "type": "external_filing",
+      "status": "pending"
+    },
+    {
+      "id": "chk_DExXq3CCX3MSvromXCLq_step_final_signoff",
+      "serviceId": "DExXq3CCX3MSvromXCLq",
+      "serviceTitle": "BEE Certificate",
+      "title": "4. Final Review & Document Dispatch",
+      "description": "Quality audit results, generate output certificates/reports, and post note with downloadable files in Communication History.",
+      "aiInstructions": "Post deliverables, confirmation letters, and client updates exclusively through Order Communication History. Never send direct external emails without portal audit trail.",
+      "type": "signoff",
+      "status": "pending"
+    }
+  ],
+  "status": "Processing",
+  "isOutsourced": true,
+  "notes": [
+    {
+      "text": "Order outsourced to My Accountant. Cost deducted from partner wallet.",
+      "authorId": "system",
+      "date": {
+        "_seconds": 1787296651,
+        "_nanoseconds": 766000000
+      },
+      "type": "note",
+      "subject": null,
+      "attachments": null
+    }
+  ],
+  "department": "Administration",
+  "assignedTo": [
+    "LRM285EOq3gwNMKayY6vtzooaC03"
+  ],
+  "auditLog": [
+    {
+      "id": "audit_1787281898859_ii5jt",
+      "timestamp": "2026-08-21T03:11:38.858Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "Fs5UYnpDBFVJfs6j7nMelYDxsnl2",
+      "performedByName": "Nicholas Akeroyd",
+      "details": "Submitted requirement \"Company Registration Documents (COR14.3).\" (File Upload). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787282072398_uz2lw",
+      "timestamp": "2026-08-21T03:14:32.398Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "Fs5UYnpDBFVJfs6j7nMelYDxsnl2",
+      "performedByName": "Nicholas Akeroyd",
+      "details": "Submitted requirement \"Identity documents of directors or members\" (File Upload). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787282103389_nwr7w",
+      "timestamp": "2026-08-21T03:15:03.389Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "Fs5UYnpDBFVJfs6j7nMelYDxsnl2",
+      "performedByName": "Nicholas Akeroyd",
+      "details": "Submitted requirement \"What percentage of the company is black owned?\" (Text Input). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787282116042_ki6s7",
+      "timestamp": "2026-08-21T03:15:16.042Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "Fs5UYnpDBFVJfs6j7nMelYDxsnl2",
+      "performedByName": "Nicholas Akeroyd",
+      "details": "Submitted requirement \"What percentage of the company is white owned?\" (Text Input). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787282158362_t9kbl",
+      "action": "STATUS_CHANGE",
+      "performedBy": "Fs5UYnpDBFVJfs6j7nMelYDxsnl2",
+      "performedByName": "Nicholas Akeroyd",
+      "timestamp": "2026-08-21T03:15:58.362Z",
+      "previousValue": "Pending Payment",
+      "newValue": "Processing",
+      "details": "Status changed from Pending Payment to Processing"
+    },
+    {
+      "id": "audit_1787296802831_vv2nn",
+      "action": "REASSIGN_STAFF",
+      "performedBy": "LRM285EOq3gwNMKayY6vtzooaC03",
+      "performedByName": "Kevin Freese",
+      "timestamp": "2026-08-21T07:20:02.831Z",
+      "previousValue": "wZW23eE0R7UW9TOIriEquBpZD8p2",
+      "newValue": "LRM285EOq3gwNMKayY6vtzooaC03",
+      "details": "Reassigned staff to: LRM285EOq3gwNMKayY6vtzooaC03"
+    },
+    {
+      "id": "audit_1787297036233_wbw4i",
+      "action": "DOCUMENT_REVIEW",
+      "performedBy": "LRM285EOq3gwNMKayY6vtzooaC03",
+      "performedByName": "Kevin Freese",
+      "timestamp": "2026-08-21T07:23:56.234Z",
+      "previousValue": "pending",
+      "newValue": "approved",
+      "details": "Approved document: \"Company Registration Documents (COR14.3).\""
+    },
+    {
+      "id": "audit_1787297052531_6rtho",
+      "action": "DOCUMENT_REVIEW",
+      "performedBy": "LRM285EOq3gwNMKayY6vtzooaC03",
+      "performedByName": "Kevin Freese",
+      "timestamp": "2026-08-21T07:24:12.531Z",
+      "previousValue": "pending",
+      "newValue": "approved",
+      "details": "Approved document: \"Identity documents of directors or members\""
+    },
+    {
+      "id": "audit_1787297057024_w28pw",
+      "action": "DOCUMENT_REVIEW",
+      "performedBy": "LRM285EOq3gwNMKayY6vtzooaC03",
+      "performedByName": "Kevin Freese",
+      "timestamp": "2026-08-21T07:24:17.024Z",
+      "previousValue": "pending",
+      "newValue": "approved",
+      "details": "Approved document: \"What percentage of the company is black owned?\""
+    },
+    {
+      "id": "audit_1787297061263_tj0vn",
+      "action": "DOCUMENT_REVIEW",
+      "performedBy": "LRM285EOq3gwNMKayY6vtzooaC03",
+      "performedByName": "Kevin Freese",
+      "timestamp": "2026-08-21T07:24:21.263Z",
+      "previousValue": "pending",
+      "newValue": "approved",
+      "details": "Approved document: \"What percentage of the company is white owned?\""
+    }
+  ],
+  "documentUploads": [
+    {
+      "id": "doc_1787281898858_fdm6ph",
+      "serviceId": "DExXq3CCX3MSvromXCLq",
+      "requirementLabel": "Company Registration Documents (COR14.3).",
+      "type": "file",
+      "fileUrl": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FFs5UYnpDBFVJfs6j7nMelYDxsnl2%2Forders%2F10139%2F1787281892893-DISCLOSR.pdf?alt=media&token=de9f18a4-6a36-4a41-9204-fb3dd871a479",
+      "uploadedAt": "2026-08-21T03:11:38.858Z",
+      "status": "approved",
+      "aiVerification": {
+        "status": "flagged",
+        "confidence": 0,
+        "detectedType": "CIPC Disclosure Certificate: Companies and Close Corporations",
+        "extractedData": {},
+        "issues": [
+          "Document belongs to a different company name (Extracted: NO404 (PTY) LTD vs Expected: Akeroyd Accounting and Tax Services CC)",
+          "Document belongs to a different registration number (Extracted: 2025/106479/07 vs Expected: Akeroyd Accounting and Tax Services CC - no specific number provided, but implied mismatch)",
+          "The extracted Enterprise Type is 'Private Company' (PTY LTD), while the expected client entity 'Akeroyd Accounting and Tax Services CC' is a Close Corporation (CC).",
+          "The director listed (STAPLES, ROGER BRENDON) is not associated with the expected client entity 'Akeroyd Accounting and Tax Services CC'."
+        ],
+        "summary": "The provided CIPC Disclosure Certificate is for 'NO404 (PTY) LTD', registration number 2025/106479/07, and lists Roger Brendon Staples as a director. This document does not pertain to the expected client 'Akeroyd Accounting and Tax Services CC', which is a Close Corporation, leading to a critical mismatch in entity name, registration number, and type. The document itself is valid as a CIPC record for 'NO404 (PTY) LTD'.",
+        "recommendation": "reject",
+        "reason": "The uploaded CIPC Disclosure Certificate is for a legal entity (NO404 (PTY) LTD, Registration No. 2025/106479/07, Private Company) that is fundamentally different from the expected client (Akeroyd Accounting and Tax Services CC, Close Corporation). This constitutes a critical mismatch in company name, registration number, and enterprise type, violating the mandatory entity cross-checking rules.",
+        "adversarialCheckPassed": true,
+        "modelName": "googleai/gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash@2026-v2",
+        "reviewedAt": "2026-08-21T03:12:11.536Z"
+      },
+      "rejectionReason": ""
+    },
+    {
+      "id": "doc_1787282072398_brq8i9",
+      "serviceId": "DExXq3CCX3MSvromXCLq",
+      "requirementLabel": "Identity documents of directors or members",
+      "type": "file",
+      "fileUrl": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FFs5UYnpDBFVJfs6j7nMelYDxsnl2%2Forders%2F10139%2F1787282067445-ID_-_Roger_Staples.pdf?alt=media&token=0b88e742-941c-4627-8568-8c0b30ef21fa",
+      "uploadedAt": "2026-08-21T03:14:32.398Z",
+      "status": "approved",
+      "aiVerification": {
+        "status": "flagged",
+        "confidence": 60,
+        "detectedType": "SA Smart ID Card",
+        "extractedData": {},
+        "issues": [
+          "Document is not certified by a Commissioner of Oaths, SAPS, or Post Office, which is typically required for BEE certificate applications.",
+          "The 'Expected Director / Applicant Name' provided ('Akeroyd Accounting and Tax Services CC') is an entity name, while the document belongs to an individual (Roger Brendon Staples). Cannot confirm if Roger Brendon Staples is a director of the client entity without a specific director's name provided in the context."
+        ],
+        "summary": "A South African Smart ID Card for Roger Brendon Staples was provided. All details appear legible, and the ID number is valid (8303045032083). However, the document lacks the required certification stamp from a Commissioner of Oaths, SAPS, or Post Office. Additionally, the provided 'Expected Director / Applicant Name' is an entity, making it impossible to directly verify if Roger Brendon Staples is the intended director for whom the ID was requested.",
+        "recommendation": "manual_review",
+        "reason": "The document is a valid South African Smart ID Card for Roger Brendon Staples. However, it is not certified as required for compliance purposes, particularly for a BEE certificate application. Furthermore, the absence of an expected personal name for the director meant a direct cross-reference for the individual could not be performed against the provided entity name. Manual review is required to obtain a certified copy of the ID and confirm the individual's role with the client entity.",
+        "adversarialCheckPassed": true,
+        "modelName": "googleai/gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash@2026-v2",
+        "reviewedAt": "2026-08-21T03:14:51.735Z"
+      },
+      "rejectionReason": ""
+    },
+    {
+      "id": "doc_1787282103389_8thjq1",
+      "serviceId": "DExXq3CCX3MSvromXCLq",
+      "requirementLabel": "What percentage of the company is black owned?",
+      "type": "text",
+      "textValue": "0%",
+      "uploadedAt": "2026-08-21T03:15:03.389Z",
+      "status": "approved",
+      "rejectionReason": ""
+    },
+    {
+      "id": "doc_1787282116042_07ry4r",
+      "serviceId": "DExXq3CCX3MSvromXCLq",
+      "requirementLabel": "What percentage of the company is white owned?",
+      "type": "text",
+      "textValue": "100%",
+      "uploadedAt": "2026-08-21T03:15:16.042Z",
+      "status": "approved",
+      "rejectionReason": ""
+    }
+  ],
+  "generatedDrafts": [],
+  "updatedAt": "2026-08-21T07:24:23.339Z"
+}

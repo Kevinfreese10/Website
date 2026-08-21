@@ -90,7 +90,24 @@ service cloud.firestore {
              after.get('checklist', null) == before.get('checklist', null) &&
              after.get('serviceSnapshots', null) == before.get('serviceSnapshots', null) &&
              after.get('documentUploads', null) == before.get('documentUploads', null) &&
-             after.get('generatedDrafts', null) == before.get('generatedDrafts', null);
+             after.get('generatedDrafts', null) == before.get('generatedDrafts', null) &&
+             // Money. `clientTotal` is what the PayFast webhook validates the paid amount
+             // against, so leaving it writable let a client set their own price and pay it.
+             after.get('clientTotal', null) == before.get('clientTotal', null) &&
+             after.get('discountCode', null) == before.get('discountCode', null) &&
+             after.get('discountAmount', null) == before.get('discountAmount', null) &&
+             after.get('paymentMethod', null) == before.get('paymentMethod', null) &&
+             // Order linkage. Server-side sync paths mirror data onto whatever order these
+             // point at, so a client able to set them could overwrite an unrelated order.
+             after.get('originalOrderId', null) == before.get('originalOrderId', null) &&
+             after.get('parentOrderId', null) == before.get('parentOrderId', null) &&
+             after.get('dependsOnOrderIds', null) == before.get('dependsOnOrderIds', null) &&
+             after.get('blockedOrderIds', null) == before.get('blockedOrderIds', null) &&
+             // Commercial ownership / routing.
+             after.get('resellerId', null) == before.get('resellerId', null) &&
+             after.get('partnerId', null) == before.get('partnerId', null) &&
+             after.get('isOutsourced', null) == before.get('isOutsourced', null) &&
+             after.get('documentContact', null) == before.get('documentContact', null);
     }
 
     // ─── Users ──────────────────────────────────────────────────────────────

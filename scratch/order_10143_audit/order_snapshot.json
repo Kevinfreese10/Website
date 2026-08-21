@@ -1,0 +1,332 @@
+{
+  "id": "10143",
+  "userId": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+  "customerName": "Alby Festus",
+  "customerEmail": "festusalby4@gmail.com",
+  "customerPhone": "0833459588",
+  "items": [
+    {
+      "id": "6Vuo5fEQVltv1CiLGaPg",
+      "title": "Accountant's Letter",
+      "price": 1200,
+      "quantity": 1
+    }
+  ],
+  "total": 1200,
+  "discountCode": null,
+  "discountAmount": null,
+  "paymentMethod": "PayFast",
+  "serviceSnapshots": [
+    {
+      "serviceId": "6Vuo5fEQVltv1CiLGaPg",
+      "title": "Accountant's Letter",
+      "department": "Administration",
+      "requirements": [
+        {
+          "id": "req_0vs2zy7n",
+          "label": "Company registration document (COR14.3)",
+          "type": "pdf",
+          "isRequired": true
+        },
+        {
+          "id": "req_9jn1qkcd",
+          "label": "Explain the purpose of the accountant’s letter, including its role in verifying financial information and confirming accuracy",
+          "type": "text",
+          "isRequired": true
+        }
+      ],
+      "checklist": [
+        {
+          "id": "step_doc_verification",
+          "title": "1. Document Verification & KYC",
+          "description": "Verify all required client documents and identity details.",
+          "type": "doc_verification",
+          "estimatedDays": 1
+        },
+        {
+          "id": "step_execution_filing",
+          "title": "2. Service Execution & Compliance Filing",
+          "description": "Execute compliance filings, calculations, or statutory registrations with authorities (e.g. CIPC / SARS).",
+          "type": "external_filing",
+          "estimatedDays": 3
+        },
+        {
+          "id": "step_final_signoff",
+          "title": "3. Final Review & Document Dispatch",
+          "description": "Quality audit results, generate output certificates/reports, and dispatch to client.",
+          "type": "signoff",
+          "estimatedDays": 1
+        }
+      ]
+    }
+  ],
+  "date": {
+    "_seconds": 1787297823,
+    "_nanoseconds": 261000000
+  },
+  "source": "Client",
+  "originalOrderId": null,
+  "status": "Processing",
+  "department": "Administration",
+  "itnHistory": [
+    {
+      "status": "Success",
+      "message": "Payment verified and order set to Processing.",
+      "receivedAt": {
+        "_seconds": 1787297957,
+        "_nanoseconds": 876000000
+      },
+      "payload": {
+        "m_payment_id": "10143",
+        "pf_payment_id": "322547277",
+        "payment_status": "COMPLETE",
+        "item_name": "Order #10143",
+        "item_description": "Accountant's Letter",
+        "amount_gross": "1200.00",
+        "amount_fee": "-46.46",
+        "amount_net": "1153.54",
+        "custom_str1": "",
+        "custom_str2": "",
+        "custom_str3": "",
+        "custom_str4": "",
+        "custom_str5": "",
+        "custom_int1": "",
+        "custom_int2": "",
+        "custom_int3": "",
+        "custom_int4": "",
+        "custom_int5": "",
+        "name_first": "Alby",
+        "name_last": "Festus",
+        "email_address": "festusalby4@gmail.com",
+        "merchant_id": "23836312",
+        "signature": "a8c824a9dd2d3048e509a86b0945cba4"
+      }
+    }
+  ],
+  "fulfillmentStatus": "Under Review",
+  "checklist": [
+    {
+      "id": "chk_6Vuo5fEQVltv1CiLGaPg_step_doc_verification",
+      "serviceId": "6Vuo5fEQVltv1CiLGaPg",
+      "serviceTitle": "Accountant's Letter",
+      "title": "1. Document Verification & KYC",
+      "description": "Verify all required client documents and identity details.",
+      "type": "doc_verification",
+      "status": "in_progress",
+      "isAiRecommended": true,
+      "aiNotes": "AI Verified: 0/2 documents audited and passed compliance validation checks with high confidence (≥85%)."
+    },
+    {
+      "id": "chk_6Vuo5fEQVltv1CiLGaPg_step_execution_filing",
+      "serviceId": "6Vuo5fEQVltv1CiLGaPg",
+      "serviceTitle": "Accountant's Letter",
+      "title": "2. Service Execution & Compliance Filing",
+      "description": "Execute compliance filings, calculations, or statutory registrations with authorities (e.g. CIPC / SARS).",
+      "type": "external_filing",
+      "status": "pending"
+    },
+    {
+      "id": "chk_6Vuo5fEQVltv1CiLGaPg_step_final_signoff",
+      "serviceId": "6Vuo5fEQVltv1CiLGaPg",
+      "serviceTitle": "Accountant's Letter",
+      "title": "3. Final Review & Document Dispatch",
+      "description": "Quality audit results, generate output certificates/reports, and dispatch to client.",
+      "type": "signoff",
+      "status": "pending"
+    }
+  ],
+  "auditLog": [
+    {
+      "id": "audit_1787298365515_vcyi7",
+      "timestamp": "2026-08-21T07:46:05.515Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "performedByName": "Alby Festus",
+      "details": "Submitted requirement \"Company registration document (COR14.3)\" (File Upload). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787298396686_1k122",
+      "timestamp": "2026-08-21T07:46:36.686Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "performedByName": "Alby Festus",
+      "details": "Submitted requirement \"Company registration document (COR14.3)\" (File Upload). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787298417542_cvtb4",
+      "timestamp": "2026-08-21T07:46:57.542Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "performedByName": "Alby Festus",
+      "details": "Submitted requirement \"Company registration document (COR14.3)\" (File Upload). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787298432916_p3bve",
+      "timestamp": "2026-08-21T07:47:12.916Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "performedByName": "Alby Festus",
+      "details": "Submitted requirement \"Company registration document (COR14.3)\" (File Upload). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787298447627_pnyza",
+      "timestamp": "2026-08-21T07:47:27.627Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "performedByName": "Alby Festus",
+      "details": "Submitted requirement \"Company registration document (COR14.3)\" (File Upload). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787298478961_nuwbi",
+      "timestamp": "2026-08-21T07:47:58.961Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "performedByName": "Alby Festus",
+      "details": "Removed attached file from requirement \"Company registration document (COR14.3)\"."
+    },
+    {
+      "id": "audit_1787298547570_epk59",
+      "timestamp": "2026-08-21T07:49:07.570Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "performedByName": "Alby Festus",
+      "details": "Submitted requirement \"Company registration document (COR14.3)\" (File Upload). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787298596523_8izq4",
+      "timestamp": "2026-08-21T07:49:56.523Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "performedByName": "Alby Festus",
+      "details": "Submitted requirement \"Explain the purpose of the accountant’s letter, including its role in verifying financial information and confirming accuracy\" (Text Input). Status: Pending Verification."
+    },
+    {
+      "id": "audit_1787298635800_7lbrx",
+      "timestamp": "2026-08-21T07:50:35.800Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "performedByName": "Alby Festus",
+      "details": "Removed attached file from requirement \"Company registration document (COR14.3)\"."
+    },
+    {
+      "id": "audit_1787298654385_yvv5g",
+      "timestamp": "2026-08-21T07:50:54.385Z",
+      "action": "DOCUMENT_UPLOADED",
+      "performedBy": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "performedByName": "Alby Festus",
+      "details": "Submitted requirement \"Company registration document (COR14.3)\" (File Upload). Status: Pending Verification."
+    }
+  ],
+  "documentUploads": [
+    {
+      "id": "doc_1787298365515_108zeo",
+      "serviceId": "6Vuo5fEQVltv1CiLGaPg",
+      "requirementLabel": "Company registration document (COR14.3)",
+      "type": "file",
+      "fileUrl": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FMBF4y9HOVlZH3BG7JRop9v8tG7M2%2Forders%2F10143%2F1787298649999_0_Cipc_GLOWGRID_studio.pdf?alt=media&token=12e4db68-dff2-4c86-9b95-2bc498a6abf9",
+      "uploadedAt": "2026-08-21T07:50:54.385Z",
+      "status": "pending",
+      "aiVerification": {
+        "status": "flagged",
+        "confidence": 95,
+        "detectedType": "CIPC COR14.3 Registration Certificate",
+        "extractedData": {},
+        "issues": [
+          "The registered company name 'CONFIDENT GROUP (PTY) LTD' on the document does not match the expected client/entity name 'Alby Festus'."
+        ],
+        "summary": "The document provided is a CIPC COR14.3 Registration Certificate for CONFIDENT GROUP (PTY) LTD, registered on 2023/01/06, with Alby Festus listed as a director. However, the registered company name does not align with the expected client entity name 'Alby Festus' for this service.",
+        "recommendation": "reject",
+        "reason": "The CIPC COR14.3 document provided belongs to 'CONFIDENT GROUP (PTY) LTD', which is a different entity than the 'Alby Festus' expected for this service, violating the entity cross-checking rules. Although Alby Festus is a director of the company, the primary entity name does not match.",
+        "adversarialCheckPassed": true,
+        "modelName": "googleai/gemini-2.5-flash",
+        "modelVersion": "gemini-2.5-flash@2026-v2",
+        "reviewedAt": "2026-08-21T07:47:08.409Z"
+      },
+      "fileName": "",
+      "files": []
+    },
+    {
+      "id": "doc_1787298596523_ze48m4",
+      "serviceId": "6Vuo5fEQVltv1CiLGaPg",
+      "requirementLabel": "Explain the purpose of the accountant’s letter, including its role in verifying financial information and confirming accuracy",
+      "type": "text",
+      "textValue": "The accountant’s letter is required by Nedbank for my Revolving Credit Facility application. I am self-employed and declared a monthly net income of R235,000 in my application. Nedbank has requested an accountant’s letter confirming my drawings as proof of income. I can provide my company registration documents; however, the only financial records available for verification are my most recent three months of personal bank statements. Please review these statements and confirm the average monthly drawings/income that can be supported by the transactions reflected in them.",
+      "uploadedAt": "2026-08-21T07:49:56.523Z",
+      "status": "pending"
+    }
+  ],
+  "updatedAt": "2026-08-21T07:51:03.830Z",
+  "notes": [
+    {
+      "text": "Order set to department: Administration. Could not assign staff (no active staff members found in this department).",
+      "date": {
+        "_seconds": 1787297943,
+        "_nanoseconds": 954000000
+      },
+      "authorId": "system",
+      "type": "note",
+      "subject": null,
+      "attachments": null
+    },
+    {
+      "text": "Sent \"Request Documents\" email to festusalby4@gmail.com (Automated via PayFast ITN).",
+      "date": {
+        "_seconds": 1787297957,
+        "_nanoseconds": 678000000
+      },
+      "authorId": "system",
+      "type": "email",
+      "subject": "Action Required for Your Order #10143",
+      "attachments": null
+    },
+    {
+      "text": "Sent \"Request Documents\" email to festusalby4@gmail.com (Payment Successful).",
+      "date": {
+        "_seconds": 1787297961,
+        "_nanoseconds": 862000000
+      },
+      "authorId": "system",
+      "type": "email",
+      "subject": "Action Required for Your Order #10143",
+      "attachments": null
+    },
+    {
+      "text": "Client has submitted their documents for review.",
+      "authorId": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "date": {
+        "_seconds": 1787298662,
+        "_nanoseconds": 470000000
+      },
+      "type": "note",
+      "subject": null,
+      "attachments": null
+    },
+    {
+      "text": "Bank statements ",
+      "authorId": "MBF4y9HOVlZH3BG7JRop9v8tG7M2",
+      "date": {
+        "_seconds": 1787298728,
+        "_nanoseconds": 65000000
+      },
+      "type": "note",
+      "subject": null,
+      "attachments": [
+        {
+          "name": "06 July.pdf",
+          "url": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FMBF4y9HOVlZH3BG7JRop9v8tG7M2%2Forders%2F10143%2Fnotes%2F1787298725542-06%20July.pdf?alt=media&token=688cd174-d9d1-4a15-9281-d74c064a44a8"
+        },
+        {
+          "name": "06 June.pdf",
+          "url": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FMBF4y9HOVlZH3BG7JRop9v8tG7M2%2Forders%2F10143%2Fnotes%2F1787298725543-06%20June.pdf?alt=media&token=ae6f332a-60f1-49ca-8213-a109a5a57f26"
+        },
+        {
+          "name": "06 August.pdf",
+          "url": "https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/uploads%2FMBF4y9HOVlZH3BG7JRop9v8tG7M2%2Forders%2F10143%2Fnotes%2F1787298725543-06%20August.pdf?alt=media&token=ec0a2760-a915-4d7d-9542-4dbe71e17b36"
+        }
+      ]
+    }
+  ],
+  "assignedTo": [
+    "LRM285EOq3gwNMKayY6vtzooaC03"
+  ]
+}

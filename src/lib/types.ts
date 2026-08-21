@@ -289,6 +289,8 @@ export type Order = {
   assignedTo?: string[] | null;
   department?: 'Accounting and Tax' | 'Administration' | 'CAP' | null;
   originalOrderId?: string | null;
+  parentOrderId?: string | null;
+  isPrerequisiteOrder?: boolean;
   notes?: OrderNote[];
   documentUploads?: DocumentUpload[];
   itnHistory?: ItnLog[];

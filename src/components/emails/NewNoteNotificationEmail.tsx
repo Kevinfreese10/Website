@@ -139,7 +139,7 @@ export const NewNoteNotificationEmail = ({
                         <Text style={unattendedNoticeTextStyle}>
                           <strong>Need to respond to this note?</strong>
                           <br />
-                          Please log into your <a href={actionUrl} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to post a reply. Please note that <em>no_reply@myacc.co.za</em> is an automated notification address and is not monitored for incoming replies.
+                          Please log into your <a href={actionUrl} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to post a reply. Please note that this is an automated notification address and is not monitored for incoming replies.
                         </Text>
                       </td>
                     </tr>

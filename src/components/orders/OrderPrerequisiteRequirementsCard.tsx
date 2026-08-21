@@ -184,7 +184,12 @@ export default function OrderPrerequisiteRequirementsCard({
         total: price,
         clientTotal: price,
         status: 'Pending Payment',
-        originalOrderId: order.id,
+        // A prerequisite order is a CHILD of the order that required it. This must NOT use
+        // `originalOrderId` — that field means "the linked partner mirror of this order", and
+        // every sync path copies documents, checklist and status onto whatever it points at.
+        // Writing it here caused completing a prerequisite to overwrite the parent order.
+        parentOrderId: order.id,
+        isPrerequisiteOrder: true,
         source: baseRoute === '/partner/orders' ? 'Partner' : 'Staff',
         department: prereq.prereqService.department || 'Administration',
         notes: [

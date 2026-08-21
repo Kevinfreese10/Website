@@ -2,6 +2,7 @@
 
 import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
 import { getVerifiedAuthContext } from '@/lib/server-auth';
+import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { Order, DocumentUpload, AuditEntry } from '@/lib/types';
 import { triggerOrderAutomatedFulfillmentReview } from './order-fulfillment-pipeline';
 import { INTERNAL_SYSTEM_ACTOR } from './order-admin-actions';
@@ -14,6 +15,12 @@ export interface SubmitClientDocParams {
   requirementLabel: string;
   type: 'file' | 'text';
   fileUrl?: string;
+  /**
+   * All files submitted for this requirement. The UI explicitly supports selecting many files at
+   * once (e.g. 12 monthly bank statements) — previously only `fileUrl` was persisted, so every
+   * file after the first was silently discarded while the client was told all of them were saved.
+   */
+  files?: { fileUrl: string; fileName?: string; uploadedAt?: string }[];
   textValue?: string;
   notAvailableReason?: string;
 }
@@ -57,13 +64,25 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
     const uploadId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const nowIso = new Date().toISOString();
 
+    const submittedFiles = params.type === 'file' && Array.isArray(params.files)
+      ? params.files.filter(f => f && f.fileUrl).map(f => ({
+          id: (f as any).id || `file_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          fileUrl: f.fileUrl,
+          fileName: f.fileName || 'document',
+          uploadedAt: f.uploadedAt || nowIso,
+        }))
+      : [];
+
     const newDocItem: DocumentUpload = {
       id: uploadId,
       serviceId: params.serviceId || order.items?.[0]?.id || 'service',
       requirementId: params.requirementId || undefined,
       requirementLabel: params.requirementLabel.trim(),
       type: params.type,
-      fileUrl: params.type === 'file' ? params.fileUrl : undefined,
+      // Keep `fileUrl` as the primary/first file for backwards compatibility with existing
+      // consumers, and persist the complete set alongside it.
+      fileUrl: params.type === 'file' ? (params.fileUrl || submittedFiles[0]?.fileUrl) : undefined,
+      files: submittedFiles.length > 0 ? submittedFiles : undefined,
       textValue: params.type === 'text' ? params.textValue : undefined,
       notAvailableReason: params.notAvailableReason?.trim() || undefined,
       uploadedAt: nowIso,
@@ -114,8 +133,9 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
     await orderRef.update(updatePayload);
 
     // Sync with original order if this is an outsourced sub-order
-    if (order.originalOrderId) {
-      const origRef = db.collection('orders').doc(order.originalOrderId);
+    const mirrorId = resolvePartnerMirrorOrderId({ ...order, id: params.orderId });
+    if (mirrorId) {
+      const origRef = db.collection('orders').doc(mirrorId);
       await origRef.update({
         documentUploads: cleanFirestoreData(updatedUploads),
         auditLog: [...(order.auditLog || []), auditEntry],
@@ -241,8 +261,9 @@ export async function removeClientDocumentFileAction(params: RemoveClientDocFile
       updatedAt: nowIso,
     });
 
-    if (order.originalOrderId) {
-      const origRef = db.collection('orders').doc(order.originalOrderId);
+    const mirrorId = resolvePartnerMirrorOrderId({ ...order, id: params.orderId });
+    if (mirrorId) {
+      const origRef = db.collection('orders').doc(mirrorId);
       await origRef.update({
         documentUploads: cleanFirestoreData(updatedUploads),
         auditLog: [...(order.auditLog || []), auditEntry],
@@ -331,8 +352,9 @@ export async function syncClientQuestionnaireAction(params: SyncQuestionnairePar
       updatedAt: nowIso,
     });
 
-    if (order.originalOrderId) {
-      const origRef = db.collection('orders').doc(order.originalOrderId);
+    const mirrorId = resolvePartnerMirrorOrderId({ ...order, id: params.orderId });
+    if (mirrorId) {
+      const origRef = db.collection('orders').doc(mirrorId);
       await origRef.update({
         documentUploads: cleanFirestoreData(updatedUploads),
         updatedAt: nowIso,

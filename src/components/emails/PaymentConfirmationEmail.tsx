@@ -108,7 +108,7 @@ export const PaymentConfirmationEmail = ({ order, reseller }: PaymentConfirmatio
                       <Text style={unattendedNoticeTextStyle}>
                         <strong>Need to contact us regarding this payment?</strong>
                         <br />
-                        Please log into your <a href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders/${order.id}`} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to message our team or view your statement. Please note that <em>no_reply@myacc.co.za</em> is an automated notification mailbox and is not monitored for incoming replies.
+                        Please log into your <a href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders/${order.id}`} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to message our team or view your statement. Please note that this is an automated notification mailbox and is not monitored for incoming replies.
                       </Text>
                     </td>
                   </tr>

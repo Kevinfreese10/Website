@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, ArrowRight, CheckCircle2, Wallet2, AlertCircle, Search, Filter } from 'lucide-react';
+import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, ArrowRight, CheckCircle2, Wallet2, AlertCircle, Search, Filter, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -361,14 +361,16 @@ export default function PartnerOrdersPage() {
       
       try {
         if (choice === 'complete') {
-          const result = await completeOrderWithRoyalty(selectedOrderForProcess.id, partnerId);
+          const walletIdToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+          const result = await completeOrderWithRoyalty(selectedOrderForProcess.id, partnerId, walletIdToken);
           if ('error' in result) {
             toast({ title: 'Failed', description: result.error === 'INSUFFICIENT_FUNDS' ? 'Insufficient wallet balance. Please top up.' : result.error, variant: 'destructive' });
             return;
           }
           toast({ title: 'Order Processing', description: `Royalty of R${result.royalty.toFixed(2)} deducted from your wallet.` });
         } else {
-          const result = await outsourceOrderFromWallet(selectedOrderForProcess.id, partnerId, documentContact || 'partner');
+          const walletIdToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+          const result = await outsourceOrderFromWallet(selectedOrderForProcess.id, partnerId, documentContact || 'partner', walletIdToken);
           if ('error' in result) {
             toast({ title: 'Failed', description: result.error === 'INSUFFICIENT_FUNDS' ? 'Insufficient wallet balance. Please top up.' : result.error, variant: 'destructive' });
             return;
@@ -500,6 +502,17 @@ export default function PartnerOrdersPage() {
                 {isLoading ? (
                     <div className="flex justify-center items-center h-64">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : orders.length === 0 ? (
+                    <div className="py-16 text-center space-y-3 max-w-md mx-auto">
+                        <div className="p-3 bg-primary/10 text-primary w-fit rounded-full mx-auto">
+                            <ShoppingBag className="h-6 w-6" />
+                        </div>
+                        <h3 className="font-bold text-lg text-foreground">No Client Orders Yet</h3>
+                        <p className="text-sm text-muted-foreground">When clients purchase compliance or accounting services through your practice storefront, their orders will appear here for processing and fulfillment.</p>
+                        <Button asChild variant="outline" size="sm" className="mt-2">
+                            <Link href="/partner/services">View Your Practice Services</Link>
+                        </Button>
                     </div>
                 ) : filteredOrders.length === 0 ? (
                     <div className="py-12 text-center space-y-3">

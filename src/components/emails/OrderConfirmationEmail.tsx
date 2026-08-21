@@ -231,7 +231,7 @@ export const OrderConfirmationEmail = ({
                       <Text style={unattendedNoticeTextStyle}>
                         <strong>Need to reply or send us a message?</strong>
                         <br />
-                        Please log into your <a href={`${siteUrl}/dashboard/orders/${order.id}`} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to track your order, upload documents, or communicate with our team. Please note that <em>no_reply@myacc.co.za</em> is an automated notification mailbox and is not monitored for incoming replies.
+                        Please log into your <a href={`${siteUrl}/dashboard/orders/${order.id}`} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to track your order, upload documents, or communicate with our team. Please note that this is an automated notification mailbox and is not monitored for incoming replies.
                       </Text>
                     </td>
                   </tr>

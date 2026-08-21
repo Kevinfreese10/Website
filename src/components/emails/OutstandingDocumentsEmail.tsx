@@ -108,7 +108,7 @@ export const OutstandingDocumentsEmail = ({
                       <Text style={unattendedNoticeTextStyle}>
                         <strong>Have questions or need assistance?</strong>
                         <br />
-                        Please log into your <a href={orderUrl} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to message our team or upload your files. Please note that <em>no_reply@myacc.co.za</em> is an automated notification mailbox and is not monitored for incoming replies.
+                        Please log into your <a href={orderUrl} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to message our team or upload your files. Please note that this is an automated notification mailbox and is not monitored for incoming replies.
                       </Text>
                     </td>
                   </tr>

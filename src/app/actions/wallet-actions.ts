@@ -4,6 +4,8 @@ import { getAdminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { sendEmail } from '@/lib/email';
 import { notifyStaffOfAssignment, sendDocumentRequestEmailAction } from './order-actions';
+import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
+import { getVerifiedAuthContext } from '@/lib/server-auth';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,6 +29,48 @@ type GenericError = {
   error: string;
 };
 
+/**
+ * Authorizes a wallet-spending action.
+ *
+ * These are `'use server'` exports — directly-callable HTTP endpoints. Previously they took
+ * `(orderId, partnerId)` as plain arguments and verified nothing, so anyone who knew or guessed an
+ * order id and a partner uid could drain that partner's credit balance and force-transition the
+ * order. The caller must now prove they ARE the partner (or an admin), and the order must actually
+ * belong to that partner.
+ */
+async function assertPartnerWalletAccess(
+  idToken: string | undefined,
+  partnerId: string,
+  orderId: string,
+): Promise<GenericError | null> {
+  const authCtx = await getVerifiedAuthContext(idToken);
+  if (!authCtx) {
+    return { error: 'Unauthorized: A valid authentication token is required.' };
+  }
+
+  const isAdmin = authCtx.isAdmin || authCtx.user.role === 'admin';
+  const isThePartner =
+    authCtx.userId === partnerId || authCtx.user.partnerId === partnerId;
+
+  if (!isAdmin && !isThePartner) {
+    return { error: 'Forbidden: You may only spend from your own practice wallet.' };
+  }
+
+  const orderSnap = await getAdminDb().collection('orders').doc(orderId).get();
+  if (!orderSnap.exists) {
+    return { error: `Order #${orderId} not found.` };
+  }
+  const order = orderSnap.data() || {};
+  const orderBelongsToPartner =
+    order.resellerId === partnerId || order.partnerId === partnerId;
+
+  if (!isAdmin && !orderBelongsToPartner) {
+    return { error: 'Forbidden: This order does not belong to your practice.' };
+  }
+
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Action 1: completeOrderWithRoyalty
 // ---------------------------------------------------------------------------
@@ -41,12 +85,16 @@ type GenericError = {
 export async function completeOrderWithRoyalty(
   orderId: string,
   partnerId: string,
+  idToken?: string,
 ): Promise<
   | { success: true; royalty: number }
   | InsufficientFundsError
   | GenericError
 > {
   try {
+    const authError = await assertPartnerWalletAccess(idToken, partnerId, orderId);
+    if (authError) return authError;
+
     const db = getAdminDb();
 
     const partnerRef = db.collection('users').doc(partnerId);
@@ -139,12 +187,16 @@ export async function outsourceOrderFromWallet(
   orderId: string,
   partnerId: string,
   documentContact: 'partner' | 'client',
+  idToken?: string,
 ): Promise<
   | { success: true; cost: number }
   | InsufficientFundsError
   | GenericError
 > {
   try {
+    const authError = await assertPartnerWalletAccess(idToken, partnerId, orderId);
+    if (authError) return authError;
+
     const db = getAdminDb();
 
     const partnerRef = db.collection('users').doc(partnerId);
@@ -230,7 +282,7 @@ export async function outsourceOrderFromWallet(
         date: new Date(),
       }),
 
-      // System note appended to the order
+      // System note appended to the order (marked as internal so client doesn't see outsourcing details)
       orderRef.update({
         notes: FieldValue.arrayUnion({
           text: 'Order outsourced to My Accountant. Cost deducted from partner wallet.',
@@ -239,6 +291,7 @@ export async function outsourceOrderFromWallet(
           type: 'note',
           subject: null,
           attachments: null,
+          isInternal: true,
         }),
       }),
     ]);
@@ -288,10 +341,11 @@ export async function outsourceOrderFromWallet(
       const orderData = orderSnap.data();
 
       if (orderData) {
-        // 1. Sync originalOrderId if present
-        if (orderData.originalOrderId) {
+        // 1. Sync mirror order if present
+        const mirrorId = resolvePartnerMirrorOrderId(orderData);
+        if (mirrorId) {
           try {
-            const origRef = db.collection('orders').doc(orderData.originalOrderId);
+            const origRef = db.collection('orders').doc(mirrorId);
             await origRef.update({
               isOutsourced: true,
               status: 'Processing',
@@ -303,6 +357,7 @@ export async function outsourceOrderFromWallet(
                 type: 'note',
                 subject: null,
                 attachments: null,
+                isInternal: true,
               })
             });
           } catch (origErr) {

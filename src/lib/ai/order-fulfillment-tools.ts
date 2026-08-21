@@ -8,7 +8,7 @@
 import { getAdminDb } from '@/lib/firebase-admin';
 import { Order, OrderChecklistItem, DocumentUpload, AIDocumentVerification } from '@/lib/types';
 import { verifyOrderDocument } from '@/ai/flows/verify-order-document';
-import { resolveOrderEntityContext, stripInternalAiData } from '@/lib/service-utils';
+import { resolveOrderEntityContext, stripInternalAiData, resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { getVerifiedAuthContext } from '@/lib/server-auth';
 import {
   transitionOrderStatusAtomic,
@@ -197,9 +197,10 @@ export async function runAiDocumentVerification(orderId: string, requirementIden
       updatedAt: new Date().toISOString(),
     });
 
-    if (orderData.originalOrderId) {
+    const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
+    if (mirrorId) {
       // Mirror to the partner-owned order WITHOUT the internal AI audit payload.
-      await db.collection('orders').doc(orderData.originalOrderId).update({
+      await db.collection('orders').doc(mirrorId).update({
         documentUploads: stripInternalAiData(updatedUploads),
         updatedAt: new Date().toISOString(),
       });

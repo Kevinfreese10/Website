@@ -74,7 +74,7 @@ export const ReviewRequestEmail = ({ order, reseller }: ReviewRequestEmailProps)
                 How was your experience?
               </Heading>
               <Text style={{ color: '#15803d', fontSize: '14px', lineHeight: '22px', margin: '0 0 18px 0' }}>
-                Taking 30 seconds to rate us on Google helps other small businesses find reliable accounting and compliance support.
+                Taking 30 seconds to share your feedback helps other small businesses find reliable accounting and compliance support.
               </Text>
               <Button
                 style={{
@@ -89,9 +89,12 @@ export const ReviewRequestEmail = ({ order, reseller }: ReviewRequestEmailProps)
                   padding: '14px 28px',
                   boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                 }}
-                href="https://g.page/r/CVIOzn2bYoiaEAI/review"
+                href={
+                  (reseller as any)?.googleReviewUrl || 
+                  (reseller ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/p/${(reseller as any).practiceSlug || reseller.id}` : 'https://g.page/r/CVIOzn2bYoiaEAI/review')
+                }
               >
-                ⭐ Leave Google Review
+                ⭐ Leave Feedback &amp; Review
               </Button>
             </div>
 
@@ -111,7 +114,7 @@ export const ReviewRequestEmail = ({ order, reseller }: ReviewRequestEmailProps)
                       <Text style={unattendedNoticeTextStyle}>
                         <strong>Need further assistance or new services?</strong>
                         <br />
-                        Please log into your <a href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders/${order.id}`} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to request additional services or message our team. Please note that <em>no_reply@myacc.co.za</em> is an automated notification mailbox and is not monitored for incoming replies.
+                        Please log into your <a href={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders/${order.id}`} style={{ color: primaryColor, fontWeight: '700', textDecoration: 'underline' }}>Client Dashboard</a> to request additional services or message our team. Please note that this is an automated notification mailbox and is not monitored for incoming replies.
                       </Text>
                     </td>
                   </tr>

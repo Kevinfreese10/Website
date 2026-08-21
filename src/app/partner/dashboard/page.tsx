@@ -377,7 +377,7 @@ export default function PartnerDashboardPage() {
               orderId: order.id,
               orderTitle: order.items[0]?.title || 'Untitled Order',
               customerName: order.customerName,
-              link: `/partner/outsourced-orders/${order.id}`,
+              link: `/partner/orders/${order.id}`,
               authorFallback: 'My Accountant Support'
             }));
           allNotes.push(...notes);
