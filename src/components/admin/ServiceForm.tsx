@@ -3,7 +3,7 @@
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Service, PrerequisiteItem, FulfillmentStep, AVAILABLE_DOCUMENT_TEMPLATES, DocumentTemplateOption } from '@/lib/types';
+import { Service, PrerequisiteItem } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -13,11 +13,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
   Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload, 
-  ArrowUp, ArrowDown, HelpCircle, ListChecks, CheckCircle2, DollarSign, Package, 
+  ArrowUp, ArrowDown, HelpCircle, CheckCircle2, DollarSign, Package, 
   ClipboardList, Globe, Clock, Layers, Star, ExternalLink, Search, Copy, BookOpen,
-  FileText, FileSignature, ScrollText, Check, Eye
+  FileText, FileSignature, Check, Eye
 } from 'lucide-react';
-import TemplatePreviewDialog from './TemplatePreviewDialog';
 import { generateServiceDetails } from '@/ai/flows/generate-service-details';
 import { generateBlogPostSeo } from '@/ai/flows/generate-blog-post-seo';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +32,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Switch } from '../ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { DEFAULT_FULFILLMENT_CHECKLIST, getServiceChecklist, normalizeRequirementsWithIds } from '@/lib/service-utils';
+import { normalizeRequirementsWithIds } from '@/lib/service-utils';
 import { 
   STANDARD_PREREQUISITE_GROUPS, 
   STANDARD_DOCUMENT_REQUIREMENT_GROUPS, 
@@ -62,21 +61,21 @@ const returnPolicyCategories = [
 
 const formSchema = z.object({
   id: z.string().optional(),
-  title: z.string().min(3, 'Title is required.'),
-  description: z.string().min(10, 'Short description is required.'),
-  longDescription: z.string().min(20, 'Long description is required.'),
-  price: z.preprocess(val => Number(val), z.number().min(0, 'Price must be a positive number.')),
-  isPriceTbc: z.boolean().optional(),
-  isFeatured: z.boolean().optional(),
-  resellerPrice: z.preprocess(val => Number(val), z.number().min(0, 'Reseller price must be a positive number.').optional()),
-  subcontractorFee: z.preprocess(val => Number(val), z.number().min(0, 'Subcontractor fee must be a positive number.').optional()),
-  imageUrl: z.string().url('Must be a valid URL.'),
-  imageHint: z.string().min(1, 'Image hint is required.'),
-  attachmentUrl: z.string().url('Must be a valid URL.').optional().or(z.literal('')),
+  title: z.string().min(1, 'Title is required.').max(100, 'Title must be 100 characters or less.'),
+  description: z.string().min(1, 'Description is required.'),
+  longDescription: z.string().optional(),
+  price: z.preprocess(val => (val !== undefined && val !== '' ? Number(val) : 0), z.number().min(0, "Price must be positive.")),
+  isPriceTbc: z.boolean().default(false),
+  isFeatured: z.boolean().default(false),
+  resellerPrice: z.preprocess(val => (val !== undefined && val !== '' ? Number(val) : 0), z.number().min(0, "Reseller price must be positive.")),
+  subcontractorFee: z.preprocess(val => (val !== undefined && val !== '' ? Number(val) : 0), z.number().min(0, "Subcontractor fee must be positive.")),
+  imageUrl: z.string().url('A valid URL is required.').or(z.literal('')),
+  imageHint: z.string().optional(),
+  attachmentUrl: z.string().url('A valid URL is required.').or(z.literal('')),
   category: z.string().min(1, 'Category is required.'),
-  department: z.enum(departments),
-  turnaroundTime: z.string().min(1, 'Turnaround time is required.'),
-  whatsIncluded: z.array(z.object({ value: z.string().min(1, 'This field cannot be empty.') })),
+  department: z.enum(departments).default('Administration'),
+  turnaroundTime: z.string().optional(),
+  whatsIncluded: z.array(z.object({ value: z.string() })),
   clientRequirements: z.array(z.object({
     type: z.enum(['text', 'product']).default('text'),
     value: z.string().optional(),
@@ -92,16 +91,6 @@ const formSchema = z.object({
     isRequired: z.boolean().optional(),
     aiHint: z.string().optional(),
   })),
-  fulfillmentChecklist: z.array(z.object({
-    id: z.string(),
-    title: z.string().min(1, 'Title is required.'),
-    description: z.string().optional(),
-    aiInstructions: z.string().optional(),
-    type: z.enum(['doc_verification', 'document_drafting', 'external_filing', 'internal_calc', 'manual', 'signoff']).default('manual'),
-    requiredRole: z.string().optional(),
-    estimatedDays: z.preprocess(val => (val !== undefined && val !== '' ? Number(val) : undefined), z.number().min(0).optional()),
-    templateIds: z.array(z.string()).optional(),
-  })).optional(),
   metaTitle: z.string().min(1, 'Meta Title is required.').max(59, 'Meta Title must be under 60 characters.'),
   metaDescription: z.string().max(160, 'Meta Description must be 160 characters or less.').optional().or(z.literal('')),
   metaKeywords: z.array(z.object({ value: z.string() })).optional(),
@@ -127,329 +116,10 @@ type ServiceFormProps = {
   onCancel?: () => void;
 };
 
-interface ChecklistStepItemProps {
-  index: number;
-  control: any;
-  onRemove: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  isFirst: boolean;
-  isLast: boolean;
-  onPreviewTemplate: (tmpl: DocumentTemplateOption) => void;
-}
-
-function ChecklistStepItem({
-  index,
-  control,
-  onRemove,
-  onMoveUp,
-  onMoveDown,
-  isFirst,
-  isLast,
-  onPreviewTemplate,
-}: ChecklistStepItemProps) {
-  const stepType = useWatch({ control, name: `fulfillmentChecklist.${index}.type` }) || 'manual';
-  const selectedTemplateIds: string[] = useWatch({ control, name: `fulfillmentChecklist.${index}.templateIds` }) || [];
-
-  return (
-    <div className="p-3.5 rounded-lg border bg-card shadow-sm space-y-3">
-      <div className="flex items-start gap-2">
-        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary font-bold text-xs mt-1 shrink-0">
-          {index + 1}
-        </div>
-        
-        <FormField
-          control={control}
-          name={`fulfillmentChecklist.${index}.title`}
-          render={({ field }) => (
-            <FormItem className="flex-grow space-y-1">
-              <FormLabel className="text-xs font-semibold">Step Title *</FormLabel>
-              <FormControl>
-                <Input className="h-8 text-xs font-semibold" placeholder="e.g. 1. Review Required Information & AI Validation Checks" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={control}
-          name={`fulfillmentChecklist.${index}.type`}
-          render={({ field: typeField }) => (
-            <FormItem className="w-56 shrink-0 space-y-1">
-              <FormLabel className="text-xs font-semibold">Step Type</FormLabel>
-              <Select onValueChange={typeField.onChange} value={typeField.value || 'manual'}>
-                <FormControl>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="doc_verification">Document Verification & KYC</SelectItem>
-                  <SelectItem value="document_drafting">🤖 Prepare Drafts from Templates</SelectItem>
-                  <SelectItem value="external_filing">External Filing (CIPC/SARS/NCR)</SelectItem>
-                  <SelectItem value="internal_calc">Internal Prep / Calculation</SelectItem>
-                  <SelectItem value="signoff">Sign-off & Client Dispatch</SelectItem>
-                  <SelectItem value="manual">Manual Execution</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={control}
-          name={`fulfillmentChecklist.${index}.estimatedDays`}
-          render={({ field }) => (
-            <FormItem className="w-20 shrink-0 space-y-1">
-              <FormLabel className="text-xs font-semibold">Est. Days</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  className="h-8 text-xs text-center"
-                  placeholder="1"
-                  {...field}
-                  value={field.value !== undefined ? field.value : ''}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex items-center gap-0.5 mt-5 shrink-0">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground"
-            disabled={isFirst}
-            onClick={onMoveUp}
-            title="Move Up"
-          >
-            <ArrowUp className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground"
-            disabled={isLast}
-            onClick={onMoveDown}
-            title="Move Down"
-          >
-            <ArrowDown className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-            onClick={onRemove}
-            title="Delete"
-          >
-            <Trash className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* SOP Instructions (Human & Operational) */}
-      <FormField
-        control={control}
-        name={`fulfillmentChecklist.${index}.description`}
-        render={({ field }) => (
-          <FormItem className="space-y-1">
-            <FormLabel className="text-[11px] font-semibold text-foreground/90 flex items-center justify-between">
-              <span>Standard Operating Procedure Instructions</span>
-              <span className="text-[10px] font-normal text-muted-foreground">Detailed process guidelines for staff & fulfillment</span>
-            </FormLabel>
-            <FormControl>
-              <Textarea
-                className="text-xs min-h-[64px] bg-muted/20 resize-y leading-relaxed font-sans"
-                placeholder="Audit and verify all submitted client information and uploads against statutory compliance standards..."
-                {...field}
-                value={field.value || ''}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Dedicated AI Agent Directives & Custom Execution Rules */}
-      <FormField
-        control={control}
-        name={`fulfillmentChecklist.${index}.aiInstructions`}
-        render={({ field }) => {
-          const val = field.value || '';
-          const addPromptChip = (chipText: string) => {
-            const updated = val ? `${val}\n• ${chipText}` : `• ${chipText}`;
-            field.onChange(updated);
-          };
-
-          return (
-            <FormItem className="space-y-1.5 pt-1">
-              <div className="flex items-center justify-between">
-                <FormLabel className="text-[11px] font-bold text-indigo-950 dark:text-indigo-300 flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                  Additional Instructions for AI Agent to Follow:
-                </FormLabel>
-                <span className="text-[10px] text-indigo-600/80 dark:text-indigo-400/80 font-mono">
-                  Enforced during AI automated fulfillment
-                </span>
-              </div>
-              <FormControl>
-                <Textarea
-                  className="text-xs min-h-[58px] bg-indigo-50/30 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/60 font-mono text-[11px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 resize-y"
-                  placeholder="Enter custom AI validation logic, OCR requirements, regex checks, or prompt directives for the AI Agent..."
-                  {...field}
-                  value={val}
-                />
-              </FormControl>
-              
-              {/* Quick Rule Insertion Chips */}
-              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                <span className="text-[10px] text-muted-foreground font-semibold">Quick Directives:</span>
-                <button
-                  type="button"
-                  onClick={() => addPromptChip('Verify certifications are not older than 3 months')}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
-                >
-                  + 3-Month Cert Check
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addPromptChip('Strict single-page layout with dedicated signature box')}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
-                >
-                  + Single Page PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addPromptChip('Check SARS Tax Compliance Status is in Good Standing')}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
-                >
-                  + SARS Good Standing
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addPromptChip('Post updates and documents into Communication History (Do not email client directly)')}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
-                >
-                  + Post Note Policy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addPromptChip('Validate 10-digit SA mobile numbers starting with 0 (e.g. 076/082/084)')}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100/70 hover:bg-indigo-200/80 dark:bg-indigo-900/40 dark:hover:bg-indigo-800/60 text-indigo-900 dark:text-indigo-200 font-medium transition-colors"
-                >
-                  + SA Phone Validation
-                </button>
-              </div>
-              <FormMessage />
-            </FormItem>
-          );
-        }}
-      />
-
-      {/* Interactive Template Selector with FormField control */}
-      {(stepType === 'document_drafting' || selectedTemplateIds.length > 0) && (
-        <FormField
-          control={control}
-          name={`fulfillmentChecklist.${index}.templateIds`}
-          render={({ field }) => {
-            const currentIds: string[] = Array.isArray(field.value) ? field.value : [];
-
-            const toggleTemplate = (tmplId: string) => {
-              const updated = currentIds.includes(tmplId)
-                ? currentIds.filter(id => id !== tmplId)
-                : [...currentIds, tmplId];
-              field.onChange(updated);
-            };
-
-            return (
-              <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/60 rounded-lg space-y-2 mt-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-950 dark:text-indigo-200">
-                    <ScrollText className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                    Select Statutory Document Templates to Draft:
-                  </div>
-                  <Badge variant="outline" className="text-[10px] font-mono border-indigo-300 text-indigo-900 dark:text-indigo-200">
-                    {currentIds.length} Template(s) Selected
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
-                  {AVAILABLE_DOCUMENT_TEMPLATES.map((tmpl) => {
-                    const isSelected = currentIds.includes(tmpl.id);
-                    return (
-                      <div
-                        key={tmpl.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => toggleTemplate(tmpl.id)}
-                        className={cn(
-                          "p-2.5 rounded-md border cursor-pointer transition-all flex items-start justify-between gap-2 select-none",
-                          isSelected
-                            ? "bg-indigo-100/80 dark:bg-indigo-900/50 border-indigo-400 dark:border-indigo-500 shadow-2xs"
-                            : "bg-background/90 hover:bg-muted/60 border-border/80"
-                        )}
-                      >
-                        <div className="flex items-start gap-2.5 min-w-0 flex-grow">
-                          <Checkbox
-                            checked={isSelected}
-                            tabIndex={-1}
-                            className="pointer-events-none mt-0.5"
-                          />
-                          <div className="space-y-0.5 min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-xs font-bold text-foreground leading-tight">
-                                {tmpl.title}
-                              </span>
-                              <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 font-normal">
-                                {tmpl.category}
-                              </Badge>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground line-clamp-1">
-                              {tmpl.description}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Dedicated Preview Button */}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="xs"
-                          className="h-6 text-[10px] px-1.5 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200/50 dark:hover:bg-indigo-800/50 shrink-0 font-medium"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            onPreviewTemplate(tmpl);
-                          }}
-                          title={`Preview ${tmpl.title}`}
-                        >
-                          <Eye className="h-3 w-3 mr-1" /> Preview
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
 export default function ServiceForm({ service, allServices, onSubmit, onCancel }: ServiceFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'deliverables' | 'prerequisites' | 'intake' | 'sop' | 'seo'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'deliverables' | 'prerequisites' | 'intake' | 'seo'>('overview');
   const [isAiUpdating, setIsAiUpdating] = useState(false);
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [mediaLibraryTarget, setMediaLibraryTarget] = useState<'image' | 'attachment'>('image');
@@ -503,7 +173,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         }
       }) || [{ type: 'text', value: '', productId: '' }],
       informationToProvide: normalizeRequirementsWithIds(service?.informationToProvide || []),
-      fulfillmentChecklist: getServiceChecklist(service),
       metaTitle: service?.metaTitle || '',
       metaDescription: service?.metaDescription || '',
       metaKeywords: service?.metaKeywords?.map(v => ({value: v})) || [{ value: '' }],
@@ -560,18 +229,11 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
     control: form.control,
     name: 'informationToProvide',
   });
-
-  const { fields: checklistFields, append: appendChecklist, remove: removeChecklist, move: moveChecklist, replace: replaceChecklist } = useFieldArray({
-    control: form.control,
-    name: 'fulfillmentChecklist',
-  });
   
   const { fields: keywordFields, append: appendKeyword, remove: removeKeyword, replace: replaceKeywords } = useFieldArray({
     control: form.control,
     name: 'metaKeywords',
   });
-
-  const [previewTemplate, setPreviewTemplate] = useState<DocumentTemplateOption | null>(null);
 
   const handleAddMultiplePrerequisites = (selectedTexts: string[]) => {
     selectedTexts.forEach(text => {
@@ -765,20 +427,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
 
     const normalizedInfo = normalizeRequirementsWithIds(values.informationToProvide.filter(v => v.label));
 
-    const normalizedChecklist: FulfillmentStep[] = (values.fulfillmentChecklist || [])
-      .filter(step => step.title?.trim().length > 0)
-      .map((step, idx) => ({
-        id: step.id || `step_${idx + 1}_${Date.now().toString(36)}`,
-        title: step.title.trim(),
-        description: step.description?.trim() || '',
-        type: step.type || 'manual',
-        requiredRole: step.requiredRole || undefined,
-        estimatedDays: typeof step.estimatedDays === 'number' ? step.estimatedDays : undefined,
-        templateIds: step.templateIds && step.templateIds.length > 0 ? step.templateIds : undefined,
-      }));
-
-    const finalChecklist = normalizedChecklist.length > 0 ? normalizedChecklist : DEFAULT_FULFILLMENT_CHECKLIST;
-
     const serviceData = {
       ...values,
       slug,
@@ -786,7 +434,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
       whatsIncluded: values.whatsIncluded.map(v => v.value).filter(Boolean),
       clientRequirements: structuredRequirements,
       informationToProvide: normalizedInfo,
-      fulfillmentChecklist: finalChecklist,
       metaKeywords: values.metaKeywords?.map(v => v.value).filter(Boolean),
       returnPolicyCategory: values.returnPolicyCategory === 'none' ? '' : values.returnPolicyCategory,
       requiredProductIds: Array.from(new Set(productPrereqIds)),
@@ -840,7 +487,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {isPriceTbc ? 'Quote-based' : `R${watchedPrice.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`} · {infoFields.length} Client Documents · {checklistFields.length} SOP Steps
+                {isPriceTbc ? 'Quote-based' : `R${watchedPrice.toLocaleString('en-ZA', { minimumFractionDigits: 2 })}`} · {infoFields.length} Client Documents · {includedFields.length} Included Features
               </p>
             </div>
           </div>
@@ -879,10 +526,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
               <TabsTrigger value="intake" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
                 <ClipboardList className="h-3.5 w-3.5" />
                 Client Documents ({infoFields.length})
-              </TabsTrigger>
-              <TabsTrigger value="sop" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
-                <ListChecks className="h-3.5 w-3.5 text-primary" />
-                Fulfillment SOP ({checklistFields.length})
               </TabsTrigger>
               <TabsTrigger value="seo" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
                 <Globe className="h-3.5 w-3.5" />
@@ -1621,102 +1264,8 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
               </div>
             </TabsContent>
 
-            {/* TAB 4: FULFILLMENT SOP & AI WORKFLOW */}
-            <TabsContent value="sop" className="space-y-4 m-0 focus-visible:outline-none">
-              <div className="p-4 rounded-xl border border-primary/20 bg-gradient-to-b from-card to-primary/[0.02] space-y-4 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <ListChecks className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-bold text-foreground">Standard Operating Procedure (SOP Checklist)</h3>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Sequential tasks followed by the AI Agent and human accountants to fulfill this service end-to-end.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="xs"
-                      className="h-7 text-xs gap-1 border-primary/30"
-                      onClick={() => replaceChecklist(DEFAULT_FULFILLMENT_CHECKLIST.map(s => ({
-                        id: s.id,
-                        title: s.title,
-                        description: s.description || '',
-                        aiInstructions: s.aiInstructions || '',
-                        type: s.type,
-                        requiredRole: s.requiredRole || '',
-                        estimatedDays: s.estimatedDays || 1,
-                        templateIds: s.templateIds || [],
-                      })))}
-                    >
-                      <CheckCircle2 className="h-3 w-3 text-primary" /> Reset to Standard SOP (4-Step)
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="xs"
-                      className="h-7 text-xs font-semibold gap-1 border-indigo-300 text-indigo-900 dark:text-indigo-200 bg-indigo-50/50 hover:bg-indigo-100/60 shadow-2xs"
-                      onClick={() => appendChecklist({
-                        id: `step_${Date.now().toString(36)}`,
-                        title: 'Prepare Draft Documents from Templates',
-                        description: 'Generate pre-filled statutory drafts, resolutions, and application forms from verified client information and attach for consultant review.',
-                        aiInstructions: 'Generate pre-filled statutory drafts only once all KYC items are approved. Follow executive single-page formatting and Kevin Freese CBA (SA) credentials.',
-                        type: 'document_drafting',
-                        estimatedDays: 1,
-                        templateIds: [],
-                      })}
-                    >
-                      <ScrollText className="h-3 w-3 text-indigo-600" /> + Prepare Drafts Step
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="xs"
-                      className="h-7 text-xs font-semibold gap-1"
-                      onClick={() => appendChecklist({
-                        id: `step_${Date.now().toString(36)}`,
-                        title: '',
-                        description: '',
-                        aiInstructions: '',
-                        type: 'manual',
-                        estimatedDays: 1,
-                        templateIds: [],
-                      })}
-                    >
-                      <Plus className="h-3 w-3" /> Add SOP Step
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {checklistFields.map((field, index) => (
-                    <ChecklistStepItem
-                      key={field.id}
-                      index={index}
-                      control={form.control}
-                      onRemove={() => removeChecklist(index)}
-                      onMoveUp={() => moveChecklist(index, index - 1)}
-                      onMoveDown={() => moveChecklist(index, index + 1)}
-                      isFirst={index === 0}
-                      isLast={index === checklistFields.length - 1}
-                      onPreviewTemplate={(tmpl) => setPreviewTemplate(tmpl)}
-                    />
-                  ))}
-
-                  {checklistFields.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic py-3 text-center">
-                      No SOP checklist steps defined. Click "Reset to Standard SOP (4-Step)" to populate.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-
             {/* TAB 5: SEO, MARKETING & GOOGLE TRUST */}
-            <TabsContent value="seo" className="space-y-6 m-0 focus-visible:outline-none">
-              
+            <TabsContent value="seo" className="space-y-4 m-0 focus-visible:outline-none">
               {/* Live Google Search Preview Card */}
               <div className="p-4 rounded-xl border bg-card space-y-3 shadow-sm">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b">
@@ -2058,13 +1607,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         </div>
 
       </form>
-
-      {/* Statutory Template Live Preview Dialog */}
-      <TemplatePreviewDialog
-        template={previewTemplate}
-        open={!!previewTemplate}
-        onOpenChange={(open) => !open && setPreviewTemplate(null)}
-      />
     </Form>
   );
 }

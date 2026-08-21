@@ -27,7 +27,6 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { notifyStaffOfDocumentUpload, notifyOfNewNote, notifyStaffOfClientNote } from '@/app/actions';
-import { triggerOrderAutomatedFulfillmentReview } from '@/app/actions/order-fulfillment-pipeline';
 import { 
   submitClientDocumentUploadAction, 
   removeClientDocumentFileAction, 
@@ -563,16 +562,17 @@ export default function ClientOrderDetailsPage() {
       const orderRef = doc(db, 'orders', order.id);
       await updateDoc(orderRef, { notes: arrayUnion(newNote) });
       
-      // Trigger automated AI review, checklist progression, and single consolidated alert.
-      // Requires a verified token — the server checks this order actually belongs to the caller.
-      const reviewIdToken = await getAuth(firebaseApp).currentUser?.getIdToken();
-      const reviewResult = await triggerOrderAutomatedFulfillmentReview(order.id, currentUser.name, { notifyStaff: true, idToken: reviewIdToken });
+      await notifyStaffOfDocumentUpload({
+        orderId: order.id,
+        clientName: currentUser.name || 'Client',
+        clientEmail: currentUser.email || '',
+        resellerId: order.resellerId,
+        assignedTo: order.assignedTo,
+      });
 
       toast({ 
-        title: "Documents Submitted & Verified!", 
-        description: reviewResult.allDocumentsApproved 
-          ? "All documents passed AI review! Pre-filled application templates are being prepared." 
-          : "Your documents have been analyzed and queued for your consultant's review." 
+        title: "Documents Submitted!", 
+        description: "Your documents have been submitted and queued for your consultant's review." 
       });
       fetchOrderAndServices();
     } catch(error) {

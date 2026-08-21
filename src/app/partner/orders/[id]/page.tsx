@@ -45,8 +45,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
-import OrderTemplateSelectorDialog from '@/components/admin/OrderTemplateSelectorDialog';
-import { AVAILABLE_DOCUMENT_TEMPLATES } from '@/lib/types';
 import { db, firebaseApp } from '@/lib/firebase';
 
 const storage = getStorage(firebaseApp);

@@ -1,9 +1,9 @@
 'use server';
 
 import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
-import { AuditEntry, Order, OrderChecklistItem, DocumentUpload, AIDocumentVerification } from '@/lib/types';
+import { AuditEntry, Order, DocumentUpload } from '@/lib/types';
 import { sendOrderStatusUpdateEmailAction } from './order-actions';
-import { getServiceChecklist, normalizeRequirementsWithIds, stripInternalAiData, stripInternalChecklistAiData, resolvePartnerMirrorOrderId } from '@/lib/service-utils';
+import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { getVerifiedAuthContext, getAuthContext } from '@/lib/server-auth';
 
 export type StatusTransitionOptions = {
@@ -69,70 +69,6 @@ async function resolveVerifiedActor(performerOrToken: PerformerInput | InternalA
 }
 
 /**
- * Initializes the SOP checklist and service snapshots for an existing order if missing.
- */
-export async function ensureOrderChecklistInitialized(orderId: string): Promise<OrderChecklistItem[]> {
-  const db = getAdminDb();
-  const orderRef = db.collection('orders').doc(orderId);
-  const orderDoc = await orderRef.get();
-  if (!orderDoc.exists) return [];
-
-  const orderData = orderDoc.data() || {};
-  if (orderData.checklist && Array.isArray(orderData.checklist) && orderData.checklist.length > 0) {
-    return orderData.checklist;
-  }
-
-  const items = orderData.items || [];
-  const checklist: OrderChecklistItem[] = [];
-  const serviceSnapshots: any[] = [];
-
-  for (const item of items) {
-    const serviceId = item.id || item.serviceId;
-    if (!serviceId) continue;
-
-    let serviceData: any = null;
-    const serviceDoc = await db.collection('services').doc(serviceId).get();
-    if (serviceDoc.exists) {
-      serviceData = serviceDoc.data();
-    }
-
-    const serviceChecklist = getServiceChecklist(serviceData);
-    const normalizedReqs = normalizeRequirementsWithIds(serviceData?.informationToProvide || []);
-
-    serviceSnapshots.push({
-      serviceId,
-      title: serviceData?.title || item.title || 'Service',
-      department: serviceData?.department || 'Administration',
-      requirements: normalizedReqs,
-      checklist: serviceChecklist,
-    });
-
-    serviceChecklist.forEach((step, idx) => {
-      checklist.push({
-        id: `chk_${serviceId}_${step.id || idx}`,
-        serviceId,
-        serviceTitle: serviceData?.title || item.title || 'Service',
-        title: step.title,
-        description: step.description || '',
-        aiInstructions: step.aiInstructions || '',
-        type: step.type || 'manual',
-        status: 'pending',
-        templateIds: step.templateIds && step.templateIds.length > 0 ? step.templateIds : undefined,
-      });
-    });
-  }
-
-  await orderRef.update({
-    checklist,
-    serviceSnapshots,
-    fulfillmentStatus: orderData.fulfillmentStatus || 'Awaiting Documents',
-    updatedAt: new Date().toISOString(),
-  });
-
-  return serializeDbData(checklist);
-}
-
-/**
  * Canonical State Machine Transition Engine for Orders.
  * Enforces deterministic validation rules before permitting state changes:
  * - Completed: Checks incomplete dependencies, pending/rejected uploads, uncompleted checklist items.
@@ -192,18 +128,6 @@ export async function transitionOrderStatusAtomic(
           success: false,
           error: `Cannot complete Order #${orderId}. Document issues: ${docIssues.join(', ')}. All documents must be approved before completion.`,
           isBlockedByDocuments: true,
-        };
-      }
-
-      // 3. Check checklist items
-      const checklist = orderData.checklist || [];
-      const incompleteSteps = checklist.filter(s => s.status !== 'completed' && s.status !== 'skipped');
-      if (incompleteSteps.length > 0) {
-        return {
-          success: false,
-          error: `Cannot complete Order #${orderId}. ${incompleteSteps.length} SOP checklist step(s) remain incomplete: ${incompleteSteps.map(s => `"${s.title}"`).join(', ')}. Complete all steps or mark as skipped.`,
-          isBlockedByChecklist: true,
-          incompleteSteps: incompleteSteps.map(s => s.title),
         };
       }
     }
@@ -287,135 +211,14 @@ export async function updateOrderStatusAtomic(
 }
 
 /**
- * Updates a checklist step atomically.
- */
-export async function updateOrderChecklistItemAtomic(
-  orderId: string,
-  stepId: string,
-  update: {
-    status: OrderChecklistItem['status'];
-    notes?: string;
-    artifactUrl?: string;
-    artifactName?: string;
-    isAiRecommended?: boolean;
-    aiNotes?: string;
-  },
-  performer: PerformerInput | InternalActor
-) {
-  try {
-    const db = getAdminDb();
-    const orderRef = db.collection('orders').doc(orderId);
-    const orderDoc = await orderRef.get();
-    if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
-
-    const orderData = orderDoc.data() || {};
-    const actor = await resolveVerifiedActor(performer, orderData as Order);
-
-    // The SOP checklist is My Accountant's internal fulfilment process. Partners resell services
-    // but must never see or mutate it — resolveVerifiedActor admits partners (they legitimately
-    // manage their own orders), so the staff/admin distinction has to be enforced here.
-    if (!actor.isStaffOrAdmin) {
-      throw new Error('Forbidden: Only My Accountant staff may update the internal fulfilment checklist.');
-    }
-
-    // `isAiRecommended` and `aiNotes` are written by the verification pipeline itself. Accepting
-    // them from a caller would let anyone forge the appearance of an AI-verified step.
-    const isInternalPipeline = performer === INTERNAL_SYSTEM_ACTOR;
-    if (!isInternalPipeline && (update.isAiRecommended !== undefined || update.aiNotes !== undefined)) {
-      throw new Error('Forbidden: AI verification metadata may only be set by the verification pipeline.');
-    }
-
-    let checklist: OrderChecklistItem[] = orderData.checklist || [];
-
-    if (checklist.length === 0) {
-      checklist = await ensureOrderChecklistInitialized(orderId);
-    }
-
-    const stepIndex = checklist.findIndex(s => s.id === stepId);
-    if (stepIndex === -1) throw new Error(`Checklist step "${stepId}" not found on order #${orderId}`);
-
-    const existingStep = checklist[stepIndex];
-    const previousStatus = existingStep.status;
-
-    checklist[stepIndex] = {
-      ...existingStep,
-      status: update.status,
-      notes: update.notes !== undefined ? update.notes : existingStep.notes,
-      artifactUrl: update.artifactUrl !== undefined ? update.artifactUrl : existingStep.artifactUrl,
-      artifactName: update.artifactName !== undefined ? update.artifactName : existingStep.artifactName,
-      isAiRecommended: update.isAiRecommended !== undefined ? update.isAiRecommended : existingStep.isAiRecommended,
-      aiNotes: update.aiNotes !== undefined ? update.aiNotes : existingStep.aiNotes,
-      completedAt: update.status === 'completed' ? new Date().toISOString() : existingStep.completedAt,
-      completedBy: update.status === 'completed' ? actor.id : existingStep.completedBy,
-      completedByName: update.status === 'completed' ? actor.name : existingStep.completedByName,
-    };
-
-    // Calculate new fulfillment status based on checklist progress
-    const allCompletedOrSkipped = checklist.every(s => s.status === 'completed' || s.status === 'skipped');
-    const anyInProgress = checklist.some(s => s.status === 'in_progress' || s.status === 'completed');
-    
-    let newFulfillmentStatus: Order['fulfillmentStatus'] = orderData.fulfillmentStatus || 'Awaiting Documents';
-    if (allCompletedOrSkipped) {
-      newFulfillmentStatus = 'Ready for Signoff';
-    } else if (anyInProgress) {
-      newFulfillmentStatus = 'In Execution';
-    }
-
-    const auditEntry: AuditEntry = {
-      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-      action: 'CHECKLIST_STEP_UPDATE',
-      performedBy: actor.id,
-      performedByName: actor.name,
-      timestamp: new Date().toISOString(),
-      previousValue: previousStatus,
-      newValue: update.status,
-      details: `Updated checklist step "${existingStep.title}" to ${update.status}${update.notes ? ` (${update.notes})` : ''}`,
-    };
-
-    const batch = db.batch();
-    const updatePayload = cleanFirestoreData({
-      checklist,
-      fulfillmentStatus: newFulfillmentStatus,
-      auditLog: [...(orderData.auditLog || []), auditEntry],
-      updatedAt: new Date().toISOString(),
-    });
-
-    batch.update(orderRef, updatePayload);
-
-    const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
-    if (mirrorId) {
-      const originalRef = db.collection('orders').doc(mirrorId);
-      // Partner copy gets checklist progress without the internal AI annotations.
-      batch.update(originalRef, cleanFirestoreData({
-        ...updatePayload,
-        checklist: stripInternalChecklistAiData(checklist),
-      }));
-    }
-
-    await batch.commit();
-
-    return serializeDbData({
-      success: true,
-      message: `Step "${existingStep.title}" marked as ${update.status}`,
-      fulfillmentStatus: newFulfillmentStatus,
-      updatedChecklist: checklist,
-    });
-  } catch (error: any) {
-    console.error('Error updating order checklist item:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Reviews an uploaded document atomically (Approve/Reject), updates AI recommendation, and logs audit trail.
+ * Reviews an uploaded document atomically (Approve/Reject) and logs audit trail.
  */
 export async function reviewOrderDocumentAtomic(
   orderId: string,
   identifier: string, // requirementId, fileUrl, or textValue
   status: 'approved' | 'rejected',
   performer: PerformerInput,
-  reason?: string,
-  aiVerification?: AIDocumentVerification
+  reason?: string
 ) {
   try {
     const db = getAdminDb();
@@ -442,12 +245,6 @@ export async function reviewOrderDocumentAtomic(
           status,
           rejectionReason: status === 'rejected' ? (reason || '') : '',
         };
-        const finalAi = aiVerification || doc.aiVerification;
-        if (finalAi) {
-          updatedItem.aiVerification = finalAi;
-        } else {
-          delete (updatedItem as any).aiVerification;
-        }
         return updatedItem;
       }
       return doc;
@@ -487,11 +284,7 @@ export async function reviewOrderDocumentAtomic(
     const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
     if (mirrorId) {
       const originalRef = db.collection('orders').doc(mirrorId);
-      // Partner copy gets document outcomes without the internal AI verification payload.
-      batch.update(originalRef, cleanFirestoreData({
-        ...updatePayload,
-        documentUploads: stripInternalAiData(cleanedUploads),
-      }));
+      batch.update(originalRef, updatePayload);
     }
 
     await batch.commit();
@@ -513,16 +306,6 @@ export async function reviewOrderDocumentAtomic(
         }
       } catch (emailErr) {
         console.error('Error sending rejection feedback email:', emailErr);
-      }
-    }
-
-    // If all documents are approved, auto-generate statutory document drafts
-    if (status === 'approved' && allApproved) {
-      try {
-        const { generateOrderDocumentDraftsInternal } = await import('@/app/actions/order-fulfillment-pipeline');
-        await generateOrderDocumentDraftsInternal(orderId);
-      } catch (genErr) {
-        console.error('Error generating document drafts on final approval:', genErr);
       }
     }
 

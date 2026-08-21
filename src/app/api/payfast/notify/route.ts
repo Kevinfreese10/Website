@@ -10,9 +10,6 @@ import DocumentRequestEmail from '@/components/emails/DocumentRequestEmail';
 import PartnerOnboardingEmail from '@/components/emails/PartnerOnboardingEmail';
 import { sendEmail } from '@/lib/email';
 import { services as allServices } from '@/lib/data';
-import { ensureOrderChecklistInitialized } from '@/app/actions/order-admin-actions';
-import { INTERNAL_SYSTEM_ACTOR } from '@/lib/internal-actor';
-import { triggerOrderAutomatedFulfillmentReview } from '@/app/actions/order-fulfillment-pipeline';
 
 // PayFast's valid IP ranges (combining legacy ranges, sandbox, and new AWS IP blocks)
 const PAYFAST_IP_RANGES = [
@@ -716,17 +713,6 @@ export async function POST(req: NextRequest) {
                       attachments: null,
                   }) 
               });
-          }
-
-          // Initialize SOP Fulfillment Checklist & trigger AI review if uploads already exist
-          try {
-              await ensureOrderChecklistInitialized(actualOrderId);
-              if (currentOrderData.documentUploads && currentOrderData.documentUploads.length > 0) {
-                  // Signature-verified PayFast webhook — a trusted server-to-server invocation.
-                  await triggerOrderAutomatedFulfillmentReview(actualOrderId, currentOrderData.customerName, { internal: INTERNAL_SYSTEM_ACTOR });
-              }
-          } catch (initErr) {
-              console.error(`[PayFast ITN] Error initializing checklist or AI review for order ${actualOrderId}:`, initErr);
           }
 
           await orderRef.update({ 

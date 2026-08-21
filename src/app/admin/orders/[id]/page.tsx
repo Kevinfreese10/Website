@@ -16,18 +16,9 @@ import {
   reassignOrderStaffAtomic, 
   linkOrderDependencyAtomic, 
   unlinkOrderDependencyAtomic,
-  updateOrderChecklistItemAtomic,
   reviewOrderDocumentAtomic,
-  requestCustomDocumentAtomic,
-  ensureOrderChecklistInitialized
+  requestCustomDocumentAtomic
 } from '@/app/actions/order-admin-actions';
-import { runAiDocumentVerification, confirmDocumentAiRecommendation, getOrderFulfillmentAiAdviceAction } from '@/lib/ai/order-fulfillment-tools';
-import { 
-  generateOrderDocumentDraftsAction, 
-  regenerateOrderDraftWithFeedbackAction, 
-  approveAndSendDraftToClientAction 
-} from '@/app/actions/order-fulfillment-pipeline';
-import { GeneratedDocumentDraft } from '@/lib/types';
 import { 
   ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, 
   Percent, CheckCircle, AlertTriangle, XCircle, Download, Info, Paperclip, Sparkles, BellRing, 
@@ -57,8 +48,6 @@ import { customAlphabet } from 'nanoid';
 import { cn, formatDate } from '@/lib/utils';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
-import OrderTemplateSelectorDialog from '@/components/admin/OrderTemplateSelectorDialog';
-import { AVAILABLE_DOCUMENT_TEMPLATES } from '@/lib/types';
 import { db, firebaseApp } from '@/lib/firebase';
 
 const storage = getStorage(firebaseApp);
@@ -152,22 +141,9 @@ export default function AdminOrderDetailsPage() {
   const [isOverrideDialogOpen, setIsOverrideDialogOpen] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
   const [pendingStatusChange, setPendingStatusChange] = useState<Order['status'] | null>(null);
-  const [verifyingDocId, setVerifyingDocId] = useState<string | null>(null);
-  const [updatingStepId, setUpdatingStepId] = useState<string | null>(null);
-
   // Attached files & Screenshots state for live preview
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Draft Document Templates States
-  const [isGeneratingDrafts, setIsGeneratingDrafts] = useState(false);
-  const [isTemplateSelectorOpen, setIsTemplateSelectorOpen] = useState(false);
-  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
-  const [selectedDraftForFeedback, setSelectedDraftForFeedback] = useState<GeneratedDocumentDraft | null>(null);
-  const [draftFeedbackText, setDraftFeedbackText] = useState('');
-  const [isRegeneratingDraft, setIsRegeneratingDraft] = useState(false);
-  const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
-  const [isRunningAiAdvisor, setIsRunningAiAdvisor] = useState(false);
 
   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
     resolver: zodResolver(noteFormSchema),
@@ -220,17 +196,6 @@ export default function AdminOrderDetailsPage() {
                         uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : (doc.uploadedAt ? (typeof doc.uploadedAt === 'string' ? doc.uploadedAt : new Date(doc.uploadedAt).toISOString()) : new Date().toISOString())
                     }));
                 }
-          }
-
-          if (!fetchedOrder.checklist || fetchedOrder.checklist.length === 0) {
-            try {
-              const initializedChecklist = await ensureOrderChecklistInitialized(fetchedOrder.id);
-              if (initializedChecklist.length > 0) {
-                fetchedOrder.checklist = initializedChecklist;
-              }
-            } catch (chkErr) {
-              console.error("Error initializing checklist:", chkErr);
-            }
           }
 
           setOrder(fetchedOrder);
@@ -382,47 +347,6 @@ export default function AdminOrderDetailsPage() {
     });
   }, [candidateOrders, order]);
 
-  const sopTemplatesForOrder = useMemo(() => {
-    if (!order) return [];
-    const serviceTitles = (order.items || []).map(i => i.title?.toLowerCase() || '');
-    const isNcr = serviceTitles.some(t => t.includes('ncr') || t.includes('credit provider'));
-    const isBee = serviceTitles.some(t => t.includes('bee') || t.includes('b-bbee') || t.includes('affidavit'));
-    const isAccountantLetter = serviceTitles.some(t => t.includes('accountant') || t.includes('confirmation letter'));
-    const isPublicOfficer = serviceTitles.some(t => t.includes('public officer') || t.includes('tax representative'));
-    const isShareCert = serviceTitles.some(t => t.includes('share certificate') || t.includes('shares'));
-    const isCompanyReg = serviceTitles.some(t => t.includes('company registration') || t.includes('director amendment'));
-    const isCoida = serviceTitles.some(t => t.includes('coida') || t.includes('nature of business'));
-
-    const list: typeof AVAILABLE_DOCUMENT_TEMPLATES = [];
-    if (isBee) {
-      const t = AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'bee_affidavit');
-      if (t) list.push(t);
-    }
-    if (isNcr) {
-      AVAILABLE_DOCUMENT_TEMPLATES.filter(x => ['ncr_form_2', 'ncr_director_resolution', 'ncr_annexure_fees', 'accounting_officer_letter'].includes(x.id)).forEach(t => list.push(t));
-    }
-    if (isAccountantLetter && !isNcr) {
-      const t = AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'accountants_letter');
-      if (t) list.push(t);
-    }
-    if (isPublicOfficer) {
-      const t = AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'sars_public_officer_resolution');
-      if (t) list.push(t);
-    }
-    if (isShareCert) {
-      AVAILABLE_DOCUMENT_TEMPLATES.filter(x => ['share_certificate', 'power_of_attorney'].includes(x.id)).forEach(t => list.push(t));
-    }
-    if (isCompanyReg && !isShareCert) {
-      const t = AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'power_of_attorney');
-      if (t) list.push(t);
-    }
-    if (isCoida) {
-      const t = AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'coida_cf1b_application');
-      if (t) list.push(t);
-    }
-    return list.length > 0 ? list : [AVAILABLE_DOCUMENT_TEMPLATES.find(x => x.id === 'engagement_letter') || AVAILABLE_DOCUMENT_TEMPLATES[0]];
-  }, [order]);
-
   const handleLinkPrerequisite = async (targetOrderId: string) => {
     if (!order || !currentUser) return;
     setIsLinkingDependency(true);
@@ -502,7 +426,7 @@ export default function AdminOrderDetailsPage() {
       setOverrideReason('');
       setPendingStatusChange(null);
     } else {
-      if (!isOverride && (res.isBlockedByPrerequisites || res.isBlockedByDocuments || res.isBlockedByChecklist)) {
+      if (!isOverride && (res.isBlockedByPrerequisites || res.isBlockedByDocuments)) {
         setPendingStatusChange(newStatus);
         setIsOverrideDialogOpen(true);
       }
@@ -637,52 +561,6 @@ export default function AdminOrderDetailsPage() {
     }
   };
 
-  const handleRunAiVerification = async (identifier: string) => {
-    if (!order) return;
-    setVerifyingDocId(identifier);
-    toast({ title: 'AI Inspecting Document...', description: 'Analyzing with multimodal Gemini compliance model.' });
-    try {
-      const res = await runAiDocumentVerification(order.id, identifier);
-      if (res.success && res.aiVerification) {
-        toast({
-          title: `AI: ${res.aiVerification.recommendation.toUpperCase()}`,
-          description: `${res.aiVerification.confidence}% confidence. ${res.aiVerification.summary}`,
-        });
-        await fetchOrderAndStaff();
-      } else {
-        throw new Error(res.error || 'AI verification failed.');
-      }
-    } catch (e: any) {
-      console.error(e);
-      toast({ title: 'AI Verification Error', description: e.message || 'Could not verify document.', variant: 'destructive' });
-    } finally {
-      setVerifyingDocId(null);
-    }
-  };
-
-  const handleConfirmAiRecommendation = async (identifier: string) => {
-    if (!order || !currentUser) return;
-    try {
-      const auth = getAuth(firebaseApp);
-      const idToken = await auth.currentUser?.getIdToken();
-      const performer = idToken || {
-        id: currentUser.id || currentUser.uid,
-        name: currentUser.name || currentUser.email || 'Admin',
-      };
-
-      const res = await confirmDocumentAiRecommendation(order.id, identifier, performer);
-      if (res.success) {
-        toast({ title: 'Confirmed AI Review', description: res.message });
-        await fetchOrderAndStaff();
-      } else {
-        throw new Error(res.error || 'Failed to confirm AI recommendation.');
-      }
-    } catch (e: any) {
-      console.error(e);
-      toast({ title: 'Error', description: e.message, variant: 'destructive' });
-    }
-  };
-
   const handleDocumentStatusUpdate = async (identifier: string, status: 'approved' | 'rejected', reason?: string) => {
     if (!order || !currentUser) return;
     try {
@@ -703,34 +581,6 @@ export default function AdminOrderDetailsPage() {
     } catch (error: any) {
       console.error("Error updating document status:", error);
       toast({ title: 'Error', description: error.message || 'Failed to update document status.', variant: "destructive" });
-    }
-  };
-
-  const handleToggleChecklistStep = async (stepId: string, currentStatus: string) => {
-    if (!order || !currentUser) return;
-    setUpdatingStepId(stepId);
-    const targetStatus = currentStatus === 'completed' ? 'pending' : 'completed';
-
-    try {
-      const auth = getAuth(firebaseApp);
-      const idToken = await auth.currentUser?.getIdToken();
-      const performer = idToken || {
-        id: currentUser.id || currentUser.uid,
-        name: currentUser.name || currentUser.email || 'Admin',
-      };
-
-      const res = await updateOrderChecklistItemAtomic(order.id, stepId, { status: targetStatus }, performer);
-      if (res.success) {
-        setOrder(prev => prev ? { ...prev, checklist: res.updatedChecklist, fulfillmentStatus: res.fulfillmentStatus } : null);
-        toast({ title: 'Checklist Updated', description: res.message });
-      } else {
-        throw new Error(res.error || 'Failed to update checklist step.');
-      }
-    } catch (e: any) {
-      console.error(e);
-      toast({ title: 'Error', description: e.message || 'Could not update step.', variant: 'destructive' });
-    } finally {
-      setUpdatingStepId(null);
     }
   };
 
@@ -942,117 +792,6 @@ export default function AdminOrderDetailsPage() {
             setIsSendingReminder(false);
         }
     }
-
-    const handleGenerateDrafts = async () => {
-        if (!order) return;
-        setIsGeneratingDrafts(true);
-        try {
-            const res = await generateOrderDocumentDraftsAction(order.id);
-            if (res.success) {
-                toast({ title: "Drafts Generated", description: res.message });
-                await fetchOrderAndStaff();
-            } else {
-                toast({ title: "Draft Generation Failed", description: res.error, variant: "destructive" });
-            }
-        } catch (err: any) {
-            toast({ title: "Draft Generation Error", description: err.message, variant: "destructive" });
-        } finally {
-            setIsGeneratingDrafts(false);
-        }
-    };
-
-    const handleGenerateSpecificTemplates = async (templateIds: string[]) => {
-        if (!order || templateIds.length === 0) return;
-        setIsGeneratingDrafts(true);
-        try {
-            const res = await generateOrderDocumentDraftsAction(order.id, templateIds);
-            if (res.success) {
-                toast({ title: "Drafts Generated", description: res.message });
-                await fetchOrderAndStaff();
-            } else {
-                toast({ title: "Draft Generation Failed", description: res.error, variant: "destructive" });
-            }
-        } catch (err: any) {
-            toast({ title: "Draft Generation Error", description: err.message, variant: "destructive" });
-        } finally {
-            setIsGeneratingDrafts(false);
-        }
-    };
-
-    const handleRunAiAdvisor = async () => {
-        if (!order) return;
-        setIsRunningAiAdvisor(true);
-        try {
-            const auth = getAuth();
-            const idToken = await auth.currentUser?.getIdToken();
-            const res = await getOrderFulfillmentAiAdviceAction(order.id, idToken);
-            if (res.success && res.advice) {
-                toast({ 
-                    title: "AI Order Audit Complete", 
-                    description: `Health Score: ${res.advice.fulfillmentHealthScore}% • State: ${res.advice.overallState.replace(/_/g, ' ').toUpperCase()}` 
-                });
-                await fetchOrderAndStaff();
-            } else {
-                toast({ title: "AI Audit Failed", description: res.error, variant: "destructive" });
-            }
-        } catch (err: any) {
-            toast({ title: "AI Audit Error", description: err.message, variant: "destructive" });
-        } finally {
-            setIsRunningAiAdvisor(false);
-        }
-    };
-
-    const handleOpenFeedbackDialog = (draft: GeneratedDocumentDraft) => {
-        setSelectedDraftForFeedback(draft);
-        setDraftFeedbackText('');
-        setFeedbackDialogOpen(true);
-    };
-
-    const handleRegenerateDraftSubmit = async () => {
-        if (!order || !selectedDraftForFeedback || !draftFeedbackText.trim()) return;
-        setIsRegeneratingDraft(true);
-        try {
-            const res = await regenerateOrderDraftWithFeedbackAction(
-                order.id,
-                selectedDraftForFeedback.id,
-                draftFeedbackText,
-                { id: currentUser?.uid || 'staff', name: currentUser?.name || 'Staff' }
-            );
-            if (res.success) {
-                toast({ title: "Draft Regenerated", description: res.message });
-                setFeedbackDialogOpen(false);
-                await fetchOrderAndStaff();
-            } else {
-                toast({ title: "Regeneration Failed", description: res.error, variant: "destructive" });
-            }
-        } catch (err: any) {
-            toast({ title: "Regeneration Error", description: err.message, variant: "destructive" });
-        } finally {
-            setIsRegeneratingDraft(false);
-        }
-    };
-
-    const handleApproveAndSendDraft = async (draft: GeneratedDocumentDraft) => {
-        if (!order) return;
-        setSendingDraftId(draft.id);
-        try {
-            const res = await approveAndSendDraftToClientAction(
-                order.id,
-                draft.id,
-                { id: currentUser?.uid || 'staff', name: currentUser?.name || 'Staff' }
-            );
-            if (res.success) {
-                toast({ title: "Draft Approved & Sent", description: res.message });
-                await fetchOrderAndStaff();
-            } else {
-                toast({ title: "Action Failed", description: res.error, variant: "destructive" });
-            }
-        } catch (err: any) {
-            toast({ title: "Send Error", description: err.message, variant: "destructive" });
-        } finally {
-            setSendingDraftId(null);
-        }
-    };
   
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
@@ -1570,117 +1309,6 @@ export default function AdminOrderDetailsPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Order Fulfillment Checklist (SOP) Card */}
-                    <Card className="border-primary/20 bg-gradient-to-b from-card to-primary/[0.02]">
-                        <CardHeader className="pb-3">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <ListChecks className="h-5 w-5 text-primary" />
-                                        <CardTitle className="text-base font-bold">Fulfillment SOP Checklist</CardTitle>
-                                        {order.fulfillmentStatus && (
-                                            <Badge variant={
-                                                order.fulfillmentStatus === 'Completed' ? 'success' :
-                                                order.fulfillmentStatus === 'Ready for Signoff' ? 'default' :
-                                                order.fulfillmentStatus === 'In Execution' ? 'warning' : 'secondary'
-                                            } className="text-xs font-semibold">
-                                                {order.fulfillmentStatus}
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <CardDescription className="text-xs mt-0.5">
-                                        Standard operating procedure & step-by-step tasks for order fulfillment.
-                                    </CardDescription>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                                    <span>
-                                        {order.checklist ? order.checklist.filter(s => s.status === 'completed' || s.status === 'skipped').length : 0} of {order.checklist?.length || 0} Steps Complete
-                                    </span>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3 pt-0">
-                            {order.checklist && order.checklist.length > 0 ? (
-                                <div className="space-y-2.5">
-                                    {order.checklist.map((step, sIdx) => {
-                                        const isDone = step.status === 'completed';
-                                        const isUpdating = updatingStepId === step.id;
-                                        return (
-                                            <div
-                                                key={step.id || sIdx}
-                                                className={cn(
-                                                    "flex items-start justify-between p-3 rounded-lg border transition-colors",
-                                                    isDone ? "bg-muted/30 border-muted-foreground/20" : "bg-card border-border hover:border-primary/40"
-                                                )}
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <button
-                                                        type="button"
-                                                        disabled={isUpdating}
-                                                        onClick={() => handleToggleChecklistStep(step.id, step.status)}
-                                                        className="mt-0.5 text-muted-foreground hover:text-primary transition-colors shrink-0 disabled:opacity-50"
-                                                    >
-                                                        {isUpdating ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                                                        ) : isDone ? (
-                                                            <CheckSquare className="h-4 w-4 text-green-600" />
-                                                        ) : (
-                                                            <Square className="h-4 w-4" />
-                                                        )}
-                                                    </button>
-                                                    <div>
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <p className={cn("text-sm font-semibold", isDone && "line-through text-muted-foreground")}>
-                                                                {step.title}
-                                                            </p>
-                                                            {step.type && (
-                                                                <Badge variant="outline" className="text-[10px] py-0 font-normal">
-                                                                    {step.type === 'doc_verification' ? 'Doc Review' :
-                                                                     step.type === 'external_filing' ? 'CIPC/SARS Filing' :
-                                                                     step.type === 'internal_calc' ? 'Calculation' :
-                                                                     step.type === 'signoff' ? 'Sign-off' : 'Task'}
-                                                                </Badge>
-                                                            )}
-                                                            {step.isAiRecommended && (
-                                                                <Badge variant="secondary" className="text-[10px] py-0 bg-primary/10 text-primary border-primary/20">
-                                                                    <Bot className="h-2.5 w-2.5 mr-1" /> AI Action
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                        {step.description && (
-                                                            <p className="text-xs text-muted-foreground mt-0.5">
-                                                                {step.description}
-                                                            </p>
-                                                        )}
-                                                        {isDone && step.completedAt && (
-                                                            <p className="text-[11px] text-green-600 dark:text-green-400 mt-1 font-medium flex items-center gap-1">
-                                                                <CheckCircle className="h-3 w-3" />
-                                                                Completed {safeFormatDate(step.completedAt, 'dd MMM yyyy, HH:mm')} {step.completedByName ? `by ${step.completedByName}` : ''}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    size="xs"
-                                                    variant={isDone ? "ghost" : "outline"}
-                                                    disabled={isUpdating}
-                                                    onClick={() => handleToggleChecklistStep(step.id, step.status)}
-                                                    className="text-xs shrink-0 ml-2"
-                                                >
-                                                    {isDone ? 'Undo' : 'Mark Done'}
-                                                </Button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <p className="text-xs text-muted-foreground italic py-2">
-                                    No checklist initialized yet. Order tasks will generate automatically.
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
-
                     {/* Required Information & Document Review Card */}
                     <Card>
                         <CardHeader>
@@ -1691,7 +1319,7 @@ export default function AdminOrderDetailsPage() {
                                         Required Documents & Information
                                     </CardTitle>
                                     <CardDescription className="text-xs">
-                                        Client uploads with automated multimodal AI verification and compliance inspection.
+                                        Client uploads and verification for statutory processing.
                                     </CardDescription>
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -1721,7 +1349,6 @@ export default function AdminOrderDetailsPage() {
                                                     ((d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === req.label)
                                                 );
                                                 const identifier = upload ? (upload.requirementId || upload.id || (upload.type === 'file' ? upload.fileUrl! : upload.textValue!) || upload.requirementLabel) : (req.id || req.label);
-                                                const isVerifying = Boolean(verifyingDocId && (verifyingDocId === identifier || (upload?.fileUrl && verifyingDocId === upload.fileUrl)));
 
                                                 return (
                                                     <li key={index} className="pt-2 p-3 rounded-lg bg-muted/20 border border-border/50 space-y-2.5">
@@ -1762,19 +1389,8 @@ export default function AdminOrderDetailsPage() {
                                                                 {/* Multiple Files List */}
                                                                 {upload.files && upload.files.length > 0 ? (
                                                                     <div className="space-y-1.5">
-                                                                        <div className="text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
-                                                                            <span>{upload.files.length} {upload.files.length === 1 ? 'file uploaded' : 'files uploaded'}:</span>
-                                                                            <Button
-                                                                                type="button"
-                                                                                variant="outline"
-                                                                                size="xs"
-                                                                                disabled={isVerifying}
-                                                                                onClick={() => handleRunAiVerification(identifier)}
-                                                                                className="gap-1 font-semibold text-primary border-primary/30 hover:bg-primary/5 h-6 text-[11px]"
-                                                                            >
-                                                                                {isVerifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
-                                                                                {upload.aiVerification ? 'Re-Verify with AI' : 'AI Verify'}
-                                                                            </Button>
+                                                                        <div className="text-[11px] font-semibold text-muted-foreground">
+                                                                            {upload.files.length} {upload.files.length === 1 ? 'file uploaded' : 'files uploaded'}:
                                                                         </div>
                                                                         <div className="grid grid-cols-1 gap-1.5">
                                                                             {upload.files.map((f, fIdx) => (
@@ -1796,80 +1412,14 @@ export default function AdminOrderDetailsPage() {
                                                                         <a href={upload.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline flex items-center gap-1.5 truncate max-w-md">
                                                                             <Download className="h-4 w-4 shrink-0 text-primary" /> {upload.fileName || 'View Uploaded Document'}
                                                                         </a>
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="outline"
-                                                                            size="xs"
-                                                                            disabled={isVerifying}
-                                                                            onClick={() => handleRunAiVerification(identifier)}
-                                                                            className="gap-1 font-semibold text-primary border-primary/30 hover:bg-primary/5 shrink-0 ml-2"
-                                                                        >
-                                                                            {isVerifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
-                                                                            {upload.aiVerification ? 'Re-Verify with AI' : 'AI Verify'}
-                                                                        </Button>
                                                                     </div>
                                                                 ) : upload.textValue ? (
-                                                                    <div className="flex items-center justify-between bg-muted p-2.5 rounded-md border text-xs gap-2">
+                                                                    <div className="bg-muted p-2.5 rounded-md border text-xs">
                                                                         <p className="font-medium text-foreground truncate max-w-md">
                                                                             "{upload.textValue}"
                                                                         </p>
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="outline"
-                                                                            size="xs"
-                                                                            disabled={isVerifying}
-                                                                            onClick={() => handleRunAiVerification(identifier)}
-                                                                            className="gap-1 font-semibold text-primary border-primary/30 hover:bg-primary/5 shrink-0 ml-2"
-                                                                        >
-                                                                            {isVerifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bot className="h-3 w-3" />}
-                                                                            {upload.aiVerification ? 'Re-Verify Format' : 'Verify Format'}
-                                                                        </Button>
                                                                     </div>
                                                                 ) : null}
-
-                                                                {/* AI Multimodal Verification Box */}
-                                                                {upload.aiVerification && (
-                                                                    <div className={cn(
-                                                                        "p-3 rounded-lg border text-xs space-y-1.5",
-                                                                        upload.aiVerification.recommendation === 'approve' ? "bg-green-500/10 border-green-500/30 text-green-950 dark:text-green-200" :
-                                                                        upload.aiVerification.recommendation === 'reject' ? "bg-red-500/10 border-red-500/30 text-red-950 dark:text-red-200" :
-                                                                        "bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-200"
-                                                                    )}>
-                                                                        <div className="flex items-center justify-between font-bold">
-                                                                            <span className="flex items-center gap-1.5">
-                                                                                <Bot className="h-3.5 w-3.5" />
-                                                                                AI Assessment: Recommended {upload.aiVerification.recommendation.toUpperCase()} ({upload.aiVerification.confidence}% Confidence)
-                                                                            </span>
-                                                                            {upload.aiVerification.detectedType && (
-                                                                                <Badge variant="outline" className="text-[10px] bg-background/60">
-                                                                                    {upload.aiVerification.detectedType}
-                                                                                </Badge>
-                                                                            )}
-                                                                        </div>
-                                                                        {upload.aiVerification.summary && (
-                                                                            <p className="text-[11px] opacity-90">{upload.aiVerification.summary}</p>
-                                                                        )}
-                                                                        {upload.aiVerification.issues && upload.aiVerification.issues.length > 0 && (
-                                                                            <div className="pt-1 text-[11px] text-destructive font-semibold">
-                                                                                Issues Detected: {upload.aiVerification.issues.join('; ')}
-                                                                            </div>
-                                                                        )}
-
-                                                                        {upload.status === 'pending' && (
-                                                                            <div className="pt-1.5 flex items-center gap-2">
-                                                                                <Button
-                                                                                    type="button"
-                                                                                    size="xs"
-                                                                                    className="bg-green-600 hover:bg-green-700 text-white font-bold h-7 gap-1"
-                                                                                    onClick={() => handleConfirmAiRecommendation(identifier)}
-                                                                                >
-                                                                                    <ShieldCheck className="h-3.5 w-3.5" />
-                                                                                    1-Click Confirm AI Recommendation
-                                                                                </Button>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                )}
 
                                                                 {/* Manual Review Actions */}
                                                                 {upload.status === 'pending' && (
@@ -1909,415 +1459,6 @@ export default function AdminOrderDetailsPage() {
                             </CardFooter>
                         )}
                     </Card>
-
-                    {/* 🧠 Proactive AI Order Fulfillment Advisor Card */}
-                    <Card className="border-indigo-200 dark:border-indigo-900/60 shadow-xs bg-gradient-to-br from-indigo-50/40 via-background to-blue-50/30 dark:from-indigo-950/20 dark:via-background dark:to-blue-950/10">
-                        <CardHeader className="border-b pb-3.5 bg-indigo-50/60 dark:bg-indigo-950/40">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <CardTitle className="text-base font-bold flex items-center gap-2 text-indigo-950 dark:text-indigo-200">
-                                            <Bot className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                                            AI Order Fulfillment Advisor
-                                        </CardTitle>
-                                        {order.aiFulfillmentAdvice && (
-                                            <>
-                                                <Badge 
-                                                    className={cn(
-                                                        "text-xs font-bold px-2 py-0.5",
-                                                        order.aiFulfillmentAdvice.fulfillmentHealthScore >= 80 ? "bg-emerald-600 text-white" :
-                                                        order.aiFulfillmentAdvice.fulfillmentHealthScore >= 50 ? "bg-amber-600 text-white" :
-                                                        "bg-rose-600 text-white"
-                                                    )}
-                                                >
-                                                    Health Score: {order.aiFulfillmentAdvice.fulfillmentHealthScore}%
-                                                </Badge>
-                                                <Badge variant="outline" className="text-xs uppercase font-bold text-indigo-800 dark:text-indigo-300 border-indigo-300">
-                                                    {order.aiFulfillmentAdvice.overallState.replace(/_/g, ' ')}
-                                                </Badge>
-                                                {order.aiFulfillmentAdvice.lodgementReadiness && (
-                                                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 font-bold text-[11px]">
-                                                        ✓ Ready for Lodgement
-                                                    </Badge>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                    <CardDescription className="text-xs text-muted-foreground">
-                                        Autonomous audit synthesizing ordered products, client documents, Communication History notes, and SOP progression.
-                                    </CardDescription>
-                                </div>
-
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 text-xs font-bold border-indigo-300 hover:bg-indigo-50 text-indigo-900 dark:text-indigo-200 shadow-2xs self-start sm:self-auto shrink-0"
-                                    onClick={handleRunAiAdvisor}
-                                    disabled={isRunningAiAdvisor}
-                                >
-                                    {isRunningAiAdvisor ? (
-                                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin text-indigo-600" />
-                                    ) : (
-                                        <Sparkles className="h-3.5 w-3.5 mr-1.5 text-indigo-600" />
-                                    )}
-                                    {order.aiFulfillmentAdvice ? "Re-Audit Order" : "Run AI Order Audit"}
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-4 sm:p-5 space-y-4">
-                            {order.aiFulfillmentAdvice ? (
-                                <div className="space-y-4">
-                                    {/* Executive Summary */}
-                                    <div className="p-3.5 rounded-lg bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-xs text-foreground space-y-1">
-                                        <span className="font-bold text-indigo-950 dark:text-indigo-200 uppercase tracking-wide text-[10px] block">
-                                            Executive Assessment:
-                                        </span>
-                                        <p className="leading-relaxed text-indigo-950 dark:text-indigo-100 font-medium">
-                                            {order.aiFulfillmentAdvice.summary}
-                                        </p>
-                                    </div>
-
-                                    {/* Communication History Insights */}
-                                    {order.aiFulfillmentAdvice.communicationInsights && order.aiFulfillmentAdvice.communicationInsights.length > 0 && (
-                                        <div className="space-y-2 p-3 rounded-lg border bg-background/80">
-                                            <h6 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                                                <MessageSquare className="h-3.5 w-3.5 text-indigo-600" />
-                                                Communication History Intelligence:
-                                            </h6>
-                                            <ul className="space-y-1.5 pl-4 list-disc text-xs text-muted-foreground">
-                                                {order.aiFulfillmentAdvice.communicationInsights.map((insight, idx) => (
-                                                    <li key={idx} className="leading-relaxed">
-                                                        <span className="text-foreground">{insight}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-
-                                    {/* Actionable AI Recommendations */}
-                                    {order.aiFulfillmentAdvice.aiRecommendations && order.aiFulfillmentAdvice.aiRecommendations.length > 0 && (
-                                        <div className="space-y-2 p-3 rounded-lg border bg-background/80">
-                                            <h6 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                                                <ListChecks className="h-3.5 w-3.5 text-indigo-600" />
-                                                Prioritized Next Steps & Recommendations:
-                                            </h6>
-                                            <ul className="space-y-1.5 pl-4 list-disc text-xs text-muted-foreground">
-                                                {order.aiFulfillmentAdvice.aiRecommendations.map((rec, idx) => (
-                                                    <li key={idx} className="leading-relaxed">
-                                                        <span className="text-foreground font-medium">{rec}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-
-                                    {/* Missing Items Warning */}
-                                    {order.aiFulfillmentAdvice.missingItems && order.aiFulfillmentAdvice.missingItems.length > 0 && (
-                                        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg text-xs space-y-1">
-                                            <div className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                                                <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
-                                                Outstanding Compliance Prerequisites:
-                                            </div>
-                                            <ul className="list-disc pl-5 text-amber-800 dark:text-amber-300 space-y-0.5">
-                                                {order.aiFulfillmentAdvice.missingItems.map((item, idx) => (
-                                                    <li key={idx}>{item}</li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-
-                                    {/* Primary Recommended Action CTA */}
-                                    <div className="flex items-center justify-between pt-2 border-t text-xs">
-                                        <span className="text-muted-foreground text-[11px]">
-                                            AI Recommended Next Action: <strong>{order.aiFulfillmentAdvice.nextActionLabel}</strong>
-                                        </span>
-                                        {(!order.generatedDrafts || order.generatedDrafts.length === 0) && (
-                                            <Button
-                                                size="sm"
-                                                className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
-                                                onClick={handleGenerateDrafts}
-                                                disabled={isGeneratingDrafts}
-                                            >
-                                                {isGeneratingDrafts ? (
-                                                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                                                ) : (
-                                                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                                                )}
-                                                Auto-Generate SOP Deliverables
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="p-6 text-center space-y-3 rounded-lg border border-dashed bg-background/60">
-                                    <Bot className="h-8 w-8 text-indigo-500 mx-auto" />
-                                    <div className="space-y-1">
-                                        <h5 className="text-sm font-bold text-foreground">AI Order Fulfillment Audit Ready</h5>
-                                        <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                                            Run the AI Order Advisor to audit all documents against product SOPs, analyze Communication History, calculate health score, and generate recommended statutory deliverables.
-                                        </p>
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
-                                        onClick={handleRunAiAdvisor}
-                                        disabled={isRunningAiAdvisor}
-                                    >
-                                        {isRunningAiAdvisor ? (
-                                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                                        ) : (
-                                            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                                        )}
-                                        Run AI Order Audit & Advisor
-                                    </Button>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* 🤖 AI SOP Statutory Deliverables & Drafts Card */}
-                    <Card className="border-indigo-200 dark:border-indigo-900/50 shadow-xs">
-                        <CardHeader className="bg-gradient-to-r from-indigo-50/70 to-blue-50/50 dark:from-indigo-950/30 dark:to-blue-950/20 border-b pb-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div>
-                                    <CardTitle className="text-base font-bold flex items-center gap-2 text-indigo-950 dark:text-indigo-200">
-                                        <ScrollText className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                                        AI SOP Statutory Deliverables & Drafts
-                                    </CardTitle>
-                                    <CardDescription className="text-xs text-indigo-900/70 dark:text-indigo-300/70">
-                                        Official South African statutory application drafts determined automatically by the product's Standard Operating Procedure.
-                                    </CardDescription>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Button 
-                                        size="sm" 
-                                        variant="default"
-                                        className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
-                                        onClick={handleGenerateDrafts}
-                                        disabled={isGeneratingDrafts}
-                                    >
-                                        {isGeneratingDrafts ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin text-white" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
-                                        {order.generatedDrafts && order.generatedDrafts.length > 0 ? "Regenerate All SOP Drafts" : "Auto-Generate SOP Drafts"}
-                                    </Button>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-4 sm:p-5 space-y-4">
-                            {/* Review Completion Gate Alert */}
-                            {(!order.documentUploads || order.documentUploads.some(d => d.status !== 'approved')) && (!order.generatedDrafts || order.generatedDrafts.length === 0) && (
-                                <div className="p-4 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg flex items-start gap-3">
-                                    <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                                    <div className="space-y-1">
-                                        <h5 className="text-xs font-bold text-amber-950 dark:text-amber-200">Awaiting Document Approval</h5>
-                                        <p className="text-xs text-amber-800 dark:text-amber-300">
-                                            Statutory draft templates will automatically generate when all client documents are approved above. You can also click "Auto-Generate SOP Drafts" above to generate them on-demand immediately.
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Generated Drafts List */}
-                            {order.generatedDrafts && order.generatedDrafts.length > 0 ? (
-                                <div className="space-y-3">
-                                    {order.generatedDrafts.map((draft, dIdx) => (
-                                        <div key={draft.id || dIdx} className="p-3.5 rounded-lg border bg-card hover:bg-muted/30 transition-colors space-y-3">
-                                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                                                            <FileText className="h-4 w-4 text-indigo-600" />
-                                                            {draft.title}
-                                                        </span>
-                                                        <Badge variant={draft.status === 'sent_to_client' ? 'default' : draft.status === 'regenerated' ? 'secondary' : 'outline'} className="text-[10px] uppercase font-bold">
-                                                            {draft.status === 'sent_to_client' ? 'Sent to Client' : draft.status === 'regenerated' ? 'Regenerated' : 'Draft Ready'}
-                                                        </Badge>
-                                                    </div>
-                                                    {draft.description && (
-                                                        <p className="text-xs text-muted-foreground">{draft.description}</p>
-                                                    )}
-                                                    <p className="text-[11px] text-muted-foreground">
-                                                        Generated: {formatDate(draft.generatedAt, 'datetime')} • File: <span className="font-mono text-foreground">{draft.fileName}</span>
-                                                    </p>
-                                                </div>
-
-                                                {/* Action Buttons */}
-                                                <div className="flex items-center gap-2 shrink-0 pt-1 sm:pt-0">
-                                                    <a 
-                                                        href={draft.fileUrl} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer" 
-                                                        className="inline-flex items-center justify-center rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2.5 shadow-2xs"
-                                                    >
-                                                        <ExternalLink className="h-3.5 w-3.5 mr-1 text-primary" /> View PDF
-                                                    </a>
-
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="outline" 
-                                                        className="h-8 text-xs font-semibold border-amber-300 hover:bg-amber-50 text-amber-900 dark:text-amber-200"
-                                                        onClick={() => handleOpenFeedbackDialog(draft)}
-                                                    >
-                                                        <RefreshCw className="h-3.5 w-3.5 mr-1 text-amber-600" /> Regenerate
-                                                    </Button>
-
-                                                    <Button 
-                                                        size="sm" 
-                                                        className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
-                                                        disabled={sendingDraftId === draft.id || draft.status === 'sent_to_client'}
-                                                        onClick={() => handleApproveAndSendDraft(draft)}
-                                                    >
-                                                        {sendingDraftId === draft.id ? (
-                                                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                                                        ) : draft.status === 'sent_to_client' ? (
-                                                            <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-emerald-300" />
-                                                        ) : (
-                                                            <FileSignature className="h-3.5 w-3.5 mr-1.5" />
-                                                        )}
-                                                        {draft.status === 'sent_to_client' ? 'Sent for Signature' : 'Approve & Send to Client'}
-                                                    </Button>
-                                                </div>
-                                            </div>
-
-                                            {/* Feedback History Trail */}
-                                            {draft.feedbackHistory && draft.feedbackHistory.length > 0 && (
-                                                <div className="p-2.5 bg-muted/50 rounded-md border text-xs space-y-1.5">
-                                                    <div className="font-semibold text-muted-foreground flex items-center gap-1.5 text-[11px]">
-                                                        <History className="h-3.5 w-3.5 text-amber-600" /> Revision Feedback History:
-                                                    </div>
-                                                    {draft.feedbackHistory.map((fb, fIdx) => (
-                                                        <div key={fIdx} className="text-xs text-foreground pl-5 border-l-2 border-amber-300">
-                                                            <span className="font-medium text-amber-950 dark:text-amber-300">{fb.consultantName}</span> ({formatDate(fb.timestamp, 'datetime')}): "{fb.feedback}"
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-
-                                    <div className="pt-2 flex items-center justify-between border-t text-xs">
-                                        <span className="text-muted-foreground text-[11px]">
-                                            Need an optional statutory template override?
-                                        </span>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-7 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                                            onClick={() => setIsTemplateSelectorOpen(true)}
-                                            disabled={isGeneratingDrafts}
-                                        >
-                                            <Plus className="h-3.5 w-3.5 mr-1" />
-                                            Draft custom template override...
-                                        </Button>
-                                    </div>
-                                </div>
-                            ) : (
-                                /* AI SOP Deliverables Queue (When no drafts generated yet) */
-                                <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/30 dark:bg-indigo-950/20 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <Sparkles className="h-4 w-4 text-indigo-600" />
-                                            <h6 className="text-xs font-bold text-foreground">SOP Mandated Statutory Deliverables for this Product:</h6>
-                                        </div>
-                                        <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 dark:text-indigo-300 font-bold">
-                                            {sopTemplatesForOrder.length} Mandatory Deliverable{sopTemplatesForOrder.length > 1 ? 's' : ''}
-                                        </Badge>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                        {sopTemplatesForOrder.map(tmpl => (
-                                            <div
-                                                key={tmpl.id}
-                                                className="p-3 rounded-lg border bg-background text-left transition-all flex flex-col justify-between gap-1.5 shadow-2xs"
-                                            >
-                                                <div className="flex items-center justify-between gap-1">
-                                                    <span className="text-xs font-bold text-foreground line-clamp-1">
-                                                        {tmpl.title}
-                                                    </span>
-                                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 shrink-0 font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
-                                                        {tmpl.category}
-                                                    </Badge>
-                                                </div>
-                                                <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                                                    {tmpl.description}
-                                                </p>
-                                                <div className="flex items-center justify-between pt-1 border-t text-[10px] text-muted-foreground">
-                                                    <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold">
-                                                        <ShieldCheck className="h-3 w-3" /> SOP Required
-                                                    </span>
-                                                    <span>Pre-fills from verified intake</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-2 border-t border-indigo-200 dark:border-indigo-800/40">
-                                        <span className="text-[11px] text-muted-foreground">
-                                            The AI engine will compile verified director, company, and financial data into compliant PDFs.
-                                        </span>
-                                        <Button
-                                            size="sm"
-                                            className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
-                                            onClick={handleGenerateDrafts}
-                                            disabled={isGeneratingDrafts}
-                                        >
-                                            {isGeneratingDrafts ? (
-                                                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                                            ) : (
-                                                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                                            )}
-                                            Auto-Generate All SOP Deliverables
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Statutory Document Template Selector Dialog (Optional Override) */}
-                    <OrderTemplateSelectorDialog
-                        open={isTemplateSelectorOpen}
-                        onOpenChange={setIsTemplateSelectorOpen}
-                        onGenerateTemplates={handleGenerateSpecificTemplates}
-                        isGenerating={isGeneratingDrafts}
-                    />
-
-                    {/* Feedback & Regeneration Dialog */}
-                    <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2">
-                                    <RefreshCw className="h-4 w-4 text-amber-600" />
-                                    Regenerate Draft with Corrections
-                                </DialogTitle>
-                                <DialogDescription>
-                                    Provide adjustment notes for <strong>{selectedDraftForFeedback?.title}</strong>. The template engine will apply your corrections and generate an updated PDF.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-3 py-2">
-                                <Textarea 
-                                    rows={3} 
-                                    placeholder="e.g. Update share split to 60 Ordinary Shares for Director A and 40 for Director B; change registered address to..." 
-                                    value={draftFeedbackText}
-                                    onChange={(e) => setDraftFeedbackText(e.target.value)}
-                                    className="text-xs font-medium"
-                                />
-                            </div>
-                            <DialogFooter className="gap-2 sm:gap-0">
-                                <Button type="button" variant="ghost" size="sm" onClick={() => setFeedbackDialogOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button 
-                                    type="button" 
-                                    size="sm" 
-                                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
-                                    disabled={isRegeneratingDraft || !draftFeedbackText.trim()}
-                                    onClick={handleRegenerateDraftSubmit}
-                                >
-                                    {isRegeneratingDraft ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                                    Regenerate Draft
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
 
                     <Card>
                         <CardHeader><CardTitle>Communication History</CardTitle></CardHeader>
