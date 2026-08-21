@@ -299,6 +299,7 @@ export async function POST(req: NextRequest) {
         }
 
         if (data.payment_status === 'COMPLETE') {
+          const isTopupOnly = currentOrderData.items && currentOrderData.items.length > 0 && currentOrderData.items.every(i => i.id === 'partner_credit_topup');
           if (isOutsourcePayment) {
               const note = {
                   text: `Order outsourced to My Accountant. Paid via PayFast. Document request sent to ${currentOrderData.documentContact === 'client' ? currentOrderData.endCustomerEmail : currentOrderData.customerEmail}.`,
@@ -312,6 +313,11 @@ export async function POST(req: NextRequest) {
                   isOutsourced: true,
                   status: 'Processing',
                   notes: FieldValue.arrayUnion(note)
+              });
+          } else if (isTopupOnly) {
+              await orderRef.update({ 
+                  status: 'Completed',
+                  fulfillmentStatus: 'Completed'
               });
           } else {
               await orderRef.update({ status: 'Processing' });
@@ -405,8 +411,9 @@ export async function POST(req: NextRequest) {
               });
           }
           
-          // Staff Workload Querying & Load-Balanced Allocation
-          try {
+          // Staff Workload Querying & Load-Balanced Allocation (Skip for Practice Credit Top-ups)
+          if (!isTopupOnly) {
+            try {
               let department: 'Accounting and Tax' | 'Administration' | 'CAP' = 'Administration';
               
               if (currentOrderData.department) {
@@ -568,8 +575,9 @@ export async function POST(req: NextRequest) {
               });
               
               console.log(`Task ${taskRef.id} successfully created${assignedStaffId ? ` and assigned` : ` (unassigned)`}`);
-          } catch (allocationError) {
+            } catch (allocationError) {
               console.error(`Error during staff allocation/task creation for order ${orderId}:`, allocationError);
+            }
           }
           
           // Handle Partner Credit Top-ups & Setup Fees
@@ -609,6 +617,21 @@ export async function POST(req: NextRequest) {
                           description: isSetup ? 'Setup fee credit allocation (50%)' : 'Wallet top-up via PayFast',
                           date: new Date()
                       });
+
+                      if (isTopup) {
+                          await orderRef.update({
+                              status: 'Completed',
+                              fulfillmentStatus: 'Completed',
+                              notes: FieldValue.arrayUnion({
+                                  text: `Practice credit top-up of R${creditAmount.toFixed(2)} received and credited to partner wallet. Order completed automatically.`,
+                                  date: new Date(),
+                                  authorId: 'system',
+                                  type: 'note',
+                                  subject: null,
+                                  attachments: null
+                              })
+                          });
+                      }
 
                   if (isSetup) {
                       try {
