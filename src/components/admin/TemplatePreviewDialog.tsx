@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DocumentTemplateOption } from '@/lib/types';
 import { FileText, ExternalLink, Loader2 } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/lib/firebase';
 
 interface TemplatePreviewDialogProps {
   template: DocumentTemplateOption | null;
@@ -19,14 +21,49 @@ export default function TemplatePreviewDialog({
   onOpenChange,
 }: TemplatePreviewDialogProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
 
+  // The preview endpoint is staff-only, and an <iframe src> cannot send an Authorization header.
+  // Fetch the PDF with the caller's ID token and render it from an object URL instead.
   useEffect(() => {
-    if (open && template) {
-      setIsLoading(true);
-    }
-  }, [open, template?.id]);
+    let objectUrl: string | null = null;
+    let cancelled = false;
 
-  const previewUrl = template ? `/api/templates/preview?id=${template.id}` : '';
+    async function load() {
+      if (!open || !template) return;
+      setIsLoading(true);
+      setLoadError(null);
+      setPreviewUrl('');
+      try {
+        const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+        if (!idToken) throw new Error('You must be signed in to preview templates.');
+
+        const res = await fetch(`/api/templates/preview?id=${encodeURIComponent(template.id)}`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        if (!res.ok) {
+          throw new Error(res.status === 403
+            ? 'You do not have permission to preview statutory templates.'
+            : `Could not load preview (${res.status}).`);
+        }
+        const blob = await res.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPreviewUrl(objectUrl);
+      } catch (err: any) {
+        if (!cancelled) setLoadError(err.message || 'Could not load preview.');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [open, template?.id]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,12 +94,19 @@ export default function TemplatePreviewDialog({
                 <p className="text-xs text-muted-foreground font-medium">Generating PDF Template Preview...</p>
               </div>
             )}
-            <iframe
-              src={previewUrl}
-              className="w-full h-full border-0 rounded-lg"
-              title={template.title}
-              onLoad={() => setIsLoading(false)}
-            />
+            {loadError && !isLoading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-6 text-center">
+                <FileText className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm font-medium text-destructive">{loadError}</p>
+              </div>
+            )}
+            {previewUrl && (
+              <iframe
+                src={previewUrl}
+                className="w-full h-full border-0 rounded-lg"
+                title={template.title}
+              />
+            )}
           </div>
 
           <DialogFooter className="flex flex-row items-center justify-between sm:justify-between border-t pt-3 shrink-0">
@@ -70,14 +114,16 @@ export default function TemplatePreviewDialog({
               Sample render powered by the My Accountant Statutory PDF Engine.
             </p>
             <div className="flex items-center gap-2">
-              <a
-                href={previewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-md text-xs font-semibold border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 shadow-2xs"
-              >
-                <ExternalLink className="h-3.5 w-3.5 mr-1.5 text-primary" /> Open in New Tab
-              </a>
+              {previewUrl && (
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-md text-xs font-semibold border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 shadow-2xs"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 mr-1.5 text-primary" /> Open in New Tab
+                </a>
+              )}
               <Button size="sm" variant="default" onClick={() => onOpenChange(false)} className="h-8 text-xs font-semibold">
                 Close
               </Button>

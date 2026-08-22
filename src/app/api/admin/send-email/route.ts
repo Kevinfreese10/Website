@@ -10,7 +10,16 @@ export async function POST(req: Request) {
     const idToken = authHeader.split('Bearer ')[1];
     
     try {
-        await getAdminAuth().verifyIdToken(idToken);
+        // The decoded token was previously discarded, so ANY authenticated user — and signup is
+        // self-service — could send arbitrary HTML to arbitrary recipients from the practice's
+        // own SPF/DKIM-aligned domain. Verify the caller is actually staff.
+        const decoded = await getAdminAuth().verifyIdToken(idToken);
+        const callerSnap = await getAdminDb().collection('users').doc(decoded.uid).get();
+        const callerRole = callerSnap.exists ? (callerSnap.data()?.role || '') : '';
+        if (!['admin', 'staff', 'cap_staff', 'cap_supervisor'].includes(callerRole)) {
+            return NextResponse.json({ error: 'Forbidden: staff access required.' }, { status: 403 });
+        }
+
         const body = await req.json();
         const { to, subject, html } = body;
 

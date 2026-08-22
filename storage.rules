@@ -2,105 +2,182 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Uploads path: Accessible by owner or admin
+
+    // There was previously no server-side limit on upload size or type anywhere — the only checks
+    // were a client-side 25 MB guard and `accept` attributes (one of which is `accept="*"`), both
+    // trivially bypassed. Unbounded uploads are a storage-cost DoS, and because several paths are
+    // publicly readable, arbitrary content types allow hosting HTML/SVG phishing pages on a domain
+    // associated with the practice.
+    function isAllowedUpload() {
+      return request.resource.size < 25 * 1024 * 1024 &&
+             (request.resource.contentType.matches('application/pdf') ||
+              request.resource.contentType.matches('image/(jpeg|png|gif|webp|heic|heif)') ||
+              request.resource.contentType.matches('text/csv') ||
+              request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*') ||
+              request.resource.contentType.matches('application/vnd.ms-.*') ||
+              request.resource.contentType.matches('application/msword'));
+    }
+
+
+    // Talent CVs. Read was open to ANY authenticated user, so every accountant's CV on the talent
+    // board was downloadable by anyone who signed up. Restricted to the owner and admin/staff;
+    // sharing with a prospective employer should go through a server-mediated introduction.
     match /uploads/{userId}/talent/{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && (
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('role', '') in ['admin', 'staff', 'cap_staff', 'cap_supervisor'])
+      );
+      allow write: if (request.auth != null && (
         request.auth.uid == userId ||
         (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
-      );
+      )) && isAllowedUpload();
     }
     match /uploads/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && (
+      allow read: if request.auth != null && (
         request.auth.uid == userId ||
         (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
+      allow write: if (request.auth != null && (
+        request.auth.uid == userId ||
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      )) && isAllowedUpload();
     }
 
     // Partner applications path: Accessible by owner or admin
     match /partner-applications/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && (
+      allow read: if request.auth != null && (
         request.auth.uid == userId ||
         (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
+      allow write: if (request.auth != null && (
+        request.auth.uid == userId ||
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      )) && isAllowedUpload();
     }
 
     // Users path (e.g. logo, landing-page assets): Publicly readable, writeable by owner, staff, or admin
     match /users/{userId}/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && (
+      allow write: if (request.auth != null && (
         request.auth.uid == userId ||
         (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
         (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') == userId)
-      );
+      )) && isAllowedUpload();
     }
 
     // Partners path (PartnerProfile logo/hero): Publicly readable, writeable by owner, staff, or admin
     match /partners/{userId}/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && (
+      allow write: if (request.auth != null && (
         request.auth.uid == userId ||
         (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
         (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') == userId)
-      );
+      )) && isAllowedUpload();
     }
 
     // Reseller applications path: Accessible by owner or admin
     match /reseller-applications/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && (
+      allow read: if request.auth != null && (
         request.auth.uid == userId ||
         (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
+      allow write: if (request.auth != null && (
+        request.auth.uid == userId ||
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      )) && isAllowedUpload();
     }
 
-    // Orders path: Accessible by owner, reseller, partner, partner staff, or admin
+    // Orders path: Accessible by the order's own client, its reseller/partner (and their active
+    // staff), or My Accountant admin/staff.
+    //
+    // The first disjunct previously granted access on ROLE ALONE and included 'partner' and
+    // 'partner_staff' — with no reference to {orderId}. Because it was OR'd ahead of the
+    // per-order checks below, any partner-role account could read and overwrite every client's
+    // uploaded KYC documents across the entire platform (IDs, bank letters, CIPC and SARS docs),
+    // and partner signup is self-service. Internal fulfilment genuinely needs cross-order access,
+    // so admin/staff are kept; partner roles must now match the specific order.
     match /orders/{orderId}/{allPaths=**} {
-      allow read, write: if request.auth != null && (
-        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && 
-         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('role', '') in ['admin', 'staff', 'cap_staff', 'cap_supervisor', 'partner', 'partner_staff']) ||
+      allow read: if request.auth != null && (
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('role', '') in ['admin', 'staff', 'cap_staff', 'cap_supervisor']) ||
         (firestore.exists(/databases/(default)/documents/orders/$(orderId)) && (
           firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('userId', '') == request.auth.uid ||
           firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('resellerId', '') == request.auth.uid ||
           firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('partnerId', '') == request.auth.uid ||
+          (request.auth.token.email != null &&
+           (firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('customerEmail', '') == request.auth.token.email ||
+            firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('endCustomerEmail', '') == request.auth.token.email)) ||
           (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
            firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') != '' &&
            (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') == firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('resellerId', '') ||
             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') == firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('partnerId', '')))
         ))
       );
+      allow write: if (request.auth != null && (
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('role', '') in ['admin', 'staff', 'cap_staff', 'cap_supervisor']) ||
+        (firestore.exists(/databases/(default)/documents/orders/$(orderId)) && (
+          firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('userId', '') == request.auth.uid ||
+          firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('resellerId', '') == request.auth.uid ||
+          firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('partnerId', '') == request.auth.uid ||
+          (request.auth.token.email != null &&
+           (firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('customerEmail', '') == request.auth.token.email ||
+            firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('endCustomerEmail', '') == request.auth.token.email)) ||
+          (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+           firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') != '' &&
+           (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') == firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('resellerId', '') ||
+            firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('partnerId', '') == firestore.get(/databases/(default)/documents/orders/$(orderId)).data.get('partnerId', '')))
+        ))
+      )) && isAllowedUpload();
     }
 
     // VAT audit docs: Accessible by client owner or admin
     match /vat-audit-docs/{clientId}/{allPaths=**} {
-      allow read, write: if request.auth != null && (
+      allow read: if request.auth != null && (
         request.auth.uid == clientId ||
         (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
+      allow write: if (request.auth != null && (
+        request.auth.uid == clientId ||
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      )) && isAllowedUpload();
     }
 
     // Supporting documents: Accessible by admin or staff
     match /supporting-documents/{invoiceId}/{allPaths=**} {
-      allow read, write: if request.auth != null && (
+      allow read: if request.auth != null && (
         firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'staff', 'cap_staff', 'cap_supervisor']
       );
+      allow write: if (request.auth != null && (
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'staff', 'cap_staff', 'cap_supervisor']
+      )) && isAllowedUpload();
     }
 
     // AI Payroll path: Accessible by client owner or admin
     match /ai-payroll/{clientId}/{allPaths=**} {
-      allow read, write: if request.auth != null && (
+      allow read: if request.auth != null && (
         request.auth.uid == clientId ||
         (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
+      allow write: if (request.auth != null && (
+        request.auth.uid == clientId ||
+        (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      )) && isAllowedUpload();
     }
 
     // Invoices path: Accessible by admin or staff
     match /invoices/{allPaths=**} {
-      allow read, write: if request.auth != null && (
+      allow read: if request.auth != null && (
         firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'staff', 'cap_staff', 'cap_supervisor']
       );
+      allow write: if (request.auth != null && (
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'staff', 'cap_staff', 'cap_supervisor']
+      )) && isAllowedUpload();
     }
   }
 }

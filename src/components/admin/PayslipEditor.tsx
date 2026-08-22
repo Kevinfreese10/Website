@@ -1,4 +1,6 @@
 'use client';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/lib/firebase';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -523,6 +525,7 @@ export default function PayslipEditor({
             processRecurring(totals.updatedDeductions, 'deduction');
 
             const res = await updatePayslipAction({
+                idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                 clientId: client.id,
                 payslipId: payslip.id,
                 data: finalData,

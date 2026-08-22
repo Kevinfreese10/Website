@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, Megaphone, Copy, Facebook, Share2, Info, ArrowRight, RefreshCw, Trash2, X, Settings, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import { getAuth } from 'firebase/auth';
 import { Service, BlogPost } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -241,8 +242,9 @@ export default function SocialMarketingPage() {
                 pageId,
                 tokenToSave,
                 testResult.pageName,
-                testResult.pagePictureUrl || ''
-            );
+                testResult.pagePictureUrl || '',
+        await getAuth(firebaseApp).currentUser?.getIdToken()
+      );
 
             if (res.success) {
                 updateUser({
@@ -294,7 +296,7 @@ export default function SocialMarketingPage() {
                 link: linkUrl,
                 imageUrl: imageUrl,
                 postMode: postFormat
-            });
+            }, await getAuth(firebaseApp).currentUser?.getIdToken());
             if (res.success && res.postId) {
                 setPostingStatus(prev => ({ ...prev, [index]: 'success' }));
                 toast({
@@ -365,7 +367,7 @@ export default function SocialMarketingPage() {
                     link: linkUrl,
                     imageUrl: imageUrl,
                     postMode: postFormat
-                });
+                }, await getAuth(firebaseApp).currentUser?.getIdToken());
                 if (res.success) {
                     setPostingStatus(prev => ({ ...prev, [idx]: 'success' }));
                     successCount++;

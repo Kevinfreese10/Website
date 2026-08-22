@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { getFirestore, collection, query, orderBy, doc, onSnapshot, deleteDoc, getDoc, getDocs, where, limit } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import { getAuth } from 'firebase/auth';
 import { Employee, Payslip, User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import EmployeeForm from '@/components/admin/EmployeeForm';
@@ -93,6 +94,7 @@ export default function EmployeesPage() {
 
     try {
         const res = await saveEmployeeAction({
+            idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
             clientId,
             employeeId: selectedEmployee?.id,
             data: values
@@ -102,6 +104,7 @@ export default function EmployeesPage() {
             if (selectedEmployee?.id) {
                 if (selectedEmployee.basicSalary !== values.basicSalary || selectedEmployee.hourlyRate !== values.hourlyRate) {
                     await syncEmployeeSalaryToActivePayslipAction({
+                        idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                         clientId,
                         employeeId: selectedEmployee.id,
                         newSalary: values.payType === 'Hourly' ? values.hourlyRate : values.basicSalary,
@@ -152,6 +155,7 @@ export default function EmployeesPage() {
           } else {
               const baseValue = employee.payType === 'Hourly' ? (employee.hourlyRate || 0) : (employee.basicSalary || 0);
               const res = await generateEmployeePayslipAction({
+                  idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                   clientId,
                   employeeId: employee.id,
                   basicSalary: baseValue

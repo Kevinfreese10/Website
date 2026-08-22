@@ -18,6 +18,7 @@ import { User, Task } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, query, where, serverTimestamp, writeBatch, getDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import { getAuth } from 'firebase/auth';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminCreateUserAction, adminDeleteUserAction } from '@/app/actions';
 import { Badge } from '@/components/ui/badge';
@@ -214,7 +215,7 @@ export default function ManageUsersPage() {
       }
 
       // Delete user from Firebase Auth and Firestore via Server Action
-      const deleteRes = await adminDeleteUserAction({ uid: userIdToDelete });
+      const deleteRes = await adminDeleteUserAction({ uid: userIdToDelete, idToken: await getAuth(firebaseApp).currentUser?.getIdToken() });
       if (!deleteRes.success) {
         toast({ title: 'Error', description: deleteRes.error || 'Could not delete the user account.', variant: 'destructive' });
         return;
@@ -257,6 +258,7 @@ export default function ManageUsersPage() {
             }
             
             const createRes = await adminCreateUserAction({
+                idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                 email: userData.email,
                 password: password,
                 name: userData.name,

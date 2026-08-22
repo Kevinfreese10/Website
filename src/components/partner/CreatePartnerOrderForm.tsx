@@ -338,6 +338,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                 generatedPassword = nanoid();
                 
                 const createRes = await adminCreateUserAction({
+                    idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                     email: email,
                     password: generatedPassword,
                     name: `${values.customerFirstName} ${values.customerLastName}`,

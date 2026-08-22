@@ -133,17 +133,32 @@ export async function POST(req: NextRequest) {
         // Initialize Admin Firestore
         const adminDb = getAdminDb();
 
+        // 0. Merchant validation — reject notifications that aren't for OUR merchant account.
+        //
+        // Without this, an attacker could register their own PayFast SANDBOX merchant, create a
+        // cheap sandbox transaction whose m_payment_id is a real order id and whose amount matches
+        // that order's total, and replay the ITN here. Local signature verification would fail
+        // (different passphrase), and the fallback below then chose its validation endpoint from
+        // the REQUEST BODY — so `merchant_id: '100…'` steered it to the sandbox validator, which
+        // returned VALID, and the order was marked paid for free.
+        const expectedMerchantId = process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID;
+        if (expectedMerchantId && data.merchant_id && data.merchant_id !== expectedMerchantId) {
+            console.error(`ITN Rejected: merchant_id "${data.merchant_id}" does not match this deployment's merchant.`);
+            return new NextResponse('OK', { status: 200 });
+        }
+
         // 1. Signature Validation using the RAW body (moved up so it validates all requests)
         let isValid = verifyPayFastSignature(rawBody, data.signature, process.env.PAYFAST_PASSPHRASE);
-        
+
         if (!isValid) {
             console.warn(`ITN Warning: Local signature mismatch for order/partner ${orderId}. Attempting server confirmation fallback.`);
             try {
-                const isSandbox = data.merchant_id === '10042278' || 
-                                  data.merchant_id === '10049800' || 
-                                  data.merchant_id.startsWith('100') ||
-                                  process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL?.includes('sandbox');
-                const validationUrl = isSandbox 
+                // Sandbox-vs-live is determined by OUR OWN server configuration only. It must never
+                // be derived from the request body — that let the caller pick their own validator.
+                const isSandbox = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL?.includes('sandbox') ||
+                                  expectedMerchantId === '10042278' ||
+                                  expectedMerchantId === '10049800';
+                const validationUrl = isSandbox
                     ? 'https://sandbox.payfast.co.za/eng/query/validate'
                     : 'https://www.payfast.co.za/eng/query/validate';
                 

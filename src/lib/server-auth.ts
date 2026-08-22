@@ -133,3 +133,38 @@ export async function verifyAiAccountantClientAccess(authCtx: AuthContext | null
     return false;
   }
 }
+
+/**
+ * True when the caller may act on the given AI Payroll client record.
+ *
+ * Mirrors verifyAiAccountantClientAccess, and additionally admits the invited portal user for
+ * that client (payroll clients are created with an auto-generated id while the portal user has
+ * their own Firebase uid, so an identity comparison against clientId never matches them).
+ */
+export async function verifyAiPayrollClientAccess(authCtx: AuthContext | null, clientId: string): Promise<boolean> {
+  if (!authCtx || !clientId) return false;
+  if (authCtx.isAdmin || authCtx.isStaff) return true;
+
+  try {
+    const adminDb = getAdminDb();
+    const clientSnap = await adminDb.collection('aiPayrollClients').doc(clientId).get();
+    if (!clientSnap.exists) return false;
+
+    const clientData = clientSnap.data()!;
+
+    // The client's own portal user.
+    if (clientData.portalUserId === authCtx.userId) return true;
+    if ((authCtx.user as any).payrollClientId === clientId) return true;
+
+    if (!authCtx.isPartner) return false;
+
+    const practiceId = authCtx.user.partnerId || authCtx.userId;
+    const sharedWith: string[] = clientData.sharedWith || [];
+    return clientData.createdBy === practiceId ||
+           clientData.partnerId === practiceId ||
+           sharedWith.includes(authCtx.userId);
+  } catch (err) {
+    console.error('[server-auth] Error verifying AI Payroll client access:', err);
+    return false;
+  }
+}

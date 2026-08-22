@@ -8,15 +8,39 @@ import { sendEmail } from '@/lib/email';
 import { render } from '@react-email/components';
 import React from 'react';
 import AdminStaffWelcomeEmail from '@/components/emails/AdminStaffWelcomeEmail';
-import { getAuthContext } from '@/lib/server-auth';
+import { getVerifiedAuthContext } from '@/lib/server-auth';
 
-export async function reactivatePracticeSubscription({ userId, requestorId }: { userId: string; requestorId?: string }) {
-    if (requestorId) {
-        const authCtx = await getAuthContext(requestorId);
-        if (!authCtx?.isAdmin) {
-            return { success: false, error: 'Unauthorized: Admin privileges required.' };
-        }
-    }
+/**
+ * Every action in this file performs a privileged operation with the Admin SDK — creating users,
+ * setting passwords, deleting accounts, toggling access. They are `'use server'` exports, which
+ * means they are directly-callable HTTP endpoints, and they previously performed NO caller
+ * verification at all: an anonymous request could set any user's password or create an account
+ * with `role: 'admin'`.
+ *
+ * A verified Firebase ID token belonging to an admin is now required for all of them.
+ */
+async function requireAdmin(idToken: string | undefined): Promise<{ error: string } | null> {
+  const authCtx = await getVerifiedAuthContext(idToken);
+  if (!authCtx) {
+    return { error: 'Unauthorized: A valid authentication token is required.' };
+  }
+  if (!authCtx.isAdmin && authCtx.user.role !== 'admin') {
+    return { error: 'Forbidden: Admin privileges required.' };
+  }
+  return null;
+}
+
+/**
+ * Roles this action is permitted to assign. `role` arrives from the caller, so without an
+ * allowlist an admin-authenticated request could still mint arbitrary or typo'd role strings.
+ */
+const ASSIGNABLE_ROLES = ['client', 'staff', 'cap_staff', 'cap_supervisor', 'partner', 'partner_staff', 'partner_admin', 'admin'];
+
+export async function reactivatePracticeSubscription({ userId, idToken }: { userId: string; idToken?: string }) {
+    // Previously gated on `if (requestorId)` — omitting the optional argument skipped the check.
+    const authError = await requireAdmin(idToken);
+    if (authError) return { success: false, ...authError };
+
     const adminDb = getAdminDb();
     const userRef = adminDb.collection('users').doc(userId);
     await userRef.update({
@@ -34,6 +58,7 @@ export async function adminCreateUserAction({
   source,
   contactNumber,
   department,
+  idToken,
 }: {
   email: string;
   password?: string;
@@ -42,8 +67,16 @@ export async function adminCreateUserAction({
   source?: string;
   contactNumber?: string;
   department?: string;
+  idToken?: string;
 }) {
   try {
+    const authError = await requireAdmin(idToken);
+    if (authError) return { success: false, ...authError };
+
+    if (!ASSIGNABLE_ROLES.includes(role)) {
+      return { success: false, error: 'invalid-role', message: `Role "${role}" is not assignable.` };
+    }
+
     const adminAuth = getAdminAuth();
     const adminDb = getAdminDb();
 
@@ -143,8 +176,11 @@ export async function adminCreateUserAction({
   }
 }
 
-export async function adminDeleteUserAction({ uid }: { uid: string }) {
+export async function adminDeleteUserAction({ uid, idToken }: { uid: string; idToken?: string }) {
   try {
+    const authError = await requireAdmin(idToken);
+    if (authError) return { success: false, ...authError };
+
     const adminAuth = getAdminAuth();
     const adminDb = getAdminDb();
 
@@ -166,8 +202,11 @@ export async function adminDeleteUserAction({ uid }: { uid: string }) {
   }
 }
 
-export async function adminUpdateUserPasswordAction({ uid, password }: { uid: string; password?: string }) {
+export async function adminUpdateUserPasswordAction({ uid, password, idToken }: { uid: string; password?: string; idToken?: string }) {
   try {
+    const authError = await requireAdmin(idToken);
+    if (authError) return { success: false, ...authError };
+
     if (!password || password.length < 6) {
       return { success: false, error: 'invalid-password', message: 'Password must be at least 6 characters.' };
     }
@@ -180,8 +219,11 @@ export async function adminUpdateUserPasswordAction({ uid, password }: { uid: st
   }
 }
 
-export async function adminToggleUserActiveAction({ uid, isActive }: { uid: string; isActive: boolean }) {
+export async function adminToggleUserActiveAction({ uid, isActive, idToken }: { uid: string; isActive: boolean; idToken?: string }) {
   try {
+    const authError = await requireAdmin(idToken);
+    if (authError) return { success: false, ...authError };
+
     const adminAuth = getAdminAuth();
     const adminDb = getAdminDb();
 

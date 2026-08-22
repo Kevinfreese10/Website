@@ -4,8 +4,30 @@ import { getAdminDb, cleanFirestoreData } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { User, Employee, Payslip } from '@/lib/types';
 import { format, addDays, addMonths, addYears, parse as parseDate } from 'date-fns';
+import { getVerifiedAuthContext, verifyAiPayrollClientAccess } from '@/lib/server-auth';
 
-export async function saveEmployeeAction({ clientId, employeeId, data }: { clientId: string, employeeId?: string, data: any }) {
+/**
+ * Every export in this file mutates a specific payroll client's employees or payslips using the
+ * Admin SDK, which bypasses Firestore rules. They are `'use server'` exports — directly-callable
+ * HTTP endpoints — and previously performed NO caller verification at all, taking `clientId` as a
+ * plain string. Anyone who could read a clientId out of a URL could rewrite salaries, create ghost
+ * employees, finalise a payroll run, or delete a whole period's payslips.
+ *
+ * Every action now requires a verified ID token whose holder is authorised for that client.
+ */
+async function requirePayrollAccess(idToken: string | undefined, clientId: string) {
+  if (!clientId) return { success: false, error: 'A client is required.' };
+  const authCtx = await getVerifiedAuthContext(idToken);
+  if (!authCtx) return { success: false, error: 'Unauthorized: A valid authentication token is required.' };
+  const allowed = await verifyAiPayrollClientAccess(authCtx, clientId);
+  if (!allowed) return { success: false, error: 'Forbidden: You do not have access to this payroll client.' };
+  return null;
+}
+
+export async function saveEmployeeAction({ idToken, clientId, employeeId, data }: { idToken?: string, clientId: string, employeeId?: string, data: any }) {
+  const authError = await requirePayrollAccess(idToken, clientId);
+  if (authError) return authError;
+
     try {
         const adminDb = getAdminDb();
         const employeesCol = adminDb.collection('aiPayrollClients').doc(clientId).collection('employees');
@@ -37,7 +59,10 @@ export async function saveEmployeeAction({ clientId, employeeId, data }: { clien
     }
 }
 
-export async function generateEmployeePayslipAction({ clientId, employeeId, basicSalary, hours }: any) {
+export async function generateEmployeePayslipAction({ idToken, clientId, employeeId, basicSalary, hours }: any) {
+  const authError = await requirePayrollAccess(idToken, clientId);
+  if (authError) return authError;
+
     try {
         const { PayrollServiceServer } = await import('@/services/PayrollServiceServer');
         return await PayrollServiceServer.generateInitialPayslip(clientId, employeeId, basicSalary, hours);
@@ -46,7 +71,10 @@ export async function generateEmployeePayslipAction({ clientId, employeeId, basi
     }
 }
 
-export async function updateDraftPayslipHoursAction({ clientId, employeeId, hours }: any) {
+export async function updateDraftPayslipHoursAction({ idToken, clientId, employeeId, hours }: any) {
+  const authError = await requirePayrollAccess(idToken, clientId);
+  if (authError) return authError;
+
     const adminDb = getAdminDb();
     const snap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips')
         .where('employeeId', '==', employeeId)
@@ -89,7 +117,10 @@ export async function updateDraftPayslipHoursAction({ clientId, employeeId, hour
     return { success: true };
 }
 
-export async function syncEmployeeSalaryToActivePayslipAction({ clientId, employeeId, newSalary, isNetSalary }: any) {
+export async function syncEmployeeSalaryToActivePayslipAction({ idToken, clientId, employeeId, newSalary, isNetSalary }: any) {
+  const authError = await requirePayrollAccess(idToken, clientId);
+  if (authError) return authError;
+
     const adminDb = getAdminDb();
     const snap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips')
         .where('employeeId', '==', employeeId)
@@ -128,7 +159,10 @@ export async function syncEmployeeSalaryToActivePayslipAction({ clientId, employ
     return { success: true };
 }
 
-export async function bulkSyncDraftPayslipsAction({ clientId }: any) {
+export async function bulkSyncDraftPayslipsAction({ idToken, clientId }: any) {
+  const authError = await requirePayrollAccess(idToken, clientId);
+  if (authError) return authError;
+
     try {
         const adminDb = getAdminDb();
         const clientRef = adminDb.collection('aiPayrollClients').doc(clientId);
@@ -180,7 +214,10 @@ export async function bulkSyncDraftPayslipsAction({ clientId }: any) {
     }
 }
 
-export async function bulkFinalizeDraftPayslipsAction({ clientId }: any) {
+export async function bulkFinalizeDraftPayslipsAction({ idToken, clientId }: any) {
+  const authError = await requirePayrollAccess(idToken, clientId);
+  if (authError) return authError;
+
     try {
         const adminDb = getAdminDb();
         const payslipsSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').where('status', '==', 'draft').get();
@@ -227,7 +264,10 @@ export async function bulkFinalizeDraftPayslipsAction({ clientId }: any) {
     }
 }
 
-export async function updatePayslipAction({ clientId, payslipId, data, employeeId, recurringItems }: { clientId: string, payslipId: string, data: any, employeeId?: string, recurringItems?: any[] }) {
+export async function updatePayslipAction({ idToken, clientId, payslipId, data, employeeId, recurringItems }: { idToken?: string, clientId: string, payslipId: string, data: any, employeeId?: string, recurringItems?: any[] }) {
+  const authError = await requirePayrollAccess(idToken, clientId);
+  if (authError) return authError;
+
     try {
         const adminDb = getAdminDb();
         const batch = adminDb.batch();
@@ -253,7 +293,10 @@ export async function updatePayslipAction({ clientId, payslipId, data, employeeI
     }
 }
 
-export async function rollForwardPayrollAction({ clientId }: { clientId: string }) {
+export async function rollForwardPayrollAction({ idToken, clientId }: { idToken?: string, clientId: string }) {
+  const authError = await requirePayrollAccess(idToken, clientId);
+  if (authError) return authError;
+
     const adminDb = getAdminDb();
     const clientRef = adminDb.collection('aiPayrollClients').doc(clientId);
     const clientSnap = await clientRef.get();
@@ -358,7 +401,10 @@ export async function rollForwardPayrollAction({ clientId }: { clientId: string 
     return { success: true, nextPeriod, created };
 }
 
-export async function rollBackPayrollAction({ clientId }: { clientId: string }) {
+export async function rollBackPayrollAction({ idToken, clientId }: { idToken?: string, clientId: string }) {
+  const authError = await requirePayrollAccess(idToken, clientId);
+  if (authError) return authError;
+
     const adminDb = getAdminDb();
     const clientRef = adminDb.collection('aiPayrollClients').doc(clientId);
     const clientSnap = await clientRef.get();
@@ -381,12 +427,27 @@ export async function rollBackPayrollAction({ clientId }: { clientId: string }) 
     const psSnap = await adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips')
         .where('period', '==', currentPeriod)
         .get();
-    
+
+    // This query previously filtered on period ALONE and hard-deleted everything it returned —
+    // including payslips already finalised, declared on an EMP201 and emailed to employees, while
+    // the UI reported "Deleted N draft records". SARS requires those records be retained for five
+    // years and there is no archive to recover them from, so refuse rather than destroy them.
+    const finalized = psSnap.docs.filter(d => (d.data() as any)?.status === 'finalized');
+    if (finalized.length > 0) {
+        return {
+            success: false,
+            error: `Cannot roll back ${currentPeriod}: ${finalized.length} payslip(s) in this period are already finalised. ` +
+                   `Finalised payslips form part of your statutory records and must be corrected with an adjustment, not deleted.`,
+        };
+    }
+
+    const draftDocs = psSnap.docs.filter(d => (d.data() as any)?.status !== 'finalized');
+
     const batch = adminDb.batch();
-    psSnap.forEach(d => batch.delete(d.ref));
+    draftDocs.forEach(d => batch.delete(d.ref));
     batch.update(clientRef, { firstProcessingMonth: prevPeriod });
-    
+
     await batch.commit();
 
-    return { success: true, prevPeriod, deletedCount: psSnap.size };
+    return { success: true, prevPeriod, deletedCount: draftDocs.length };
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Calculator, Loader2, FileText, ReceiptText, CheckCircle2, AlertCircle, ArrowRightLeft, CalendarClock, ChevronRight, RotateCcw, History, Filter, Eye, Download, Search, SaveAll, RefreshCw } from 'lucide-react';
 import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, getDocs, where, limit } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import { getAuth } from 'firebase/auth';
 import { Payslip, Employee, User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -140,7 +141,7 @@ export default function PayslipsPage() {
     setIsRolling(true);
     
     try {
-        const res = (await rollForwardPayrollAction({ clientId })) as any;
+        const res = (await rollForwardPayrollAction({ clientId, idToken: await getAuth(firebaseApp).currentUser?.getIdToken() })) as any;
         if (res.success) {
             toast({ 
                 title: "Month Rolled Forward", 
@@ -161,7 +162,7 @@ export default function PayslipsPage() {
     setIsRollingBack(true);
     
     try {
-        const res = (await rollBackPayrollAction({ clientId })) as any;
+        const res = (await rollBackPayrollAction({ clientId, idToken: await getAuth(firebaseApp).currentUser?.getIdToken() })) as any;
         if (res.success) {
             toast({ 
                 title: "Month Rolled Back", 
@@ -180,7 +181,7 @@ export default function PayslipsPage() {
   const handleSyncAll = async () => {
       setIsSyncingAll(true);
       try {
-          const res = await bulkSyncDraftPayslipsAction({ clientId });
+          const res = await bulkSyncDraftPayslipsAction({ clientId, idToken: await getAuth(firebaseApp).currentUser?.getIdToken() });
           if (res.success) {
               toast({ title: "Sync Complete", description: `Synchronized ${res.count} draft payslips with employee profiles.` });
           } else {
@@ -196,7 +197,7 @@ export default function PayslipsPage() {
   const handleFinalizeAll = async () => {
       setIsFinalizingAll(true);
       try {
-          const res = await bulkFinalizeDraftPayslipsAction({ clientId });
+          const res = await bulkFinalizeDraftPayslipsAction({ clientId, idToken: await getAuth(firebaseApp).currentUser?.getIdToken() });
           if (res.success) {
               toast({ title: "Finalize Complete", description: `Saved and finalized ${res.count} payslips.` });
           } else {
@@ -221,6 +222,7 @@ export default function PayslipsPage() {
           } else {
               const baseValue = employee.payType === 'Hourly' ? (employee.hourlyRate || 0) : (employee.basicSalary || 0);
               const res = await generateEmployeePayslipAction({
+                  idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                   clientId,
                   employeeId: employee.id,
                   basicSalary: baseValue

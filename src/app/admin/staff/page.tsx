@@ -17,6 +17,7 @@ import { User } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getFirestore, collection, getDocs, doc, setDoc, query, where } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import { getAuth } from 'firebase/auth';
 import { adminCreateUserAction, adminUpdateUserPasswordAction, adminDeleteUserAction, adminToggleUserActiveAction } from '@/app/actions';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -262,7 +263,7 @@ export default function AdminStaffPage() {
   const handleToggleActive = async (staffMember: User) => {
     try {
         const newStatus = staffMember.isActive === false ? true : false;
-        const res = await adminToggleUserActiveAction({ uid: staffMember.id, isActive: newStatus });
+        const res = await adminToggleUserActiveAction({ uid: staffMember.id, isActive: newStatus, idToken: await getAuth(firebaseApp).currentUser?.getIdToken() });
         
         if (!res.success) {
             toast({ title: 'Error', description: res.error || 'Could not change account status.', variant: 'destructive' });
@@ -283,7 +284,7 @@ export default function AdminStaffPage() {
   
   const handleDelete = async (staffId: string) => {
     try {
-        const deleteRes = await adminDeleteUserAction({ uid: staffId });
+        const deleteRes = await adminDeleteUserAction({ uid: staffId, idToken: await getAuth(firebaseApp).currentUser?.getIdToken() });
         if (!deleteRes.success) {
             toast({ title: 'Error', description: deleteRes.error || 'Could not delete staff member.', variant: 'destructive' });
             return;
@@ -311,7 +312,7 @@ export default function AdminStaffPage() {
              await setDoc(docRef, staffData, { merge: true });
              
              if (password) {
-                  const pwdRes = await adminUpdateUserPasswordAction({ uid, password });
+                  const pwdRes = await adminUpdateUserPasswordAction({ uid, password, idToken: await getAuth(firebaseApp).currentUser?.getIdToken() });
                   if (!pwdRes.success) {
                       toast({ title: 'Error Updating Password', description: pwdRes.message || 'Could not update password.', variant: 'destructive'});
                       return;
@@ -329,6 +330,7 @@ export default function AdminStaffPage() {
              }
             
             const createRes = await adminCreateUserAction({
+                idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                 email: staffData.email,
                 password: password,
                 name: staffData.name,

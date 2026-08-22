@@ -50,6 +50,22 @@ service cloud.firestore {
     }
 
     /**
+     * True when the caller is the invited portal user for this accounting/payroll client.
+     *
+     * Client records are created with auto-generated IDs while the invited portal user has their
+     * own Firebase uid, so `request.auth.uid == clientId` can never be true for them. The link is
+     * held either on the client doc (`portalUserId`) or on the user doc (`payrollClientId` /
+     * `accountantClientId`), and without this clause invited clients are denied their own data.
+     */
+    function isLinkedPortalUser(clientResource, userLinkField, clientId) {
+      return isAuthenticated() && (
+        (clientResource != null && clientResource.data.get('portalUserId', null) == request.auth.uid) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get(userLinkField, null) == clientId)
+      );
+    }
+
+    /**
      * True when a self-write to /users/{userId} leaves every privilege-bearing field at its
      * existing value (comparing the resulting document to the current one, not just the keys
      * present in this write — so a merge-update of an unrelated field like "name" doesn't get
@@ -69,6 +85,16 @@ service cloud.firestore {
              after.get('partnerTier', null) == before.get('partnerTier', null) &&
              after.get('staffRole', null) == before.get('staffRole', null) &&
              after.get('partnerId', null) == before.get('partnerId', null) &&
+             // `allowedModules` is what hasModule() reads to grant access to the entire orders
+             // collection, the service catalogue, blog, discounts and media. Leaving it writable
+             // let any client grant themselves those modules with a single self-write.
+             after.get('allowedModules', null) == before.get('allowedModules', null) &&
+             // Portal linkage fields decide which accounting/payroll client's data this user is
+             // routed to and authorised for — self-assigning them is cross-tenant access.
+             after.get('payrollClientId', null) == before.get('payrollClientId', null) &&
+             after.get('accountantClientId', null) == before.get('accountantClientId', null) &&
+             // The Facebook page token is a live third-party credential.
+             after.get('facebookSettings', null) == before.get('facebookSettings', null) &&
              (after.get('role', null) == before.get('role', null) || after.get('role', null) == 'client');
     }
 
@@ -123,9 +149,14 @@ service cloud.firestore {
       allow write: if isAuthenticated() && (
         (request.auth.uid == userId && isSafeSelfWrite()) ||
         isAdmin() ||
-        // Partner owner can write to their staff member documents
-        (resource != null && resource.data.get('partnerId', null) == request.auth.uid) ||
-        (request.resource != null && request.resource.data.get('partnerId', null) == request.auth.uid)
+        // Partner owner can write to their EXISTING staff member documents.
+        //
+        // This must be evaluated against the STORED document (`resource.data`), never the incoming
+        // payload. A previous clause here read `request.resource.data.partnerId`, which is
+        // attacker-supplied: writing `{ partnerId: <own uid>, role: 'admin' }` to any user document
+        // satisfied it, and because it is OR'd with the self-write check it bypassed
+        // isSafeSelfWrite() entirely — a one-request path from client to admin.
+        (resource != null && resource.data.get('partnerId', null) == request.auth.uid)
       );
       match /serviceOverrides/{overrideId} {
         allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin() || isPartnerStaffOf(userId));
@@ -138,16 +169,26 @@ service cloud.firestore {
     }
 
     // ─── Partner Invites ─────────────────────────────────────────────────────
-    // Doc ID = the invite token itself (UUID). Readable without auth so the
-    // invite page can display the invite details before the staff member has an account.
+    // Doc ID = the invite token itself (UUID).
+    //
+    // These were previously world-readable (including LIST, which dumped every pending invite's
+    // email and employer) and updatable by any authenticated user. That defeated the server-side
+    // redemption checks: an attacker could enumerate invites, rewrite `invitedEmail` to their own
+    // address and `staffRole` to 'partner_admin', then redeem it and join another practice.
+    //
+    // Reads and redemption now go exclusively through server actions using the Admin SDK
+    // (see acceptPartnerInviteAction / getPartnerInviteAction), which fetch by exact token.
     match /partnerInvites/{token} {
-      allow read: if true;
+      allow read: if isAdmin() ||
+        (isAuthenticated() && resource != null &&
+          isPartnerOrStaff(resource.data.get('partnerId', null)));
       allow create: if isAuthenticated() &&
         request.resource.data.partnerId == request.auth.uid &&
         request.resource.data.status == 'pending';
-      // Only the invited user (accepting) or an admin can update
-      allow update: if isAuthenticated() || isAdmin();
-      allow delete: if isAdmin();
+      // Redemption is performed server-side with the Admin SDK, which bypasses these rules.
+      allow update: if isAdmin();
+      allow delete: if isAdmin() ||
+        (isAuthenticated() && resource != null && resource.data.get('partnerId', null) == request.auth.uid);
     }
 
     // ─── Clients & Partners ──────────────────────────────────────────────────
@@ -178,13 +219,24 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         isAdminOrStaff() ||
         request.auth.uid == clientId ||
+        isLinkedPortalUser(resource, 'payrollClientId', clientId) ||
         (resource != null && isPartnerOrStaff(resource.data.get('partnerId', '')))
       );
-      allow write: if isAuthenticated() && (
+      // Create may reference the incoming partnerId (there is no stored doc yet), but the caller
+      // must be that partner. Update/delete authorise against the STORED owner only, and the owner
+      // is immutable — previously an update could set `partnerId` to the caller's own uid and
+      // thereby seize any client record, along with everything in its subcollections.
+      allow create: if isAuthenticated() && (
         isAdminOrStaff() ||
-        (request.resource != null && isPartnerOrStaff(request.resource.data.get('partnerId', ''))) ||
-        (resource != null && isPartnerOrStaff(resource.data.get('partnerId', '')))
+        isPartnerOrStaff(request.resource.data.get('partnerId', ''))
       );
+      allow update: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        (resource != null && isPartnerOrStaff(resource.data.get('partnerId', '')) &&
+         request.resource.data.get('partnerId', '') == resource.data.get('partnerId', ''))
+      );
+      allow delete: if isAdmin() ||
+        (resource != null && isPartnerOwner(resource.data.get('partnerId', '')));
       match /{document=**} {
         allow read, write: if isAuthenticated() && (
           isAdminOrStaff() ||
@@ -209,6 +261,11 @@ service cloud.firestore {
 
     // ─── Services ────────────────────────────────────────────────────────────
     match /services/{serviceId} {
+      // NOTE: public read is required — the storefront, product pages and sitemap all read this
+      // collection unauthenticated. That means every field here is public, including
+      // `resellerPrice` (the partner wholesale price). Firestore cannot filter fields, so the
+      // wholesale price must be moved out of this document (e.g. to a `servicePricing/{id}`
+      // collection restricted to admin/staff) rather than fixed here. Tracked as a follow-up.
       allow read: if true;
       allow write: if isAdmin() || hasModule('Manage Products');
     }
@@ -295,7 +352,10 @@ service cloud.firestore {
 
     // ─── Discounts ───────────────────────────────────────────────────────────
     match /discounts/{discountId} {
-      allow read: if isAuthenticated();
+      // Previously readable by every authenticated user, which let any client enumerate and apply
+      // every active code, including partner-specific and single-client ones. Validation is
+      // performed server-side by validateDiscountCodeAction (Admin SDK), so clients need no read.
+      allow read: if isAdminOrStaff() || hasModule('Manage Discounts');
       allow write: if isAdminOrStaff() || hasModule('Manage Discounts');
     }
 
@@ -306,10 +366,18 @@ service cloud.firestore {
         request.auth.uid == resource.data.userId ||
         isPartnerOrStaff(resource.data.partnerId)
       );
-      allow write: if isAuthenticated() && (
+      // Create may reference the incoming payload; update must authorise on the stored record,
+      // otherwise any authenticated user could overwrite any compliance request by simply
+      // supplying their own userId in the new document.
+      allow create: if isAuthenticated() && (
         isAdminOrStaff() ||
-        request.auth.uid == request.resource.data.userId ||
-        isPartnerOrStaff(request.resource.data.partnerId)
+        request.auth.uid == request.resource.data.get('userId', null) ||
+        isPartnerOrStaff(request.resource.data.get('partnerId', null))
+      );
+      allow update, delete: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        (resource != null && request.auth.uid == resource.data.get('userId', null)) ||
+        (resource != null && isPartnerOrStaff(resource.data.get('partnerId', null)))
       );
     }
 
@@ -318,13 +386,22 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         isAdminOrStaff() ||
         request.auth.uid == clientId ||
-        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+        isLinkedPortalUser(resource, 'accountantClientId', clientId) ||
+        (resource != null && isPartnerOrStaff(resource.data.get('partnerId', '')))
       );
-      allow write: if isAuthenticated() && (
+      // See aiPayrollClients above — update must authorise on the stored owner, and the owner
+      // must be immutable, otherwise any authenticated user can seize the client's whole ledger.
+      allow create: if isAuthenticated() && (
         isAdminOrStaff() ||
-        (request.resource != null && isPartnerOrStaff(request.resource.data.partnerId)) ||
-        (resource != null && isPartnerOrStaff(resource.data.partnerId))
+        isPartnerOrStaff(request.resource.data.get('partnerId', ''))
       );
+      allow update: if isAuthenticated() && (
+        isAdminOrStaff() ||
+        (resource != null && isPartnerOrStaff(resource.data.get('partnerId', '')) &&
+         request.resource.data.get('partnerId', '') == resource.data.get('partnerId', ''))
+      );
+      allow delete: if isAdmin() ||
+        (resource != null && isPartnerOwner(resource.data.get('partnerId', '')));
       match /{document=**} {
         allow read, write: if isAuthenticated() && (
           isAdminOrStaff() ||
@@ -334,23 +411,15 @@ service cloud.firestore {
       }
     }
 
+    // `numera` was renamed to `ai-accountant`. Every /admin/numera page is now a redirect stub and
+    // no code reads or writes this collection. Locked down rather than left carrying the same
+    // ownership flaw that was just fixed above; delete once production data is confirmed migrated.
     match /numeraClients/{clientId} {
-      allow read: if isAuthenticated() && (
-        isAdminOrStaff() ||
-        request.auth.uid == clientId ||
-        (resource != null && isPartnerOrStaff(resource.data.partnerId))
-      );
-      allow write: if isAuthenticated() && (
-        isAdminOrStaff() ||
-        (request.resource != null && isPartnerOrStaff(request.resource.data.partnerId)) ||
-        (resource != null && isPartnerOrStaff(resource.data.partnerId))
-      );
+      allow read: if isAdminOrStaff();
+      allow write: if isAdmin();
       match /{document=**} {
-        allow read, write: if isAuthenticated() && (
-          isAdminOrStaff() ||
-          request.auth.uid == clientId ||
-          isPartnerOrStaff(get(/databases/$(database)/documents/numeraClients/$(clientId)).data.partnerId)
-        );
+        allow read: if isAdminOrStaff();
+        allow write: if isAdmin();
       }
     }
 
@@ -501,8 +570,10 @@ service cloud.firestore {
 
     // ─── System Settings ──────────────────────────────────────────────────────
     match /system_settings/{settingId} {
+      // Read stays public (talent skill lists etc. are surfaced on public pages), but writes were
+      // open to any authenticated user — arbitrary global configuration overwrite.
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
   }
 }

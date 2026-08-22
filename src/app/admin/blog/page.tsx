@@ -23,6 +23,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getAuth } from 'firebase/auth';
+import { firebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { testFacebookConnectionAction, saveFacebookSettingsAction, postToFacebookPageAction } from '@/app/admin/social-marketing/actions';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
@@ -204,7 +206,8 @@ export default function AdminBlogPage() {
         pageId,
         tokenToSave,
         testResult.pageName,
-        testResult.pagePictureUrl || ''
+        testResult.pagePictureUrl || '',
+        await getAuth(firebaseApp).currentUser?.getIdToken()
       );
 
       if (res.success) {
@@ -272,7 +275,7 @@ export default function AdminBlogPage() {
         link: linkUrl,
         imageUrl: imageUrl,
         postMode: postFormat
-      });
+      }, await getAuth(firebaseApp).currentUser?.getIdToken());
 
       if (res.success && res.postId) {
         setPublishingStatus(prev => ({ ...prev, [post.id]: 'success' }));
@@ -361,7 +364,7 @@ export default function AdminBlogPage() {
           link: linkUrl,
           imageUrl: imageUrl,
           postMode: postFormat
-        });
+        }, await getAuth(firebaseApp).currentUser?.getIdToken());
 
         if (res.success) {
           setPublishingStatus(prev => ({ ...prev, [post.id]: 'success' }));

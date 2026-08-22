@@ -28,18 +28,28 @@ export async function getPublicTalentAction(): Promise<User[]> {
       .where('talentProfile.isLookingForWork', '==', true)
       .get();
 
+    // This action is unauthenticated and feeds a public talent board, so the projection must not
+    // include directly-identifying or contactable data. It previously returned email, home
+    // address, professional registration number, expected rate and a downloadable CV URL for
+    // every candidate — a complete scrape in one call, and a POPIA exposure.
     return snap.docs.map(doc => {
       const data = doc.data();
+      const profile = data.talentProfile || {};
+      const { cvUrl, registrationNumber, idNumber, contactNumber, ...safeProfile } = profile as Record<string, any>;
       return {
         id: doc.id,
         uid: doc.id,
         name: data.name || 'Candidate',
         surname: data.surname || '',
-        email: data.email || '',
+        // Contact details are deliberately omitted — introductions must go through an
+        // authenticated, rate-limited server-mediated flow rather than a public listing.
+        email: '',
         role: data.role || 'client',
-        address: data.address || null,
-        talentProfile: data.talentProfile || null,
-      } as User;
+        address: data.address?.city || data.address?.province
+          ? { city: data.address.city || '', province: data.address.province || '' }
+          : null,
+        talentProfile: safeProfile,
+      } as unknown as User;
     });
   } catch (err) {
     console.error('[jobs-actions] Error fetching public talent:', err);

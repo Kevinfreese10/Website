@@ -6,19 +6,34 @@ import { render } from '@react-email/components';
 import React from 'react';
 import AIPayrollInviteEmail from '@/components/emails/AIPayrollInviteEmail';
 import crypto from 'crypto';
+import { getVerifiedAuthContext, verifyAiPayrollClientAccess } from '@/lib/server-auth';
 
 export async function invitePayrollClient({
   clientId,
   email,
   name,
   companyName,
+  idToken,
 }: {
   clientId: string;
   email: string;
   name: string;
   companyName: string;
+  idToken?: string;
 }) {
   try {
+    // This action creates Firebase Auth users and writes `payrollClientId` onto a user document,
+    // which is what routes that user into a payroll client's portal and authorises them for it.
+    // Unauthenticated, it was an account-provisioning and cross-tenant linking primitive: an
+    // attacker could attach their own account to any employer's payroll.
+    const authCtx = await getVerifiedAuthContext(idToken);
+    if (!authCtx) {
+      return { success: false, error: 'Unauthorized: A valid authentication token is required.' };
+    }
+    if (!(await verifyAiPayrollClientAccess(authCtx, clientId))) {
+      return { success: false, error: 'Forbidden: You do not have access to this payroll client.' };
+    }
+
     const adminDb = getAdminDb();
     const adminAuth = getAdminAuth();
     const cleanEmail = email.toLowerCase().trim();

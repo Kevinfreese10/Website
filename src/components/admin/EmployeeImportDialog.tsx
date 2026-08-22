@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Download, FileSpreadsheet } from 'lucide-react';
 import { getFirestore, collection, query, where, getDocs, doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import { getAuth } from 'firebase/auth';
 import { Employee } from '@/lib/types';
 import Papa from 'papaparse';
 import { isValid } from 'date-fns';
@@ -169,6 +170,7 @@ export default function EmployeeImportDialog({
 
                             const baseValue = employeeData.payType === 'Hourly' ? employeeData.hourlyRate : employeeData.basicSalary;
                             await generateEmployeePayslipAction({
+                                idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                                 clientId,
                                 employeeId: targetRef.id,
                                 basicSalary: baseValue,
@@ -180,6 +182,7 @@ export default function EmployeeImportDialog({
 
                             // Update existing draft payslip with new hours
                             await updateDraftPayslipHoursAction({
+                                idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                                 clientId,
                                 employeeId: existingId,
                                 hours

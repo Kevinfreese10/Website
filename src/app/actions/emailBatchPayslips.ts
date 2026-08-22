@@ -7,13 +7,24 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { generatePayslipPdfPage } from '@/lib/payslipPdf';
 import { Payslip, Employee, User, PayslipPdfOptions } from '@/lib/types';
+import { getVerifiedAuthContext, verifyAiPayrollClientAccess } from '@/lib/server-auth';
 
-export async function emailBatchPayslips(clientId: string, selectedMonth: string, payslipIds: string[], options?: PayslipPdfOptions) {
+export async function emailBatchPayslips(clientId: string, selectedMonth: string, payslipIds: string[], options?: PayslipPdfOptions, idToken?: string) {
     if (!clientId || !payslipIds || payslipIds.length === 0) {
         return { success: false, error: 'Invalid parameters provided.' };
     }
 
     try {
+        // Reads the full employee roster and mails payslip PDFs. Unauthenticated, anyone who could
+        // guess a clientId could trigger mass distribution of another employer's payroll data.
+        const authCtx = await getVerifiedAuthContext(idToken);
+        if (!authCtx) {
+            return { success: false, error: 'Unauthorized: A valid authentication token is required.' };
+        }
+        if (!(await verifyAiPayrollClientAccess(authCtx, clientId))) {
+            return { success: false, error: 'Forbidden: You do not have access to this payroll client.' };
+        }
+
         const adminDb = getAdminDb();
         
         // Fetch Client

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, ArrowRight, Search, Users, PlusCircle, MoreHorizontal, Edit, Trash2, Mail, UserPlus } from 'lucide-react';
 import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, getDocs, where, arrayUnion, arrayRemove, updateDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import { getAuth } from 'firebase/auth';
 import { User } from '@/lib/types';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
@@ -58,6 +59,7 @@ export default function AIPayrollClientsPage() {
         setIsSendingInvite(true);
         try {
             const res = await invitePayrollClient({
+                idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                 clientId: selectedClient.id,
                 email: inviteEmail,
                 name: inviteName || selectedClient.name || 'Client',

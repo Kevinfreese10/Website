@@ -438,7 +438,10 @@ export async function getLeaderboard() {
 /**
  * Approve a pending question
  */
-export async function approveQuestion(questionId: string) {
+export async function approveQuestion(questionId: string, idToken?: string) {
+  const authError = await requireCommunityAdmin(idToken);
+  if (authError) return authError;
+
   try {
     const db = getAdminDb();
     await db.collection('communityQuestions').doc(questionId).update({
@@ -457,7 +460,10 @@ export async function approveQuestion(questionId: string) {
 /**
  * Reject a pending question
  */
-export async function rejectQuestion(questionId: string) {
+export async function rejectQuestion(questionId: string, idToken?: string) {
+  const authError = await requireCommunityAdmin(idToken);
+  if (authError) return authError;
+
   try {
     const db = getAdminDb();
     await db.collection('communityQuestions').doc(questionId).update({
@@ -476,7 +482,10 @@ export async function rejectQuestion(questionId: string) {
 /**
  * Update a question (Admin)
  */
-export async function updateQuestion(questionId: string, data: { title?: string, content?: string, tags?: string[], likesCount?: number }) {
+export async function updateQuestion(questionId: string, data: { title?: string, content?: string, tags?: string[], likesCount?: number }, idToken?: string) {
+  const authError = await requireCommunityAdmin(idToken);
+  if (authError) return authError;
+
   try {
     const db = getAdminDb();
     
@@ -505,7 +514,10 @@ export async function updateQuestion(questionId: string, data: { title?: string,
 /**
  * Delete a question (Admin)
  */
-export async function deleteQuestion(questionId: string) {
+export async function deleteQuestion(questionId: string, idToken?: string) {
+  const authError = await requireCommunityAdmin(idToken);
+  if (authError) return authError;
+
   try {
     const db = getAdminDb();
     
@@ -525,6 +537,23 @@ export async function deleteQuestion(questionId: string) {
 }
 
 import { getPartnerAiInstance } from '@/lib/gemini-key';
+
+import { getVerifiedAuthContext } from '@/lib/server-auth';
+
+/**
+ * Moderation actions below were documented as "(Admin)" but performed no caller check, so anyone
+ * could approve their own unmoderated content onto the public CAP community, silently edit any
+ * question's title/content, or delete the community's content wholesale.
+ */
+async function requireCommunityAdmin(idToken?: string) {
+  const authCtx = await getVerifiedAuthContext(idToken);
+  if (!authCtx) return { success: false as const, error: 'Unauthorized: A valid authentication token is required.' };
+  const role = authCtx.user.role;
+  const isStaff = authCtx.isAdmin || ['admin','staff','cap_staff','cap_supervisor'].includes(role);
+  if (!isStaff) return { success: false as const, error: 'Forbidden: Moderator access required.' };
+  return null;
+}
+
 
 /**
  * Generate an AI answer for a question

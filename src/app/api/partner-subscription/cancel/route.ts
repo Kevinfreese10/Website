@@ -3,13 +3,19 @@ import { getAdminAuth, getAdminDb } from '@/lib/firebase-admin';
 import crypto from 'crypto';
 
 const MERCHANT_ID = process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312';
-const PASSPHRASE  = process.env.PAYFAST_PASSPHRASE || 'KhaiFreese11';
+// The passphrase is the shared secret used both to sign PayFast API calls and to validate inbound
+// ITN signatures. It must never have a literal fallback — the previous hardcoded value is in git
+// history and must be treated as compromised and rotated in the PayFast dashboard.
+const PASSPHRASE  = process.env.PAYFAST_PASSPHRASE;
 const IS_SANDBOX  = MERCHANT_ID === '10049800' || MERCHANT_ID === '10042278';
 const PAYFAST_API = IS_SANDBOX
     ? 'https://sandbox.payfast.co.za'
     : 'https://api.payfast.co.za';
 
 function buildHeaders(): Record<string, string> {
+    if (!PASSPHRASE) {
+        throw new Error('PAYFAST_PASSPHRASE is not configured on the server.');
+    }
     const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, '+00:00');
     const params: Record<string, string> = {
         'merchant-id': MERCHANT_ID,

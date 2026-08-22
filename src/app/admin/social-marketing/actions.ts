@@ -1,6 +1,23 @@
 'use server';
 
 import { getAdminDb } from '@/lib/firebase-admin';
+import { getVerifiedAuthContext } from '@/lib/server-auth';
+
+/**
+ * These actions read and use a live Facebook Page access token and publish content as that Page.
+ * They previously took `userId` as a plain caller-supplied argument with no verification, so
+ * anyone could post arbitrary content (including links and images) to the practice's own Facebook
+ * Page or any partner's, and could overwrite the stored integration settings.
+ */
+async function requireSelfOrAdmin(idToken: string | undefined, userId: string) {
+  const authCtx = await getVerifiedAuthContext(idToken);
+  if (!authCtx) return { success: false as const, error: 'Unauthorized: A valid authentication token is required.' };
+  const isAdmin = authCtx.isAdmin || authCtx.user.role === 'admin';
+  if (!isAdmin && authCtx.userId !== userId) {
+    return { success: false as const, error: 'Forbidden: You may only manage your own connected page.' };
+  }
+  return null;
+}
 
 interface FacebookSettings {
     pageId: string;
@@ -69,11 +86,15 @@ export async function saveFacebookSettingsAction(
     pageId: string, 
     pageAccessToken: string,
     pageName: string,
-    pagePictureUrl: string
+    pagePictureUrl: string,
+    idToken?: string
 ) {
     if (!userId) {
         return { success: false, error: "User authentication ID is required." };
     }
+
+    const authError = await requireSelfOrAdmin(idToken, userId);
+    if (authError) return authError;
 
     try {
         const adminDb = getAdminDb();
@@ -101,7 +122,8 @@ export async function saveFacebookSettingsAction(
 export async function postToFacebookPageAction(
     userId: string, 
     message: string, 
-    options?: { link?: string; imageUrl?: string; postMode?: 'link' | 'photo' }
+    options?: { link?: string; imageUrl?: string; postMode?: 'link' | 'photo' },
+    idToken?: string
 ) {
     if (!userId) {
         return { success: false, error: "User authentication ID is required." };
@@ -109,6 +131,9 @@ export async function postToFacebookPageAction(
     if (!message) {
         return { success: false, error: "Post message cannot be empty." };
     }
+
+    const authError = await requireSelfOrAdmin(idToken, userId);
+    if (authError) return authError;
 
     try {
         const adminDb = getAdminDb();

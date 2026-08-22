@@ -232,6 +232,7 @@ export default function CreateOrderForm() {
             isNewUser = true;
             
             const createRes = await adminCreateUserAction({
+                idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
                 email: email,
                 password: generatedPassword,
                 name: `${values.customerFirstName} ${values.customerLastName}`,

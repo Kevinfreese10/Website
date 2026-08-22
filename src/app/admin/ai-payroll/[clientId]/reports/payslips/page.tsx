@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { getFirestore, collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import { getAuth } from 'firebase/auth';
 import { Payslip, Employee, User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -284,7 +285,7 @@ export default function PayslipsBatchDownloadPage() {
 
         setIsEmailing(true);
         try {
-            const res = await emailBatchPayslips(clientId, selectedMonth, selectedPayslipIds, { hideRatePerHour, hidePayDate });
+            const res = await emailBatchPayslips(clientId, selectedMonth, selectedPayslipIds, { hideRatePerHour, hidePayDate }, await getAuth(firebaseApp).currentUser?.getIdToken());
             
             if (!res.success) {
                 toast({ title: 'Emailing Failed', description: res.error || 'Unknown error occurred.', variant: 'destructive' });
