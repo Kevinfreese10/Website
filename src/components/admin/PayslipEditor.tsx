@@ -348,22 +348,34 @@ export default function PayslipEditor({
         const totalContrib = updatedContributions.reduce((sum, item) => sum + item.amount, 0);
         const totalFringe = fringeBenefits.reduce((sum, item) => sum + item.amount, 0);
 
-        // Tax details calculation
+        // Tax details calculation.
+        // getTaxConfig throws when SARS tables for this period's tax year aren't configured
+        // (rather than silently reverting to stale brackets). This runs inside a useMemo — i.e.
+        // during render — so an uncaught throw would blank the editor. Surface it as an explicit
+        // "tax tables missing" state instead.
         const age = employee.idNumber ? PayrollService.getAgeFromIdNumber(employee.idNumber, PayrollService.getPeriodDate(period)) : 0;
-        const config = PayrollService.getTaxConfig(period);
-        let rebateApplied = config.rebate;
+
+        let config: ReturnType<typeof PayrollService.getTaxConfig> | null = null;
+        let taxConfigError: string | null = null;
+        try {
+            config = PayrollService.getTaxConfig(period);
+        } catch (err: any) {
+            taxConfigError = err?.message || `SARS tax tables are not configured for the period "${period}".`;
+        }
+
+        let rebateApplied = config ? config.rebate : 0;
         let rebateDetails = 'Primary Rebate';
-        if (age >= 65) {
+        if (config && age >= 65) {
             rebateApplied += config.rebateSecondary;
             rebateDetails += ' + Secondary (65+)';
         }
-        if (age >= 75) {
+        if (config && age >= 75) {
             rebateApplied += config.rebateTertiary;
             rebateDetails += ' + Tertiary (75+)';
         }
 
         let medicalCredit = 0;
-        if ((employee.medicalAidMembers || 0) > 0) {
+        if (config && (employee.medicalAidMembers || 0) > 0) {
             const mCredit = config.medCreditMember;
             const d1Credit = config.medCreditFirstDependent;
             const addCredit = config.medCreditAdditionalDependent;
@@ -389,7 +401,8 @@ export default function PayslipEditor({
             age,
             rebateApplied,
             rebateDetails,
-            medicalCredit
+            medicalCredit,
+            taxConfigError,
         };
     }, [earnings, deductions, contributions, fringeBenefits, client.firstProcessingMonth, frequency]);
 

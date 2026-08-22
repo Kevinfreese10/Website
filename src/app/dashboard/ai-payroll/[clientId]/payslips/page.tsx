@@ -435,9 +435,19 @@ export default function PayslipsPage() {
                                 const period = client?.firstProcessingMonth;
                                 const baseValue = employee.payType === 'Hourly' ? (employee.hourlyRate || 0) * 160 : (employee.basicSalary || 0);
                                 
-                                displayGross = employee.isNetSalary ? PayrollService.calculateGrossFromNet(baseValue, period, frequency, employee.joinDate, employee.idNumber, employee.medicalAidMembers || 0, employee.medicalAidDependents || 0) : baseValue;
-                                displayTax = PayrollService.calculatePaye(displayGross, period, frequency, employee.joinDate, employee.idNumber, employee.medicalAidMembers || 0, employee.medicalAidDependents || 0);
-                                displayNet = displayGross - displayTax - PayrollService.calculateUif(displayGross, period, frequency);
+                                // getTaxConfig now throws when SARS tables for the period's tax year
+                                // aren't configured, rather than silently using stale brackets. Catch
+                                // it here so an unconfigured period shows as unavailable instead of
+                                // blanking the whole page mid-render.
+                                try {
+                                    displayGross = employee.isNetSalary ? PayrollService.calculateGrossFromNet(baseValue, period, frequency, employee.joinDate, employee.idNumber, employee.medicalAidMembers || 0, employee.medicalAidDependents || 0) : baseValue;
+                                    displayTax = PayrollService.calculatePaye(displayGross, period, frequency, employee.joinDate, employee.idNumber, employee.medicalAidMembers || 0, employee.medicalAidDependents || 0);
+                                    displayNet = displayGross - displayTax - PayrollService.calculateUif(displayGross, period, frequency);
+                                } catch {
+                                    displayGross = baseValue;
+                                    displayTax = NaN;
+                                    displayNet = NaN;
+                                }
                             }
 
                             const isProcessing = isFetchingPayslip && editingEmployee?.id === employee.id;

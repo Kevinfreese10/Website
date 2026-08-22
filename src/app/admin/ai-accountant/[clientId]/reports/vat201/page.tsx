@@ -208,11 +208,22 @@ export default function Vat201ReportPage() {
         const fromDate = parseISO(parsedPeriod.from);
         const toDate = parseISO(parsedPeriod.to);
 
-        const vatTransactions = transactions.filter(tx => {
+        const inPeriod = transactions.filter(tx => {
             const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date);
-            // Fix: Include both 'allocated' and 'reviewed' statuses
-            return txDate >= fromDate && txDate <= toDate && ((tx.status as string) === 'allocated' || tx.status === 'reviewed');
+            return txDate >= fromDate && txDate <= toDate;
         });
+
+        const vatTransactions = inPeriod.filter(tx =>
+            (tx.status as string) === 'allocated' || tx.status === 'reviewed'
+        );
+
+        // Transactions still awaiting allocation are excluded from the figures below. Previously
+        // that happened silently, so a return could be prepared and filed with output tax missing
+        // and still look complete. Surface the count and value so the preparer can see it.
+        const unallocated = inPeriod.filter(tx =>
+            (tx.status as string) !== 'allocated' && tx.status !== 'reviewed'
+        );
+        const unallocatedValue = unallocated.reduce((sum, tx) => sum + Math.abs(Number(tx.amount) || 0), 0);
         
         let totalStandardSales = 0;
         let totalZeroSales = 0;
@@ -262,20 +273,28 @@ export default function Vat201ReportPage() {
                     totalExemptSales += exclusiveAmount; 
                     exemptSalesTxs.push(transactionDetails);
                     break;
+                // SARS VAT201 fields 14 and 15 require the VAT-INCLUSIVE total of goods and
+                // services acquired. These were populated with the exclusive amount, understating
+                // both by 15% — and inconsistently with field 1 above, which correctly uses the
+                // inclusive figure.
                 case 'capital_goods_purchases': 
-                    totalCapitalPurchases += exclusiveAmount;
+                    totalCapitalPurchases += inclusiveAmount;
                     capitalPurchasesTxs.push(transactionDetails);
                     break;
                 case 'standard_rated_purchases': 
-                    totalOtherPurchases += exclusiveAmount;
+                    totalOtherPurchases += inclusiveAmount;
                     otherPurchasesTxs.push(transactionDetails);
                     break;
             }
         });
 
-        const inputVatCapital = totalCapitalPurchases * 0.15;
-        const inputVatOther = totalOtherPurchases * 0.15;
-        const totalInputVat = Math.abs(inputVatCapital + inputVatOther);
+        // Fields 14/15 are now inclusive, so the VAT element is inclusive * 15/115. Purchases
+        // carry negative amounts (money out); normalise the sign per-field rather than taking
+        // Math.abs of the SUM, which flipped the result incorrectly when supplier refunds
+        // exceeded purchases in a period, and left 14A + 15A not tying back to Total Input Tax.
+        const inputVatCapital = Math.abs(totalCapitalPurchases) * (0.15 / 1.15);
+        const inputVatOther = Math.abs(totalOtherPurchases) * (0.15 / 1.15);
+        const totalInputVat = inputVatCapital + inputVatOther;
         const vatPayable = outputVat - totalInputVat;
 
 
@@ -293,6 +312,8 @@ export default function Vat201ReportPage() {
             field16: { value: 0, txs: [] }, // Manual for now
             totalInput: { value: totalInputVat, txs: [...capitalPurchasesTxs, ...otherPurchasesTxs] },
             vatPayable: { value: vatPayable, txs: [] },
+            unallocatedCount: unallocated.length,
+            unallocatedValue,
         };
     }, [transactions, parsedPeriod]);
 
@@ -376,6 +397,18 @@ export default function Vat201ReportPage() {
                                         <div className="p-4 bg-muted/50 rounded-t-lg">
                                             <h3 className="font-semibold">1. Output Tax (Sales)</h3>
                                         </div>
+                                        {vatData.unallocatedCount > 0 && (
+                                            <div className="m-4 rounded-md border border-destructive/40 bg-destructive/10 p-3">
+                                                <p className="text-sm font-semibold text-destructive">
+                                                    {vatData.unallocatedCount} transaction{vatData.unallocatedCount === 1 ? '' : 's'} in this period
+                                                    {' '}({formatPrice(vatData.unallocatedValue)}) {vatData.unallocatedCount === 1 ? 'is' : 'are'} not yet allocated
+                                                    and {vatData.unallocatedCount === 1 ? 'is' : 'are'} excluded from the figures below.
+                                                </p>
+                                                <p className="mt-1 text-xs text-destructive/90">
+                                                    Allocate them before filing — this return is incomplete and the VAT payable shown is understated.
+                                                </p>
+                                            </div>
+                                        )}
                                         <VAT201Field field="1" label="Total value of standard-rated supplies (Incl. VAT)" value={vatData.field1.value}>
                                             <TransactionDrilldown transactions={vatData.field1.txs} client={client} />
                                         </VAT201Field>

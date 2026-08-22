@@ -247,17 +247,74 @@ export async function createCheckoutOrderAction({
 
     if (discountCode && discountCode.trim()) {
       const codeClean = discountCode.trim().toUpperCase();
-      const discountDoc = await adminDb.collection('discounts').doc(codeClean).get();
-      if (discountDoc.exists) {
-        const dData = discountDoc.data()!;
-        const isValidStatus = dData.status !== 'used';
-        const isClientAllowed = !dData.clientEmail || !dData.clientEmail.trim() || dData.clientEmail.toLowerCase().trim() === cleanEmail;
+      const discountRef = adminDb.collection('discounts').doc(codeClean);
 
-        if (isValidStatus && isClientAllowed && typeof dData.percentage === 'number' && dData.percentage > 0) {
+      // Claim the code atomically as part of validating it.
+      //
+      // Previously this was a plain read followed by a separate write elsewhere (and no write at
+      // all on the EFT path), which meant (a) the same single-use code could be applied to any
+      // number of concurrent or sequential orders before one of them was paid, and (b) EFT orders
+      // never consumed the code at all. A transaction closes the check-then-act window.
+      //
+      // It also used to fail SILENTLY: an expired, used or wrong-customer code was simply ignored
+      // and the order was created at full price, so the customer saw a discounted total at
+      // checkout and was charged a different one. Now it returns an explicit error.
+      let discountError: string | null = null;
+      try {
+        const claimed = await adminDb.runTransaction(async (tx) => {
+          const snap = await tx.get(discountRef);
+          if (!snap.exists) {
+            discountError = 'That discount code is not valid.';
+            return null;
+          }
+          const dData = snap.data()!;
+
+          if (dData.status === 'used') {
+            discountError = 'That discount code has already been used.';
+            return null;
+          }
+
+          const expiresAt = dData.expiresAt?.toDate ? dData.expiresAt.toDate() : (dData.expiresAt ? new Date(dData.expiresAt) : null);
+          if (expiresAt && expiresAt.getTime() < Date.now()) {
+            discountError = 'That discount code has expired.';
+            return null;
+          }
+
+          const allowedEmail = (dData.clientEmail || '').toLowerCase().trim();
+          if (allowedEmail && allowedEmail !== cleanEmail) {
+            discountError = 'That discount code is not valid for this email address.';
+            return null;
+          }
+
+          const pct = Number(dData.percentage);
+          if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+            discountError = 'That discount code is not valid.';
+            return null;
+          }
+
+          // Mark consumed within the same transaction so a concurrent checkout cannot also claim it.
+          tx.update(discountRef, {
+            status: 'used',
+            usedByEmail: cleanEmail,
+            usedAt: new Date(),
+            usedOnOrderId: orderId,
+          });
+
+          return pct;
+        });
+
+        if (claimed !== null) {
           appliedDiscountCode = codeClean;
-          appliedDiscountAmount = Math.round((calculatedTotal * dData.percentage) / 100);
+          appliedDiscountAmount = Math.round((calculatedTotal * (claimed as number)) / 100);
           calculatedTotal = Math.max(0, calculatedTotal - appliedDiscountAmount);
         }
+      } catch (e: any) {
+        console.error('[checkout] Discount claim failed:', e);
+        discountError = 'Could not apply that discount code. Please try again.';
+      }
+
+      if (discountError) {
+        return { success: false, error: discountError };
       }
     }
 

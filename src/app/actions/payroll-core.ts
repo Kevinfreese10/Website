@@ -264,7 +264,7 @@ export async function bulkFinalizeDraftPayslipsAction({ idToken, clientId }: any
     }
 }
 
-export async function updatePayslipAction({ idToken, clientId, payslipId, data, employeeId, recurringItems }: { idToken?: string, clientId: string, payslipId: string, data: any, employeeId?: string, recurringItems?: any[] }) {
+export async function updatePayslipAction({ idToken, clientId, payslipId, data, employeeId, recurringItems, allowFinalizedEdit }: { idToken?: string, clientId: string, payslipId: string, data: any, employeeId?: string, recurringItems?: any[], allowFinalizedEdit?: boolean }) {
   const authError = await requirePayrollAccess(idToken, clientId);
   if (authError) return authError;
 
@@ -275,6 +275,33 @@ export async function updatePayslipAction({ idToken, clientId, payslipId, data, 
         const psRef = isNew
           ? adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc()
           : adminDb.collection('aiPayrollClients').doc(clientId).collection('payslips').doc(payslipId);
+
+        // A finalised payslip has been declared on an EMP201 and issued to the employee. The
+        // EMP201 report recomputes live from this collection, so silently merge-writing a
+        // finalised payslip retroactively changes an already-filed statutory return, with no
+        // record of what was originally declared. Block it, and keep an immutable snapshot of the
+        // prior version when a correction is explicitly authorised.
+        if (!isNew) {
+            const existingSnap = await psRef.get();
+            const existing = existingSnap.exists ? (existingSnap.data() as any) : null;
+            if (existing?.status === 'finalized') {
+                if (!allowFinalizedEdit) {
+                    return {
+                        success: false,
+                        error: 'This payslip is finalised and forms part of your statutory records. ' +
+                               'Reopen it explicitly to record a correction — the current version will be archived first.',
+                        requiresFinalizedOverride: true,
+                    };
+                }
+                // Archive the pre-edit state so the originally-declared figures remain reproducible.
+                const revisionRef = psRef.collection('revisions').doc();
+                batch.set(revisionRef, {
+                    ...existing,
+                    archivedAt: new Date(),
+                    archivedReason: 'Superseded by a post-finalisation correction.',
+                });
+            }
+        }
 
         const cleanedData = cleanFirestoreData(data || {});
 

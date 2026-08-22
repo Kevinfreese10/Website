@@ -184,10 +184,20 @@ export class PayrollService {
    * Identifies the tax year based on the period string (e.g. "March 2026" or "06/03/2026")
    */
   static getTaxConfig(period?: string) {
-    if (!period) return TAX_YEAR_CONFIGS['2026'];
-    
+    // These three paths previously all fell back silently to the 2026 tables. That is a
+    // wrong-numbers-with-no-error failure mode: from 1 March 2027 (tax year 2028) every payslip
+    // in the system would be computed on 2026 brackets, rebates and medical credits, and nothing
+    // — no log, no banner, no exception — would indicate it. PAYE would simply be wrong for every
+    // employee of every client until somebody noticed by hand.
+    //
+    // Failing loudly is the correct behaviour: a blocked payroll run is recoverable, an
+    // incorrectly-filed EMP201 is not.
+    if (!period) {
+      throw new Error('Cannot calculate PAYE: no payroll period was supplied.');
+    }
+
     let monthIdx = -1;
-    let year = 2026;
+    let year = NaN;
 
     // Try parsing as "Month Year" (Monthly)
     const monthYearParts = period.split(' ');
@@ -202,14 +212,42 @@ export class PayrollService {
         year = parseInt(dateParts[2]);
       }
     }
-    
-    if (monthIdx !== -1 && !isNaN(year)) {
-      // South African tax year runs from March to Feb.
-      const taxYear = monthIdx >= 2 ? (year + 1).toString() : year.toString();
-      return TAX_YEAR_CONFIGS[taxYear] || TAX_YEAR_CONFIGS['2026'];
+
+    if (monthIdx === -1 || isNaN(year)) {
+      throw new Error(
+        `Cannot calculate PAYE: payroll period "${period}" could not be interpreted. ` +
+        `Expected "Month YYYY" (e.g. "March 2026") or "DD/MM/YYYY".`
+      );
     }
 
-    return TAX_YEAR_CONFIGS['2026'];
+    // South African tax year runs from March to February.
+    const taxYear = monthIdx >= 2 ? (year + 1).toString() : year.toString();
+    const config = TAX_YEAR_CONFIGS[taxYear];
+
+    if (!config) {
+      const available = Object.keys(TAX_YEAR_CONFIGS).sort().join(', ');
+      throw new Error(
+        `Cannot calculate PAYE for period "${period}": SARS tax tables for the ${taxYear} tax year ` +
+        `have not been configured. Configured years: ${available}. ` +
+        `Add the ${taxYear} brackets, rebates, medical credits and UIF ceiling to TAX_YEAR_CONFIGS ` +
+        `before processing this period.`
+      );
+    }
+
+    return config;
+  }
+
+  /**
+   * True when tax tables exist for the given period. Lets callers surface a clear, actionable
+   * message ahead of a payroll run rather than throwing mid-calculation.
+   */
+  static hasTaxConfig(period?: string): boolean {
+    try {
+      PayrollService.getTaxConfig(period);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**

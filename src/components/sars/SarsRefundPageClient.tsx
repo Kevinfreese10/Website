@@ -62,8 +62,6 @@ export default function SarsRefundPageClient() {
   const [phone, setPhone] = useState('');
 
   // Step 2 fields
-  const [efilingUsername, setEfilingUsername] = useState('');
-  const [efilingPassword, setEfilingPassword] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -113,14 +111,6 @@ export default function SarsRefundPageClient() {
 
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!efilingUsername || !efilingPassword) {
-      toast({
-        title: "SARS eFiling details required",
-        description: "Please provide your SARS eFiling username and password so we can run your compliance check.",
-        variant: "destructive"
-      });
-      return;
-    }
 
     setIsSubmitting(true);
     try {
@@ -141,11 +131,11 @@ export default function SarsRefundPageClient() {
               <tr><td style="padding: 8px; font-weight: bold; color: #475569;">Phone:</td><td style="padding: 8px;">${phone}</td></tr>
             </table>
 
-            <h3 style="color: #334155; margin-top: 20px;">SARS eFiling Credentials</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr style="background: #f8fafc;"><td style="padding: 8px; font-weight: bold; color: #475569;">Username:</td><td style="padding: 8px;">${efilingUsername}</td></tr>
-              <tr><td style="padding: 8px; font-weight: bold; color: #475569;">Password:</td><td style="padding: 8px;">${efilingPassword}</td></tr>
-            </table>
+            <p style="margin-top: 20px; padding: 10px; background: #f0f9ff; border-left: 3px solid #0284c7; color: #334155;">
+              <strong>Next step:</strong> contact this taxpayer to arrange practitioner access via
+              the SARS TPPOA / Power of Attorney process. eFiling credentials are deliberately not
+              collected through this form.
+            </p>
 
             <h3 style="color: #334155; margin-top: 20px;">Self-Assessment Checklist (${checkedCount}/${qualifyingChecklist.length} items checked)</h3>
             <ul style="list-style: none; padding: 0;">
@@ -232,7 +222,7 @@ export default function SarsRefundPageClient() {
     {
       step: '01',
       title: 'Submit Your Details',
-      description: 'Complete our secure form with your contact information and SARS eFiling login credentials.',
+      description: 'Complete our secure form with your contact information. We\'ll then send you a SARS Power of Attorney to sign — no password needed.',
       icon: ClipboardCheck,
       color: 'from-cyan-500 to-blue-500'
     },
@@ -254,8 +244,8 @@ export default function SarsRefundPageClient() {
 
   const faqs = [
     {
-      question: "Is it safe to share my SARS eFiling login?",
-      answer: "Absolutely. We are registered tax practitioners. Your credentials are used solely to access your SARS profile and run the compliance check. We do not store your password after the assessment. All data is handled in strict compliance with POPIA (Protection of Personal Information Act). We use the same process as any registered tax practitioner who files returns on your behalf."
+      question: "Do I have to share my SARS eFiling login?",
+      answer: "We don't ask for it. As registered tax practitioners we request access to your SARS profile through SARS's own Power of Attorney process (TPPOA), which you sign and can revoke at any time. You keep your login, and it is never sent to us by email. All personal information is handled in strict compliance with POPIA (Protection of Personal Information Act)."
     },
     {
       question: "What if I don't know my eFiling login details?",
@@ -711,42 +701,21 @@ export default function SarsRefundPageClient() {
                         <Lock className="h-4 w-4 text-sky-400" />
                         <AlertTitle className="text-sky-300 font-bold">Your credentials are safe</AlertTitle>
                         <AlertDescription className="text-muted-foreground text-xs">
-                          We use your login only to review your SARS profile. Your details are encrypted and handled under strict POPIA compliance. 
+                          We'll request access to your SARS profile through SARS's own Power of Attorney process. Your information is handled under strict POPIA compliance. 
                           <Link href="/popia" className="text-primary hover:underline ml-1">View our privacy policy →</Link>
                         </AlertDescription>
                       </Alert>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="efilingUsername" className="text-sm font-medium">SARS eFiling Username *</Label>
-                        <Input 
-                          id="efilingUsername" 
-                          placeholder="Your eFiling username" 
-                          value={efilingUsername} 
-                          onChange={(e) => setEfilingUsername(e.target.value)} 
-                          required 
-                          className="bg-white/5 border-white/10 focus:border-primary"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="efilingPassword" className="text-sm font-medium">SARS eFiling Password *</Label>
-                        <div className="relative">
-                          <Input 
-                            id="efilingPassword" 
-                            type={showPassword ? 'text' : 'password'} 
-                            placeholder="Your eFiling password" 
-                            value={efilingPassword} 
-                            onChange={(e) => setEfilingPassword(e.target.value)} 
-                            required 
-                            className="bg-white/5 border-white/10 focus:border-primary pr-12"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                        <p className="text-sm font-medium text-foreground">
+                          We no longer ask for your eFiling password.
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          As registered tax practitioners we request access to your SARS profile through
+                          SARS&apos;s own Power of Attorney (TPPOA) process. Once you submit this form we&apos;ll
+                          send you the authorisation to sign — you keep control of your login, and it is
+                          never shared by email.
+                        </p>
                       </div>
 
                       <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">

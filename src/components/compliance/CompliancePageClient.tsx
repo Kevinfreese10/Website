@@ -31,8 +31,6 @@ const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
 const complianceFormSchema = z.object({
   companyName: z.string().min(2, 'Company name is required.'),
   registrationNumber: z.string().min(5, 'A valid registration number is required.'),
-  sarsUsername: z.string().optional(),
-  sarsPassword: z.string().optional(),
   yourName: z.string().min(2, 'Your name is required.'),
   yourEmail: z.string().email('A valid email is required.'),
   yourPhone: z.string().min(10, 'A valid phone number is required.'),
@@ -68,8 +66,6 @@ function ComplianceFormCard({ onComplete }: { onComplete: () => void }) {
     defaultValues: {
       companyName: '',
       registrationNumber: '',
-      sarsUsername: '',
-      sarsPassword: '',
       yourName: '',
       yourEmail: '',
       yourPhone: '',
@@ -88,8 +84,16 @@ function ComplianceFormCard({ onComplete }: { onComplete: () => void }) {
     };
 
     try {
+      // Persist an explicit field list rather than spreading the whole form object. The schema
+      // previously still carried optional sarsUsername/sarsPassword fields (no longer rendered),
+      // and `...values` meant re-adding an input would have silently written SARS portal
+      // credentials to Firestore in plaintext.
       await addDoc(collection(db, 'complianceRequests'), {
-        ...values,
+        companyName: values.companyName,
+        registrationNumber: values.registrationNumber ?? '',
+        yourName: values.yourName,
+        yourEmail: values.yourEmail,
+        yourPhone: values.yourPhone ?? '',
         submittedAt: serverTimestamp(),
       });
       

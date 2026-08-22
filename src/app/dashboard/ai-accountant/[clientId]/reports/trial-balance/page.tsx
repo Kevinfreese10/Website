@@ -91,8 +91,18 @@ function calculateBalances(client: User, transactions: (ImportedTransaction | Al
             if (type === 'supplier') targetId = supplierControlAccount?.id || '7000-000';
             else if (type === 'customer') targetId = customerControlAccount?.id || '8000-001';
 
-            const account = client.chartOfAccounts?.find(a => a.id === targetId);
-            if (!account) return;
+            let account = client.chartOfAccounts?.find(a => a.id === targetId);
+            if (!account) {
+                // The contra leg used to be silently DISCARDED here when the allocated account (or
+                // a hardcoded control account) was missing from this client's chart — producing a
+                // trial balance that looked normal but was out of balance by that amount, with no
+                // indication anywhere. Post it to suspense instead so the books still balance and
+                // the problem is visible on the face of the report.
+                const suspense = client.chartOfAccounts?.find(a => a.id === '9500-001');
+                if (!suspense) return;
+                targetId = suspense.id;
+                account = suspense;
+            }
 
             if (isPriorPeriod) {
                 if (!includeOpeningBalances) return;
@@ -303,6 +313,22 @@ function TrialBalanceReport({ client, transactions, dateRange, comparativeDateRa
                                 </>
                             )}
                         </TableRow>
+                        {/*
+                          * A trial balance that does not balance previously looked identical to one
+                          * that did — there was no difference row and no assertion anywhere. Surface
+                          * it explicitly: an out-of-balance ledger invalidates every downstream
+                          * report (balance sheet, P&L, VAT201) and must not be read as correct.
+                          */}
+                        {Math.abs(totals.primaryDebit - totals.primaryCredit) >= 0.01 && (
+                            <TableRow className="bg-destructive/10">
+                                <TableCell className="font-bold text-destructive">
+                                    Out of balance — do not rely on this report
+                                </TableCell>
+                                <TableCell colSpan={showComparison ? 4 : 2} className="text-right font-bold font-mono text-destructive">
+                                    Difference: {formatPrice(Math.abs(totals.primaryDebit - totals.primaryCredit))}
+                                </TableCell>
+                            </TableRow>
+                        )}
                     </TableFooter>
                 </Table>
             </div>
