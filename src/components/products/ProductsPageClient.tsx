@@ -248,32 +248,32 @@ export default function ProductsPageClient({
                 title: "Choose Your Service", 
                 desc: "Browse our online store and select the accounting, tax, or compliance service your business requires.", 
                 icon: ShoppingCart, 
-                bg: "bg-amber-50/80 border-amber-200/60 text-amber-600 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400",
-                textColor: "text-amber-600 dark:text-amber-400"
+                bg: "bg-amber-50/80 border-amber-200/60 text-amber-600",
+                textColor: "text-amber-600"
               },
               { 
                 step: "02", 
                 title: "Upload Your Documents", 
                 desc: "Securely upload your supporting documents through our online platform.", 
                 icon: FileUp, 
-                bg: "bg-blue-50/80 border-blue-200/60 text-blue-600 dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-400",
-                textColor: "text-blue-600 dark:text-blue-400"
+                bg: "bg-blue-50/80 border-blue-200/60 text-blue-600",
+                textColor: "text-blue-600"
               },
               { 
                 step: "03", 
                 title: "We Process Your Application", 
                 desc: "Our team handles the accounting, SARS, CIPC, or compliance process on your behalf.", 
                 icon: RefreshCw, 
-                bg: "bg-purple-50/80 border-purple-200/60 text-purple-600 dark:bg-purple-950/20 dark:border-purple-900/30 dark:text-purple-400",
-                textColor: "text-purple-600 dark:text-purple-400"
+                bg: "bg-purple-50/80 border-purple-200/60 text-purple-600",
+                textColor: "text-purple-600"
               },
               { 
                 step: "04", 
                 title: "Receive Confirmation & Support", 
                 desc: "We provide updates, confirmations, and ongoing support throughout the process.", 
                 icon: CheckCircle2, 
-                bg: "bg-emerald-50/80 border-emerald-200/60 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-400",
-                textColor: "text-emerald-600 dark:text-emerald-400"
+                bg: "bg-emerald-50/80 border-emerald-200/60 text-emerald-600",
+                textColor: "text-emerald-600"
               }
             ].map((step, idx) => (
               <div key={idx} className="relative text-center space-y-6 group">

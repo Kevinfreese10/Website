@@ -72,7 +72,7 @@ export default function TemplatePreviewDialog({
           <DialogHeader className="border-b pb-3 space-y-1 shrink-0">
             <div className="flex items-center justify-between gap-2 pr-6">
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                <FileText className="h-5 w-5 text-indigo-600" />
                 <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
                   {template.title}
                 </DialogTitle>

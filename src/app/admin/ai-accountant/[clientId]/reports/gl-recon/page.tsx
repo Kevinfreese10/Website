@@ -320,9 +320,9 @@ function AccountLedgerView({ transactions, account, client, suppliers, customers
                                 <TableCell>{getBankAccountName(tx.bankAccountId)}</TableCell>
                                 <TableCell>
                                     {tx.amount < 0 ? (
-                                        <Badge variant="outline" className="border-red-500/30 text-red-600 bg-red-500/5 dark:bg-red-500/10">Payment</Badge>
+                                        <Badge variant="outline" className="border-red-500/30 text-red-600 bg-red-500/5">Payment</Badge>
                                     ) : (
-                                        <Badge variant="outline" className="border-green-500/30 text-green-600 bg-green-500/5 dark:bg-green-500/10">Income</Badge>
+                                        <Badge variant="outline" className="border-green-500/30 text-green-600 bg-green-500/5">Income</Badge>
                                     )}
                                 </TableCell>
                                 <TableCell>{tx.displayDescription}</TableCell>

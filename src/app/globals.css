@@ -38,41 +38,6 @@
     --sidebar-border: 215 20% 88%;
     --sidebar-ring: 214 89% 52%;
   }
-  .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 96%;
-    --card: 222 47% 10%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 96%;
-    --primary: 186 100% 50%;
-    --primary-foreground: 222 47% 6%;
-    --secondary: 222 30% 15%;
-    --secondary-foreground: 210 40% 96%;
-    --muted: 222 30% 15%;
-    --muted-foreground: 215 20% 60%;
-    --accent: 270 100% 65%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 222 20% 18%;
-    --input: 222 20% 18%;
-    --ring: 186 100% 50%;
-    --chart-1: 186 100% 50%;
-    --chart-2: 270 100% 65%;
-    --chart-3: 160 84% 39%;
-    --chart-4: 43 96% 56%;
-    --chart-5: 340 82% 52%;
-    --radius: 0.75rem;
-    --sidebar-background: 222 47% 6%;
-    --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 186 100% 50%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 222 47% 10%;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 222 20% 18%;
-    --sidebar-ring: 186 100% 50%;
-  }
 }
 
 @layer base {
@@ -211,39 +176,6 @@
   25% { transform: translate(30px, -20px) scale(1.05); }
   50% { transform: translate(-20px, 15px) scale(0.95); }
   75% { transform: translate(15px, 25px) scale(1.02); }
-}
-
-/* ── Global Dark Theme Overrides for Public pages (anything where body is .dark) ── */
-body.dark .bg-white {
-  background-color: var(--background) !important;
-}
-body.dark .bg-slate-50,
-body.dark .bg-slate-100\/50,
-body.dark .bg-slate-50\/50,
-body.dark .bg-slate-100 {
-  background-color: var(--card) !important;
-}
-body.dark .card,
-body.dark [class*="card"],
-body.dark .bg-slate-50.border,
-body.dark div[class*="bg-slate-50"].border,
-body.dark div[class*="bg-slate-50"].rounded-2xl {
-  background-color: var(--card) !important;
-}
-body.dark .text-slate-900,
-body.dark .text-slate-800,
-body.dark .text-slate-700,
-body.dark .text-slate-600 {
-  color: var(--foreground) !important;
-}
-body.dark .text-muted-foreground {
-  color: var(--muted-foreground) !important;
-}
-body.dark .border-slate-100,
-body.dark .border-slate-200,
-body.dark .border-slate-300,
-body.dark .border-slate-400 {
-  border-color: var(--border) !important;
 }
 
 /* ── Home Page Light Theme Specific Overrides (Option C: ChatGPT Style with Blue Accents) ── */

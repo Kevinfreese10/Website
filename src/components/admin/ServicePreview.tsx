@@ -39,7 +39,7 @@ export default function ServicePreview({ service }: ServicePreviewProps) {
         <div>
           <h2 className="text-lg font-semibold">About This Service</h2>
           <Separator className="my-2" />
-          <div className="prose dark:prose-invert text-sm max-w-none whitespace-pre-wrap">
+          <div className="prose text-sm max-w-none whitespace-pre-wrap">
             {service.longDescription}
           </div>
         </div>

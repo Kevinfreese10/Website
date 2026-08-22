@@ -261,11 +261,11 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
 
                 {/* Analysis Loading / Results Panel */}
                 {(isAnalyzing || analysisResult || analysisError) && (
-                    <div className="rounded-xl border border-violet-100 dark:border-violet-900/50 bg-violet-50/30 dark:bg-violet-950/10 p-4 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="rounded-xl border border-violet-100 bg-violet-50/30 p-4 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {isAnalyzing && (
                             <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
-                                <Loader2 className="h-8 w-8 animate-spin text-violet-600 dark:text-violet-400" />
-                                <p className="text-sm font-medium text-violet-800 dark:text-violet-300">Khai is analyzing your content...</p>
+                                <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+                                <p className="text-sm font-medium text-violet-800">Khai is analyzing your content...</p>
                                 <p className="text-xs text-muted-foreground">Ensuring I understand the details perfectly.</p>
                             </div>
                         )}
@@ -284,27 +284,27 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between border-b pb-3">
                                     <div className="flex items-center gap-2">
-                                        <BrainCircuit className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                                        <h4 className="font-semibold text-sm text-violet-900 dark:text-violet-200">Khai's Comprehension</h4>
+                                        <BrainCircuit className="h-5 w-5 text-violet-600" />
+                                        <h4 className="font-semibold text-sm text-violet-900">Khai's Comprehension</h4>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {analysisResult.understood ? (
-                                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50">
+                                            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50">
                                                 <CheckCircle2 className="mr-1 h-3 w-3" /> Fully Understood
                                             </Badge>
                                         ) : (
-                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/50">
+                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50">
                                                 <HelpCircle className="mr-1 h-3 w-3 animate-pulse" /> Clarifications Needed
                                             </Badge>
                                         )}
-                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300">
+                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">
                                             {analysisResult.comprehensionScore}%
                                         </span>
                                     </div>
                                 </div>
 
-                                <div className="text-sm text-violet-800 dark:text-violet-300 bg-violet-50/50 dark:bg-violet-950/20 p-3 rounded-lg">
-                                    <p className="font-semibold text-xs text-violet-950 dark:text-violet-200 uppercase tracking-wider mb-1">What I Understand:</p>
+                                <div className="text-sm text-violet-800 bg-violet-50/50 p-3 rounded-lg">
+                                    <p className="font-semibold text-xs text-violet-950 uppercase tracking-wider mb-1">What I Understand:</p>
                                     <p className="italic text-xs leading-relaxed">{analysisResult.summary}</p>
                                 </div>
 
@@ -320,14 +320,14 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
                                 )}
 
                                 {!analysisResult.understood && analysisResult.questions && analysisResult.questions.length > 0 && (
-                                    <div className="space-y-3 pt-2 border-t border-violet-100/50 dark:border-violet-900/30">
-                                        <p className="text-xs font-semibold text-violet-950 dark:text-violet-200 uppercase tracking-wider">Help me understand better:</p>
+                                    <div className="space-y-3 pt-2 border-t border-violet-100/50">
+                                        <p className="text-xs font-semibold text-violet-950 uppercase tracking-wider">Help me understand better:</p>
                                         
                                         <div className="space-y-3">
                                             {analysisResult.questions.map((question, index) => (
-                                                <div key={index} className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-lg border border-violet-100/80 dark:border-violet-900/40">
-                                                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-start gap-1.5">
-                                                        <span className="text-violet-600 dark:text-violet-400 font-bold">Q{index + 1}:</span>
+                                                <div key={index} className="space-y-1 bg-white p-3 rounded-lg border border-violet-100/80">
+                                                    <label className="text-xs font-medium text-slate-700 flex items-start gap-1.5">
+                                                        <span className="text-violet-600 font-bold">Q{index + 1}:</span>
                                                         {question}
                                                     </label>
                                                     <Textarea
@@ -376,7 +376,7 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
                         variant="outline" 
                         onClick={handleAnalyze} 
                         disabled={isAnalyzing || isIntegrating}
-                        className="bg-violet-50 text-violet-700 hover:bg-violet-100 hover:text-violet-800 border-violet-200 dark:bg-violet-950/30 dark:text-violet-300 dark:border-violet-800 dark:hover:bg-violet-900/50"
+                        className="bg-violet-50 text-violet-700 hover:bg-violet-100 hover:text-violet-800 border-violet-200"
                     >
                         {isAnalyzing ? (
                             <>
@@ -567,7 +567,7 @@ export default function AdminKnowledgeBasePage() {
                 <Button 
                     variant="outline"
                     onClick={() => setIsChatTesterOpen(true)}
-                    className="border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100 dark:border-violet-800 dark:text-violet-300 dark:bg-violet-950/20 dark:hover:bg-violet-900/50"
+                    className="border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100"
                 >
                     <MessageSquare className="mr-2 h-4 w-4 text-violet-500" />
                     Test AI Chat
@@ -614,8 +614,8 @@ export default function AdminKnowledgeBasePage() {
                                         )}
                                     </div>
                                     {q.comment && (
-                                        <div className="text-xs text-violet-600 bg-violet-50/50 dark:bg-violet-950/10 border border-violet-100 dark:border-violet-900/50 p-2 rounded mt-1.5 font-medium italic">
-                                            <strong className="not-italic text-violet-700 dark:text-violet-400 font-bold block mb-0.5 text-[10px] uppercase tracking-wider">Comment:</strong>
+                                        <div className="text-xs text-violet-600 bg-violet-50/50 border border-violet-100 p-2 rounded mt-1.5 font-medium italic">
+                                            <strong className="not-italic text-violet-700 font-bold block mb-0.5 text-[10px] uppercase tracking-wider">Comment:</strong>
                                             "{q.comment}"
                                         </div>
                                     )}

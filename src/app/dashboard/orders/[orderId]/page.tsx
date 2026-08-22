@@ -662,19 +662,19 @@ export default function ClientOrderDetailsPage() {
             <div className="space-y-8">
                 {allSubmitted && (
                     isCurrentlyUnderReview ? (
-                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-800 dark:bg-green-950/20 dark:border-green-900 dark:text-green-300">
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-800">
                             <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
                             <div>
-                                <p className="font-semibold text-green-900 dark:text-green-200">All documents submitted!</p>
+                                <p className="font-semibold text-green-900">All documents submitted!</p>
                                 <p className="text-sm">Your consultant has been notified and is currently reviewing your documents. We will update you here and via email once the review is complete.</p>
                             </div>
                         </div>
                     ) : (
-                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900 dark:text-amber-300">
+                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-amber-800">
                             <div className="flex items-start gap-3">
                                 <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                                 <div>
-                                    <p className="font-semibold text-amber-900 dark:text-amber-200">{hasRejectedUploads ? 'Revision Ready: Submit for Re-Review' : 'Action Required: Submit for Review'}</p>
+                                    <p className="font-semibold text-amber-900">{hasRejectedUploads ? 'Revision Ready: Submit for Re-Review' : 'Action Required: Submit for Review'}</p>
                                     <p className="text-sm">{hasRejectedUploads ? 'You have updated the requested documents. Please notify your consultant to re-review.' : 'All required items have been completed or explained. Please submit them so your consultant can start processing your order.'}</p>
                                 </div>
                             </div>
@@ -722,7 +722,7 @@ export default function ClientOrderDetailsPage() {
                     <CardContent className="space-y-6">
                         {/* Fulfillment Progress Timeline */}
                         {order.status !== 'Cancelled' && (
-                            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border space-y-3">
+                            <div className="p-4 bg-slate-50 rounded-xl border space-y-3">
                                 <div className="flex justify-between items-center text-sm font-semibold">
                                     <span className="flex items-center gap-1.5 text-primary">
                                         <Clock className="h-4 w-4" /> Fulfillment Status
@@ -831,7 +831,7 @@ export default function ClientOrderDetailsPage() {
                                             return (
                                             <div key={infoIndex} className={`space-y-3 p-3.5 rounded-lg border transition-all ${
                                                 isRejected 
-                                                    ? 'border-destructive bg-destructive/5 dark:bg-destructive/10' 
+                                                    ? 'border-destructive bg-destructive/5' 
                                                     : hasFiles || hasExplanation || hasTextValue 
                                                     ? 'border-border bg-card shadow-2xs' 
                                                     : 'border-dashed border-muted-foreground/30 bg-muted/20'
@@ -909,9 +909,9 @@ export default function ClientOrderDetailsPage() {
 
                                                 {/* 1. Missing Document / Explanation Display */}
                                                 {hasExplanation && !isEditing && (
-                                                    <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-md text-xs dark:bg-amber-950/20 dark:border-amber-900/40 space-y-2">
+                                                    <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-md text-xs space-y-2">
                                                         <div className="flex items-center justify-between">
-                                                            <span className="font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                                                            <span className="font-semibold text-amber-900 flex items-center gap-1.5">
                                                                 <MessageSquareQuote className="h-4 w-4 text-amber-600" />
                                                                 Your Explanation for Missing Document:
                                                             </span>
@@ -920,7 +920,7 @@ export default function ClientOrderDetailsPage() {
                                                                     type="button" 
                                                                     size="xs" 
                                                                     variant="ghost" 
-                                                                    className="h-7 text-xs text-amber-900 hover:text-amber-950 dark:text-amber-200"
+                                                                    className="h-7 text-xs text-amber-900 hover:text-amber-950"
                                                                     onClick={() => {
                                                                         setUnavailableReasons(prev => ({ ...prev, [uploadKey]: upload?.notAvailableReason || '' }));
                                                                         setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: true }));
@@ -1041,17 +1041,17 @@ export default function ClientOrderDetailsPage() {
                                                             <>
                                                                 {showUnavailableForm ? (
                                                                     /* Explanation Form */
-                                                                    <div className="p-3.5 bg-amber-50/90 dark:bg-amber-950/40 rounded-lg border border-amber-300 dark:border-amber-700/60 space-y-3 shadow-2xs">
+                                                                    <div className="p-3.5 bg-amber-50/90 rounded-lg border border-amber-300 space-y-3 shadow-2xs">
                                                                         <div className="flex items-start justify-between gap-2">
                                                                             <div className="flex items-center gap-2">
-                                                                                <div className="p-1.5 bg-amber-200/80 dark:bg-amber-900/80 rounded-md text-amber-900 dark:text-amber-200">
+                                                                                <div className="p-1.5 bg-amber-200/80 rounded-md text-amber-900">
                                                                                     <HelpCircle className="h-4 w-4" />
                                                                                 </div>
                                                                                 <div>
-                                                                                    <h5 className="text-xs font-bold text-amber-950 dark:text-amber-100">
+                                                                                    <h5 className="text-xs font-bold text-amber-950">
                                                                                         Document Unavailable Note
                                                                                     </h5>
-                                                                                    <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90">
+                                                                                    <p className="text-[11px] text-amber-800/90">
                                                                                         Explain why you cannot provide this document so your consultant can continue without delay.
                                                                                     </p>
                                                                                 </div>
@@ -1060,7 +1060,7 @@ export default function ClientOrderDetailsPage() {
                                                                                 type="button" 
                                                                                 variant="ghost" 
                                                                                 size="xs" 
-                                                                                className="h-6 text-xs text-amber-900/70 hover:text-amber-950 dark:text-amber-300"
+                                                                                className="h-6 text-xs text-amber-900/70 hover:text-amber-950"
                                                                                 onClick={() => setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }))}
                                                                             >
                                                                                 Cancel
@@ -1071,7 +1071,7 @@ export default function ClientOrderDetailsPage() {
                                                                             placeholder="e.g. Company newly registered and bank account not opened yet, director overseas, etc."
                                                                             value={unavailableReasons[uploadKey] || ''}
                                                                             onChange={(e) => setUnavailableReasons(prev => ({ ...prev, [uploadKey]: e.target.value }))}
-                                                                            className="text-xs bg-background border-amber-300 dark:border-amber-700 focus-visible:ring-amber-500"
+                                                                            className="text-xs bg-background border-amber-300 focus-visible:ring-amber-500"
                                                                         />
                                                                         <div className="flex justify-end gap-2">
                                                                             <Button 
@@ -1154,10 +1154,10 @@ export default function ClientOrderDetailsPage() {
                                                                                 type="button"
                                                                                 variant="outline"
                                                                                 size="xs"
-                                                                                className="h-7 text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-500/30 hover:border-amber-500/50 rounded-md px-2.5 shadow-2xs transition-all flex items-center gap-1.5"
+                                                                                className="h-7 text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 border-amber-500/30 hover:border-amber-500/50 rounded-md px-2.5 shadow-2xs transition-all flex items-center gap-1.5"
                                                                                 onClick={() => setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: true }))}
                                                                             >
-                                                                                <HelpCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                                                                <HelpCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
                                                                                 <span>I don't have this document / Explain why</span>
                                                                             </Button>
 

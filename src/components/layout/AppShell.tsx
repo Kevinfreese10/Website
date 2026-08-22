@@ -33,10 +33,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
     } else {
       document.body.classList.remove('home-light-theme');
     }
-    document.body.classList.remove('dark');
     return () => {
       document.body.classList.remove('home-light-theme');
-      document.body.classList.remove('dark');
     };
   }, [isDashboardPage]);
 

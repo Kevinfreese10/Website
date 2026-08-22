@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { getFirestore, collection, getDocs, orderBy, query, where, doc, updateDoc, arrayUnion, getDoc, Timestamp, addDoc, writeBatch, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, orderBy, query, where, doc, updateDoc, arrayUnion, getDoc, Timestamp, addDoc, writeBatch, onSnapshot, limit } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { getAuth } from 'firebase/auth';
 import { Order, User, Service, OrderNote, Task, ItnLog } from '@/lib/types';
@@ -70,6 +70,24 @@ import { getStatusVariant } from '@/lib/order-status';
 
 const db = getFirestore(firebaseApp);
 
+/**
+ * Statuses treated as "still being worked". Includes the legacy values that exist in production
+ * data ('Outsourced', 'Waiting on Client') so historical orders don't silently vanish from the
+ * default view. Firestore `in` supports up to 30 values.
+ */
+const ACTIVE_ORDER_STATUSES = [
+  'Pending Payment',
+  'Processing',
+  'Outsourced',
+  'Under Review',
+  'Waiting on Customer',
+  'Waiting for Information',
+  'Waiting on Client',
+];
+
+/** How many historical orders to load when the user explicitly asks for them. */
+const HISTORY_PAGE_SIZE = 250;
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -123,9 +141,25 @@ export default function AdminOrdersPage() {
         console.error("Error fetching staff:", error);
     });
 
+    /*
+     * Bounded live listener.
+     *
+     * This previously opened an UNBOUNDED onSnapshot over the whole orders collection, ordered by
+     * date, with no limit — every order ever placed, in full, streamed live to every admin
+     * browser, on every visit, and then filtered in memory. It was the dominant Firestore cost
+     * line and grew linearly with lifetime order count.
+     *
+     * The default view is now scoped server-side to orders that are still being worked. Selecting
+     * "All Statuses", "Completed" or "Cancelled" issues a separate, explicitly-requested query —
+     * so history is still reachable, it just isn't loaded on every page view.
+     */
     const ordersRef = collection(db, 'orders');
-    const ordersQuery = query(ordersRef, orderBy('date', 'desc'));
-    
+    const wantsHistory = statusFilter === 'all' || statusFilter === 'Completed' || statusFilter === 'Cancelled';
+
+    const ordersQuery = wantsHistory
+      ? query(ordersRef, orderBy('date', 'desc'), limit(HISTORY_PAGE_SIZE))
+      : query(ordersRef, where('status', 'in', ACTIVE_ORDER_STATUSES), orderBy('date', 'desc'));
+
     const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
         const fetchedOrders = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -174,7 +208,8 @@ export default function AdminOrdersPage() {
     });
 
     return () => unsubscribe();
-  }, [user, toast]);
+  // statusFilter is a dependency: switching to a history view issues a different query.
+  }, [user, toast, statusFilter]);
 
   // Load saved filters on mount
   useEffect(() => {

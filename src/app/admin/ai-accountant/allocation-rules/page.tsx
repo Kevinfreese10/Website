@@ -259,7 +259,7 @@ export default function GlobalAllocationRulesPage() {
                           <Badge
                             key={i}
                             variant="outline"
-                            className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 font-mono text-[11px]"
+                            className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20 font-mono text-[11px]"
                           >
                             <Tag className="mr-1 h-3 w-3" />
                             {kw}

@@ -924,7 +924,7 @@ export default function PartnerOrderDetailsPage() {
                 />
 
                 {order?.isOutsourced && (
-                    <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 p-4 rounded-xl flex items-center justify-between gap-3 shadow-sm">
+                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-center justify-between gap-3 shadow-sm">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-600 text-white rounded-lg">
                                 <Sparkles className="h-5 w-5" />
@@ -934,7 +934,7 @@ export default function PartnerOrderDetailsPage() {
                                 <p className="text-xs text-muted-foreground">This order is actively being processed and fulfilled by My Accountant staff consultants.</p>
                             </div>
                         </div>
-                        <Badge variant="outline" className="font-bold border-blue-500 text-blue-600 dark:text-blue-400">
+                        <Badge variant="outline" className="font-bold border-blue-500 text-blue-600">
                             Wholesale Fulfilled
                         </Badge>
                     </div>
@@ -1093,7 +1093,7 @@ export default function PartnerOrderDetailsPage() {
                                                                 {/* Missing Document Explanation */}
                                                                 {upload.notAvailableReason && (
                                                                     <div className="p-2.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs space-y-1">
-                                                                        <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                                                                        <div className="flex items-center gap-1.5 font-bold text-amber-800">
                                                                             Client Stated Document is Unavailable
                                                                         </div>
                                                                         <p className="text-muted-foreground italic font-medium">"{upload.notAvailableReason}"</p>

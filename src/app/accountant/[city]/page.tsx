@@ -454,7 +454,7 @@ export default async function CityAccountantPage({ params }: Props) {
         </section>
 
         {/* How It Works */}
-        <section className="py-16 bg-slate-50 dark:bg-slate-900/30">
+        <section className="py-16 bg-slate-50">
           <div className="container mx-auto px-4 max-w-5xl space-y-12">
             <div className="text-center space-y-4">
               <h2 className="text-3xl font-bold text-foreground">How It Works</h2>
@@ -487,7 +487,7 @@ export default async function CityAccountantPage({ params }: Props) {
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-4">
             {cityData.suburbs.map((suburb, i) => (
-              <div key={i} className="flex items-center gap-2 bg-white dark:bg-slate-800 p-3 rounded-lg border border-border justify-center font-semibold text-foreground/80 shadow-sm text-sm">
+              <div key={i} className="flex items-center gap-2 bg-white p-3 rounded-lg border border-border justify-center font-semibold text-foreground/80 shadow-sm text-sm">
                 <MapPin className="h-4 w-4 text-primary shrink-0" />
                 {suburb}
               </div>
@@ -552,7 +552,7 @@ export default async function CityAccountantPage({ params }: Props) {
               { label: 'Annual Returns', href: '/products/annual-returns' },
               { label: 'Financial Statements', href: '/financial-statements' },
             ].map((item, i) => (
-              <Link key={i} href={item.href} className="flex items-center justify-center gap-2 p-3 rounded-lg border border-border bg-white dark:bg-slate-800 hover:border-primary/30 hover:shadow-sm transition-all text-sm font-semibold text-foreground/80">
+              <Link key={i} href={item.href} className="flex items-center justify-center gap-2 p-3 rounded-lg border border-border bg-white hover:border-primary/30 hover:shadow-sm transition-all text-sm font-semibold text-foreground/80">
                 <ArrowRight className="h-4 w-4 text-primary" />
                 {item.label}
               </Link>

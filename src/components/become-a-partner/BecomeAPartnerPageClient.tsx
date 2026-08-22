@@ -133,8 +133,8 @@ const featureBenefits = [
         showPricing: true,
         bgClass: 'bg-emerald-500/10',
         borderClass: 'border-emerald-500/20',
-        iconClass: 'text-emerald-600 dark:text-emerald-400',
-        checkClass: 'text-emerald-600 dark:text-emerald-400',
+        iconClass: 'text-emerald-600',
+        checkClass: 'text-emerald-600',
     },
     {
         icon: LayoutDashboard,
@@ -142,8 +142,8 @@ const featureBenefits = [
         benefit: 'Manage your entire practice, staff, and client workflows from a single secure portal that carries your branding, not ours.',
         bgClass: 'bg-violet-500/10',
         borderClass: 'border-violet-500/20',
-        iconClass: 'text-violet-600 dark:text-violet-400',
-        checkClass: 'text-violet-600 dark:text-violet-400',
+        iconClass: 'text-violet-600',
+        checkClass: 'text-violet-600',
     },
     {
         icon: Globe,
@@ -151,8 +151,8 @@ const featureBenefits = [
         benefit: 'Get a 24/7 online store with 50+ re-branded services. Let your clients browse, order, and pay while you sleep.',
         bgClass: 'bg-cyan-500/10',
         borderClass: 'border-cyan-500/20',
-        iconClass: 'text-cyan-600 dark:text-cyan-400',
-        checkClass: 'text-cyan-600 dark:text-cyan-400',
+        iconClass: 'text-cyan-600',
+        checkClass: 'text-cyan-600',
     },
     {
         icon: Users,
@@ -160,8 +160,8 @@ const featureBenefits = [
         benefit: 'Never say "no" to a complex project again. Confidently scale your business capacity by leveraging our expert backend team.',
         bgClass: 'bg-amber-500/10',
         borderClass: 'border-amber-500/20',
-        iconClass: 'text-amber-600 dark:text-amber-400',
-        checkClass: 'text-amber-600 dark:text-amber-400',
+        iconClass: 'text-amber-600',
+        checkClass: 'text-amber-600',
     },
     {
         icon: GraduationCap,
@@ -169,8 +169,8 @@ const featureBenefits = [
         benefit: 'Full setup, training, and direct access to senior Chartered Accountants and tax experts to help you navigate complex technical hurdles.',
         bgClass: 'bg-blue-500/10',
         borderClass: 'border-blue-500/20',
-        iconClass: 'text-blue-600 dark:text-blue-400',
-        checkClass: 'text-blue-600 dark:text-blue-400',
+        iconClass: 'text-blue-600',
+        checkClass: 'text-blue-600',
     },
     {
         icon: Scale,
@@ -178,8 +178,8 @@ const featureBenefits = [
         benefit: 'Total control over your client-facing prices. Set your own markup on services while our underlying wholesale cost remains fixed.',
         bgClass: 'bg-indigo-500/10',
         borderClass: 'border-indigo-500/20',
-        iconClass: 'text-indigo-600 dark:text-indigo-400',
-        checkClass: 'text-indigo-600 dark:text-indigo-400',
+        iconClass: 'text-indigo-600',
+        checkClass: 'text-indigo-600',
     },
 ];
 
@@ -189,9 +189,9 @@ const challenges = [
         description: 'Offering only bookkeeping services limits your earning potential. Sell our full suite — from company registration to VAT, COIDA, CIDB, NCR, and more.',
         icon: Briefcase,
         bgClass: 'bg-blue-500/10',
-        borderClass: 'border-blue-100/80 dark:border-blue-900/30',
+        borderClass: 'border-blue-100/80',
         hoverBorderClass: 'hover:border-blue-500/30',
-        iconClass: 'text-blue-600 dark:text-blue-400',
+        iconClass: 'text-blue-600',
         barClass: 'bg-blue-500',
     },
     {
@@ -199,9 +199,9 @@ const challenges = [
         description: 'Many bookkeepers work alone. We provide mentorship from senior accountants and industry experts who help you grow your capabilities.',
         icon: GraduationCap,
         bgClass: 'bg-amber-500/10',
-        borderClass: 'border-amber-100/80 dark:border-amber-900/30',
+        borderClass: 'border-amber-100/80',
         hoverBorderClass: 'hover:border-amber-500/30',
-        iconClass: 'text-amber-600 dark:text-amber-400',
+        iconClass: 'text-amber-600',
         barClass: 'bg-amber-500',
     },
     {
@@ -209,9 +209,9 @@ const challenges = [
         description: 'Without proper systems, document management is messy. Get our cloud-based dashboard to manage and outsource client orders seamlessly.',
         icon: Cpu,
         bgClass: 'bg-violet-500/10',
-        borderClass: 'border-violet-100/80 dark:border-violet-900/30',
+        borderClass: 'border-violet-100/80',
         hoverBorderClass: 'hover:border-violet-500/30',
-        iconClass: 'text-violet-600 dark:text-violet-400',
+        iconClass: 'text-violet-600',
         barClass: 'bg-violet-500',
     },
     {
@@ -219,9 +219,9 @@ const challenges = [
         description: 'Quoting manually and chasing EFTs is a time-sink. Your white-labeled online store automates sales, PayFast, and document collection.',
         icon: ShoppingBag,
         bgClass: 'bg-emerald-500/10',
-        borderClass: 'border-emerald-100/80 dark:border-emerald-900/30',
+        borderClass: 'border-emerald-100/80',
         hoverBorderClass: 'hover:border-emerald-500/30',
-        iconClass: 'text-emerald-600 dark:text-emerald-400',
+        iconClass: 'text-emerald-600',
         barClass: 'bg-emerald-500',
     },
     {
@@ -229,9 +229,9 @@ const challenges = [
         description: 'Handling large clients alone isn’t easy. Our qualified team handles your overflow work securely, accurately, and on time.',
         icon: Users,
         bgClass: 'bg-cyan-500/10',
-        borderClass: 'border-cyan-100/80 dark:border-cyan-900/30',
+        borderClass: 'border-cyan-100/80',
         hoverBorderClass: 'hover:border-cyan-500/30',
-        iconClass: 'text-cyan-600 dark:text-cyan-400',
+        iconClass: 'text-cyan-600',
         barClass: 'bg-cyan-500',
     },
     {
@@ -239,9 +239,9 @@ const challenges = [
         description: 'Advanced statutory rules can be deterring. We provide ready-to-use templates and guides to help you stay compliant and confident.',
         icon: ShieldAlert,
         bgClass: 'bg-rose-500/10',
-        borderClass: 'border-rose-100/80 dark:border-rose-900/30',
+        borderClass: 'border-rose-100/80',
         hoverBorderClass: 'hover:border-rose-500/30',
-        iconClass: 'text-rose-600 dark:text-rose-400',
+        iconClass: 'text-rose-600',
         barClass: 'bg-rose-500',
     }
 ];
@@ -302,7 +302,7 @@ export default function BecomeAPartnerPageClient() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                 {/* Plan 1: Free Partner */}
-                <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 shadow-xl overflow-hidden flex flex-col justify-between">
+                <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden flex flex-col justify-between">
                     <div>
                         <CardHeader className="bg-slate-50 border-b border-slate-100 p-8 text-center">
                             <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Free Partner Tier</CardTitle>
@@ -343,7 +343,7 @@ export default function BecomeAPartnerPageClient() {
                 <div className="relative p-[2px] rounded-2xl bg-gradient-to-r from-primary via-blue-500 to-violet-600 shadow-2xl hover:shadow-primary/20 transition-all duration-300 group">
                     <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary to-violet-600 opacity-25 blur transition duration-1000 group-hover:opacity-40 group-hover:duration-200" />
                     
-                    <div className="relative bg-white dark:bg-slate-900 rounded-[14px] overflow-hidden flex flex-col justify-between h-full">
+                    <div className="relative bg-white rounded-[14px] overflow-hidden flex flex-col justify-between h-full">
                         <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-lg z-20">
                             Recommended
                         </div>
@@ -484,7 +484,7 @@ export default function BecomeAPartnerPageClient() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {challenges.map((item, idx) => (
-                    <Card key={idx} className={`relative overflow-hidden border ${item.borderClass} ${item.hoverBorderClass} shadow-md bg-white dark:bg-slate-900 hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
+                    <Card key={idx} className={`relative overflow-hidden border ${item.borderClass} ${item.hoverBorderClass} shadow-md bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}>
                         <div className={`h-1.5 w-full absolute top-0 left-0 ${item.barClass}`} />
                         <CardHeader className="text-center pb-2 pt-6">
                             <div className={`mx-auto h-16 w-16 rounded-full ${item.bgClass} border ${item.borderClass} flex items-center justify-center mb-4 shadow-sm`}>

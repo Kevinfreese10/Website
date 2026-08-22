@@ -169,7 +169,7 @@ export default function Emp201ReportPage() {
     };
 
     const computeReportDataForMonth = (month: string) => {
-        if (!month) return { breakdown: [], totals: { gross: 0, paye: 0, uif: 0, sdl: 0, payable: 0 } };
+        if (!month) return { breakdown: [], totals: { gross: 0, paye: 0, uif: 0, sdl: 0, payable: 0, etiSupported: false } };
 
         const targetDate = parse(month, 'MMMM yyyy', new Date());
         const start = startOfMonth(targetDate);
@@ -466,6 +466,25 @@ export default function Emp201ReportPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/*
+              * ETI (field 4118) is calculated by EtiService but is not yet applied to the figure
+              * above, because the rate bands have not been confirmed against a current SARS source
+              * and the feature is off by default. Say so plainly on the report rather than letting
+              * an employer assume the liability already accounts for their claim.
+              */}
+            {reportData.totals.etiSupported === false && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+                    <p className="text-sm font-medium text-amber-900">
+                        Employment Tax Incentive (field 4118) is not included in this figure.
+                    </p>
+                    <p className="mt-1 text-xs text-amber-900/80">
+                        If this employer claims ETI, the PAYE shown above is overstated. Deduct the ETI
+                        amount before submitting, or ask your developer to enable ETI once the current
+                        SARS rate bands have been confirmed.
+                    </p>
+                </div>
+            )}
 
             <Dialog open={isBatchExportOpen} onOpenChange={setIsBatchExportOpen}>
                 <DialogContent>

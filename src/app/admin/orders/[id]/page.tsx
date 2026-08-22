@@ -945,12 +945,12 @@ export default function AdminOrderDetailsPage() {
                                 <>
                                     {/* Same Client Quick Picks */}
                                     {!orderSearchTerm.trim() && sameClientCandidates.length > 0 && (
-                                        <div className="space-y-2.5 bg-blue-50/50 dark:bg-blue-950/20 p-3.5 rounded-xl border border-blue-200/70 dark:border-blue-800/60">
+                                        <div className="space-y-2.5 bg-blue-50/50 p-3.5 rounded-xl border border-blue-200/70">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                                                <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
                                                     <UserIcon className="h-3.5 w-3.5" /> Orders From This Client
                                                 </span>
-                                                <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded-full">
+                                                <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
                                                     {sameClientCandidates.length} Found
                                                 </span>
                                             </div>
@@ -1086,7 +1086,7 @@ export default function AdminOrderDetailsPage() {
                             </p>
                             
                             {incompletePrerequisites.length > 0 && (
-                                <div className="bg-amber-500/10 p-3 rounded-md border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                                <div className="bg-amber-500/10 p-3 rounded-md border border-amber-500/20 text-xs text-amber-900 space-y-1">
                                     <p className="font-bold">Incomplete Prerequisite Orders:</p>
                                     {incompletePrerequisites.map((p) => (
                                         <div key={p.id} className="flex items-center justify-between">
@@ -1112,7 +1112,7 @@ export default function AdminOrderDetailsPage() {
                             )}
 
                             {order.checklist && order.checklist.some(s => s.status !== 'completed' && s.status !== 'skipped') && (
-                                <div className="bg-blue-500/10 p-3 rounded-md border border-blue-500/20 text-xs text-blue-900 dark:text-blue-200 space-y-1">
+                                <div className="bg-blue-500/10 p-3 rounded-md border border-blue-500/20 text-xs text-blue-900 space-y-1">
                                     <p className="font-bold">Incomplete SOP Checklist Steps:</p>
                                     {order.checklist.filter(s => s.status !== 'completed' && s.status !== 'skipped').map((s, sIdx) => (
                                         <div key={sIdx} className="flex items-center justify-between">
@@ -1159,12 +1159,12 @@ export default function AdminOrderDetailsPage() {
 
             {/* Prerequisite Dependency Warning Banner */}
             {incompletePrerequisites.length > 0 && (
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3.5 text-amber-900 dark:text-amber-200">
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3.5 text-amber-900">
                     <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                     <div className="flex-1 text-sm">
                         <p className="font-bold flex items-center gap-2">
                             Prerequisite Order Dependency Warning
-                            <Badge variant="outline" className="bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/40 text-[10px]">
+                            <Badge variant="outline" className="bg-amber-500/20 text-amber-800 border-amber-500/40 text-[10px]">
                                 {incompletePrerequisites.length} Pending {incompletePrerequisites.length === 1 ? 'Prerequisite' : 'Prerequisites'}
                             </Badge>
                         </p>
@@ -1364,7 +1364,7 @@ export default function AdminOrderDetailsPage() {
                                                                 {/* Missing Document Explanation */}
                                                                 {upload.notAvailableReason && (
                                                                     <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs space-y-1.5">
-                                                                        <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                                                                        <div className="flex items-center gap-1.5 font-bold text-amber-800">
                                                                             <HelpCircle className="h-4 w-4" /> Client Note: Document is Not Available
                                                                         </div>
                                                                         <p className="pl-5 text-muted-foreground italic font-medium">"{upload.notAvailableReason}"</p>

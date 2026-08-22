@@ -216,13 +216,13 @@ export function ProcessOrderModal({
           <div
             className={`flex flex-col gap-4 rounded-xl border p-5 transition-colors ${
               canOutsource
-                ? 'border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20'
+                ? 'border-amber-500/40 bg-amber-50/50'
                 : 'border-muted bg-muted/30 opacity-70'
             }`}
           >
             <div className="flex items-start gap-3">
               <Store
-                className={`mt-0.5 h-5 w-5 shrink-0 ${canOutsource ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}
+                className={`mt-0.5 h-5 w-5 shrink-0 ${canOutsource ? 'text-amber-600' : 'text-muted-foreground'}`}
               />
               <div>
                 <p className="font-semibold leading-tight">Outsource to My Accountant</p>
@@ -237,7 +237,7 @@ export function ProcessOrderModal({
                 <span className="text-muted-foreground font-medium">Wholesale Cost</span>
                 <Badge
                   variant={canOutsource ? 'outline' : 'secondary'}
-                  className="tabular-nums border-amber-500/60 text-amber-700 dark:text-amber-400 font-bold"
+                  className="tabular-nums border-amber-500/60 text-amber-700 font-bold"
                 >
                   {formatZAR(wholesaleCost)}
                 </Badge>

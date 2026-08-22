@@ -46,6 +46,26 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       index: true,
       follow: true,
     },
+    /*
+     * DELIBERATE: partner storefronts always canonicalise to myacc.co.za, including when reached
+     * via a partner's own custom domain.
+     *
+     * This is a product decision, not an oversight — partner sites are a lead-generation and
+     * white-label presentation tool, not an independent SEO asset. Consolidating link equity on
+     * the main domain also avoids the partner storefronts competing with myacc.co.za for the same
+     * South African accounting terms, which is what would happen if each self-canonicalised
+     * (the underlying service content is largely identical across them).
+     *
+     * Consequences, accepted:
+     *   - partner custom domains cannot rank under their own brand
+     *   - /p/ is disallowed in robots.txt, so these pages are not indexed on the main domain either
+     *   - custom domains have no robots.txt or sitemap of their own (middleware.ts does not route
+     *     those paths), which is consistent with them not being intended to rank
+     *
+     * If the commercial position changes and partners should rank independently, this needs to
+     * change together with the middleware matcher and per-domain robots/sitemap routes — please
+     * don't "fix" the canonical on its own.
+     */
     alternates: {
       canonical: `${SITE_URL}/p/${slug}`,
     },

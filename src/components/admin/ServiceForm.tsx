@@ -481,7 +481,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                   </Badge>
                 )}
                 {form.watch('isFeatured') && (
-                  <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-xs font-bold gap-1">
+                  <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs font-bold gap-1">
                     <Star className="h-3 w-3 fill-amber-500" /> Popular
                   </Badge>
                 )}
@@ -892,7 +892,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                 <div className="space-y-2.5">
                   {includedFields.map((field, index) => (
                     <div key={field.id} className="flex items-center gap-2">
-                      <div className="flex items-center justify-center h-7 w-7 rounded-md bg-green-500/10 text-green-700 dark:text-green-300 font-bold text-xs shrink-0">
+                      <div className="flex items-center justify-center h-7 w-7 rounded-md bg-green-500/10 text-green-700 font-bold text-xs shrink-0">
                         ✓
                       </div>
                       <FormField
@@ -1320,14 +1320,14 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                             {currentSlug}
                           </span>
                         </div>
-                        <h4 className="text-base font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer truncate">
+                        <h4 className="text-base font-semibold text-blue-600 hover:underline cursor-pointer truncate">
                           <a href={targetUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 group">
                             <span>{form.watch('metaTitle') || watchedTitle || 'Professional Accounting & Tax Services'} | My Accountant</span>
                             <ExternalLink className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 shrink-0" />
                           </a>
                         </h4>
                         {form.watch('enableAggregateRating') && (
-                          <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                          <div className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
                             <span>Rating: {form.watch('aggregateRatingValue') || 4.9}/5</span>
                             <span>·</span>
                             <span>{form.watch('reviewCount') || 187} reviews</span>
@@ -1577,7 +1577,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         <div className="flex items-center justify-between px-6 py-3.5 border-t bg-muted/40 shrink-0">
           <div className="text-xs text-muted-foreground">
             {form.formState.isDirty ? (
-              <span className="text-amber-600 dark:text-amber-400 font-semibold">● Unsaved changes</span>
+              <span className="text-amber-600 font-semibold">● Unsaved changes</span>
             ) : (
               <span>All changes saved</span>
             )}

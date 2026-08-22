@@ -1651,7 +1651,7 @@ function SmartMatchQueueModal({
                                     <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 p-3 rounded-lg border gap-4 flex-wrap">
                                         <span>Found <strong className="text-foreground">{results.length}</strong> high-confidence (ÔëÑ90%) merchant match(es) from {selectedTransactions.length} analyzed transaction(s).</span>
                                         <div className="flex items-center gap-4 flex-wrap">
-                                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{selectedForRules.size} selected for rule creation</span>
+                                            <span className="font-semibold text-emerald-600">{selectedForRules.size} selected for rule creation</span>
                                             {selectedForRules.size > 0 && (
                                                 <Select
                                                     onValueChange={(accountId) => {
@@ -1752,7 +1752,7 @@ function SmartMatchQueueModal({
                                                                     const matchingRule = allRules.find(rule => rule.accountId === currentAccountId);
                                                                     if (matchingRule) {
                                                                         return (
-                                                                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium mt-0.5 ml-2">
+                                                                            <div className="text-[10px] text-emerald-600 flex items-center gap-1 font-medium mt-0.5 ml-2">
                                                                                 <Zap className="h-3 w-3 fill-emerald-500 text-emerald-500 inline shrink-0" />
                                                                                 <span>ÔÜí Adds to existing rule: {matchingRule.description || matchingRule.keywords.join(', ')}</span>
                                                                             </div>
@@ -1766,8 +1766,8 @@ function SmartMatchQueueModal({
                                                                     className={cn(
                                                                         "font-bold text-[10px]",
                                                                         is100 
-                                                                            ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300"
-                                                                            : "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300"
+                                                                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                                                            : "bg-amber-100 text-amber-800 border-amber-300"
                                                                     )}
                                                                 >
                                                                     {r.confidence}%
@@ -2314,7 +2314,7 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                                 variant="outline" 
                                 onClick={() => setIsSmartMatchOpen(true)} 
                                 disabled={selectedTransactions.length === 0} 
-                                className="font-bold border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                                className="font-bold border-emerald-500/30 text-emerald-600 hover:bg-emerald-50"
                             >
                                 <Sparkles className="mr-2 h-4 w-4 text-emerald-500" /> Smart Match Queue ({selectedTransactions.length})
                             </Button>
@@ -3310,7 +3310,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                         variant="outline" 
                         onClick={() => setIsSmartMatchOpen(true)} 
                         disabled={groups.length === 0} 
-                        className="font-bold border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                        className="font-bold border-emerald-500/30 text-emerald-600 hover:bg-emerald-50"
                     >
                         <Sparkles className="mr-2 h-4 w-4 text-emerald-500" />
                         Smart Match Queue {selectedGroupKeys.length > 0 ? `(${selectedGroupKeys.length} selected)` : `(${groups.length} groups)`}

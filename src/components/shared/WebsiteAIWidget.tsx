@@ -371,7 +371,7 @@ export default function WebsiteAIWidget() {
                 "prose prose-sm max-w-none",
                 message.role === 'user' || message.role === 'agent'
                   ? "prose-invert text-white"
-                  : "prose-slate text-slate-900 dark:prose-invert dark:text-slate-100 font-medium"
+                  : "prose-slate text-slate-900 font-medium"
               )}>
                  <ReactMarkdown
                    components={{

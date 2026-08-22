@@ -20,7 +20,7 @@ export default function SarsOfficialLinkBox({
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center h-6 px-2.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
+              <span className="inline-flex items-center justify-center h-6 px-2.5 rounded-full bg-amber-500/20 text-amber-600 font-bold text-xs uppercase tracking-wider">
                 <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Verified SARS Portal
               </span>
             </div>

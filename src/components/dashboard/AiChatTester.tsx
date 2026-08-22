@@ -194,9 +194,9 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
   };
 
   const getConfidenceBadgeColor = (score: number) => {
-    if (score >= 80) return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50';
-    if (score >= 50) return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/50';
-    return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50';
+    if (score >= 80) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (score >= 50) return 'bg-amber-50 text-amber-700 border-amber-200';
+    return 'bg-rose-50 text-rose-700 border-rose-200';
   };
 
   const toggleDiagnostics = (index: number) => {
@@ -440,7 +440,7 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
       <Dialog open={commentDialogOpen} onOpenChange={setCommentDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-violet-900 dark:text-violet-200">
+            <DialogTitle className="flex items-center gap-2 text-violet-900">
               <MessageSquare className="h-5 w-5 text-violet-600" />
               Add Training Comment
             </DialogTitle>
