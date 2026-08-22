@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/observability';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react';
@@ -14,7 +15,7 @@ export default function AdminError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('Admin portal runtime error:', error);
+    reportError(error, { operation: 'admin.route', detail: { digest: error.digest } });
   }, [error]);
 
   return (

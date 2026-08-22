@@ -630,7 +630,12 @@ export default function ClientOrderDetailsPage() {
             .filter(d => (d.serviceId === itemId || d.serviceId === serviceDetails?.id) && !standardReqs.some(p => p.label === d.requirementLabel))
             .map(d => ({
                 label: d.requirementLabel,
-                type: d.type,
+                // `requestCustomDocumentAtomic` stores type: 'file', but the requirement renderer
+                // switches on 'pdf' | 'excel' | 'image' | 'any' and falls through to a plain text
+                // input for anything else. That meant a staff member could request "Certified
+                // Proof of Address" and the client was shown a one-line text box with no way to
+                // attach the document at all. Map the storage type onto an upload-capable type.
+                type: d.type === 'text' ? 'text' : 'any',
                 helpText: '',
                 isRequired: true,
             }));

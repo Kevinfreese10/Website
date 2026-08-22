@@ -39,6 +39,21 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isActive != false;
     }
 
+    /**
+     * True when the caller's email claim is present AND Firebase has verified it.
+     *
+     * Order access below can be granted by matching `customerEmail` / `endCustomerEmail`, which
+     * exists so guest-checkout customers can reach their own orders after registering. Firebase
+     * populates `token.email` the moment an account is created, verified or not — so without this
+     * check, registering with a known customer's address granted immediate read (and update)
+     * access to that customer's orders and their uploaded KYC documents.
+     */
+    function hasVerifiedEmail() {
+      return isAuthenticated() &&
+             request.auth.token.email != null &&
+             request.auth.token.email_verified == true;
+    }
+
     /** True when the caller IS the partner (owner) */
     function isPartnerOwner(partnerId) {
       return isAuthenticated() && request.auth.uid == partnerId;
@@ -282,8 +297,8 @@ service cloud.firestore {
         request.auth.uid == resource.data.clientId ||
         (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
         (resource != null && 'partnerId' in resource.data && isPartnerStaffOf(resource.data.partnerId)) ||
-        (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
-        (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
+        (hasVerifiedEmail() && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
+        (hasVerifiedEmail() && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
       );
       // Order creation is handled securely via Server Actions (Firebase Admin SDK).
       // Direct client SDK creation is restricted to Admins/Staff.
@@ -297,8 +312,8 @@ service cloud.firestore {
           request.auth.uid == resource.data.clientId ||
           (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
           (resource != null && 'partnerId' in resource.data && isPartnerStaffOf(resource.data.partnerId)) ||
-          (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
-          (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)) && isSafeClientOrderUpdate())
+          (hasVerifiedEmail() && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
+          (hasVerifiedEmail() && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)) && isSafeClientOrderUpdate())
       );
       allow delete: if isAdmin();
     }

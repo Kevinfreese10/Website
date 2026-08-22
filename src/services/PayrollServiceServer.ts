@@ -55,7 +55,8 @@ export class PayrollServiceServer {
           employee.joinDate, 
           employee.idNumber, 
           employee.medicalAidMembers || 0, 
-          employee.medicalAidDependents || 0
+          employee.medicalAidDependents || 0,
+          { earnings, fringeBenefits: [] }
       );
       const contributions = PayrollService.getInitialContributions(gross, periodLabel, frequency, !!clientData.excludeSdl);
 

@@ -488,17 +488,64 @@ export class PayrollService {
       return earnings;
   }
 
+  /**
+   * Splits a payslip's earnings and fringe benefits into the regular and bonus taxable bases.
+   *
+   * This logic previously lived only inside PayslipEditor, so the editor taxed correctly while
+   * every server-side path (updateDraftPayslipHours, syncEmployeeSalary, bulkSync, bulkFinalize,
+   * rollForward, PayrollServiceServer) passed a single raw gross into getInitialDeductions. That
+   * meant, on those paths:
+   *   - non-taxable items (Reimbursive Travel Non-Taxable, Subsistence Allowance) were FULLY taxed
+   *   - 80%-taxable items (Travel Allowance, Company Car) were taxed on 100%
+   *   - an annual bonus was annualised x12 by calculatePaye, producing gross over-taxation
+   * and bulkSyncDraftPayslipsAction then OVERWROTE the payroll administrator's corrected figures
+   * with those results.
+   */
+  static splitTaxableBases(
+    earnings: PayslipItem[] = [],
+    fringeBenefits: PayslipItem[] = []
+  ): { regularGross: number; bonusGross: number } {
+    const regularGross =
+      earnings.reduce((sum, e) => sum + (e.taxCategory === 'bonus' ? 0 : this.calculateTaxableAmount(e)), 0) +
+      fringeBenefits.reduce((sum, f) => sum + (f.taxCategory === 'bonus' ? 0 : this.calculateTaxableAmount(f)), 0);
+
+    const bonusGross =
+      earnings.reduce((sum, e) => sum + (e.taxCategory === 'bonus' ? this.calculateTaxableAmount(e) : 0), 0) +
+      fringeBenefits.reduce((sum, f) => sum + (f.taxCategory === 'bonus' ? this.calculateTaxableAmount(f) : 0), 0);
+
+    return { regularGross, bonusGross };
+  }
+
   static getInitialDeductions(
-    gross: number, 
-    period: string, 
-    frequency: number, 
-    joinDate?: any, 
-    idNumber?: string, 
-    medicalAidMembers: number = 0, 
-    medicalAidDependents: number = 0
+    gross: number,
+    period: string,
+    frequency: number,
+    joinDate?: any,
+    idNumber?: string,
+    medicalAidMembers: number = 0,
+    medicalAidDependents: number = 0,
+    /**
+     * Optional payslip lines. When supplied, PAYE is computed on the correct regular/bonus split
+     * (honouring taxCategory) instead of on the raw scalar gross. Callers that have the line items
+     * — which is all of the payroll actions — should pass them.
+     */
+    lines?: { earnings?: PayslipItem[]; fringeBenefits?: PayslipItem[] }
   ): PayslipItem[] {
+      let regularBase = gross;
+      let bonusBase = 0;
+
+      if (lines && (lines.earnings?.length || lines.fringeBenefits?.length)) {
+        const split = this.splitTaxableBases(lines.earnings || [], lines.fringeBenefits || []);
+        regularBase = split.regularGross;
+        bonusBase = split.bonusGross;
+      }
+
       return [
-          { label: 'Tax', amount: this.calculatePaye(gross, period, frequency, joinDate, idNumber, medicalAidMembers, medicalAidDependents), isStatutory: true },
+          {
+            label: 'Tax',
+            amount: this.calculatePaye(regularBase, period, frequency, joinDate, idNumber, medicalAidMembers, medicalAidDependents, bonusBase),
+            isStatutory: true,
+          },
           { label: 'Unemployment insurance fund', amount: this.calculateUif(gross, period, frequency), isStatutory: true }
       ];
   }

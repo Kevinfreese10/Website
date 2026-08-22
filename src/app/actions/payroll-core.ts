@@ -101,7 +101,8 @@ export async function updateDraftPayslipHoursAction({ idToken, clientId, employe
         employee.joinDate,
         employee.idNumber,
         employee.medicalAidMembers || 0,
-        employee.medicalAidDependents || 0
+        employee.medicalAidDependents || 0,
+        { earnings, fringeBenefits: ps.fringeBenefits || [] }
     );
     const totalDeductions = deductions.reduce((s, i) => s + i.amount, 0);
 
@@ -146,7 +147,8 @@ export async function syncEmployeeSalaryToActivePayslipAction({ idToken, clientI
         employee.joinDate,
         employee.idNumber,
         employee.medicalAidMembers || 0,
-        employee.medicalAidDependents || 0
+        employee.medicalAidDependents || 0,
+        { earnings, fringeBenefits: ps.fringeBenefits || [] }
     );
     
     await snap.docs[0].ref.update({
@@ -193,7 +195,8 @@ export async function bulkSyncDraftPayslipsAction({ idToken, clientId }: any) {
                 employee.joinDate,
                 employee.idNumber,
                 employee.medicalAidMembers || 0,
-                employee.medicalAidDependents || 0
+                employee.medicalAidDependents || 0,
+                { earnings, fringeBenefits: ps.fringeBenefits || [] }
             );
             const contributions = PayrollService.getInitialContributions(gross, ps.period, freq, !!clientData.excludeSdl);
             const totalDeductions = deductions.reduce((s, i) => s + i.amount, 0);
@@ -392,7 +395,7 @@ export async function rollForwardPayrollAction({ idToken, clientId }: { idToken?
         
         const grossPay = initialEarnings.reduce((s, i) => s + i.amount, 0);
         
-        const statutoryDeductions = PayrollService.getInitialDeductions(grossPay, nextPeriod, freq, emp.joinDate, emp.idNumber, emp.medicalAidMembers || 0, emp.medicalAidDependents || 0);
+        const statutoryDeductions = PayrollService.getInitialDeductions(grossPay, nextPeriod, freq, emp.joinDate, emp.idNumber, emp.medicalAidMembers || 0, emp.medicalAidDependents || 0, { earnings: initialEarnings, fringeBenefits: [] });
         statutoryDeductions.forEach(sd => {
             if (!initialDeductions.find(id => id.label === sd.label)) {
                 initialDeductions.push(sd);

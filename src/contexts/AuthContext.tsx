@@ -4,7 +4,7 @@ import type { User } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { getFirestore, collection, query, where, getDocs, doc, setDoc, updateDoc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, User as FirebaseUser, signOut, reauthenticateWithCredential, EmailAuthProvider, sendEmailVerification } from 'firebase/auth';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import { isPast } from 'date-fns';
@@ -19,6 +19,8 @@ interface AuthContextType {
   reauthenticate: (firebaseUser: FirebaseUser) => Promise<User | 'invalid_credentials' | 'subscription_lapsed' | 'account_deactivated' | undefined>;
   logout: () => void;
   signup: (values: { name: string; surname: string; cellNumber: string; email: string; password?: string }) => Promise<User | string>;
+  /** Links historical guest orders once the signed-in address is verified. Returns how many. */
+  claimVerifiedGuestOrders: () => Promise<number>;
   updateUser: (updatedUser: User | null) => void;
   isAuthenticated: boolean | undefined;
 }
@@ -156,6 +158,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated(false);
   };
 
+  /**
+   * Links historical guest orders to the signed-in account, but only once Firebase reports the
+   * address as verified. Safe to call repeatedly — it only touches orders with no owner yet.
+   */
+  const claimVerifiedGuestOrders = async (): Promise<number> => {
+    const current = auth.currentUser;
+    if (!current?.email) return 0;
+
+    await current.reload();
+    if (!current.emailVerified) return 0;
+
+    const ordersRef = collection(db, "orders");
+    const batch = writeBatch(db);
+    let linkCount = 0;
+
+    for (const field of ["customerEmail", "endCustomerEmail"]) {
+      const q = query(ordersRef, where(field, "==", current.email), where("userId", "==", null));
+      const snap = await getDocs(q);
+      snap.forEach(orderDoc => {
+        batch.update(orderDoc.ref, { userId: current.uid });
+        linkCount++;
+      });
+    }
+
+    if (linkCount > 0) await batch.commit();
+    return linkCount;
+  };
+
   const signup = async (values: { name: string; surname: string; cellNumber: string; email: string; password?: string }): Promise<User | string> => {
     if (!values.password) return 'Password is required.';
 
@@ -182,28 +212,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await setDoc(newUserDocRef, newUser);
         updateUser(newUser);
         setIsAuthenticated(true);
-        
-        const ordersRef = collection(db, "orders");
-        const batch = writeBatch(db);
-        let linkCount = 0;
 
-        const q1 = query(ordersRef, where("customerEmail", "==", values.email), where("userId", "==", null));
-        const snap1 = await getDocs(q1);
-        snap1.forEach(orderDoc => {
-            batch.update(orderDoc.ref, { userId: firebaseUser.uid });
-            linkCount++;
-        });
-
-        const q2 = query(ordersRef, where("endCustomerEmail", "==", values.email), where("userId", "==", null));
-        const snap2 = await getDocs(q2);
-        snap2.forEach(orderDoc => {
-            batch.update(orderDoc.ref, { userId: firebaseUser.uid });
-            linkCount++;
-        });
-
-        if (linkCount > 0) {
-            await batch.commit();
+        // The application had no email verification at all, while Firestore rules grant order
+        // access on `request.auth.token.email`. Registering with someone else's email therefore
+        // handed you their orders. Send the verification mail so the token carries a trustworthy
+        // email_verified claim; failure here must not block account creation.
+        try {
+            await sendEmailVerification(firebaseUser);
+        } catch (verifyErr) {
+            console.error('Could not send verification email:', verifyErr);
         }
+
+        // Historical guest orders are NO LONGER auto-claimed on signup.
+        //
+        // This previously ran immediately on registration and assigned `userId` to every order
+        // matching the address — before the address had been proven to belong to the registrant.
+        // Anyone could register with a known customer's email and silently take ownership of that
+        // customer's orders and their uploaded KYC documents. Claiming now happens only after the
+        // address is verified (see claimVerifiedGuestOrders below).
 
         return newUser;
     } catch (error: any) {
@@ -216,7 +242,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
   
   return (
-    <AuthContext.Provider value={{ user, login, reauthenticate, logout, signup, updateUser, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, reauthenticate, logout, signup, updateUser, isAuthenticated, claimVerifiedGuestOrders }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/observability';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react';
@@ -14,7 +15,7 @@ export default function DashboardError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('Client dashboard runtime error:', error);
+    reportError(error, { operation: 'dashboard.route', detail: { digest: error.digest } });
   }, [error]);
 
   return (

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import VerifyEmailBanner from '@/components/dashboard/VerifyEmailBanner';
 
 const db = getFirestore(firebaseApp);
 
@@ -124,6 +125,7 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-8">
+            <VerifyEmailBanner />
             <Card>
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

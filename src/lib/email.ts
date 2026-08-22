@@ -4,6 +4,7 @@ import nodemailer from 'nodemailer';
 import { getAdminDb } from './firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { User } from './types';
+import { reportError } from '@/lib/observability';
 
 type EmailPayload = {
     to: string | string[];
@@ -273,6 +274,10 @@ export async function sendEmail({
           if ((!isTransient && !smtpOverride) || attempt === MAX_ATTEMPTS) {
               // Permanent failure or out of retries — log and throw
               const errorMsg = `SMTP Error: ${error.code || 'Unknown'} - ${error.message}`;
+              reportError(error, {
+                  operation: 'email.send',
+                  detail: { subject, recipientCount: Array.isArray(to) ? to.length : 1, code: error.code },
+              });
               await logEmailFailure({ to, subject, error: errorMsg });
               throw new Error(errorMsg);
           }

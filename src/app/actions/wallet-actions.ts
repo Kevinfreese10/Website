@@ -6,6 +6,7 @@ import { sendEmail } from '@/lib/email';
 import { notifyStaffOfAssignment, sendDocumentRequestEmailAction } from './order-actions';
 import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { getVerifiedAuthContext } from '@/lib/server-auth';
+import { reportNonFatal, reportError } from '@/lib/observability';
 import { isStaffActive } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -331,7 +332,7 @@ export async function outsourceOrderFromWallet(
         }
       }
     } catch (emailErr) {
-      console.error('[wallet-actions] Failed to send outsource confirmation email:', emailErr);
+      reportNonFatal(emailErr, { operation: 'wallet.outsource.confirmationEmail', orderId });
     }
 
     // -----------------------------------------------------------------------
@@ -362,7 +363,7 @@ export async function outsourceOrderFromWallet(
               })
             });
           } catch (origErr) {
-            console.error('[wallet-actions] Failed to sync original order:', origErr);
+            reportNonFatal(origErr, { operation: 'wallet.outsource.syncMirrorOrder', orderId });
           }
         }
 
@@ -411,7 +412,7 @@ export async function outsourceOrderFromWallet(
             }
           }
         } catch (staffErr) {
-          console.error('[wallet-actions] Failed staff auto-allocation:', staffErr);
+          reportError(staffErr, { operation: 'wallet.outsource.staffAllocation', orderId, detail: { impact: 'Partner was charged; order may be unassigned.' } });
         }
 
         // 3. Trigger document request email
@@ -419,11 +420,11 @@ export async function outsourceOrderFromWallet(
           await sendDocumentRequestEmailAction(orderId, 'info@myacc.co.za', 'Processing');
           console.log(`[wallet-actions] Triggered document request email for order #${orderId}`);
         } catch (docEmailErr) {
-          console.error('[wallet-actions] Failed document request email trigger:', docEmailErr);
+          reportError(docEmailErr, { operation: 'wallet.outsource.documentRequestEmail', orderId, detail: { impact: 'Client may never be asked for documents.' } });
         }
       }
     } catch (automationErr) {
-      console.error('[wallet-actions] Post-outsource automation error:', automationErr);
+      reportError(automationErr, { operation: 'wallet.outsource.automation', orderId });
     }
 
     return { success: true, cost };
