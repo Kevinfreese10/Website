@@ -16,6 +16,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function CipcAnnualReturnFeeCalculatorPage() {
   const [turnover, setTurnover] = useState<string>('');
@@ -226,6 +227,7 @@ export default function CipcAnnualReturnFeeCalculatorPage() {
         <p className="text-slate-600 text-sm leading-relaxed">
           An Annual Return is a statutory document that every registered business must submit to the CIPC on an annual basis. Its purpose is to confirm that the company is still active and that its information (directors, physical address, etc.) is current. This filing is entirely separate from your SARS annual income tax return submission.
         </p>
+        <CalculatorDisclaimer note="Late filing is estimated with a flat penalty. CIPC applies a separate late-fee schedule that increases with how overdue the return is." />
       </section>
     </div>
   );

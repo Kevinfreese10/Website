@@ -15,6 +15,7 @@ import {
   Info
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function SbcTaxEstimatorPage() {
   const [profit, setProfit] = useState<string>('');
@@ -164,6 +165,7 @@ export default function SbcTaxEstimatorPage() {
         <p className="text-slate-600 text-sm leading-relaxed">
           Standard corporate income tax in South Africa is calculated at a flat 27% rate, meaning you pay R27,000 for every R100,000 in taxable profit. Qualifying as an SBC allows your business to pay 0% tax on the first R99,000 of profit, and only 7% on profit up to R365,000. This structure is a powerful incentive designed by SARS to support early-stage growth and job creation.
         </p>
+        <CalculatorDisclaimer note="Small Business Corporation relief has strict qualifying criteria (shareholding, turnover and the nature of income). Meeting the turnover test alone does not qualify an entity." />
       </section>
     </div>
   );

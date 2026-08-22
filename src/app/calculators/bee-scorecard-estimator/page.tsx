@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calculator, ArrowRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function BeeScorecardEstimatorPage() {
   const [ownership, setOwnership] = useState<string>('0');
@@ -151,6 +152,7 @@ export default function BeeScorecardEstimatorPage() {
           </div>
 
         </div>
+        <CalculatorDisclaimer note="This does not apply priority-element sub-minimums (which cause discounting) or the simplified EME/QSE regimes. A formal verification may produce a materially different level." />
       </section>
     </div>
   );

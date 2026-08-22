@@ -15,6 +15,7 @@ import {
   Building
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function NcrRegistrationFeeCalculatorPage() {
   const [debt, setDebt] = useState<string>('');
@@ -233,6 +234,7 @@ export default function NcrRegistrationFeeCalculatorPage() {
         <p className="text-slate-600 text-sm leading-relaxed">
           Becoming a registered credit provider involves submitting an application, payment of fees, and supplying various required supporting documents (including CIPC records, tax clearance, and police clearance for directors). Once approved, you are issued an NCR registration certificate and number, which must be displayed on all loan agreements and premises.
         </p>
+        <CalculatorDisclaimer />
       </section>
     </div>
   );

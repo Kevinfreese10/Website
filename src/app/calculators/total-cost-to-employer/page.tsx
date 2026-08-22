@@ -15,6 +15,7 @@ import {
   Users
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function TotalCostToEmployerCalculatorPage() {
   const [salary, setSalary] = useState<string>('');
@@ -175,6 +176,7 @@ export default function TotalCostToEmployerCalculatorPage() {
         <p className="text-slate-600 text-sm leading-relaxed">
           Many small business owners assume that the gross salary on an employment contract is their only labor cost. However, in South Africa, employers are statutory required to contribute to the Unemployment Insurance Fund (UIF), the Skills Development Levy (SDL - for companies with an annual payroll above R500,000), and yearly COIDA insurance premiums. Accurately modeling these overheads is essential for hiring planning and cash flow health.
         </p>
+        <CalculatorDisclaimer note="The Skills Development Levy is estimated per employee. The R500 000 exemption applies to your TOTAL annual payroll, not to an individual salary, and the Employment Tax Incentive is not applied here." />
       </section>
     </div>
   );

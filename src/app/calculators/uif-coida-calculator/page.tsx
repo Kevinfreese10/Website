@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calculator, ArrowRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function UifCoidaCalculatorPage() {
   const [salary, setSalary] = useState<string>('');
@@ -123,6 +124,7 @@ export default function UifCoidaCalculatorPage() {
           </div>
 
         </div>
+        <CalculatorDisclaimer note="COIDA is estimated without applying the annual earnings ceiling, and assessment tariffs vary by industry classification. Treat the COIDA figure as indicative only." />
       </section>
     </div>
   );

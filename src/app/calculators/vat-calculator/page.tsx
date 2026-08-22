@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calculator, ArrowRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function VatCalculatorPage() {
   const [amount, setAmount] = useState<string>('');
@@ -135,6 +136,7 @@ export default function VatCalculatorPage() {
           </div>
 
         </div>
+        <CalculatorDisclaimer />
       </section>
     </div>
   );

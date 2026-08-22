@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calculator, ArrowRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function ProvisionalTaxEstimatorPage() {
   const [income, setIncome] = useState<string>('');
@@ -124,6 +125,7 @@ export default function ProvisionalTaxEstimatorPage() {
           </div>
 
         </div>
+        <CalculatorDisclaimer note="This estimates the annual liability. An actual IRP6 payment is calculated on the basic amount or an estimate of taxable income, less employees' tax and any prior payment for the year." />
       </section>
     </div>
   );

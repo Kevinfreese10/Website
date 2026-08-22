@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calculator, ArrowRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function CapitalGainsTaxCalculatorPage() {
   const [proceeds, setProceeds] = useState<string>('');
@@ -169,6 +170,7 @@ export default function CapitalGainsTaxCalculatorPage() {
           </div>
 
         </div>
+        <CalculatorDisclaimer note="This tool assumes the top marginal rate unless you change it, and does not apply the primary residence exclusion, roll-over relief, or exclusions on death. Actual CGT is frequently lower." />
       </section>
     </div>
   );

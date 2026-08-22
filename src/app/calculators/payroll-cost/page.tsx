@@ -12,6 +12,7 @@ import {
   ArrowRight,
   CheckCircle2
 } from 'lucide-react';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function PayrollCostCalculatorPage() {
   const [employees, setEmployees] = useState<number>(10);
@@ -189,6 +190,7 @@ export default function PayrollCostCalculatorPage() {
             </div>
           ))}
         </div>
+        <CalculatorDisclaimer note="Pricing shown is indicative. Confirm current fees before quoting a client." />
       </section>
     </div>
   );

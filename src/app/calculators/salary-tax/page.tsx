@@ -15,6 +15,7 @@ import {
   HelpCircleIcon
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function SalaryTaxCalculatorPage() {
   const [salary, setSalary] = useState<string>('');
@@ -272,6 +273,7 @@ export default function SalaryTaxCalculatorPage() {
         <p className="text-slate-600 text-sm leading-relaxed">
           South Africa utilizes a progressive tax system. This means that as your income increases, the percentage of tax you pay on each additional Rand also increases. The calculation begins by grouping your total annual salary into brackets, calculating the gross tax due, and then applying any rebates or medical aid tax credits for which you qualify.
         </p>
+        <CalculatorDisclaimer note="Take-home pay shown here does not deduct UIF, medical scheme contributions, retirement funding or any other payroll deduction." />
       </section>
     </div>
   );

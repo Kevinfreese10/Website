@@ -18,6 +18,7 @@ import {
   Search
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 type CidbGradeData = {
   grade: number;
@@ -321,6 +322,7 @@ export default function CidbFeeAndGradeCalculatorPage() {
         <p className="text-slate-600 text-sm leading-relaxed">
           When registering for a CIDB grade, you must also designate the class of works your company specializes in. The most common classes are **GB (General Building)** and **CE (Civil Engineering)**, but there are also specialized classes like **ME (Mechanical Engineering)** and **EE (Electrical Engineering)**. Your track record completed project must belong to the specific class of works you wish to register for.
         </p>
+        <CalculatorDisclaimer note="Grading considers turnover, available capital and largest project value together; this tool applies them as combined criteria and may under-state an achievable grade." />
       </section>
     </div>
   );

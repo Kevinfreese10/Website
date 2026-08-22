@@ -16,6 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import CalculatorDisclaimer from '@/components/calculators/CalculatorDisclaimer';
 
 export default function TurnoverTaxCalculatorPage() {
   const [turnover, setTurnover] = useState<string>('');
@@ -225,6 +226,7 @@ export default function TurnoverTaxCalculatorPage() {
           </CardContent>
         </Card>
       </div>
+      <CalculatorDisclaimer />
     </main>
   );
 }
