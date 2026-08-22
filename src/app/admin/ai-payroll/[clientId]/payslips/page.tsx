@@ -458,7 +458,7 @@ export default function PayslipsPage() {
             </CardHeader>
             <CardContent className="p-0">
             {isLoading ? (
-                <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary" /></div>
+                <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-12"><Loader2 className="animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
             ) : activeEmployeesWithPayslips.length === 0 ? (
                 <div className="h-40 flex flex-col items-center justify-center border-2 border-dashed rounded-lg text-muted-foreground m-6 mt-0 p-8">
                     <ReceiptText className="h-10 w-10 opacity-20 mb-2" />

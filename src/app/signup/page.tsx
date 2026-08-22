@@ -32,7 +32,7 @@ function SignupFormWrapper() {
   }, [isAuthenticated, user, router, searchParams]);
 
   return (
-    <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+    <Suspense fallback={<div role="status" aria-live="polite" aria-busy="true" className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" /><span className="sr-only">Loading…</span></div>}>
       <SignupForm />
     </Suspense>
   );
@@ -47,7 +47,7 @@ export default function SignupPage() {
           <CardDescription>Join My Accountant to manage your services and orders.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+          <Suspense fallback={<div role="status" aria-live="polite" aria-busy="true" className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" /><span className="sr-only">Loading…</span></div>}>
             <SignupFormWrapper />
           </Suspense>
            <div className="mt-6 text-center text-sm text-muted-foreground">

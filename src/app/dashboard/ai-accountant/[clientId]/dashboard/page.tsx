@@ -12,9 +12,7 @@ export default function AIAccountantClientDashboardPage() {
 
     if (!user) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+            <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
         );
     }
     

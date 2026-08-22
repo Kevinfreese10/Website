@@ -139,9 +139,7 @@ export default function OutsourcedOrdersPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-             <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-             </div>
+             <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
           ) : (
              orders.length === 0 ? (
                 <div className="text-center py-10">

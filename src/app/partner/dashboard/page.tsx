@@ -646,7 +646,7 @@ export default function PartnerDashboardPage() {
                             <CardDescription>Latest notes and updates on your orders.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary"/></div> :
+                            {isLoading ? <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary"aria-hidden="true" /><span className="sr-only">Loading…</span></div> :
                             notifications.length > 0 ? (
                             <ScrollArea className="h-72 pr-4">
                                 <div className="space-y-4">

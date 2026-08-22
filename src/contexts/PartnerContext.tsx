@@ -184,9 +184,7 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <div role="status" aria-live="polite" aria-busy="true" className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
     );
   }
   

@@ -154,9 +154,7 @@ export default function CommunicationHistory({ clientId, currentUser }: Communic
           className="space-y-4 max-h-[350px] overflow-y-auto pr-2 min-h-[100px] flex flex-col"
         >
           {isLoading ? (
-            <div className="flex justify-center items-center py-10 flex-grow">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
+            <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center py-10 flex-grow"><Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
           ) : notes.length > 0 ? (
             notes.map((note) => {
               const isEmail = note.type === 'email';

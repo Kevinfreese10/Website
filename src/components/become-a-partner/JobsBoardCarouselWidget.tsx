@@ -32,7 +32,7 @@ export default function JobsBoardCarouselWidget() {
   }, []);
 
   if (isLoading) {
-    return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+    return <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>;
   }
 
   // Removed if (jobs.length === 0) return null; so that the header always renders

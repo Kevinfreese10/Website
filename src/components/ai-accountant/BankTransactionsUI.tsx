@@ -3091,7 +3091,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         XLSX.writeFile(wb, `SmartMatch_Review_${client.name}.xlsx`);
     };
 
-    if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin" /></div>;
+    if (isLoading) return <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-12"><Loader2 className="animate-spin" aria-hidden="true" /><span className="sr-only">Loading…</span></div>;
 
     const allocatedCount = groups.filter(g => approvalSettings[g.merchantKey]?.accountId).length;
     const isCurrentlyProcessing = workflowTransactions.some(tx => tx.status === 'ai_processing');

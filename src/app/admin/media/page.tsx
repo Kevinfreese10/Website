@@ -248,9 +248,7 @@ export default function MediaPage() {
         
         <div className="space-y-8">
             {isLoading ? (
-                <div className="flex justify-center items-center h-40">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
+                <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
             ) : (
                 <>
                     <MediaGrid title="My Uploads" images={uploadedImages} onCopy={copyToClipboard} onDelete={handleDelete} showDelete={true} />

@@ -279,9 +279,7 @@ export default function ClientCustomersPage() {
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
-                        <div className="flex justify-center items-center h-40">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        </div>
+                        <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
                     ) : customers.length === 0 ? (
                         <div className="text-center text-muted-foreground py-10">
                             <p>No customers created for this client yet.</p>

@@ -809,7 +809,7 @@ export default function PartnerClientsPage() {
         {/* Client List Table */}
         <div className="overflow-x-auto">
           {isLoading && clients.length === 0 ? (
-            <div className="flex justify-center items-center h-72"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-72"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
           ) : (
           <Table>
             <TableHeader className="bg-slate-50/20">

@@ -306,9 +306,7 @@ export default function StaffManager() {
       {/* Staff & Invite Table */}
       <div className="border rounded-lg bg-card">
         {loading ? (
-          <div className="flex items-center justify-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <div role="status" aria-live="polite" aria-busy="true" className="flex items-center justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
         ) : (
           <Table>
             <TableHeader>

@@ -9,7 +9,7 @@ import { Loader2 } from 'lucide-react';
 
 function SignupFormWrapper() {
   return (
-    <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+    <Suspense fallback={<div role="status" aria-live="polite" aria-busy="true" className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" /><span className="sr-only">Loading…</span></div>}>
       <AIAccountantSignupForm />
     </Suspense>
   );

@@ -241,9 +241,7 @@ export default function AdminCommunityPage() {
 
       <div className="space-y-4">
         {isLoading ? (
-          <div className="flex justify-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
+          <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
         ) : questions.length === 0 ? (
           <Card className="border-dashed bg-muted/30">
             <CardContent className="flex flex-col items-center justify-center p-12 text-center">

@@ -295,7 +295,7 @@ export default function EmployeesPage() {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary" /></div>
+            <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-12"><Loader2 className="animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
           ) : filteredEmployees.length === 0 ? (
             <div className="h-60 flex flex-col items-center justify-center border-2 border-dashed rounded-lg text-muted-foreground text-center p-8 mx-6 mb-6">
               <UserIcon className="h-12 w-12 opacity-20 mb-4" />

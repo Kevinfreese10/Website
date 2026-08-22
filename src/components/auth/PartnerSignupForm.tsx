@@ -573,7 +573,7 @@ export default function PartnerSignupForm() {
                                         </div>
                                         <div className="space-y-4 max-h-60 overflow-y-auto p-4 border rounded-lg bg-white">
                                             {isServicesLoading ? (
-                                                <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                                                <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
                                             ) : (
                                                 categorizedServices.map(category => (
                                                     <div key={category.id}>

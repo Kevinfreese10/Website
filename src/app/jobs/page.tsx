@@ -106,7 +106,7 @@ export default function JobsBoardPage() {
           </CardHeader>
           <CardContent className="p-6">
             {isLoading ? (
-              <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+              <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
             ) : jobs.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
                 <Briefcase className="h-12 w-12 mb-4 opacity-20" />
@@ -179,7 +179,7 @@ export default function JobsBoardPage() {
           </CardHeader>
           <CardContent className="p-6">
             {isLoading ? (
-              <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+              <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
             ) : talent.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
                 <UserIcon className="h-12 w-12 mb-4 opacity-20" />

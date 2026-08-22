@@ -44,9 +44,7 @@ export default function PartnerJobsPage() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <div role="status" aria-live="polite" aria-busy="true" className="flex items-center justify-center min-h-[50vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
     );
   }
 
@@ -69,7 +67,7 @@ export default function PartnerJobsPage() {
 
       <div className="space-y-6">
         {isLoading ? (
-          <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+          <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
         ) : myJobs.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">

@@ -779,7 +779,7 @@ export default function AdminOrderDetailsPage() {
     }
   
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+    return <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>;
   }
 
   if (!order) return notFound();

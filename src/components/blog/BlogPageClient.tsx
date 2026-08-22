@@ -52,9 +52,7 @@ export default function BlogPageClient({ initialBlogPosts }: { initialBlogPosts?
       
       <div className="container mx-auto px-4 pb-20 flex-grow max-w-6xl">
         {showLoader ? (
-          <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
+          <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
         ) : (
           <div className="space-y-16">
             

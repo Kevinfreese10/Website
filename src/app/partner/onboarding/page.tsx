@@ -580,9 +580,7 @@ export default function PartnerOnboardingPage() {
                           )}
                           <input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                           {isUploadingLogo && (
-                             <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                               <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                             </div>
+                             <div role="status" aria-live="polite" aria-busy="true" className="absolute inset-0 bg-background/80 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
                           )}
                         </div>
                       </div>

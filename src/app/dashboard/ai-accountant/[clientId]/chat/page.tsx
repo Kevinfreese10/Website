@@ -198,7 +198,7 @@ export default function ClientAllocationChatPage() {
         }
     };
 
-    if (isPageLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-primary"/></div>;
+    if (isPageLoading) return <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-primary"aria-hidden="true" /><span className="sr-only">Loading…</span></div>;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-6xl mx-auto">

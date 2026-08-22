@@ -663,9 +663,7 @@ export default function AdminOrdersPage() {
             </CardHeader>
             <CardContent className="p-0">
             {isLoading ? (
-                <div className="flex justify-center items-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
+                <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
             ) : filteredOrders.length === 0 ? (
                 <div className="py-20 text-center space-y-4">
                     <p className="text-muted-foreground font-medium">No active orders matching your search or filters.</p>

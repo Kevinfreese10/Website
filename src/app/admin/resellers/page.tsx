@@ -443,9 +443,7 @@ function WalletHistoryDialog({ partner, open, onOpenChange }: { partner: User | 
                 </DialogHeader>
                 <div className="flex-grow p-6 overflow-y-auto">
                     {isLoading ? (
-                        <div className="flex justify-center items-center py-12">
-                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        </div>
+                        <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
                     ) : logs.length === 0 ? (
                         <p className="text-center text-muted-foreground py-8">No wallet transaction history found.</p>
                     ) : (
@@ -869,9 +867,7 @@ export default function AdminPartnersPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-             <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+             <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
           ) : (
           <Table>
             <TableHeader>

@@ -47,7 +47,7 @@ export default function AIPayrollClientLayout({ children }: { children: ReactNod
     });
   };
 
-  if (isLoading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+  if (isLoading) return <div role="status" aria-live="polite" aria-busy="true" className="p-8 flex justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>;
 
   return (
     <div className="space-y-6">

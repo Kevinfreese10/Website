@@ -744,7 +744,7 @@ export default function AdminDashboardPage() {
         );
     };
 
-    if (isLoading && tasks.length === 0) return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>;
+    if (isLoading && tasks.length === 0) return <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary h-10 w-10" aria-hidden="true" /><span className="sr-only">Loading…</span></div>;
 
     return (
         <div className="space-y-8">

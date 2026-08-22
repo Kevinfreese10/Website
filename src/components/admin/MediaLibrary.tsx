@@ -93,9 +93,7 @@ export default function MediaLibrary({ onSelectImage, accept = "image/*" }: Medi
   return (
     <ScrollArea className="h-[60vh]">
       {isLoading ? (
-        <div className="flex items-center justify-center h-full">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+        <div role="status" aria-live="polite" aria-busy="true" className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
       ) : filteredImages.length === 0 ? (
         <p className="text-center text-muted-foreground p-8">No compatible files found in your library.</p>
       ) : (

@@ -220,9 +220,7 @@ export default function TaskBoard() {
       {/* Kanban Board columns */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
         {loading ? (
-          <div className="col-span-4 flex items-center justify-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <div role="status" aria-live="polite" aria-busy="true" className="col-span-4 flex items-center justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
         ) : (
           COLUMNS.map((column) => {
             const columnTasks = filteredTasks.filter(t => t.status === column);

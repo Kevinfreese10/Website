@@ -1000,7 +1000,7 @@ export default function JournalsPage() {
     useEffect(() => { fetchAllData(); }, [clientId, journalType]);
 
     return (
-        <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="animate-spin" /></div>}>
+        <Suspense fallback={<div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="animate-spin" aria-hidden="true" /><span className="sr-only">Loading…</span></div>}>
             <JournalManager 
                 clientId={clientId} 
                 client={client} 

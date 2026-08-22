@@ -326,7 +326,7 @@ export default function TransactionSearchPage() {
     };
 
     if (isLoading) {
-        return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+        return <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" /><span className="sr-only">Loading…</span></div>;
     }
 
     if (!client) {
@@ -382,7 +382,7 @@ export default function TransactionSearchPage() {
                 
                 <div className="mt-6">
                     {isSearching ? (
-                         <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                         <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
                     ) : searchResults.length > 0 ? (
                         <SearchResultsView 
                             results={searchResults} 

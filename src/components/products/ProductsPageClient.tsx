@@ -352,9 +352,7 @@ export default function ProductsPageClient({
  
       <div className="space-y-14">
         {isLoading && services.length === 0 ? (
-            <div className="flex justify-center items-center h-40">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
+            <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-40"><Loader2 className="h-12 w-12 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
         ) : (
             categorizedServices.length === 0 ? (
                 <div className="text-center py-16 space-y-4">

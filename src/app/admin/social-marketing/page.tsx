@@ -448,7 +448,7 @@ export default function SocialMarketingPage() {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
-    if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+    if (isLoading) return <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>;
 
     return (
         <div className="space-y-8">

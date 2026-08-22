@@ -464,7 +464,7 @@ export default function AdminServicesPage() {
     };
 
   if (isLoading && services.length === 0) {
-    return <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin" /></div>;
+    return <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="animate-spin" aria-hidden="true" /><span className="sr-only">Loading…</span></div>;
   }
 
   return (
@@ -612,9 +612,7 @@ export default function AdminServicesPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
           ) : (
           <Table>
             <TableHeader>

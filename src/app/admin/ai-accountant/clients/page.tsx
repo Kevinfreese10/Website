@@ -681,7 +681,7 @@ export default function AIAccountantClientsPage() {
                 </div>
 
                 {isLoading ? (
-                    <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary h-8 w-8" /></div>
+                    <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-20"><Loader2 className="animate-spin text-primary h-8 w-8" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
                 ) : (
                     <div className="space-y-8">
                         <Card className="border-2 shadow-sm">
@@ -764,7 +764,7 @@ export default function AIAccountantClientsPage() {
                         <Card className="border-2 shadow-sm">
                             <CardContent className="p-0">
                                 {isLoadingRules ? (
-                                    <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary h-8 w-8" /></div>
+                                    <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-20"><Loader2 className="animate-spin text-primary h-8 w-8" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
                                 ) : filteredGlobalRules.length === 0 ? (
                                     <div className="text-center py-20 text-muted-foreground font-medium">
                                         <Sliders className="h-12 w-12 mx-auto mb-4 opacity-20" />
