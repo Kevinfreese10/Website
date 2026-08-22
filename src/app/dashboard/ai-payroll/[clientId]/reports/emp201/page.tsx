@@ -176,10 +176,16 @@ export default function Emp201ReportPage() {
         const employeeAggregates: Record<string, any> = {};
 
         periodPayslips.forEach(ps => {
-            const paye = ps.deductions.find(d => d.label.toLowerCase() === 'tax')?.amount || 0;
-            const uifEmp = ps.deductions.find(d => d.label.toLowerCase().includes('unemployment'))?.amount || 0;
-            const uifCo = ps.contributions.find(c => c.label.toLowerCase().includes('unemployment'))?.amount || 0;
-            const sdl = ps.contributions.find(c => c.label.toLowerCase().includes('skills'))?.amount || 0;
+            // Match on the statutory flag first, falling back to the label — see the admin
+            // EMP201 page for why keying a SARS declaration off a display string is unsafe.
+            const findStatutory = (items: any[], match: (label: string) => boolean) =>
+                items.find(i => i.isStatutory && match((i.label || '').toLowerCase()))
+                ?? items.find(i => match((i.label || '').toLowerCase()));
+
+            const paye = findStatutory(ps.deductions, l => l === 'tax' || l === 'paye')?.amount || 0;
+            const uifEmp = findStatutory(ps.deductions, l => l.includes('unemployment'))?.amount || 0;
+            const uifCo = findStatutory(ps.contributions, l => l.includes('unemployment'))?.amount || 0;
+            const sdl = findStatutory(ps.contributions, l => l.includes('skills'))?.amount || 0;
             
             if (!employeeAggregates[ps.employeeId]) {
                 employeeAggregates[ps.employeeId] = {
@@ -204,14 +210,25 @@ export default function Emp201ReportPage() {
             totalGross += (ps.grossPay || 0);
         });
 
+        // EMP201 is declared in whole rands — figures were previously carried at full float
+        // precision straight into the export.
+        const toRand = (v: number) => Math.round(v);
+
         return {
             breakdown: Object.values(employeeAggregates),
             totals: {
                 gross: totalGross,
-                paye: totalPaye,
-                uif: totalUif,
-                sdl: totalSdl,
-                payable: totalPaye + totalUif + totalSdl
+                paye: toRand(totalPaye),
+                uif: toRand(totalUif),
+                sdl: toRand(totalSdl),
+                payable: toRand(totalPaye) + toRand(totalUif) + toRand(totalSdl),
+                /*
+                 * NOTE: the Employment Tax Incentive (EMP201 field 4118) is NOT implemented
+                 * anywhere in this application. Any employer claiming ETI will over-declare PAYE
+                 * using this report. Surfaced explicitly so it cannot be mistaken for a zero
+                 * claim that was calculated.
+                 */
+                etiSupported: false,
             }
         };
     }, [payslips, selectedMonth]);

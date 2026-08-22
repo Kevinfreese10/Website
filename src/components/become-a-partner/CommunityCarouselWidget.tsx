@@ -143,12 +143,12 @@ export default function CommunityCarouselWidget() {
       </div>
 
       <div className="absolute top-[60%] -translate-y-1/2 left-0 z-20 hidden sm:block">
-        <Button variant="outline" size="icon" className="rounded-full shadow-md border-slate-200 bg-white hover:bg-slate-50 text-slate-700 h-10 w-10 transition-all" onClick={() => emblaApi?.scrollPrev()}>
+        <Button aria-label="Previous" variant="outline" size="icon" className="rounded-full shadow-md border-slate-200 bg-white hover:bg-slate-50 text-slate-700 h-10 w-10 transition-all" onClick={() => emblaApi?.scrollPrev()}>
           <ChevronLeft className="h-5 w-5" />
         </Button>
       </div>
       <div className="absolute top-[60%] -translate-y-1/2 right-0 z-20 hidden sm:block">
-        <Button variant="outline" size="icon" className="rounded-full shadow-md border-slate-200 bg-white hover:bg-slate-50 text-slate-700 h-10 w-10 transition-all" onClick={() => emblaApi?.scrollNext()}>
+        <Button aria-label="Next" variant="outline" size="icon" className="rounded-full shadow-md border-slate-200 bg-white hover:bg-slate-50 text-slate-700 h-10 w-10 transition-all" onClick={() => emblaApi?.scrollNext()}>
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>

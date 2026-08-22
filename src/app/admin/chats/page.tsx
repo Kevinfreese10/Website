@@ -633,7 +633,7 @@ export default function AdminChatsPage() {
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="hover:bg-red-50 hover:text-red-600 rounded-full h-8 w-8 text-slate-400">
+                      <Button aria-label="Delete" variant="ghost" size="icon" className="hover:bg-red-50 hover:text-red-600 rounded-full h-8 w-8 text-slate-400">
                         <Trash className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
@@ -770,7 +770,7 @@ export default function AdminChatsPage() {
                       className="bg-slate-50 border-slate-200 focus-visible:bg-white focus-visible:ring-indigo-600 text-xs font-semibold text-slate-800 placeholder-slate-400 rounded-xl h-10 shadow-inner"
                       autoFocus
                     />
-                    <Button 
+                    <Button aria-label="Send" 
                       type="submit" 
                       size="icon" 
                       disabled={!replyText.trim()}

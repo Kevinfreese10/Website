@@ -1629,7 +1629,7 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                         <div className="space-y-4">
                                             {testimonialFields.map((field, index) => (
                                                 <div key={field.id} className="p-3 border rounded-lg bg-muted/10 relative space-y-3">
-                                                    <Button
+                                                    <Button aria-label="Delete"
                                                         type="button"
                                                         variant="ghost"
                                                         size="icon"
@@ -1733,7 +1733,7 @@ export default function PartnerProfile({ partner: propPartner }: { partner?: Use
                                         <div className="space-y-4">
                                             {faqFields.map((field, index) => (
                                                 <div key={field.id} className="p-3 border rounded-lg bg-muted/10 relative space-y-3">
-                                                    <Button
+                                                    <Button aria-label="Delete"
                                                         type="button"
                                                         variant="ghost"
                                                         size="icon"

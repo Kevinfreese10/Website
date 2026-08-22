@@ -170,7 +170,7 @@ function VatAuditReport({ client, transactions, period, onUpload, onDeleteFile }
                                         {(tx as any).auditFiles?.map((file: any) => (
                                             <div key={file.url} className="flex items-center justify-between text-xs bg-muted p-1 rounded-md">
                                                 <a href={file.url} target="_blank" rel="noopener noreferrer" className="truncate hover:underline flex-grow pr-2">{file.name}</a>
-                                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onDeleteFile(tx.id, file.url)}><Trash2 className="h-3 w-3 text-destructive"/></Button>
+                                                <Button aria-label="Delete" variant="ghost" size="icon" className="h-5 w-5" onClick={() => onDeleteFile(tx.id, file.url)}><Trash2 className="h-3 w-3 text-destructive"/></Button>
                                             </div>
                                         ))}
                                         <Input

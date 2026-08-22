@@ -361,7 +361,7 @@ function EditJournalDialog({ isOpen, onOpenChange, journalEntries, client, onSav
                                                 />
                                             </TableCell>
                                             <TableCell className="p-2">
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                                                <Button aria-label="Delete" type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -1059,7 +1059,7 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                                                                 <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.exclusiveAmount`} render={({ field }) => ( <Input readOnly className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" value={formatPrice(field.value)} /> )} /></TableCell>
                                                                 <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.vatAmount`} render={({ field }) => ( <Input readOnly className="h-8 text-[11px] text-right font-mono bg-muted border-none shadow-none focus-visible:ring-0" value={formatPrice(field.value)} /> )} /></TableCell>
                                                                 <TableCell className="p-2"><FormField control={quickForm.control} name={`lines.${index}.affectingAccountId`} render={({ field }) => ( <AccountSelector client={client} showAccounts={true} showCustomers={false} showSuppliers={false} value={field.value ? { value: field.value, type: "account" } : null} onChange={(selection) => field.onChange(selection.value)} size="sm" placeholder="Select account..." /> )} /></TableCell>
-                                                                <TableCell className="p-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeQuick(index)} disabled={quickFields.length === 1} className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5"/></Button></TableCell>
+                                                                <TableCell className="p-2"><Button aria-label="Delete" type="button" variant="ghost" size="icon" onClick={() => removeQuick(index)} disabled={quickFields.length === 1} className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5"/></Button></TableCell>
                                                             </TableRow>
                                                         ))}
                                                     </TableBody>
@@ -1374,11 +1374,11 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                                                         </TableCell>
                                                         <TableCell className="text-right px-6 whitespace-nowrap">
                                                             <div className="flex justify-end gap-1">
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => setEditingJournal(groupEntries)} title="Edit Journal Group"><Edit className="h-4 w-4" /></Button>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingJournal(groupEntries)} title="View Journal Group"><Eye className="h-4 w-4" /></Button>
+                                                                <Button aria-label="Edit" variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => setEditingJournal(groupEntries)} title="Edit Journal Group"><Edit className="h-4 w-4" /></Button>
+                                                                <Button aria-label="View" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingJournal(groupEntries)} title="View Journal Group"><Eye className="h-4 w-4" /></Button>
                                                                 <AlertDialog>
                                                                     <AlertDialogTrigger asChild>
-                                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title="Delete Journal Group"><Trash2 className="h-4 w-4"/></Button>
+                                                                        <Button aria-label="Delete" variant="ghost" size="icon" className="h-8 w-8 text-destructive" title="Delete Journal Group"><Trash2 className="h-4 w-4"/></Button>
                                                                     </AlertDialogTrigger>
                                                                     <AlertDialogContent>
                                                                         <AlertDialogHeader>
@@ -1443,7 +1443,7 @@ function JournalManager({ clientId, client, fetchClientAndJournals, allJournals,
                                 <DialogTitle className="text-xl">Journal Details: {viewingJournal?.[0]?.reference}</DialogTitle>
                                 <DialogDescription>Reviewing transaction entries.</DialogDescription>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={() => setViewingJournal(null)}><X className="h-4 w-4" /></Button>
+                            <Button aria-label="Close" variant="ghost" size="icon" onClick={() => setViewingJournal(null)}><X className="h-4 w-4" /></Button>
                         </div>
                     </DialogHeader>
                     <ScrollArea className="flex-grow p-6">

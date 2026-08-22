@@ -556,7 +556,7 @@ export default function WebsiteAIWidget() {
                   </FormItem>
                 )}
               />
-              <Button 
+              <Button aria-label="Send" 
                 type="submit" 
                 size="icon" 
                 disabled={isLoading} 
@@ -581,7 +581,7 @@ export default function WebsiteAIWidget() {
         "fixed right-4 z-50 transition-all duration-300",
         pathname === '/' ? "bottom-20 md:bottom-4" : "bottom-4"
       )}>
-        <Button 
+        <Button aria-label="Close" 
           onClick={toggleChat} 
           size="icon" 
           className="w-14 h-14 rounded-full shadow-2xl bg-gradient hover:scale-105 active:scale-95 duration-200 group flex items-center justify-center neon-glow"

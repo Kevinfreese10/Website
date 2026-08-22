@@ -170,7 +170,7 @@ export function AccountSelector({
                 {selectedAccountForVat ? (
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2 p-3 border-b bg-muted/20">
-                            <Button
+                            <Button aria-label="Back"
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6 shrink-0"

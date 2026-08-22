@@ -343,7 +343,7 @@ export default function KhaiChatPopup({ clientId, client }: { clientId: string, 
                 <CardDescription className="text-primary-foreground/80 text-[10px] font-medium tracking-wide">AI Accountant (He/Him)</CardDescription>
               </div>
             </div>
-            <Button
+            <Button aria-label="Close"
               variant="ghost"
               size="icon"
               className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 rounded-full h-8 w-8"
@@ -462,7 +462,7 @@ export default function KhaiChatPopup({ clientId, client }: { clientId: string, 
                 onChange={handleFileChange}
                 className="hidden"
               />
-              <Button
+              <Button aria-label="Attach file"
                 type="button"
                 variant="outline"
                 size="icon"
@@ -480,7 +480,7 @@ export default function KhaiChatPopup({ clientId, client }: { clientId: string, 
                 className="flex-grow bg-background text-xs font-bold h-10 border-slate-200 focus-visible:ring-primary"
                 autoComplete="off"
               />
-              <Button
+              <Button aria-label="Send"
                 type="submit"
                 size="icon"
                 disabled={isLoading || !inputValue.trim()}

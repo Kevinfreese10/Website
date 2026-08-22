@@ -627,7 +627,7 @@ export default function AdminKnowledgeBasePage() {
                             <TableCell className="text-right">
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                        <Button aria-label="Delete" variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                                             <Trash className="h-4 w-4 text-destructive" />
                                         </Button>
                                     </AlertDialogTrigger>

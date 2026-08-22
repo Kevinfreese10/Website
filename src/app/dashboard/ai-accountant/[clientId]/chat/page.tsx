@@ -376,7 +376,7 @@ export default function ClientAllocationChatPage() {
                                 className="flex-grow bg-background h-12 text-slate-950 font-bold border-primary/20 focus-visible:ring-primary"
                                 autoComplete="off"
                             />
-                            <Button type="submit" size="icon" disabled={isLoading || !chatStarted || !inputValue.trim() || pendingTransactions.length === 0} className="h-12 w-12 rounded-full">
+                            <Button aria-label="Send" type="submit" size="icon" disabled={isLoading || !chatStarted || !inputValue.trim() || pendingTransactions.length === 0} className="h-12 w-12 rounded-full">
                                 <Send className="h-5 w-5" />
                             </Button>
                         </form>

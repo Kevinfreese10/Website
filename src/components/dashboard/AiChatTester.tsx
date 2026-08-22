@@ -227,7 +227,7 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
               </div>
             </div>
             
-            <Button
+            <Button aria-label="Delete"
               variant="ghost"
               size="icon"
               onClick={handleClearChat}
@@ -426,7 +426,7 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
               disabled={isLoading}
               className="bg-slate-50 border-slate-200 focus-visible:bg-white text-xs font-semibold text-slate-900 placeholder-slate-400 rounded-xl h-10 shadow-inner focus-visible:ring-violet-600"
             />
-            <Button
+            <Button aria-label="Send"
               type="submit"
               size="icon"
               disabled={isLoading || !inputQuestion.trim()}

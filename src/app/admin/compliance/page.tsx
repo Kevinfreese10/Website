@@ -183,7 +183,7 @@ export default function AdminCompliancePage() {
                         <TableCell>{formatDate(req.submittedAt)}</TableCell>
                         <TableCell className="text-right">
                            <DialogTrigger asChild>
-                             <Button variant="ghost" size="icon" onClick={() => setViewingRequest(req)}>
+                             <Button aria-label="View" variant="ghost" size="icon" onClick={() => setViewingRequest(req)}>
                                 <Eye className="h-4 w-4" />
                              </Button>
                            </DialogTrigger>

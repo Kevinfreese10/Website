@@ -365,11 +365,11 @@ export default function ChartOfAccountsPage() {
                                     <TableCell>{acc.section}</TableCell>
                                     <TableCell className="text-right">
                                          <AlertDialog>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingAccount(acc); setIsFormOpen(true);}}>
+                                            <Button aria-label="Edit" variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingAccount(acc); setIsFormOpen(true);}}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                             <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                                <Button aria-label="Delete" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </AlertDialogTrigger>

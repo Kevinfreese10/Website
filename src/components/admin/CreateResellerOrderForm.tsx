@@ -422,7 +422,7 @@ export default function CreateOrderForm() {
                             </p>
                          </div>
                          <div className="md:col-span-1 flex items-end">
-                            <Button
+                            <Button aria-label="Delete"
                                 type="button"
                                 variant="destructive"
                                 size="icon"

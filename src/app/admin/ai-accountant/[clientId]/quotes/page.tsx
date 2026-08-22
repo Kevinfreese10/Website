@@ -551,7 +551,7 @@ export default function QuotesPage() {
                                                     </div>
                                                 ) : null}
                                                 <div className="md:col-span-1 flex justify-center">
-                                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length === 1} className="h-10 w-10 text-destructive hover:text-destructive/80">
+                                                    <Button aria-label="Delete" type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length === 1} className="h-10 w-10 text-destructive hover:text-destructive/80">
                                                         <Trash2 className="h-4 w-4"/>
                                                     </Button>
                                                 </div>
@@ -665,7 +665,7 @@ export default function QuotesPage() {
                                                     <TableCell className="text-right">
                                                          <DropdownMenu>
                                                              <DropdownMenuTrigger asChild>
-                                                                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button>
+                                                                 <Button aria-label="More actions" variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button>
                                                              </DropdownMenuTrigger>
                                                              <DropdownMenuContent align="end">
                                                                  <DropdownMenuItem onClick={() => setViewingQuote(quote)}>

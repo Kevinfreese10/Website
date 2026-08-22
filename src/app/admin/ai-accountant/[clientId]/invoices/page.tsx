@@ -610,7 +610,7 @@ export default function InvoicesPage() {
                                                      </div>
                                                 )}
                                                 <div className="col-span-12 md:col-span-1 flex items-end h-[68px]">
-                                                    <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} className="w-full h-10 mb-[2px]"><Trash2 className="h-4 w-4"/></Button>
+                                                    <Button aria-label="Delete" type="button" variant="destructive" size="icon" onClick={() => remove(index)} className="w-full h-10 mb-[2px]"><Trash2 className="h-4 w-4"/></Button>
                                                 </div>
                                             </div>
                                         ))}
@@ -743,7 +743,7 @@ export default function InvoicesPage() {
                                                         />
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                                                                <Button aria-label="More actions" variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent>
                                                                 <DropdownMenuItem onSelect={() => setViewingInvoice(invoice)}>

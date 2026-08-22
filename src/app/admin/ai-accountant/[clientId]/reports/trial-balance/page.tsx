@@ -647,7 +647,7 @@ export default function TrialBalancePage() {
                                             <p className="text-sm font-medium">{report.name}</p>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                     <Button variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4"/></Button>
+                                                     <Button aria-label="Delete" variant="destructive" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4"/></Button>
                                                 </AlertDialogTrigger>
                                                  <AlertDialogContent>
                                                     <AlertDialogHeader>

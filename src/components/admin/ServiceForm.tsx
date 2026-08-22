@@ -906,7 +906,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                           </FormItem>
                         )}
                       />
-                      <Button 
+                      <Button aria-label="Delete" 
                         type="button" 
                         variant="ghost" 
                         size="icon" 
@@ -1030,7 +1030,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                           />
                         )}
 
-                        <Button 
+                        <Button aria-label="Delete" 
                           type="button" 
                           variant="ghost" 
                           size="icon" 
@@ -1171,7 +1171,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                           >
                             <ArrowDown className="h-3.5 w-3.5" />
                           </Button>
-                          <Button 
+                          <Button aria-label="Delete" 
                             type="button" 
                             variant="ghost" 
                             size="icon" 
@@ -1410,7 +1410,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                             </FormItem>
                           )}
                         />
-                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => removeKeyword(index)}>
+                        <Button aria-label="Delete" type="button" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => removeKeyword(index)}>
                           <Trash className="h-3 w-3"/>
                         </Button>
                       </div>

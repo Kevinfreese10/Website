@@ -307,7 +307,7 @@ function EditServiceDialog({
                                         render={({ field }) => (
                                             <FormItem className="flex items-center gap-2">
                                                 <FormControl><Input {...field} className="h-8 text-xs" /></FormControl>
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeIncluded(index)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                                                <Button aria-label="Delete" type="button" variant="ghost" size="icon" onClick={() => removeIncluded(index)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button>
                                             </FormItem>
                                         )}
                                     />
@@ -333,7 +333,7 @@ function EditServiceDialog({
                                         render={({ field }) => (
                                             <FormItem className="flex items-center gap-2">
                                                 <FormControl><Input {...field} className="h-8 text-xs" /></FormControl>
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removePrereq(index)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                                                <Button aria-label="Delete" type="button" variant="ghost" size="icon" onClick={() => removePrereq(index)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button>
                                             </FormItem>
                                         )}
                                     />

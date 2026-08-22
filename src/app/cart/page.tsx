@@ -66,7 +66,7 @@ export default function CartPage() {
                   {/* Price + Remove */}
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <p className="font-black text-primary text-base">{formatPrice(item.service.price)}</p>
-                    <Button
+                    <Button aria-label="Delete"
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 rounded-xl text-slate-400 hover:text-destructive hover:bg-red-50 transition-all"

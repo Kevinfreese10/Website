@@ -27,12 +27,20 @@ export const PaymentFollowUpEmail = ({ order, reseller }: PaymentFollowUpEmailPr
   const primaryColor = reseller?.landingPage?.primaryColor || '#1e3a8a';
   const companyAddress = reseller?.address ? `${reseller.address.street}, ${reseller.address.city}` : 'Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195';
 
-  const bankingDetails = reseller?.bankingDetails || {
+  /**
+   * Banking details for the EFT payment instruction.
+   *
+   * This previously fell back to My Accountant's own bank account whenever a partner had not
+   * captured theirs — so a partner's client could be instructed, on partner-branded letterhead,
+   * to pay a completely different company. For a reseller order we now show no account at all
+   * and tell the client to contact the practice, which is recoverable; misdirected payment is not.
+   */
+  const bankingDetails = reseller?.bankingDetails || (reseller ? null : {
     bankName: 'FNB',
     accountHolder: 'My Accountant (Pty) Ltd',
     accountNumber: '63084378223',
     branchCode: '250655',
-  };
+  });
 
   const firstName = (order.customerName || 'Client').split(' ')[0];
 
@@ -72,7 +80,17 @@ export const PaymentFollowUpEmail = ({ order, reseller }: PaymentFollowUpEmailPr
               This is a friendly reminder that order <strong style={{ color: primaryColor }}>#{order.id}</strong> is currently awaiting payment confirmation.
             </Text>
 
-            {/* EFT Banking Details Box */}
+            {/* EFT Banking Details Box — omitted when a reseller has no banking details on
+                file, rather than falling back to My Accountant's account. */}
+            {!bankingDetails ? (
+              <div style={eftCardStyle}>
+                <Text style={eftTitleStyle}>Payment details</Text>
+                <Text style={paragraphStyle}>
+                  Please contact {companyName} on {companyEmail} for banking details to settle
+                  this order.
+                </Text>
+              </div>
+            ) : (
             <div style={eftCardStyle}>
               <Text style={eftTitleStyle}>💳 Bank Transfer / EFT Details</Text>
               <table width="100%" cellPadding="0" cellSpacing="0" border={0}>
@@ -100,6 +118,7 @@ export const PaymentFollowUpEmail = ({ order, reseller }: PaymentFollowUpEmailPr
                 </tbody>
               </table>
             </div>
+            )}
 
             <Text style={{ ...paragraphStyle, marginTop: '20px' }}>
               If you have already transferred the funds, please disregard this reminder as clearance can take up to 24 hours depending on your banking institution.

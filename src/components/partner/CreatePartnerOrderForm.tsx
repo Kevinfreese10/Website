@@ -609,7 +609,7 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
                         )}
                          <div className={hasPlatformFee ? "md:col-span-2 flex items-center justify-end gap-3 pt-7" : "md:col-span-2 flex items-center justify-end gap-3 pt-7"}>
                             <p className="text-right font-bold text-sm text-slate-900 shrink-0">{formatPrice(getLineItemTotal(lineItem))}</p>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive shrink-0" disabled={fields.length === 1}><Trash className="h-4 w-4" /></Button>
+                            <Button aria-label="Delete" type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive shrink-0" disabled={fields.length === 1}><Trash className="h-4 w-4" /></Button>
                          </div>
                     </div>
                 )})}

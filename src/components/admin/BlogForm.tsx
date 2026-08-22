@@ -411,7 +411,7 @@ export default function BlogForm({ post, onSubmit }: BlogFormProps) {
                         render={({ field }) => (
                             <FormItem className="flex items-center gap-2 mt-2">
                                 <FormControl><Input {...field} /></FormControl>
-                                <Button type="button" variant="destructive" size="icon" onClick={() => removeKeyword(index)}><Trash className="h-4 w-4"/></Button>
+                                <Button aria-label="Delete" type="button" variant="destructive" size="icon" onClick={() => removeKeyword(index)}><Trash className="h-4 w-4"/></Button>
                             </FormItem>
                         )}
                     />

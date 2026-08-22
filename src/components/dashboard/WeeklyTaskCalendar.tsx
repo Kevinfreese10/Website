@@ -92,7 +92,7 @@ export default function WeeklyTaskCalendar({ tasks, allStaff, currentUser, onTas
                         className="p-2 bg-background rounded-lg border text-left space-y-1 cursor-grab group relative"
                     >
                         <div className="absolute top-1 right-1 flex">
-                            <Button
+                            <Button aria-label="View"
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6"
@@ -100,7 +100,7 @@ export default function WeeklyTaskCalendar({ tasks, allStaff, currentUser, onTas
                             >
                                 <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
+                            <Button aria-label="Confirm"
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6"
@@ -149,8 +149,8 @@ export default function WeeklyTaskCalendar({ tasks, allStaff, currentUser, onTas
             </div>
             <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={goToToday}>Today</Button>
-                <Button variant="outline" size="icon" onClick={() => changeWeek('prev')}><ChevronLeft className="h-4 w-4" /></Button>
-                <Button variant="outline" size="icon" onClick={() => changeWeek('next')}><ChevronRight className="h-4 w-4" /></Button>
+                <Button aria-label="Previous" variant="outline" size="icon" onClick={() => changeWeek('prev')}><ChevronLeft className="h-4 w-4" /></Button>
+                <Button aria-label="Next" variant="outline" size="icon" onClick={() => changeWeek('next')}><ChevronRight className="h-4 w-4" /></Button>
             </div>
         </div>
       </CardHeader>

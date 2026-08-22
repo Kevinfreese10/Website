@@ -73,7 +73,7 @@ export default function PartnerHeader({ partner }: { partner: User }) {
               <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> Free Quote
             </Link>
           </Button>
-          <Button
+          <Button aria-label="Close"
             variant="ghost"
             size="icon"
             className="h-8 w-8"

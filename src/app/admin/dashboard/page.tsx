@@ -1327,7 +1327,7 @@ export default function AdminDashboardPage() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right pr-6 py-3" onClick={(e) => e.stopPropagation()}>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => handleUpdate(task.id, { status: 'Done' })}>
+                                                    <Button aria-label="Confirm" variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => handleUpdate(task.id, { status: 'Done' })}>
                                                         <Check className="h-4.5 w-4.5" />
                                                     </Button>
                                                 </TableCell>
@@ -1468,7 +1468,7 @@ export default function AdminDashboardPage() {
                                             <TableCell className="text-right pr-6 py-3" onClick={(e) => e.stopPropagation()}>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100">
+                                                        <Button aria-label="More actions" variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-100">
                                                             <MoreHorizontal className="h-4 w-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>

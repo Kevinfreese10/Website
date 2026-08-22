@@ -117,7 +117,7 @@ const ItemRow = ({
                         className="h-7 w-24 text-right text-[11px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 font-mono font-bold"
                     />
                     {!item.isStatutory && !isCalculatedItem && (
-                        <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => onRemove(index, type)}>
+                        <Button aria-label="Delete" variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive" onClick={() => onRemove(index, type)}>
                             <Trash2 className="h-3 w-3" />
                         </Button>
                     )}
@@ -572,7 +572,7 @@ export default function PayslipEditor({
     const ColumnHeader = ({ title, onAdd }: { title: string, onAdd: () => void }) => (
         <div className="bg-[#EFEFEF] p-2 flex justify-between items-center border-b border-[#CCCCCC]">
             <span className="text-[11px] font-bold text-[#666666] uppercase tracking-wide">{title}</span>
-            <Button variant="ghost" size="icon" className="h-5 w-5 text-[#999999] hover:text-primary" onClick={onAdd}>
+            <Button aria-label="Add" variant="ghost" size="icon" className="h-5 w-5 text-[#999999] hover:text-primary" onClick={onAdd}>
                 <Plus className="h-3 w-3" />
             </Button>
         </div>

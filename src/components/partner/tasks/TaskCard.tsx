@@ -77,7 +77,7 @@ export function TaskCard({ task, staffList, onStatusChange, onDelete }: TaskCard
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+              <Button aria-label="More actions" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -149,7 +149,7 @@ export function TaskCard({ task, staffList, onStatusChange, onDelete }: TaskCard
         {/* Action Arrows */}
         {isEditable && (
           <div className="flex items-center gap-1">
-            <Button
+            <Button aria-label="Back"
               variant="outline"
               size="icon"
               className="h-6 w-6 rounded-md hover:bg-muted"

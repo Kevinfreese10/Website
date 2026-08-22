@@ -420,10 +420,10 @@ export default function AdminTasksPage() {
                         </TableCell>
                         <TableCell className="text-right pr-6 py-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1.5">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-800" onClick={() => handleEdit(task)}>
+                                <Button aria-label="Edit" variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-800" onClick={() => handleEdit(task)}>
                                     <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => handleUpdateStatus(task.id, 'Done')}>
+                                <Button aria-label="Confirm" variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => handleUpdateStatus(task.id, 'Done')}>
                                     <Check className="h-4.5 w-4.5" />
                                 </Button>
                             </div>
@@ -448,7 +448,7 @@ export default function AdminTasksPage() {
                           {selectedTask && (
                               <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:bg-white/10 hover:text-white">
+                                      <Button aria-label="Delete" variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:bg-white/10 hover:text-white">
                                           <Trash2 className="h-4.5 w-4.5" />
                                       </Button>
                                   </AlertDialogTrigger>

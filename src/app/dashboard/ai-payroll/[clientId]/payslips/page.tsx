@@ -541,7 +541,7 @@ export default function PayslipsPage() {
                                 <TableCell className="text-right text-[10px] font-medium">{safeFormatDate(ps.date)}</TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-1">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePreviewHistory(ps)}>
+                                        <Button aria-label="View" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePreviewHistory(ps)}>
                                             <Eye className="h-3.5 w-3.5" />
                                         </Button>
                                         {client && employees.find(e => e.id === ps.employeeId) && (

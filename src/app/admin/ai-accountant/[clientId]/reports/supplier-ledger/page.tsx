@@ -248,7 +248,7 @@ function EditJournalDialog({ isOpen, onOpenChange, journalEntries, client, actor
                                                     />
                                                 </TableCell>
                                                 <TableCell className="p-2">
-                                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                                                    <Button aria-label="Delete" type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4"/></Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}

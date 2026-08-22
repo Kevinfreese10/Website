@@ -269,7 +269,7 @@ export default function SeoPageForm({ control, index, page, form }: SeoPageFormP
                                             <Input {...field} className="h-6 text-[10px] border-none bg-transparent w-24 focus-visible:ring-0 p-0 px-1 font-semibold uppercase" />
                                         )}
                                     />
-                                    <Button type="button" variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => removeKeyword(kwIndex)}><Trash className="h-3 w-3"/></Button>
+                                    <Button aria-label="Delete" type="button" variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => removeKeyword(kwIndex)}><Trash className="h-3 w-3"/></Button>
                                 </div>
                             ))}
                             <Button type="button" variant="outline" size="sm" className="h-8 text-[10px] uppercase font-bold border-dashed" onClick={() => appendKeyword({ value: '' })}>+ Add Keyword</Button>

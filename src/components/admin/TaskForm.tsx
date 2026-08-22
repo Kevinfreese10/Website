@@ -364,7 +364,7 @@ export default function TaskForm({
                                         <Paperclip className="h-4 w-4 text-slate-400" />
                                         <span className="truncate">{file.name}</span>
                                     </div>
-                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-destructive" onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))}>
+                                    <Button aria-label="Close" type="button" variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-destructive" onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))}>
                                         <X className="h-4 w-4" />
                                     </Button>
                                 </div>

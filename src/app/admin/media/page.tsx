@@ -59,7 +59,7 @@ function MediaGrid({ title, images, onCopy, onDelete, showDelete }: { title: str
                             {showDelete && (
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button aria-label="Delete" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>
@@ -81,7 +81,7 @@ function MediaGrid({ title, images, onCopy, onDelete, showDelete }: { title: str
                                 <p className="text-xs text-muted-foreground">{image.source}</p>
                                 <div className="flex items-center gap-1">
                                     <Input value={image.url} readOnly className="h-7 text-xs flex-grow truncate" />
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={() => onCopy(image.url)}>
+                                    <Button aria-label="Copy" variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={() => onCopy(image.url)}>
                                         <Copy className="h-4 w-4" />
                                     </Button>
                                 </div>
