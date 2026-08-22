@@ -9,7 +9,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 neon-glow transition-all duration-300",
+        /*
+         * `neon-glow` was baked in here, so all 659 buttons that don't specify a variant — every
+         * unremarkable Save / Add / Confirm in admin tables and dialogs — rendered a three-layer
+         * 55px box-shadow. It is defined with `!important`, so it could not be overridden
+         * per-instance, and painting that many large blurred shadows is a real compositing cost on
+         * low-end devices. Moved to an opt-in `hero` variant for marketing CTAs.
+         */
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 transition-colors",
+        hero: "bg-primary text-primary-foreground hover:bg-primary/90 neon-glow transition-all duration-300",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:

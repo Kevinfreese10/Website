@@ -13,7 +13,9 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:rules": "firebase emulators:exec \"tsx scratch/test_firestore_rules.ts\""
+    "test:rules": "firebase emulators:exec \"tsx scratch/test_firestore_rules.ts\"",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.22",
@@ -100,6 +102,7 @@
     "playwright-core": "^1.61.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.9"
   }
 }

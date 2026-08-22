@@ -1,0 +1,47 @@
+name: CI
+
+# There was previously no CI of any kind. Deployment is triggered by pushing to main (Firebase
+# App Hosting), so nothing stood between a broken build and production — no typecheck, no lint,
+# no tests. This runs on every push and pull request to main.
+#
+# Note: this does not block the App Hosting deploy on its own. To make it a real gate, enable a
+# branch protection rule on `main` requiring the "verify" check to pass before merging, and work
+# through pull requests rather than pushing directly.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Typecheck, lint and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      # Lint runs last and does not fail the build yet: the codebase currently carries a large
+      # backlog of warnings (636 `: any` among them), so making it blocking today would simply
+      # mean it gets disabled. Remove `continue-on-error` once that backlog is worked down.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true

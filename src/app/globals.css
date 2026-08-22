@@ -18,9 +18,9 @@
     --muted-foreground: 215 20% 45%;
     --accent: 215 100% 59%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 215 20% 88%;
+    --border: 215 16% 76%;
     --input: 215 20% 88%;
     --ring: 214 89% 52%;
     --chart-1: 12 76% 61%;
@@ -262,10 +262,10 @@ body.dark .border-slate-400 {
   --muted-foreground: 240 3.8% 46.1%;
   --accent: 240 4.8% 95.9%;
   --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 84.2% 60.2%;
+  --destructive: 0 72% 45%;           /* AA-compliant for form error text (was 3.76:1) */
   --destructive-foreground: 0 0% 98%;
-  --border: 240 5.9% 90%;             /* Subtle gray border */
-  --input: 240 5.9% 90%;
+  --border: 240 6% 76%;               /* Meets WCAG 1.4.11 3:1 for UI boundaries (was 1.27:1) */
+  --input: 240 6% 76%;
   --ring: 221.2 83.2% 53.3%;
 }
 

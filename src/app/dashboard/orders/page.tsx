@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import VerifyEmailBanner from '@/components/dashboard/VerifyEmailBanner';
+import { getStatusVariant } from '@/lib/order-status';
 
 const db = getFirestore(firebaseApp);
 
@@ -98,23 +99,6 @@ export default function DashboardPage() {
         });
     }, [orders, statusFilter, searchTerm]);
 
-    const getStatusVariant = (status: Order['status'] | 'Outsourced') => {
-        switch (status) {
-            case 'Completed': return 'success';
-            case 'Processing':
-            case 'Outsourced':
-                return 'info';
-            case 'Pending Payment': return 'warning';
-            case 'Waiting on Customer':
-            case 'Waiting for Information':
-            case 'Waiting on Client':
-                return 'waiting';
-            case 'Under Review':
-                return 'review';
-            case 'Cancelled': return 'destructive';
-            default: return 'secondary';
-        }
-    };
     
      const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-ZA', {

@@ -58,7 +58,7 @@ export default function RootLayout({
   const websiteSchema = generateWebSiteSchema();
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en-ZA" suppressHydrationWarning>
       <body className={cn("antialiased", bodyFont.variable, headlineFont.variable)} suppressHydrationWarning>
         <ExternalScripts />
         <Script

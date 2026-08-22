@@ -14,6 +14,7 @@ import { ArrowLeft, Loader2, User as UserIcon, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { getStatusVariant } from '@/lib/order-status';
 
 const db = getFirestore(firebaseApp);
 
@@ -109,27 +110,6 @@ export default function PartnerOutsourcedOrderDetailsPage() {
   }, [id, currentUser]);
 
 
-  const getStatusVariant = (status: Order['status'] | 'Outsourced') => {
-    switch (status) {
-      case 'Completed':
-        return 'success';
-      case 'Processing':
-      case 'Outsourced':
-        return 'info';
-      case 'Pending Payment':
-        return 'warning';
-      case 'Waiting on Customer':
-      case 'Waiting for Information':
-      case 'Waiting on Client':
-        return 'waiting';
-      case 'Under Review':
-        return 'review';
-      case 'Cancelled':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
-  };
   
   const getAuthor = (authorId: string): User | undefined => {
     return allStaff.find(u => u.id === authorId);

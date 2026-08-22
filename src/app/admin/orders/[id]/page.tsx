@@ -49,6 +49,7 @@ import { cn, formatDate, isStaffActive } from '@/lib/utils';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 import { db, firebaseApp } from '@/lib/firebase';
+import { getStatusVariant } from '@/lib/order-status';
 
 const storage = getStorage(firebaseApp);
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
@@ -667,22 +668,6 @@ export default function AdminOrderDetailsPage() {
     }
   };
 
-  const getStatusVariant = (status: Order['status']) => {
-    switch (status) {
-      case 'Completed': return 'success';
-      case 'Processing':
-        return 'info';
-      case 'Pending Payment': return 'warning';
-      case 'Waiting on Customer':
-      case 'Waiting for Information':
-      case 'Waiting on Client':
-        return 'waiting';
-      case 'Under Review':
-        return 'review';
-      case 'Cancelled': return 'destructive';
-      default: return 'secondary';
-    }
-  };
   
   const getAuthor = (authorId: string): { name: string } | undefined => {
     if (authorId === 'system') return { name: 'My Accountant (System)' };

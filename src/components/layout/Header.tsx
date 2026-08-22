@@ -202,8 +202,24 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full glass-nav shadow-none">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-4 lg:gap-8">
+          {/*
+            * Brand / home link. The header previously contained NO logo or wordmark at any
+            * breakpoint — its only child was the desktop nav, which is `hidden` below 1024px. On
+            * mobile and tablet the left half of the bar rendered completely empty across ~150
+            * public pages, with no brand recognition and none of the conventional
+            * "click the logo to go home" affordance.
+            */}
+          <Link
+            href="/"
+            className="flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="My Accountant — home"
+          >
+            <span className="text-base font-medium tracking-tight text-foreground sm:text-lg">
+              My Accountant
+            </span>
+          </Link>
           {!isAuthPage && (
-            <nav className="hidden items-center gap-2 lg:flex">
+            <nav className="hidden items-center gap-2 xl:flex">
               {navGroups.map(group => (
                 group.items && group.items.length > 0 ? (
                   <DropdownMenu key={group.label}>
@@ -258,7 +274,7 @@ const Header = () => {
             )}
           </div>
           
-          <div className="lg:hidden">
+          <div className="xl:hidden">
             {!isAuthPage && (
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>

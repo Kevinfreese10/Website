@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { BlogPost } from '@/lib/types';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, addDoc, query, orderBy, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -15,15 +15,31 @@ interface BlogContextType {
   updatePost: (post: BlogPost) => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
   isLoading: boolean;
+  /** Signals that this consumer needs blog data; triggers the (single) fetch. */
+  requestBlogPosts: () => void;
 }
 
 const BlogContext = createContext<BlogContextType | undefined>(undefined);
 
+/**
+ * Blog posts are loaded LAZILY — only once something actually consumes them.
+ *
+ * `BlogProvider` wraps `AppShell`, which wraps every route in the application. This effect
+ * previously ran on mount, so the entire `blogPosts` collection — including each post's full
+ * article HTML in the `content` field — was downloaded on every single page view: the homepage,
+ * all ~60 SEO landing pages, all 13 calculators, the cart, the checkout, and the whole of
+ * /admin, /dashboard and /partner. It was the single largest Firestore read in the application
+ * and almost none of those pages display a blog post.
+ *
+ * Consumers now trigger the fetch by calling useBlog(), which is a no-op for every route that
+ * doesn't render blog content.
+ */
 export const BlogProvider = ({ children }: { children: ReactNode }) => {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasRequested, setHasRequested] = useState(false);
   const { toast } = useToast();
-  
+
   const fetchBlogPosts = async () => {
     setIsLoading(true);
     try {
@@ -57,8 +73,17 @@ export const BlogProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
+  // Fetch only after a consumer has asked for the data at least once.
   useEffect(() => {
-    fetchBlogPosts();
+    if (hasRequested) {
+      fetchBlogPosts();
+    }
+  }, [hasRequested]);
+
+  // Stable identity — useBlog() depends on it in an effect, so a new function each render
+  // would re-run that effect on every render.
+  const requestBlogPosts = useCallback(() => {
+    setHasRequested(true);
   }, []);
 
   const addPost = async (postData: Omit<BlogPost, 'id' | 'slug' | 'date'>) => {
@@ -109,7 +134,7 @@ export const BlogProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <BlogContext.Provider value={{ blogPosts, addPost, updatePost, deletePost, isLoading }}>
+    <BlogContext.Provider value={{ blogPosts, addPost, updatePost, deletePost, isLoading, requestBlogPosts }}>
       {children}
     </BlogContext.Provider>
   );
@@ -120,5 +145,13 @@ export const useBlog = () => {
   if (context === undefined) {
     throw new Error('useBlog must be used within a BlogProvider');
   }
+
+  // Consuming the hook IS the signal that this route needs blog data. Routes that never call
+  // useBlog() — which is the overwhelming majority — now cost zero blog reads.
+  const { requestBlogPosts } = context;
+  useEffect(() => {
+    requestBlogPosts();
+  }, [requestBlogPosts]);
+
   return context;
 };

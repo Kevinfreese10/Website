@@ -45,8 +45,18 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const content = (
     <>
+      {/*
+        * Skip link. A keyboard user previously had to tab through up to 10 nav triggers — and,
+        * once opened, up to 27 dropdown items — on every single page load before reaching content.
+        */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Skip to main content
+      </a>
       {shouldShowHeader && <Header />}
-      <main className="flex-grow bg-background relative">{children}</main>
+      <main id="main-content" tabIndex={-1} className="flex-grow bg-background relative">{children}</main>
       {shouldShowFooter && <Footer />}
       {mounted && !isDashboardPage && <WebsiteAIWidget />}
     </>

@@ -46,6 +46,7 @@ import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewF
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 import { db, firebaseApp } from '@/lib/firebase';
+import { getStatusVariant } from '@/lib/order-status';
 
 const storage = getStorage(firebaseApp);
 const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
@@ -774,22 +775,6 @@ export default function PartnerOrderDetailsPage() {
     return undefined;
   }
 
-  const getStatusVariant = (status: Order['status'] | 'Outsourced') => {
-    switch (status) {
-      case 'Completed': return 'success';
-      case 'Processing': return 'info';
-      case 'Outsourced': return 'info';
-      case 'Pending Payment': return 'warning';
-      case 'Waiting on Customer':
-      case 'Waiting for Information':
-      case 'Waiting on Client':
-        return 'waiting';
-      case 'Under Review':
-        return 'review';
-      case 'Cancelled': return 'destructive';
-      default: return 'secondary';
-    }
-  };
 
   const allDocumentsReviewed = order?.documentUploads && order.documentUploads.length > 0 && order.documentUploads.every(d => d.status !== 'pending');
 

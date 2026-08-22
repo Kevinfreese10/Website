@@ -30,6 +30,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { usePartner } from '@/contexts/PartnerContext';
 import { useRouter } from 'next/navigation';
+import { getStatusVariant } from '@/lib/order-status';
 
 
 const db = getFirestore(firebaseApp);
@@ -122,27 +123,6 @@ export default function OutsourcedOrdersPage() {
     return allStaff.find(u => u.id === userId);
   }
 
-  const getStatusVariant = (status: Order['status'] | 'Outsourced') => {
-    switch (status) {
-      case 'Completed':
-        return 'success';
-      case 'Processing':
-      case 'Outsourced':
-        return 'info';
-      case 'Pending Payment':
-        return 'warning';
-      case 'Waiting on Customer':
-      case 'Waiting for Information':
-      case 'Waiting on Client':
-        return 'waiting';
-      case 'Under Review':
-        return 'review';
-      case 'Cancelled':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
-  };
 
 
   return (

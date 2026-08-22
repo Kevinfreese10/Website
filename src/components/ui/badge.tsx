@@ -15,13 +15,25 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        success: "border-transparent bg-green-600 text-white hover:bg-green-600/80",
-        info: "border-transparent bg-blue-500 text-white hover:bg-blue-500/80",
-        warning: "border-transparent bg-yellow-500 text-white hover:bg-yellow-500/80",
-        waiting: "border-transparent bg-amber-500 text-white hover:bg-amber-500/80",
-        review: "border-transparent bg-indigo-600 text-white hover:bg-indigo-600/80",
-        payment: "border-transparent bg-teal-600 text-white hover:bg-teal-600/80",
-        outsourced: "border-transparent bg-purple-600 text-white hover:bg-purple-600/80",
+        /*
+         * Status variants use a light tinted background with dark same-family text — the
+         * conventional status-pill pattern — rather than white on a mid-tone fill.
+         *
+         * The previous white-on-colour combinations failed WCAG AA at this component's 12px
+         * size, several of them badly: `warning` ("Pending Payment") was white on yellow-500 at
+         * 1.92:1 and `waiting` ("Waiting on Customer") white on amber-500 at 2.15:1 — effectively
+         * illegible in sunlight or with reduced contrast sensitivity. Five of the seven variants
+         * failed. These are the badges that tell a customer they owe money or that we are waiting
+         * on them, and they render on the client dashboard, the admin queue and both partner
+         * views. Every combination below clears 7:1.
+         */
+        success: "border-transparent bg-green-100 text-green-900 hover:bg-green-200",
+        info: "border-transparent bg-blue-100 text-blue-900 hover:bg-blue-200",
+        warning: "border-transparent bg-yellow-100 text-yellow-900 hover:bg-yellow-200",
+        waiting: "border-transparent bg-amber-100 text-amber-900 hover:bg-amber-200",
+        review: "border-transparent bg-indigo-100 text-indigo-900 hover:bg-indigo-200",
+        payment: "border-transparent bg-teal-100 text-teal-900 hover:bg-teal-200",
+        outsourced: "border-transparent bg-purple-100 text-purple-900 hover:bg-purple-200",
       },
     },
     defaultVariants: {
