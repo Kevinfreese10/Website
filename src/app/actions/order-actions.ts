@@ -162,3 +162,84 @@ export async function sendOrderStatusUpdateEmailAction(orderId: string, newStatu
         return { success: false, error: 'Failed to send status update' };
     }
 }
+
+export async function getClientOrdersAction({ userId, email }: { userId: string; email?: string }) {
+    try {
+        if (!userId && !email) {
+            return { success: false, error: 'User identification required', orders: [] };
+        }
+
+        const adminDb = getAdminDb();
+        const ordersMap = new Map<string, any>();
+
+        // 1. Fetch by userId
+        if (userId) {
+            const userOrdersSnap = await adminDb.collection('orders')
+                .where('userId', '==', userId)
+                .get();
+            userOrdersSnap.docs.forEach(doc => {
+                const data = doc.data();
+                const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
+                ordersMap.set(doc.id, {
+                    ...data,
+                    id: doc.id,
+                    date: dateVal,
+                    notes: (data.notes || []).map((n: any) => ({
+                        ...n,
+                        date: n.date?.toDate ? n.date.toDate().toISOString() : (n.date || new Date().toISOString())
+                    }))
+                });
+            });
+        }
+
+        // 2. Fetch by customerEmail (case-insensitive search)
+        if (email) {
+            const cleanEmail = email.toLowerCase().trim();
+            const emailOrdersSnap = await adminDb.collection('orders')
+                .where('customerEmail', '==', cleanEmail)
+                .get();
+            emailOrdersSnap.docs.forEach(doc => {
+                if (!ordersMap.has(doc.id)) {
+                    const data = doc.data();
+                    const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
+                    ordersMap.set(doc.id, {
+                        ...data,
+                        id: doc.id,
+                        date: dateVal,
+                        notes: (data.notes || []).map((n: any) => ({
+                            ...n,
+                            date: n.date?.toDate ? n.date.toDate().toISOString() : (n.date || new Date().toISOString())
+                        }))
+                    });
+                }
+            });
+
+            const endCustomerOrdersSnap = await adminDb.collection('orders')
+                .where('endCustomerEmail', '==', cleanEmail)
+                .get();
+            endCustomerOrdersSnap.docs.forEach(doc => {
+                if (!ordersMap.has(doc.id)) {
+                    const data = doc.data();
+                    const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
+                    ordersMap.set(doc.id, {
+                        ...data,
+                        id: doc.id,
+                        date: dateVal,
+                        notes: (data.notes || []).map((n: any) => ({
+                            ...n,
+                            date: n.date?.toDate ? n.date.toDate().toISOString() : (n.date || new Date().toISOString())
+                        }))
+                    });
+                }
+            });
+        }
+
+        const ordersList = Array.from(ordersMap.values());
+        ordersList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        return { success: true, orders: ordersList };
+    } catch (error: any) {
+        console.error('Error in getClientOrdersAction:', error);
+        return { success: false, error: error.message || 'Failed to fetch orders', orders: [] };
+    }
+}

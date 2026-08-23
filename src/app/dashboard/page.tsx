@@ -12,8 +12,7 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
+import { getClientOrdersAction } from '@/app/actions/order-actions';
 
 const db = getFirestore(firebaseApp);
 
@@ -71,14 +70,29 @@ export default function DashboardPage() {
         let ordersUnsubscribe = () => {};
 
         if (user) {
+            // 1. Initial robust fetch via Server Action (handles direct and guest-matched orders)
+            getClientOrdersAction({ userId: user.uid, email: user.email })
+                .then(res => {
+                    if (res.success && res.orders) {
+                        setOrders(prev => {
+                            const map = new Map<string, Order>();
+                            res.orders.forEach((o: Order) => map.set(o.id, o));
+                            prev.forEach(o => map.set(o.id, o));
+                            return Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        });
+                    }
+                    setIsLoading(false);
+                })
+                .catch(err => {
+                    console.warn("Server action orders fetch error:", err);
+                    setIsLoading(false);
+                });
+
+            // 2. Real-time listener on user's direct orders
             const ordersRef = collection(db, 'orders');
             const q = query(
                 ordersRef, 
-                or(
-                    where('userId', '==', user.uid),
-                    where('customerEmail', '==', user.email),
-                    where('endCustomerEmail', '==', user.email)
-                ),
+                where('userId', '==', user.uid),
                 orderBy('date', 'desc')
             );
 
@@ -103,15 +117,15 @@ export default function DashboardPage() {
                         }),
                     } as Order;
                 });
-                const uniqueOrders = Array.from(new Map(fetchedOrders.map(o => [o.id, o])).values());
-                setOrders(uniqueOrders);
+                setOrders(prev => {
+                    const map = new Map<string, Order>();
+                    prev.forEach(o => map.set(o.id, o));
+                    fetchedOrders.forEach(o => map.set(o.id, o));
+                    return Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                });
                 setIsLoading(false);
-            }, async (error) => {
-                const permissionError = new FirestorePermissionError({
-                    path: 'orders',
-                    operation: 'list',
-                } satisfies SecurityRuleContext);
-                errorEmitter.emit('permission-error', permissionError);
+            }, (error) => {
+                console.warn("Direct orders snapshot warning:", error);
                 setIsLoading(false);
             });
         } else {

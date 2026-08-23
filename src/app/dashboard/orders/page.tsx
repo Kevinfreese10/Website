@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import VerifyEmailBanner from '@/components/dashboard/VerifyEmailBanner';
 import { getStatusVariant } from '@/lib/order-status';
+import { getClientOrdersAction } from '@/app/actions/order-actions';
 
 const db = getFirestore(firebaseApp);
 
@@ -30,43 +31,26 @@ export default function DashboardPage() {
             if (!user?.uid) return;
             setIsLoading(true);
             try {
-                let fetchedDocs: any[] = [];
-                try {
-                    const q = query(
-                        collection(db, 'orders'), 
-                        or(
-                            where('userId', '==', user.uid),
-                            where('customerEmail', '==', user.email),
-                            where('endCustomerEmail', '==', user.email)
-                        )
-                    );
+                // 1. Fetch orders via Server Action (handles direct and guest-matched orders safely)
+                const res = await getClientOrdersAction({ userId: user.uid, email: user.email });
+                if (res.success && res.orders) {
+                    setOrders(res.orders.filter(order => order.status !== 'Cancelled'));
+                } else {
+                    // Fallback to client query by userId
+                    const q = query(collection(db, 'orders'), where('userId', '==', user.uid));
                     const querySnapshot = await getDocs(q);
-                    fetchedDocs = querySnapshot.docs;
-                } catch (orErr) {
-                    console.warn("OR query failed, falling back to separate queries:", orErr);
-                    const [q1, q2] = await Promise.all([
-                        getDocs(query(collection(db, 'orders'), where('userId', '==', user.uid))),
-                        user.email ? getDocs(query(collection(db, 'orders'), where('customerEmail', '==', user.email))) : { docs: [] }
-                    ]);
-                    fetchedDocs = [...q1.docs, ...q2.docs];
+                    const fetchedOrders = querySnapshot.docs.map(doc => {
+                        const data = doc.data();
+                        const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
+                        return {
+                            ...data,
+                            id: doc.id,
+                            date: dateVal,
+                        } as Order;
+                    });
+                    fetchedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                    setOrders(fetchedOrders.filter(order => order.status !== 'Cancelled'));
                 }
-
-                const fetchedOrders = fetchedDocs.map(doc => {
-                    const data = doc.data();
-                    const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
-                    return {
-                        ...data,
-                        id: doc.id,
-                        date: dateVal,
-                    } as Order;
-                });
-                
-                // Sort in memory by date descending
-                fetchedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                
-                // Deduplicate by ID
-                const uniqueOrders = Array.from(new Map(fetchedOrders.map(o => [o.id, o])).values());
-                setOrders(uniqueOrders.filter(order => order.status !== 'Cancelled'));
             } catch (error) {
                 console.error("Error fetching orders:", error);
             } finally {
