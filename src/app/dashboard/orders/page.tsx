@@ -28,54 +28,52 @@ export default function DashboardPage() {
 
     useEffect(() => {
         let isMounted = true;
-        const fetchOrders = async () => {
-            const uid = user?.uid || (user as any)?.id;
-            const email = user?.email || (user as any)?.customerEmail;
+        const uid = user?.uid || (user as any)?.id;
+        const email = user?.email || (user as any)?.customerEmail;
 
-            if (!uid && !email) {
-                if (isAuthenticated === false) {
-                    if (isMounted) setIsLoading(false);
-                }
-                return;
+        if (!uid && !email) {
+            if (isAuthenticated === false) {
+                if (isMounted) setIsLoading(false);
             }
+            return;
+        }
 
-            if (isMounted) setIsLoading(true);
-            try {
-                // 1. Fetch orders via Server Action (handles direct and guest-matched orders safely)
-                const res = await getClientOrdersAction({ userId: uid || '', email: email || '' });
+        // 1. Fast local direct query for instant rendering
+        if (uid) {
+            const fastQuery = query(collection(db, 'orders'), where('userId', '==', uid));
+            getDocs(fastQuery).then(snap => {
                 if (!isMounted) return;
+                if (!snap.empty) {
+                    const fastOrders = snap.docs.map(doc => {
+                        const data = doc.data();
+                        const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
+                        return { ...data, id: doc.id, date: dateVal } as Order;
+                    });
+                    fastOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                    setOrders(fastOrders.filter(order => order.status !== 'Cancelled'));
+                    setIsLoading(false);
+                }
+            }).catch(err => {
+                console.warn("Direct fast orders query skipped:", err);
+            });
+        }
 
+        // 2. Parallel server action to load and merge guest/matched orders
+        getClientOrdersAction({ userId: uid || '', email: email || '' })
+            .then(res => {
+                if (!isMounted) return;
                 if (res.success && Array.isArray(res.orders)) {
                     setOrders(res.orders.filter(order => order.status !== 'Cancelled'));
-                } else {
-                    // Fallback to client query by userId
-                    if (uid) {
-                        const q = query(collection(db, 'orders'), where('userId', '==', uid));
-                        const querySnapshot = await getDocs(q);
-                        if (!isMounted) return;
-                        const fetchedOrders = querySnapshot.docs.map(doc => {
-                            const data = doc.data();
-                            const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
-                            return {
-                                ...data,
-                                id: doc.id,
-                                date: dateVal,
-                            } as Order;
-                        });
-                        fetchedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                        setOrders(fetchedOrders.filter(order => order.status !== 'Cancelled'));
-                    }
                 }
-            } catch (error) {
-                console.error("Error fetching orders:", error);
-            } finally {
+            })
+            .catch(err => {
+                console.error("Server action orders fetch error:", err);
+            })
+            .finally(() => {
                 if (isMounted) {
                     setIsLoading(false);
                 }
-            }
-        };
-
-        fetchOrders();
+            });
 
         return () => {
             isMounted = false;

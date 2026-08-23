@@ -191,53 +191,34 @@ export async function getClientOrdersAction({ userId, email }: { userId: string;
         }
 
         const adminDb = getAdminDb();
-        const ordersMap = new Map<string, any>();
+        const cleanEmail = email ? email.toLowerCase().trim() : '';
 
-        // 1. Fetch by userId
+        // Execute all 3 queries in parallel to eliminate waterfall latency
+        const queryPromises: Promise<FirebaseFirestore.QuerySnapshot>[] = [];
+
         if (userId) {
-            const userOrdersSnap = await adminDb.collection('orders')
-                .where('userId', '==', userId)
-                .get();
-            userOrdersSnap.docs.forEach(doc => {
-                const data = serializeFirestoreData(doc.data());
-                ordersMap.set(doc.id, {
-                    ...data,
-                    id: doc.id,
-                    date: data.date || new Date().toISOString(),
-                });
-            });
+            queryPromises.push(adminDb.collection('orders').where('userId', '==', userId).get());
+        }
+        if (cleanEmail) {
+            queryPromises.push(adminDb.collection('orders').where('customerEmail', '==', cleanEmail).get());
+            queryPromises.push(adminDb.collection('orders').where('endCustomerEmail', '==', cleanEmail).get());
         }
 
-        // 2. Fetch by customerEmail
-        if (email) {
-            const cleanEmail = email.toLowerCase().trim();
-            const emailOrdersSnap = await adminDb.collection('orders')
-                .where('customerEmail', '==', cleanEmail)
-                .get();
-            emailOrdersSnap.docs.forEach(doc => {
-                if (!ordersMap.has(doc.id)) {
-                    const data = serializeFirestoreData(doc.data());
-                    ordersMap.set(doc.id, {
-                        ...data,
-                        id: doc.id,
-                        date: data.date || new Date().toISOString(),
-                    });
-                }
-            });
+        const snapshots = await Promise.all(queryPromises);
+        const ordersMap = new Map<string, any>();
 
-            const endCustomerOrdersSnap = await adminDb.collection('orders')
-                .where('endCustomerEmail', '==', cleanEmail)
-                .get();
-            endCustomerOrdersSnap.docs.forEach(doc => {
+        for (const snap of snapshots) {
+            for (const doc of snap.docs) {
                 if (!ordersMap.has(doc.id)) {
-                    const data = serializeFirestoreData(doc.data());
+                    const rawData = doc.data();
+                    const data = serializeFirestoreData(rawData);
                     ordersMap.set(doc.id, {
                         ...data,
                         id: doc.id,
                         date: data.date || new Date().toISOString(),
                     });
                 }
-            });
+            }
         }
 
         const ordersList = Array.from(ordersMap.values());
