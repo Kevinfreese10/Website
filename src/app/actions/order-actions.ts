@@ -163,6 +163,27 @@ export async function sendOrderStatusUpdateEmailAction(orderId: string, newStatu
     }
 }
 
+function serializeFirestoreData(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj?.toDate === 'function') {
+        return obj.toDate().toISOString();
+    }
+    if (obj instanceof Date) {
+        return obj.toISOString();
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(serializeFirestoreData);
+    }
+    if (typeof obj === 'object' && obj.constructor === Object) {
+        const res: Record<string, any> = {};
+        for (const key of Object.keys(obj)) {
+            res[key] = serializeFirestoreData(obj[key]);
+        }
+        return res;
+    }
+    return obj;
+}
+
 export async function getClientOrdersAction({ userId, email }: { userId: string; email?: string }) {
     try {
         if (!userId && !email) {
@@ -178,21 +199,16 @@ export async function getClientOrdersAction({ userId, email }: { userId: string;
                 .where('userId', '==', userId)
                 .get();
             userOrdersSnap.docs.forEach(doc => {
-                const data = doc.data();
-                const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
+                const data = serializeFirestoreData(doc.data());
                 ordersMap.set(doc.id, {
                     ...data,
                     id: doc.id,
-                    date: dateVal,
-                    notes: (data.notes || []).map((n: any) => ({
-                        ...n,
-                        date: n.date?.toDate ? n.date.toDate().toISOString() : (n.date || new Date().toISOString())
-                    }))
+                    date: data.date || new Date().toISOString(),
                 });
             });
         }
 
-        // 2. Fetch by customerEmail (case-insensitive search)
+        // 2. Fetch by customerEmail
         if (email) {
             const cleanEmail = email.toLowerCase().trim();
             const emailOrdersSnap = await adminDb.collection('orders')
@@ -200,16 +216,11 @@ export async function getClientOrdersAction({ userId, email }: { userId: string;
                 .get();
             emailOrdersSnap.docs.forEach(doc => {
                 if (!ordersMap.has(doc.id)) {
-                    const data = doc.data();
-                    const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
+                    const data = serializeFirestoreData(doc.data());
                     ordersMap.set(doc.id, {
                         ...data,
                         id: doc.id,
-                        date: dateVal,
-                        notes: (data.notes || []).map((n: any) => ({
-                            ...n,
-                            date: n.date?.toDate ? n.date.toDate().toISOString() : (n.date || new Date().toISOString())
-                        }))
+                        date: data.date || new Date().toISOString(),
                     });
                 }
             });
@@ -219,16 +230,11 @@ export async function getClientOrdersAction({ userId, email }: { userId: string;
                 .get();
             endCustomerOrdersSnap.docs.forEach(doc => {
                 if (!ordersMap.has(doc.id)) {
-                    const data = doc.data();
-                    const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
+                    const data = serializeFirestoreData(doc.data());
                     ordersMap.set(doc.id, {
                         ...data,
                         id: doc.id,
-                        date: dateVal,
-                        notes: (data.notes || []).map((n: any) => ({
-                            ...n,
-                            date: n.date?.toDate ? n.date.toDate().toISOString() : (n.date || new Date().toISOString())
-                        }))
+                        date: data.date || new Date().toISOString(),
                     });
                 }
             });
@@ -237,7 +243,7 @@ export async function getClientOrdersAction({ userId, email }: { userId: string;
         const ordersList = Array.from(ordersMap.values());
         ordersList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        return { success: true, orders: ordersList };
+        return { success: true, orders: JSON.parse(JSON.stringify(ordersList)) };
     } catch (error: any) {
         console.error('Error in getClientOrdersAction:', error);
         return { success: false, error: error.message || 'Failed to fetch orders', orders: [] };

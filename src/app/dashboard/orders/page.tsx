@@ -20,45 +20,67 @@ import { getClientOrdersAction } from '@/app/actions/order-actions';
 const db = getFirestore(firebaseApp);
 
 export default function DashboardPage() {
-    const { user } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
+        let isMounted = true;
         const fetchOrders = async () => {
-            if (!user?.uid) return;
-            setIsLoading(true);
+            const uid = user?.uid || (user as any)?.id;
+            const email = user?.email || (user as any)?.customerEmail;
+
+            if (!uid && !email) {
+                if (isAuthenticated === false) {
+                    if (isMounted) setIsLoading(false);
+                }
+                return;
+            }
+
+            if (isMounted) setIsLoading(true);
             try {
                 // 1. Fetch orders via Server Action (handles direct and guest-matched orders safely)
-                const res = await getClientOrdersAction({ userId: user.uid, email: user.email });
-                if (res.success && res.orders) {
+                const res = await getClientOrdersAction({ userId: uid || '', email: email || '' });
+                if (!isMounted) return;
+
+                if (res.success && Array.isArray(res.orders)) {
                     setOrders(res.orders.filter(order => order.status !== 'Cancelled'));
                 } else {
                     // Fallback to client query by userId
-                    const q = query(collection(db, 'orders'), where('userId', '==', user.uid));
-                    const querySnapshot = await getDocs(q);
-                    const fetchedOrders = querySnapshot.docs.map(doc => {
-                        const data = doc.data();
-                        const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
-                        return {
-                            ...data,
-                            id: doc.id,
-                            date: dateVal,
-                        } as Order;
-                    });
-                    fetchedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                    setOrders(fetchedOrders.filter(order => order.status !== 'Cancelled'));
+                    if (uid) {
+                        const q = query(collection(db, 'orders'), where('userId', '==', uid));
+                        const querySnapshot = await getDocs(q);
+                        if (!isMounted) return;
+                        const fetchedOrders = querySnapshot.docs.map(doc => {
+                            const data = doc.data();
+                            const dateVal = data.date?.toDate ? data.date.toDate().toISOString() : (data.date || new Date().toISOString());
+                            return {
+                                ...data,
+                                id: doc.id,
+                                date: dateVal,
+                            } as Order;
+                        });
+                        fetchedOrders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                        setOrders(fetchedOrders.filter(order => order.status !== 'Cancelled'));
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching orders:", error);
             } finally {
-                setIsLoading(false);
+                if (isMounted) {
+                    setIsLoading(false);
+                }
             }
         };
+
         fetchOrders();
-    }, [user]);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user, isAuthenticated]);
 
     const statusCounts = useMemo(() => {
         return {
