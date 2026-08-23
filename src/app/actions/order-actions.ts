@@ -230,3 +230,62 @@ export async function getClientOrdersAction({ userId, email }: { userId: string;
         return { success: false, error: error.message || 'Failed to fetch orders', orders: [] };
     }
 }
+
+export async function getOrderDetailsAction(orderId: string) {
+    try {
+        if (!orderId) return { success: false, error: 'Order ID is required' };
+        const adminDb = getAdminDb();
+        const orderSnap = await adminDb.collection('orders').doc(orderId).get();
+        if (!orderSnap.exists) {
+            return { success: false, error: 'Order not found' };
+        }
+
+        const rawData = orderSnap.data();
+        const orderData = serializeFirestoreData({
+            ...rawData,
+            id: orderSnap.id,
+            date: rawData?.date ? (rawData.date.toDate ? rawData.date.toDate().toISOString() : rawData.date) : new Date().toISOString(),
+        });
+
+        let resellerData = null;
+        if (orderData.resellerId) {
+            try {
+                const resellerSnap = await adminDb.collection('users').doc(orderData.resellerId).get();
+                if (resellerSnap.exists) {
+                    resellerData = serializeFirestoreData({
+                        id: resellerSnap.id,
+                        ...resellerSnap.data(),
+                    });
+                }
+            } catch (rErr) {
+                console.warn("Could not fetch reseller details:", rErr);
+            }
+        }
+
+        let assigneeData = null;
+        if (orderData.assignedTo && orderData.assignedTo[0]) {
+            try {
+                const staffSnap = await adminDb.collection('users').doc(orderData.assignedTo[0]).get();
+                if (staffSnap.exists) {
+                    assigneeData = serializeFirestoreData({
+                        id: staffSnap.id,
+                        ...staffSnap.data(),
+                    });
+                }
+            } catch (sErr) {
+                console.warn("Could not fetch assignee details:", sErr);
+            }
+        }
+
+        return {
+            success: true,
+            order: JSON.parse(JSON.stringify(orderData)),
+            reseller: resellerData ? JSON.parse(JSON.stringify(resellerData)) : null,
+            assignee: assigneeData ? JSON.parse(JSON.stringify(assigneeData)) : null,
+        };
+    } catch (error: any) {
+        console.error("Error in getOrderDetailsAction:", error);
+        return { success: false, error: error.message || 'Failed to fetch order' };
+    }
+}
+

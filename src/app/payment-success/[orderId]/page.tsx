@@ -17,6 +17,8 @@ import { sendDocumentRequestEmailAction } from '@/app/actions';
 import Script from 'next/script';
 import { useToast } from '@/hooks/use-toast';
 
+import { getOrderDetailsAction } from '@/app/actions/order-actions';
+
 const db = getFirestore(firebaseApp);
 
 const formatPrice = (price: number) => {
@@ -75,90 +77,74 @@ export default function PaymentSuccessPage() {
     }, [order, currentUser, router, orderUrl]);
 
     useEffect(() => {
-        if (orderId) {
-            const fetchOrderDetails = async () => {
-                setIsLoading(true);
-                setError(null);
-                try {
-                    const orderRef = doc(db, 'orders', orderId);
-                    const orderSnap = await getDoc(orderRef);
+        if (!orderId) return;
+        let isMounted = true;
+        const fetchOrderDetails = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const res = await getOrderDetailsAction(orderId);
+                if (!isMounted) return;
 
-                    if (orderSnap.exists()) {
-                        const orderData = { ...orderSnap.data(), id: orderSnap.id } as Order;
-                        
-                        // Trigger Google Customer Reviews Opt-in
-                        const deliveryDate = format(addDays(new Date(), 10), 'yyyy-MM-dd');
-                        const reviewProducts = orderData.items
-                            .map((item: any) => item.gtin ? { gtin: item.gtin } : null)
-                            .filter(Boolean);
+                if (res.success && res.order) {
+                    const orderData = res.order as Order;
+                    setOrder(orderData);
+                    if (res.assignee) {
+                        setAssignee(res.assignee as User);
+                    }
 
-                        if (typeof window !== 'undefined' && (window as any).renderOptIn) {
-                            (window as any).renderOptIn({
-                                id: orderData.id,
-                                customerEmail: orderData.customerEmail,
-                                estimated_delivery_date: deliveryDate,
-                                delivery_country: "ZA",
-                                products: reviewProducts.length > 0 ? reviewProducts : undefined
-                            });
-                        }
+                    // Trigger Google Customer Reviews Opt-in
+                    const deliveryDate = format(addDays(new Date(), 10), 'yyyy-MM-dd');
+                    const reviewProducts = (orderData.items || [])
+                        .map((item: any) => item.gtin ? { gtin: item.gtin } : null)
+                        .filter(Boolean);
 
-                        // Fetch reseller details if it's a white-label order
-                        let resellerData: User | undefined;
-                        if (orderData.resellerId) {
-                            const resellerSnap = await getDoc(doc(db, 'users', orderData.resellerId));
-                            if (resellerSnap.exists()) {
-                                resellerData = { ...resellerSnap.data(), id: resellerSnap.id } as User;
+                    if (typeof window !== 'undefined' && (window as any).renderOptIn) {
+                        (window as any).renderOptIn({
+                            id: orderData.id,
+                            customerEmail: orderData.customerEmail,
+                            estimated_delivery_date: deliveryDate,
+                            delivery_country: "ZA",
+                            products: reviewProducts.length > 0 ? reviewProducts : undefined
+                        });
+                    }
+
+                    // CHECK IF NOTIFICATION HAS BEEN SENT
+                    const alreadyNotified = orderData.notes?.some((n: any) => n.subject === `Action Required for Your Order #${orderId}`);
+
+                    if (!alreadyNotified) {
+                        const recipientEmail = orderData.resellerId && orderData.documentContact === 'client' 
+                            ? orderData.endCustomerEmail 
+                            : orderData.customerEmail;
+
+                        if (recipientEmail) {
+                            try {
+                                await sendDocumentRequestEmailAction({
+                                    orderId,
+                                    recipientEmail,
+                                });
+                            } catch(e) {
+                                console.error("Failed to send document request email:", e);
                             }
                         }
-
-                        // CHECK IF NOTIFICATION HAS BEEN SENT
-                        const alreadyNotified = orderData.notes?.some(n => n.subject === `Action Required for Your Order #${orderId}`);
-
-                        if (!alreadyNotified) {
-                            const recipientEmail = orderData.resellerId && orderData.documentContact === 'client' 
-                                ? orderData.endCustomerEmail 
-                                : orderData.customerEmail;
-
-                            if (recipientEmail) {
-                                try {
-                                    await sendDocumentRequestEmailAction({
-                                        orderId,
-                                        recipientEmail,
-                                    });
-                                } catch(e) {
-                                     console.error("Failed to send document request email:", e);
-                                     toast({ title: 'Email Failed', description: 'Could not notify client. Please check your SMTP settings.', variant: 'destructive'});
-                                }
-                            }
-                        }
-                        
-                        setOrder(orderData);
-
-                        if (orderData.assignedTo && orderData.assignedTo.length > 0) {
-                             const staffQuery = query(collection(db, "users"), where('uid', '==', orderData.assignedTo[0]));
-                             const staffSnapshot = await getDocs(staffQuery);
-                             if (!staffSnapshot.empty) {
-                                 setAssignee(staffSnapshot.docs[0].data() as User);
-                             }
-                        }
-                    } else {
-                        notFound();
                     }
-                } catch (err: any) {
-                    console.error("Error fetching order details:", err);
-                    if (err.code === 'permission-denied') {
-                        setError('permission-denied');
-                    } else {
-                        setError('error');
-                    }
-                } finally {
-                    setIsLoading(false);
+                } else {
+                    setError('not-found');
                 }
-            };
+            } catch (err: any) {
+                console.error("Error fetching order details:", err);
+                if (isMounted) setError('error');
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
 
-            fetchOrderDetails();
-        }
-    }, [orderId, toast]);
+        fetchOrderDetails();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [orderId]);
 
     // orderUrl moved to top
     

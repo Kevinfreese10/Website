@@ -13,6 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { addDays, format } from 'date-fns';
 
+import { getOrderDetailsAction } from '@/app/actions/order-actions';
+
 const db = getFirestore(firebaseApp);
 
 const formatPrice = (price: number) => {
@@ -35,87 +37,78 @@ export default function OrderConfirmationPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (orderId) {
-            const fetchOrder = async () => {
-                setIsLoading(true);
-                setError(null);
-                try {
-                    const orderRef = doc(db, 'orders', orderId);
-                    const orderSnap = await getDoc(orderRef);
-                    if (orderSnap.exists()) {
-                        const orderData = { 
-                            ...orderSnap.data(), 
-                            id: orderSnap.id,
-                            date: orderSnap.data().date.toDate().toISOString()
-                        } as Order;
-                        setOrder(orderData);
+        if (!orderId) return;
+        let isMounted = true;
+        const fetchOrder = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const res = await getOrderDetailsAction(orderId);
+                if (!isMounted) return;
 
-                        // Trigger Google Customer Reviews Opt-in
-                        const deliveryDate = format(addDays(new Date(), 10), 'yyyy-MM-dd');
-                        const reviewProducts = orderData.items
-                            .map((item: any) => item.gtin ? { gtin: item.gtin } : null)
-                            .filter(Boolean);
-
-                        if (typeof window !== 'undefined' && (window as any).renderOptIn) {
-                            (window as any).renderOptIn({
-                                id: orderData.id,
-                                customerEmail: orderData.customerEmail,
-                                estimated_delivery_date: deliveryDate,
-                                delivery_country: "ZA",
-                                products: reviewProducts.length > 0 ? reviewProducts : undefined
-                            });
-                        }
-
-                        // Fetch reseller details if it's a white-label order
-                        if (orderData.resellerId) {
-                            const resellerSnap = await getDoc(doc(db, 'users', orderData.resellerId));
-                            if (resellerSnap.exists()) {
-                                setReseller({ ...resellerSnap.data(), id: resellerSnap.id } as User);
-                            }
-                        }
-                    } else {
-                        notFound();
+                if (res.success && res.order) {
+                    setOrder(res.order as Order);
+                    if (res.reseller) {
+                        setReseller(res.reseller as User);
                     }
-                } catch (err: any) {
-                    console.error("Error fetching order:", err);
-                    if (err.code === 'permission-denied') {
-                        setError('permission-denied');
-                    } else {
-                        setError('error');
+
+                    // Trigger Google Customer Reviews Opt-in
+                    const deliveryDate = format(addDays(new Date(), 10), 'yyyy-MM-dd');
+                    const reviewProducts = (res.order.items || [])
+                        .map((item: any) => item.gtin ? { gtin: item.gtin } : null)
+                        .filter(Boolean);
+
+                    if (typeof window !== 'undefined' && (window as any).renderOptIn) {
+                        (window as any).renderOptIn({
+                            id: res.order.id,
+                            customerEmail: res.order.customerEmail,
+                            estimated_delivery_date: deliveryDate,
+                            delivery_country: "ZA",
+                            products: reviewProducts.length > 0 ? reviewProducts : undefined
+                        });
                     }
-                } finally {
-                    setIsLoading(false);
+                } else {
+                    setError('not-found');
                 }
-            };
-            fetchOrder();
-        }
-    }, [orderId, isAuthenticated]); 
+            } catch (err: any) {
+                console.error("Error fetching order:", err);
+                if (isMounted) setError('error');
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+        fetchOrder();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [orderId]); 
 
     const handlePayNow = (order: Order) => {
-        if (!isAuthenticated) {
-            router.push(`/login?redirect=/order-confirmation/${order.id}`);
-            return;
-        }
-
         const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = payfastUrl;
 
+        const customerName = order.customerName || 'Customer';
+        const nameParts = customerName.split(' ');
+        const firstName = nameParts[0] || 'Customer';
+        const lastName = nameParts.slice(1).join(' ') || 'Client';
+
         const data: { [key: string]: string } = {
             merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
             merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-            return_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success/${order.id}`,
-            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders`,
-            notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
-            name_first: order.customerName.split(' ')[0],
-            name_last: order.customerName.split(' ').slice(1).join(' '),
-            email_address: order.customerEmail,
+            return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/payment-success/${order.id}`,
+            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders`,
+            notify_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/api/payfast/notify`,
+            name_first: firstName,
+            name_last: lastName,
+            email_address: order.customerEmail || '',
             cell_number: order.customerPhone || '',
             m_payment_id: order.id,
             amount: (order.clientTotal || order.total).toFixed(2),
             item_name: `Order #${order.id}`,
-            item_description: order.items.map(i => i.title).join(', '),
+            item_description: (order.items || []).map(i => i.title).join(', ') || 'Service Order',
         };
 
         for (const key in data) {
