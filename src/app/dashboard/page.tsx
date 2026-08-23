@@ -138,29 +138,41 @@ export default function DashboardPage() {
         }
     }, [user]);
 
+    const toDate = (val: any): Date => {
+        if (!val) return new Date();
+        if (val instanceof Date) return isNaN(val.getTime()) ? new Date() : val;
+        if (typeof val?.toDate === 'function') return val.toDate();
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? new Date() : d;
+    };
+
     const notifications = useMemo(() => {
         if (!user || orders.length === 0) return [];
         let allNotes: (OrderNote & { orderId: string, orderTitle: string, customerName: string })[] = [];
         orders.forEach(order => {
           const notes = (order.notes || [])
-            .filter(note => note.authorId !== user.id && note.type === 'note' && !note.isInternal)
+            .filter(note => note.authorId !== user.id && note.authorId !== (user as any).uid && note.type === 'note' && !note.isInternal)
             .map(note => ({
               ...note,
+              date: toDate(note.date),
               orderId: order.id,
-              orderTitle: order.items[0]?.title || 'Untitled Order',
+              orderTitle: order.items?.[0]?.title || 'Untitled Order',
               customerName: order.customerName,
             }));
           allNotes.push(...notes);
         });
-        return allNotes.sort((a, b) => b.date.getTime() - a.date.getTime());
+        return allNotes.sort((a, b) => toDate(b.date).getTime() - toDate(a.date).getTime());
       }, [orders, user]);
 
     const activeNotifications = useMemo(() => {
-        return notifications.filter(n => !archivedNotifications.includes(n.orderId + n.date.toISOString()));
+        return notifications.filter(n => {
+            const dateStr = n.date instanceof Date ? n.date.toISOString() : String(n.date);
+            return !archivedNotifications.includes(n.orderId + dateStr);
+        });
     }, [notifications, archivedNotifications]);
 
     const getAuthor = (authorId: string): User | undefined => {
-        return allStaff.find(u => u.id === authorId);
+        return allStaff.find(u => u.id === authorId || (u as any).uid === authorId);
     }
 
     return (
@@ -183,12 +195,12 @@ export default function DashboardPage() {
                             <div className="space-y-6">
                             {activeNotifications.map((note, index) => {
                                 const author = getAuthor(note.authorId);
-                                const date = note.date;
+                                const date = toDate(note.date);
                                 const noteId = note.orderId + date.toISOString();
                                 return (
                                     <div key={index} className="flex items-start gap-4">
                                         <div className={cn("mt-1 h-10 w-10 rounded-full flex items-center justify-center font-bold text-base shadow-sm", getUserColor(note.authorId))}>
-                                            {author?.name.charAt(0) || 'U'}
+                                            {author?.name?.charAt(0) || 'U'}
                                         </div>
                                         <div className="flex-1 space-y-1">
                                             <div className="flex items-center justify-between">
