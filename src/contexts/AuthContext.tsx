@@ -89,20 +89,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!firebaseUser.email) return 'invalid_credentials';
         
         try {
-            const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
-            
-            // Execute queries in parallel to eliminate waterfall latency
-            const promises = collectionsToTry.map(async (collectionName) => {
-                const userDocRef = doc(db, collectionName, firebaseUser.uid);
+            let foundUser: User | null = null;
+
+            // 1. Primary lookup: check 'users' collection first (where all authenticated profiles reside)
+            try {
+                const userDocRef = doc(db, 'users', firebaseUser.uid);
                 const userDocSnap = await getDoc(userDocRef);
                 if (userDocSnap.exists()) {
-                    return { ...userDocSnap.data(), id: userDocSnap.id, uid: userDocSnap.id } as User;
+                    foundUser = { ...userDocSnap.data(), id: userDocSnap.id, uid: userDocSnap.id } as User;
                 }
-                return null;
-            });
-            
-            const results = await Promise.all(promises);
-            const foundUser = results.find((user) => user !== null) || null;
+            } catch (err: any) {
+                console.warn("Primary user document fetch error:", err);
+            }
+
+            // 2. Secondary fallback lookup if not found in 'users'
+            if (!foundUser) {
+                const fallbackCollections = ['aiAccountantClients', 'adminClients', 'partnerClients'];
+                for (const colName of fallbackCollections) {
+                    try {
+                        const fallbackRef = doc(db, colName, firebaseUser.uid);
+                        const fallbackSnap = await getDoc(fallbackRef);
+                        if (fallbackSnap.exists()) {
+                            foundUser = { ...fallbackSnap.data(), id: fallbackSnap.id, uid: fallbackSnap.id } as User;
+                            break;
+                        }
+                    } catch {
+                        // Ignore permission-denied or not-found errors on secondary fallback collections
+                    }
+                }
+            }
 
             if (foundUser) {
                 if (foundUser.isActive === false) {
@@ -140,13 +155,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
 
         } catch (serverError: any) {
-            if (serverError.code === 'permission-denied') {
-                const permissionError = new FirestorePermissionError({
-                    path: `users/${firebaseUser.uid}`,
-                    operation: 'get',
-                } satisfies SecurityRuleContext);
-                errorEmitter.emit('permission-error', permissionError);
-            }
              console.error("Error re-authenticating:", serverError);
              return undefined;
         }

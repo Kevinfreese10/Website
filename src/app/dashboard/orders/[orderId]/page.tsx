@@ -177,10 +177,16 @@ export default function ClientOrderDetailsPage() {
         const servicesList = servicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
         setAllServices(servicesList);
 
-        const staffQuery = query(collection(db, 'users'), where('role', 'in', ['admin', 'consultant', 'senior_accountant', 'accountant', 'support_agent', 'partner']));
-        const staffSnap = await getDocs(staffQuery);
-        const staffList = staffSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
-        setAllStaff(staffList);
+        if (currentUser?.role === 'admin' || currentUser?.role === 'staff') {
+          try {
+            const staffQuery = query(collection(db, 'users'), where('role', 'in', ['admin', 'consultant', 'senior_accountant', 'accountant', 'support_agent', 'partner']));
+            const staffSnap = await getDocs(staffQuery);
+            const staffList = staffSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+            setAllStaff(staffList);
+          } catch (staffErr) {
+            console.warn("Could not fetch staff list:", staffErr);
+          }
+        }
 
       } catch (error) {
         console.error("Error fetching order/services:", error);

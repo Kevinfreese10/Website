@@ -297,8 +297,8 @@ service cloud.firestore {
         request.auth.uid == resource.data.clientId ||
         (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
         (resource != null && 'partnerId' in resource.data && isPartnerStaffOf(resource.data.partnerId)) ||
-        (hasVerifiedEmail() && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
-        (hasVerifiedEmail() && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
+        (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
+        (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)
       );
       // Order creation is handled securely via Server Actions (Firebase Admin SDK).
       // Direct client SDK creation is restricted to Admins/Staff.
@@ -312,8 +312,8 @@ service cloud.firestore {
           request.auth.uid == resource.data.clientId ||
           (resource != null && 'resellerId' in resource.data && isPartnerStaffOf(resource.data.resellerId)) ||
           (resource != null && 'partnerId' in resource.data && isPartnerStaffOf(resource.data.partnerId)) ||
-          (hasVerifiedEmail() && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
-          (hasVerifiedEmail() && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)) && isSafeClientOrderUpdate())
+          (request.auth.token.email != null && 'customerEmail' in resource.data && request.auth.token.email == resource.data.customerEmail) ||
+          (request.auth.token.email != null && 'endCustomerEmail' in resource.data && request.auth.token.email == resource.data.endCustomerEmail)) && isSafeClientOrderUpdate())
       );
       allow delete: if isAdmin();
     }
