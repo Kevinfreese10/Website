@@ -139,23 +139,30 @@ export default function PartnerOrderDetailsPage() {
     defaultValues: { reason: '' },
   });
 
-  const fetchOrder = async () => {
+  const fetchOrder = async (silent = false) => {
       if (!id || !currentUser) return;
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       try {
-        const staffQuery = query(collection(db, "users"), where('partnerId', '==', currentUser.partnerId || currentUser.uid));
-        const staffSnapshot = await getDocs(staffQuery);
-        const fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User));
-        
-        if (!fetchedStaff.some(s => s.id === currentUser.id)) {
-            fetchedStaff.push(currentUser);
-        }
-        setAllStaff(fetchedStaff);
+        let fetchedStaff = allStaff;
+        let fetchedServices = allServices;
 
-        const servicesQuery = query(collection(db, 'services'));
-        const servicesSnapshot = await getDocs(servicesQuery);
-        const fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
-        setAllServices(fetchedServices);
+        if (!silent || allStaff.length === 0) {
+          const staffQuery = query(collection(db, "users"), where('partnerId', '==', currentUser.partnerId || currentUser.uid));
+          const staffSnapshot = await getDocs(staffQuery);
+          fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User));
+          
+          if (!fetchedStaff.some(s => s.id === currentUser.id)) {
+              fetchedStaff.push(currentUser);
+          }
+          setAllStaff(fetchedStaff);
+        }
+
+        if (!silent || allServices.length === 0) {
+          const servicesQuery = query(collection(db, 'services'));
+          const servicesSnapshot = await getDocs(servicesQuery);
+          fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+          setAllServices(fetchedServices);
+        }
 
         const docRef = doc(db, 'orders', id);
         const docSnap = await getDoc(docRef);
@@ -173,7 +180,7 @@ export default function PartnerOrderDetailsPage() {
             (currentUser.email && data.customerEmail === currentUser.email);
 
           if (!isAuthorized) {
-             notFound();
+             if (!silent) notFound();
              return;
           }
 
@@ -229,16 +236,16 @@ export default function PartnerOrderDetailsPage() {
           setOrderItemsWithServices(itemsWithServices);
 
         } else {
-          notFound();
+          if (!silent) notFound();
         }
       } catch (error: any) {
         if (error?.digest === 'NEXT_NOT_FOUND' || error?.message?.includes('NEXT_NOT_FOUND')) {
           throw error;
         }
         console.error("Error fetching order details: ", error);
-        notFound();
+        if (!silent) notFound();
       } finally {
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
       }
     };
 
@@ -334,7 +341,7 @@ export default function PartnerOrderDetailsPage() {
       noteForm.reset();
       setAttachedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      await fetchOrder();
+      await fetchOrder(true);
     } catch (error) {
       console.error("Error adding note:", error);
       toast({ title: "Error", description: "Failed to add note.", variant: "destructive" });
@@ -436,7 +443,7 @@ export default function PartnerOrderDetailsPage() {
       const res = await reviewOrderDocumentAtomic(order.id, identifier, status, idToken, reason);
       if (res.success) {
         toast({ title: 'Document Status Updated', description: `The document has been ${status}.`});
-        fetchOrder();
+        fetchOrder(true);
       } else {
         toast({ title: 'Update Failed', description: res.error || 'Failed to update document status.', variant: 'destructive' });
       }
@@ -463,7 +470,7 @@ export default function PartnerOrderDetailsPage() {
       }
 
       toast({ title: 'Documents Approved', description: 'All pending documents have been approved.'});
-      fetchOrder();
+      fetchOrder(true);
     } catch (error: any) {
       console.error("Error batch approving documents:", error);
       toast({ title: 'Error', description: error?.message || 'Failed to batch approve documents.', variant: "destructive" });
@@ -490,7 +497,7 @@ export default function PartnerOrderDetailsPage() {
       const res = await transitionOrderStatusAtomic(order.id, newStatus as any, idToken);
       if (res.success) {
         toast({ title: 'Order Status Updated', description: `Order is now ${newStatus}.` });
-        fetchOrder();
+        fetchOrder(true);
       } else {
         toast({ title: 'Status Transition Blocked', description: res.error || 'Failed to update order status.', variant: 'destructive' });
       }
@@ -533,7 +540,7 @@ export default function PartnerOrderDetailsPage() {
       setIsCustomDocOpen(false);
       setCustomDocLabel('');
       setCustomDocType('pdf');
-      fetchOrder();
+      fetchOrder(true);
     } catch (error: any) {
       console.error("Error requesting custom document:", error);
       toast({ title: 'Error', description: error.message || 'Failed to request document.', variant: "destructive" });
@@ -619,7 +626,7 @@ export default function PartnerOrderDetailsPage() {
                 }
 
                 toast({ title: 'File Uploaded', description: `${file.name} has been successfully submitted for review.` });
-                await fetchOrder();
+                await fetchOrder(true);
             } catch (error: any) {
                 console.error("Error saving document:", error);
                 toast({ title: 'Error', description: error.message || 'Failed to save document record.', variant: 'destructive' });
@@ -670,7 +677,7 @@ export default function PartnerOrderDetailsPage() {
 
         toast({ title: 'Information Submitted', description: 'Your information has been successfully submitted for review.' });
         setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
-        await fetchOrder();
+        await fetchOrder(true);
     } catch (error: any) {
         console.error("Error submitting text:", error);
         toast({ title: "Submission Failed", description: error.message || "Could not save the information.", variant: "destructive" });
@@ -710,7 +717,7 @@ export default function PartnerOrderDetailsPage() {
 
         const orderRef = doc(db, 'orders', order.id);
         await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
-        await fetchOrder();
+        await fetchOrder(true);
 
         toast({ title: "Feedback Sent!", description: "The client has been notified." });
     } catch(e) {
@@ -756,7 +763,7 @@ export default function PartnerOrderDetailsPage() {
 
         const orderRef = doc(db, 'orders', order.id);
         await updateDoc(orderRef, { notes: arrayUnion(emailNote) });
-        await fetchOrder();
+        await fetchOrder(true);
 
         toast({ title: "Reminder Sent!", description: "The client has been notified." });
     } catch(e) {
@@ -801,7 +808,7 @@ export default function PartnerOrderDetailsPage() {
         toast({ title: 'Order Outsourced', description: `R${result.cost.toFixed(2)} deducted from your wallet. My Accountant will begin work immediately.` });
       }
       setProcessModalOpen(false);
-      await fetchOrder(); // refresh order state
+      await fetchOrder(true); // refresh order state
     } catch (err) {
       console.error('Process order failed:', err);
       toast({ title: 'Error', description: 'Something went wrong. Please try again.', variant: 'destructive' });
@@ -920,7 +927,7 @@ export default function PartnerOrderDetailsPage() {
                     order={order} 
                     allServices={allServices} 
                     baseRoute="/partner/orders" 
-                    onOrderUpdated={fetchOrder} 
+                    onOrderUpdated={() => fetchOrder(true)} 
                 />
 
                 {order?.isOutsourced && (

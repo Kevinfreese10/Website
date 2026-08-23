@@ -15,7 +15,7 @@ import { getAuth } from "firebase/auth";
 import { firebaseApp } from "@/lib/firebase";
 
 export default function PartnerSettingsPage() {
-  const { user } = useAuth();
+  const { user, reauthenticate } = useAuth();
   const { tier, isGrowthActive, limits, isOwner, partnerProfile } = usePartner();
   const { toast } = useToast();
   const [cancelling, setCancelling] = useState(false);
@@ -61,7 +61,9 @@ export default function PartnerSettingsPage() {
           description: "Your subscription has been successfully cancelled. You will retain access until the end of your billing period.",
         });
         setIsCancelOpen(false);
-        window.location.reload();
+        if (auth.currentUser) {
+          await reauthenticate(auth.currentUser);
+        }
       } else {
         throw new Error(data.error || "Failed to cancel subscription");
       }

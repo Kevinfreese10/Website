@@ -145,7 +145,7 @@ export default function ClientOrderDetailsPage() {
           if (!answer) {
               toast({ title: 'Information Saved', description: 'Marked requirement as not applicable.' });
           }
-          fetchOrderAndServices();
+          fetchOrderAndServices(true);
       } catch (error) {
           console.error("Error submitting answer:", error);
       }
@@ -159,9 +159,9 @@ export default function ClientOrderDetailsPage() {
     }
   });
 
-    const fetchOrderAndServices = async () => {
+    const fetchOrderAndServices = async (silent = false) => {
       if (!id) return;
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       try {
         const orderRef = doc(db, 'orders', id);
         const orderSnap = await getDoc(orderRef);
@@ -169,34 +169,38 @@ export default function ClientOrderDetailsPage() {
         if (orderSnap.exists()) {
           const orderData = { id: orderSnap.id, ...orderSnap.data() } as Order;
           setOrder(orderData);
-        } else {
+        } else if (!silent) {
           setOrder(null);
         }
 
-        const servicesSnap = await getDocs(collection(db, 'services'));
-        const servicesList = servicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
-        setAllServices(servicesList);
+        if (!silent) {
+          const servicesSnap = await getDocs(collection(db, 'services'));
+          const servicesList = servicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+          setAllServices(servicesList);
 
-        if (currentUser?.role === 'admin' || currentUser?.role === 'staff') {
-          try {
-            const staffQuery = query(collection(db, 'users'), where('role', 'in', ['admin', 'consultant', 'senior_accountant', 'accountant', 'support_agent', 'partner']));
-            const staffSnap = await getDocs(staffQuery);
-            const staffList = staffSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
-            setAllStaff(staffList);
-          } catch (staffErr) {
-            console.warn("Could not fetch staff list:", staffErr);
+          if (currentUser?.role === 'admin' || currentUser?.role === 'staff') {
+            try {
+              const staffQuery = query(collection(db, 'users'), where('role', 'in', ['admin', 'consultant', 'senior_accountant', 'accountant', 'support_agent', 'partner']));
+              const staffSnap = await getDocs(staffQuery);
+              const staffList = staffSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() } as User));
+              setAllStaff(staffList);
+            } catch (staffErr) {
+              console.warn("Could not fetch staff list:", staffErr);
+            }
           }
         }
 
       } catch (error) {
         console.error("Error fetching order/services:", error);
-        toast({
-            title: "Error loading order",
-            description: "Could not fetch the order details. Please try again later.",
-            variant: "destructive",
-        });
+        if (!silent) {
+          toast({
+              title: "Error loading order",
+              description: "Could not fetch the order details. Please try again later.",
+              variant: "destructive",
+          });
+        }
       } finally {
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
       }
     };
 
@@ -318,7 +322,7 @@ export default function ClientOrderDetailsPage() {
 
       setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }));
       setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
-      fetchOrderAndServices();
+      fetchOrderAndServices(true);
     } catch (error: any) {
       console.error("Upload error:", error);
       toast({ title: 'Upload Failed', description: error.message || 'Could not upload selected file(s).', variant: 'destructive'});
@@ -356,7 +360,7 @@ export default function ClientOrderDetailsPage() {
       }
 
       toast({ title: 'File Removed' });
-      fetchOrderAndServices();
+      fetchOrderAndServices(true);
     } catch (err: any) {
       console.error('Error removing file:', err);
       toast({ title: 'Failed to remove file', description: err.message, variant: 'destructive' });
@@ -392,7 +396,7 @@ export default function ClientOrderDetailsPage() {
         toast({ title: 'Note Saved', description: 'Your consultant has been informed of why this document is unavailable.' });
         setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
         setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }));
-        fetchOrderAndServices();
+        fetchOrderAndServices(true);
       } else {
         toast({ title: 'Failed to save note', description: res.error, variant: 'destructive' });
       }
@@ -421,7 +425,7 @@ export default function ClientOrderDetailsPage() {
 
       setActiveUnavailableForms(prev => ({ ...prev, [uploadKey]: false }));
       setUnavailableReasons(prev => ({ ...prev, [uploadKey]: '' }));
-      fetchOrderAndServices();
+      fetchOrderAndServices(true);
     } catch (err) {
       console.error('Error clearing explanation:', err);
     }
@@ -459,7 +463,7 @@ export default function ClientOrderDetailsPage() {
             toast({ title: 'Information Submitted', description: 'Your information has been securely saved.' });
             setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
             setEditingRequirements(prev => ({ ...prev, [`${serviceId}-${requirementLabel}`]: false }));
-            fetchOrderAndServices();
+            fetchOrderAndServices(true);
           } else {
             toast({ title: "Submission Failed", description: res.error, variant: "destructive" });
           }
@@ -529,7 +533,7 @@ export default function ClientOrderDetailsPage() {
       noteForm.reset();
       setAttachedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      await fetchOrderAndServices();
+      await fetchOrderAndServices(true);
     } catch (error) {
       console.error("Error adding note:", error);
       toast({ title: "Error", description: "Failed to add note.", variant: "destructive" });
@@ -581,7 +585,7 @@ export default function ClientOrderDetailsPage() {
         title: "Documents Submitted!", 
         description: "Your documents have been submitted and queued for your consultant's review." 
       });
-      fetchOrderAndServices();
+      fetchOrderAndServices(true);
     } catch(error) {
       console.error("Error submitting documents:", error);
       toast({ title: "Submission Failed", description: "Could not notify the consultant.", variant: "destructive" });

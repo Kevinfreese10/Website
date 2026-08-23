@@ -156,19 +156,26 @@ export default function AdminOrderDetailsPage() {
     defaultValues: { reason: '' },
   });
 
-  const fetchOrderAndStaff = async () => {
+  const fetchOrderAndStaff = async (silent = false) => {
       if (!id) return;
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       try {
-        const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant']));
-        const staffSnapshot = await getDocs(staffQuery);
-        const fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User));
-        setAllStaff(fetchedStaff);
+        let fetchedStaff = allStaff;
+        let fetchedServices = allServices;
 
-        const servicesQuery = query(collection(db, "services"));
-        const servicesSnapshot = await getDocs(servicesQuery);
-        const fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
-        setAllServices(fetchedServices);
+        if (!silent || allStaff.length === 0) {
+          const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant']));
+          const staffSnapshot = await getDocs(staffQuery);
+          fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User));
+          setAllStaff(fetchedStaff);
+        }
+
+        if (!silent || allServices.length === 0) {
+          const servicesQuery = query(collection(db, "services"));
+          const servicesSnapshot = await getDocs(servicesQuery);
+          fetchedServices = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+          setAllServices(fetchedServices);
+        }
 
         const docRef = doc(db, 'orders', id);
         const docSnap = await getDoc(docRef);
@@ -221,13 +228,13 @@ export default function AdminOrderDetailsPage() {
           setOrderItemsWithServices(itemsWithServices);
 
         } else {
-          notFound();
+          if (!silent) notFound();
         }
       } catch (error) {
         console.error("Error fetching order details: ", error);
-        notFound();
+        if (!silent) notFound();
       } finally {
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
       }
     };
 
@@ -530,7 +537,7 @@ export default function AdminOrderDetailsPage() {
       noteForm.reset();
       setAttachedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      await fetchOrderAndStaff(); 
+      await fetchOrderAndStaff(true); 
     } catch (error) {
       console.error("Error adding note:", error);
       toast({ title: "Error", description: "Failed to add note.", variant: "destructive" });
@@ -575,7 +582,7 @@ export default function AdminOrderDetailsPage() {
       const res = await reviewOrderDocumentAtomic(order.id, identifier, status, performer, reason);
       if (res.success) {
         toast({ title: 'Document Status Updated', description: res.message });
-        await fetchOrderAndStaff();
+        await fetchOrderAndStaff(true);
       } else {
         throw new Error(res.error || 'Failed to update document status.');
       }
@@ -604,7 +611,7 @@ export default function AdminOrderDetailsPage() {
       }
       
       toast({ title: 'Documents Approved', description: 'All pending documents have been approved.'});
-      await fetchOrderAndStaff();
+      await fetchOrderAndStaff(true);
     } catch (error: any) {
       console.error("Error batch approving documents:", error);
       toast({ title: 'Error', description: 'Failed to batch approve documents.', variant: "destructive" });
@@ -644,7 +651,7 @@ export default function AdminOrderDetailsPage() {
       setIsCustomDocOpen(false);
       setCustomDocLabel('');
       setCustomDocType('pdf');
-      fetchOrderAndStaff();
+      fetchOrderAndStaff(true);
     } catch (error: any) {
       console.error("Error requesting custom document:", error);
       toast({ title: 'Error', description: error.message || 'Failed to request document.', variant: "destructive" });
@@ -720,7 +727,7 @@ export default function AdminOrderDetailsPage() {
             await updateDoc(orderRef, {
                 notes: arrayUnion(emailNote),
             });
-            await fetchOrderAndStaff();
+            await fetchOrderAndStaff(true);
 
             toast({ title: "Feedback Sent!", description: "The client has been notified of the review outcome." });
         } catch(e) {
@@ -767,7 +774,7 @@ export default function AdminOrderDetailsPage() {
             await updateDoc(orderRef, {
                 notes: arrayUnion(emailNote),
             });
-            await fetchOrderAndStaff();
+            await fetchOrderAndStaff(true);
 
             toast({ title: "Reminder Sent!", description: "The client has been notified to log in and upload missing items." });
         } catch(e) {
@@ -1190,7 +1197,7 @@ export default function AdminOrderDetailsPage() {
                         order={order} 
                         allServices={allServices} 
                         baseRoute="/admin/orders" 
-                        onOrderUpdated={fetchOrderAndStaff} 
+                        onOrderUpdated={() => fetchOrderAndStaff(true)} 
                     />
                     <Card className="border shadow-md bg-card overflow-hidden">
                         <CardHeader className="bg-muted/30 border-b pb-4">
