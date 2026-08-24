@@ -246,6 +246,7 @@ service cloud.firestore {
         allow read, write: if isAuthenticated() && (
           isAdminOrStaff() ||
           request.auth.uid == clientId ||
+          isLinkedPortalUser(get(/databases/$(database)/documents/aiPayrollClients/$(clientId)), 'payrollClientId', clientId) ||
           isPartnerOrStaff(get(/databases/$(database)/documents/aiPayrollClients/$(clientId)).data.get('partnerId', ''))
         );
       }
@@ -411,6 +412,7 @@ service cloud.firestore {
         allow read, write: if isAuthenticated() && (
           isAdminOrStaff() ||
           request.auth.uid == clientId ||
+          isLinkedPortalUser(get(/databases/$(database)/documents/aiAccountantClients/$(clientId)), 'accountantClientId', clientId) ||
           isPartnerOrStaff(get(/databases/$(database)/documents/aiAccountantClients/$(clientId)).data.partnerId)
         );
       }
