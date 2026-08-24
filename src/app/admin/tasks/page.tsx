@@ -22,6 +22,9 @@ import { firebaseApp } from '@/lib/firebase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import TaskForm from '@/components/admin/TaskForm';
 import { generateNextTaskOccurrence } from '@/app/actions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import MasterTaskHub from '@/components/admin/MasterTaskHub';
+import { Bot } from 'lucide-react';
 
 const db = getFirestore(firebaseApp);
 
@@ -291,150 +294,178 @@ export default function AdminTasksPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between border-b pb-5">
-        <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">Manage Practice Tasks</h1>
-            <p className="text-sm font-semibold text-slate-400">Add, reassign, or monitor task compliance roadmap objectives.</p>
-        </div>
-        <Button className="shadow-md font-bold px-4" onClick={handleAdd}>
-            <PlusCircle className="mr-2 h-4.5 w-4.5" />
-            Create Task
-        </Button>
-      </div>
-
-      <Card className="border shadow-md rounded-2xl bg-white overflow-hidden">
-        <CardHeader className="bg-slate-50/50 p-6 border-b">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-            <div>
-              <CardTitle className="text-md font-bold text-slate-800">Practice Log</CardTitle>
-              <CardDescription className="text-xs font-semibold text-slate-400">View, edit, and complete tasks currently active.</CardDescription>
-            </div>
-            <div className="w-full sm:w-auto">
-                <Select onValueChange={setTaskTypeFilter} defaultValue="all">
-                    <SelectTrigger className="w-full sm:w-[240px] h-9 text-xs font-semibold bg-white border-slate-200">
-                        <SelectValue placeholder="Filter by task type..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {taskTypes.map(type => (
-                            <SelectItem key={type} value={type === 'All Tasks' ? 'all' : type}>
-                                {type}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+    <div className="space-y-6">
+      <Tabs defaultValue="master-hub" className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b pb-4">
+          <div>
+              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Practice Task & Compliance Management</h1>
+              <p className="text-xs text-muted-foreground">Master email triage, statutory roadmaps, AI drafts, and staff assignments.</p>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
-          ) : (
-          <Table>
-            <TableHeader className="bg-slate-50/20">
-              <TableRow className="border-b">
-                <TableHead className="font-bold text-slate-500 py-4 pl-6">Task Description</TableHead>
-                <TableHead className="font-bold text-slate-500 py-4">Assigned Staff</TableHead>
-                <TableHead className="font-bold text-slate-500 py-4">Due Date</TableHead>
-                <TableHead className="font-bold text-slate-500 py-4">Status</TableHead>
-                <TableHead className="text-right font-bold text-slate-500 py-4 pr-6">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTasks.length === 0 ? (
-                <TableRow>
-                    <TableCell colSpan={5} className="text-center text-slate-400 py-16 font-medium">No tasks to display.</TableCell>
-                </TableRow>
-              ) : (
-                filteredTasks.map(task => {
-                    const assignees = Array.isArray(task.assignedTo) ? task.assignedTo : [task.assignedTo];
-                    const dueDate = task.dueDate?.toDate ? task.dueDate.toDate() : (task.dueDate ? new Date(task.dueDate) : null);
-                    
-                    const forIndex = task.title.lastIndexOf(' for ');
-                    const displayTitle = forIndex > -1 ? task.title.substring(0, forIndex) : task.title;
-                    const clientName = forIndex > -1 ? task.title.substring(forIndex + 5) : '';
+          
+          <div className="flex items-center gap-3">
+            <TabsList className="bg-slate-100 p-1">
+              <TabsTrigger value="master-hub" className="text-xs font-bold gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <Bot className="h-3.5 w-3.5 text-indigo-600" />
+                Master Task Hub
+              </TabsTrigger>
+              <TabsTrigger value="staff-tasks" className="text-xs font-bold gap-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <ClipboardList className="h-3.5 w-3.5 text-slate-600" />
+                Staff Assigned Tasks
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
-                    return (
-                      <TableRow key={task.id} className="hover:bg-slate-50/30 transition-colors border-b cursor-pointer" onClick={() => handleEdit(task)}>
-                        <TableCell className="font-semibold text-slate-900 py-4 pl-6 max-w-xs">
-                            <p className="line-clamp-1">{displayTitle}</p>
-                            {clientName && (
-                                <p className="text-[10px] font-bold text-slate-500 mt-0.5 truncate flex items-center gap-1">
-                                    <span className="text-[8px] text-slate-400 font-normal uppercase tracking-wider bg-slate-100 border border-slate-200/50 px-1 rounded">Client</span>
-                                    <span>{clientName}</span>
-                                </p>
-                            )}
-                            <p className="text-xs text-slate-400 font-medium line-clamp-1 mt-1">{task.description}</p>
-                        </TableCell>
-                        <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
-                             <div className="flex items-center -space-x-1.5">
-                                {assignees.slice(0, 3).map(userId => {
-                                    const assignee = getAssignee(userId);
-                                    if (!assignee) return null;
-                                    return (
-                                        <TooltipProvider key={userId}>
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <span className={cn("h-6 w-6 border border-white rounded-full flex items-center justify-center text-[10px] font-black shadow-sm", getUserColor(assignee.id))}>
-                                                        {assignee.name.charAt(0)}
-                                                    </span>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p className="text-xs font-semibold">{assignee.name}</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    );
-                                })}
-                                {assignees.length === 0 && (
-                                    <span className="text-[10px] font-bold text-slate-400 italic">Unassigned</span>
+        <TabsContent value="master-hub">
+          <MasterTaskHub />
+        </TabsContent>
+
+        <TabsContent value="staff-tasks" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Staff Assigned Tasks</h2>
+              <p className="text-xs text-slate-500">Internal recurring compliance tasks assigned to staff members.</p>
+            </div>
+            <Button className="shadow-md font-bold px-4 text-xs h-9" onClick={handleAdd}>
+              <PlusCircle className="mr-1.5 h-4 w-4" />
+              Create Staff Task
+            </Button>
+          </div>
+
+          <Card className="border shadow-md rounded-2xl bg-white overflow-hidden">
+            <CardHeader className="bg-slate-50/50 p-6 border-b">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div>
+                  <CardTitle className="text-md font-bold text-slate-800">Practice Log</CardTitle>
+                  <CardDescription className="text-xs font-semibold text-slate-400">View, edit, and complete tasks currently active.</CardDescription>
+                </div>
+                <div className="w-full sm:w-auto">
+                    <Select onValueChange={setTaskTypeFilter} defaultValue="all">
+                        <SelectTrigger className="w-full sm:w-[240px] h-9 text-xs font-semibold bg-white border-slate-200">
+                            <SelectValue placeholder="Filter by task type..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {taskTypes.map(type => (
+                                <SelectItem key={type} value={type === 'All Tasks' ? 'all' : type}>
+                                    {type}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
+              ) : (
+              <Table>
+                <TableHeader className="bg-slate-50/20">
+                  <TableRow className="border-b">
+                    <TableHead className="font-bold text-slate-500 py-4 pl-6">Task Description</TableHead>
+                    <TableHead className="font-bold text-slate-500 py-4">Assigned Staff</TableHead>
+                    <TableHead className="font-bold text-slate-500 py-4">Due Date</TableHead>
+                    <TableHead className="font-bold text-slate-500 py-4">Status</TableHead>
+                    <TableHead className="text-right font-bold text-slate-500 py-4 pr-6">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTasks.length === 0 ? (
+                    <TableRow>
+                        <TableCell colSpan={5} className="text-center text-slate-400 py-16 font-medium">No tasks to display.</TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTasks.map(task => {
+                        const assignees = Array.isArray(task.assignedTo) ? task.assignedTo : [task.assignedTo];
+                        const dueDate = task.dueDate?.toDate ? task.dueDate.toDate() : (task.dueDate ? new Date(task.dueDate) : null);
+                        
+                        const forIndex = task.title.lastIndexOf(' for ');
+                        const displayTitle = forIndex > -1 ? task.title.substring(0, forIndex) : task.title;
+                        const clientName = forIndex > -1 ? task.title.substring(forIndex + 5) : '';
+
+                        return (
+                          <TableRow key={task.id} className="hover:bg-slate-50/30 transition-colors border-b cursor-pointer" onClick={() => handleEdit(task)}>
+                            <TableCell className="font-semibold text-slate-900 py-4 pl-6 max-w-xs">
+                                <p className="line-clamp-1">{displayTitle}</p>
+                                {clientName && (
+                                    <p className="text-[10px] font-bold text-slate-500 mt-0.5 truncate flex items-center gap-1">
+                                        <span className="text-[8px] text-slate-400 font-normal uppercase tracking-wider bg-slate-100 border border-slate-200/50 px-1 rounded">Client</span>
+                                        <span>{clientName}</span>
+                                    </p>
                                 )}
-                            </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                            <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1 text-xs text-slate-600 font-semibold">
-                                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                                    <span>{dueDate ? format(dueDate, 'dd/MM/yyyy') : 'N/A'}</span>
+                                <p className="text-xs text-slate-400 font-medium line-clamp-1 mt-1">{task.description}</p>
+                            </TableCell>
+                            <TableCell className="py-4" onClick={(e) => e.stopPropagation()}>
+                                 <div className="flex items-center -space-x-1.5">
+                                    {assignees.slice(0, 3).map(userId => {
+                                        const assignee = getAssignee(userId);
+                                        if (!assignee) return null;
+                                        return (
+                                            <TooltipProvider key={userId}>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <span className={cn("h-6 w-6 border border-white rounded-full flex items-center justify-center text-[10px] font-black shadow-sm", getUserColor(assignee.id))}>
+                                                            {assignee.name.charAt(0)}
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p className="text-xs font-semibold">{assignee.name}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        );
+                                    })}
+                                    {assignees.length === 0 && (
+                                        <span className="text-[10px] font-bold text-slate-400 italic">Unassigned</span>
+                                    )}
                                 </div>
-                                {(task.attachments?.length ?? 0) > 0 && (
-                                    <div className="flex items-center gap-1 text-xs text-slate-500 font-semibold w-fit bg-slate-50 border border-slate-100 rounded px-1.5 py-0.5 mt-0.5">
-                                        <Paperclip className="h-3 w-3" />
-                                        <span>{task.attachments?.length}</span>
+                            </TableCell>
+                            <TableCell className="py-4">
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-1 text-xs text-slate-600 font-semibold">
+                                        <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                                        <span>{dueDate ? format(dueDate, 'dd/MM/yyyy') : 'N/A'}</span>
                                     </div>
-                                )}
-                            </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                            <Badge 
-                              variant="outline" 
-                              className={cn("text-[9px] font-black uppercase tracking-tight", 
-                                task.status === 'Done' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                task.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600'
-                              )}
-                            >
-                                {task.status}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-right pr-6 py-4" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1.5">
-                                <Button aria-label="Edit" variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-800" onClick={() => handleEdit(task)}>
-                                    <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button aria-label="Confirm" variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => handleUpdateStatus(task.id, 'Done')}>
-                                    <Check className="h-4.5 w-4.5" />
-                                </Button>
-                            </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                })
+                                    {(task.attachments?.length ?? 0) > 0 && (
+                                        <div className="flex items-center gap-1 text-xs text-slate-500 font-semibold w-fit bg-slate-50 border border-slate-100 rounded px-1.5 py-0.5 mt-0.5">
+                                            <Paperclip className="h-3 w-3" />
+                                            <span>{task.attachments?.length}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </TableCell>
+                            <TableCell className="py-4">
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn("text-[9px] font-black uppercase tracking-tight", 
+                                    task.status === 'Done' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                    task.status === 'In Progress' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600'
+                                  )}
+                                >
+                                    {task.status}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-right pr-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-end gap-1.5">
+                                    <Button aria-label="Edit" variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-800" onClick={() => handleEdit(task)}>
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button aria-label="Confirm" variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => handleUpdateStatus(task.id, 'Done')}>
+                                        <Check className="h-4.5 w-4.5" />
+                                    </Button>
+                                </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                    })
+                  )}
+                </TableBody>
+              </Table>
               )}
-            </TableBody>
-          </Table>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Task Modal */}
       <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setSelectedTask(null);}}>

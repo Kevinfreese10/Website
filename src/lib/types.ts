@@ -1091,3 +1091,44 @@ export type CommunityAnswer = {
   isCorrect: boolean;
 };
 
+export type MasterTaskCategory = 
+  | 'Supplier Invoices' 
+  | 'Payroll & EMP201' 
+  | 'SARS Compliance' 
+  | 'NCR Applications' 
+  | 'COIDA' 
+  | 'Quotation Requests' 
+  | 'Client Instructions' 
+  | 'General';
+
+export type MasterTaskPriority = 'high' | 'medium' | 'low';
+export type MasterTaskStatus = 'Pending' | 'In Progress' | 'Replied' | 'Completed';
+
+export interface MasterTask {
+  id: string;
+  category: MasterTaskCategory;
+  title: string;
+  senderName: string;
+  senderEmail: string;
+  date: string;
+  bodyText: string;
+  attachments?: { filename: string; size?: number; url?: string; contentType?: string }[];
+  status: MasterTaskStatus;
+  priority: MasterTaskPriority;
+  customInstructions?: string;
+  aiDraftReply?: string;
+  matchedOrderId?: string;
+  matchedOrderSummary?: {
+    id: string;
+    orderNumber?: string | number;
+    companyName?: string;
+    customerName?: string;
+    serviceTitle?: string;
+    status?: string;
+  };
+  isReplied?: boolean;
+  repliedAt?: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
