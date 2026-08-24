@@ -20,6 +20,11 @@ service cloud.firestore {
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'staff' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'consultant' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'senior_accountant' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'accountant' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'support_agent' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ai_accountant' ||
               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'cap_staff' ||
               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'cap_supervisor');
     }
@@ -37,21 +42,6 @@ service cloud.firestore {
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.partnerId == partnerId &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isActive != false;
-    }
-
-    /**
-     * True when the caller's email claim is present AND Firebase has verified it.
-     *
-     * Order access below can be granted by matching `customerEmail` / `endCustomerEmail`, which
-     * exists so guest-checkout customers can reach their own orders after registering. Firebase
-     * populates `token.email` the moment an account is created, verified or not — so without this
-     * check, registering with a known customer's address granted immediate read (and update)
-     * access to that customer's orders and their uploaded KYC documents.
-     */
-    function hasVerifiedEmail() {
-      return isAuthenticated() &&
-             request.auth.token.email != null &&
-             request.auth.token.email_verified == true;
     }
 
     /** True when the caller IS the partner (owner) */

@@ -130,9 +130,11 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     if (!user) return;
+    const isStaff = ['admin', 'staff', 'consultant', 'senior_accountant', 'accountant', 'support_agent', 'ai_accountant', 'cap_staff', 'cap_supervisor'].includes(user.role);
+    if (!isStaff) return;
     setIsLoading(true);
 
-    const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'cap_staff', 'cap_supervisor']));
+    const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'consultant', 'senior_accountant', 'accountant', 'support_agent', 'ai_accountant', 'cap_staff', 'cap_supervisor']));
     getDocs(staffQuery).then(staffSnapshot => {
         const fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
         fetchedStaff.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -174,12 +176,16 @@ export default function AdminOrdersPage() {
 
         const ordersWithClientDetails = await Promise.all(fetchedOrders.map(async (order) => {
             if (order.resellerId && order.originalOrderId && !order.endCustomerEmail) {
-                const originalOrderRef = doc(db, 'orders', order.originalOrderId);
-                const originalOrderSnap = await getDoc(originalOrderRef);
-                if (originalOrderSnap.exists()) {
-                    const originalOrderData = originalOrderSnap.data();
-                    order.endCustomerName = originalOrderData.customerName;
-                    order.endCustomerEmail = originalOrderData.customerEmail;
+                try {
+                    const originalOrderRef = doc(db, 'orders', order.originalOrderId);
+                    const originalOrderSnap = await getDoc(originalOrderRef);
+                    if (originalOrderSnap.exists()) {
+                        const originalOrderData = originalOrderSnap.data();
+                        order.endCustomerName = originalOrderData.customerName;
+                        order.endCustomerEmail = originalOrderData.customerEmail;
+                    }
+                } catch (origErr) {
+                    console.warn("Could not load original order details:", origErr);
                 }
             }
             return order;
