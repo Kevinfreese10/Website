@@ -87,7 +87,7 @@ export default function PartnerOrdersPage() {
   const staffCounters = useRef<{ [key: string]: number }>({});
   const router = useRouter();
     
-  const orderStatuses: Order['status'][] = ['Pending Payment', 'Processing', 'Completed', 'Cancelled'];
+  const orderStatuses: Order['status'][] = ['Pending Payment', 'Processing', 'Waiting on Customer', 'Waiting on External', 'Completed', 'Cancelled'];
   const partnerId = user?.role === 'partner' ? user.uid : user?.partnerId;
 
   const statusCounts = useMemo(() => {

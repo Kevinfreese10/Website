@@ -83,6 +83,7 @@ const ACTIVE_ORDER_STATUSES = [
   'Waiting on Customer',
   'Waiting for Information',
   'Waiting on Client',
+  'Waiting on External',
 ];
 
 /** How many historical orders to load when the user explicitly asks for them. */
@@ -246,6 +247,7 @@ export default function AdminOrdersPage() {
       processing: orders.filter(o => o.status === 'Processing' || (o.status as any) === 'Outsourced').length,
       pending: orders.filter(o => o.status === 'Pending Payment').length,
       waiting: orders.filter(o => o.status === 'Waiting on Customer' || o.status === 'Waiting for Information' || (o.status as any) === 'Waiting on Client').length,
+      external: orders.filter(o => o.status === 'Waiting on External' || (o.status as any) === 'Waiting on External Party').length,
       review: orders.filter(o => o.status === 'Under Review').length,
       completed: orders.filter(o => o.status === 'Completed').length,
       cancelled: orders.filter(o => o.status === 'Cancelled').length,
@@ -617,6 +619,7 @@ export default function AdminOrdersPage() {
                                     <SelectItem value="active">Active Orders</SelectItem>
                                     <SelectItem value="Processing">Processing</SelectItem>
                                     <SelectItem value="Waiting on Customer">Waiting on Customer</SelectItem>
+                                    <SelectItem value="Waiting on External">Waiting on External</SelectItem>
                                     <SelectItem value="Waiting for Information">Waiting for Information</SelectItem>
                                     <SelectItem value="Under Review">Under Review</SelectItem>
                                     <SelectItem value="Pending Payment">Pending Payment</SelectItem>
@@ -664,6 +667,18 @@ export default function AdminOrdersPage() {
                         Waiting on Customer
                         <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Waiting on Customer' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-amber-100 text-amber-800")}>
                             {statusCounts.waiting}
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={statusFilter === 'Waiting on External' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 text-xs font-semibold rounded-full gap-1.5"
+                        onClick={() => handleStatusFilterChange('Waiting on External')}
+                    >
+                        Waiting on External
+                        <span className={cn("px-1.5 py-0.2 rounded-full text-[10px]", statusFilter === 'Waiting on External' ? "bg-primary-foreground/20 text-primary-foreground" : "bg-cyan-100 text-cyan-800")}>
+                            {statusCounts.external}
                         </span>
                     </Button>
                     <Button
@@ -889,6 +904,24 @@ export default function AdminOrdersPage() {
                                     disabled={order.status === 'Processing'}
                                 >
                                     Mark as Processing
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => handleUpdateStatus(order.id, 'Waiting on Customer')}
+                                    disabled={order.status === 'Waiting on Customer'}
+                                >
+                                    Mark as Waiting on Customer
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => handleUpdateStatus(order.id, 'Waiting on External')}
+                                    disabled={order.status === 'Waiting on External'}
+                                >
+                                    Mark as Waiting on External
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => handleUpdateStatus(order.id, 'Under Review')}
+                                    disabled={order.status === 'Under Review'}
+                                >
+                                    Mark as Under Review
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     onClick={() => handleUpdateStatus(order.id, 'Completed')}

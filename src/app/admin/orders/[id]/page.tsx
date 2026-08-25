@@ -1648,6 +1648,9 @@ export default function AdminOrderDetailsPage() {
                                 <SelectContent>
                                     <SelectItem value="Pending Payment">Pending Payment</SelectItem>
                                     <SelectItem value="Processing">Processing</SelectItem>
+                                    <SelectItem value="Waiting on Customer">Waiting on Customer</SelectItem>
+                                    <SelectItem value="Waiting on External">Waiting on External</SelectItem>
+                                    <SelectItem value="Under Review">Under Review</SelectItem>
                                     <SelectItem value="Completed">Completed</SelectItem>
                                     <SelectItem value="Cancelled">Cancelled</SelectItem>
                                 </SelectContent>

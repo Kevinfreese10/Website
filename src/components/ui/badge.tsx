@@ -34,6 +34,7 @@ const badgeVariants = cva(
         review: "border-transparent bg-indigo-100 text-indigo-900 hover:bg-indigo-200",
         payment: "border-transparent bg-teal-100 text-teal-900 hover:bg-teal-200",
         outsourced: "border-transparent bg-purple-100 text-purple-900 hover:bg-purple-200",
+        external: "border-transparent bg-cyan-100 text-cyan-900 hover:bg-cyan-200",
       },
     },
     defaultVariants: {

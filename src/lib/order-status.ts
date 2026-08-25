@@ -14,7 +14,7 @@ export type OrderStatusLike = Order['status'] | 'Outsourced' | string;
 
 export type BadgeVariant =
   | 'success' | 'info' | 'warning' | 'waiting' | 'review'
-  | 'payment' | 'outsourced' | 'destructive' | 'secondary';
+  | 'payment' | 'outsourced' | 'destructive' | 'secondary' | 'external';
 
 export function getStatusVariant(status: OrderStatusLike): BadgeVariant {
   switch (status) {
@@ -29,6 +29,9 @@ export function getStatusVariant(status: OrderStatusLike): BadgeVariant {
     case 'Waiting for Information':
     case 'Waiting on Client':
       return 'waiting';
+    case 'Waiting on External':
+    case 'Waiting on External Party':
+      return 'external';
     case 'Under Review':
       return 'review';
     case 'Cancelled':

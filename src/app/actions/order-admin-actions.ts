@@ -138,6 +138,10 @@ export async function transitionOrderStatusAtomic(
       targetFulfillmentStatus = 'Completed';
     } else if (newStatus === 'Cancelled') {
       targetFulfillmentStatus = 'Blocked';
+    } else if (newStatus === 'Waiting on Customer' || newStatus === 'Waiting for Information') {
+      targetFulfillmentStatus = 'Awaiting Documents';
+    } else if (newStatus === 'Waiting on External' || newStatus === 'Under Review') {
+      targetFulfillmentStatus = 'In Execution';
     } else if (newStatus === 'Processing' && (!targetFulfillmentStatus || targetFulfillmentStatus === 'Awaiting Documents')) {
       const allDocsApproved = (orderData.documentUploads || []).length > 0 && (orderData.documentUploads || []).every(d => d.status === 'approved');
       targetFulfillmentStatus = allDocsApproved ? 'In Execution' : 'Awaiting Documents';
