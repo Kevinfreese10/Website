@@ -87,6 +87,8 @@ function validateSeed(seed, file) {
 }
 
 /** Merge seed requirements into existing informationToProvide by id, then by case-insensitive label. */
+function newId() { return `req_${Math.random().toString(36).slice(2, 10)}`; }
+
 function mergeRequirements(existing = [], seeded = []) {
   const out = existing.map(r => ({ ...r }));
   for (const s of seeded) {
@@ -95,7 +97,19 @@ function mergeRequirements(existing = [], seeded = []) {
     if (idx === -1) out.push({ ...s });
     else out[idx] = { ...out[idx], ...s, id: out[idx].id || s.id };
   }
-  return out;
+  // Every row needs a stable id (checkout snapshots and the agent match on it).
+  return out.map(r => ({ ...r, id: r.id || newId() }));
+}
+
+/** Firestore refuses `undefined` anywhere in a document; drop such keys recursively. */
+function stripUndefined(v) {
+  if (Array.isArray(v)) return v.map(stripUndefined);
+  if (v && typeof v === 'object' && !(v instanceof Date)) {
+    const o = {};
+    for (const [k, val] of Object.entries(v)) if (val !== undefined) o[k] = stripUndefined(val);
+    return o;
+  }
+  return v;
 }
 
 async function main() {
@@ -113,7 +127,7 @@ async function main() {
     if (!target) { console.warn(`SKIP ${file}: no service with slug "${seed.slug}"`); skipped++; continue; }
 
     const update = {
-      fulfillmentChecklist: seed.fulfillmentChecklist,
+      fulfillmentChecklist: seed.fulfillmentChecklist.map((st, i) => ({ ...st, id: st.id || `step_${i + 1}` })),
       playbookApproval: null,
       playbookVersion: (target.data.playbookVersion || 0) + 1,
       ...(seed.playbookEntity ? { playbookEntity: seed.playbookEntity } : {}),
@@ -126,7 +140,7 @@ async function main() {
 
     const wasApproved = !!(target.data.playbookApproval && target.data.playbookApproval.approvedAt);
     console.log(`${DRY ? '[dry-run] ' : ''}${seed.slug}: ${seed.fulfillmentChecklist.length} steps, ${(seed.informationToProvide || []).length} requirement rows${wasApproved ? '  ** clears existing approval — re-approve in UI **' : ''}`);
-    if (!DRY) { await target.ref.set(update, { merge: true }); applied++; }
+    if (!DRY) { await target.ref.set(stripUndefined(update), { merge: true }); applied++; }
   }
   console.log(`\nDone. ${DRY ? 'Would apply' : 'Applied'} ${DRY ? files.length - skipped : applied}, skipped ${skipped}.`);
   if (!DRY) console.log('Remember: seeds load as DRAFT. Approve each playbook in Admin → Products → Agent Playbook.');
