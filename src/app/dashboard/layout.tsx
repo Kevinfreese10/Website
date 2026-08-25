@@ -15,7 +15,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   
-  const isPartner = user?.role === 'partner' || user?.role === 'partner_staff' || user?.role === 'partner_admin';
+  const isPartner = !!(user && ['partner', 'partner_staff', 'partner_admin', 'reseller', 'franchisee'].includes(user.role));
+  const isStaff = !!(user && [
+    'admin',
+    'staff',
+    'consultant',
+    'senior_accountant',
+    'accountant',
+    'support_agent',
+    'cap_staff',
+    'cap_supervisor'
+  ].includes(user.role));
+
   const isAllowedPartnerRoute = isPartner && (
     pathname.startsWith('/dashboard/ai-accountant') ||
     pathname.startsWith('/dashboard/ai-payroll')
@@ -29,7 +40,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (shouldRedirect) {
       // Redirect non-clients away from this dashboard
-      if (user?.role === 'admin' || user?.role === 'staff') {
+      if (isStaff) {
         router.push('/admin/dashboard');
       } else if (isPartner) {
         router.push('/partner/dashboard');
@@ -37,7 +48,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         router.push('/login');
       }
     }
-  }, [shouldRedirect, user, router, isPartner]);
+  }, [shouldRedirect, user, router, isPartner, isStaff]);
 
   if (isAuthenticated === undefined || shouldRedirect) {
      return (
