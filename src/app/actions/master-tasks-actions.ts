@@ -77,6 +77,26 @@ export async function updateMasterTaskStatusAction(
 }
 
 /**
+ * Mark a task as Spam (or unmark spam)
+ */
+export async function markMasterTaskAsSpamAction(
+  taskId: string,
+  isSpam: boolean = true
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const db = getAdminDb();
+    await db.collection('masterTasks').doc(taskId).update({
+      status: isSpam ? 'Spam' : 'Pending',
+      updatedAt: new Date().toISOString(),
+    });
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error marking task as spam:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Generate an AI Draft Reply using Gemini 2.5 Flash
  */
 export async function generateMasterTaskAiReplyAction(

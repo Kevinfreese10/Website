@@ -6,6 +6,7 @@ import {
   fetchMasterTasksAction, 
   updateMasterTaskInstructionsAction, 
   updateMasterTaskStatusAction, 
+  markMasterTaskAsSpamAction,
   generateMasterTaskAiReplyAction, 
   sendMasterTaskReplyAction 
 } from '@/app/actions/master-tasks-actions';
@@ -20,7 +21,8 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Mail, Sparkles, Send, RefreshCw, CheckCircle2, Clock, AlertTriangle, 
   Paperclip, ExternalLink, MessageSquare, Search, Filter, Bot, Building2, 
-  FileText, ShieldCheck, CreditCard, Users, Briefcase, FileCheck, ArrowRight
+  FileText, ShieldCheck, CreditCard, Users, Briefcase, FileCheck, ArrowRight,
+  Ban, ShieldAlert, Undo2, Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -64,11 +66,16 @@ export default function MasterTaskHub() {
     loadTasks();
   }, []);
 
-  // Category counts
+  // Category counts (exclude Spam from default active category counts)
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: tasks.length };
+    const counts: Record<string, number> = { All: 0, Spam: 0 };
     tasks.forEach(t => {
-      counts[t.category] = (counts[t.category] || 0) + 1;
+      if (t.status === 'Spam') {
+        counts.Spam = (counts.Spam || 0) + 1;
+      } else {
+        counts.All = (counts.All || 0) + 1;
+        counts[t.category] = (counts[t.category] || 0) + 1;
+      }
     });
     return counts;
   }, [tasks]);
@@ -76,8 +83,16 @@ export default function MasterTaskHub() {
   // Filtered Tasks
   const filteredTasks = useMemo(() => {
     return tasks.filter(t => {
+      // Spam handling: if status filter is 'Spam', show ONLY spam
+      // If status filter is 'All' or anything else, EXCLUDE spam unless explicitly chosen
+      if (selectedStatus === 'Spam') {
+        if (t.status !== 'Spam') return false;
+      } else {
+        if (t.status === 'Spam') return false;
+        if (selectedStatus !== 'All' && t.status !== selectedStatus) return false;
+      }
+
       const matchCat = selectedCategory === 'All' || t.category === selectedCategory;
-      const matchStatus = selectedStatus === 'All' || t.status === selectedStatus;
       const matchPriority = selectedPriority === 'All' || t.priority === selectedPriority;
 
       const q = searchQuery.toLowerCase().trim();
@@ -93,7 +108,7 @@ export default function MasterTaskHub() {
           t.matchedOrderSummary.customerName?.toLowerCase().includes(q)
         ));
 
-      return matchCat && matchStatus && matchPriority && matchQuery;
+      return matchCat && matchPriority && matchQuery;
     });
   }, [tasks, selectedCategory, selectedStatus, selectedPriority, searchQuery]);
 
@@ -131,6 +146,27 @@ export default function MasterTaskHub() {
         if (selectedTask && selectedTask.id === taskId) {
           setSelectedTask(prev => prev ? { ...prev, status: newStatus } : null);
         }
+      }
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleMarkSpam = async (taskId: string, isSpam: boolean = true) => {
+    try {
+      const res = await markMasterTaskAsSpamAction(taskId, isSpam);
+      if (res.success) {
+        const newStatus: MasterTaskStatus = isSpam ? 'Spam' : 'Pending';
+        toast({ 
+          title: isSpam ? 'Marked as Spam' : 'Unmarked Spam', 
+          description: isSpam ? 'Task moved to Spam folder.' : 'Task restored to active inbox.' 
+        });
+        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+        if (selectedTask && selectedTask.id === taskId) {
+          setSelectedTask(prev => prev ? { ...prev, status: newStatus } : null);
+        }
+      } else {
+        toast({ title: 'Action Failed', description: res.error, variant: 'destructive' });
       }
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -210,6 +246,7 @@ export default function MasterTaskHub() {
       case 'Completed': return <Badge variant="default" className="text-[10px] font-bold bg-emerald-600 text-white">Completed</Badge>;
       case 'Replied': return <Badge variant="secondary" className="text-[10px] font-bold bg-indigo-100 text-indigo-800 border-indigo-200">Replied</Badge>;
       case 'In Progress': return <Badge variant="secondary" className="text-[10px] font-bold bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>;
+      case 'Spam': return <Badge variant="destructive" className="text-[10px] font-bold bg-rose-100 text-rose-800 border-rose-200">Spam</Badge>;
       default: return <Badge variant="outline" className="text-[10px] font-bold text-amber-700 bg-amber-50 border-amber-200">Pending</Badge>;
     }
   };
@@ -235,7 +272,7 @@ export default function MasterTaskHub() {
             <h1 className="text-xl font-bold tracking-tight text-white">Master Email & Compliance Task Hub</h1>
           </div>
           <p className="text-xs text-indigo-200/80 max-w-2xl">
-            Real-time inbox triage for <span className="font-semibold text-white">kev@thinkestry.co.za</span>, statutory practice compliance, AI response drafts, and order cross-referencing.
+            Real-time inbox triage for <span className="font-semibold text-white">kev@thinkestry.co.za</span>, spam quarantine, statutory practice compliance, AI response drafts, and order cross-referencing.
           </p>
         </div>
 
@@ -257,11 +294,11 @@ export default function MasterTaskHub() {
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
         {categories.map(cat => {
           const count = categoryCounts[cat] || 0;
-          const isSelected = selectedCategory === cat;
+          const isSelected = selectedCategory === cat && selectedStatus !== 'Spam';
           return (
             <button
               key={cat}
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => { setSelectedCategory(cat); if (selectedStatus === 'Spam') setSelectedStatus('All'); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
                 isSelected
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
@@ -276,6 +313,22 @@ export default function MasterTaskHub() {
             </button>
           );
         })}
+
+        {/* Spam Tab Pill */}
+        <button
+          onClick={() => { setSelectedStatus('Spam'); setSelectedCategory('All'); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ml-auto ${
+            selectedStatus === 'Spam'
+              ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+              : 'bg-card text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+          }`}
+        >
+          <Ban className="h-3.5 w-3.5" />
+          <span>Spam Quarantine</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedStatus === 'Spam' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200'}`}>
+            {categoryCounts.Spam || 0}
+          </span>
+        </button>
       </div>
 
       {/* Filter and Search Bar */}
@@ -294,15 +347,16 @@ export default function MasterTaskHub() {
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-9 text-xs w-[130px]">
+                <SelectTrigger className="h-9 text-xs w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All">All Statuses</SelectItem>
+                  <SelectItem value="All">All Active Tasks</SelectItem>
                   <SelectItem value="Pending">Pending</SelectItem>
                   <SelectItem value="In Progress">In Progress</SelectItem>
                   <SelectItem value="Replied">Replied</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Spam">🚫 Spam Only</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -327,16 +381,22 @@ export default function MasterTaskHub() {
         {filteredTasks.length === 0 ? (
           <Card className="p-12 text-center border-dashed">
             <Mail className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-            <h3 className="text-sm font-bold text-foreground">No Tasks Found</h3>
+            <h3 className="text-sm font-bold text-foreground">
+              {selectedStatus === 'Spam' ? 'No Spam Messages Found' : 'No Tasks Found'}
+            </h3>
             <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-              No tasks match your current filter criteria. Try adjusting the category or search query.
+              {selectedStatus === 'Spam' 
+                ? 'Your spam quarantine is currently clean.'
+                : 'No tasks match your current filter criteria. Try adjusting the category or search query.'}
             </p>
           </Card>
         ) : (
           filteredTasks.map(task => (
             <Card 
               key={task.id} 
-              className="hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-xs hover:shadow-sm group cursor-pointer bg-card"
+              className={`hover:border-indigo-300 dark:hover:border-indigo-700 transition-all shadow-xs hover:shadow-sm group cursor-pointer bg-card ${
+                task.status === 'Spam' ? 'opacity-70 bg-rose-50/20 border-rose-200/50' : ''
+              }`}
               onClick={() => handleOpenTask(task)}
             >
               <CardContent className="p-4 sm:p-5">
@@ -390,14 +450,38 @@ export default function MasterTaskHub() {
 
                   {/* Actions Right Side */}
                   <div className="flex md:flex-col items-center md:items-end justify-between gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0">
-                    <Button 
-                      size="sm" 
-                      variant="default"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-8 px-3 shadow-xs"
-                      onClick={(e) => { e.stopPropagation(); handleOpenTask(task); }}
-                    >
-                      <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Action & Reply
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      <Button 
+                        size="sm" 
+                        variant="default"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-8 px-3 shadow-xs"
+                        onClick={(e) => { e.stopPropagation(); handleOpenTask(task); }}
+                      >
+                        <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Action & Reply
+                      </Button>
+
+                      {task.status === 'Spam' ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                          title="Restore from spam"
+                          onClick={(e) => { e.stopPropagation(); handleMarkSpam(task.id, false); }}
+                        >
+                          <Undo2 className="h-3.5 w-3.5 mr-1" /> Not Spam
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          title="Mark as spam"
+                          onClick={(e) => { e.stopPropagation(); handleMarkSpam(task.id, true); }}
+                        >
+                          <Ban className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
 
                     <Select 
                       value={task.status} 
@@ -411,6 +495,7 @@ export default function MasterTaskHub() {
                         <SelectItem value="In Progress">In Progress</SelectItem>
                         <SelectItem value="Replied">Replied</SelectItem>
                         <SelectItem value="Completed">Completed</SelectItem>
+                        <SelectItem value="Spam">🚫 Spam</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -426,11 +511,33 @@ export default function MasterTaskHub() {
         <Dialog open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-2 mb-1">
-                {getCategoryIcon(selectedTask.category)}
-                <span className="text-xs font-semibold text-muted-foreground uppercase">{selectedTask.category}</span>
-                {getPriorityBadge(selectedTask.priority)}
-                {getStatusBadge(selectedTask.status)}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 mb-1">
+                  {getCategoryIcon(selectedTask.category)}
+                  <span className="text-xs font-semibold text-muted-foreground uppercase">{selectedTask.category}</span>
+                  {getPriorityBadge(selectedTask.priority)}
+                  {getStatusBadge(selectedTask.status)}
+                </div>
+
+                {selectedTask.status === 'Spam' ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                    onClick={() => handleMarkSpam(selectedTask.id, false)}
+                  >
+                    <Undo2 className="h-3 w-3 mr-1" /> Not Spam
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs text-rose-600 border-rose-200 hover:bg-rose-50"
+                    onClick={() => handleMarkSpam(selectedTask.id, true)}
+                  >
+                    <Ban className="h-3 w-3 mr-1" /> Mark as Spam
+                  </Button>
+                )}
               </div>
               <DialogTitle className="text-base font-bold text-foreground">
                 {selectedTask.title}

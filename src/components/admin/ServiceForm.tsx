@@ -1438,7 +1438,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                   </p>
                 </div>
                 <PlaybookEditor
-                  control={form.control}
+                  control={form.control as any}
                   setValue={form.setValue}
                   getValues={form.getValues}
                   requirements={(form.watch('informationToProvide') || []) as { id?: string; label: string }[]}

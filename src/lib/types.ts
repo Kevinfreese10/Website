@@ -1199,7 +1199,7 @@ export type MasterTaskCategory =
   | 'General';
 
 export type MasterTaskPriority = 'high' | 'medium' | 'low';
-export type MasterTaskStatus = 'Pending' | 'In Progress' | 'Replied' | 'Completed';
+export type MasterTaskStatus = 'Pending' | 'In Progress' | 'Replied' | 'Completed' | 'Spam';
 
 export interface MasterTask {
   id: string;

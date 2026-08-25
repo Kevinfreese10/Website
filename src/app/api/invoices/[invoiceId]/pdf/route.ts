@@ -75,7 +75,7 @@ export async function POST(req: Request, context: { params: Promise<{ invoiceId:
 
     console.log('API Route: PDF buffer created, size:', buffer.length);
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename=Invoice-${invoice?.id ?? invoiceId}.pdf`,
