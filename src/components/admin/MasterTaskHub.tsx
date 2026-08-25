@@ -66,12 +66,14 @@ export default function MasterTaskHub() {
     loadTasks();
   }, []);
 
-  // Category counts (exclude Spam from default active category counts)
+  // Category counts (exclude Spam and Completed from default active category counts)
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: 0, Spam: 0 };
+    const counts: Record<string, number> = { All: 0, Completed: 0, Spam: 0 };
     tasks.forEach(t => {
       if (t.status === 'Spam') {
         counts.Spam = (counts.Spam || 0) + 1;
+      } else if (t.status === 'Completed') {
+        counts.Completed = (counts.Completed || 0) + 1;
       } else {
         counts.All = (counts.All || 0) + 1;
         counts[t.category] = (counts[t.category] || 0) + 1;
@@ -80,15 +82,19 @@ export default function MasterTaskHub() {
     return counts;
   }, [tasks]);
 
-  // Filtered Tasks
+  // Filtered Tasks:
+  // - In 'All' (Active) view: automatically hide BOTH 'Completed' and 'Spam' tasks
+  // - In 'Completed' view: show completed tasks
+  // - In 'Spam' view: show quarantined spam tasks
   const filteredTasks = useMemo(() => {
     return tasks.filter(t => {
-      // Spam handling: if status filter is 'Spam', show ONLY spam
-      // If status filter is 'All' or anything else, EXCLUDE spam unless explicitly chosen
       if (selectedStatus === 'Spam') {
         if (t.status !== 'Spam') return false;
+      } else if (selectedStatus === 'Completed') {
+        if (t.status !== 'Completed') return false;
       } else {
-        if (t.status === 'Spam') return false;
+        // Active view: hide both Spam and Completed tasks
+        if (t.status === 'Spam' || t.status === 'Completed') return false;
         if (selectedStatus !== 'All' && t.status !== selectedStatus) return false;
       }
 
@@ -141,10 +147,20 @@ export default function MasterTaskHub() {
     try {
       const res = await updateMasterTaskStatusAction(taskId, newStatus);
       if (res.success) {
-        toast({ title: 'Status Updated', description: `Task set to ${newStatus}.` });
+        const isNowCompleted = newStatus === 'Completed';
+        toast({ 
+          title: isNowCompleted ? 'Task Marked Completed' : 'Status Updated', 
+          description: isNowCompleted 
+            ? 'Task completed and removed from active list.' 
+            : `Task set to ${newStatus}.` 
+        });
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
         if (selectedTask && selectedTask.id === taskId) {
-          setSelectedTask(prev => prev ? { ...prev, status: newStatus } : null);
+          if (isNowCompleted) {
+            setSelectedTask(null); // auto-close modal on complete
+          } else {
+            setSelectedTask(prev => prev ? { ...prev, status: newStatus } : null);
+          }
         }
       }
     } catch (err: any) {
@@ -314,10 +330,26 @@ export default function MasterTaskHub() {
           );
         })}
 
+        {/* Completed Tab Pill */}
+        <button
+          onClick={() => { setSelectedStatus('Completed'); setSelectedCategory('All'); }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ml-auto ${
+            selectedStatus === 'Completed'
+              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+              : 'bg-card text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
+          }`}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          <span>Completed</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedStatus === 'Completed' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'}`}>
+            {categoryCounts.Completed || 0}
+          </span>
+        </button>
+
         {/* Spam Tab Pill */}
         <button
           onClick={() => { setSelectedStatus('Spam'); setSelectedCategory('All'); }}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ml-auto ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
             selectedStatus === 'Spam'
               ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
               : 'bg-card text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/30'

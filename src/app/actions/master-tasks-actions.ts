@@ -14,6 +14,74 @@ const google = createGoogleGenerativeAI({
 });
 
 /**
+ * Automated Spam / Newsletter / Marketing Detection
+ */
+export function isAutomatedSpamOrMarketing(senderEmail?: string, senderName?: string, subject?: string, bodyText?: string): boolean {
+  const email = (senderEmail || '').toLowerCase();
+  const name = (senderName || '').toLowerCase();
+  const subj = (subject || '').toLowerCase();
+  const body = (bodyText || '').toLowerCase();
+
+  // Whitelisted legitimate South African statutory & banking bodies
+  if (
+    email.includes('sars.gov.za') ||
+    email.includes('cipc.co.za') ||
+    email.includes('ncr.org.za') ||
+    email.includes('labour.gov.za') ||
+    email.includes('fnb.co.za') ||
+    email.includes('absa.co.za') ||
+    email.includes('nedbank.co.za') ||
+    email.includes('standardbank.co.za') ||
+    email.includes('payfast.co.za') ||
+    email.includes('myacc.co.za')
+  ) {
+    return false;
+  }
+
+  // 1. Known marketing / promotional senders
+  if (
+    email.includes('email.openai.com') ||
+    email.includes('openai.com') ||
+    email.includes('linkedin.com') ||
+    email.includes('facebookmail.com') ||
+    email.includes('twitter.com') ||
+    email.includes('x.com') ||
+    email.includes('canva.com') ||
+    email.includes('grammarly.com') ||
+    email.includes('takealot.com') ||
+    email.includes('uber.com') ||
+    email.includes('bolt.eu') ||
+    email.includes('mailchimp.com') ||
+    email.includes('sendgrid.net') ||
+    email.includes('klaviyo.com') ||
+    email.includes('newsletters@') ||
+    email.includes('marketing@') ||
+    email.includes('promo@') ||
+    email.includes('offers@')
+  ) {
+    return true;
+  }
+
+  // 2. Keyword triggers for marketing / spam
+  if (
+    subj.includes('check your route before you go') ||
+    subj.includes('unclaimed prize') ||
+    subj.includes('lottery winner') ||
+    subj.includes('crypto profit') ||
+    subj.includes('viagra') ||
+    subj.includes('seo services') ||
+    subj.includes('guest post proposal') ||
+    subj.includes('backlink building') ||
+    body.includes('unsubscribe from our marketing') ||
+    body.includes('you are receiving this email because you subscribed')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Fetch all master tasks from Firestore
  */
 export async function fetchMasterTasksAction(): Promise<{ success: boolean; tasks: MasterTask[]; error?: string }> {
