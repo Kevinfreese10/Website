@@ -156,11 +156,7 @@ export default function AdminOrdersPage() {
      * so history is still reachable, it just isn't loaded on every page view.
      */
     const ordersRef = collection(db, 'orders');
-    const wantsHistory = statusFilter === 'all' || statusFilter === 'Completed' || statusFilter === 'Cancelled';
-
-    const ordersQuery = wantsHistory
-      ? query(ordersRef, orderBy('date', 'desc'), limit(HISTORY_PAGE_SIZE))
-      : query(ordersRef, where('status', 'in', ACTIVE_ORDER_STATUSES), orderBy('date', 'desc'));
+    const ordersQuery = query(ordersRef, orderBy('date', 'desc'));
 
     const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
         const fetchedOrders = snapshot.docs.map(doc => {
@@ -214,8 +210,7 @@ export default function AdminOrdersPage() {
     });
 
     return () => unsubscribe();
-  // statusFilter is a dependency: switching to a history view issues a different query.
-  }, [user, toast, statusFilter]);
+  }, [user, toast]);
 
   // Load saved filters on mount
   useEffect(() => {
@@ -256,9 +251,15 @@ export default function AdminOrdersPage() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-        // Status filter: 'active' shows Processing & Pending; 'all' shows everything
+        // Status filter: 'active' shows non-completed/non-cancelled; specific tabs match canonical groups
         if (statusFilter === 'active') {
             if (order.status === 'Completed' || order.status === 'Cancelled') return false;
+        } else if (statusFilter === 'Processing') {
+            if (order.status !== 'Processing' && (order.status as any) !== 'Outsourced') return false;
+        } else if (statusFilter === 'Waiting on Customer') {
+            if (order.status !== 'Waiting on Customer' && order.status !== 'Waiting for Information' && (order.status as any) !== 'Waiting on Client') return false;
+        } else if (statusFilter === 'Waiting on External') {
+            if (order.status !== 'Waiting on External' && (order.status as any) !== 'Waiting on External Party') return false;
         } else if (statusFilter !== 'all') {
             if (order.status !== statusFilter) return false;
         }
