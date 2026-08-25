@@ -22,7 +22,7 @@ import {
   Mail, Sparkles, Send, RefreshCw, CheckCircle2, Clock, AlertTriangle, 
   Paperclip, ExternalLink, MessageSquare, Search, Filter, Bot, Building2, 
   FileText, ShieldCheck, CreditCard, Users, Briefcase, FileCheck, ArrowRight,
-  Ban, ShieldAlert, Undo2, Trash2
+  Ban, ShieldAlert, Undo2, Trash2, Eye
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -43,6 +43,7 @@ export default function MasterTaskHub() {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [isSavingInstructions, setIsSavingInstructions] = useState(false);
   const [isSendingReply, setIsSendingReply] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const { toast } = useToast();
 
@@ -669,6 +670,18 @@ export default function MasterTaskHub() {
                       </SelectContent>
                     </Select>
 
+                    {aiDraftText && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 text-indigo-900 dark:text-indigo-200 font-semibold hover:bg-indigo-50 shadow-xs"
+                        onClick={() => setIsPreviewOpen(true)}
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1 text-indigo-600" />
+                        Email Preview
+                      </Button>
+                    )}
+
                     <Button
                       size="sm"
                       className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs"
@@ -684,14 +697,24 @@ export default function MasterTaskHub() {
                 {/* Draft Reply Editor */}
                 {aiDraftText && (
                   <div className="space-y-2 pt-2">
-                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>Editable Response Draft:</span>
-                      <span className="text-[10px] text-indigo-600">Drafted with CIBA #3561 Credentials & Policy</span>
-                    </label>
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        Editable Response Draft:
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setIsPreviewOpen(true)}
+                          className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-bold hover:underline"
+                        >
+                          <Eye className="h-3 w-3" /> View Outgoing Email Preview
+                        </button>
+                        <span className="text-[10px] text-indigo-600">Drafted with CIBA #3561 Credentials & Policy</span>
+                      </div>
+                    </div>
                     <Textarea
                       value={aiDraftText}
                       onChange={e => setAiDraftText(e.target.value)}
-                      className="text-xs bg-white dark:bg-slate-900 font-sans min-h-[140px] leading-relaxed"
+                      className="text-xs bg-white dark:bg-slate-900 font-sans min-h-[150px] leading-relaxed"
                     />
                   </div>
                 )}
@@ -727,6 +750,18 @@ export default function MasterTaskHub() {
                 {aiDraftText && (
                   <Button
                     size="sm"
+                    variant="outline"
+                    className="text-xs h-8 border-indigo-200 text-indigo-900 hover:bg-indigo-50 font-semibold"
+                    onClick={() => setIsPreviewOpen(true)}
+                  >
+                    <Eye className="h-3.5 w-3.5 mr-1 text-indigo-600" />
+                    Preview Email
+                  </Button>
+                )}
+
+                {aiDraftText && (
+                  <Button
+                    size="sm"
                     className="text-xs h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
                     onClick={() => handleSendReply(true, !!selectedTask.matchedOrderId)}
                     disabled={isSendingReply}
@@ -735,6 +770,93 @@ export default function MasterTaskHub() {
                     {isSendingReply ? 'Sending...' : 'Send Email Reply'}
                   </Button>
                 )}
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Rendered Email Preview Modal (Outlook / HTML Style) */}
+      {selectedTask && (
+        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 bg-white dark:bg-slate-950">
+            {/* Outlook-style header */}
+            <div className="p-4 bg-slate-900 text-white border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-indigo-400" />
+                <span className="text-xs font-bold tracking-wide uppercase">Outgoing Email Preview</span>
+              </div>
+              <Badge className="bg-indigo-600 text-white text-[10px] font-mono">HTML Email Output</Badge>
+            </div>
+
+            {/* Email Metadata Envelope */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-b space-y-1.5 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground w-16">From:</span>
+                <span className="text-foreground">Kevin Freese &lt;kev@thinkestry.co.za&gt;</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground w-16">To:</span>
+                <span className="text-foreground">{selectedTask.senderName} &lt;{selectedTask.senderEmail}&gt;</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground w-16">Subject:</span>
+                <span className="font-semibold text-foreground">
+                  {selectedTask.title.toLowerCase().startsWith('re:') ? selectedTask.title : `Re: ${selectedTask.title}`}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground w-16">Date:</span>
+                <span>{format(new Date(), 'dd MMMM yyyy, HH:mm')}</span>
+              </div>
+            </div>
+
+            {/* Rendered Email Body Canvas */}
+            <div className="p-6 bg-white dark:bg-slate-950 font-sans text-sm text-slate-800 dark:text-slate-200 leading-relaxed space-y-4">
+              <div className="whitespace-pre-wrap font-sans text-xs sm:text-sm">
+                {aiDraftText}
+              </div>
+
+              {/* Official Practice Signature Block */}
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                <div className="font-bold text-slate-900 dark:text-white text-sm">Kevin Freese</div>
+                <div className="text-xs text-indigo-700 dark:text-indigo-400 font-semibold">
+                  Chartered Business Accountant in Practice (SA) | CIBA #3561 • PR-0098553
+                </div>
+                <div className="font-semibold text-slate-800 dark:text-slate-300">
+                  My Accountant (Pty) Ltd <span className="font-normal text-slate-400">• Reg: 2020 / 548105 / 07</span>
+                </div>
+                <div className="flex items-center gap-3 pt-1 text-[11px]">
+                  <span>Landline: <strong>010 109 1625</strong></span>
+                  <span>•</span>
+                  <span>Website: <a href="https://myacc.co.za" target="_blank" className="text-indigo-600 hover:underline">www.myacc.co.za</a></span>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="p-4 bg-slate-50 dark:bg-slate-900 border-t flex flex-col sm:flex-row items-center justify-between gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-8"
+                onClick={() => setIsPreviewOpen(false)}
+              >
+                Back to Edit
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  className="text-xs h-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+                  onClick={async () => {
+                    await handleSendReply(true, !!selectedTask.matchedOrderId);
+                    setIsPreviewOpen(false);
+                  }}
+                  disabled={isSendingReply}
+                >
+                  <Send className="h-3.5 w-3.5 mr-1.5" />
+                  {isSendingReply ? 'Sending...' : 'Send This Email Now'}
+                </Button>
               </div>
             </DialogFooter>
           </DialogContent>
