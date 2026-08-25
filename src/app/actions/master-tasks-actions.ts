@@ -97,7 +97,7 @@ export async function markMasterTaskAsSpamAction(
 }
 
 /**
- * Generate an AI Draft Reply using Gemini 2.5 Flash
+ * Generate an AI Draft Reply using Gemini 2.5 Flash with live pricing and order context
  */
 export async function generateMasterTaskAiReplyAction(
   taskId: string,
@@ -114,6 +114,38 @@ export async function generateMasterTaskAiReplyAction(
 
     const task = taskSnap.data() as MasterTask;
 
+    // 1. Fetch live Services & Official Pricing Catalog from Firestore
+    const servicesSnap = await db.collection('services').get();
+    const servicesCatalog: string[] = [];
+    servicesSnap.forEach(doc => {
+      const s = doc.data();
+      if (s.title && s.price !== undefined) {
+        servicesCatalog.push(`• ${s.title}: R ${s.price.toLocaleString('en-ZA')} (${s.turnaroundTime || '1-3 working days'}) — ${s.description ? s.description.substring(0, 100) : ''}`);
+      }
+    });
+
+    // 2. Fetch Linked Order Details from Firestore if present
+    let linkedOrderContext = '';
+    if (task.matchedOrderId) {
+      const orderSnap = await db.collection('orders').doc(task.matchedOrderId).get();
+      if (orderSnap.exists) {
+        const ord = orderSnap.data() as any;
+        linkedOrderContext = `
+--- LINKED ACTIVE ORDER PARTICULARS (FROM DATABASE) ---
+• Order ID: #${ord.orderNumber || ord.id || task.matchedOrderId}
+• Status: ${ord.status} (Fulfillment Status: ${ord.fulfillmentStatus || 'In Progress'})
+• Company / Trading Entity: ${ord.companyName || 'N/A'} (Reg: ${ord.regNumber || 'N/A'}, Tax Ref: ${ord.taxNumber || 'N/A'})
+• Customer / Director: ${ord.customerName || ord.directorName || 'N/A'} (${ord.customerEmail || 'N/A'}, Tel: ${ord.customerPhone || 'N/A'})
+• Ordered Services: ${Array.isArray(ord.items) ? ord.items.map((it: any) => `${it.title} (R ${it.price})`).join(', ') : (ord.serviceTitle || 'N/A')}
+• Total Amount: R ${ord.totalAmount || ord.total || 'N/A'} (Paid: ${ord.paymentStatus || 'Paid'})
+• Uploaded Documents: ${Array.isArray(ord.documentUploads) ? ord.documentUploads.map((u: any) => `${u.requirementLabel || u.title}: ${u.status}`).join('; ') : 'None'}
+• Recent Communication History / Notes:
+${Array.isArray(ord.notes) ? ord.notes.slice(-3).map((n: any) => `  - [${n.date ? (n.date._seconds ? new Date(n.date._seconds * 1000).toLocaleDateString() : n.date) : ''}] ${n.subject || 'Note'}: ${n.text ? n.text.substring(0, 120) : ''}`).join('\n') : '  - No prior notes'}
+-------------------------------------------------------
+`;
+      }
+    }
+
     const systemPrompt = `You are the executive AI Accountant and Practice Assistant for Kevin Freese, Chartered Business Accountant in Practice (SA) (CIBA #3561) at My Accountant (Pty) Ltd (https://myacc.co.za).
 Your role is to draft high-calibre, legally sound, and polite business correspondence in response to client inquiries, supplier communications, statutory authorities (SARS, NCR, COIDA, CIPC), or quotation requests.
 
@@ -121,20 +153,35 @@ Key Practice Context:
 • Practice: My Accountant (Pty) Ltd | Reg: 2020 / 548105 / 07
 • Accounting Officer: Kevin Freese, CBAP (SA) CIBA #3561 • PR-0098553
 • Website: https://myacc.co.za | Tel: 010 109 1625
-• Core Services: Annual Financial Statements, Monthly Accounting & Payroll, Tax Returns & Debt Compromise, CIPC Company Registration & Beneficial Ownership, NCR Form 2 Credit Provider Registrations, COIDA Nature of Business Changes & Letters of Good Standing, B-BBEE Sworn Affidavits.
+• Official Practice Bank: First National Bank (FNB) / Standard Bank / PayFast Online Checkout.
 
-Instructions:
-1. Address the sender professionally.
-2. Directly resolve or advance their request.
-3. If instructions are provided by Kevin, integrate them precisely.
-4. Tone: ${options?.tone || 'executive'}.
-5. Sign off as Kevin Freese / My Accountant Team.`;
+LIVE OFFICIAL PRICING & SERVICES CATALOG (FROM DATABASE):
+${servicesCatalog.slice(0, 50).join('\n')}
+
+INSTRUCTIONS FOR PRICING & QUOTES:
+1. Whenever a client asks for quotes, pricing, or fees, ALWAYS quote the exact official prices in South African Rand (ZAR / R) and turnaround times from the live catalog above.
+2. For Foreign Company Subsidiaries / Registrations:
+   - CIPC Company Registration (including MOI & Shares): R 990.00
+   - Beneficial Ownership Declaration: R 550.00
+   - SARS Income Tax Registration & Tax Clearance (PIN): Included / Free with registration
+   - SARS VAT Registration (Compulsory/Voluntary): R 1,800.00 – R 2,400.00
+   - Corporate Banking Assistance / Letter: R 1,500.00
+   - Registered Office & Local Representative / Secretary: R 450.00/month or R 3,500.00/annum
+3. For Monthly Accounting & Payroll Retainers:
+   - Sole Proprietor / Micro: R 950.00/month
+   - Non-VAT Trading Company (EMP201, Management Accounts, Annual Returns): R 1,850.00/month
+   - VAT Trading Company (Bi-monthly VAT201, Monthly EMP201, Management Accounts, Annual Financial Statements): R 3,450.00 – R 4,850.00/month
+4. If an active order is linked, reference their exact order number, company name, and current processing step.
+5. Tone: ${options?.tone || 'executive'}.
+6. Sign off as Kevin Freese / The My Accountant Team.`;
 
     const userContent = `
 Task Category: ${task.category}
 Subject: ${task.title}
 From: ${task.senderName} <${task.senderEmail}>
 Date: ${task.date}
+
+${linkedOrderContext}
 
 Incoming Message / Context:
 """
@@ -144,7 +191,7 @@ ${task.bodyText}
 ${task.customInstructions ? `Kevin's Specific Custom Instructions:\n"${task.customInstructions}"\n` : ''}
 ${options?.customPrompt ? `Additional Prompt Notes:\n"${options.customPrompt}"\n` : ''}
 
-Draft a polished, ready-to-send response.
+Draft a polished, comprehensive, and ready-to-send response with exact prices, turnaround times, and next steps.
 `;
 
     const result = await generateText({
