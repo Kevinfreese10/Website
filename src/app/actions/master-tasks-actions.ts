@@ -16,7 +16,7 @@ const google = createGoogleGenerativeAI({
 /**
  * Automated Spam / Newsletter / Marketing Detection
  */
-export function isAutomatedSpamOrMarketing(senderEmail?: string, senderName?: string, subject?: string, bodyText?: string): boolean {
+export async function isAutomatedSpamOrMarketing(senderEmail?: string, senderName?: string, subject?: string, bodyText?: string): Promise<boolean> {
   const email = (senderEmail || '').toLowerCase();
   const name = (senderName || '').toLowerCase();
   const subj = (subject || '').toLowerCase();
