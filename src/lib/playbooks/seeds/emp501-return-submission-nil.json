@@ -1,0 +1,96 @@
+{
+  "slug": "emp501-return-submission-nil",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Nil EMP501 reconciliation submitted on eFiling for the period",
+    "Submission confirmation"
+  ],
+  "playbookCommonFailures": [
+    "EMP201s with values exist for the period so the EMP501 cannot be nil",
+    "Interim (Aug) and annual (Feb) reconciliation confused — the wrong period selected",
+    "Employer not linked to the eFiling profile used, or the EMP501 must be filed via e@syFile because of employee count",
+    "Prior EMP501 still open/unreconciled and blocks the new one"
+  ],
+  "informationToProvide": [
+    {
+      "label": "Company Name",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Registered company name (or individual's name if the taxpayer is a person) exactly as on the SARS profile, with the relevant SARS reference number."
+    },
+    {
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "Confirmation that no employees were paid remuneration requiring PAYE, UIF, or SDL deductions during the tax year",
+      "type": "text",
+      "isRequired": true
+    },
+    {
+      "label": "Company registration number or ID number",
+      "type": "text",
+      "isRequired": true
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "emp501n_collect",
+      "title": "Collect eFiling access and nil confirmation",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Credentials on file, period identified and client has confirmed in writing that the return is nil",
+      "aiInstructions": "Ask for the eFiling username/password and confirm which period the EMP501 is for. Get an explicit written confirmation in Communication History that no employees were paid at all during the reconciliation period (so there are no IRP5/IT3(a) certificates to issue). Do not promise a turnaround shorter than 1–2 working days."
+    },
+    {
+      "id": "emp501n_verify",
+      "title": "Verify period and that a nil return is appropriate",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Return is outstanding on eFiling for that period and nothing on file contradicts the nil declaration",
+      "aiInstructions": "Identify the period: interim reconciliation (March–August, due 31 October) or annual (March–February, due 31 May) ⚠ verify current SARS filing season dates. Check Returns → EMP501 shows the recon outstanding and that every EMP201 in the period was filed as nil. If evidence contradicts a nil return (e.g. any EMP201 in the period with a PAYE/UIF/SDL value, or payslips), stop and raise a proposal to switch to the trading version of this service."
+    },
+    {
+      "id": "emp501n_file",
+      "title": "Submit the nil EMP501 on eFiling",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.submitNilReturn:EMP501",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "EMP501 shows status Filed/Submitted for the period and the confirmation is saved",
+      "aiInstructions": "Returns → EMP501 → select the reconciliation period. Declare zero liabilities per month, zero payments and no certificates. Ensure the declaration balances (0 = 0) before submitting. eFiling allows the EMP501 for small employers; if the profile forces e@syFile, hand off to Kevin. Stage with a screenshot of the completed return for Kevin's approval before Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+    },
+    {
+      "id": "emp501n_deliver",
+      "title": "Deliver proof of submission",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "submission_confirmation"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Submission confirmation / filed return PDF posted to Communication History",
+      "aiInstructions": "Post the filed EMP501 confirmation. Explain in plain English that the reconciliation is required twice a year while the PAYE number is active and offer PAYE deregistration if there will never be employees."
+    },
+    {
+      "id": "emp501n_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

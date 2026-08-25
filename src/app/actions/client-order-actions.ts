@@ -4,6 +4,8 @@ import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-
 import { getVerifiedAuthContext } from '@/lib/server-auth';
 import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { Order, DocumentUpload, AuditEntry } from '@/lib/types';
+import { runUploadChecks, findRequirement, collectExistingHashes } from '@/lib/verification/run-upload-checks';
+import { after } from 'next/server';
 
 export interface SubmitClientDocParams {
   idToken: string;
@@ -71,7 +73,7 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
         }))
       : [];
 
-    const newDocItem: DocumentUpload = {
+    const newDocItemRaw: DocumentUpload = {
       id: uploadId,
       serviceId: params.serviceId || order.items?.[0]?.id || 'service',
       requirementId: params.requirementId || undefined,
@@ -87,6 +89,15 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
       status: 'pending', // Strictly enforced server-side
       rejectionReason: undefined,
     };
+
+    // Layer 1 mechanical checks (AI-ORDER-AGENT-PLAN.md §6.2): file integrity, ID/registration
+    // number formats, duplicates; secret text values are encrypted at rest. Never blocks the
+    // submission — the result is stored on the upload and the client gets immediate feedback.
+    const requirement = findRequirement(order, params.serviceId, params.requirementId, params.requirementLabel);
+    const existingHashes = collectExistingHashes(currentUploads.filter(u =>
+      !((params.requirementId && (u.requirementId === params.requirementId || u.id === params.requirementId)) ||
+        (u.requirementLabel === params.requirementLabel && u.serviceId === params.serviceId))));
+    const { upload: newDocItem, feedback: mechanicalFeedback } = await runUploadChecks(newDocItemRaw, requirement, existingHashes);
 
     let itemReplaced = false;
     const updatedUploads = currentUploads.map(doc => {
@@ -115,7 +126,7 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
       action: 'DOCUMENT_UPLOADED',
       performedBy: authCtx.userId,
       performedByName: authCtx.user.name || authCtx.user.email || 'Client',
-      details: `Submitted requirement "${params.requirementLabel}" (${params.type === 'file' ? 'File Upload' : params.notAvailableReason ? 'Missing Doc Note' : 'Text Input'}). Status: Pending Verification.`,
+      details: `Submitted requirement "${params.requirementLabel}" (${params.type === 'file' ? 'File Upload' : params.notAvailableReason ? 'Missing Doc Note' : 'Text Input'}). Status: Pending Verification.${newDocItem.mechanicalCheck ? ` Mechanical check: ${newDocItem.mechanicalCheck.status}${newDocItem.mechanicalCheck.issues.length ? ' — ' + newDocItem.mechanicalCheck.issues.map(i => i.code).join(', ') : ''}.` : ''}`,
     };
 
     const updatePayload: any = {
@@ -142,9 +153,26 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
       });
     }
 
+    // Wake the AI order agent after the response is sent (Next 15+ `after`). It only acts on
+    // services with an approved playbook; otherwise it records a run and does nothing.
+    after(async () => {
+      try {
+        const { runOrderAgent } = await import('@/lib/agent/orchestrator');
+        await runOrderAgent(params.orderId, 'upload', { maxModelCalls: 3 });
+      } catch (e) {
+        console.error('[submitClientDocumentUploadAction] agent trigger failed:', e);
+      }
+    });
+
     return {
       success: true,
-      message: 'Document successfully submitted for verification.',
+      message: mechanicalFeedback
+        ? (newDocItem.mechanicalCheck?.status === 'fail'
+            ? `We've saved your submission, but there's a problem: ${mechanicalFeedback}`
+            : `Document submitted for verification. Note: ${mechanicalFeedback}`)
+        : 'Document successfully submitted for verification.',
+      mechanicalStatus: newDocItem.mechanicalCheck?.status || null,
+      mechanicalFeedback: mechanicalFeedback,
       documentUploads: serializeDbData(updatedUploads),
     };
   } catch (error: any) {

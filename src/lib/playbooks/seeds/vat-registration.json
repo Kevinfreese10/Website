@@ -1,0 +1,110 @@
+{
+  "slug": "vat-registration",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "VAT registration number (4-prefixed)",
+    "SARS VAT103 Notice of Registration showing the liability date and tax period category",
+    "Short note on first VAT201 period, tax-invoice requirements and record keeping"
+  ],
+  "playbookCommonFailures": [
+    "Invoices supplied do not add up to the R50 000 voluntary threshold (or R1 million compulsory threshold) in the past 12 months, or are quotes/pro formas rather than issued invoices",
+    "Bank statements are the director's personal account, not the business account, so SARS cannot match taxable supplies to receipts",
+    "No active registered representative on the SARS profile — VAT101 cannot be submitted",
+    "SARS verification call or branch interview missed because the representative's cell number on record is wrong",
+    "Proof of business address is older than 3 months or is a P.O. Box / virtual office that SARS will not accept as the physical place of business"
+  ],
+  "informationToProvide": [
+    { "label": "Certified copy of your ID document (South African) - not older than 3 months", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport for a foreign director"], "aiHint": "Certified SA Smart ID Card, Green Barcoded ID Book, or Passport of the registered representative / director. Check for visible Commissioner of Oaths or Police certification stamp dated within 3 months, legible ID number and name." },
+    { "label": "Proof of residential address - not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "isRequired": true, "aiHint": "Proof of the representative's residential address dated within 3 months (utility bill, rates/taxes, lease, or bank statement). Name must match the certified ID." },
+    { "label": "Company registration documents (e.g., COR14.3", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2 for a CC) showing the registered name, enterprise number and active directors. For a sole proprietor this row is not required — mark N/A." },
+    { "label": "Proof of business address - not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Signed lease agreement", "Municipal account", "Affidavit from the property owner with their proof of address"], "aiHint": "Proof of the PHYSICAL place of business dated within 3 months, in the entity's name. A P.O. Box or virtual-office letter is not accepted; where the business trades from a director's home, accept the director's proof of address plus a short letter confirming the business operates from there." },
+    { "label": "Proof of business bank account  - not older than 3 months", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Official Bank Account Confirmation Letter from a registered South African bank in the ENTITY's name dated within 3 months. Accept letters with official bank stamp OR digital verification reference/QR code. A statement is not a confirmation letter." },
+    { "label": "Records to prove that the Total Value of Taxable Supplies exceeded R120 000 in the preceding 12 months - Need invoices to proof", "documentKind": "invoice", "inNameOf": "entity", "isRequired": true, "alternatives": ["Signed customer contracts with invoiced amounts", "Sales ledger export with matching bank receipts"], "aiHint": "Customer sales invoices issued by the entity in the last 12 months. Total them: SARS registers voluntarily from R50 000 of taxable supplies in a 12-month period and compulsorily above R1 million; the catalogue's R120 000 figure is My Accountant's internal comfort level — ⚠ verify which threshold applies. Match invoice dates and amounts to bank receipts; quotes and pro formas do not count." },
+    { "label": " Six Months Bank statements", "documentKind": "bank_statement", "inNameOf": "entity", "isRequired": true, "aiHint": "Six consecutive months of business bank statements in the entity's name. Used by SARS to corroborate the taxable supplies; flag if the account differs from the bank confirmation letter or if receipts do not match the invoices." },
+    { "label": "SARS eFiling login Username", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "SARS eFiling login Password", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "Nature of Business", "type": "text", "isRequired": true, "aiHint": "Main business activity and what the invoices are for. Drives the VAT101 activity code and whether supplies are standard-rated, zero-rated or exempt — if the supplies look exempt (e.g. residential letting, certain financial services) flag for Kevin before proceeding." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "vat_collect",
+      "title": "Collect VAT101 supporting documents and credentials",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "Every required upload received and questionnaire answered (liability date, expected turnover next 12 months, accounting basis, tax period preference)",
+      "aiInstructions": "Chase only what is missing; name each document and why SARS needs it. Also ask: date from which they want to be registered, expected taxable turnover for the next 12 months, whether they want payments or invoice basis, and the cell number and email SARS should use for the verification call. Warn the client that SARS often phones or asks for a branch/virtual interview and that the turnaround is 21-30 working days — never promise shorter."
+    },
+    {
+      "id": "vat_verify",
+      "title": "Verify documents and threshold evidence",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass the rules engine, invoices total above the applicable threshold and reconcile to bank receipts",
+      "aiInstructions": "Entity is the applicant vendor, not the ordering contact. Bank letter, business address and invoices must be in the entity's name; ID and residential address in the representative's name. Build a small schedule: invoice number, date, customer, amount, matched bank receipt. If the total is below R50 000 (voluntary) or the evidence is thin, stop and post a proposal to Kevin — SARS rejects weak applications and the client loses months."
+    },
+    {
+      "id": "vat_prereq_check",
+      "title": "Confirm registered representative and compliance status on eFiling",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.checkRegisteredRepresentative",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Active registered representative shown and Tax Compliance Status is Compliant",
+      "aiInstructions": "Under SARS Registered Details confirm the representative is active and that the cell number/email on record are the ones the client gave for the verification call — mismatches are the main reason interviews are missed. If no representative, propose the Tax Representative Appointment service first. Never attempt to solve OTP prompts."
+    },
+    {
+      "id": "vat_handoff",
+      "title": "Prepare VAT101 hand-off sheet and evidence pack",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet", "cover_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every VAT101 field, plus a merged evidence PDF (invoices schedule, bank letter, statements, address proof, IDs) posted for Kevin",
+      "aiInstructions": "VAT101 fields: liability date, registration type (compulsory/voluntary), taxable supplies past 12 months and expected next 12 months, accounting basis, tax period category (Category A/B two-monthly is default for under R30m; ⚠ verify category rules), main activity code, bank details, physical and postal address, representative details. Fill from verified facts only; never invent turnover figures. The cover letter briefly explains the business and how the threshold is met — SARS verifiers read it first."
+    },
+    {
+      "id": "vat_file",
+      "title": "Submit VAT101 on eFiling (RAV01 – Register for VAT)",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.registerTaxType:VAT",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "VAT101 submitted, supporting documents uploaded and SARS case number recorded",
+      "aiInstructions": "Kevin submits: SARS Registered Details > Maintain SARS Registered Details > VAT tab. Professional judgement is needed on liability date and basis. Upload the evidence pack when SARS requests supporting documents (usually immediately). Record the case number in the order."
+    },
+    {
+      "id": "vat_wait",
+      "title": "Wait for SARS verification / interview and outcome",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [10, 21, 30],
+      "estimatedDays": 30,
+      "doneCriteria": "VAT number issued (VAT103 available under Notices) or a SARS query received and answered",
+      "aiInstructions": "SARS commonly phones the representative, requests additional documents on eFiling, or books a branch/virtual interview. At each follow-up check the eFiling case status and the client's SARS correspondence; if an interview is booked, draft a client message with the date, what to bring (originals of the pack) and typical questions (nature of business, who the customers are, where they trade from). If SARS raises a query, create a proposal for Kevin with the query text. At day 30 with no outcome, escalate via the SARS Contact Centre with the case number."
+    },
+    {
+      "id": "vat_deliver",
+      "title": "Deliver VAT number and VAT103 notice",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["sars_notice_of_registration"],
+      "estimatedDays": 1,
+      "doneCriteria": "VAT103, VAT number, first tax period and compliance notes posted to Communication History",
+      "aiInstructions": "Explain: from the liability date all tax invoices must show the VAT number and 15% VAT, first VAT201 is due by the 25th (eFiling: last business day) after the period end, and records must be kept for 5 years. Offer the periodic VAT calculation and submission service."
+    },
+    {
+      "id": "vat_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

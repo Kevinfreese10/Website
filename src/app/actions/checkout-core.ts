@@ -6,7 +6,7 @@ import { checkExistingUserByEmail } from './auth-checks';
 import { sendOrderConfirmationEmailAction } from './notifications';
 import { Order, OrderServiceSnapshot, OrderChecklistItem } from '@/lib/types';
 import { checkRateLimit } from '@/lib/rate-limiter';
-import { getServiceChecklist, normalizeRequirementsWithIds } from '@/lib/services';
+import { getServiceChecklist, normalizeRequirementsWithIds, isPlaybookApproved, pickStepConfig } from '@/lib/services';
 
 export async function validateDiscountCodeAction({
   code,
@@ -212,15 +212,23 @@ export async function createCheckoutOrderAction({
         const normalizedReqs = normalizeRequirementsWithIds(serviceData.informationToProvide || []);
         const serviceChecklist = getServiceChecklist(serviceData);
 
+        // Freeze playbook approval state at checkout so later edits to the service
+        // never change what the agent is allowed to do on an in-flight order.
+        const playbookApproved = isPlaybookApproved(serviceData);
+
         serviceSnapshots.push({
           serviceId: item.id,
           title: serviceData.title || item.title,
           department: serviceData.department || 'Administration',
           requirements: normalizedReqs,
           checklist: serviceChecklist,
+          playbookApproved,
+          ...(serviceData.playbookVersion ? { playbookVersion: serviceData.playbookVersion } : {}),
+          ...(serviceData.playbookEntity ? { playbookEntity: serviceData.playbookEntity } : {}),
         });
 
         serviceChecklist.forEach((step, idx) => {
+          const stepConfig = pickStepConfig(step);
           initialChecklist.push({
             id: `chk_${item.id}_${step.id || idx}`,
             serviceId: item.id,
@@ -229,6 +237,10 @@ export async function createCheckoutOrderAction({
             description: step.description || '',
             type: step.type || 'manual',
             status: 'pending',
+            // Previously dropped here — the agent needs these on the order (plan §3.3).
+            ...(step.aiInstructions ? { aiInstructions: step.aiInstructions } : {}),
+            ...(step.templateIds && step.templateIds.length ? { templateIds: step.templateIds } : {}),
+            ...(stepConfig ? { stepConfig } : {}),
           });
         });
 

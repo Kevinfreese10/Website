@@ -1,0 +1,107 @@
+{
+  "slug": "import-licence",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "SARS Customs client number (importer code) issued via RLA",
+    "RLA approval notification / customs registration letter",
+    "Note on importer obligations (clearing agent use, tariff classification, ITAC permits for controlled goods)"
+  ],
+  "playbookCommonFailures": [
+    "No active registered representative on the entity's SARS profile — RLA will not accept the application",
+    "Cell number on the SARS profile cannot be verified: the affidavit / invoice / accountant's letter does not tie the number to the entity or the representative",
+    "Bank confirmation letter is in a director's personal name rather than the applicant entity's",
+    "Tax compliance status not in good standing (outstanding returns or debt) at the time of RLA submission",
+    "Proof of business address older than 3 months or a P.O. Box / virtual office that Customs will not accept as physical premises"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration documents (e.g., CIPC COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and active directors. For an individual importer this is N/A — use the certified ID instead." },
+    { "label": "Proof of address for the business - not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Signed lease agreement", "Municipal account", "Letter from the property owner with their proof of address"], "aiHint": "Proof of the PHYSICAL business address dated within 3 months, in the entity's name. Customs will not accept a P.O. Box or virtual office. Must match the address to be captured on RLA." },
+    { "label": "A bank confirmation letter in the name of the business or individual - not older than 3 months", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Official Bank Account Confirmation Letter from a registered South African bank in the APPLICANT's name dated within 3 months. Accept letters with official bank stamp OR digital verification reference/QR code. A statement is not acceptable." },
+    { "label": "Detailed description of goods to be imported", "type": "text", "isRequired": true, "aiHint": "Plain description of the goods, their origin countries and HS/tariff codes if known. Flag controlled goods (used goods, food, medicines, vehicles, textiles) that also need an ITAC import permit — that is a separate application." },
+    { "label": "The entity’s SARS eFiling username", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "The entity’s SARS eFiling password", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "An invoice, affidavit, or accountant’s letter confirming the cell phone number linked to the entity", "documentKind": "other", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Cell-phone contract or invoice in the entity's name", "Sworn affidavit by the representative confirming the number", "Accountant's letter (My Accountant can draft — template accountants_letter)"], "aiHint": "SARS RLA requires a verifiable cell number on the profile. Accept a cellphone contract/invoice showing the number and the entity/representative name, a commissioned affidavit confirming the number, or an accountant's letter. The number must be the one on SARS Registered Details." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "imp_collect",
+      "title": "Collect RLA supporting documents and credentials",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "All required uploads received, goods description and cell number captured",
+      "aiInstructions": "Name each document and why Customs needs it. Stress three things: the bank letter and address proof must be in the applicant's name and within 3 months; the entity must already have an active registered representative on SARS; and the cell number must be provable. Ask whether they will use a clearing agent. Do not promise faster than 1-2 working days for our submission — SARS approval can take longer."
+    },
+    {
+      "id": "imp_prereq_check",
+      "title": "Check registered representative, cell number and compliance status on eFiling",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.checkRegisteredRepresentative",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Active registered representative confirmed; cell number on SARS Registered Details matches the proof supplied; TCS Compliant",
+      "aiInstructions": "Under SARS Registered Details confirm: (1) registered representative active — if not, stop and propose the Tax Representative Appointment service; (2) the cell number on the profile equals the number in the affidavit/invoice/letter — if it differs, the RAV01 contact details must be updated first (OTP will be sent; hand off to Kevin); (3) Tax Compliance Status Compliant — if not, draft a client message listing what is outstanding. Never attempt OTP or CAPTCHA."
+    },
+    {
+      "id": "imp_verify",
+      "title": "Verify documents against Customs RLA requirements",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass the rules engine or are approved by Kevin",
+      "aiInstructions": "Entity is the importer, not the ordering contact. Bank letter and address must be in the entity's name; CoR14.3 must match. Check the goods list for ITAC-controlled items and note it for the deliver step. If the client has no cell-number proof, draft the accountants_letter for Kevin's signature."
+    },
+    {
+      "id": "imp_handoff",
+      "title": "Prepare RLA importer application hand-off sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every RLA field value and the document upload list posted for Kevin",
+      "aiInstructions": "Fields (RLA 'Importer' client type — the DA185 equivalent): applicant details, income tax and VAT numbers, physical and postal address, contact person and cell, bank details, nature of goods / tariff description, countries of origin, whether a clearing agent will be used and its customs code, expected annual import value. Fill from verified facts only; leave unknowns blank and flag."
+    },
+    {
+      "id": "imp_file",
+      "title": "Submit importer registration on eFiling RLA",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.rla:importer",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "RLA application staged with all documents attached; Kevin submits and the RLA case/reference number is recorded",
+      "aiInstructions": "Path: eFiling > Customs > Registration Licensing and Accreditation (RLA) > New Application > Client type 'Importer' (⚠ verify current menu names). Stage all values from the hand-off sheet, attach: CoR14.3, certified ID of representative, bank letter, proof of address, cell-number proof. Screenshot each screen and stop for Kevin to submit. Record the reference number."
+    },
+    {
+      "id": "imp_wait",
+      "title": "Wait for Customs approval",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [2, 5, 10],
+      "estimatedDays": 10,
+      "doneCriteria": "Customs client number issued on RLA dashboard / approval notification received",
+      "aiInstructions": "Check the RLA dashboard status at each follow-up. Customs may request additional documents or a site inspection; if so create a proposal for Kevin and a plain client message. Escalate via the Customs contact centre with the reference number if no movement by day 10."
+    },
+    {
+      "id": "imp_deliver",
+      "title": "Deliver customs client number and obligations note",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["customs_client_number"],
+      "estimatedDays": 1,
+      "doneCriteria": "Customs code, approval notice and guidance posted to Communication History",
+      "aiInstructions": "Explain: give the customs client number to the clearing agent, keep customs records for 5 years, and controlled goods need an ITAC permit. Mention that the profile must be kept current on RLA (address/bank changes). Offer the export licence if they trade both ways."
+    },
+    {
+      "id": "imp_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

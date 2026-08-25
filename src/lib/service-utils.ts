@@ -1,4 +1,4 @@
-import { Service, FulfillmentStep, Order } from './types';
+import { Service, FulfillmentStep, Order, ServiceRequirement, OrderChecklistItem } from './types';
 import { customAlphabet } from 'nanoid';
 
 const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 8);
@@ -50,6 +50,28 @@ export function getServiceChecklist(service?: Partial<Service> | null): Fulfillm
     return service.fulfillmentChecklist;
   }
   return DEFAULT_FULFILLMENT_CHECKLIST;
+}
+
+/**
+ * True only when a service has its own (non-default) checklist AND Kevin has stamped it approved.
+ * The AI order agent must never act on a service where this is false (plan §2 principle 3).
+ */
+export function isPlaybookApproved(service?: Partial<Service> | null): boolean {
+  if (!service) return false;
+  const hasOwnChecklist = Array.isArray(service.fulfillmentChecklist) && service.fulfillmentChecklist.length > 0;
+  const approval = service.playbookApproval;
+  return hasOwnChecklist && !!approval && !!approval.approvedAt && !!approval.approvedBy;
+}
+
+/** The agent-relevant subset of a FulfillmentStep frozen onto each order checklist item at checkout. */
+export function pickStepConfig(step: FulfillmentStep): OrderChecklistItem['stepConfig'] {
+  const cfg: NonNullable<OrderChecklistItem['stepConfig']> = {};
+  const keys = ['owner','doneCriteria','requirementIds','emailTo','emailSubjectTemplate','expectedReply','portalId','portalProcedure','submitMode','followUpAfterDays','deliverArtefacts','estimatedDays'] as const;
+  for (const k of keys) {
+    const v = (step as any)[k];
+    if (v !== undefined && v !== null) (cfg as any)[k] = v;
+  }
+  return Object.keys(cfg).length ? cfg : undefined;
 }
 
 /**
@@ -182,7 +204,9 @@ export function resolvePartnerMirrorOrderId(order: any): string | null {
  */
 export function stripInternalAiData<T extends { aiVerification?: any }>(uploads: T[] = []): T[] {
   return uploads.map(upload => {
-    const { aiVerification, ...clientSafe } = upload as any;
+    // mechanicalCheck facts and encrypted credential values are internal too (plan §6.8, §9 risks).
+    const { aiVerification, mechanicalCheck, ...clientSafe } = upload as any;
+    if (clientSafe.isEncrypted) clientSafe.textValue = '••••••••';
     return clientSafe as T;
   });
 }
@@ -202,7 +226,7 @@ export function stripInternalChecklistAiData<T extends Record<string, any>>(chec
 /**
  * Normalizes informationToProvide array by ensuring every item has a stable unique ID.
  */
-export function normalizeRequirementsWithIds(items: any[] = []): { id: string; label: string; type?: 'text' | 'pdf' | 'excel' | 'image' | 'any'; helpText?: string; isConditional?: boolean; conditionalQuestion?: string; isRequired?: boolean; aiHint?: string }[] {
+export function normalizeRequirementsWithIds(items: any[] = []): (ServiceRequirement & { id: string })[] {
   return items.map((item, index) => {
     if (typeof item === 'string') {
       return {

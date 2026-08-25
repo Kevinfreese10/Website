@@ -1,0 +1,116 @@
+{
+  "slug": "personal-liability-company-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC registration certificate (CoR14.3) for the Inc. company",
+    "Registered customised Memorandum of Incorporation with the s8(2)(c) personal liability clause",
+    "SARS income tax reference number issued via CIPC",
+    "Share certificates and first director resolution"
+  ],
+  "playbookCommonFailures": [
+    "Client actually wants an ordinary (Pty) Ltd — a personal liability company is for professional practices where directors accept joint liability",
+    "MOI does not contain the s8(2)(c) clause, so CIPC registers it as a private company or rejects it",
+    "All four proposed names rejected",
+    "Certified ID or proof of address older than 3 months for a director / shareholder",
+    "Shareholding percentages not supplied for the share certificates"
+  ],
+  "informationToProvide": [
+    { "label": "Certified ID copies of all directors and shareholders", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back or Green Book) or passport per director and per shareholder, Commissioner of Oaths / SAPS stamp dated within 3 months, legible ID number and names." },
+    { "label": "Proof of residential address for all directors", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease", "Bank statement showing the address"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per director (utility bill, rates/taxes, lease or bank statement) in the director's own name." },
+    { "label": "Proposed company name options (3-4 choices)", "type": "text", "isRequired": true, "helpText": "In order of preference, no special characters. The name will end with 'Incorporated' or 'Inc.'." },
+    { "label": "Registered physical and postal addresses for the company", "type": "text", "isRequired": true },
+    { "label": "Contact details (email and phone) for all directors", "type": "text", "isRequired": true },
+    { "label": "Details of business activities/industry", "type": "text", "isRequired": true, "helpText": "The profession or practice (e.g. attorneys, accountants, medical practice)." },
+    { "label": "Shareholding: each shareholder's name and percentage", "type": "text", "isRequired": true, "helpText": "Must total 100%." },
+    { "label": "Company financial year-end", "type": "text", "isRequired": true, "helpText": "Normally end of February." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "plc_collect",
+      "title": "Collect director/shareholder documents, names and MOI details",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Certified IDs and proofs of address, names, addresses, contact details, profession, shareholding and year-end received",
+      "aiInstructions": "Confirm the client understands that in a personal liability company (Inc.) the directors, past and present, are jointly and severally liable with the company for its contractual debts (s19(3)) — it is used by professions whose rules require it (attorneys, some accounting and medical practices). If that is not what they need, propose Private Company Registration instead. Ask whether the profession's regulator requires specific MOI wording. Turnaround 7-10 working days; never promise faster."
+    },
+    {
+      "id": "plc_verify",
+      "title": "Verify documents and screen names",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass; every director and shareholder identified; names screened; shareholding totals 100%",
+      "aiInstructions": "Extract names, ID numbers, DOB, addresses. Run a CIPC name search on each proposed name. Check that no name contains a restricted word."
+    },
+    {
+      "id": "plc_moi",
+      "title": "Draft the customised MOI for a personal liability company",
+      "type": "manual",
+      "owner": "kevin",
+      "estimatedDays": 2,
+      "doneCriteria": "Customised MOI (based on CoR15.1B) reviewed by Kevin with the s8(2)(c) clause, share structure and any professional-body requirements",
+      "aiInstructions": "Kevin drafts — professional judgement. The MOI must state that it is a personal liability company and that s19(3) applies (directors jointly and severally liable for contractual debts); name must end with 'Incorporated'. Set authorised shares, classes and any restrictions on share transfers to qualified professionals. ⚠ verify: CIPC form for a customised MOI is CoR15.1B and the registration fee is higher than for a standard MOI (~R475). The agent pre-fills factual fields and flags gaps."
+    },
+    {
+      "id": "plc_draft",
+      "title": "Draft registration handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Handoff sheet with every CoR14.1 / 14.1A field, names in order, directors, incorporators, addresses, year-end and MOI attached",
+      "aiInstructions": "List directors and incorporators with ID numbers, residential and postal addresses, contact details, and the company addresses. Incorporators are the initial shareholders."
+    },
+    {
+      "id": "plc_file",
+      "title": "Reserve name and register the Inc. company on CIPC",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.registerCompany:INC",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Name reserved and registration lodged with the customised MOI and certified IDs; fees paid; tracking number saved",
+      "aiInstructions": "Kevin files — customised MOI registrations need judgement. CIPC e-Services > Name Reservation (CoR9.1, four names), then Register Company > Personal Liability Company with the customised MOI upload (CoR15.1B). Record the tracking number."
+    },
+    {
+      "id": "plc_wait",
+      "title": "Wait for CIPC to process the registration",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [7, 10],
+      "estimatedDays": 10,
+      "doneCriteria": "CoR14.3, registered MOI and income tax number available",
+      "aiInstructions": "Customised MOIs are manually reviewed by CIPC, which takes longer than a standard registration. Check tracking status before following up; route any MOI query to Kevin verbatim."
+    },
+    {
+      "id": "plc_post",
+      "title": "Draft share certificates, securities register and first resolution",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["share_certificate", "securities_register", "director_resolution"],
+      "estimatedDays": 1,
+      "doneCriteria": "Share certificates per shareholder, securities register and first board resolution (allotment, bank account, year-end) drafted with the new registration number",
+      "aiInstructions": "Issue shares per the confirmed shareholding out of the authorised shares in the MOI. Certificates are numbered from 1 and signed by the directors."
+    },
+    {
+      "id": "plc_deliver",
+      "title": "Deliver CoR14.3, MOI, tax number and share documents",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cor14_3", "moi", "sars_notice_of_registration", "share_certificate", "securities_register"],
+      "estimatedDays": 1,
+      "doneCriteria": "All registration documents posted to Communication History",
+      "aiInstructions": "Explain next steps: bank account, SARS eFiling and tax representative, professional body registration, beneficial ownership declaration and first annual return in 12 months. Offer the relevant services."
+    },
+    {
+      "id": "plc_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

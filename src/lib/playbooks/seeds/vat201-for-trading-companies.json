@@ -1,0 +1,115 @@
+{
+  "slug": "vat201-for-trading-companies",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "VAT201 submitted on eFiling from the client's figures",
+    "Submission confirmation and payment reference (PRN)"
+  ],
+  "playbookCommonFailures": [
+    "Client supplies VAT-inclusive totals when VAT-exclusive are expected, or output/input figures swapped",
+    "Wrong tax period for the vendor's category (2-monthly A/B vs monthly C)",
+    "Client figures do not agree to their own accounting system VAT report and Kevin has not been told the calc is excluded",
+    "Return filed but VAT not paid by the last business day of the month → 10% penalty and interest",
+    "Zero-rated / exempt supplies entered in the standard-rated field"
+  ],
+  "informationToProvide": [
+    {
+      "label": "Company Name",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Registered company name as on the SARS profile with the VAT registration number (10 digits starting with 4)."
+    },
+    {
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "Completed VAT figures for the period (output VAT, input VAT, zero-rated and exempt supplies)",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "This service excludes the VAT calculation: the client must supply the final figures for each VAT201 field. Accept a VAT report from their accounting system (Xero/Sage/QuickBooks) as the source. If they cannot supply figures, upsell Periodic VAT Calculation and Submission."
+    },
+    {
+      "label": "VAT report from accounting system for the period",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Manually completed VAT201 worksheet"
+      ],
+      "isRequired": false,
+      "aiHint": "System VAT return report showing sales by VAT type, purchases by VAT type and net VAT. Used to verify the client's figures before filing."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "vat201t_collect",
+      "title": "Collect eFiling access and the client's VAT figures",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Credentials and a complete set of VAT201 field values (or a system VAT report) for the period on file",
+      "aiInstructions": "Explain that this service files the figures the client provides and does not calculate them. Ask for the tax period, output VAT on standard-rated supplies, zero-rated and exempt supplies, input VAT on purchases and capital goods, and any adjustments. Do not promise a turnaround shorter than 1–2 working days."
+    },
+    {
+      "id": "vat201t_verify",
+      "title": "Verify figures are internally consistent and the period is right",
+      "type": "verify",
+      "owner": "staff",
+      "estimatedDays": 1,
+      "doneCriteria": "Field values reconcile (15% check on standard-rated supplies), period matches the vendor category and the return is issued on eFiling",
+      "aiInstructions": "Sanity-check: output VAT ≈ 15% of standard-rated supplies (field 1 → field 4); input VAT not more than 15% of purchases; net = output − input. Check period category on eFiling (A/B 2-monthly, C monthly). Flag anything that looks VAT-inclusive. Do not recalculate from source — if the figures are unreliable, raise a proposal to upsell the calculation service."
+    },
+    {
+      "id": "vat201t_handoff",
+      "title": "Draft VAT201 handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "handoff_sheet"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Handoff sheet lists every VAT201 field number and value with the client's source",
+      "aiInstructions": "Map to VAT201 fields (1, 1A, 2, 2A, 3, 4, 4A, 5–13 outputs; 14–19 inputs; 20 net). Show payable/refundable and the due date."
+    },
+    {
+      "id": "vat201t_file",
+      "title": "Complete and submit the VAT201 on eFiling",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.submitReturn:VAT201",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "VAT201 submitted; confirmation and PRN saved",
+      "aiInstructions": "Returns → VAT201 → select the tax period. Enter each field from the handoff sheet; check the computed VAT payable/refundable matches. Agent drives to the summary; Kevin reviews and presses Submit and captures the PRN. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+    },
+    {
+      "id": "vat201t_deliver",
+      "title": "Deliver submission confirmation and payment details",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "submission_confirmation"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Filed VAT201, PRN, amount and due date posted to Communication History",
+      "aiInstructions": "Give the amount payable, PRN, and due date (last business day of the month following the period for eFiling vendors ⚠ verify) or say a refund is due and SARS may verify before paying. No deadline threats."
+    },
+    {
+      "id": "vat201t_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

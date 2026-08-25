@@ -4,6 +4,8 @@ import {
   resolvePartnerMirrorOrderId,
   stripInternalAiData,
   stripInternalChecklistAiData,
+  isPlaybookApproved,
+  pickStepConfig,
 } from './service-utils';
 
 /**
@@ -149,5 +151,29 @@ describe('stripInternalChecklistAiData', () => {
     expect(step.title).toBe('Document Verification');
     expect((step as any).aiNotes).toBeUndefined();
     expect((step as any).isAiRecommended).toBeUndefined();
+  });
+});
+
+describe('isPlaybookApproved / pickStepConfig (AI order agent Phase 0)', () => {
+  const step: any = { id: 's1', title: 'Submit', type: 'portal_filing', portalId: 'cipc', portalProcedure: 'cipc.fileCoR39', submitMode: 'stage', estimatedDays: 2, aiInstructions: 'x' };
+
+  it('is false for a service with no checklist even if an approval stamp exists', () => {
+    expect(isPlaybookApproved({ fulfillmentChecklist: [], playbookApproval: { approvedBy: 'u', approvedAt: '2026-08-24T00:00:00Z', version: 1 } } as any)).toBe(false);
+  });
+
+  it('is false for a checklist without an approval stamp', () => {
+    expect(isPlaybookApproved({ fulfillmentChecklist: [step] } as any)).toBe(false);
+    expect(isPlaybookApproved({ fulfillmentChecklist: [step], playbookApproval: null } as any)).toBe(false);
+  });
+
+  it('is true only when both a checklist and a complete approval stamp exist', () => {
+    expect(isPlaybookApproved({ fulfillmentChecklist: [step], playbookApproval: { approvedBy: 'u', approvedAt: '2026-08-24T00:00:00Z', version: 1 } } as any)).toBe(true);
+  });
+
+  it('pickStepConfig keeps only agent channel fields and drops prose', () => {
+    const cfg = pickStepConfig(step);
+    expect(cfg).toEqual({ portalId: 'cipc', portalProcedure: 'cipc.fileCoR39', submitMode: 'stage', estimatedDays: 2 });
+    expect((cfg as any).aiInstructions).toBeUndefined();
+    expect(pickStepConfig({ id: 'a', title: 'b', type: 'manual' })).toBeUndefined();
   });
 });

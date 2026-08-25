@@ -1,0 +1,104 @@
+{
+  "slug": "ncca-registration-services",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "NCCA registration certificate",
+    "NCCA registration / membership number",
+    "Confirmation of submission and acknowledgement from the registering body"
+  ],
+  "playbookCommonFailures": [
+    "The registering body has not been confirmed — the catalogue's 'NCCA' is ambiguous and the pack goes to the wrong place",
+    "COIDA Letter of Good Standing expired or not yet issued because the assessment is unpaid",
+    "Certified director IDs older than 3 months",
+    "Proof of business address older than 3 months or in a director's name",
+    "Nature-of-business description does not match the activity the body registers"
+  ],
+  "informationToProvide": [
+    { "label": "Certified copies of all directors'/members' ID documents - not older than 3 months", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for a foreign director"], "isRequired": true, "aiHint": "Certified ID copy for every director on the CoR14.3 (or member on the CK document), certified within the last 3 months with legible stamp, signature and date." },
+    { "label": "Company registration documents (e.g., CIPC CoR14.3, CoR39)", "documentKind": "cor14_3", "inNameOf": "entity", "alternatives": ["CoR39 showing current directors", "CK1 / CK2 for a close corporation"], "isRequired": true, "aiHint": "CIPC CoR14.3 and, where directors have changed, the latest CoR39. Registered name, enterprise number and directors must match the IDs supplied." },
+    { "label": "Proof of business address (utility bill or lease agreement)", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Municipal rates account"], "isRequired": true, "aiHint": "Utility bill, municipal account or signed lease in the company's name showing the physical business address, dated within 3 months." },
+    { "label": "Details regarding the nature of your business activities requiring NCCA registration", "type": "text", "isRequired": true, "aiHint": "Plain description of what the business does, for whom, and why NCCA registration is required (e.g. a tender, a client contract, a licence condition). Also ask which body the client understands 'NCCA' to be — this tells Kevin where the application goes." },
+    { "label": "Completed NCCA-specific information forms (if applicable, provided by us)", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "The body's own application form completed and signed by a director, if we have supplied one. Check every mandatory field is filled and the signature is present." },
+    { "label": "Letter of good standing from the Department of Labour for Compensation for Occupational Injuries and Diseases Act (COIDA)", "documentKind": "letter_of_good_standing", "inNameOf": "entity", "isRequired": true, "aiHint": "Current Compensation Fund Letter of Good Standing in the company's name; check the expiry date printed on it is in the future. If none exists, offer COIDA Registration / Renewal first." },
+    { "label": "Proof of registration with SARS (income tax number / TCS PIN)", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": false, "aiHint": "SARS Notice of Registration or Tax Compliance Status PIN letter for the company. The catalogue prerequisite is truncated at 'Proof' — ⚠ confirm with Kevin what proof is intended." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "ncca_collect",
+      "title": "Collect NCCA registration requirements from client",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "Every required document uploaded, nature-of-business answered, COIDA Letter of Good Standing valid",
+      "aiInstructions": "⚠ ASK KEVIN BEFORE ANYTHING ELSE: the catalogue calls this 'NCCA Registration' but does not say which body that is (plan §4.4 flags it as ambiguous). Do not chase documents that assume a particular body until Kevin confirms the regulator, its form and its channel. Once confirmed: chase only what is missing, name each document and why the body needs it, and remind that certified IDs and proof of address must be within 3 months. Do not promise a shorter turnaround than 21–45 working days."
+    },
+    {
+      "id": "ncca_verify",
+      "title": "Verify documents against the body's requirements",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All required uploads pass the rules engine or are approved by Kevin; COIDA letter unexpired",
+      "aiInstructions": "The applicant is the company, never the ordering contact. CoR14.3, proof of address and Letter of Good Standing in the company's name and agreeing on the registered name. Director names on CoR14.3 / CoR39 must match the certified IDs; certification within 90 days. Read the Letter of Good Standing expiry date and flag if it lapses within 30 days. Extract enterprise number, income tax number, physical address, directors and the business description."
+    },
+    {
+      "id": "ncca_draft",
+      "title": "Draft application pack: cover letter, POA and hand-off sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["cover_letter", "power_of_attorney", "handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Cover letter, POA and application field hand-off sheet posted for Kevin's review",
+      "aiInstructions": "Cover letter on My Accountant letterhead addressed to the body Kevin confirms, listing the enclosed documents. Special POA authorising Kevin Freese (CIBA #3561) to lodge and follow up the application. Hand-off sheet mirroring the body's application form fields (⚠ verify the form once the body is known) filled from extracted facts; never invent a membership category, fee or activity code — leave blank and flag."
+    },
+    {
+      "id": "ncca_client_sign",
+      "title": "Send application form and POA to client for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Signed application form and POA uploaded by client",
+      "aiInstructions": "Post the approved drafts with plain instructions: a director signs where marked and returns as PDF. Ask for commissioner of oaths certification only where the body's form requires it."
+    },
+    {
+      "id": "ncca_submit",
+      "title": "Email application pack to the registering body",
+      "type": "email_submission",
+      "owner": "agent",
+      "emailTo": "registrations@ncca-body.invalid",
+      "emailSubjectTemplate": "Application for registration — {entityName} ({registrationNumber})",
+      "expectedReply": "Acknowledgement with an application reference and any fee invoice",
+      "estimatedDays": 1,
+      "doneCriteria": "Pack sent and acknowledgement received",
+      "aiInstructions": "⚠ CONFIRM ADDRESS WITH KEVIN — the address above is a placeholder and MUST be replaced; which body 'NCCA' refers to is unknown and plan §4.4 marks the channel ⚠. Attach: signed application form, cover letter, POA, CoR14.3 / CoR39, certified director IDs, proof of address, COIDA Letter of Good Standing, SARS proof. If the body issues a fee invoice, draft a client message with the amount and reference — our fee excludes the body's fees."
+    },
+    {
+      "id": "ncca_wait",
+      "title": "Wait for the body's decision and follow up",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [15, 30, 45],
+      "estimatedDays": 45,
+      "doneCriteria": "Registration certificate / number received, or a query from the body",
+      "aiInstructions": "Draft a polite status-request email quoting the reference at each follow-up point. If the body raises a query, create a proposal for Kevin with the query text and the documents it concerns."
+    },
+    {
+      "id": "ncca_deliver",
+      "title": "Deliver NCCA certificate and number to client",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["ncca_certificate"],
+      "estimatedDays": 1,
+      "doneCriteria": "Certificate and registration number posted to Communication History",
+      "aiInstructions": "Post the certificate, note any renewal date printed on it and the need to keep the COIDA Letter of Good Standing current."
+    },
+    {
+      "id": "ncca_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

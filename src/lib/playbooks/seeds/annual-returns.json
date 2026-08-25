@@ -1,0 +1,79 @@
+{
+  "slug": "annual-returns",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC annual return filing certificate / confirmation",
+    "Fee calculation showing the turnover band and any late-filing penalty",
+    "Updated company status confirmation (In Business)"
+  ],
+  "playbookCommonFailures": [
+    "Turnover figure supplied is for the wrong financial year, so the wrong CIPC fee band is selected",
+    "Beneficial ownership declaration not yet filed, so CIPC blocks the annual return",
+    "Company already in 'AR Final Deregistration' status — a reinstatement is needed, not an annual return",
+    "CIPC customer account has insufficient balance for the fee plus penalty on the day of filing",
+    "Financial statements or Financial Accountability Supplement (FAS) required and not provided"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration documents (e.g., CIPC documents)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. The registration number is what the filing is keyed on — extract it carefully (format YYYY/NNNNNN/07 for a company, YYYY/NNNNNN/23 for a CC)." },
+    { "label": "Turnover amount for year to be filed", "type": "text", "isRequired": true, "helpText": "Total turnover (sales) for the financial year that the annual return covers. Use R0 if the company did not trade.", "aiHint": "A Rand amount per financial year being filed. If more than one year is outstanding, one figure per year. Cross-check against AFS or management accounts if uploaded." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "ar_collect",
+      "title": "Collect company documents and turnover per outstanding year",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Registration number confirmed and a turnover figure supplied for every outstanding annual return year",
+      "aiInstructions": "Look up the company on CIPC first to see how many annual return years are outstanding, then ask for a turnover figure for EACH year, not just the latest. Explain that the CIPC fee is turnover-based and is charged in addition to our R450 (the catalogue excludes CIPC fees). Ask if the client has signed AFS for the year — if the company is audited or its public interest score requires it, CIPC asks for AFS or the FAS with the return."
+    },
+    {
+      "id": "ar_verify",
+      "title": "Verify company status and beneficial ownership compliance",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Company status is 'In Business' or 'AR Deregistration' (recoverable); BO declaration status known",
+      "aiInstructions": "On CIPC e-Services check the enterprise status and the annual return history. If status is 'Final Deregistration', stop and propose the Company Reinstatement service. Since 2024 CIPC requires a beneficial ownership declaration to be filed (or confirmed) before the annual return is accepted — check whether a BO filing exists for the company; if not, propose adding the Beneficial Ownership Declaration service and warn the client the AR will bounce without it. Confirm the financial year-end on the register so the correct AR year is filed."
+    },
+    {
+      "id": "ar_calc",
+      "title": "Calculate CIPC annual return fee and penalties",
+      "type": "calculate",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Fee per year, penalty per year and total to be paid to CIPC computed and shown to Kevin",
+      "aiInstructions": "Apply the CIPC turnover bands per year. ⚠ verify the current fee table before relying on it: private company / CC bands are roughly: under R1m = R100, R1m to R10m = R450, R10m to R25m = R2,000, over R25m = R3,000; a late penalty (about R150 per year for a private company) applies where the return is filed more than 30 business days after the anniversary of incorporation. Non-profit companies have a lower band. Present a table: year, turnover, band, fee, penalty, total. Do not collect money from the client yourself — payment is handled by Kevin via the CIPC customer account (see cipc-annual-fees)."
+    },
+    {
+      "id": "ar_file",
+      "title": "File annual return(s) on CIPC e-Services",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileAnnualReturn",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Return staged with turnover per year and Kevin has submitted; CIPC AR certificate downloaded",
+      "aiInstructions": "CIPC e-Services > Transact > File Annual Returns (or the Annual Returns portal). Enter the registration number, file the oldest outstanding year first, capture turnover per year exactly as confirmed, answer the compliance checklist and the AFS/FAS questions truthfully. Confirm the customer account balance covers the total from ar_calc before submitting — the transaction fails silently on insufficient funds. Save the annual return certificate PDF and the payment receipt per year."
+    },
+    {
+      "id": "ar_deliver",
+      "title": "Deliver annual return certificate and fee breakdown",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["annual_return_certificate", "cipc_fee_receipt"],
+      "estimatedDays": 1,
+      "doneCriteria": "Certificate, receipt and fee table posted to Communication History",
+      "aiInstructions": "State the next annual return due date (anniversary month of incorporation) and offer a reminder. Mention that the CIPC fee was paid on the client's behalf and will be invoiced as a disbursement if not already."
+    },
+    {
+      "id": "ar_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

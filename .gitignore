@@ -46,3 +46,8 @@ firestore-debug.log
 # Local secret-inspection helpers (must never be committed)
 check-secret.js
 scratch/find-secret-*.js
+
+scratch/order_*_audit/
+scratch/email_triage_audit*/
+scratch/*.tgz
+worker/portal-runner/.env

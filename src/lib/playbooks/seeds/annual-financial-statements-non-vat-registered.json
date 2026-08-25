@@ -1,0 +1,107 @@
+{
+  "slug": "annual-financial-statements-non-vat-registered",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Compiled Annual Financial Statements (statement of financial position, statement of comprehensive income, changes in equity, cash flows, notes) signed by Kevin Freese, CBA(SA) #3561 and the directors",
+    "Final trial balance and general ledger produced in the AI Accountant module",
+    "Management letter with key insights and recommendations"
+  ],
+  "playbookCommonFailures": [
+    "Bank statements missing months or supplied as scans/photos that cannot be imported",
+    "Personal and business transactions mixed in one bank account, leaving large unallocated amounts",
+    "Loan agreements and asset invoices not supplied, so liabilities and PPE cannot be supported",
+    "Opening balances cannot be established because no prior-year AFS or trial balance exists",
+    "Directors slow to answer allocation queries, delaying the trial balance lock"
+  ],
+  "informationToProvide": [
+    { "label": "Access to your accounting software (e.g., Xero, QuickBooks, Sage) or detailed ledger records for the financial year", "type": "any", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "alternatives": ["Accountant invite to Xero / Sage / QuickBooks", "General ledger export (Excel/CSV)"], "aiHint": "Either an accountant-level invite to the client's accounting software or a general ledger / transaction listing export for the full financial year. Many non-VAT clients have neither — in that case the books are built from bank statements and this item is not required." },
+    { "label": "Bank statements for the full financial year", "type": "pdf", "documentKind": "bank_statement", "inNameOf": "entity", "isRequired": true, "aiHint": "Consecutive original electronic PDF bank statements for every business account covering the full financial year (no scans or photos — they must be importable into AI Accountant). Check the first statement starts at or before the year start and the last ends at or after the year end, with no gaps." },
+    { "label": "Details of all assets and liabilities (e.g., loan agreements, asset registers)", "type": "any", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "aiHint": "Loan agreements and year-end loan statements (bank, vehicle finance, director loans), fixed asset register or invoices for assets bought/sold, and any amounts owed to or by the business at year end. Used to support balance sheet items that do not appear in the bank statements." },
+    { "label": "Any relevant contracts or agreements (e.g., leases, supplier contracts)", "type": "pdf", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "Lease agreements, supplier or customer contracts and instalment sale agreements in the entity's name. Needed to classify rentals, identify commitments and disclose related-party arrangements." },
+    { "label": "Previous year's financial statements (if applicable)", "type": "pdf", "documentKind": "afs", "inNameOf": "entity", "isRequired": false, "aiHint": "Signed prior-year AFS for the same entity, used for opening balances and comparatives. If the company is in its first year, ask the client to confirm this instead." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "afsn_collect",
+      "title": "Collect bank statements, asset and loan details and prior AFS",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Full-year bank statements for every account, asset/liability details and prior AFS (or first-year confirmation) uploaded",
+      "aiInstructions": "Ask for the financial year end first, then check the bank statements span it with no missing months. Name every missing item and why it is needed (bank statements are the source of the books; loan statements support liabilities; asset invoices support depreciation). Confirm the entity is not VAT registered — if it is, tell the client the VAT-registered AFS service applies and route to Kevin. Do not promise faster than 7–10 working days from receipt of everything."
+    },
+    {
+      "id": "afsn_verify",
+      "title": "Verify statements are complete and in the entity's name",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Every bank statement is an original PDF in the company's name, months are consecutive, and opening/closing balances chain from month to month",
+      "aiInstructions": "The entity is the company on the CoR14.3, never the ordering contact. Reject scans and photos — they cannot be imported. Check each statement's closing balance equals the next statement's opening balance; list gaps by month and account. Flag any personal account statements supplied by mistake. Note any loans, asset purchases or large once-off receipts visible on the statements so they can be queried early."
+    },
+    {
+      "id": "afsn_import",
+      "title": "Import bank statements and allocate transactions in AI Accountant",
+      "type": "calculate",
+      "owner": "staff",
+      "estimatedDays": 3,
+      "doneCriteria": "All statements imported, every transaction allocated to a ledger account, bank reconciles to nil difference, asset register and loans captured",
+      "aiInstructions": "In the AI Accountant module: create the entity and financial year, import each PDF statement, and allocate every line to a chart of accounts item. Use the client's software export if one was supplied to check allocations. Capture fixed assets from the register/invoices and post depreciation; capture loans from the loan statements and split capital and interest. Transactions that cannot be identified go on a query list with date, amount and bank description — do not dump them to 'sundry expenses' or the director's loan without a query. Aim for the bank to reconcile with a nil difference before handing to Kevin."
+    },
+    {
+      "id": "afsn_queries",
+      "title": "Send allocation queries to the client",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Client has answered every query on the list or confirmed a default treatment",
+      "aiInstructions": "Plain South African English. Send one consolidated list of unidentified transactions (date, amount, bank reference) and ask what each was for. Ask specifically about director loans, cash withdrawals and once-off large receipts. Explain that unanswered items may have to be treated as amounts owing by the director. No deadline threats."
+    },
+    {
+      "id": "afsn_review_tb",
+      "title": "Review trial balance and approve adjustments",
+      "type": "calculate",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin has reviewed the TB, approved adjusting journals (depreciation, accruals, loan interest, income tax) and locked the final TB",
+      "aiInstructions": "Prepare a proposal for Kevin: draft TB, bank reconciliation, list of adjustments proposed (depreciation per asset register, accruals, director loan interest, current tax based on provisional payments seen on the statements) and the remaining unresolved queries. Kevin decides every adjustment; the agent never posts a journal without approval. ⚠ verify: the reporting framework (IFRS for SMEs by default) and whether the company's Public Interest Score requires independent review or audit rather than compilation — if so stop and tell Kevin."
+    },
+    {
+      "id": "afsn_draft",
+      "title": "Draft the AFS pack and management letter",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["afs_pack", "cover_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Draft AFS and management letter generated from the locked TB and posted for Kevin's review",
+      "aiInstructions": "Generate the afs_pack from the locked TB: directors' responsibility statement, compilation report (Kevin Freese CBA(SA) #3561 — signature applied only at approval), statement of financial position, statement of comprehensive income, changes in equity, cash flows, accounting policies and notes, plus the detailed income statement. Company details from the CoR14.3 on file; never guess directors. Use the cover_letter template for the management letter: three to five plain-language insights (margin, cash position, director loan balance, tax exposure, record-keeping recommendations). Check statements cross-cast and the cash flow ties to the bank movement."
+    },
+    {
+      "id": "afsn_client_review",
+      "title": "Send draft AFS to directors for review and signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Directors have approved the draft and returned the signed directors' responsibility statement and representation letter",
+      "aiInstructions": "Plain South African English. Explain that these are the draft AFS for the year ended [date], summarise the headline result, and ask the directors to sign the directors' responsibility statement and management representation letter where marked and return as PDF. Requested changes to figures go to Kevin as a proposal — never change numbers to please the client."
+    },
+    {
+      "id": "afsn_deliver",
+      "title": "Deliver signed AFS and management letter",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["afs_signed", "management_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Signed AFS, management letter, final TB and general ledger posted to Communication History",
+      "aiInstructions": "Post the signed AFS, the management letter, the final trial balance and the general ledger export. Note that the AFS feed the ITR14 company return and the CIPC annual return, and offer those services."
+    },
+    {
+      "id": "afsn_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the AFS are signed and the order can be completed"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "slug": "company-reinstatement",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC confirmation that the company status is restored to 'In Business'",
+    "Filed outstanding annual returns and certificates",
+    "Signed CoR40.5 application and supporting affidavit (client copy)"
+  ],
+  "playbookCommonFailures": [
+    "Company is only in 'AR Deregistration' (process), not final — it needs annual returns filed, not a CoR40.5",
+    "Affidavit does not explain why the company was in business at deregistration and why reinstatement is needed",
+    "Deed search not obtained, or company owns immovable property so extra documents are needed",
+    "Certified director ID older than 3 months",
+    "Outstanding annual return fees and penalties not paid after reinstatement, so the company drops back into deregistration"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration documents (e.g., CK/COR documents)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and directors at the time of deregistration." },
+    { "label": "Clear ID copies of all directors", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "Certified SA ID or passport for every director, Commissioner of Oaths / SAPS stamp dated within 3 months. CIPC requires certified copies for reinstatement even though the catalogue says 'clear' — treat as certified." },
+    { "label": "Details of company's last annual return submission", "type": "text", "isRequired": false, "helpText": "Last year filed, if known. We will confirm on CIPC." },
+    { "label": "Reason for reinstatement (e.g., to continue trading, asset ownership)", "type": "text", "isRequired": true, "helpText": "Why the company must be reinstated — e.g. it is still trading, owns property or a vehicle, has a bank account or contracts in its name." },
+    { "label": "Nature of business", "type": "text", "isRequired": true },
+    { "label": "Turnover for each outstanding annual return year", "type": "text", "isRequired": true, "helpText": "Needed to file the outstanding annual returns after reinstatement. R0 if the company did not trade.", "aiHint": "One Rand figure per outstanding year for the CIPC fee band." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "re_collect",
+      "title": "Collect company documents, director IDs and reason for reinstatement",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "CoR14.3, certified IDs for all directors, reason, nature of business and turnover per outstanding year received",
+      "aiInstructions": "Explain that the R200 CIPC reinstatement fee and the outstanding annual return fees and penalties are payable in addition to our R700 and will be shown as disbursements. Ask whether the company owns immovable property or has any assets — this determines the supporting documents. Ask whether the company was trading on the date it was deregistered (it must have been, or be able to show a real reason to be restored)."
+    },
+    {
+      "id": "re_verify",
+      "title": "Assess deregistration status and reinstatement route",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "CIPC status recorded; route decided: file outstanding ARs only (status 'AR Deregistration') or full CoR40.5 reinstatement (status 'Final Deregistration')",
+      "aiInstructions": "Check the enterprise status on CIPC e-Services. If status is 'AR Deregistration' (deregistration in process), no CoR40.5 is needed — filing all outstanding annual returns restores it; skip to re_file_ar. If 'Final Deregistration' / 'Deregistered', the full reinstatement applies. ⚠ verify the current CIPC supporting-document list for CoR40.5; understood to be: certified ID of the applicant and of a director, a deed search (Deeds Office) confirming whether the company owns property, an affidavit explaining why the company was deregistered and the reason for reinstatement, and proof of trading at deregistration (e.g. bank statement, contract). Some CIPC practice notes have also required letters from the Deeds Office / Treasury where property is held — flag for Kevin."
+    },
+    {
+      "id": "re_draft",
+      "title": "Draft CoR40.5 handoff sheet, affidavit text and cover letter",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet", "cover_letter", "director_resolution"],
+      "estimatedDays": 1,
+      "doneCriteria": "CoR40.5 fields, affidavit wording and cover letter drafted for Kevin's review",
+      "aiInstructions": "The affidavit (sworn by a director before a Commissioner of Oaths) must state: the company's name and number, that it was in business / owns assets on the deregistration date, the reason for the failure to file annual returns, and why reinstatement is required. Do not invent facts — use the client's stated reason verbatim and flag gaps. The cover letter lists all attachments. The resolution records the board's decision to apply for reinstatement."
+    },
+    {
+      "id": "re_client_sign",
+      "title": "Send CoR40.5 and affidavit for signature and commissioning",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Signed CoR40.5, commissioned affidavit and resolution uploaded",
+      "aiInstructions": "Explain that the affidavit must be signed in front of a Commissioner of Oaths (any police station, attorney or bank branch offers this free). Return everything as PDF."
+    },
+    {
+      "id": "re_file",
+      "title": "File CoR40.5 reinstatement application on CIPC",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileCoR40_5",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Reinstatement application submitted with all supporting documents; R200 fee paid; tracking number saved",
+      "aiInstructions": "Kevin files — professional judgement on the supporting pack and the fee is money. CIPC e-Services > Transact > Re-instatement (CoR40.5). Upload the signed form, affidavit, certified IDs, deed search, proof of trading and cover letter. Confirm the customer account holds the R200 fee. Record the tracking number."
+    },
+    {
+      "id": "re_wait",
+      "title": "Wait for CIPC reinstatement decision",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [2, 5, 10],
+      "estimatedDays": 5,
+      "doneCriteria": "CIPC confirms reinstatement or issues a query",
+      "aiInstructions": "The catalogue turnaround is 1-2 working days after everything is in hand, but CIPC reinstatements frequently take longer — check tracking status before each follow-up and keep the client informed without promising a date. Quote any query to Kevin verbatim."
+    },
+    {
+      "id": "re_file_ar",
+      "title": "File all outstanding annual returns",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileAnnualReturn",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Every outstanding annual return filed and fees/penalties paid; status 'In Business'",
+      "aiInstructions": "Once reinstated (or immediately if the status was only 'AR Deregistration'), file the outstanding years oldest first with the turnover per year. Beneficial ownership declaration may be required first — check and propose that service if missing. Confirm the customer account balance covers the total before submitting."
+    },
+    {
+      "id": "re_deliver",
+      "title": "Deliver reinstatement confirmation and annual return certificates",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["reinstatement_confirmation", "annual_return_certificate", "cor14_3"],
+      "estimatedDays": 1,
+      "doneCriteria": "Status printout, AR certificates and re-downloaded CoR14.3 posted to Communication History",
+      "aiInstructions": "State the next annual return date and note the disbursements (R200 fee plus AR fees) for invoicing. Offer an annual return reminder."
+    },
+    {
+      "id": "re_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

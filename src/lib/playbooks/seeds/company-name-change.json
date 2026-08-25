@@ -1,0 +1,126 @@
+{
+  "slug": "company-name-change",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC name reservation confirmation (CoR9.4) for the approved new name",
+    "CIPC CoR15.2 confirmation of MOI amendment (name change)",
+    "New CoR14.3 / disclosure certificate showing the new name",
+    "Signed special resolution (client copy)"
+  ],
+  "playbookCommonFailures": [
+    "All proposed names rejected by CIPC as too similar to existing names or containing restricted words",
+    "Special resolution not signed by holders of at least 75% of the voting rights",
+    "Name reservation expires (6 months) before the CoR15.2 is filed",
+    "Company has outstanding annual returns so the amendment is blocked",
+    "Proposed name includes special characters or a word like 'Bank', 'Holdings' requiring consent"
+  ],
+  "informationToProvide": [
+    { "label": "Current company registration number and name", "type": "text", "isRequired": true },
+    { "label": "Company registration document (COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 or MOI showing the current name, registration number and active directors." },
+    { "label": "At least 3-4 proposed new company names in order of preference", "type": "text", "isRequired": true, "helpText": "No special characters (!@#% etc). Do not include '(Pty) Ltd' — CIPC adds the suffix.", "aiHint": "Up to four names in preference order. Reject names with special characters or words that need consent (e.g. 'Bank', 'Insurance', 'University')." },
+    { "label": "Certified ID copies of all active directors", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID or passport per active director on the CoR14.3, Commissioner of Oaths / SAPS stamp dated within 3 months." },
+    { "label": "Proof of address for the company's registered office", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": false, "aiHint": "Utility bill, lease or statement for the registered office dated within 3 months. Only needed if CIPC asks for supporting documents on the amendment." },
+    { "label": "Resolution from directors/shareholders approving the name change", "type": "pdf", "documentKind": "resolution", "inNameOf": "entity", "isRequired": false, "alternatives": ["The agent drafts a special resolution for signature"], "aiHint": "Signed special resolution of shareholders approving the change of name and amendment of the MOI. If not supplied, the agent drafts it (template special_resolution)." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "nm_collect",
+      "title": "Collect proposed names, company documents and director IDs",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Four proposed names, CoR14.3, certified IDs for every active director and the shareholder list received",
+      "aiInstructions": "Ask for four names in order of preference and explain CIPC tests each for similarity to existing names, so alternatives avoid a second round. Ask who the shareholders are and their percentages — the name change needs a special resolution passed by at least 75% of voting rights. Turnaround is 10-15 working days; never promise faster."
+    },
+    {
+      "id": "nm_verify",
+      "title": "Verify documents, names and company status",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Uploads pass; names screened; company status 'In Business' with no outstanding annual returns",
+      "aiInstructions": "Run a CIPC name search on each proposed name and flag close matches. Strip suffixes like (Pty) Ltd. Check company status and annual return history; propose Annual Returns first if anything is outstanding. Confirm the directors on the CoR14.3 match the certified IDs."
+    },
+    {
+      "id": "nm_reserve",
+      "title": "Reserve the new name (CoR9.1) on CIPC",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.reserveName",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Name reservation submitted with all four names in order; tracking number saved",
+      "aiInstructions": "CIPC e-Services > Name Reservation, enter the four names in preference order. ⚠ verify current fee (understood to be R50). CIPC approves the first available name and issues a CoR9.4 valid for 6 months; the CoR15.2 must be filed within that window."
+    },
+    {
+      "id": "nm_wait_name",
+      "title": "Wait for name reservation outcome",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [5, 10],
+      "estimatedDays": 5,
+      "doneCriteria": "CoR9.4 approved-name confirmation received, or all names rejected",
+      "aiInstructions": "If all four names are rejected, draft a client message with the CIPC reasons and ask for four new names; loop back to nm_reserve."
+    },
+    {
+      "id": "nm_draft",
+      "title": "Draft special resolution and CoR15.2 handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["special_resolution", "handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Special resolution with the exact approved name and handoff sheet with CoR15.2 fields drafted",
+      "aiInstructions": "Use the name exactly as approved on the CoR9.4 including capitalisation. The resolution amends the MOI to substitute the new name under s16(1)(c) of the Companies Act and records the % of voting rights in favour (must be at least 75%). Handoff sheet: registration number, old name, new name, CoR9.4 reference and expiry, date of resolution, signatories."
+    },
+    {
+      "id": "nm_client_sign",
+      "title": "Send special resolution to shareholders for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Signed special resolution uploaded",
+      "aiInstructions": "Explain that CIPC needs proof the shareholders approved the new name. All shareholders (or holders of at least 75% of votes) sign; return as PDF. Mention the reserved name is valid for 6 months so there is time, without giving a deadline threat."
+    },
+    {
+      "id": "nm_file",
+      "title": "File CoR15.2 name change amendment on CIPC",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileCoR15_2",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Amendment staged with the CoR9.4 reference and signed resolution uploaded; Kevin has submitted; tracking number saved",
+      "aiInstructions": "CIPC e-Services > Transact > Company Name Change / MOI Amendment (CoR15.2) using the approved name reservation. Upload the signed special resolution and, if asked, certified director IDs. ⚠ verify the current amendment fee (understood to be R250) and that the customer account is funded. Record the tracking number."
+    },
+    {
+      "id": "nm_wait",
+      "title": "Wait for CIPC to process the name change",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [10, 15],
+      "estimatedDays": 10,
+      "doneCriteria": "CoR15.2 confirmation received and the new name shows on the register",
+      "aiInstructions": "Check the tracking status before emailing. If CIPC rejects for a resolution defect, quote the reason to Kevin and re-draft."
+    },
+    {
+      "id": "nm_deliver",
+      "title": "Deliver new CoR14.3 and confirmations",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cor14_3", "cor15_2_confirmation", "cor9_4"],
+      "estimatedDays": 1,
+      "doneCriteria": "New CoR14.3, CoR15.2 confirmation and signed resolution posted to Communication History",
+      "aiInstructions": "Remind the client to update the name with SARS, the bank, CSD/CIDB, letterheads and invoices. The registration number does not change."
+    },
+    {
+      "id": "nm_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

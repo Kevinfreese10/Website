@@ -1,0 +1,200 @@
+{
+  "slug": "complex-individual-income-tax-return-itr12-filing",
+  "playbookEntity": "individual",
+  "playbookOutputs": [
+    "ITR12 with all income streams and deductions submitted on eFiling",
+    "Tax computation showing liability or refund",
+    "ITA34 notice of assessment",
+    "Response to any SARS verification request"
+  ],
+  "playbookCommonFailures": [
+    "Travel allowance claimed without a compliant logbook, or logbook opening/closing odometer missing",
+    "Rental expense schedule includes capital items (improvements, bond capital) as deductions",
+    "Capital gains base cost undocumented, so SARS disallows on verification",
+    "Foreign income declared without the matching foreign tax credit paperwork",
+    "Medical claims made by a dependant who is not the principal member"
+  ],
+  "informationToProvide": [
+    {
+      "label": "Valid South African Identity Document (ID) or Passport",
+      "documentKind": "sa_id",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Passport"
+      ],
+      "isRequired": true,
+      "aiHint": "Clear copy of the green ID book or smart ID card (both sides) or passport for the taxpayer. Confirms the ID number used to look up the SARS profile."
+    },
+    {
+      "label": "All IRP5/IT3(a) certificates for employment income",
+      "documentKind": "irp5",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "One per employer/fund for the tax year. Check tax year and ID number; note travel allowance (3701/3702) or use-of-vehicle (3802) codes because they require a logbook."
+    },
+    {
+      "label": "IT3(b) certificates for interest, dividends, or investment income",
+      "documentKind": "it3",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "IT3(b) per bank/investment house showing local/foreign interest and dividends; IT3(c) for capital gains on unit trust or share disposals."
+    },
+    {
+      "label": "Medical aid tax certificate and proof of out-of-pocket medical expenses",
+      "documentKind": "medical_aid_cert",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Medical scheme tax certificate (contributions, dependants per month, claims not paid) plus receipts/invoices for qualifying out-of-pocket expenses. Disability (ITR-DD) if claimed. Client must be the principal member."
+    },
+    {
+      "label": "Records of any other income (e.g., rental statements, foreign income, capital gains details)",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Rental: income and expense schedule per property (levies, rates, interest, repairs, agent fees). Foreign: statements with currency and dates. CGT: base cost, date acquired, proceeds and costs of disposal per asset (primary residence exclusion applies)."
+    },
+    {
+      "label": "Proof of deductible expenses (e.g., retirement annuity fund certificates, travel logbooks for allowances)",
+      "documentKind": "ra_cert",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Travel logbook",
+        "Income protection / donations s18A certificates"
+      ],
+      "isRequired": false,
+      "aiHint": "RA certificate for the tax year; SARS-compliant logbook (opening/closing odometer, business trips with dates, destination, km) if a travel allowance or company car appears on the IRP5; s18A certificates for donations; home-office schedule if claimed."
+    },
+    {
+      "label": "ITR12 supporting documents (e.g., IRP5, IT3(b), IT3(c))",
+      "documentKind": "irp5",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Covered by the certificate rows above — accept any of IRP5, IT3(a), IT3(b), IT3(c) here and map to the specific row."
+    },
+    {
+      "label": "Bank statements or financial records for relevant income/expenses",
+      "documentKind": "bank_statement",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Only needed where income is not on a certificate (rental, foreign, side income). Statements covering the tax year for the relevant account."
+    },
+    {
+      "label": "Details of all income sources (e.g., salary, rental, investment, foreign)",
+      "type": "text",
+      "isRequired": true
+    },
+    {
+      "label": "Information regarding deductible expenses, medical aid, retirement annuities",
+      "type": "text",
+      "isRequired": false
+    },
+    {
+      "label": "Proof of capital gains/losses, if applicable",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Sale agreement / broker note showing proceeds, plus purchase records for base cost. IT3(c) where the disposal was through an investment house."
+    },
+    {
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "itr12cf_collect",
+      "title": "Collect eFiling access, certificates and income/expense records",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Every income stream the client declared has supporting records and eFiling credentials are on file",
+      "aiInstructions": "Start by asking the client to list every income source and every deduction they want to claim, then request the document that supports each one by name. Confirm the tax year and whether a SARS auto-assessment was already accepted. Do not promise a turnaround shorter than 5 working days."
+    },
+    {
+      "id": "itr12cf_verify",
+      "title": "Verify supporting documents and classify each income stream",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Each income and deduction item mapped to an ITR12 section with its evidence; gaps listed",
+      "aiInstructions": "The entity is the individual taxpayer. Check tax year on every certificate. Logbook: must have opening and closing odometer, business trips itemised, and match the vehicle on the IRP5. Rental: separate repairs (deductible) from improvements (capital). Foreign income: note currency and whether foreign tax was withheld. If a sole-prop trade appears, escalate to the Sole Proprietor ITR12 service."
+    },
+    {
+      "id": "itr12cf_calc",
+      "title": "Prepare tax computation",
+      "type": "calculate",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Tax computation reconciles to the source documents and Kevin has reviewed the treatment of each judgement item",
+      "aiInstructions": "Pull the computation from the AI Accountant module: taxable income by stream, rental profit/loss (ring-fencing s20A check), CGT (annual exclusion, 40% inclusion), s11F retirement deduction limit (27.5% / R350k cap), medical credits (s6A/s6B), foreign tax credit (s6quat). Any ring-fencing, home-office or apportionment call is Kevin's. ⚠ verify current-year thresholds and rebates before relying on them."
+    },
+    {
+      "id": "itr12cf_handoff",
+      "title": "Draft tax computation and handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "tax_computation",
+        "handoff_sheet"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Handoff sheet lists every ITR12 wizard answer and field value with its source document",
+      "aiInstructions": "Map every figure to the ITR12 field/source code (e.g. 4201 interest, 4210 rental income, 4250 rental expenses total, 4006 RA, 4005 medical). Note where SARS pre-populated data differs from client certificates."
+    },
+    {
+      "id": "itr12cf_file",
+      "title": "Complete and submit the ITR12 on eFiling",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.submitReturn:ITR12",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "ITR12 submitted; confirmation and summary screenshot saved",
+      "aiInstructions": "Returns Issued → Personal Income Tax (ITR12) → tax year. Wizard: answer yes to the relevant sections (rental, other income, foreign, CGT, travel) from the handoff sheet; the agent drives to the last click, Kevin reviews the computation match and presses Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+    },
+    {
+      "id": "itr12cf_assessment",
+      "title": "Wait for ITA34 and handle verification",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [
+        2,
+        5
+      ],
+      "estimatedDays": 3,
+      "doneCriteria": "ITA34 received, or verification documents uploaded and outcome received",
+      "aiInstructions": "Complex returns are frequently selected for verification. If a letter arrives, propose the document bundle (certificates, logbook, rental schedule, CGT proof) for Kevin to approve, then upload via eFiling within the window on the letter (⚠ verify: 21 business days). Follow up on SARS if no outcome after the follow-up points."
+    },
+    {
+      "id": "itr12cf_deliver",
+      "title": "Deliver ITA34, computation and outcome note",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "tax_computation",
+        "ita34",
+        "submission_confirmation"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "ITA34, computation and plain-English note posted to Communication History",
+      "aiInstructions": "Explain refund or amount payable and the due date on the ITA34; mention that provisional tax registration may be needed next year if non-salary income exceeds the threshold (⚠ verify current threshold) and offer the IRP6 service. No deadline threats."
+    },
+    {
+      "id": "itr12cf_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

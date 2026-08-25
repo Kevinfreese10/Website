@@ -1,0 +1,103 @@
+{
+  "slug": "nhbrc-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "NHBRC home builder registration certificate",
+    "NHBRC registration number",
+    "Confirmation of the NHBRC registration fee paid by the client"
+  ],
+  "playbookCommonFailures": [
+    "Certified director IDs older than 3 months",
+    "Tax compliance status not 'Compliant' at SARS on the day of submission",
+    "Bank details in a director's name or older than 3 months",
+    "NHBRC registration fee (excluded from our fee) unpaid, so the application is not processed",
+    "Technical / construction competence questions unanswered — the NHBRC asks about the person responsible for construction and their experience"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration documents (e.g., CIPC COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The NHBRC registers the company as the home builder." },
+    { "label": "Certified ID copies of all directors/members - not older than 3 months", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for a foreign director"], "isRequired": true, "aiHint": "Certified ID copy for every director on the CoR14.3, certified within the last 3 months with legible stamp, signature and date." },
+    { "label": "Proof of business address", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Municipal rates account"], "isRequired": true, "aiHint": "Utility bill, municipal account or lease in the company's name showing the physical business address, dated within 3 months." },
+    { "label": "Valid Tax Clearance Certificate from SARS", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status PIN letter for the company showing 'Compliant' and unexpired. The NHBRC verifies the PIN." },
+    { "label": "Business bank account details - not older than 3 months", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months, with bank stamp or digital verification reference. A statement is not acceptable." },
+    { "label": "Details of the person responsible for construction (name, qualification, years of experience)", "type": "text", "isRequired": true, "aiHint": "The NHBRC application asks who will manage construction and about their technical experience. Capture name, ID number, qualification / trade and years in home building. ⚠ verify whether the NHBRC currently requires a technical competence assessment or proof of previous projects for new registrations." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "nhb_collect",
+      "title": "Collect NHBRC registration requirements from client",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "CoR14.3, certified IDs, proof of address, TCS PIN, bank letter and construction-manager details received",
+      "aiInstructions": "Chase only what is missing; name each document and why the NHBRC needs it (the NHBRC registers home builders so that homes can be enrolled under the warranty scheme). Remind that certified IDs, proof of address and the bank letter must be within 3 months and in the company's name. Ask who will be responsible for construction and their experience. Remind that the NHBRC's registration fee is payable by the client and excluded from our fee. Do not promise a shorter turnaround than 10–15 working days."
+    },
+    {
+      "id": "nhb_verify",
+      "title": "Verify documents against NHBRC requirements",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All required uploads pass the rules engine or are approved by Kevin; TCS valid",
+      "aiInstructions": "The applicant is the company, never the ordering contact. CoR14.3, proof of address and bank letter in the company's name and agreeing on the registered name. Director names must match the certified IDs; certification within 90 days. Read the TCS PIN and expiry. Extract enterprise number, income tax number, address, directors with ID numbers, bank details and the construction manager's details."
+    },
+    {
+      "id": "nhb_handoff",
+      "title": "Prepare NHBRC application hand-off sheet and POA",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet", "power_of_attorney"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every NHBRC application field and a POA posted for Kevin's review",
+      "aiInstructions": "Mirror the NHBRC home builder registration application (⚠ verify the current form / online portal fields): enterprise details, directors and shareholding, physical / postal address, contact person, bank details, TCS PIN, type of building activity, person responsible for construction and experience, previous NHBRC registrations if any. Special POA on My Accountant letterhead authorising Kevin Freese (CIBA #3561) to lodge and follow up the application. Never invent experience or qualification details — leave blank and flag."
+    },
+    {
+      "id": "nhb_client_sign",
+      "title": "Send application and POA to client for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Signed application declaration and POA uploaded by client",
+      "aiInstructions": "Post the approved documents with plain instructions: a director signs the application declaration and the POA, returns as PDF. Also give the NHBRC fee amount and payment reference once known — no deadline threats."
+    },
+    {
+      "id": "nhb_file",
+      "title": "Submit registration on the NHBRC online portal",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "nhbrc",
+      "portalProcedure": "nhbrc.registerHomeBuilder",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Application submitted with uploads, reference number and fee reference recorded",
+      "aiInstructions": "⚠ CHANNEL: plan §4.4 marks this ⚠ — confirm with Kevin whether new home builder registrations are captured on the NHBRC online portal or lodged at an NHBRC provincial office / by email. Stage the application with all uploads (CoR14.3, certified IDs, proof of address, TCS, bank letter, POA, signed declaration) for Kevin to submit. Record the application reference and the NHBRC fee invoice; draft a client message with the fee details."
+    },
+    {
+      "id": "nhb_wait",
+      "title": "Wait for NHBRC approval and follow up",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [5, 10, 15],
+      "estimatedDays": 15,
+      "doneCriteria": "NHBRC certificate and registration number received, or a query raised",
+      "aiInstructions": "Draft a status query quoting the application reference at each follow-up point. If the NHBRC requests a technical assessment or further proof, create a proposal for Kevin with the request text and prepare a client message."
+    },
+    {
+      "id": "nhb_deliver",
+      "title": "Deliver NHBRC certificate and number to client",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["nhbrc_certificate"],
+      "estimatedDays": 1,
+      "doneCriteria": "Certificate and registration number posted to Communication History",
+      "aiInstructions": "Post the certificate and number. Explain in plain English that registration is renewed annually (⚠ verify) and that every new home must be enrolled with the NHBRC before construction starts, with the enrolment fee paid per home."
+    },
+    {
+      "id": "nhb_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

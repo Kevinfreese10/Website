@@ -1,0 +1,123 @@
+{
+  "slug": "tender-ready-company-registration-package",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC registration certificate (CoR14.3) and incorporation documents (CoR14.1, CoR14.1A, CoR14.2, MOI)",
+    "SARS income tax reference number",
+    "SARS Tax Compliance Status PIN",
+    "Share certificate(s) and securities register",
+    "B-BBEE EME sworn affidavit (commissioned by the client)",
+    "FNB business account referral (if requested)"
+  ],
+  "playbookCommonFailures": [
+    "All four proposed names rejected by CIPC",
+    "Certified ID or proof of address older than 3 months for a director / shareholder",
+    "Shareholding structure not confirmed, so share certificates and the BEE affidavit ownership percentages cannot be completed",
+    "SARS eFiling profile / tax representative not activated for the new company, so the TCS PIN cannot be requested",
+    "BEE affidavit returned unsigned or not commissioned"
+  ],
+  "informationToProvide": [
+    { "label": "Certified ID copies of all directors/shareholders", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy (foreign director)"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back, or Green Barcoded ID Book) or passport per director and per shareholder, Commissioner of Oaths / SAPS stamp dated within 3 months, legible ID number and names." },
+    { "label": "Proof of residential address for all directors (utility bill, bank statement, etc., not older than 3 months)", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease agreement"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per director in the director's own name. Also used for the SARS eFiling registration of the tax representative." },
+    { "label": "Four proposed company names in order of preference (no special characters)", "type": "text", "isRequired": true },
+    { "label": "Details of shareholding structure", "type": "text", "isRequired": true, "helpText": "Each shareholder, ID number and percentage (must total 100%). Also state each shareholder's race and gender as required for the B-BBEE affidavit." },
+    { "label": "Contact number for the Business", "type": "text", "isRequired": true },
+    { "label": "Email address for the Business", "type": "text", "isRequired": true },
+    { "label": "Contact number for the Director", "type": "text", "isRequired": true },
+    { "label": "Email address for the Director", "type": "text", "isRequired": true },
+    { "label": "Company physical and postal address", "type": "text", "isRequired": true },
+    { "label": "Company financial year-end (normally February)", "type": "text", "isRequired": true },
+    { "label": "Do you want an FNB business bank account opened?", "type": "text", "isRequired": false }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "tr_collect",
+      "title": "Collect director/shareholder documents, names, shareholding and contacts",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Certified IDs and proofs of address for every director and shareholder, four names, shareholding with race/gender, addresses, contacts and year-end received",
+      "aiInstructions": "This package ends with a tax clearance PIN and a BEE affidavit, so ask up-front for the shareholding percentages and each shareholder's race and gender (needed for black-ownership % on the affidavit). Explain that the affidavit will need to be signed in front of a Commissioner of Oaths. Turnaround 7-10 working days end to end; never promise faster."
+    },
+    {
+      "id": "tr_verify",
+      "title": "Verify documents and screen names",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass; director/shareholder details extracted; names screened; shareholding totals 100%",
+      "aiInstructions": "Extract names, ID numbers, DOB, addresses exactly. Run a CIPC name search for each name. Reconcile the shareholder list to IDs."
+    },
+    {
+      "id": "tr_file",
+      "title": "Reserve name and register the company on CIPC",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.registerCompany:PTY",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Name reserved and registration staged with all fields and certified IDs; Kevin has submitted; tracking number saved",
+      "aiInstructions": "As for Private Company Registration: CIPC e-Services / BizPortal, four names (CoR9.1), standard MOI (CoR15.1A), ID numbers typed exactly. ⚠ verify current fees. Record the tracking number."
+    },
+    {
+      "id": "tr_wait_cipc",
+      "title": "Wait for CIPC registration",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [3, 5],
+      "estimatedDays": 3,
+      "doneCriteria": "CoR14.3, CoR14.1/14.1A/14.2, MOI and income tax number available",
+      "aiInstructions": "Check tracking status before following up. On name rejection request replacements and re-reserve."
+    },
+    {
+      "id": "tr_docs",
+      "title": "Draft share certificates, securities register, BEE affidavit and first resolution",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["share_certificate", "securities_register", "bee_affidavit", "director_resolution"],
+      "estimatedDays": 1,
+      "doneCriteria": "Share certificates, register, EME sworn affidavit on the dtic template and first board resolution drafted with the new registration number",
+      "aiInstructions": "BEE affidavit: new company, so annual turnover is R0 / projected under R10 million = Exempted Micro Enterprise. Black ownership % = sum of shares held by black South African shareholders (as defined in the B-BBEE Act) — compute from the shareholding answer; 100% black-owned EME = Level 1, at least 51% = Level 2, otherwise Level 4. Never guess race — leave blank and flag if not answered. Deponent is a director. Share certificates numbered from 1."
+    },
+    {
+      "id": "tr_client_sign",
+      "title": "Send affidavit and share documents for signature and commissioning",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Commissioned BEE affidavit, signed share certificates and resolution uploaded",
+      "aiInstructions": "Explain that the affidavit must be signed in front of a Commissioner of Oaths (police station, attorney, bank branch — free) and every page initialled; the director signs the share certificates and resolution. Return as PDF."
+    },
+    {
+      "id": "tr_tcs",
+      "title": "Activate eFiling for the company and request Tax Compliance Status PIN",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.requestTcsPin",
+      "submitMode": "manual",
+      "estimatedDays": 2,
+      "doneCriteria": "Company registered on eFiling with a tax representative, TCS request submitted and PIN issued showing 'Compliant'",
+      "aiInstructions": "Kevin — needs the registered representative process. Register the company on SARS eFiling using the income tax number from CIPC, appoint a director as registered representative (may require SARS online appointment with certified ID, proof of address and CoR14.3 — ⚠ verify current SARS requirements), then Tax Status > Tax Compliance Status Request > Good Standing. A brand-new company with no returns due is normally Compliant immediately. Save the PIN letter."
+    },
+    {
+      "id": "tr_deliver",
+      "title": "Deliver the tender-ready pack",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cor14_3", "moi", "sars_notice_of_registration", "tcs_pin", "share_certificate", "securities_register", "bee_affidavit"],
+      "estimatedDays": 1,
+      "doneCriteria": "All documents posted to Communication History in one pack",
+      "aiInstructions": "List each document and what tenders use it for. Explain that the TCS PIN expires after 12 months and the BEE affidavit after 12 months, and that the company must file annual returns and a beneficial ownership declaration. Offer CSD Registration as the natural next step."
+    },
+    {
+      "id": "tr_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

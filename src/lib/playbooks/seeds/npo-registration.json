@@ -1,0 +1,105 @@
+{
+  "slug": "npo-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "DSD NPO registration certificate with NPO number",
+    "DSD acknowledgement / reference for the application",
+    "Signed NPO application and office bearer list (client copy)"
+  ],
+  "playbookCommonFailures": [
+    "Fewer than three office bearers, or office bearers who are related to each other",
+    "The MOI / constitution lacks clauses required by s12(2) of the NPO Act (name, objectives, non-profit distribution, office bearers, meetings, financial year, dissolution)",
+    "Copies of IDs or proof of address missing for one office bearer",
+    "The organisation's physical address proof is missing or a PO Box",
+    "DSD backlog — applications routinely exceed the statutory 2 months, and the client expects the certificate sooner"
+  ],
+  "informationToProvide": [
+    { "label": "Founding documents - Signed Memorandum of Incorporation (MOI Documents)", "type": "pdf", "documentKind": "moi", "inNameOf": "entity", "isRequired": true, "alternatives": ["Signed constitution for a voluntary association", "Trust deed for a trust"], "aiHint": "Registered NPC MOI from CIPC (with CoR14.3), or a signed and dated constitution for a voluntary association, or a trust deed with letters of authority. Check it contains the NPO Act s12(2) clauses: name, objectives, non-distribution of income/assets to members, office bearers and their powers, meetings, financial year, bank account, amendment and dissolution with assets going to a similar body." },
+    { "label": "Company registration certificate (COR14.3) for an NPC", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is the organisation a CIPC-registered non-profit company?", "aiHint": "CIPC CoR14.3 for the NPC showing the registration number and directors." },
+    { "label": "Certified ID copies of all office bearers / directors", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID or passport per office bearer (at least three), Commissioner of Oaths / SAPS stamp dated within 3 months." },
+    { "label": "Proof of Address director/members (physical and postal)", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease", "Affidavit for informal addresses"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per office bearer." },
+    { "label": "Registered proof of address for the organization  (NPO) (physical and postal address)", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Lease", "Letter from the property owner or host organisation"], "isRequired": true, "aiHint": "Proof of the organisation's physical address dated within 3 months (utility bill, lease or host letter). A PO Box alone is not enough." },
+    { "label": "Details of founding members/directors (IDs, addresses)", "type": "text", "isRequired": true, "helpText": "Full names, ID numbers, positions (chairperson, secretary, treasurer, etc.), residential addresses and contact details for at least three unrelated office bearers." },
+    { "label": "Organisation's objectives, sector and main activities", "type": "text", "isRequired": true },
+    { "label": "Organisation email address and cell number", "type": "text", "isRequired": true, "helpText": "Used for the DSD NPO portal account and notifications." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "npo_collect",
+      "title": "Collect founding documents, office bearers and address proofs",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "MOI/constitution, CoR14.3 (if NPC), certified IDs and proofs of address for at least three office bearers, organisation address proof and contact details received",
+      "aiInstructions": "Explain that the NPO Act requires at least three office bearers who are not related to each other and a founding document with specific clauses; an NPC's CIPC MOI usually has them but may need an addendum. DSD registration is free and the law allows DSD two months, but in practice it takes longer — the catalogue says 90 working days; never promise faster. If the organisation is not yet a registered NPC or has no constitution, propose the Non-Profit Company Registration service first."
+    },
+    {
+      "id": "npo_verify",
+      "title": "Verify founding document clauses and office bearer coverage",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass; at least three unrelated office bearers each with ID and address; s12(2) clause checklist complete",
+      "aiInstructions": "Read the MOI/constitution against the s12(2) list: name, objectives, that income and property are not distributable to members/office bearers except as reasonable payment for services, that it continues despite membership changes, office bearers and their powers, meeting procedures, financial year-end, bank account, amendment procedure, and that on dissolution assets go to a similar non-profit. Flag missing clauses for Kevin — a short addendum resolution may fix it. Check surnames/addresses to spot related office bearers."
+    },
+    {
+      "id": "npo_draft",
+      "title": "Draft NPO application handoff sheet, office bearer list and any constitution addendum",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet", "cover_letter", "director_resolution"],
+      "estimatedDays": 1,
+      "doneCriteria": "Handoff sheet with every DSD application field, office bearer schedule, cover letter and (if needed) a resolution adopting an addendum drafted",
+      "aiInstructions": "DSD application fields (⚠ verify against the current NPO portal): organisation name, type (NPC / voluntary association / trust), CIPC number if any, physical and postal address, sector and objectives, financial year-end, contact details, and each office bearer's name, ID, position, address and contact details. The resolution adopts any addendum clauses and confirms the office bearers."
+    },
+    {
+      "id": "npo_client_sign",
+      "title": "Send application and office bearer declaration for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "Application signed by the chairperson and secretary (and any addendum resolution by all office bearers) uploaded",
+      "aiInstructions": "Explain that DSD requires the application to be signed by two office bearers and that every office bearer's details will appear on the certificate record. Return as PDF."
+    },
+    {
+      "id": "npo_file",
+      "title": "Submit NPO application on the DSD NPO portal",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "dsd",
+      "portalProcedure": "dsd.registerNpo",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Application submitted on the DSD portal with founding document, IDs and signed forms; DSD reference number saved",
+      "aiInstructions": "DSD NPO portal (npo.gov.za) — create the organisation's account with the organisation's email/cell, complete the online application and upload: founding document (MOI/constitution plus CoR14.3 for NPCs), signed application, certified IDs, proofs of address, office bearer list. ⚠ verify: whether DSD still also accepts hard-copy / emailed applications and the exact document list. Record the reference number and download the acknowledgement."
+    },
+    {
+      "id": "npo_wait",
+      "title": "Wait for DSD decision and follow up",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [30, 60, 90],
+      "estimatedDays": 90,
+      "doneCriteria": "NPO certificate issued or DSD query received",
+      "aiInstructions": "Check the application status on the portal before each follow-up. Draft a polite status request quoting the reference. If DSD queries (usually constitution clauses), route the query to Kevin verbatim with the clause it concerns. Keep the client informed at each point without promising a date."
+    },
+    {
+      "id": "npo_deliver",
+      "title": "Deliver NPO certificate and compliance note",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["npo_certificate"],
+      "estimatedDays": 1,
+      "doneCriteria": "Certificate and NPO number posted to Communication History",
+      "aiInstructions": "Explain ongoing duties: annual narrative report and financial statements to DSD within 9 months of year-end, notify DSD of office bearer or address changes. Offer the AFS and PBO Registration services."
+    },
+    {
+      "id": "npo_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

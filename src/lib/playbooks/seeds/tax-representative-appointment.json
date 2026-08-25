@@ -1,0 +1,106 @@
+{
+  "slug": "tax-representative-appointment",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Registered representative (public officer) recorded as active on the company's SARS profile",
+    "SARS confirmation letter / case outcome of the registered representative request",
+    "Signed power of attorney and cover letter on file"
+  ],
+  "playbookCommonFailures": [
+    "Certified ID of the public officer older than 3 months, or the certification stamp is illegible",
+    "Selfie/photo of the representative holding their ID not supplied or does not match the certified ID (SARS requests this in many cases)",
+    "Person nominated is not a director on the CoR14.3 and no director resolution/POA authorises them",
+    "Nominated person's own personal income tax affairs are not registered or not compliant",
+    "SARS case rejected because the CoR14.3 uploaded is an old version that does not show current directors"
+  ],
+  "informationToProvide": [
+    { "label": "COR14.3 (Company registration document) (e.g., CIPC COR14.3", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Latest CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and CURRENT directors. If the nominated public officer is not listed as a director, a director resolution and POA are needed." },
+    { "label": "ID copy of the person to be appointed as the Public Officer", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport plus proof of SA residence"], "aiHint": "Certified SA Smart ID Card, Green Barcoded ID Book, or Passport of the nominated public officer. Commissioner of Oaths or Police certification stamp dated within 3 months, legible ID number and name. SARS requires the public officer to be resident in South Africa." },
+    { "label": "SARS eFiling login details - Username", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "SARS eFiling login details - Password", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "Contact number of the person to be appointed as the Public Officer", "type": "text", "isRequired": true, "aiHint": "SA cell number the representative can answer — SARS sends the OTP and verification call here. Must be a number the person actually controls." },
+    { "label": "Email address of the person to be appointed as the Public Officer", "type": "text", "isRequired": true, "aiHint": "Personal email of the representative; SARS correspondence and OTPs go here." },
+    { "label": "ID copies of all directors as per company registration certificate ", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "aiHint": "One certified ID (or passport) per director listed on the CoR14.3. Cross-check names and ID numbers against the CoR14.3; flag any director without an ID." },
+    { "label": "Personal Income Tax number for the person who will be appointed as the Tax Rep", "type": "text", "isRequired": true, "aiHint": "The nominated representative's own SARS income tax reference (10 digits, usually starting 0/1/2/3). SARS links the representative by this number; if the person has never been registered, they must register for personal income tax first." },
+    { "label": "Selfie / photo of the representative holding their ID document", "documentKind": "photo", "inNameOf": "director", "isRequired": false, "aiHint": "Clear photo of the nominated representative holding their ID next to their face, taken recently. SARS frequently requests this during the registered representative case — ⚠ verify whether SARS still asks for it; collect upfront to avoid a second round." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "trep_collect",
+      "title": "Collect representative and company documents",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "All required uploads received, representative's tax number, cell and email captured",
+      "aiInstructions": "Name each document and why SARS needs it: certified ID (within 3 months), CoR14.3 showing current directors, IDs of all directors, representative's tax number, and — because SARS often asks — a selfie holding the ID. Confirm the person is a director or will be authorised by resolution. Do not promise faster than 3-5 working days."
+    },
+    {
+      "id": "trep_verify",
+      "title": "Verify identity documents and authority",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "IDs certified within 90 days, names match the CoR14.3, representative is a director or authorised, tax number format valid",
+      "aiInstructions": "Entity is the company; the representative is an individual director/officer. Match every director on the CoR14.3 to a certified ID. If the nominee is not a director, add a director_resolution to the drafting step. Check the ID photo against the selfie if supplied."
+    },
+    {
+      "id": "trep_draft",
+      "title": "Draft power of attorney, cover letter and (if needed) director resolution",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["power_of_attorney", "tax_rep_cover_letter", "director_resolution"],
+      "estimatedDays": 1,
+      "doneCriteria": "Drafts generated from verified facts and posted for Kevin's review",
+      "aiInstructions": "POA: company appoints the nominated public officer / My Accountant for SARS matters; use the SARS special power of attorney wording (⚠ verify the current SARS POA form — SPPOA/TPPOA — is used where SARS insists on its own form). Cover letter explains the appointment and lists attachments. Resolution only when the nominee is not a director. Never invent director names — pull from the CoR14.3."
+    },
+    {
+      "id": "trep_client_sign",
+      "title": "Send POA and resolution to client for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Signed POA (and resolution) uploaded",
+      "aiInstructions": "Plain instructions: sign where marked, date, return as PDF. Remind that the representative must keep their phone available for a SARS OTP/verification call."
+    },
+    {
+      "id": "trep_file",
+      "title": "Submit registered representative request on eFiling",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.registeredRepresentativeRequest",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Request submitted with all supporting documents and SARS case number recorded",
+      "aiInstructions": "Path: SARS Registered Details > Activate Registered Representative (or via SARS Online Query System 'Register a Representative' if eFiling access is blocked — ⚠ verify which route SARS currently accepts). Upload: certified ID of representative, IDs of directors, CoR14.3, signed POA, cover letter, selfie where requested, proof of the representative's tax number. Kevin submits because SARS may demand additional documents case by case."
+    },
+    {
+      "id": "trep_wait",
+      "title": "Wait for SARS verification and activation",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [3, 5],
+      "estimatedDays": 5,
+      "doneCriteria": "Representative shows active on SARS Registered Details or SARS outcome letter received",
+      "aiInstructions": "Check the case status and SARS correspondence at each follow-up. If SARS asks for further documents (commonly the selfie or a newer certified ID) create a proposal for Kevin and a client message listing exactly what is needed. Log the case number on every contact."
+    },
+    {
+      "id": "trep_deliver",
+      "title": "Deliver confirmation of appointment",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["tax_rep_cover_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Confirmation letter / screenshot of active representative posted to Communication History",
+      "aiInstructions": "Explain what the representative can now do (activate tax types, request TCS, file returns) and that their contact details must be kept current with SARS. Offer the PAYE/VAT registration or annual compliance services that were blocked before."
+    },
+    {
+      "id": "trep_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

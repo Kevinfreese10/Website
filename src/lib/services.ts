@@ -43,7 +43,9 @@ export const getServices = cache(async (): Promise<Service[]> => {
 export {
   DEFAULT_FULFILLMENT_CHECKLIST,
   getServiceChecklist,
-  normalizeRequirementsWithIds
+  normalizeRequirementsWithIds,
+  isPlaybookApproved,
+  pickStepConfig
 } from './service-utils';
 
 /**

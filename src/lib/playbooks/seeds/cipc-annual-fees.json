@@ -1,0 +1,72 @@
+{
+  "slug": "cipc-annual-fees",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC payment receipt for the annual return fee(s)",
+    "Fee calculation showing turnover band and penalty per year",
+    "Confirmation of CIPC compliance status after payment"
+  ],
+  "playbookCommonFailures": [
+    "Turnover figure not supplied or supplied for the wrong year, so the fee band is wrong",
+    "Client expects the R100 to include the CIPC fee itself — it does not; the CIPC fee is a disbursement",
+    "No signed engagement letter / mandate on file before My Accountant pays on the company's behalf",
+    "Company has more outstanding years than the client knew about, and the total is higher than quoted"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration number", "type": "text", "isRequired": true, "helpText": "CIPC registration number, e.g. 2015/123456/07." },
+    { "label": "Latest CIPC annual return filing details (if available)", "type": "text", "isRequired": false, "helpText": "Last year filed and the date, if you know it." },
+    { "label": "Details of current company directors and their ID numbers", "type": "text", "isRequired": true },
+    { "label": "Turnover amount for each year to be paid", "type": "text", "isRequired": true, "helpText": "Turnover for each financial year whose annual return fee must be paid. R0 if the company did not trade.", "aiHint": "One Rand figure per outstanding year. Used only to select the CIPC fee band." },
+    { "label": "Signed Letter of Engagement/Power of Attorney", "type": "pdf", "documentKind": "power_of_attorney", "inNameOf": "entity", "isRequired": true, "aiHint": "Signed engagement letter or Power of Attorney authorising My Accountant to file and pay CIPC fees on the company's behalf. Verify a director's signature and date. If none exists the agent drafts one (template engagement_letter)." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "fee_collect",
+      "title": "Collect registration number, turnover and mandate",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Registration number, turnover per outstanding year, director details and a signed mandate received",
+      "aiInstructions": "Look up the company on CIPC to count outstanding years before asking for turnover, then request a figure per year. Make clear in plain language that R100 is our handling fee and the CIPC fee (and any late penalty) is paid on the client's behalf and recovered as a disbursement. If there is no signed engagement letter or POA, draft one (template engagement_letter) and ask for signature before any payment."
+    },
+    {
+      "id": "fee_calc",
+      "title": "Calculate CIPC fee and penalty per year",
+      "type": "calculate",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Fee table (year, turnover, band, fee, penalty, total) prepared and confirmed by Kevin",
+      "aiInstructions": "⚠ verify the current CIPC fee schedule before use. Working understanding for private companies and CCs: turnover under R1m = R100; R1m to R10m = R450; R10m to R25m = R2,000; over R25m = R3,000; late penalty about R150 per late year. NPCs use the lower band. Show the total the client will be charged as a disbursement. Anything touching money is never automated — this step only prepares the figures."
+    },
+    {
+      "id": "fee_pay",
+      "title": "Fund CIPC customer account and pay the annual return fee(s)",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.payAnnualReturnFee",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "CIPC customer account funded for the exact total and the annual return fee paid; receipt downloaded",
+      "aiInstructions": "Kevin only. Top up the My Accountant CIPC customer code by EFT/card for the total in fee_calc, then pay through the annual return transaction (filing and payment happen together on CIPC — if the client bought only this fee service and not Annual Returns, confirm with Kevin whether the return is filed here too). Download the CIPC payment receipt and the AR certificate."
+    },
+    {
+      "id": "fee_deliver",
+      "title": "Deliver receipt and compliance confirmation",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cipc_fee_receipt", "annual_return_certificate"],
+      "estimatedDays": 1,
+      "doneCriteria": "Receipt, fee table and current CIPC status posted to Communication History",
+      "aiInstructions": "State the next annual return anniversary date. Note the disbursement amount for invoicing."
+    },
+    {
+      "id": "fee_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed and the disbursement is invoiced"
+    }
+  ]
+}

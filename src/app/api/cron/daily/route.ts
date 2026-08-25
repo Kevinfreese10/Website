@@ -35,7 +35,9 @@ export async function GET(req: NextRequest) {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const ordersRef = db.collection('orders');
         const slaSnapshot = await ordersRef
-            .where('status', 'in', ['In Progress', 'Waiting for Client'])
+            // Fixed 24 Aug 2026: these statuses never existed in the Order status union, so the
+            // SLA breach check had never matched an order. See AI-ORDER-AGENT-PLAN.md §3.3.
+            .where('status', 'in', ['Processing', 'Waiting on Customer', 'Waiting for Information', 'Under Review'])
             .get();
         
         for (const doc of slaSnapshot.docs) {

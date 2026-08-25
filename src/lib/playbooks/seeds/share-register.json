@@ -1,0 +1,81 @@
+{
+  "slug": "share-register",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Securities register (PDF and editable) with all allotments, transfers and cancellations to date",
+    "Share certificate(s) for current holders",
+    "Director resolution adopting the register"
+  ],
+  "playbookCommonFailures": [
+    "Historical share transactions supplied are incomplete, so the register does not reconcile to the current shareholding",
+    "Shares recorded exceed the authorised shares in the MOI",
+    "Shareholder names / ID numbers differ between old certificates, AFS and the client's list",
+    "A transfer was never documented (no transfer form or resolution) and cannot be backed",
+    "Entity is a close corporation — the register of members is a CK2 matter, not a securities register"
+  ],
+  "informationToProvide": [
+    { "label": "Certified copy of company registration documents (e.g., COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "CIPC CoR14.3 and MOI showing registration number, name, directors and (in the MOI) authorised shares and classes." },
+    { "label": "Memorandum of Incorporation (MOI)", "type": "pdf", "documentKind": "moi", "inNameOf": "entity", "isRequired": true, "aiHint": "Registered MOI showing authorised number and classes of shares and any transfer restrictions." },
+    { "label": "Details of all current and historical shareholders, including ID numbers and addresses", "type": "text", "isRequired": true, "helpText": "Every person or entity that has ever held shares, with full names, ID/registration number, address and the dates they acquired or disposed of shares." },
+    { "label": "Records of all past share transactions (allotments, transfers, buy-backs)", "type": "pdf", "documentKind": "share_certificate", "inNameOf": "entity", "isRequired": false, "alternatives": ["Old share certificates", "Signed transfer forms", "Resolutions", "Sale of shares agreements"], "aiHint": "Any existing certificates, transfer forms, resolutions or agreements evidencing share movements, in date order. Used to reconstruct the register; gaps are flagged, not filled." },
+    { "label": "Certified ID copies of all directors and major shareholders", "type": "pdf", "documentKind": "sa_id", "inNameOf": "either", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "aiHint": "Certified SA ID or passport for each director and each current shareholder holding 5% or more, stamp dated within 3 months, so register entries match legal names and the register can support a beneficial ownership filing." },
+    { "label": "Latest Annual Financial Statements or management accounts", "type": "pdf", "documentKind": "afs", "inNameOf": "entity", "isRequired": false, "aiHint": "Signed AFS or management accounts; the share capital note and directors' report are used to cross-check issued shares and shareholders." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "sr_collect",
+      "title": "Collect company documents, shareholder history and transaction records",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "CoR14.3, MOI, full shareholder history, transaction evidence, certified IDs and AFS (if any) received",
+      "aiInstructions": "Ask for the story in date order: who got shares when, from whom, how many. Explain that the register must show every movement since incorporation, so old certificates and resolutions matter even if the people are no longer involved. Turnaround 1-2 working days after everything is in; never promise faster."
+    },
+    {
+      "id": "sr_verify",
+      "title": "Reconcile shareholdings to the MOI, evidence and AFS",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Every movement is evidenced or flagged; current issued shares ≤ authorised; current holders reconcile to AFS share capital note",
+      "aiInstructions": "Build a timeline of allotments, transfers and cancellations and check the running balance never goes negative and never exceeds the authorised shares in the MOI. Compare current holders to the AFS share capital note and to any earlier certificates. Names and ID numbers must match certified IDs. List every undocumented movement for Kevin — a resolution ratifying it may be needed."
+    },
+    {
+      "id": "sr_draft",
+      "title": "Draft securities register, share certificates and adopting resolution",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["securities_register", "share_certificate", "director_resolution"],
+      "estimatedDays": 1,
+      "doneCriteria": "Register (per s50 Companies Act and reg 32), a certificate for each current holder and a board resolution adopting the register and ratifying evidenced movements drafted for Kevin's review",
+      "aiInstructions": "Register content: for each holder — full names, ID/registration number, address, class and number of shares, date of allotment/transfer, certificate number, consideration where known, and the date they ceased to be a holder; plus a summary of authorised vs issued shares. Cancel superseded certificates and number new ones sequentially. Do not invent dates or consideration — mark 'not evidenced'."
+    },
+    {
+      "id": "sr_client_sign",
+      "title": "Send register, certificates and resolution for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Signed resolution and certificates uploaded; register acknowledged as correct by a director",
+      "aiInstructions": "Ask a director to check the timeline is right before signing; explain that the register is the legal record of who owns the company and is what CIPC's beneficial ownership filing is based on. Directors sign the certificates and resolution. Return as PDF."
+    },
+    {
+      "id": "sr_deliver",
+      "title": "Deliver the securities register and certificates",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["securities_register", "share_certificate", "director_resolution"],
+      "estimatedDays": 1,
+      "doneCriteria": "Register (PDF and editable), signed certificates and resolution posted to Communication History",
+      "aiInstructions": "Advise the client to keep the register at the registered office and update it on every share movement. Offer the Beneficial Ownership Declaration service, which uses this register."
+    },
+    {
+      "id": "sr_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "slug": "cidb-upgrades-grades-2-9",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIDB grade designation calculation (financial capability and works capability) with supporting schedule",
+    "Upgraded CIDB Register of Contractors certificate",
+    "CRS confirmation of the new grade"
+  ],
+  "playbookCommonFailures": [
+    "Largest completed contract value too low for the target grade — the works capability test fails even though turnover passes",
+    "Completion certificates unsigned by the client / principal agent, in a director's personal name, or without a value and completion date",
+    "Available capital shown in the AFS does not meet the target grade's minimum (overdrawn or loans to directors erode it)",
+    "AFS are management accounts where the target grade requires audited or reviewed AFS (⚠ verify which grades)",
+    "Tax status non-compliant at SARS on the day of submission"
+  ],
+  "informationToProvide": [
+    { "label": "CRS Number ", "type": "text", "isRequired": true, "aiHint": "The company's CIDB CRS number as printed on the current certificate. Confirm it and read the current grade and class from the certificate." },
+    { "label": "CIBD Login Username", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "CIBD Login Password", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "Which category do you want to upgrade", "type": "text", "isRequired": true, "aiHint": "The class of works (e.g. GB, CE, EB) and the target grade (2–9) the client wants. If they name only a grade, ask which class; a contractor can hold different grades per class." },
+    { "label": "Relevant shareholder and director information", "type": "text", "isRequired": true, "aiHint": "Full names, ID numbers and shareholding percentages of all shareholders and directors as at today. The CRS profile must match the CoR14.3 and share register before the upgrade is processed." },
+    { "label": "Proof of completed projects (signed completion certificates, scope of work, values)", "documentKind": "completion_certificate", "inNameOf": "entity", "isRequired": true, "aiHint": "Completion certificates in the company's name, signed by the client / principal agent, showing project description, class of works, contract value (excl. VAT) and completion date within the CIDB's look-back window (⚠ verify: normally the last 5 years). The single largest contract determines works capability, so identify it clearly." },
+    { "label": "Bank Confirmation Letter in the name of the business", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months, with bank stamp or digital verification reference. A statement is not acceptable." },
+    { "label": "Company registration document (COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "CIPC CoR14.3 showing the registered name, enterprise number and current directors. Must match the CRS profile and the shareholder / director information supplied." },
+    { "label": "Tax Clearance Certificate (TCC)", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status PIN letter for the company, unexpired and showing 'Compliant'. The CIDB verifies it with SARS." },
+    { "label": "Audited or management financial statements for the past two years", "documentKind": "afs", "inNameOf": "entity", "alternatives": ["Independently reviewed AFS", "Signed management accounts (lower grades only, ⚠ verify)"], "isRequired": true, "aiHint": "Signed AFS for the last two financial years. Used for turnover (best annual turnover in the look-back window) and available capital (net asset value adjusted per CIDB rules). Higher grades require audited or reviewed AFS rather than management accounts — ⚠ verify the grade cut-off." },
+    { "label": "Letters of Award", "documentKind": "letter_of_award", "inNameOf": "entity", "isRequired": false, "aiHint": "Letters of award or signed contracts for the projects claimed, supporting the contract values on the completion certificates. Useful where a completion certificate omits the value." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "cidbu_collect",
+      "title": "Collect CIDB upgrade requirements from client",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "CRS number and login, target class/grade, two years' AFS, completion certificates, bank letter, CoR14.3 and TCS received",
+      "aiInstructions": "Chase only what is missing and explain why: the CIDB grades on two tests — financial capability (turnover and available capital from the AFS) and works capability (the largest single completed contract in the look-back window) — so AFS and signed completion certificates are the whole case. Ask the client to point out their single largest completed contract. Remind that the CIDB's upgrade fee is payable by the client and excluded. Do not promise a shorter turnaround than 21–30 working days."
+    },
+    {
+      "id": "cidbu_verify",
+      "title": "Verify financial statements, project proof and profile details",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All required uploads pass the rules engine or are approved by Kevin; each project has value, date, class and a signature",
+      "aiInstructions": "Everything in the company's name, never a director's. AFS signed, two consecutive years. For each completion certificate extract: project name, principal, class of works, contract value excl. VAT, completion date, signatory; reject any without a signature or value unless a letter of award supplies it. Bank letter within 90 days. TCS PIN valid. Shareholder / director information must agree with the CoR14.3 and the CRS profile — flag mismatches, they block the upgrade."
+    },
+    {
+      "id": "cidbu_calc",
+      "title": "Calculate achievable CIDB grade from turnover, available capital and largest contract",
+      "type": "calculate",
+      "owner": "kevin",
+      "estimatedDays": 2,
+      "doneCriteria": "Grade designation schedule prepared showing each test, the figures used, the grade each test supports and the resulting achievable grade",
+      "aiInstructions": "Agent prepares the schedule; Kevin confirms. Financial capability: (a) best annual turnover from the AFS in the look-back window; (b) available capital = net asset value per the latest AFS adjusted per the CIDB rules (⚠ verify current adjustments — e.g. exclusion of intangible assets and loans to directors; any additional capital such as an unconditional bank guarantee may be added). Works capability: value of the largest single completed contract (excl. VAT) in the look-back window for the class applied for. Look up the CIDB's current grade designation table (⚠ verify thresholds for each grade 2–9 — the table is amended by regulation) and record, for each test, the highest grade it supports. Achievable grade = the lowest of the three. If below the target grade, say so plainly and show what figure is short. Never round figures up."
+    },
+    {
+      "id": "cidbu_handoff",
+      "title": "Prepare upgrade application hand-off sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every CRS upgrade field, the grade schedule and the project list posted for Kevin",
+      "aiInstructions": "Mirror the CRS upgrade application: class and target grade, turnover figure and year, available capital with adjustments, project schedule (each project with value, date, principal and document reference), shareholder / director table, TCS PIN, bank details. Attach the grade designation schedule. Note plainly if the achievable grade is below target so Kevin can align expectations with the client before filing."
+    },
+    {
+      "id": "cidbu_client_confirm",
+      "title": "Confirm target grade with client",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Client confirms the grade to apply for (or supplies further proof)",
+      "aiInstructions": "Only if the achievable grade differs from the client's request: explain in plain English which test falls short and by how much, what extra proof (e.g. a larger completion certificate, an updated AFS) would change it, and ask whether to proceed at the achievable grade. No deadline threats."
+    },
+    {
+      "id": "cidbu_file",
+      "title": "Submit grade upgrade on the CIDB CRS portal",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "cidb",
+      "portalProcedure": "cidb.upgradeGrade",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Upgrade application submitted on CRS with all uploads, fee reference recorded, confirmation saved",
+      "aiInstructions": "Manual because the grade designation involves judgement. Capture under the client's CRS login: update shareholders / directors first if needed, then the upgrade application with AFS, completion certificates, letters of award, bank letter, CoR14.3 and TCS attached. Draft a client message with the CIDB fee amount and reference. Save the confirmation."
+    },
+    {
+      "id": "cidbu_wait",
+      "title": "Wait for CIDB assessment and follow up",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [10, 20, 30],
+      "estimatedDays": 30,
+      "doneCriteria": "Upgraded certificate available on CRS, or a query / lower-grade decision received",
+      "aiInstructions": "Check CRS status at each follow-up point; draft a status query to the CIDB quoting the CRS number and application reference. If the CIDB requests further proof or awards a lower grade, create a proposal for Kevin quoting the CIDB's reason and identifying which test it relates to."
+    },
+    {
+      "id": "cidbu_deliver",
+      "title": "Deliver upgraded CIDB certificate to client",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cidb_certificate", "grade_designation_schedule"],
+      "estimatedDays": 1,
+      "doneCriteria": "Upgraded certificate, new grade and the grade schedule posted to Communication History",
+      "aiInstructions": "Post the certificate and the schedule used. Explain that the grade is re-tested at renewal against current AFS, so they should keep completion certificates and AFS current; offer the CIDB Annual Renewal service."
+    },
+    {
+      "id": "cidbu_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

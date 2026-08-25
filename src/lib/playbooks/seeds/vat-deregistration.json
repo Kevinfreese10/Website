@@ -1,0 +1,117 @@
+{
+  "slug": "vat-deregistration",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "VAT123e application submitted with SARS case number",
+    "Final VAT201 return(s) up to the deregistration date filed",
+    "SARS confirmation of VAT deregistration (VAT type shown as deregistered on eFiling)"
+  ],
+  "playbookCommonFailures": [
+    "Outstanding VAT201 returns or unpaid VAT on the account — SARS will not process a VAT123e until the account is clean",
+    "Exit VAT on assets held at deregistration (s8(2) deemed supply) not calculated, so the final return is wrong and SARS raises an assessment",
+    "Turnover has not actually fallen below R1 million or the business is still trading, so the ground for deregistration is invalid",
+    "Bank statements show continued taxable receipts after the claimed cessation date",
+    "Client expects cancellation to be immediate; SARS typically takes 2-3 months and may request a VAT audit first"
+  ],
+  "informationToProvide": [
+    { "label": "Certified copy of your ID document  / passport (not older than 3 months", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport"], "aiHint": "Certified SA Smart ID Card, Green Barcoded ID Book, or Passport of the registered representative. Check for a Commissioner of Oaths or Police certification stamp dated within 3 months, legible ID number and name." },
+    { "label": "Company registration documents (e.g., COR14.3", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name and enterprise number of the VAT vendor. Not needed for a sole proprietor — mark N/A." },
+    { "label": "Business bank statements ((to verify closure or turnover) 6 Months", "documentKind": "bank_statement", "inNameOf": "entity", "isRequired": true, "aiHint": "Six consecutive months of business bank statements. Used to prove turnover is below R1 million or that trading has stopped — flag any customer receipts after the claimed cessation date." },
+    { "label": "SARS eFiling login Username", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "SARS eFiling login Password", "type": "text", "isSecret": true, "isRequired": true }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "vatd_collect",
+      "title": "Collect deregistration ground, date and supporting documents",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "Ground for deregistration, intended deregistration date, asset list at that date and all uploads received",
+      "aiInstructions": "Ask which ground applies: turnover fell below R1 million in 12 months, ceased trading and will not resume within 12 months, never commenced trading, or otherwise no longer qualifies. Ask for the date trading stopped and a list of assets (stock, equipment, vehicles) still held on which input VAT was claimed — exit VAT is payable on these. Explain the 2-3 month SARS turnaround plainly; never promise shorter."
+    },
+    {
+      "id": "vatd_verify",
+      "title": "Verify ground and account status on eFiling",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.checkAccountStatus:VAT",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "All VAT201s filed, VAT statement of account at nil or a payment plan in place, bank statements consistent with the stated ground",
+      "aiInstructions": "Open the VAT statement of account and the returns work page. List every outstanding return and balance. If anything is outstanding, stop and draft a client message: SARS will not process the VAT123e until returns are filed and paid (offer the VAT201 services). Cross-check bank receipts against the claimed cessation date / R1 million threshold."
+    },
+    {
+      "id": "vatd_calc",
+      "title": "Calculate exit VAT on assets held at deregistration",
+      "type": "calculate",
+      "owner": "kevin",
+      "estimatedDays": 2,
+      "doneCriteria": "Schedule of assets at lower of cost or open-market value with output VAT computed, approved by Kevin",
+      "aiInstructions": "Section 8(2) deemed supply: output VAT is payable on goods and rights held at the date of deregistration on which input VAT was claimed, valued at the lesser of cost and open-market value (⚠ verify current valuation rule). Pull the asset register from AI Accountant where available. This figure goes on the final VAT201 — Kevin must approve before filing."
+    },
+    {
+      "id": "vatd_handoff",
+      "title": "Prepare VAT123e hand-off sheet and cover letter",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet", "cover_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every VAT123e field and a short cover letter explaining the ground, posted for Kevin",
+      "aiInstructions": "VAT123e fields: vendor details, VAT number, reason code for cancellation, date of cessation / date from which cancellation is requested, turnover for the last 12 months, confirmation that all returns are filed, exit VAT declaration. Attach the asset schedule and bank statements. Do not invent a cessation date — take it from the client's answer and the bank statements."
+    },
+    {
+      "id": "vatd_file",
+      "title": "Submit VAT123e cancellation on eFiling",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.deregisterTaxType:VAT",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "VAT123e submitted (SARS Registered Details > Maintain SARS Registered Details > VAT > Deregister) and case number recorded",
+      "aiInstructions": "Kevin submits — the ground and date require professional judgement. Upload supporting documents when SARS requests them (usually the bank statements and cover letter). ⚠ verify: SARS may still require the VAT123e as an uploaded form rather than the eFiling cancellation flow for some vendor types."
+    },
+    {
+      "id": "vatd_final_return",
+      "title": "File final VAT201 up to the deregistration date",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.submitReturn:VAT201",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Final VAT201 including exit VAT submitted and payment reference given to client",
+      "aiInstructions": "SARS usually issues a final period after accepting the cancellation. Include the exit VAT from the calculation step in the output VAT fields. Send the client the payment reference and due date in plain English."
+    },
+    {
+      "id": "vatd_wait",
+      "title": "Wait for SARS to process the cancellation",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [20, 40, 60],
+      "estimatedDays": 60,
+      "doneCriteria": "VAT type shows deregistered / cancelled on eFiling or a SARS confirmation letter is received",
+      "aiInstructions": "At each follow-up check the case status on eFiling and SARS correspondence. SARS may open a verification/audit of the last periods — if so, create a proposal for Kevin with the request and gather the records. Escalate via the SARS Contact Centre with the case number if nothing has moved by day 60."
+    },
+    {
+      "id": "vatd_deliver",
+      "title": "Deliver confirmation of VAT deregistration",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["sars_notice_of_registration"],
+      "estimatedDays": 1,
+      "doneCriteria": "Confirmation, effective date and record-keeping note posted to Communication History",
+      "aiInstructions": "Tell the client: stop charging VAT from the effective date, remove the VAT number from invoices, keep VAT records for 5 years, and that income tax obligations continue. If the company is closing, offer the CIPC deregistration service."
+    },
+    {
+      "id": "vatd_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

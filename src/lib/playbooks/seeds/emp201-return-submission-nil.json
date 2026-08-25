@@ -1,0 +1,96 @@
+{
+  "slug": "emp201-return-submission-nil",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Nil EMP201 submitted on eFiling for the month",
+    "Submission confirmation"
+  ],
+  "playbookCommonFailures": [
+    "Salaries were actually paid in the month (bank statement shows payroll transfers)",
+    "Wrong month selected — EMP201 is monthly and the period naming on eFiling is the month of payment, not the month of submission",
+    "PAYE number not activated on the eFiling profile used",
+    "SDL/UIF still due even though PAYE is nil (employees below the tax threshold)"
+  ],
+  "informationToProvide": [
+    {
+      "label": "Company Name",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Registered company name (or individual's name if the taxpayer is a person) exactly as on the SARS profile, with the relevant SARS reference number."
+    },
+    {
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "Confirmation of no payroll activity for the specific month",
+      "type": "text",
+      "isRequired": true
+    },
+    {
+      "label": "Company registration number (CIPC)",
+      "type": "text",
+      "isRequired": true
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "emp201n_collect",
+      "title": "Collect eFiling access and nil confirmation",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Credentials on file, period identified and client has confirmed in writing that the return is nil",
+      "aiInstructions": "Ask for the eFiling username/password and confirm which period the EMP201 is for. Get an explicit written confirmation in Communication History that no remuneration of any kind (including directors' fees and cash wages) was paid in the month. Do not promise a turnaround shorter than 1–2 working days."
+    },
+    {
+      "id": "emp201n_verify",
+      "title": "Verify period and that a nil return is appropriate",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Return is outstanding on eFiling for that period and nothing on file contradicts the nil declaration",
+      "aiInstructions": "Confirm the EMP201 for the month is issued under Returns → EMP201. A nil PAYE with employees below the threshold is NOT a nil EMP201 — UIF (1%+1%) and SDL (1% if payroll > R500k p.a.) may still be due. If evidence contradicts a nil return (e.g. payslips, a payroll run in AI Payroll, or bank transfers labelled salary/wages), stop and raise a proposal to switch to the trading version of this service."
+    },
+    {
+      "id": "emp201n_file",
+      "title": "Submit the nil EMP201 on eFiling",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.submitNilReturn:EMP201",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "EMP201 shows status Filed/Submitted for the period and the confirmation is saved",
+      "aiInstructions": "Returns → EMP201 → select the month. PAYE, SDL, UIF and ETI all zero; payment reference (PRN) not needed. Submit the declaration. Stage with a screenshot of the completed return for Kevin's approval before Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+    },
+    {
+      "id": "emp201n_deliver",
+      "title": "Deliver proof of submission",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "submission_confirmation"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Submission confirmation / filed return PDF posted to Communication History",
+      "aiInstructions": "Post the filed EMP201. Explain in plain English that a nil EMP201 is required every month the PAYE number is active, and that if there are no employees permanently the client can deregister for PAYE; offer that service. Due date is the 7th of the following month (⚠ verify: or the last business day before if the 7th is a weekend/holiday)."
+    },
+    {
+      "id": "emp201n_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

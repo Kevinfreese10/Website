@@ -1,0 +1,108 @@
+{
+  "slug": "csd-profile-updates",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Updated CSD supplier registration report (PDF)",
+    "Summary of what was changed on the profile (before / after)"
+  ],
+  "playbookCommonFailures": [
+    "CSD login credentials wrong or the OTP cell number belongs to a former employee",
+    "New bank details fail verification because the account holder name differs from the bank letter",
+    "Tax status remains non-compliant because SARS returns are outstanding, not because of the profile",
+    "Directors on CSD differ from CIPC after a director change that was never filed with CIPC",
+    "Uploaded B-BBEE affidavit has expired (older than 12 months)"
+  ],
+  "informationToProvide": [
+    { "label": "CSD Username", "type": "text", "isRequired": true, "isSecret": true },
+    { "label": "CSD Password", "type": "text", "isRequired": true, "isSecret": true },
+    { "label": "Latest company registration documents (e.g., CIPC COR39 or COR15.1A)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Latest CIPC CoR14.3, CoR39 or MOI showing the current registered name, number and active directors — used to reconcile the CSD directors screen." },
+    { "label": "Proof of business address (e.g., utility bill not older than 3 months)", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Lease agreement"], "isRequired": false, "isConditional": true, "conditionalQuestion": "Has the business address changed?", "aiHint": "Utility bill, lease or statement dated within 3 months showing the new physical business address." },
+    { "label": "Bank confirmation letter  - not older than 3 months", "type": "pdf", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": false, "isConditional": true, "conditionalQuestion": "Have the bank details changed?", "aiHint": "Official bank confirmation letter in the company's name dated within 3 months, with bank stamp or digital verification reference. Extract account holder name exactly, account number, type and branch code." },
+    { "label": "Certified ID copies of all active directors/members", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": false, "isConditional": true, "conditionalQuestion": "Have any directors changed?", "aiHint": "Certified SA ID or passport per active director, stamp dated within 3 months. Needed only where the directors screen must change." },
+    { "label": "Latest SARS Tax Compliance Status PIN", "type": "text", "isRequired": false, "helpText": "Current TCS PIN if you have one; CSD refreshes tax status from SARS automatically." },
+    { "label": "Current B-BBEE certificate or sworn affidavit", "type": "pdf", "documentKind": "other", "inNameOf": "entity", "maxAgeDays": 365, "isRequired": false, "aiHint": "Valid B-BBEE certificate or commissioned EME/QSE sworn affidavit for the company, dated within 12 months." },
+    { "label": "List of changes required on the CSD profile", "type": "text", "isRequired": true, "helpText": "E.g. new address, new bank account, new director, upload B-BBEE affidavit, add commodities." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "cpu_collect",
+      "title": "Collect CSD credentials and the list of changes with supporting documents",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Credentials, change list and the supporting document for each change received; OTP contact confirmed",
+      "aiInstructions": "Ask which fields must change and request only the document that supports each (bank letter for bank changes, proof of address for address changes, certified IDs plus CIPC document for director changes, affidavit for B-BBEE). Confirm which cell number receives CSD OTPs and that the person is reachable. Turnaround 3-5 working days; never promise faster."
+    },
+    {
+      "id": "cpu_review",
+      "title": "Review the existing CSD profile",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "csd",
+      "portalProcedure": "csd.reviewProfile",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Current values of every section recorded and compared to CIPC, SARS and the client's change list",
+      "aiInstructions": "Log in (OTP with the client). Download the current registration report. Note expired items (B-BBEE, tax status), unverified bank details, directors that differ from the CoR14.3 and empty commodity lists. This is read-only — no submissions."
+    },
+    {
+      "id": "cpu_verify",
+      "title": "Verify supporting documents for each change",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Every change on the list has a passing supporting document; directors reconcile to CIPC",
+      "aiInstructions": "If the CSD directors differ from CIPC because a director change was never filed at CIPC, propose Add/Remove Director first — CSD verifies against CIPC and will reject. Bank account holder name must match the bank letter exactly. If the tax status is non-compliant, explain that only SARS compliance fixes it and propose the Tax Clearance service."
+    },
+    {
+      "id": "cpu_draft",
+      "title": "Draft profile update handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Handoff sheet with section, current value, new value and supporting document per change",
+      "aiInstructions": "One row per change. Include the uploads to attach on each CSD screen."
+    },
+    {
+      "id": "cpu_file",
+      "title": "Apply updates on csd.gov.za",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "csd",
+      "portalProcedure": "csd.updateProfile",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "All changes captured and saved; bank verification triggered where bank details changed; profile status remains 'Registered'",
+      "aiInstructions": "Edit only the sections on the handoff sheet. After a bank change the account shows 'Unverified' until the bank confirms overnight. Re-save the supplier profile at the end so the registration report regenerates. Never change the login email or cell without the client's explicit instruction."
+    },
+    {
+      "id": "cpu_wait",
+      "title": "Wait for verifications to complete",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [3, 5],
+      "estimatedDays": 3,
+      "doneCriteria": "Bank, CIPC and SARS statuses show verified / compliant on the updated report",
+      "aiInstructions": "Log in and check statuses rather than waiting. On a bank verification failure, compare names and correct."
+    },
+    {
+      "id": "cpu_deliver",
+      "title": "Deliver updated CSD registration report",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["csd_registration_report"],
+      "estimatedDays": 1,
+      "doneCriteria": "Updated report and before/after summary posted to Communication History",
+      "aiInstructions": "List what changed. Remind the client that B-BBEE affidavits expire after 12 months and the TCS status refreshes from SARS."
+    },
+    {
+      "id": "cpu_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

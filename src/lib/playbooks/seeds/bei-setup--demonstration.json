@@ -1,0 +1,69 @@
+{
+  "slug": "bei-setup--demonstration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Configured BEI (Business Entity Identifier) setup for the client entity",
+    "Live demonstration session (recorded where the client agrees)",
+    "Setup documentation and user guide pack"
+  ],
+  "playbookCommonFailures": [
+    "Authorisation letter not signed by a director, so configuration cannot be completed on the client's behalf",
+    "Client cannot supply login details for their existing accounting software, blocking integration",
+    "Demo session booked but client representative does not attend or lacks the authority to make decisions",
+    "Certified ID copies or proof of address older than 3 months"
+  ],
+  "informationToProvide": [
+    { "label": "Certified copy of company registration documents", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "mustBeCertified": true, "maxAgeDays": 90, "isRequired": true, "aiHint": "Certified CIPC CoR14.3 (or CK1/CK2 for a CC) showing the registered name, enterprise number and active directors. Must match the entity being set up, not the ordering contact." },
+    { "label": "Proof of business address (not older than 3 months)", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Signed lease agreement", "Municipal account", "Bank statement showing the business address"], "aiHint": "Utility bill, municipal account, lease or bank statement in the company's name showing the business address, dated within 3 months." },
+    { "label": "Certified ID copies of all directors/members", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "mustBeCertified": true, "maxAgeDays": 90, "isRequired": true, "alternatives": ["Certified passport copy for foreign directors"], "aiHint": "Certified copy of the SA ID (smart card both sides or green book) or passport for every director listed on the CoR14.3, certification stamp dated within 3 months. Flag any director without one." },
+    { "label": "Authorisation letter for My Accountant to act on your behalf", "type": "pdf", "documentKind": "power_of_attorney", "inNameOf": "entity", "isRequired": true, "aiHint": "Letter on the company's letterhead signed by a director authorising My Accountant (Pty) Ltd to configure the BEI on the company's behalf. If the client has none, the agent drafts one from the power_of_attorney template for signature." },
+    { "label": "Details of any existing financial or accounting software", "type": "text", "isRequired": false }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "bei_collect",
+      "title": "Collect entity documents, authorisation and software details",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Certified CoR14.3, proof of address, certified director IDs, signed authorisation letter and software details received",
+      "aiInstructions": "Chase only what is missing and explain why. Certified IDs and proof of address must be within 3 months. If no authorisation letter exists, draft one from the power_of_attorney template and ask a director to sign. Ask which accounting software (Xero, Sage, QuickBooks, none) the client uses and who will attend the demo. Do not promise faster than 5 working days. ⚠ verify with Kevin what 'BEI' covers in this service and which system is configured — the catalogue description is vague and the steps below assume a configuration-plus-training engagement."
+    },
+    {
+      "id": "bei_configure",
+      "title": "Configure the BEI for the client entity",
+      "type": "manual",
+      "owner": "staff",
+      "estimatedDays": 2,
+      "doneCriteria": "BEI configured with the entity's verified details and linked to the client's accounting software where applicable",
+      "aiInstructions": "Staff performs the configuration using the verified entity details (name, registration number, address, directors) from the uploaded documents — never from the order form alone. Record the configuration settings, reference numbers and any integration credentials in the order notes (credentials stored as secrets, not in Communication History). Note any integration that could not be completed and why, for the demo session."
+    },
+    {
+      "id": "bei_demo",
+      "title": "Book and run the live demonstration session",
+      "type": "manual",
+      "owner": "staff",
+      "estimatedDays": 2,
+      "doneCriteria": "Live demo session held with the client's nominated representative; Q&A points captured",
+      "aiInstructions": "Staff books a video or in-person session with the client's nominated person and posts the invitation to Communication History. The session walks through the configuration, day-to-day use, integration with the client's software and answers the client's questions. Capture the questions asked and any follow-up items so they can be included in the documentation."
+    },
+    {
+      "id": "bei_deliver",
+      "title": "Deliver setup documentation and resources",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["bei_documentation"],
+      "estimatedDays": 1,
+      "doneCriteria": "Configuration summary, user guide and Q&A follow-ups posted to Communication History",
+      "aiInstructions": "Post the configuration summary (what was set up, reference numbers, who has access), the user guide/supporting documentation, the demo recording if one was made, and written answers to any questions left open in the session. Offer ongoing bookkeeping or management accounts services."
+    },
+    {
+      "id": "bei_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the setup and demo are complete and the order can be closed"
+    }
+  ]
+}

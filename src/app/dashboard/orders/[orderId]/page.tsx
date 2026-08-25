@@ -315,9 +315,14 @@ export default function ClientOrderDetailsPage() {
         return;
       }
 
+      const mechanicalFeedback = (res as any).mechanicalFeedback as string | null | undefined;
+      const mechanicalStatus = (res as any).mechanicalStatus as string | null | undefined;
       toast({
-        title: filesArray.length === 1 ? 'File Uploaded' : `${filesArray.length} Files Uploaded`,
-        description: `${filesToPersist.length} document(s) saved for verification.`
+        title: mechanicalStatus === 'fail'
+          ? 'Uploaded, but please check'
+          : filesArray.length === 1 ? 'File Uploaded' : `${filesArray.length} Files Uploaded`,
+        description: mechanicalFeedback || `${filesToPersist.length} document(s) saved for verification.`,
+        variant: mechanicalStatus === 'fail' ? 'destructive' : undefined,
       });
 
       setEditingRequirements(prev => ({ ...prev, [uploadKey]: false }));
@@ -460,7 +465,8 @@ export default function ClientOrderDetailsPage() {
           });
 
           if (res.success) {
-            toast({ title: 'Information Submitted', description: 'Your information has been securely saved.' });
+            const fb = (res as any).mechanicalFeedback as string | null | undefined;
+            toast({ title: (res as any).mechanicalStatus === 'fail' ? 'Please check this entry' : 'Information Submitted', description: fb || 'Your information has been securely saved.', variant: (res as any).mechanicalStatus === 'fail' ? 'destructive' : undefined });
             setTextInputs(prev => ({...prev, [requirementLabel]: ''}));
             setEditingRequirements(prev => ({ ...prev, [`${serviceId}-${requirementLabel}`]: false }));
             fetchOrderAndServices(true);
@@ -1020,14 +1026,14 @@ export default function ClientOrderDetailsPage() {
                                                 {/* 3. Text Requirement Submitted Display */}
                                                 {hasTextValue && !hasFiles && !hasExplanation && !isEditing && (
                                                     <div className="p-2.5 bg-green-50 text-green-900 rounded-md border border-green-200 text-xs flex items-center justify-between gap-2">
-                                                        <span className="font-medium truncate">Submitted: "{upload?.textValue}"</span>
+                                                        <span className="font-medium truncate">Submitted: "{upload?.isEncrypted ? '•••••••• (stored encrypted)' : upload?.textValue}"</span>
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
                                                             size="xs"
                                                             className="h-7 text-xs text-green-900 hover:text-green-950 shrink-0"
                                                             onClick={() => {
-                                                                setTextInputs(prev => ({ ...prev, [info.label]: upload?.textValue || '' }));
+                                                                setTextInputs(prev => ({ ...prev, [info.label]: upload?.isEncrypted ? '' : (upload?.textValue || '') }));
                                                                 setEditingRequirements(prev => ({ ...prev, [uploadKey]: true }));
                                                             }}
                                                         >

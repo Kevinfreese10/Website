@@ -1,0 +1,94 @@
+{
+  "slug": "tax-directive-application",
+  "playbookEntity": "individual",
+  "playbookOutputs": [
+    "SARS tax directive (IRP3) showing the tax to be withheld on the specific amount",
+    "Directive number and copy for the employer / fund administrator",
+    "Plain-English note on how the directive affects the payment and the annual ITR12"
+  ],
+  "playbookCommonFailures": [
+    "Wrong directive form chosen (IRP3(a) for employer lump sums vs Form A&D / B / C for retirement fund benefits) so SARS declines it",
+    "Taxpayer's personal income tax affairs are not compliant or returns are outstanding, and SARS holds the directive",
+    "Source documents (retrenchment letter, fund withdrawal statement) do not state the gross amount or the reason code SARS needs",
+    "Employer PAYE reference or fund registration number missing, so the application cannot be linked",
+    "Client expects the directive to reduce tax permanently; it only fixes the withholding on the once-off payment"
+  ],
+  "informationToProvide": [
+    { "label": "Company Name", "type": "text", "isRequired": true, "aiHint": "Name of the employer or retirement fund making the payment (the directive is applied for in respect of this payer). Also capture its PAYE reference or fund number in the questionnaire." },
+    { "label": "SARS eFiling Username", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "SARS eFiling Password", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "Certified copy of your South African ID document or valid passport", "documentKind": "sa_id", "inNameOf": "entity", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport"], "aiHint": "Certified SA Smart ID Card, Green Barcoded ID Book, or Passport of the taxpayer receiving the payment. Commissioner of Oaths or Police certification stamp dated within 3 months." },
+    { "label": "Relevant source documents pertaining to the income (e.g., provident fund withdrawal statement, retrenchment letter, annuity details)", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "aiHint": "Document from the payer stating the nature of the payment (retrenchment/severance, leave pay, fund withdrawal, commission, etc.), gross amount, payment date and the payer's PAYE reference or fund number. This determines which directive form is used." },
+    { "label": "Proof of banking details (e.g., cancelled cheque or bank statement)", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": false, "alternatives": ["Recent bank statement showing account holder name"], "aiHint": "Bank confirmation letter or statement in the taxpayer's own name, within 3 months. Only needed where SARS bank details must be updated for a refund." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "tdir_collect",
+      "title": "Collect payment details and source documents",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Nature of payment, gross amount, payer details and all uploads received; taxpayer tax number captured",
+      "aiInstructions": "Ask: what the payment is for (retrenchment, fund withdrawal, retirement, commission/variable income, lump sum from employer), the gross amount, the payer's PAYE/fund reference, expected payment date and the taxpayer's income tax number. Explain that a directive fixes the tax withheld on this payment only. Do not promise faster than 5-7 working days."
+    },
+    {
+      "id": "tdir_verify",
+      "title": "Verify eligibility and choose the directive form",
+      "type": "verify",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the correct form (IRP3(a), IRP3(b), IRP3(c), Form A&D, B, C or E) and that the taxpayer's affairs are compliant",
+      "aiInstructions": "Employer lump sums (severance, leave, backpay, arbitration awards) use IRP3(a); retirement fund benefits use Form A&D/B/C/E and are usually applied for by the fund itself — if so, this service is limited to assisting the client and Kevin must decide whether to proceed. Check compliance status and outstanding returns on eFiling; SARS holds directives where ITR12s are outstanding. ⚠ verify current form list on the SARS directives page."
+    },
+    {
+      "id": "tdir_handoff",
+      "title": "Prepare directive hand-off sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every directive field posted for Kevin",
+      "aiInstructions": "Fields: taxpayer name, ID and tax number, payer name and PAYE/fund reference, reason code, gross amount, date of accrual, years of service (for severance), other income for the year, whether the taxpayer has previously received a severance/retirement lump sum (affects the tax-free portion — ⚠ verify current R550 000 cumulative severance exemption). Fill only from source documents; leave unknowns blank and flag."
+    },
+    {
+      "id": "tdir_file",
+      "title": "Submit tax directive application on eFiling",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.submitTaxDirective:IRP3",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Directive application submitted and SARS reference captured",
+      "aiInstructions": "Path: eFiling > Services > Tax Directives (⚠ verify: employer directives may need to be lodged from the employer's eFiling profile or by the fund via the SARS directive interface, not from the individual's profile). Kevin submits because the reason code and amounts require judgement. Attach the source documents."
+    },
+    {
+      "id": "tdir_wait",
+      "title": "Wait for SARS to issue the directive",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [3, 5, 7],
+      "estimatedDays": 7,
+      "doneCriteria": "Directive issued and downloadable, or a SARS decline reason received",
+      "aiInstructions": "Directives are often issued within 2-3 working days but can be held for verification. Check the directive status on eFiling at each follow-up. If declined, create a proposal for Kevin with the decline reason (commonly outstanding returns or mismatched payer reference)."
+    },
+    {
+      "id": "tdir_deliver",
+      "title": "Deliver directive to client and payer",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["tax_directive"],
+      "estimatedDays": 1,
+      "doneCriteria": "Directive PDF, directive number and explanation posted to Communication History",
+      "aiInstructions": "Tell the client in plain English what tax will be withheld and that the payer must apply the directive number on the IRP5. Remind them the lump sum still goes on their ITR12 and offer the ITR12 service."
+    },
+    {
+      "id": "tdir_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

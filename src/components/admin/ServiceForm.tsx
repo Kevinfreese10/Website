@@ -3,7 +3,9 @@
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Service, PrerequisiteItem } from '@/lib/types';
+import { Service, PrerequisiteItem, PlaybookApproval } from '@/lib/types';
+import PlaybookEditor from './PlaybookEditor';
+import { Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -59,6 +61,42 @@ const returnPolicyCategories = [
   { value: 'https://schema.org/MerchantReturnSayNo', label: 'No Return Policy' },
 ];
 
+const DOCUMENT_KIND_OPTIONS: { value: string; label: string }[] = [
+  { value: 'sa_id', label: 'SA ID (smart card / green book)' },
+  { value: 'passport', label: 'Passport' },
+  { value: 'proof_of_address', label: 'Proof of address' },
+  { value: 'cor14_3', label: 'CIPC CoR14.3 / CK' },
+  { value: 'cor39', label: 'CIPC CoR39' },
+  { value: 'moi', label: 'MOI' },
+  { value: 'bank_confirmation', label: 'Bank confirmation letter' },
+  { value: 'bank_statement', label: 'Bank statement' },
+  { value: 'tcs_pin', label: 'Tax compliance status / PIN' },
+  { value: 'sars_notice_of_registration', label: 'SARS notice of registration' },
+  { value: 'afs', label: 'Annual financial statements' },
+  { value: 'management_accounts', label: 'Management accounts' },
+  { value: 'trial_balance', label: 'Trial balance' },
+  { value: 'payslip', label: 'Payslip' },
+  { value: 'irp5', label: 'IRP5 / IT3(a)' },
+  { value: 'it3', label: 'IT3(b)/(c)' },
+  { value: 'medical_aid_cert', label: 'Medical aid certificate' },
+  { value: 'ra_cert', label: 'Retirement annuity certificate' },
+  { value: 'logbook', label: 'Travel logbook' },
+  { value: 'invoice', label: 'Invoice' },
+  { value: 'receipt', label: 'Receipt / slip' },
+  { value: 'share_certificate', label: 'Share certificate / register' },
+  { value: 'resolution', label: 'Resolution' },
+  { value: 'power_of_attorney', label: 'Power of attorney / mandate' },
+  { value: 'letterhead', label: 'Letter on letterhead' },
+  { value: 'criminal_clearance', label: 'Criminal clearance' },
+  { value: 'letter_of_good_standing', label: 'Letter of good standing' },
+  { value: 'coida_registration', label: 'COIDA registration' },
+  { value: 'cidb_certificate', label: 'CIDB certificate' },
+  { value: 'completion_certificate', label: 'Completion certificate' },
+  { value: 'letter_of_award', label: 'Letter of award' },
+  { value: 'photo', label: 'Photo' },
+  { value: 'other', label: 'Other' },
+];
+
 const formSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(1, 'Title is required.').max(100, 'Title must be 100 characters or less.'),
@@ -90,7 +128,24 @@ const formSchema = z.object({
     conditionalQuestion: z.string().optional(),
     isRequired: z.boolean().optional(),
     aiHint: z.string().optional(),
+    // AI order agent verification fields (plan §5.1)
+    documentKind: z.string().optional(),
+    inNameOf: z.enum(['entity', 'director', 'either']).optional(),
+    maxAgeDays: z.preprocess(val => (val === '' || val === undefined || val === null ? undefined : Number(val)), z.number().min(0).optional()),
+    mustBeCertified: z.boolean().optional(),
+    alternativesText: z.string().optional(),
+    isSecret: z.boolean().optional(),
   })),
+  // AI order agent playbook (plan §5.1). Step objects are loosely typed here; PlaybookEditor owns the shape.
+  fulfillmentChecklist: z.array(z.object({
+    id: z.string(),
+    title: z.string().min(1, 'Step title is required.'),
+  }).passthrough()).optional(),
+  playbookEntity: z.enum(['company', 'individual', 'either']).optional(),
+  playbookOutputsText: z.string().optional(),
+  playbookCommonFailuresText: z.string().optional(),
+  playbookVersion: z.number().optional(),
+  playbookApproval: z.any().optional().nullable(),
   metaTitle: z.string().min(1, 'Meta Title is required.').max(59, 'Meta Title must be under 60 characters.'),
   metaDescription: z.string().max(160, 'Meta Description must be 160 characters or less.').optional().or(z.literal('')),
   metaKeywords: z.array(z.object({ value: z.string() })).optional(),
@@ -172,7 +227,20 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
           return { type: 'text' as const, value: (item as any)?.text || '', productId: '' };
         }
       }) || [{ type: 'text', value: '', productId: '' }],
-      informationToProvide: normalizeRequirementsWithIds(service?.informationToProvide || []),
+      informationToProvide: normalizeRequirementsWithIds(service?.informationToProvide || []).map(r => ({
+        ...r,
+        alternativesText: Array.isArray((r as any).alternatives) ? (r as any).alternatives.join(', ') : '',
+      })),
+      fulfillmentChecklist: (service?.fulfillmentChecklist || []).map(step => ({
+        ...step,
+        templateIdsText: Array.isArray(step.templateIds) ? step.templateIds.join(', ') : '',
+        followUpAfterDaysText: Array.isArray(step.followUpAfterDays) ? step.followUpAfterDays.join(', ') : '',
+      })),
+      playbookEntity: service?.playbookEntity || 'either',
+      playbookOutputsText: (service?.playbookOutputs || []).join('\n'),
+      playbookCommonFailuresText: (service?.playbookCommonFailures || []).join('\n'),
+      playbookVersion: service?.playbookVersion || 0,
+      playbookApproval: service?.playbookApproval || null,
       metaTitle: service?.metaTitle || '',
       metaDescription: service?.metaDescription || '',
       metaKeywords: service?.metaKeywords?.map(v => ({value: v})) || [{ value: '' }],
@@ -425,10 +493,33 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
       .map(r => (r as any).productId)
       .filter(Boolean);
 
-    const normalizedInfo = normalizeRequirementsWithIds(values.informationToProvide.filter(v => v.label));
+    const normalizedInfo = normalizeRequirementsWithIds(values.informationToProvide.filter(v => v.label)).map((r: any) => {
+      const { alternativesText, ...rest } = r;
+      const alternatives = String(alternativesText || '').split(',').map((x: string) => x.trim()).filter(Boolean);
+      return { ...rest, ...(alternatives.length ? { alternatives } : { alternatives: [] }) };
+    });
+
+    const splitList = (txt?: string, sep: RegExp = /\r?\n/) => String(txt || '').split(sep).map(x => x.trim()).filter(Boolean);
+
+    const fulfillmentChecklist = (values.fulfillmentChecklist || []).map((step: any) => {
+      const { templateIdsText, followUpAfterDaysText, ...rest } = step;
+      const templateIds = splitList(templateIdsText, /,/);
+      const followUpAfterDays = splitList(followUpAfterDaysText, /,/).map(Number).filter(n => Number.isFinite(n) && n > 0);
+      return {
+        ...rest,
+        ...(templateIds.length ? { templateIds } : {}),
+        ...(followUpAfterDays.length ? { followUpAfterDays } : {}),
+      };
+    });
+
+    const { playbookOutputsText, playbookCommonFailuresText, ...valuesWithoutPlaybookText } = values;
 
     const serviceData = {
-      ...values,
+      ...valuesWithoutPlaybookText,
+      fulfillmentChecklist,
+      playbookOutputs: splitList(playbookOutputsText),
+      playbookCommonFailures: splitList(playbookCommonFailuresText),
+      playbookApproval: (values.playbookApproval as PlaybookApproval | null) || null,
       slug,
       seoImageUrl: values.imageUrl,
       whatsIncluded: values.whatsIncluded.map(v => v.value).filter(Boolean),
@@ -526,6 +617,13 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
               <TabsTrigger value="intake" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
                 <ClipboardList className="h-3.5 w-3.5" />
                 Client Documents ({infoFields.length})
+              </TabsTrigger>
+              <TabsTrigger value="playbook" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
+                <Bot className="h-3.5 w-3.5" />
+                Agent Playbook
+                {form.watch('playbookApproval')?.approvedAt
+                  ? <Badge className="ml-1 h-4 px-1 text-[9px] bg-emerald-600">LIVE</Badge>
+                  : (form.watch('fulfillmentChecklist')?.length ? <Badge variant="outline" className="ml-1 h-4 px-1 text-[9px]">DRAFT</Badge> : null)}
               </TabsTrigger>
               <TabsTrigger value="seo" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
                 <Globe className="h-3.5 w-3.5" />
@@ -1204,6 +1302,69 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                         )}
                       />
 
+                      {/* AI order agent verification rules (plan §5.1) */}
+                      <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 p-2 space-y-2">
+                        <p className="text-[11px] font-semibold text-primary flex items-center gap-1"><Bot className="h-3 w-3" /> Agent verification rules</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          <FormField control={form.control} name={`informationToProvide.${index}.documentKind`} render={({ field }) => (
+                            <FormItem className="space-y-0.5">
+                              <FormLabel className="text-[11px] text-muted-foreground">Document kind</FormLabel>
+                              <Select value={field.value || ''} onValueChange={field.onChange}>
+                                <FormControl><SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                  {DOCUMENT_KIND_OPTIONS.map(k => <SelectItem key={k.value} value={k.value} className="text-xs">{k.label}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name={`informationToProvide.${index}.inNameOf`} render={({ field }) => (
+                            <FormItem className="space-y-0.5">
+                              <FormLabel className="text-[11px] text-muted-foreground">Must be in the name of</FormLabel>
+                              <Select value={field.value || ''} onValueChange={field.onChange}>
+                                <FormControl><SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                  <SelectItem value="entity" className="text-xs">The company / entity</SelectItem>
+                                  <SelectItem value="director" className="text-xs">The director / individual</SelectItem>
+                                  <SelectItem value="either" className="text-xs">Either</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name={`informationToProvide.${index}.maxAgeDays`} render={({ field }) => (
+                            <FormItem className="space-y-0.5">
+                              <FormLabel className="text-[11px] text-muted-foreground">Max age (days)</FormLabel>
+                              <FormControl><Input type="number" min={0} className="h-7 text-xs" placeholder="90" {...field} value={field.value ?? ''} /></FormControl>
+                            </FormItem>
+                          )} />
+                          <div className="flex flex-col gap-1.5 pt-4">
+                            <FormField control={form.control} name={`informationToProvide.${index}.mustBeCertified`} render={({ field }) => (
+                              <FormItem className="flex items-center gap-1.5 space-y-0">
+                                <FormControl><Switch checked={!!field.value} onCheckedChange={field.onChange} /></FormControl>
+                                <FormLabel className="!mt-0 text-[11px] cursor-pointer">Must be certified</FormLabel>
+                              </FormItem>
+                            )} />
+                            <FormField control={form.control} name={`informationToProvide.${index}.isSecret`} render={({ field }) => (
+                              <FormItem className="flex items-center gap-1.5 space-y-0">
+                                <FormControl><Switch checked={!!field.value} onCheckedChange={field.onChange} /></FormControl>
+                                <FormLabel className="!mt-0 text-[11px] cursor-pointer">Credential (store encrypted)</FormLabel>
+                              </FormItem>
+                            )} />
+                          </div>
+                        </div>
+                        <FormField control={form.control} name={`informationToProvide.${index}.alternativesText`} render={({ field }) => (
+                          <FormItem className="space-y-0.5">
+                            <FormLabel className="text-[11px] text-muted-foreground">Acceptable alternatives (comma separated)</FormLabel>
+                            <FormControl><Input className="h-7 text-xs" placeholder="Passport, Signed lease agreement" {...field} value={field.value || ''} /></FormControl>
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name={`informationToProvide.${index}.aiHint`} render={({ field }) => (
+                          <FormItem className="space-y-0.5">
+                            <FormLabel className="text-[11px] text-muted-foreground">What a valid one looks like (AI hint — the highest-value field here)</FormLabel>
+                            <FormControl><Textarea rows={2} className="text-xs bg-background" placeholder="e.g. Official bank confirmation letter from a registered SA bank, dated within 3 months, in the COMPANY's name. Accept a digital verification reference/QR in place of a stamp. Do NOT accept a transaction statement." {...field} value={field.value || ''} /></FormControl>
+                          </FormItem>
+                        )} />
+                      </div>
+
                       <div className="flex items-center justify-between pt-1 border-t border-border/40 text-xs">
                         <div className="flex items-center gap-5">
                           <FormField
@@ -1261,6 +1422,29 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                     </p>
                   )}
                 </div>
+              </div>
+            </TabsContent>
+
+            {/* TAB: AI ORDER AGENT PLAYBOOK */}
+            <TabsContent value="playbook" className="space-y-4 m-0 focus-visible:outline-none">
+              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
+                <div className="pb-1 border-b">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-bold text-foreground">Fulfilment Playbook</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The written procedure the AI order agent follows for this service: what to collect, verify, draft, submit, wait for and deliver. See AI-ORDER-AGENT-PLAN.md §5.
+                  </p>
+                </div>
+                <PlaybookEditor
+                  control={form.control}
+                  setValue={form.setValue}
+                  getValues={form.getValues}
+                  requirements={(form.watch('informationToProvide') || []) as { id?: string; label: string }[]}
+                  currentUser={user as any}
+                  isAdmin={(user as any)?.role === 'admin'}
+                />
               </div>
             </TabsContent>
 

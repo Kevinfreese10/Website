@@ -1,0 +1,104 @@
+{
+  "slug": "ncr-form-40-application--compliance",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Completed NCR Form 40 (annual financial and operational return) for the financial year",
+    "NCR submission confirmation / acknowledgement",
+    "Working paper reconciling Form 40 figures to the AFS and loan book"
+  ],
+  "playbookCommonFailures": [
+    "AFS not finalised or not signed, so the financial section of Form 40 cannot be completed within the NCR's deadline",
+    "Loan book totals do not agree with receivables in the AFS",
+    "NCR annual fee unpaid, so the portal blocks the submission or the NCR treats the registration as lapsed",
+    "Form 40 submitted for the wrong period — it follows the credit provider's financial year, not the calendar year",
+    "Portal credentials unknown or registered contact person has left the company"
+  ],
+  "informationToProvide": [
+    { "label": "Certified copy of the latest annual financial statements", "documentKind": "afs", "inNameOf": "entity", "mustBeCertified": false, "isRequired": true, "aiHint": "Signed AFS for the financial year being reported, with the auditor's / independent reviewer's report. The financial section of Form 40 is completed from these; an unsigned draft is not acceptable." },
+    { "label": "Detailed loan book report (outstanding balances, credit granted, etc.)", "type": "excel", "documentKind": "other", "inNameOf": "entity", "alternatives": ["Loan management system export", "Debtors age analysis with new-agreement listing"], "isRequired": true, "aiHint": "Loan book for the financial year: credit granted in the year by credit type, outstanding balances and arrears at year-end, write-offs, interest and fee income, number of active consumers. Must reconcile to receivables and revenue in the AFS." },
+    { "label": "Proof of payment for NCR annual fees (if applicable)", "documentKind": "receipt", "inNameOf": "entity", "isRequired": false, "aiHint": "Proof of payment of the NCR annual registration fee for the current year, or the NCR's fee invoice. The NCR will not accept the annual return if the registration is in arrears — flag if missing." },
+    { "label": "Previous year's NCR Form 40 submission (if available)", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "Last year's Form 40 as submitted. Used for continuity of opening balances and to follow the same classification conventions." },
+    { "label": "Your registered National Credit Regulator (NCR) registration number", "type": "text", "isRequired": true, "aiHint": "The NCRCP number from the NCR certificate. Confirm against the certificate." },
+    { "label": "NCR online portal username", "type": "text", "isSecret": true, "isRequired": false },
+    { "label": "NCR online portal password", "type": "text", "isSecret": true, "isRequired": false }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "f40_collect",
+      "title": "Collect Form 40 inputs from client",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Signed AFS, loan book, NCRCP number and fee proof uploaded; portal access confirmed",
+      "aiInstructions": "Chase only what is missing; explain that Form 40 is the NCR's annual financial and operational return and is completed from the signed AFS and the year-end loan book. ⚠ verify the deadline: Form 40 is due within 6 months of the credit provider's financial year-end — state the client's year-end and the resulting due date rather than a generic date. Ask for the NCR portal login or the registered contact person. Do not promise a shorter turnaround than 3–5 working days from receipt of everything."
+    },
+    {
+      "id": "f40_verify",
+      "title": "Verify registration status, AFS and loan book",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "NCRCP active, annual fee paid or flagged, AFS signed, loan book reconciles to AFS receivables",
+      "aiInstructions": "Confirm the NCRCP number and that the annual fee is paid (flag if not — the NCR may block submission). AFS must be signed and for the correct year. Reconcile loan book closing balances to trade receivables / loans and advances in the AFS and credit granted to revenue; flag differences over 5% for Kevin. Extract year-end date, total assets, revenue, net profit, receivables and impairment figures."
+    },
+    {
+      "id": "f40_calc",
+      "title": "Compile Form 40 financial and operational figures",
+      "type": "calculate",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Every Form 40 section populated from AFS and loan book with reconciliation",
+      "aiInstructions": "Agent prepares, Kevin confirms. Financial section from the AFS (balance sheet and income statement line items as the form requires); operational section from the loan book (credit granted by type, book size, arrears, write-offs, number of consumers, branches / staff where asked); compliance section (complaints, debt counselling matters, insurance) from questionnaire answers. ⚠ verify the current Form 40 layout and whether an assurance engagement report is also required for this client's size before finalising. Show every figure's source."
+    },
+    {
+      "id": "f40_handoff",
+      "title": "Prepare Form 40 hand-off sheet and working paper",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every Form 40 field in portal order and the reconciliation posted for Kevin",
+      "aiInstructions": "List each Form 40 field with value and source (AFS note / loan book column / questionnaire). Include judgement items and anything left blank. Never invent a compliance answer (e.g. number of complaints) — leave blank and flag."
+    },
+    {
+      "id": "f40_file",
+      "title": "Submit Form 40 on the NCR online portal",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "ncr",
+      "portalProcedure": "ncr.submitForm40",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Form 40 submitted with AFS attached and the confirmation PDF saved to the order",
+      "aiInstructions": "⚠ CHANNEL: plan §4.4 marks this ⚠ — confirm with Kevin whether Form 40 is captured on the NCR portal under the client's login or emailed with the AFS. Attach the signed AFS (and assurance report if required). Manual because the financial classifications require professional judgement. Save the confirmation and reference."
+    },
+    {
+      "id": "f40_wait",
+      "title": "Wait for NCR acknowledgement or query",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [3, 7],
+      "estimatedDays": 5,
+      "doneCriteria": "NCR acknowledgement received, or query answered",
+      "aiInstructions": "If the NCR queries a figure, create a proposal for Kevin quoting the query and the working-paper line. Draft a status query if nothing arrives by the follow-up point."
+    },
+    {
+      "id": "f40_deliver",
+      "title": "Deliver Form 40 and confirmation to client",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["ncr_form_40", "ncr_submission_confirmation"],
+      "estimatedDays": 1,
+      "doneCriteria": "Submitted Form 40, confirmation and working paper posted to Communication History",
+      "aiInstructions": "Post the return, confirmation and reconciliation. Note next year's due date (6 months after year-end, ⚠ verify), the Form 39 statistical returns and the annual fee; offer the Form 39 service."
+    },
+    {
+      "id": "f40_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

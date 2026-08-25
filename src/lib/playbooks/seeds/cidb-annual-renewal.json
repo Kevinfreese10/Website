@@ -1,0 +1,94 @@
+{
+  "slug": "cidb-annual-renewal",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Renewed CIDB Register of Contractors certificate",
+    "CRS confirmation of renewal with new expiry date"
+  ],
+  "playbookCommonFailures": [
+    "Registration already lapsed beyond the CIDB's grace period, so a new registration (not a renewal) is required",
+    "TCS PIN expired or company non-compliant at SARS",
+    "AFS older than 18 months for a graded contractor, so the CIDB downgrades on renewal",
+    "CIDB renewal fee unpaid (excluded from our fee), so the renewal sits unprocessed",
+    "CRS login details unknown or linked to a former employee's email"
+  ],
+  "informationToProvide": [
+    { "label": "Current CIDB registration certificate and details", "documentKind": "cidb_certificate", "inNameOf": "entity", "isRequired": true, "aiHint": "The company's current CIDB certificate showing CRS number, grade(s), class(es) of works and expiry date. Read the expiry date — if it is already past, tell Kevin; the CIDB may treat it as a new application." },
+    { "label": "Latest audited or independently reviewed financial statements (not older than 18 months)", "documentKind": "afs", "inNameOf": "entity", "maxAgeDays": 548, "alternatives": ["Signed management accounts (Grade 2–3 only, ⚠ verify)"], "isRequired": false, "aiHint": "Signed AFS for the latest financial year, year-end within 18 months of the renewal date. Not needed for Grade 1. For graded contractors the CIDB re-tests turnover and available capital on renewal — supply to avoid a downgrade." },
+    { "label": "Company registration documents (e.g., CIPC CoR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "CIPC CoR14.3 showing registered name, enterprise number and directors. Compare directors to those on the CRS profile — any change must be updated at renewal." },
+    { "label": "Tax Clearance Status (TCS) PIN from SARS", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status PIN letter for the company, unexpired. The CIDB verifies the PIN with SARS during renewal." },
+    { "label": "Proof of public liability insurance (if applicable)", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "Insurance schedule or broker letter in the company's name showing public liability cover and period. Only required if the CIDB asks for it for the class / grade; otherwise optional." },
+    { "label": "CIDB CRS login username", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "CIDB CRS login password", "type": "text", "isSecret": true, "isRequired": true }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "cidbr_collect",
+      "title": "Collect CIDB renewal requirements from client",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Certificate, CoR14.3, TCS PIN and CRS login received; AFS received for graded contractors",
+      "aiInstructions": "Chase only what is missing. Explain that the CIDB re-verifies tax status on renewal and, for grades above 1, re-tests financials — so an unexpired TCS PIN and recent AFS avoid a downgrade. Ask whether any directors changed since registration. Remind that the CIDB renewal fee is payable by the client and excluded. Do not promise a shorter turnaround than 7–10 working days."
+    },
+    {
+      "id": "cidbr_verify",
+      "title": "Verify certificate, TCS and financials",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Expiry date read, TCS valid, AFS within 18 months where required, directors match",
+      "aiInstructions": "Extract CRS number, grade(s), class(es) and expiry date from the certificate. Flag if expired. Check the TCS PIN expiry. For graded contractors check the AFS year-end is within 18 months and extract turnover and available capital (⚠ verify current CIDB definitions and thresholds) to confirm the current grade is still supported. Compare CoR14.3 directors to the CRS profile."
+    },
+    {
+      "id": "cidbr_handoff",
+      "title": "Prepare renewal hand-off sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with renewal fields, any profile changes and grade-support figures posted for Kevin",
+      "aiInstructions": "List: CRS number, expiry, grade/class, TCS PIN, AFS figures used (turnover, available capital, largest contract), director / contact changes to update, and the CIDB renewal fee expected. Note plainly if the figures no longer support the grade so Kevin can warn the client before submission."
+    },
+    {
+      "id": "cidbr_file",
+      "title": "Submit renewal on the CIDB CRS portal",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "cidb",
+      "portalProcedure": "cidb.renewRegistration",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Renewal submitted on CRS, fee reference recorded, confirmation saved",
+      "aiInstructions": "Stage the renewal under the client's CRS login: update profile changes, attach TCS, AFS and insurance where required, and stop before the final submit for Kevin. Draft a client message with the CIDB fee amount and reference. Save the renewal confirmation."
+    },
+    {
+      "id": "cidbr_wait",
+      "title": "Wait for CIDB to process the renewal",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [5, 10, 15],
+      "estimatedDays": 10,
+      "doneCriteria": "Renewed certificate available on CRS or a query raised",
+      "aiInstructions": "Check CRS status at each follow-up point; draft a status query to the CIDB quoting the CRS number if it has not moved. If the CIDB proposes a downgrade, create a proposal for Kevin and a client message explaining the reason and the upgrade route."
+    },
+    {
+      "id": "cidbr_deliver",
+      "title": "Deliver renewed CIDB certificate to client",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cidb_certificate"],
+      "estimatedDays": 1,
+      "doneCriteria": "Renewed certificate and new expiry date posted to Communication History",
+      "aiInstructions": "Post the certificate and note the new expiry date. Suggest diarising the next renewal 60 days before expiry and offer the CIDB Upgrade service if their financials support a higher grade."
+    },
+    {
+      "id": "cidbr_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

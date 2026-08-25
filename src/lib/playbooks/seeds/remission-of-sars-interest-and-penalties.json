@@ -1,0 +1,102 @@
+{
+  "slug": "remission-of-sars-interest-and-penalties",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Signed remission motivation letter with supporting evidence pack",
+    "Request for Remission (RFR) lodged on eFiling with SARS case number",
+    "SARS outcome letter (remission allowed in full, in part, or disallowed) and advice on next steps (objection if disallowed)"
+  ],
+  "playbookCommonFailures": [
+    "Penalty is an administrative penalty for a still-outstanding return — SARS will not consider remission until the return is filed",
+    "Motivation relies on 'I did not know' or 'my accountant was late', which SARS does not treat as exceptional circumstances",
+    "No documentary proof of the circumstances (hospital records, death certificate, SARS system error screenshots, proof of timely payment)",
+    "RFR lodged after the 30-business-day window from the penalty assessment without a request for condonation",
+    "Understatement penalties or s89 interest treated as remissible administrative penalties — they need a different remedy (objection / s39 interest remission)"
+  ],
+  "informationToProvide": [
+    { "label": "SARS statements of account detailing the interest and penalties incurred", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS statement of account (income tax, VAT, PAYE or admin penalty) showing each penalty and interest line with the date, tax period and amount. Pull from eFiling if credentials are given. Identify penalty type per line: admin penalty (late return), late payment penalty (10%), or interest." },
+    { "label": "A clear, detailed explanation of the circumstances leading to the interest or penalties", "type": "text", "isRequired": true, "aiHint": "Client's own account of what happened and when: illness, death, natural disaster, SARS/eFiling system error, bank error, first-time offence, or that the return/payment was in fact made on time. Ask for dates and names so the motivation can be specific." },
+    { "label": "Any relevant supporting documents (e.g., medical certificates, financial statements, proof of administrative error)", "documentKind": "other", "inNameOf": "either", "isRequired": true, "aiHint": "Evidence backing the explanation: medical certificates, death certificate, proof of payment showing the payment date, bank error letters, screenshots of eFiling errors with dates, correspondence with SARS. Each claim in the letter should point to one of these." },
+    { "label": "Your SARS eFiling login credentials or signed Power of Attorney", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "Proof of identity and address (for individuals) or company registration documents (for businesses)", "documentKind": "sa_id", "inNameOf": "either", "maxAgeDays": 90, "isRequired": true, "alternatives": ["CIPC CoR14.3 for a company", "Certified passport"], "aiHint": "For an individual: certified ID within 3 months and proof of address. For a company: CIPC CoR14.3. Confirms the taxpayer identity that the RFR is lodged for." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "rem_collect",
+      "title": "Collect statements, circumstances and evidence",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Statement of account, written explanation, supporting evidence and access (credentials or POA) received",
+      "aiInstructions": "Name each item and why: SARS only remits where the taxpayer shows exceptional circumstances or that the penalty was wrongly imposed, so evidence matters more than the story. Ask for exact dates. Check whether the return or payment the penalty relates to has since been filed/paid — if not, tell the client that must happen first. Do not promise faster than 5-10 working days and never promise the outcome."
+    },
+    {
+      "id": "rem_verify",
+      "title": "Assess eligibility and classify each penalty",
+      "type": "verify",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms which penalties/interest are remissible via RFR, which need an objection (NOO) or s39/s187 interest request, and whether the 30-business-day window is met",
+      "aiInstructions": "Classify: administrative non-compliance penalties (Chapter 15 TAA) → RFR; late-payment penalty (10%) → RFR under the relevant Act; understatement penalties → objection, not RFR; interest → remission only where SARS/bank error or circumstances beyond control (⚠ verify current interest remission grounds). Check the penalty assessment date: RFR must be lodged within 30 business days of the assessment notice or include a condonation request with reasons (⚠ verify window). If the underlying return is outstanding, stop and route to the return-filing service first. First-time and nominal penalties are the strongest candidates."
+    },
+    {
+      "id": "rem_draft_letter",
+      "title": "Draft remission motivation letter",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["remission_motivation_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Motivation letter drafted with a penalty schedule and evidence references, posted for Kevin's review",
+      "aiInstructions": "Structure: taxpayer details and reference numbers; table of each penalty/interest (tax type, period, date, amount); the facts in date order; the exceptional circumstances relied on with a reference to each attached proof; compliance history (all returns now filed, payments made); the remedy requested (full remission, or partial). Use only facts from the client's explanation and evidence — never embellish. Tone: factual and respectful, no accusations. Kevin edits and approves; the client signs."
+    },
+    {
+      "id": "rem_client_sign",
+      "title": "Send motivation letter to client for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Signed motivation letter uploaded",
+      "aiInstructions": "Post the approved letter with plain instructions: read it carefully because it is a statement of fact to SARS, sign and date, return as PDF. Ask the client to correct anything inaccurate rather than sign."
+    },
+    {
+      "id": "rem_file",
+      "title": "Lodge Request for Remission (RFR) on eFiling",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.requestForRemission",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "RFR submitted per penalty/period with the letter and evidence uploaded; case number recorded",
+      "aiInstructions": "Path: eFiling > the relevant tax type > Dispute > New > Request for Remission (RFR1 for admin penalties; for VAT/PAYE late-payment penalties the dispute menu under that tax type). Select each penalty transaction being disputed, choose the reason code that matches the letter, attach the signed motivation and evidence (PDF, under the eFiling size limit). Kevin lodges — reason selection and condonation require judgement. Where eFiling does not offer RFR for the transaction, fall back to a SARS Online Query System submission and note it."
+    },
+    {
+      "id": "rem_wait",
+      "title": "Wait for SARS decision",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [10, 20, 30],
+      "estimatedDays": 30,
+      "doneCriteria": "SARS outcome letter (remission allowed / partially allowed / disallowed) received on eFiling",
+      "aiInstructions": "SARS aims to respond within 60 business days for RFRs (⚠ verify current service level); the catalogue 5-10 days covers our work, not SARS's. At each follow-up check dispute status on eFiling and SARS correspondence. On a disallowance, create a proposal for Kevin: the client has 30 business days to object (NOO) — recommend whether to proceed."
+    },
+    {
+      "id": "rem_deliver",
+      "title": "Deliver outcome and next-step advice",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["remission_motivation_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Outcome letter, updated statement of account and plain-English advice posted to Communication History",
+      "aiInstructions": "If allowed: show the reduced balance and payment reference for whatever remains. If disallowed: explain the objection option and its deadline without pressure. Add prevention advice (filing calendar, monthly services) and offer the relevant compliance service."
+    },
+    {
+      "id": "rem_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

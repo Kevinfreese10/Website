@@ -1,0 +1,101 @@
+{
+  "slug": "csd-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CSD supplier registration report (PDF)",
+    "CSD supplier number (MAAA number)",
+    "CSD login credentials confirmed for the client"
+  ],
+  "playbookCommonFailures": [
+    "Bank account verification fails because the account holder name on CSD does not match the bank's records exactly",
+    "SARS tax compliance status not Compliant, so the tax section of the profile shows non-compliant",
+    "Director ID numbers do not match CIPC / Home Affairs records and the CIPC verification fails",
+    "OTP for the CSD profile goes to the client's phone and the client is unavailable, stalling the registration",
+    "Commodity / industry classification left incomplete so the profile is not 'Registered'"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration documents (e.g., CIPC Certificate)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. CSD verifies these against CIPC automatically." },
+    { "label": "Proof of business bank account - not older than 3 months", "type": "pdf", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Recent bank statement showing account holder name, account number and branch code"], "isRequired": true, "aiHint": "Official bank account confirmation letter or statement from a registered South African bank, in the COMPANY's name, dated within 3 months. Extract account holder name exactly as the bank spells it, account number, account type and branch code — CSD verifies these with the bank." },
+    { "label": "SARS Tax Compliance Status Certificate", "type": "pdf", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status letter or PIN printout for the company showing 'Compliant'. CSD links to SARS using the company tax number; note the income tax reference number." },
+    { "label": "Valid South African ID documents  / Passport of all directors / members", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": false, "alternatives": ["Passport for foreign directors"], "isRequired": true, "aiHint": "Clear copy of the SA ID (Smart Card front and back or Green Book) or passport for every director on the CoR14.3. CSD verifies ID numbers against Home Affairs; the copies must be legible. Certification is not required by CSD." },
+    { "label": "Proof of business address", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Lease agreement", "Director's proof of address where the business operates from home"], "isRequired": true, "aiHint": "Utility bill, lease, rates account or statement dated within 3 months showing the physical business address. Extract street, suburb, city, province and postal code for the CSD address screen." },
+    { "label": "Details of goods and services the supplier can provide", "type": "text", "isRequired": true, "helpText": "List what the business sells or does so we can select the correct CSD commodity codes." },
+    { "label": "Details about the industry or sectors in which the supplier operates", "type": "text", "isRequired": true },
+    { "label": "Preferred contact name", "type": "text", "isRequired": true },
+    { "label": "Preferred email address", "type": "text", "isRequired": true },
+    { "label": "Preferred cell number", "type": "text", "isRequired": true, "helpText": "CSD sends one-time PINs to this number; the person must be reachable during registration." },
+    { "label": "CSD Username", "type": "text", "isRequired": false, "isSecret": true },
+    { "label": "CSD Password", "type": "text", "isRequired": false, "isSecret": true },
+    { "label": "B-BBEE certificate or sworn affidavit", "type": "pdf", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "Valid B-BBEE certificate from a SANAS-accredited agency or a commissioned EME/QSE sworn affidavit (dtic template) for the company. Optional but strengthens the profile; offer the BEE Certificate service if missing." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "csd_collect",
+      "title": "Collect company, bank, tax, director and contact details",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "All required uploads and questionnaire fields received; contact person available for OTPs",
+      "aiInstructions": "Explain that CSD registration is free and that the CSD profile is created in the client's name — the preferred email and cell number become the login and receive one-time PINs, so the contact person must be reachable while we register. Ask whether the company already has a CSD profile (an existing MAAA number) — if yes, this is a Profile Update, not a registration. Offer the BEE affidavit service if no B-BBEE document exists."
+    },
+    {
+      "id": "csd_verify",
+      "title": "Verify documents and tax compliance",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Uploads pass; bank details extracted verbatim; director IDs match the CoR14.3; TCS is Compliant",
+      "aiInstructions": "Bank verification on CSD is the usual failure point: capture the account holder name exactly as on the bank letter (including '(Pty) Ltd' spelling). Verify the TCS PIN on eFiling — if non-compliant, the profile will still register but show tax non-compliant, which disqualifies tenders; tell the client and propose the Tax Clearance service. Map the goods/services answer to CSD commodity categories (UNSPSC-style tree) and list the proposed codes on the handoff sheet."
+    },
+    {
+      "id": "csd_draft",
+      "title": "Draft CSD profile handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Handoff sheet covers every CSD screen: supplier identification, contacts, addresses, bank, tax, directors, commodities, industry classification, B-BBEE, associations",
+      "aiInstructions": "One section per CSD screen with values ready to type. Include income tax number, CIPC number, bank account holder/number/type/branch, each director's name/ID/designation, physical and postal address, commodity codes, industry (SIC) selection and B-BBEE status/level. Mark anything missing rather than guessing."
+    },
+    {
+      "id": "csd_file",
+      "title": "Create supplier profile on csd.gov.za",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "csd",
+      "portalProcedure": "csd.registerSupplier",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Profile created, every mandatory section complete, bank and CIPC/SARS verifications triggered; supplier number (MAAA) issued",
+      "aiInstructions": "secure.csd.gov.za > Register. Create the user account with the client's preferred email and cell (OTP required — coordinate with the contact). Complete each section in order; the supplier number is only issued once all mandatory sections are saved. Bank details trigger an overnight verification with the bank; CIPC and SARS checks run automatically. Store the CSD username and password as secrets on the order and share them with the client only via the secure channel."
+    },
+    {
+      "id": "csd_wait",
+      "title": "Wait for bank and SARS verification to complete",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [1, 2],
+      "estimatedDays": 2,
+      "doneCriteria": "Bank status 'Verified', tax status 'Compliant' and CIPC status 'Verified' on the profile; registration report downloadable",
+      "aiInstructions": "Log in and check the verification statuses rather than waiting on email. If bank verification fails, compare the account holder name to the bank letter and correct; if SARS shows non-compliant, propose the Tax Clearance service."
+    },
+    {
+      "id": "csd_deliver",
+      "title": "Deliver CSD registration report and supplier number",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["csd_registration_report"],
+      "estimatedDays": 1,
+      "doneCriteria": "Registration report (PDF), MAAA number and login details posted to Communication History",
+      "aiInstructions": "Explain that the CSD profile must be kept current (bank, tax and B-BBEE) and that the report is what government buyers request. Offer CSD Profile Updates as an annual service."
+    },
+    {
+      "id": "csd_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

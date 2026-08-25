@@ -23,6 +23,7 @@ import {
   MessageSquare,
   UserPlus,
   Mail,
+  Bot,
 } from 'lucide-react';
 
 import {
@@ -93,6 +94,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
   const adminNavItems = [
     { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'staff'] },
     { href: '/admin/orders', label: 'Manage Orders', icon: ShieldCheck, roles: ['admin', 'staff'] },
+    { href: '/admin/agent', label: 'AI Order Agent', icon: Bot, roles: ['admin', 'staff'] },
     { href: '/admin/ai-accountant/clients', label: 'AI Accountant', icon: Calculator, roles: ['admin', 'staff'] },
     { href: '/admin/ai-payroll/clients', label: 'AI Payroll', icon: Users, roles: ['admin', 'staff'] },
     { href: '/admin/pages', label: 'Pages', icon: FileText, roles: ['admin'] },

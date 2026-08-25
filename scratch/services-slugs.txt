@@ -1,0 +1,71 @@
+add-director | Add Director | CIPC Services | R750 | 1-2 working days
+individual-income-tax-return-itr12-simple | Individual Income Tax Return (ITR12) Simple | SARS Services | R550 | 1-2 working days
+ncr-form-39-annual-compliance-submission | NCR Form 39 Annual Compliance Submission | NCR Registrations | R1800 | 5-7 working days
+tax-representative-appointment | Tax Representative Appointment | SARS Registrations | R1500 | 3-5 working days
+nhbrc-registration | NHBRC Registration | NHBRC Registration | R850 | 10-15 working days
+accountants-letter | Accountant's Letter | Accounting Services | R950 | 1 working day
+complex-individual-income-tax-return-itr12-filing | Complex Individual Income Tax Return (ITR12) Filing | SARS Registrations | R950 | 3-5 working days
+company-reinstatement | Company Reinstatement | CIPC Services | R700 | 1-2 working days
+beneficial-ownership-declaration | Beneficial Ownership Declaration | CIPC Services | R550 | 1-2 working days
+coida-renewal | COIDA Renewal | COIDA Services | R600 | 1-2 working days
+private-company-registration | Private Company Registration | Entity Registrations | R650 | 1-3 working days
+cidb-annual-renewal | CIDB Annual Renewal | CIDB Services | R650 | 7-10 working days
+vat-deregistration | VAT Deregistration | SARS Registrations | R1000 | 2- 3 Months
+vat201-return-submission-nil | VAT201 Return Submission (Nil) | SARS Services | R200 | 1-2 working days
+cidb-registration | CIDB Registration | CIDB Services | R1150 | 1-2 working days
+annual-returns | Annual Returns | CIPC Services | R450 | 1-2 working days
+csd-profile-updates | CSD Profile Updates | CIPC Services | R550 | 3-5 working days
+bee-certificate | BEE Certificate | Accounting Services | R450 | 1-2 working days
+itr14-company-income-tax-return-trading-entities | ITR14 Company Income Tax Return (Trading Entities) | SARS Services | R650 | 1-2 working days
+non-profit-company-registration | Non-Profit Company Registration | Entity Registrations | R950 | 1-3 working days
+emp501-return-submission-nil | EMP501 Return Submission (Nil) | SARS Services | R200 | 1-2 working days
+irp6-provisional-tax-return-filing-for-trading-entities | IRP6 Provisional Tax Return Filing for Trading Entities | SARS Services | R450 | 1-2 working days
+remover-of-goods-in-bond-licence-application | Remover of Goods in Bond Licence Application | SARS Registrations | R1200 | 3-5 working days
+ncca-registration-services | NCCA Registration Services | NCCA Registrations | R1900 | 21 - 45 working days
+complex-individual-income-tax-return-itr12 | Complex Individual Income Tax Return (ITR12) | SARS Services | R750 | 1-2 working days
+import-licence | Import Licence | SARS Registrations | R950 | 1-2 working days
+co-operative-society | Co-operative Society | Entity Registrations | R1400 | 7-10 working days
+paye-registration | PAYE Registration | SARS Registrations | R750 | 1-2 working days
+coida-nature-of-business-change | COIDA Nature of Business Change | COIDA Services | R1400 | 21-60 working days
+personal-liability-company-registration | Personal Liability Company Registration | Entity Registrations | R1600 | 7-10 working days
+copy-of-uif-registration | Copy of UIF Registration | COIDA Services | R1200 | 30-60 working days
+company-name-change | Company Name Change | CIPC Services | R650 | 10-15 working days
+cipc-company-deregistration | CIPC Company Deregistration | CIPC Services | R1150 | 2-4 months
+sole-proprietor-income-tax-return-itr12 | Sole Proprietor Income Tax Return (ITR12) | SARS Services | R2950 | 3-5 working days
+share-register | Share Register | Accounting Services | R750 | 1-2 working days
+tender-ready-company-registration-package | Tender Ready Company Registration Package | Entity Registrations | R1600 | 7-10 working days
+uif-registration | UIF Registration | COIDA Services | R1200 | 30-60 working days
+periodic-vat-calculation-and-submission | Periodic VAT Calculation and Submission | Accounting Services | R1500 | 1-2 working days
+tax-clearance-certificate | Tax Clearance Certificate | SARS Services | R350 | 1-2 working days
+annual-financial-statements-for-vat-registered-businesses | Annual Financial Statements for (VAT Registered Businesses) | Accounting Services | R7500 | 7-10 working days
+ncr-form-40-application--compliance | NCR Form 40 Application & Compliance | NCR Registrations | R1950 | 3-5 working days upon receipt of all required information.
+bei-setup--demonstration | BEI Setup & Demonstration | Accounting Services | R4950 | Within 5 working days
+remission-of-sars-interest-and-penalties | Remission of SARS Interest and Penalties | SARS Services | R1200 | 5-10 working days
+annual-financial-statements-draft-and-sign-off-only | Annual Financial Statements (Draft and Sign Off Only) | Accounting Services | R3000 | 7-10 working days
+provisional-tax-return-irp6-for-trading-entities | Provisional Tax Return (IRP6) for Trading Entities | SARS Services | R350 | 1-2 working days
+tax-directive-application | Tax Directive Application | SARS Services | R550 | 5-7 working days
+external-company-registration | External Company Registration | Entity Registrations | R1950 | 10-15 working days
+irp6-provisional-tax-return-nil | IRP6 Provisional Tax Return (Nil) | SARS Services | R200 | 1-2 working days
+cipc-annual-fees | CIPC Annual Fees | CIPC Services | R100 | 1 working day
+ncr-registration | NCR Registration | NCR Registrations | R1400 | 60 - 90 working days
+vat201-for-trading-companies | VAT201 for Trading Companies | SARS Services | R350 | 1-2 working days
+clearing-agent-licence | Clearing Agent Licence | SARS Registrations | R1150 | 1-2 working days
+emp201-return-submission-nil | EMP201 Return Submission (Nil) | SARS Services | R200 | 1-2 working days
+income-tax-return-for-sole-proprietors-itr12 | Income Tax Return for Sole Proprietors (ITR12) | SARS Registrations | R2500 | 3-5 working days
+remove-director | Remove Director | CIPC Services | R650 | 1-2 working days
+company-address-change | Company Address Change | CIPC Services | R550 | 1-5 working days
+nbc-provident-fund-company-registration | NBC Provident Fund Company Registration | NCCA Registrations | R550 | 3-5 working days
+emp201-submission-for-trading-companies | EMP201 Submission for Trading Companies | SARS Services | R350 | 1-2 working days
+cidb-upgrades-grades-2-9 | CIDB Upgrades (Grades 2-9) | CIDB Services | R1800 | 21-30 working days
+share-certificate | Share Certificate | Accounting Services | R350 | 1-2 working days
+pbo-registration | PBO Registration | SARS Registrations | R1800 | 60 - 90 working days
+annual-financial-statements-non-vat-registered | Annual Financial Statements (Non-VAT Registered) | Accounting Services | R5000 | 7-10 working days
+emp501-annual-reconciliation-for-trading-companies | EMP501 Annual Reconciliation for Trading Companies | SARS Services | R550 | 1-2 working days
+vat-registration | VAT Registration | SARS Registrations | R1400 | 21-30 working days
+export-licence | Export Licence | SARS Registrations | R950 | 1-2 working days
+management-accounts | Management Accounts | Accounting Services | R5000 | 3-5 working days
+coida-registration | COIDA Registration | COIDA Services | R1400 | 1-2 working days
+director-amendment | Director Amendment | CIPC Services | R650 | 1-2 working days
+csd-registration | CSD Registration | CIPC Services | R950 | 1-2 working days
+itr14-company-income-tax-return-nil | ITR14 Company Income Tax Return (Nil) | SARS Services | R350 | 1-2 working days
+npo-registration | NPO Registration | Entity Registrations | R1200 | 90 working days

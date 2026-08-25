@@ -41,13 +41,71 @@ export type DocumentUpload = {
   adminComment?: string;
   verifiedAt?: any;
   aiVerification?: AIDocumentVerification;
+  /** Layer 1 mechanical check result (src/lib/verification/mechanical.ts). Internal; stripped for partners. */
+  mechanicalCheck?: import('./verification/mechanical').MechanicalCheckResult;
+  /** True when the stored textValue is encrypted at rest (isSecret requirements). */
+  isEncrypted?: boolean;
 };
 
 export type PrerequisiteItem = 
   | { type: 'text'; text: string }
   | { type: 'product'; productId: string; text?: string };
 
-export type FulfillmentStepType = 'doc_verification' | 'document_drafting' | 'external_filing' | 'internal_calc' | 'manual' | 'signoff';
+// Fulfilment step types. The original six are kept for backward compatibility; the
+// channel-specific types were added for the AI order agent (see AI-ORDER-AGENT-PLAN.md §5.1).
+export type FulfillmentStepType =
+  | 'doc_verification'   // legacy: verify uploaded documents
+  | 'document_drafting'  // legacy alias of draft_document
+  | 'external_filing'    // legacy alias of portal_filing
+  | 'internal_calc'      // legacy alias of calculate
+  | 'manual'
+  | 'signoff'
+  | 'collect'            // wait for client requirements; agent chases
+  | 'verify'             // run mechanical/extraction/rules checks on a requirement
+  | 'calculate'          // pull figures from AI Accountant / AI Payroll
+  | 'draft_document'     // DOCUMENT adapter: template -> PDF draft
+  | 'draft_client_message' // client communication draft for approval
+  | 'email_submission'   // EMAIL adapter: send a pack to a regulator
+  | 'portal_filing'      // PORTAL adapter: browser-driven filing
+  | 'wait_external'      // waiting on a regulator; follow-up cadence
+  | 'deliver';           // hand artefacts to the client
+
+export const FULFILLMENT_STEP_TYPES: { value: FulfillmentStepType; label: string; channel: 'internal' | 'document' | 'email' | 'portal' | 'client' }[] = [
+  { value: 'collect', label: 'Collect requirements from client', channel: 'client' },
+  { value: 'verify', label: 'Verify documents', channel: 'internal' },
+  { value: 'calculate', label: 'Calculation (AI Accountant / Payroll)', channel: 'internal' },
+  { value: 'draft_document', label: 'Draft document from template', channel: 'document' },
+  { value: 'draft_client_message', label: 'Draft client message', channel: 'client' },
+  { value: 'email_submission', label: 'Email submission to regulator', channel: 'email' },
+  { value: 'portal_filing', label: 'Portal filing (browser)', channel: 'portal' },
+  { value: 'wait_external', label: 'Wait for regulator', channel: 'internal' },
+  { value: 'deliver', label: 'Deliver to client', channel: 'client' },
+  { value: 'manual', label: 'Manual step', channel: 'internal' },
+  { value: 'signoff', label: 'Sign-off', channel: 'internal' },
+];
+
+/** Who a document must be in the name of, relative to the order's resolved entity. */
+export type RequirementNameHolder = 'entity' | 'director' | 'either';
+
+/** Fixed vocabulary of document kinds the extraction layer may return. Keep in sync with the rules engine. */
+export type DocumentKind =
+  | 'sa_id' | 'passport' | 'proof_of_address' | 'cor14_3' | 'cor39' | 'moi'
+  | 'bank_confirmation' | 'bank_statement' | 'tcs_pin' | 'sars_notice_of_registration'
+  | 'afs' | 'management_accounts' | 'trial_balance' | 'payslip' | 'irp5' | 'it3'
+  | 'medical_aid_cert' | 'ra_cert' | 'logbook' | 'invoice' | 'receipt'
+  | 'share_certificate' | 'resolution' | 'power_of_attorney' | 'letterhead'
+  | 'criminal_clearance' | 'letter_of_good_standing' | 'coida_registration'
+  | 'cidb_certificate' | 'completion_certificate' | 'letter_of_award' | 'photo' | 'other';
+
+export type PortalId = 'cipc' | 'efiling' | 'cf_filing' | 'ufiling' | 'cidb' | 'csd' | 'ncr' | 'nhbrc' | 'dsd' | 'other';
+
+export type PlaybookApproval = {
+  approvedBy: string;       // user id
+  approvedByName?: string;
+  approvedAt: string;       // ISO
+  version: number;
+  notes?: string;
+};
 
 export type DocumentTemplateOption = {
   id: string;
@@ -135,6 +193,42 @@ export type FulfillmentStep = {
   automatedSkill?: string;
   estimatedDays?: number;
   templateIds?: string[];
+  // --- AI order agent fields (plan §5.1) ---
+  owner?: 'agent' | 'kevin' | 'staff';
+  doneCriteria?: string;
+  /** collect / verify: which requirement ids this step concerns */
+  requirementIds?: string[];
+  /** email_submission */
+  emailTo?: string;
+  emailSubjectTemplate?: string;
+  expectedReply?: string;
+  /** portal_filing */
+  portalId?: PortalId;
+  portalProcedure?: string;      // e.g. 'cipc.fileCoR39'
+  submitMode?: 'stage' | 'auto' | 'manual';
+  /** wait_external */
+  followUpAfterDays?: number[];
+  /** deliver */
+  deliverArtefacts?: string[];   // templateIds or output keys
+};
+
+/** One item the client must supply. Superset of the legacy informationToProvide row. */
+export type ServiceRequirement = {
+  id?: string;
+  label: string;
+  type?: 'text' | 'pdf' | 'excel' | 'image' | 'any';
+  helpText?: string;
+  isConditional?: boolean;
+  conditionalQuestion?: string;
+  isRequired?: boolean;
+  aiHint?: string;
+  // --- AI order agent fields (plan §5.1) ---
+  documentKind?: DocumentKind;
+  inNameOf?: RequirementNameHolder;
+  maxAgeDays?: number;
+  mustBeCertified?: boolean;
+  alternatives?: string[];       // free text, e.g. 'Passport', 'Signed lease agreement'
+  isSecret?: boolean;            // credentials: stored encrypted, never shown in UI
 };
 
 export type Service = {
@@ -155,17 +249,15 @@ export type Service = {
   whatsIncluded: string[];
   turnaroundTime: string;
   clientRequirements: (string | PrerequisiteItem)[];
-  informationToProvide: {
-    id?: string;
-    label: string;
-    type?: 'text' | 'pdf' | 'excel' | 'image' | 'any';
-    helpText?: string;
-    isConditional?: boolean;
-    conditionalQuestion?: string;
-    isRequired?: boolean;
-    aiHint?: string;
-  }[];
+  informationToProvide: ServiceRequirement[];
   fulfillmentChecklist?: FulfillmentStep[];
+  // --- AI order agent playbook fields (plan §5.1) ---
+  playbookEntity?: 'company' | 'individual' | 'either';
+  playbookOutputs?: string[];
+  playbookCommonFailures?: string[];
+  playbookVersion?: number;
+  /** Set only when Kevin approves the playbook. Absent/undefined = DRAFT, agent must not act on it. */
+  playbookApproval?: PlaybookApproval | null;
   attachmentUrl?: string;
   metaTitle?: string;
   metaDescription?: string;
@@ -317,6 +409,11 @@ export type Order = {
   generatedDrafts?: GeneratedDocumentDraft[];
   lastIntakeAlertSentAt?: string;
   aiFulfillmentAdvice?: AIOrderFulfillmentAdvice;
+  /** AI order agent bookkeeping (plan §6.1). */
+  lastAgentRunAt?: string;
+  lastAgentRunId?: string;
+  /** EMAIL adapter: submissions sent to regulators for this order (plan §6.5). */
+  regulatorSubmissions?: import('./agent/types').RegulatorSubmission[];
 };
 
 export interface AIOrderFulfillmentAdvice {
@@ -364,6 +461,8 @@ export type OrderChecklistItem = {
   description?: string;
   aiInstructions?: string; // Custom operational rules for AI agent
   type?: FulfillmentStepType;
+  /** Frozen copy of the agent-relevant step fields at checkout (plan §6.8). */
+  stepConfig?: Pick<FulfillmentStep, 'owner' | 'doneCriteria' | 'requirementIds' | 'emailTo' | 'emailSubjectTemplate' | 'expectedReply' | 'portalId' | 'portalProcedure' | 'submitMode' | 'followUpAfterDays' | 'deliverArtefacts' | 'estimatedDays'>;
   status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
   completedAt?: string;
   completedBy?: string;
@@ -380,14 +479,12 @@ export type OrderServiceSnapshot = {
   serviceId: string;
   title: string;
   department?: 'Accounting and Tax' | 'Administration' | 'CAP' | null;
-  requirements: {
-    id: string;
-    label: string;
-    type?: 'text' | 'pdf' | 'excel' | 'image' | 'any';
-    helpText?: string;
-    isRequired?: boolean;
-  }[];
+  requirements: (ServiceRequirement & { id: string })[];
   checklist: FulfillmentStep[];
+  /** Playbook state frozen at checkout. The agent only acts when playbookApproved is true. */
+  playbookApproved?: boolean;
+  playbookVersion?: number;
+  playbookEntity?: 'company' | 'individual' | 'either';
 };
 
 export type Invoice = {

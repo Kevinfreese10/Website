@@ -1,0 +1,152 @@
+{
+  "slug": "periodic-vat-calculation-and-submission",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "VAT computation (output and input VAT reconciled to sales and purchase records)",
+    "VAT201 submitted on eFiling",
+    "Submission confirmation and payment reference (PRN)"
+  ],
+  "playbookCommonFailures": [
+    "Supplier invoices that are not valid tax invoices (no VAT number, no \"tax invoice\" wording, over R5,000 without recipient details) so input VAT cannot be claimed",
+    "Input VAT claimed on entertainment, passenger vehicles or private expenses",
+    "Sales records incomplete versus bank deposits, so output VAT is understated",
+    "Wrong tax period for the vendor category",
+    "Payment not made by the due date after submission"
+  ],
+  "informationToProvide": [
+    {
+      "label": "Company Name",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Registered company name as on the SARS profile with the VAT registration number."
+    },
+    {
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "Access to sales records (invoices, sales reports)",
+      "documentKind": "invoice",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Accounting system sales report",
+        "Export from invoicing app"
+      ],
+      "isRequired": true,
+      "aiHint": "All tax invoices issued in the period or a sales report by VAT type (standard, zero-rated, exempt). Check invoice dates fall within the period (invoice basis) and that the VAT number appears on invoices."
+    },
+    {
+      "label": "Access to purchase records (supplier invoices, expense reports)",
+      "documentKind": "invoice",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Accounting system purchases report",
+        "Expense report"
+      ],
+      "isRequired": true,
+      "aiHint": "Supplier tax invoices for the period. Only valid tax invoices addressed to the vendor support input VAT (over R5,000 must show the recipient's name and VAT number). Flag entertainment and passenger vehicle expenses."
+    },
+    {
+      "label": "Bank statements for the relevant VAT period",
+      "documentKind": "bank_statement",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Business bank statements covering the VAT period, used to reconcile sales and to catch unrecorded income or expenses."
+    },
+    {
+      "label": "Current SARS eFiling login details (or authorisation to act)",
+      "type": "text",
+      "isRequired": true
+    },
+    {
+      "label": "Previous VAT return (if applicable)",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Last filed VAT201 or eFiling statement of account — for continuity, prior-period adjustments and to confirm the tax period category."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "vatcalc_collect",
+      "title": "Collect eFiling access and sales/purchase/bank records",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Sales records, purchase records, bank statements and credentials for the period on file",
+      "aiInstructions": "Confirm the tax period and the vendor's category (2-monthly or monthly). Ask for the accounting system VAT report if the client uses one; otherwise invoices and statements. Do not promise a turnaround shorter than 1–2 working days."
+    },
+    {
+      "id": "vatcalc_verify",
+      "title": "Verify records cover the period and invoices are valid tax invoices",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Records cover the full period; input invoices pass tax-invoice checks; bank deposits reconcile to sales",
+      "aiInstructions": "Check each supplier invoice has the supplier VAT number, \"Tax invoice\" wording, date, description and VAT amount; over R5,000 needs the recipient's name/VAT number. Exclude entertainment, passenger vehicle purchases and private items (s17(2)). Compare sales total to bank deposits and list unexplained deposits."
+    },
+    {
+      "id": "vatcalc_calc",
+      "title": "Calculate output and input VAT",
+      "type": "calculate",
+      "owner": "staff",
+      "estimatedDays": 1,
+      "doneCriteria": "VAT computation prepared in the AI Accountant module and reviewed by Kevin",
+      "aiInstructions": "Pull from the AI Accountant module: standard-rated supplies (15%), zero-rated, exempt, output VAT; input VAT on goods/services and capital goods; adjustments (bad debts, change in use). Apportionment for mixed supplies is Kevin's call. Kevin reviews before it goes to the handoff sheet."
+    },
+    {
+      "id": "vatcalc_handoff",
+      "title": "Draft VAT computation and VAT201 handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "vat_computation",
+        "handoff_sheet"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Computation and field-by-field VAT201 values (fields 1–20) with sources",
+      "aiInstructions": "Reconcile the computation to the accounting system VAT report where one exists and explain differences. Show amount payable/refundable and due date."
+    },
+    {
+      "id": "vatcalc_file",
+      "title": "Complete and submit the VAT201 on eFiling",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.submitReturn:VAT201",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "VAT201 submitted; confirmation and PRN saved",
+      "aiInstructions": "Returns → VAT201 → select the tax period. Enter each field from the handoff sheet and confirm the calculated net VAT equals the computation. Agent drives to the summary; Kevin reviews and presses Submit and captures the PRN. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+    },
+    {
+      "id": "vatcalc_deliver",
+      "title": "Deliver VAT computation, confirmation and payment details",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "vat_computation",
+        "submission_confirmation"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Computation, filed VAT201, PRN, amount and due date posted to Communication History",
+      "aiInstructions": "Give the amount payable with the PRN and due date (last business day of the following month for eFiling ⚠ verify), or explain a refund and that SARS may request invoices before paying. Note any invoices excluded and why, so the client fixes supplier invoices going forward."
+    },
+    {
+      "id": "vatcalc_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

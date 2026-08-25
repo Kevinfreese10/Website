@@ -1,0 +1,90 @@
+{
+  "slug": "bee-certificate",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "B-BBEE sworn affidavit (EME or QSE) on the dtic template, commissioned",
+    "Cover note stating the B-BBEE level and validity period (12 months)"
+  ],
+  "playbookCommonFailures": [
+    "Annual turnover is over R10 million (or over R50 million), so an affidavit is not valid and a verification agency certificate is needed",
+    "Black-ownership percentage supplied does not match the share register / certificates",
+    "Affidavit returned signed but not commissioned, or commissioner's stamp and details missing",
+    "Ownership percentages do not add up to 100% or the 'black' definition (Black African, Coloured, Indian South African citizens) is misapplied",
+    "Client expects a 'certificate' from a verification agency, which this service does not provide"
+  ],
+  "informationToProvide": [
+    { "label": "Company Registration Documents (COR14.3).", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and directors. The registration number and exact name go on the affidavit." },
+    { "label": "Identity documents of directors or members", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "isRequired": true, "aiHint": "Clear copy of the SA ID or passport for each director / shareholder. The deponent's ID number appears on the affidavit; SA citizenship is required for a shareholder to count as 'black' under the B-BBEE Act." },
+    { "label": "What percentage of the company is black owned?", "type": "text", "isRequired": true, "helpText": "Percentage of shares (and voting rights) held by black South African citizens (Black African, Coloured or Indian). Also state the percentage held by black women." },
+    { "label": "What percentage of the company is white owned?", "type": "text", "isRequired": true, "helpText": "Black + white + other ownership should total 100%." },
+    { "label": "Shareholder certificates or ownership information", "type": "pdf", "documentKind": "share_certificate", "inNameOf": "entity", "isRequired": false, "alternatives": ["Securities register", "Shareholder list with percentages"], "aiHint": "Share certificates or register showing company name, shareholder names and share allocation. Used to confirm the black-ownership percentage." },
+    { "label": "Proof of annual turnover (latest financial statements)", "type": "pdf", "documentKind": "afs", "inNameOf": "entity", "isRequired": false, "alternatives": ["Management accounts", "Written turnover figure for a new company"], "aiHint": "Latest signed AFS or management accounts showing total revenue for the last financial year. Under R10m = EME affidavit; R10m–R50m = QSE (affidavit only if at least 51% black-owned); over R50m = verification agency required." },
+    { "label": "Annual turnover for the last financial year (Rand)", "type": "text", "isRequired": true, "helpText": "R0 or projected figure for a new company." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "bee_collect",
+      "title": "Collect company documents, ownership percentages and turnover",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "CoR14.3, director IDs, black/white ownership percentages, black women %, turnover and (if available) share documents received",
+      "aiInstructions": "Explain plainly that for a business with turnover under R10 million the law allows a sworn affidavit instead of a paid verification certificate, and that we prepare the affidavit which a director then signs in front of a Commissioner of Oaths. Ask for turnover and ownership percentages including black women. Turnaround 1-2 working days; never promise faster."
+    },
+    {
+      "id": "bee_verify",
+      "title": "Verify eligibility, ownership and turnover band",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Turnover band and affidavit type determined; ownership % reconciles to share documents; level calculated",
+      "aiInstructions": "Determine the category: turnover under R10m = Exempted Micro Enterprise; R10m to R50m = Qualifying Small Enterprise (sworn affidavit only if 51%+ black-owned, otherwise a verification agency is needed); over R50m = stop and tell the client a verification agency is required. Levels: EME 100% black-owned = Level 1, 51%+ = Level 2, otherwise Level 4; QSE 100% = Level 1, 51%+ = Level 2. Reconcile black-ownership % to the share certificates/register where supplied — mismatches are flagged to Kevin, never adjusted. ⚠ verify: sector codes (e.g. construction, tourism, ICT) have different thresholds — check the company's sector before applying the generic codes."
+    },
+    {
+      "id": "bee_draft",
+      "title": "Draft the B-BBEE sworn affidavit",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["bee_affidavit"],
+      "estimatedDays": 1,
+      "doneCriteria": "Affidavit on the dtic EME/QSE template with all fields populated, posted for Kevin's review",
+      "aiInstructions": "Use the dtic template for the category. Fields: deponent's full names, ID number and position; company name and registration number; financial year; annual turnover; black ownership %, black women ownership %; resulting B-BBEE status level; date. The deponent must be a director or member. Leave the commissioner block blank. Never invent a percentage — leave blank and flag."
+    },
+    {
+      "id": "bee_client_commission",
+      "title": "Send affidavit for signature before a Commissioner of Oaths",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Affidavit signed by the deponent, stamped and signed by a Commissioner of Oaths, uploaded as PDF",
+      "aiInstructions": "Explain that the affidavit only becomes valid once signed in front of a Commissioner of Oaths — any SAPS station, attorney, bank branch or post office does this free of charge. Initial every page, sign the last page in front of the commissioner and make sure the commissioner adds name, designation, address and stamp. Return as a clear PDF scan."
+    },
+    {
+      "id": "bee_check",
+      "title": "Check the commissioned affidavit",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Returned affidavit has deponent signature, commissioner signature, stamp, date and unchanged figures",
+      "aiInstructions": "Compare the returned scan to the approved draft — figures must be unchanged. Reject if the commissioner's stamp or designation is missing."
+    },
+    {
+      "id": "bee_deliver",
+      "title": "Deliver the commissioned affidavit",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["bee_affidavit"],
+      "estimatedDays": 1,
+      "doneCriteria": "Commissioned affidavit and cover note posted to Communication History",
+      "aiInstructions": "State the B-BBEE level and that the affidavit is valid for 12 months from the date of commissioning. Suggest uploading it to CSD (offer CSD Profile Updates)."
+    },
+    {
+      "id": "bee_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

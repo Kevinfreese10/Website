@@ -1,0 +1,24 @@
+{
+  "name": "myacc-portal-runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser worker for the My Accountant AI order agent (PORTAL adapter). Claims portalJobs from Firestore, drives government portals with Playwright, stops before submit unless told otherwise.",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "health": "tsx src/index.ts --health",
+    "once": "tsx src/index.ts --once",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "playwright": "^1.50.0",
+    "tsx": "^4.19.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "dotenv": "^17.4.2",
+    "typescript": "^5.6.0"
+  }
+}

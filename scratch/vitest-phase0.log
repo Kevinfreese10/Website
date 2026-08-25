@@ -1,0 +1,12 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /sessions/rcw-01v635gdvyuoq9esv9bsdgkt/mnt/myacc
+
+ ✓ src/lib/service-utils.test.ts (17 tests) 7ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  17:52:21
+   Duration  19.19s (transform 254ms, setup 0ms, collect 574ms, tests 7ms, environment 0ms, prepare 3.22s)
+
+EXIT 0

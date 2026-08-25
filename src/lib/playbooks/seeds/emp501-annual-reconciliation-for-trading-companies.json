@@ -1,0 +1,151 @@
+{
+  "slug": "emp501-annual-reconciliation-for-trading-companies",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "EMP501 reconciliation (EMP201 declarations vs payments vs IRP5/IT3(a) certificates)",
+    "EMP501 submitted via eFiling or e@syFile",
+    "IRP5/IT3(a) certificates for every employee",
+    "Submission confirmation"
+  ],
+  "playbookCommonFailures": [
+    "Certificates total does not equal EMP201 declarations total, so the recon fails validation",
+    "Payments on the SARS statement of account differ from declarations (unallocated or late payments)",
+    "Employees without tax reference numbers — certificates rejected",
+    "Employer has more employees than eFiling allows so e@syFile is required, and the e@syFile database is not set up",
+    "Interim (August) recon filed as if it were the annual (February) recon"
+  ],
+  "informationToProvide": [
+    {
+      "label": "Company Name",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Registered company name as on the SARS profile with the PAYE reference number."
+    },
+    {
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "Access to your SARS eFiling profile",
+      "type": "text",
+      "isRequired": true
+    },
+    {
+      "label": "Payroll reports for the entire tax year",
+      "documentKind": "payslip",
+      "inNameOf": "entity",
+      "alternatives": [
+        "AI Payroll year-to-date report",
+        "Payroll system IRP5 export"
+      ],
+      "isRequired": true,
+      "aiHint": "Year-to-date payroll report per employee (March–February, or March–August for the interim recon) with gross pay by source code, PAYE, UIF, SDL. If payroll is in AI Payroll, pull from there."
+    },
+    {
+      "label": "Monthly EMP201 submission records for the tax year",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": [
+        "eFiling statement of account"
+      ],
+      "isRequired": true,
+      "aiHint": "Each month's filed EMP201 and proof of payment; alternatively the eFiling PAYE statement of account for the period. Needed to reconcile declared vs paid."
+    },
+    {
+      "label": "Employee details including ID numbers, tax numbers, and remuneration data",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Employee master list: full names, ID/passport numbers, income tax reference numbers, dates of employment, residential address, bank details. Every certificate needs these; flag missing tax numbers early (SARS can register employees via the ITREG function on e@syFile)."
+    },
+    {
+      "label": "Confirmation of all IRP5/IT3(a) data issued",
+      "type": "text",
+      "isRequired": false
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "emp501t_collect",
+      "title": "Collect eFiling access, payroll year data and EMP201 records",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Payroll year report, employee master data, EMP201 records / statement of account and credentials on file",
+      "aiInstructions": "Confirm whether this is the interim (Mar–Aug) or annual (Mar–Feb) reconciliation. Ask for the employee master list with tax numbers first — it is the usual blocker. Do not promise a turnaround shorter than 1–2 working days."
+    },
+    {
+      "id": "emp501t_verify",
+      "title": "Verify employee data and EMP201 completeness",
+      "type": "verify",
+      "owner": "staff",
+      "estimatedDays": 1,
+      "doneCriteria": "Every employee has ID and tax number; every month in the period has a filed EMP201 and payment on the statement of account",
+      "aiInstructions": "List employees missing tax numbers; list months where the EMP201 is missing or unpaid (raise a proposal — those must be fixed before the recon). Confirm whether the employer must use e@syFile (⚠ verify current eFiling employee limit) or can file on eFiling."
+    },
+    {
+      "id": "emp501t_calc",
+      "title": "Reconcile PAYE/UIF/SDL and generate certificates",
+      "type": "calculate",
+      "owner": "staff",
+      "estimatedDays": 1,
+      "doneCriteria": "Certificates total = EMP201 declarations total = payments; differences explained; Kevin has reviewed",
+      "aiInstructions": "Pull the EMP501 reconciliation and IRP5/IT3(a) data from AI Payroll. Reconcile per month: declared (EMP201) vs paid (statement of account) vs certificates. Differences must be resolved by correcting EMP201s (request for correction) or explained — Kevin decides. ETI reconciliation if claimed."
+    },
+    {
+      "id": "emp501t_handoff",
+      "title": "Draft payroll computation and EMP501 handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "payroll_computation",
+        "handoff_sheet"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Handoff sheet shows monthly liabilities, payments, certificate totals and the e@syFile/eFiling route",
+      "aiInstructions": "Include the certificate list (employee, certificate type IRP5 vs IT3(a), total remuneration, PAYE) and any employee missing data."
+    },
+    {
+      "id": "emp501t_file",
+      "title": "Submit the EMP501 and certificates on eFiling / e@syFile",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.submitReturn:EMP501",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "EMP501 accepted (status Submitted, no validation errors) and certificates generated",
+      "aiInstructions": "Returns → EMP501 → reconciliation period (eFiling) or e@syFile Employer with the CSV import from payroll. Enter monthly liabilities and payments, load certificates, run the validation until it balances. Agent drives to the summary; Kevin reviews and presses Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin. e@syFile submissions are done on Kevin's machine in hand-off mode."
+    },
+    {
+      "id": "emp501t_deliver",
+      "title": "Deliver confirmation and IRP5/IT3(a) certificates",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "payroll_computation",
+        "submission_confirmation",
+        "irp5_certificates"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Confirmation and the certificate PDFs posted to Communication History",
+      "aiInstructions": "Send the certificates and explain plainly that each employee needs their IRP5/IT3(a) for their own ITR12 (also visible on their eFiling once SARS processes the recon). Note any months corrected."
+    },
+    {
+      "id": "emp501t_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

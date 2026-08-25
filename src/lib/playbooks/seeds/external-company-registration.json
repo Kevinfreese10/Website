@@ -1,0 +1,105 @@
+{
+  "slug": "external-company-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC registration certificate for the external company (CoR20.1 registration)",
+    "South African external company registration number",
+    "Signed Power of Attorney and local representative details (client copy)"
+  ],
+  "playbookCommonFailures": [
+    "Foreign founding documents not properly certified / apostilled, or not accompanied by a sworn English translation",
+    "No natural person resident in South Africa nominated as the local representative / person authorised to accept service",
+    "Registered office address in South Africa is a PO Box or has no proof",
+    "Certified ID / passport of a foreign director older than 3 months or not certified by an acceptable authority",
+    "Foreign company resolution does not expressly authorise registration in South Africa or the agent"
+  ],
+  "informationToProvide": [
+    { "label": "Certified copies of foreign company's founding documents (e.g., Certificate of Incorporation, Memorandum)", "type": "pdf", "documentKind": "moi", "inNameOf": "entity", "isRequired": true, "aiHint": "Certificate of incorporation and constitutional document (memorandum / articles / bylaws) of the foreign company, certified as true copies by a notary or the issuing registry, apostilled or authenticated where the country is a Hague Convention state, and with a sworn English translation if not in English. Extract the foreign registration number and jurisdiction." },
+    { "label": "Certified ID/passport copies and proof of address for directors/shareholders", "type": "pdf", "documentKind": "passport", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified SA ID for South African directors"], "isRequired": true, "aiHint": "Certified passport (or SA ID) for every director of the foreign company, certification dated within 3 months by a notary, commissioner of oaths or SA embassy, plus proof of address within 3 months for each. Count against the director list in the founding documents." },
+    { "label": "Resolution from the foreign company authorising registration in South Africa", "type": "pdf", "documentKind": "resolution", "inNameOf": "entity", "isRequired": true, "aiHint": "Board resolution of the foreign company resolving to register as an external company in South Africa, appointing the local representative and authorising My Accountant (or the agent) to lodge the application. Signed by the directors per the foreign company's rules." },
+    { "label": "Details of the proposed South African registered office address", "type": "text", "isRequired": true, "helpText": "Physical street address in South Africa; not a PO Box." },
+    { "label": "Proof of the South African registered office address", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Lease agreement", "Letter from the landlord or host company"], "isRequired": true, "aiHint": "Lease, utility bill or landlord letter dated within 3 months for the SA registered office." },
+    { "label": "Power of Attorney if an agent is appointed to act on behalf of the foreign company", "type": "pdf", "documentKind": "power_of_attorney", "inNameOf": "entity", "isRequired": false, "alternatives": ["The agent drafts the POA for signature"], "aiHint": "Signed Power of Attorney from the foreign company appointing My Accountant to file with CIPC. If not supplied, drafted from template power_of_attorney." },
+    { "label": "Name, ID/passport and SA address of the local representative", "type": "text", "isRequired": true, "helpText": "A person resident in South Africa who will be the company's authorised representative for CIPC and for accepting legal service." },
+    { "label": "Date the company started (or will start) doing business in South Africa", "type": "text", "isRequired": true }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "ext_collect",
+      "title": "Collect foreign founding documents, director IDs, resolution and SA office details",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 7,
+      "doneCriteria": "All required uploads received; local representative and SA office confirmed; commencement date known",
+      "aiInstructions": "Explain in plain language: a foreign company that conducts business in South Africa must register as an external company with CIPC within 20 business days of starting to do so (s23 Companies Act). Documents from abroad must be certified and, if not in English, translated by a sworn translator; apostille/authentication is required from most countries — ⚠ verify CIPC's current certification standard for foreign documents. Ask who the SA-resident representative will be. Turnaround 10-15 working days; never promise faster."
+    },
+    {
+      "id": "ext_verify",
+      "title": "Verify certification, translations and director coverage",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Founding documents certified/apostilled and translated; every director has a passing ID and proof of address; resolution authorises the registration and the agent",
+      "aiInstructions": "Extract the foreign company's exact legal name (the SA registration uses the same name), incorporation number, jurisdiction, date of incorporation and the director list, and reconcile directors to the IDs. Check that the resolution names the SA representative and authorises lodging. Flag anything that looks like a translation without a sworn translator's certificate."
+    },
+    {
+      "id": "ext_draft",
+      "title": "Draft POA, cover letter and CoR20.1 handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["power_of_attorney", "cover_letter", "handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "POA (if not supplied), cover letter listing attachments and a handoff sheet with every CoR20.1 field drafted",
+      "aiInstructions": "CoR20.1 fields (⚠ verify against the current form): foreign name and number, jurisdiction, date of incorporation, nature of business in SA, date business commenced in SA, SA registered office (physical and postal), local representative particulars, directors (all), and whether the company is a non-profit. Never guess the commencement date."
+    },
+    {
+      "id": "ext_client_sign",
+      "title": "Send POA and application for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "Signed POA and signed application form uploaded",
+      "aiInstructions": "Explain who signs (an authorised director of the foreign company, and the local representative accepting the appointment). Allow for courier / notary time abroad without stating a deadline."
+    },
+    {
+      "id": "ext_file",
+      "title": "File CoR20.1 external company registration on CIPC",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileCoR20_1",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Application lodged with all supporting documents, fee paid, tracking number saved",
+      "aiInstructions": "Kevin files — foreign-document acceptance is a judgement call. CIPC e-Services > Transact > External Company Registration (CoR20.1) or the CIPC email channel if e-Services does not support the transaction — ⚠ verify current channel and fee (understood to be R400). Upload: CoR20.1, certified founding documents and translations, resolution, POA, director IDs, proof of SA office. Record the tracking number."
+    },
+    {
+      "id": "ext_wait",
+      "title": "Wait for CIPC registration",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [10, 15],
+      "estimatedDays": 15,
+      "doneCriteria": "Registration certificate issued or CIPC query received",
+      "aiInstructions": "Check tracking status on e-Services before following up. Queries usually concern certification of foreign documents; route to Kevin verbatim."
+    },
+    {
+      "id": "ext_deliver",
+      "title": "Deliver registration certificate and next steps",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["external_company_certificate"],
+      "estimatedDays": 1,
+      "doneCriteria": "Certificate and registration number posted to Communication History",
+      "aiInstructions": "Explain ongoing duties: SARS income tax registration and public officer appointment (offer the Tax Representative Appointment service), annual returns, and keeping the SA office and representative current with CIPC."
+    },
+    {
+      "id": "ext_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

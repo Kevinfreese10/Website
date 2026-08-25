@@ -1,0 +1,118 @@
+{
+  "slug": "annual-financial-statements-for-vat-registered-businesses",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Compiled Annual Financial Statements (statement of financial position, statement of comprehensive income, changes in equity, cash flows, notes) signed by Kevin Freese, CBA(SA) #3561 and the directors",
+    "Final trial balance and general ledger produced in the AI Accountant module",
+    "VAT reconciliation: VAT201 returns for the year agreed to output and input VAT per the ledger",
+    "Management report summarising key financial insights"
+  ],
+  "playbookCommonFailures": [
+    "VAT201 returns or SARS statement of account missing for some periods, so the VAT control account cannot be reconciled",
+    "VAT201 turnover does not agree to ledger revenue (cash-basis VAT vs invoice-basis books, or unrecorded sales)",
+    "Bank statements missing months or supplied as scans/photos that cannot be imported",
+    "Input VAT claimed on invoices that are not valid tax invoices, creating a VAT exposure that needs disclosure",
+    "Opening balances cannot be established because no prior-year AFS or trial balance exists"
+  ],
+  "informationToProvide": [
+    { "label": "Trial Balance for the financial year", "type": "excel", "documentKind": "trial_balance", "inNameOf": "entity", "isRequired": false, "alternatives": ["Accountant invite to Xero / Sage / QuickBooks", "General ledger export (Excel/CSV)"], "aiHint": "Year-end trial balance or accounting software export for the entity, if the client keeps books. Debits must equal credits and the period must match the financial year. If no books are kept, the ledger is built from bank statements in AI Accountant and this item is not required." },
+    { "label": "Bank statements for the full financial year", "type": "pdf", "documentKind": "bank_statement", "inNameOf": "entity", "isRequired": true, "aiHint": "Consecutive original electronic PDF bank statements for every business account covering the full financial year (no scans or photos — they must be importable into AI Accountant). Check there are no missing months and that balances chain from one statement to the next." },
+    { "label": "VAT returns and payment confirmations for the year", "type": "pdf", "documentKind": "sars_notice_of_registration", "inNameOf": "entity", "isRequired": true, "alternatives": ["SARS eFiling VAT statement of account for the year"], "aiHint": "Every VAT201 return submitted for tax periods falling in the financial year (bi-monthly or monthly), with proof of payment or the SARS VAT statement of account. Check the VAT registration number on the returns matches the entity. All periods must be present — a missing period stops the VAT reconciliation." },
+    { "label": "Sales and purchase invoices (as requested for sampling/verification)", "type": "pdf", "documentKind": "invoice", "inNameOf": "entity", "isRequired": false, "aiHint": "Customer tax invoices issued and supplier tax invoices received, supplied in batches or a ZIP when the agent asks for a sample. Used to verify that input VAT is supported by valid tax invoices (supplier VAT number, 'tax invoice' wording, entity name) and that revenue is complete." },
+    { "label": "Asset register or details of assets purchased/sold", "type": "excel", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "aiHint": "Fixed asset register with cost, date acquired, depreciation rate and carrying value, or the invoices for assets bought and sold during the year (with the VAT shown separately). Supports the PPE note and depreciation." },
+    { "label": "Previous year's Annual Financial Statements (if available)", "type": "pdf", "documentKind": "afs", "inNameOf": "entity", "isRequired": false, "aiHint": "Signed prior-year AFS for the same entity, used for opening balances and comparatives. If the company is in its first year, ask the client to confirm this instead." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "afsv_collect",
+      "title": "Collect bank statements, VAT201s, TB, asset register and prior AFS",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Full-year bank statements for every account, all VAT201s with proof of payment, asset details and prior AFS (or first-year confirmation) uploaded",
+      "aiInstructions": "Confirm the financial year end and the VAT tax periods that fall within it (category A/B bi-monthly, C monthly — ask the client which). Chase only what is missing and explain why: bank statements are the source of the books; VAT201s must be reconciled to the ledger; the asset register supports depreciation. If the client cannot supply VAT201s, ask for eFiling access so the returns and statement of account can be downloaded. Do not promise faster than 7–10 working days from receipt of everything."
+    },
+    {
+      "id": "afsv_verify",
+      "title": "Verify statements, VAT returns and entity details",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Bank statements are original PDFs in the company's name with no gaps; a VAT201 exists for every tax period in the year; VAT number and entity name match",
+      "aiInstructions": "The entity is the company on the CoR14.3, never the ordering contact. Reject scans and photos. Check statement balances chain month to month and list gaps. Build a table of VAT periods in the year and tick off each VAT201 received, noting output VAT, input VAT and the amount paid/refunded; flag any period missing or any return marked as an estimate. Note loans, asset purchases and large once-off receipts seen on the statements for early queries."
+    },
+    {
+      "id": "afsv_import",
+      "title": "Import bank statements and allocate transactions in AI Accountant",
+      "type": "calculate",
+      "owner": "staff",
+      "estimatedDays": 3,
+      "doneCriteria": "All statements imported, every transaction allocated with the correct VAT treatment, bank reconciles to nil, asset register and loans captured",
+      "aiInstructions": "In the AI Accountant module: create the entity and financial year, import each PDF statement, and allocate every line with the VAT type set correctly (standard 15%, zero-rated, exempt, no VAT — e.g. salaries, loan repayments, SARS payments). If the client supplied a TB or software export, import it instead and reconcile to the bank. Capture fixed assets excluding VAT where input VAT was claimed; split loan repayments into capital and interest. Unidentified transactions go on a query list with date, amount and bank description — never dumped to sundry or the director's loan without a query."
+    },
+    {
+      "id": "afsv_vat_recon",
+      "title": "Reconcile VAT201 returns to the ledger",
+      "type": "calculate",
+      "owner": "staff",
+      "estimatedDays": 1,
+      "doneCriteria": "Output and input VAT per VAT201s agreed to the ledger VAT control account for each period; every difference explained or listed for Kevin",
+      "aiInstructions": "For each tax period, compare output VAT and input VAT per the VAT201 with the VAT control account in AI Accountant, and compare VAT201 turnover (field 1 total supplies) with ledger revenue for the same period. Reconcile the year-end VAT control balance to the SARS statement of account (last return due less payments made). Common causes of differences: timing (invoice-basis books vs payments-basis VAT), sales recorded net when they were gross, input VAT on non-deductible items (entertainment, passenger vehicles), and returns filed on estimates. Produce a VAT reconciliation schedule; unexplained differences over the materiality Kevin sets go to him as a proposal — they may need a VAT201 correction, which is a separate service."
+    },
+    {
+      "id": "afsv_queries",
+      "title": "Send allocation and VAT queries to the client",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Client has answered every allocation query and supplied the sampled tax invoices requested",
+      "aiInstructions": "Plain South African English. Send one consolidated list: unidentified transactions (date, amount, bank reference), specific questions about director loans, cash withdrawals and once-off receipts, and a request for the sample of sales and purchase tax invoices needed to support input VAT. Explain that unanswered items may have to be treated as amounts owing by the director and that unsupported input VAT may need to be reversed. No deadline threats."
+    },
+    {
+      "id": "afsv_review_tb",
+      "title": "Review trial balance, VAT reconciliation and approve adjustments",
+      "type": "calculate",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin has reviewed the TB and VAT reconciliation, approved adjusting journals and locked the final TB",
+      "aiInstructions": "Prepare a proposal for Kevin: draft TB, bank reconciliation, VAT reconciliation schedule with unexplained differences, proposed adjustments (depreciation, accruals, director loan interest, current tax from provisional payments, VAT control corrections) and remaining unresolved queries. Kevin decides every adjustment; the agent never posts a journal without approval. ⚠ verify: the reporting framework (IFRS for SMEs by default) and whether the company's Public Interest Score requires independent review or audit rather than compilation — if so stop and tell Kevin."
+    },
+    {
+      "id": "afsv_draft",
+      "title": "Draft the AFS pack and management report",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["afs_pack", "vat_computation", "cover_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Draft AFS, VAT reconciliation schedule and management report generated from the locked TB and posted for Kevin's review",
+      "aiInstructions": "Generate the afs_pack from the locked TB: directors' responsibility statement, compilation report (Kevin Freese CBA(SA) #3561 — signature applied only at approval), statement of financial position, statement of comprehensive income, changes in equity, cash flows, accounting policies and notes (including the VAT receivable/payable in current assets/liabilities), plus the detailed income statement. Company details from the CoR14.3 on file; never guess directors. Attach the VAT reconciliation as a vat_computation schedule. Use cover_letter for the management report: three to five plain-language insights (margin, cash, VAT position and exposure, director loan, record-keeping). Check statements cross-cast and cash flow ties to bank movement."
+    },
+    {
+      "id": "afsv_client_review",
+      "title": "Send draft AFS to directors for review and signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Directors have approved the draft and returned the signed directors' responsibility statement and representation letter",
+      "aiInstructions": "Plain South African English. Explain that these are the draft AFS for the year ended [date], summarise the headline result and the VAT position, and ask the directors to sign the directors' responsibility statement and management representation letter where marked and return as PDF. Requested changes to figures go to Kevin as a proposal — never change numbers to please the client."
+    },
+    {
+      "id": "afsv_deliver",
+      "title": "Deliver signed AFS, VAT reconciliation and management report",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["afs_signed", "vat_reconciliation", "management_report"],
+      "estimatedDays": 1,
+      "doneCriteria": "Signed AFS, VAT reconciliation, management report, final TB and general ledger posted to Communication History",
+      "aiInstructions": "Post the signed AFS, VAT reconciliation schedule, management report, final trial balance and general ledger export. If the reconciliation showed VAT201 corrections are needed, say so plainly and offer the VAT correction service. Note the AFS feed the ITR14 and CIPC annual return, and offer those services."
+    },
+    {
+      "id": "afsv_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the AFS are signed and the order can be completed"
+    }
+  ]
+}

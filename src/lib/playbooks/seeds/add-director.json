@@ -1,0 +1,102 @@
+{
+  "slug": "add-director",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC CoR39 confirmation showing the new director as active",
+    "Updated CoR14.3 / company disclosure certificate",
+    "Signed director resolution and consent to act (client copy)"
+  ],
+  "playbookCommonFailures": [
+    "Certified ID copy of the new director is older than 3 months or the certification stamp is illegible",
+    "Proof of residential address is not in the new director's own name or is older than 3 months",
+    "New director's ID number or date of birth typed on CIPC does not match the ID document exactly",
+    "The company is in deregistration or has annual returns outstanding, so CIPC blocks the director amendment",
+    "Signed consent / resolution not returned, so the supporting-document upload cannot be completed"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration Certificate (COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. Must be the company the director is being added to." },
+    { "label": "Certified ID copy of the new director  - not older than 3 months", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy (foreign director)"], "isRequired": true, "aiHint": "Certified SA Smart ID Card (front and back), Green Barcoded ID Book, or Passport for a foreign director. Check for a visible Commissioner of Oaths or SAPS certification stamp dated within 3 months, legible ID number and full names. The name must be the NEW director, not an existing one." },
+    { "label": "Proof of residential address for the new director - not older than 3 months", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Bank statement showing the address", "Municipal rates account"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months (utility bill, rates/taxes, lease or bank statement) in the new director's own name. A business address or a spouse's account is not acceptable without a sworn affidavit." },
+    { "label": "Email address for Director to be added", "type": "text", "isRequired": true },
+    { "label": "Contact number for Director to be added", "type": "text", "isRequired": true }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "ad_collect",
+      "title": "Collect new director details and documents",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "CoR14.3, certified ID, proof of address, email and cell number of the new director all received; appointment date confirmed",
+      "aiInstructions": "Ask for the intended appointment date (default: date of filing) and whether the new director is also becoming a shareholder — if yes, tell the client shares are NOT changed by this service and offer the share certificate / share register services. Remind that CIPC rejects ID certifications older than 3 months. Do not promise faster than 1-2 working days after everything is received."
+    },
+    {
+      "id": "ad_verify",
+      "title": "Verify identity documents and company status",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass the rules engine; company status on CIPC is 'In Business' with no outstanding annual returns",
+      "aiInstructions": "Check the company name and registration number on the CoR14.3 against the order. Extract the new director's full names, ID number, date of birth and nationality from the certified ID and hold them for the filing. Confirm the person is 18 or older and is not already listed as a director on the CoR14.3. Check CIPC company status: if 'AR Deregistration' or 'Final Deregistration', stop and propose the Annual Returns or Reinstatement service first — CIPC will not process a CoR39 on a non-compliant company. Foreign directors: passport plus, ⚠ verify: whether CIPC currently also needs a certified copy of a valid visa/permit for foreign resident directors."
+    },
+    {
+      "id": "ad_draft",
+      "title": "Draft director resolution, consent to act and CoR39 handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["director_resolution", "consent_to_act", "handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Resolution appointing the director, the director's written consent to act, and a handoff sheet with every CoR39 field are drafted for Kevin's review",
+      "aiInstructions": "Resolution is passed by the existing board (all current directors on the CoR14.3 sign). The consent is signed by the new director and must state they are not disqualified under s69 of the Companies Act. Handoff sheet fields: company name and number, director surname, first names, ID/passport number, date of birth, nationality, residential address, postal address, cell, email, designation (Director), appointment date, status Active. Never guess a residential address — it must come from the proof of address upload."
+    },
+    {
+      "id": "ad_client_sign",
+      "title": "Send resolution and consent to client for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Signed resolution and signed consent uploaded by the client",
+      "aiInstructions": "Plain South African English. Explain that CIPC requires proof the board approved the appointment and that the new director agreed to it. Existing directors sign the resolution; the new director signs the consent. Return as PDF. No deadline threats."
+    },
+    {
+      "id": "ad_file",
+      "title": "File CoR39 director appointment on CIPC e-Services",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileCoR39",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Director amendment staged with all fields and supporting documents; Kevin has submitted and the CIPC tracking number is recorded",
+      "aiInstructions": "CIPC e-Services > Transact > Director Amendments (CoR39) using the My Accountant customer code. Add the new director with status Active and the confirmed appointment date; leave existing directors untouched. Upload as supporting documents: certified ID, proof of address, signed resolution, signed consent. Type the ID number exactly as on the ID — CIPC validates it against Home Affairs and a single wrong digit fails the transaction. ⚠ verify: current CIPC rule on whether a signed CoR39 form itself must also be uploaded for third-party filers. Record the tracking number for follow-up."
+    },
+    {
+      "id": "ad_wait",
+      "title": "Wait for CIPC to process the amendment",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [2, 5],
+      "estimatedDays": 2,
+      "doneCriteria": "CIPC confirmation email received and the director appears as active on the register",
+      "aiInstructions": "Check the CIPC tracking status on e-Services before emailing. If the transaction is rejected, read the rejection reason and create a proposal for Kevin quoting it verbatim with the document it concerns; most rejections are certification age or a Home Affairs mismatch."
+    },
+    {
+      "id": "ad_deliver",
+      "title": "Deliver CIPC confirmation and updated company documents",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cor39", "cor14_3"],
+      "estimatedDays": 1,
+      "doneCriteria": "CoR39 confirmation and re-downloaded CoR14.3 posted to Communication History",
+      "aiInstructions": "Download the updated disclosure certificate from CIPC after the change reflects. Remind the client to update the bank mandate, SARS eFiling representative details and the company's share register / beneficial ownership filing if ownership also changed."
+    },
+    {
+      "id": "ad_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

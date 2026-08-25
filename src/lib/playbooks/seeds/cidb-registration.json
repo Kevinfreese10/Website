@@ -1,0 +1,95 @@
+{
+  "slug": "cidb-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIDB Register of Contractors certificate",
+    "CRS (Contractor Registration System) number",
+    "Confirmed grade and class of works (one class included)"
+  ],
+  "playbookCommonFailures": [
+    "Client expects a higher grade than Grade 1 but has supplied no AFS, completion certificates or capital proof — Grade 1 needs none, higher grades do",
+    "Director certified ID older than 3 months or certification illegible",
+    "TCS PIN expired or company tax status non-compliant",
+    "Class of works not chosen, or the client wants more than the one class included in the price",
+    "CIDB registration fee unpaid (our fee excludes it), so the application sits unprocessed"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration documents (e.g., CIPC COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The CIDB registers the company; directors are captured from this document." },
+    { "label": "Certified copies of director(s) IDs", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for a foreign director"], "isRequired": true, "aiHint": "Certified ID copy for every director on the CoR14.3, certified within the last 3 months with legible stamp, signature and date." },
+    { "label": "Proof of construction experience or completed projects", "documentKind": "completion_certificate", "inNameOf": "entity", "alternatives": ["Letters of award", "Signed contracts with values", "Client reference letters with project value and dates"], "isRequired": false, "aiHint": "Completion certificates or letters of award in the company's name showing project description, class of works, value (excl. VAT) and completion date, signed by the client / principal agent. Not required for Grade 1; needed for Grade 2 and above to prove track record." },
+    { "label": "Latest audited financial statements or management accounts", "documentKind": "afs", "inNameOf": "entity", "alternatives": ["Signed management accounts", "Bank statements showing available capital (for Grade 2–3)"], "isRequired": false, "aiHint": "Signed AFS or management accounts for the latest financial year. Not required for Grade 1; for higher grades the CIDB uses turnover and available capital from these. ⚠ verify the current grade thresholds on the CIDB site." },
+    { "label": "Proof of business address (e.g., utility bill)", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Municipal rates account"], "isRequired": true, "aiHint": "Utility bill, municipal account or lease in the company's name dated within 3 months." },
+    { "label": "Tax Compliance Status (TCS) PIN", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status PIN letter for the company. The CIDB verifies the PIN with SARS; note the PIN and expiry date." },
+    { "label": "Class of works to register for (one included)", "type": "text", "isRequired": true, "aiHint": "The single CIDB class of works the client wants (e.g. GB General Building, CE Civil Engineering, EB Electrical Building, SB Specialist). Extra classes are charged separately. If the client is unsure, capture what work they actually do so Kevin can choose." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "cidb_collect",
+      "title": "Collect CIDB registration requirements from client",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "CoR14.3, certified IDs, proof of address, TCS PIN and class of works received; AFS / project proof received if a grade above 1 is wanted",
+      "aiInstructions": "Chase only what is missing and name why the CIDB needs it. Ask which grade the client expects: Grade 1 needs no financial or project proof; anything higher needs AFS and completion certificates / letters of award. Confirm the single class of works included in the price. Remind that the CIDB's own registration fee is payable by the client and excluded from our fee. Do not promise a shorter turnaround than 1–2 working days for submission; the CIDB's processing takes longer."
+    },
+    {
+      "id": "cidb_verify",
+      "title": "Verify documents against CIDB requirements",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All required uploads pass the rules engine or are approved by Kevin; TCS PIN valid",
+      "aiInstructions": "CoR14.3, proof of address and any AFS / project proof in the company's name. Director names on CoR14.3 must match certified IDs; certification within 90 days. Check the TCS PIN expiry. For project proof, extract project value (excl. VAT), class of works, completion date and the principal; flag documents in a director's personal name. Extract enterprise number, income tax number, directors, address, contact person and the requested class."
+    },
+    {
+      "id": "cidb_handoff",
+      "title": "Prepare CRS application hand-off sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every CRS application field and the recommended grade posted for Kevin",
+      "aiInstructions": "Mirror the CIDB CRS online application: enterprise details, directors / shareholders with ID numbers, contact details, class of works, requested grade, TCS PIN, and — for grades above 1 — largest completed contract value, turnover and available capital with document references. Recommend a grade with reasoning but mark it as Kevin's call. ⚠ verify current grade thresholds and fees on the CIDB site before quoting either."
+    },
+    {
+      "id": "cidb_file",
+      "title": "Submit registration on the CIDB CRS portal",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "cidb",
+      "portalProcedure": "cidb.registerContractor",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Application captured on CRS, CRS number issued, fee reference recorded",
+      "aiInstructions": "Stage the CRS application (register.cidb.org.za — ⚠ verify URL) with all fields from the hand-off sheet and the uploads attached; Kevin reviews and clicks submit. Record the CRS number and the CIDB fee reference. Draft a client message with the CIDB fee amount and payment details — the application is only processed once the CIDB fee is paid."
+    },
+    {
+      "id": "cidb_wait",
+      "title": "Wait for CIDB approval and follow up",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [5, 10, 20],
+      "estimatedDays": 15,
+      "doneCriteria": "CIDB certificate available on CRS or a query raised",
+      "aiInstructions": "Check the CRS status at each follow-up point and draft a status query to the CIDB quoting the CRS number if it has not moved. If the CIDB requests further proof (common for grades above 1), create a proposal for Kevin with the exact request."
+    },
+    {
+      "id": "cidb_deliver",
+      "title": "Deliver CIDB certificate and CRS number to client",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cidb_certificate"],
+      "estimatedDays": 1,
+      "doneCriteria": "Certificate and CRS number posted to Communication History",
+      "aiInstructions": "Post the certificate, CRS number, grade and class. Explain that the registration is renewed annually and that grade upgrades need AFS and project proof; offer the CIDB Annual Renewal and CIDB Upgrade services."
+    },
+    {
+      "id": "cidb_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

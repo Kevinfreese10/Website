@@ -1,0 +1,102 @@
+{
+  "slug": "remove-director",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC CoR39 confirmation showing the director as resigned / removed",
+    "Updated CoR14.3 / disclosure certificate",
+    "Signed resignation letter or removal resolution (client copy)"
+  ],
+  "playbookCommonFailures": [
+    "The director being removed is the only director — a company must keep at least one, so an Add Director must be done first or together",
+    "No signed resignation letter and no shareholder resolution, so there is no proof of the change",
+    "Certified ID of the resigning director older than 3 months or unobtainable because the director is uncooperative",
+    "Company has outstanding annual returns so CIPC blocks the CoR39",
+    "Resignation date given is before the director's appointment date on the register"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration number or COR14.3 certificate", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and the current directors, including the one being removed." },
+    { "label": "Certified ID copy of the resigning/removed director", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy", "Clear uncertified copy plus a shareholder resolution where the director will not cooperate — flag for Kevin"], "isRequired": true, "aiHint": "Certified SA ID or passport of the director LEAVING, Commissioner of Oaths / SAPS stamp dated within 3 months. Name and ID number must match the director record on the CoR14.3." },
+    { "label": "Certified ID copy of an active director/shareholder", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "aiHint": "Certified ID of a director who REMAINS, who signs the resolution and authorises the filing." },
+    { "label": "Contact details of the resigning director", "type": "text", "isRequired": true, "helpText": "Email and cell number so CIPC can notify the director of the change." },
+    { "label": "Resolution for director removal (if applicable)", "type": "pdf", "documentKind": "resolution", "inNameOf": "entity", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is the director being removed by the shareholders rather than resigning voluntarily?", "alternatives": ["Signed resignation letter from the director"], "aiHint": "Signed shareholders' resolution removing the director under s71 of the Companies Act, OR a signed resignation letter. If neither exists the agent drafts the appropriate one." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "rm_collect",
+      "title": "Collect director IDs, resignation details and company documents",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "CoR14.3, certified IDs of the leaving and a remaining director, resignation date and contact details received; resignation vs removal established",
+      "aiInstructions": "Ask first: is the director resigning voluntarily, or are the shareholders removing them? Voluntary needs a signed resignation letter; removal needs a shareholders' resolution and proof the director was given notice and a chance to respond (s71). Confirm the effective date. If this leaves the company with no director, say so plainly and propose Add Director together with this order. Turnaround 1-2 working days; never promise faster."
+    },
+    {
+      "id": "rm_verify",
+      "title": "Verify documents and remaining-director rule",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Uploads pass; at least one director remains; company status 'In Business'",
+      "aiInstructions": "Match the leaving director's name and ID number to the CoR14.3 record. Confirm at least one active director remains after the change. Check CIPC for outstanding annual returns and propose that service first if any. Resignation date must be on or after the appointment date on the register."
+    },
+    {
+      "id": "rm_draft",
+      "title": "Draft resignation letter / removal resolution and CoR39 handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["resignation_letter", "director_resolution", "handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Resignation letter (voluntary) or shareholder resolution (removal), board resolution noting the change, and handoff sheet drafted",
+      "aiInstructions": "Resignation letter: addressed to the board, states the director resigns with effect from the confirmed date, signed by the leaving director. Removal: shareholders' resolution under s71 recording the ordinary resolution and that notice was given. Handoff sheet: company, director, ID number, status change to Resigned, effective date, reason code, contact details for notification."
+    },
+    {
+      "id": "rm_client_sign",
+      "title": "Send resignation letter / resolution for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Signed resignation letter or resolution uploaded",
+      "aiInstructions": "Explain who signs what: the leaving director signs the resignation letter; a remaining director signs the board resolution; shareholders sign a removal resolution. Return as PDF. No threats."
+    },
+    {
+      "id": "rm_file",
+      "title": "File CoR39 director resignation on CIPC e-Services",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileCoR39",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Amendment staged with the director set to Resigned on the effective date and documents uploaded; Kevin has submitted; tracking number saved",
+      "aiInstructions": "CIPC e-Services > Transact > Director Amendments (CoR39). Change the director's status to Resigned (or Removed) with the effective date; do not delete the record. Upload certified IDs, the resignation letter or resolution. ⚠ verify: CIPC's current supporting-document rule for director resignations filed by third parties. Record the tracking number."
+    },
+    {
+      "id": "rm_wait",
+      "title": "Wait for CIPC to process the change",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [2, 3],
+      "estimatedDays": 2,
+      "doneCriteria": "CoR39 confirmation received and the director no longer shows as active",
+      "aiInstructions": "Check tracking status before following up. On rejection quote the reason to Kevin."
+    },
+    {
+      "id": "rm_deliver",
+      "title": "Deliver CoR39 confirmation and updated CoR14.3",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cor39", "cor14_3"],
+      "estimatedDays": 1,
+      "doneCriteria": "Confirmation and re-downloaded CoR14.3 posted to Communication History",
+      "aiInstructions": "Remind the client that shares held by the leaving director are not affected by this filing — offer the Share Certificate / Share Register and Beneficial Ownership services if ownership also changes. Also update the bank mandate and SARS representative if the leaving director held those roles."
+    },
+    {
+      "id": "rm_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "slug": "vat201-return-submission-nil",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Nil VAT201 submitted on eFiling for the tax period",
+    "Submission confirmation"
+  ],
+  "playbookCommonFailures": [
+    "Bank statements or invoices show sales or purchases in the period, so a nil return would be false",
+    "Wrong tax period — the vendor is on a 2-monthly (Category A/B) cycle and the client named a single month",
+    "VAT number not linked to the eFiling profile used",
+    "Nil returns filed for several consecutive periods trigger a SARS VAT deregistration/verification query"
+  ],
+  "informationToProvide": [
+    {
+      "label": "Company Name",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Registered company name (or individual's name if the taxpayer is a person) exactly as on the SARS profile, with the relevant SARS reference number."
+    },
+    {
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "Confirmation that no VATable transactions occurred during the relevant VAT period",
+      "type": "text",
+      "isRequired": true
+    },
+    {
+      "label": "Your VAT registration number",
+      "type": "text",
+      "isRequired": true
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "vat201n_collect",
+      "title": "Collect eFiling access and nil confirmation",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Credentials on file, period identified and client has confirmed in writing that the return is nil",
+      "aiInstructions": "Ask for the eFiling username/password and confirm which period the VAT201 is for. Get an explicit written confirmation in Communication History that no taxable supplies were made and no input VAT is being claimed for the whole tax period. Do not promise a turnaround shorter than 1–2 working days."
+    },
+    {
+      "id": "vat201n_verify",
+      "title": "Verify period and that a nil return is appropriate",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Return is outstanding on eFiling for that period and nothing on file contradicts the nil declaration",
+      "aiInstructions": "Confirm the VAT201 for the period is issued under Returns → VAT201 and check the vendor's tax period category (A/B = 2-monthly, C = monthly, D/E = 6-/12-monthly). The period must match the category. If evidence contradicts a nil return (e.g. a bank statement with sales deposits or tax invoices dated in the period), stop and raise a proposal to switch to the trading version of this service."
+    },
+    {
+      "id": "vat201n_file",
+      "title": "Submit the nil VAT201 on eFiling",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.submitNilReturn:VAT201",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "VAT201 shows status Filed/Submitted for the period and the confirmation is saved",
+      "aiInstructions": "Returns → VAT201 → select the tax period. All fields (1–20) zero; total VAT payable/refundable = 0. Check the \"Diesel\" and \"Import\" fields are not pre-populated by SARS from customs data. Stage with a screenshot of the completed return for Kevin's approval before Submit. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+    },
+    {
+      "id": "vat201n_deliver",
+      "title": "Deliver proof of submission",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "submission_confirmation"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Submission confirmation / filed return PDF posted to Communication History",
+      "aiInstructions": "Post the filed VAT201. Explain in plain English that the nil return had to be filed by the 25th (manual) / last business day (eFiling) of the month after the period and that consecutive nil returns may prompt SARS to ask whether the vendor should stay registered. ⚠ verify due-date wording."
+    },
+    {
+      "id": "vat201n_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

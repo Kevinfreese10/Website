@@ -1,0 +1,94 @@
+{
+  "slug": "uif-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "UIF employer reference number (commercial employer, U-number)",
+    "uFiling employer profile activated with employees declared",
+    "Guidance note on monthly UI-19 declarations and contributions"
+  ],
+  "playbookCommonFailures": [
+    "Employer already has a UIF reference through SARS PAYE registration, so a second registration is refused as a duplicate",
+    "Employee details incomplete — missing ID numbers, start dates or gross salaries for one or more employees",
+    "Certified director ID older than 3 months",
+    "Business bank account details in a director's name or a transaction statement instead of a confirmation letter",
+    "Proof of business address older than 3 months or only a PO Box"
+  ],
+  "informationToProvide": [
+    { "label": "Certified copy of company registration documents (e.g., CIPC CoR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "mustBeCertified": true, "isRequired": true, "aiHint": "CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and directors. The catalogue asks for a certified copy — accept an uncertified CIPC-issued PDF but flag it for Kevin if the Department insists on certification." },
+    { "label": "Certified ID copies of all directors/members", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for a foreign director"], "isRequired": true, "aiHint": "Certified copy of the ID (both sides of a smart card) for every director on the CoR14.3, certified within the last 3 months with a legible stamp, signature and date." },
+    { "label": "Proof of business address (utility bill)", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Municipal rates account"], "isRequired": true, "aiHint": "Utility bill, municipal account or lease showing the physical business address, dated within 3 months, in the company's name." },
+    { "label": "Business bank account details", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months, with bank stamp or digital verification reference. A statement is not acceptable." },
+    { "label": "Details of employees (ID numbers, salaries, start dates)", "type": "excel", "documentKind": "other", "inNameOf": "entity", "alternatives": ["Payroll register", "Typed list in the questionnaire"], "isRequired": true, "aiHint": "List of every employee with full name, SA ID or passport number, date of engagement, gross monthly salary and hours per month. Working directors who draw a salary are included. Needed for the UI-19 declaration that follows the employer registration." },
+    { "label": "SARS PAYE / UIF reference number (if the company is already registered for PAYE)", "type": "text", "isRequired": false, "aiHint": "If SARS has issued a PAYE number, the UIF reference is usually the same number with a 'U' prefix. Ask before registering afresh to avoid a duplicate employer record." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "uif_collect",
+      "title": "Collect UIF registration requirements from client",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "Every required document uploaded and the employee list complete for all employees",
+      "aiInstructions": "Chase only what is missing; explain that the Department of Employment and Labour needs the company's own bank letter and address, and a complete employee list to declare contributions. Ask up front whether the company is registered for PAYE with SARS — if so, the UIF reference may already exist and this becomes a uFiling activation rather than a new registration. Ask for the date the first employee started. Do not promise a shorter turnaround than 30–60 working days."
+    },
+    {
+      "id": "uif_verify",
+      "title": "Verify documents against UIF requirements",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All required uploads pass the rules engine or are approved by Kevin; employee list has no blank ID, salary or start date",
+      "aiInstructions": "The employer is the company, never the ordering contact. CoR14.3, bank letter and proof of address in the company's name. Director names must match the certified IDs; certification within 90 days. Validate every employee ID number with the SA ID checksum and flag foreign passport holders (they need a passport number and work permit detail). Extract enterprise number, PAYE number if any, physical address, contact person, bank details, employee count and first-employee date."
+    },
+    {
+      "id": "uif_handoff",
+      "title": "Prepare UI-8 / UI-19 values hand-off sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every employer registration (UI-8) field and the employee declaration (UI-19) rows posted for Kevin",
+      "aiInstructions": "Set out the UI-8 employer registration fields (employer name, trading name, CIPC number, PAYE number, physical/postal address, contact person, bank details, date of first employment, nature of business) and a UI-19 table of employees (ID number, surname, initials, date engaged, gross remuneration, hours). ⚠ verify: the commercial employer form is UI-8; domestic employers use UI-8D. Never invent a start date — leave blank and flag."
+    },
+    {
+      "id": "uif_file",
+      "title": "Register employer and declare employees on uFiling",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "ufiling",
+      "portalProcedure": "ufiling.registerEmployer",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Employer registered (or activated) on uFiling and UI-19 declaration captured; reference number recorded",
+      "aiInstructions": "⚠ CHANNEL: plan §4.3 marks UIF ⚠ — confirm with Kevin whether commercial employers are registered online via uFiling (www.ufiling.co.za) or by emailing the UI-8 and UI-19 with attachments to the Department's employer registration mailbox. uFiling sends an OTP / activation email to the employer's contact details, so this step cannot be completed without the client. If the company already has a PAYE number, activate the existing U-number on uFiling instead of creating a new employer. Save the confirmation screen and the reference to the order."
+    },
+    {
+      "id": "uif_wait",
+      "title": "Wait for the Department to confirm the UIF reference",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [15, 30, 45],
+      "estimatedDays": 45,
+      "doneCriteria": "UIF employer reference number confirmed in writing or on the uFiling profile",
+      "aiInstructions": "Draft a status query to the Department quoting the submission reference and CIPC number at each follow-up point. If the Department returns the application for missing employee details, create a proposal for Kevin and a client message naming the exact employee and field."
+    },
+    {
+      "id": "uif_deliver",
+      "title": "Deliver UIF reference and next-steps note to client",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["uif_registration_confirmation"],
+      "estimatedDays": 1,
+      "doneCriteria": "UIF reference and confirmation posted to Communication History",
+      "aiInstructions": "Post the reference number and confirmation. Explain in plain English that a UI-19 declaration is due monthly and that contributions (1% employee + 1% employer) are paid via SARS EMP201 where PAYE-registered, otherwise directly to the Fund. Offer the monthly payroll / EMP201 service."
+    },
+    {
+      "id": "uif_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

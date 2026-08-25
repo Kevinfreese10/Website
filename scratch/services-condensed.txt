@@ -1,0 +1,426 @@
+### Add Director [CIPC Services] R750 | 1-2 working days
+DESC: Seamlessly add a new director to your South African company with our expert assistance, ensuring CIPC compliance.
+INCLUDED: CIPC application processing for director appointment,Preparation and filing of all necessary CIPC forms (CoR39),Updating company records with the CIPC,Confirmation of successful director appointment,Guidance on statutory requirements
+PREREQ: Certified ID copy of the new director - certification date not older than 3 months ; Proof of residential address for the new director - not older than 3 months ; Company registration Certificate (COR14.3) ; Contact number for Director to be added ; Email address for Director to be added
+DOCS: Company registration Certificate (COR14.3) ; Certified ID copy of the new director  - not older than 3 months ; Proof of residential address for the new director - not older than 3 months ; Email address for Director to be added ; Contact number for Director to be added
+
+### Individual Income Tax Return (ITR12) Simple [SARS Services] R550 | 1-2 working days
+DESC: Effortlessly file your annual Individual Income Tax Return (ITR12) with My Accountant, ensuring compliance and peace of mind.
+INCLUDED: Review of provided income and deduction information.,Accurate preparation of your Individual Income Tax Return (ITR12).,Electronic submission of your ITR12 to SARS.,Confirmation of submission from SARS.,Guidance on your assessment outcome.
+PREREQ: SARS eFiling login details (username and password). ; IRP5/IT3(a) certificates from employers. ; IT3(b) certificates for investments/interest. ; Medical aid tax certificate. ; Retirement annuity fund certificates.
+DOCS: Client Name ; SARS eFiling Username ; SARS eFiling Password
+
+### NCR Form 39 Annual Compliance Submission [NCR Registrations] R1800 | 5-7 working days
+DESC: Ensure your credit provider business in South Africa remains compliant with the National Credit Regulator by accurately submitting your annual Form 39.
+INCLUDED: Comprehensive review of your financial data for NCR Form 39 compliance,Accurate preparation and completion of the NCR Form 39 report,Online submission of the completed Form 39 to the National Credit Regulator,Confirmation of successful submission for your records
+PREREQ: Latest audited or independently reviewed annual financial statements ; Your registered National Credit Regulator (NCR) registration number ; Details of credit granted and associated financials for the reporting period ; Previous year's NCR Form 39 submission (if applicable) ; Signed Letter of Engagement or Power of Attorney (if required for submission)
+DOCS: 
+
+### Tax Representative Appointment [SARS Registrations] R1500 | 3-5 working days
+DESC: Formally appoint a professional tax representative to manage your tax affairs with SARS in South Africa.
+INCLUDED: Preparation of all necessary tax representative appointment forms,Lodgement of appointment documents with SARS,Confirmation of successful tax representative registration,Initial consultation to outline the scope of representation
+PREREQ: SARS eFiling login details ; Company registration documents (e.g., CIPC COR14.3, COR39) ; ID copy  / Passport of the Directors as per COR14.3 ; ID copy of ID of the person to be appointed as the Public Officer ; Personal Income Tax Number ; Contact details / phone and email
+DOCS: COR14.3 (Company registration document) (e.g., CIPC COR14.3 ; ID copy of the person to be appointed as the Public Officer ; SARS eFiling login details - Username ; SARS eFiling login details - Password ; Contact number of the person to be appointed as the Public Officer ; Email address of the person to be appointed as the Public Officer ; ID copies of all directors as per company registration certificate  ; Personal Income Tax number for the person who will be appointed as the Tax Rep
+
+### NHBRC Registration [NHBRC Registration] R850 | 10-15 working days
+DESC: Ensure your home building business complies with South African regulations by registering with the NHBRC.
+INCLUDED: Preparation and submission of your NHBRC application,Liaison with the NHBRC on your behalf to expedite the process,Expert guidance on all necessary documentation,Ongoing follow-up and status updates,Receipt of your official NHBRC registration certificate,Excludes the fees payable to the NHBRC
+PREREQ: Company registration documents (e.g., CIPC COR14.3) ; Certified ID copies of all directors/members - not older than 3 months ; Proof of business address ; Valid Tax Clearance Certificate from SARS ; Business bank account details - not older than 3 months
+DOCS: 
+
+### Accountant's Letter [Accounting Services] R950 | 1 working day
+DESC: Obtain a professional Accountant's Letter tailored to your specific financial verification needs in South Africa.
+INCLUDED: Professionally prepared Accountant's Letter,Official letterhead and signature from a registered accountant,Verification of specified financial information,Digital copy for easy submission
+PREREQ: Specific purpose for the letter (e.g., loan, visa application) ; Details of the institution requiring the letter ; Proof of income/financial statements (e.g., bank statements, payslips) ; Valid South African ID or passport copy
+DOCS: ID copy of individual ; Company registration document (COR14.3) ; Bank statements - at least 6 months ; Explain the purpose of the accountant’s letter, including its role in verifying financial information and confirming accuracy
+
+### Complex Individual Income Tax Return (ITR12) Filing [SARS Registrations] R950 | 3-5 working days
+DESC: We expertly prepare and file complex individual income tax returns (ITR12) with SARS, ensuring compliance and maximising your eligible deductions.
+INCLUDED: Comprehensive review of your financial information,Accurate preparation and calculation of your ITR12,Electronic submission of your ITR12 to SARS,Assistance with any SARS queries related to the submission,Advice on tax planning for future years
+PREREQ: ITR12 supporting documents (e.g., IRP5, IT3(b), IT3(c)) ; Bank statements or financial records for relevant income/expenses ; Details of all income sources (e.g., salary, rental, investment, foreign) ; Information regarding deductible expenses, medical aid, retirement annuities ; Proof of capital gains/losses, if applicable
+DOCS: 
+
+### Company Reinstatement [CIPC Services] R700 | 1-2 working days
+DESC: Restore your deregistered company's active status with CIPC in South Africa quickly and efficiently.
+INCLUDED: Assessment of your company's deregistration status,Preparation and submission of all required CIPC reinstatement forms,Liaison with CIPC on your behalf,Guidance on outstanding annual returns and compliance,Confirmation of successful company reinstatement,R200 fee payable to CIPC
+PREREQ: Company registration documents (e.g., CK/COR documents) ; Details of company's last annual return submission ; Reason for reinstatement (e.g., to continue trading, asset ownership) ; Nature of business ; Clear ID copies of all directors
+DOCS: 
+
+### Beneficial Ownership Declaration [CIPC Services] R550 | 1-2 working days
+DESC: Ensure your company complies with CIPC's beneficial ownership disclosure requirements quickly and accurately.
+INCLUDED: Preparation and submission of the CIPC Beneficial Ownership Declaration,Verification of beneficial ownership information,Guidance on understanding your company's beneficial ownership structure,Confirmation of successful CIPC submission
+PREREQ: Company registration certificate (COR14.3) ; Certified ID / passport copies of all shareholders/owners ; Share register or share certificates ; Trust deeds (if applicable) ; Details of any intermediate legal entities ; Personal Income Tax Number
+DOCS: Company registration certificate (COR14.3) ; Certified ID / passport copies of all shareholders/owners ; Personal Income Tax Number for Director(s) ; Please indicate the percentage of shares held by the shareholder
+
+### COIDA Renewal [COIDA Services] R600 | 1-2 working days
+DESC: Ensure your business remains compliant with South African labour laws by renewing your COIDA registration effortlessly.
+INCLUDED: Assessment of your current COIDA registration status,Preparation and submission of all necessary renewal documentation,Liaison and follow-up with the Compensation Fund on your behalf,Delivery of your renewed Letter of Good Standing or registration confirmation,Excludes fees payable to COIDA
+PREREQ: Latest COIDA registration documents or previous Letter of Good Standing ; Annual financial statements or payroll information for the past year ; Company registration documents (COR14.3) ; Contact details of a company representative ; A completed confirmation of employer form with supporting documents
+DOCS: Latest COIDA registration documents or previous Letter of Good Standing ; Annual financial statements or payroll information for the past year ; Company registration documents (COR14.3) ; Provide the number of employees and total payroll for the preceding year ; If no employees , submit a Declaration for COIDA confirming that there were no employees and no payroll during the previous assessment period
+
+### Private Company Registration [Entity Registrations] R650 | 1-3 working days
+DESC: Register your private company in South Africa quickly and efficiently with My Accountant.
+INCLUDED: CIPC Company Name Reservation.,Company Registration Certificate (COR14.3),Memorandum of Incorporation (MOI),Income Tax Registration Number (via CIPC/SARS interface),FNB Bank Account (If needed)
+PREREQ: 4 Possible company names. Make sure the names don't include any special characters like !@#%.etc.. ; Certified ID copies for all directors (back and front if card)  - certification not older than 3 months ; Proof of residential address for all directors (utility bill, lease agreement) ; Company physical and postal address in South Africa ; Contact details for Business  - Email and contact number ; Contact details for all directors – email and contact number
+DOCS: Certified copies of the ID or passport for each director ; How many directors ; Director(s) Home Address ; Director(s) Email Address ; Director(s) cell number ; Company Year-end (Normally February) ; Preferred name 1 ; Preferred name 2 ; Preferred name 3 ; Preferred name 4 ; Company Address ; Company Postal Address ; Company Email Address
+
+### CIDB Annual Renewal [CIDB Services] R650 | 7-10 working days
+DESC: Ensure your construction company remains legally compliant and eligible for tenders with our seamless CIDB Annual Renewal service in South Africa.
+INCLUDED: Review of current CIDB registration status and compliance,Preparation and accurate submission of all necessary renewal documents to CIDB,Liaison with CIDB on your behalf throughout the renewal process,Regular updates on the status of your renewal application,Delivery of your renewed CIDB certificate or confirmation
+PREREQ: Current CIDB registration certificate and details ; Latest audited or independently reviewed financial statements (not older than 18 months) ; Company registration documents (e.g., CIPC CoR14.3) ; Tax Clearance Status (TCS) PIN from SARS ; Proof of public liability insurance (if applicable)
+DOCS: 
+
+### VAT Deregistration [SARS Registrations] R1000 | 2- 3 Months
+DESC: In South Africa, VAT deregistration is done through the South African Revenue Service when a business no longer meets the requirements to remain a VAT vendor.
+INCLUDED: Preparation and submission of your VAT123e form to SARS,Communication and follow-up with SARS on your behalf
+PREREQ: Turnover has fallen below R1 million in a 12‑month period ; Business has ceased trading and will not resume within 12 months ; Business never commenced trading after registration ; Business no longer meets VAT registration requirements ; All outstanding VAT returns must be submitted ; All outstanding VAT payments must be fully settled ; Proper accounting records must be maintained and up to date
+DOCS: Certified copy of your ID document  / passport (not older than 3 months ; Company registration documents (e.g., COR14.3 ; Business bank statements ((to verify closure or turnover) 6 Months ; SARS eFiling login Username ; SARS eFiling login Password
+
+### VAT201 Return Submission (Nil) [SARS Services] R200 | 1-2 working days
+DESC: Expert submission of your VAT201 Nil Return to SARS, ensuring compliance even with no taxable transactions.
+INCLUDED: Preparation of the VAT201 Nil Return,Electronic submission of the nil return to SARS via eFiling,Confirmation of successful submission
+PREREQ: Active SARS eFiling profile access credentials ; Confirmation that no VATable transactions occurred during the relevant VAT period ; Your VAT registration number
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### CIDB Registration [CIDB Services] R1150 | 1-2 working days
+DESC: Secure your construction industry credentials with professional CIDB Registration services tailored for South African businesses.
+INCLUDED: Comprehensive application preparation and submission to the CIDB,Assistance with CIDB grading assessment and classification,Expert guidance on required documentation and proof of experience,Regular updates on your application status,Delivery of your official CIDB registration certificate upon approval,Includes 1 CIDB industry selection
+PREREQ: Company registration documents (e.g., CIPC COR14.3) ; Certified copies of director(s) IDs ; Proof of business address (e.g., utility bill) ; Latest audited financial statements or management accounts ; Proof of construction experience or completed projects
+DOCS: Company registration documents (e.g., CIPC COR14.3) ; Certified copies of director(s) IDs ; Certified copies of director(s) IDs ; Proof of construction experience or completed projects ; Latest audited financial statements or management accounts
+
+### Annual Returns [CIPC Services] R450 | 1-2 working days
+DESC: Ensure your business meets CIPC compliance with our efficient Annual Returns service, keeping your company in good standing.
+INCLUDED: CIPC Annual Return preparation and submission,Verification of company compliance status,Confirmation of successful filing,Expert guidance on CIPC requirements,Excludes the fees payable to the CIPC
+PREREQ: Company registration number (CIPC) ; Latest Annual Financial Statements or Turnover amount (for CIPC fee calculation) ; Director/member details (ID numbers, contact info
+DOCS: Company registration documents (e.g., CIPC documents) ; Turnover amount for year to be filed
+
+### CSD Profile Updates [CIPC Services] R550 | 3-5 working days
+DESC: Ensure your business remains compliant and eligible for government procurement opportunities by keeping your Central Supplier Database (CSD) profile meticulously up-to-date.
+INCLUDED: Comprehensive review of your existing CSD profile,Updating of company contact and address details,Verification and update of banking information,Upload of latest tax compliance status (e.g., PIN),Assistance with B-BBEE certificate uploads and updates
+PREREQ: CSD login credentials (username and password) ; Latest company registration documents (e.g., CIPC COR39 or COR15.1A) ; Proof of business address (e.g., utility bill not older than 3 months) ; Bank confirmation letter  - not older than 3 months ; Certified ID copies of all active directors/members
+DOCS: 
+
+### BEE Certificate [Accounting Services] R450 | 1-2 working days
+DESC: Obtain your Broad-Based Black Economic Empowerment (B-BBEE) certificate to comply with South African regulations and unlock business opportunities.
+INCLUDED: Preparation of B-BBEE Affidavit or Certificate,Guidance on B-BBEE compliance requirements,Review of supporting documentation,Assistance with submission (if applicable),Final B-BBEE Certificate or Sworn Affidavit
+PREREQ: Company registration documents (e.g., CIPC documents) ; Shareholder certificates or ownership information ; Proof of annual turnover (latest financial statements) ; Identity documents of directors or members
+DOCS: Company Registration Documents (COR14.3). ; Identity documents of directors or members ; What percentage of the company is black owned? ; What percentage of the company is white owned?
+
+### ITR14 Company Income Tax Return (Trading Entities) [SARS Services] R650 | 1-2 working days
+DESC: Expert preparation and submission of your company's ITR14 income tax return to SARS for trading entities in South Africa.
+INCLUDED: Detailed review of financial records for ITR14 preparation.,Accurate calculation of company income tax liability.,Online submission of the ITR14 return to SARS.,Communication with SARS regarding your submission, if required.,Confirmation of successful ITR14 filing.
+PREREQ: Audited or unaudited annual financial statements (AFS). ; Signed management accounts for the relevant tax period. ; Company bank statements for the full tax year. ; Previous year's ITR14 submission details. ; SARS eFiling profile access or authorisation.
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### Non-Profit Company Registration [Entity Registrations] R950 | 1-3 working days
+DESC: Register your Non-Profit Company (NPC) efficiently and compliantly in South Africa with our expert assistance.
+INCLUDED: CIPC registration of your Non-Profit Company,Tailored Memorandum of Incorporation (MOI),Company registration certificate (COR14.3),Guidance on SARS income tax exemption application
+PREREQ: 4 Possible company names. Make sure the names don't include any special characters like !@#%.etc ; Certified copies of the ID or passport for each director. These documents must be clearly visible and certified within the last 3 months ; Contact details and residential addresses of all directors -  physical copy of address not older than 3 months. (Invoice, rates and taxes etc) ; Registered physical and postal address for the NPC in South Africa ; Brief description of the NPC's objectives and ac
+DOCS: Certified copies of the ID or passport for each member ; How many Directors ; Director(s) Home Address ; Director(s) cell number ; Company Year-end (Normally February) ; Address to be captured for the NPC ; Postal Address to be captured for the NPC ; Email address for NPC ; Preferred name 1 ; Preferred name 2 ; Preferred name 3 ; Preferred name 4
+
+### EMP501 Return Submission (Nil) [SARS Services] R200 | 1-2 working days
+DESC: Ensure compliance with SARS by submitting your EMP501 Nil return quickly and accurately.
+INCLUDED: Preparation of your EMP501 Nil return,Submission to SARS via eFiling,Confirmation of successful submission
+PREREQ: SARS eFiling username and password ; Confirmation that no employees were paid remuneration requiring PAYE, UIF, or SDL deductions during the tax year ; Company registration number or ID number
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### IRP6 Provisional Tax Return Filing for Trading Entities [SARS Services] R450 | 1-2 working days
+DESC: Ensure your trading entity's IRP6 provisional tax returns are accurately calculated and filed with SARS.
+INCLUDED: Calculation of estimated taxable income for the period,Preparation of IRP6 provisional tax return forms,Electronic submission of IRP6 returns to SARS,Review of previous tax assessments for consistency and accuracy,Guidance on payment deadlines and methods
+PREREQ: Most recent financial statements or management accounts ; SARS eFiling login credentials (username and password) ; Details of all income earned and expenses incurred for the period ; Information on any capital gains or losses ; Record of any prior provisional tax payments made
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### Remover of Goods in Bond Licence Application [SARS Registrations] R1200 | 3-5 working days
+DESC: We assist South African businesses with the complete application process for their Remover of Goods in Bond Licence, ensuring compliance with SARS customs regulations.
+INCLUDED: Comprehensive review of eligibility and required documentation,Preparation and submission of the official SARS application forms,Liaison with SARS officials on your behalf throughout the process,Guidance on ongoing compliance requirements for your licence,Dedicated support until your Remover of Goods in Bond Licence is granted
+PREREQ: Company registration documents (e.g., CIPC documents) ; Proof of business physical address - not older than 3 months ; VAT registration number (compliance services) Improves approval chances ; Details of vehicles and premises used for transport or storage of goods ; Surety/bond details (if required by SARS for your specific operation) ; Confirmation of good standing with SARS
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password ; Company Registration Certificate ; Customs registration with SARS ; Customs transport documents
+
+### NCCA Registration Services [NCCA Registrations] R1900 | 21 - 45 working days
+DESC: We provide professional assistance to facilitate your NCCA registration, ensuring your business complies with all necessary requirements.
+INCLUDED: Initial consultation and assessment of NCCA registration requirements,Assistance with compiling and verifying all necessary application documents,Preparation and submission of the NCCA registration application,Liaison with the NCCA on your behalf throughout the process,Provision of your official NCCA Registration Certificate upon approval
+PREREQ: Certified copies of all directors'/members' ID documents - not older than 3 months ; Company registration documents (e.g., CIPC CoR14.3, CoR39) ; Proof of business address (utility bill or lease agreement) ; Details regarding the nature of your business activities requiring NCCA registration ; Completed NCCA-specific information forms (if applicable, provided by us) ; Letter of good standing from the Department of Labour for Compensation for Occupational Injuries and Diseases Act (COIDA) ; Proof
+DOCS: 
+
+### Complex Individual Income Tax Return (ITR12) [SARS Services] R750 | 1-2 working days
+DESC: Expert preparation and submission of intricate individual income tax returns (ITR12) for South African taxpayers with diverse financial profiles.
+INCLUDED: Comprehensive review of all income, expenses, and deductions,Accurate calculation of your individual income tax liability or refund,Professional preparation and electronic submission of your ITR12 to SARS,Verification of SARS assessments and resolution of basic queries,Proactive communication regarding your submission status and progress
+PREREQ: Valid South African Identity Document (ID) or Passport ; All IRP5/IT3(a) certificates for employment income ; IT3(b) certificates for interest, dividends, or investment income ; Medical aid tax certificate and proof of out-of-pocket medical expenses ; Records of any other income (e.g., rental statements, foreign income, capital gains details) ; Proof of deductible expenses (e.g., retirement annuity fund certificates, travel logbooks for allowances)
+DOCS: Individuals name ; SARS eFiling Username ; SARS eFiling Password
+
+### Import Licence [SARS Registrations] R950 | 1-2 working days
+DESC: Navigate South African import regulations easily by securing your essential Import Licence with expert assistance.
+INCLUDED: Guidance on required supporting documents,Submission of your Import Licence application,Delivery of your official Import Licence
+PREREQ: Company registration documents (e.g., CIPC COR14.3) ; Proof of address for the business - not older than 3 months ; An active tax representative appointed for the entity ; Detailed description of goods to be imported (HS Codes if available). ; A bank confirmation letter in the name of the business or individual - not older than 3 months ; SARS compliance status must be in good standing ; SARS eFiling login credentials for the entity or individual ; A verifiable cell phone number linked to the en
+DOCS: Company registration documents (e.g., CIPC COR14.3) ; Proof of address for the business - not older than 3 months ; A bank confirmation letter in the name of the business or individual - not older than 3 months ; Detailed description of goods to be imported ; The entity’s SARS eFiling username ; The entity’s SARS eFiling password ; An invoice, affidavit, or accountant’s letter confirming the cell phone number linked to the entity
+
+### Co-operative Society [Entity Registrations] R1400 | 7-10 working days
+DESC: We assist with the establishment, registration, and ongoing compliance of co-operative societies in South Africa.
+INCLUDED: Expert consultation on co-operative society types and structures,Preparation and submission of all necessary registration documents,Guidance on drafting the co-operative's constitution/founding statement,Liaison with relevant regulatory bodies during the registration process,Post-registration advice on initial compliance and governance
+PREREQ: Certified copies of Identity Documents for all founding members ; Proposed name for the co-operative society (with alternatives) ; Details of the co-operative's primary objectives and activities ; Physical address for the registered office of the co-operative ; Proof of address for all founding members
+DOCS: 
+
+### PAYE Registration [SARS Registrations] R750 | 1-2 working days
+DESC: Ensure your South African business complies with SARS payroll regulations by registering for PAYE (Pay As You Earn).
+INCLUDED: SARS PAYE registration application submission,Confirmation of PAYE registration number,Guidance on initial PAYE compliance,Dedicated support throughout the registration process
+PREREQ:  Registered Company CIPC Registration Documents (COR14.3) ; Authorised Representative ID Document ; SARS compliance status must be in good standing ; An active tax representative appointed for the entity ; SARS eFiling login credentials
+DOCS: SARS eFiling login Username ; SARS eFiling login Password ; The registered name of the entity ; Nature of Business
+
+### COIDA Nature of Business Change [COIDA Services] R1400 | 21-60 working days
+DESC: Ensure your business's COIDA registration accurately reflects its current operations and avoid non-compliance.
+INCLUDED: Assessment of your current business activities and classification.,Preparation and submission of the COIDA Nature of Business Change application.,Liaison with the Compensation Fund on your behalf for updates.,Confirmation of your updated COIDA registration details.
+PREREQ: Existing COIDA registration number and latest Letter of Good Standing (if available) ; Detailed description of your current business activities ; Certified copy of CIPC company registration documents (CoR14.3). ; Proof of business address (e.g., utility bill not older than 3 months). ; Proof of identity for a director/member (certified copy).
+DOCS: Annual Financial Statements ; Signed Instruction Letter on your company letterhead to instruct COIDA to change the nature of your business ; Company registration document (COR14.3) ; Pictures of business  - Please furnish us with at least 8 pictures of the business including the business operation site inside and out ; Proof of address for the business – not older than 3 months ; Blank Letterhead of the employer ; Existing COIDA registration number ; Latest Letter of Good Standing (if available)
+
+### Personal Liability Company Registration [Entity Registrations] R1600 | 7-10 working days
+DESC: Seamlessly register your Personal Liability Company (PLC) in South Africa with expert assistance from My Accountant.
+INCLUDED: CIPC Name Reservation application,Drafting and submission of Memorandum of Incorporation (MOI),CIPC registration of your Personal Liability Company,Issue of official CIPC registration documents,Initial tax registration assistance with SARS
+PREREQ: Certified ID copies of all directors and shareholders ; Proposed company name options (3-4 choices) ; Registered physical and postal addresses for the company ; Contact details (email and phone) for all directors ; Details of business activities/industry
+DOCS: 
+
+### Copy of UIF Registration [COIDA Services] R1200 | 30-60 working days
+DESC: Ensure your business complies with South African labour laws by accurately registering for UIF.
+INCLUDED: Completion and submission of all required UIF registration forms,Liaison with the Department of Labour/UIF officials on your behalf,Confirmation of your UIF registration number,Guidance on ongoing UIF contributions and declarations
+PREREQ: Certified copy of company registration documents (e.g., CIPC CoR14.3) ; Certified ID copies of all directors/members ; Proof of business address (utility bill) ; Business bank account details ; Details of employees (ID numbers, salaries, start dates)
+DOCS: 
+
+### Company Name Change [CIPC Services] R650 | 10-15 working days
+DESC: Streamline your company's name change process in South Africa with our expert assistance, ensuring CIPC compliance.
+INCLUDED: CIPC name reservation application and follow-up,Preparation and submission of all CIPC name change forms (e.g., CoR9.1, CoR9.2),Lodgement of amended Memorandum of Incorporation (MOI) if required,Obtaining and forwarding your new Company Registration Certificate (CoR14.3) with the updated name
+PREREQ: Current company registration number and name ; At least 3-4 proposed new company names in order of preference ; Certified ID copies of all active directors ; Proof of address for the company's registered office ; Resolution from directors/shareholders approving the name change
+DOCS: 
+
+### CIPC Company Deregistration [CIPC Services] R1150 | 2-4 months
+DESC: Ensure a smooth and compliant closure of your South African company with our expert CIPC deregistration service.
+INCLUDED: Review of company status and eligibility for deregistration,Preparation and submission of all required CIPC forms and affidavits,Liaison with CIPC regarding the deregistration application,Monitoring of the application status until final deregistration,Confirmation of CIPC deregistration once complete
+PREREQ: Certified ID copies  / Passport of all directors ; Confirmation that the company has no assets or liabilities ; Letter on a company letterhead  to Request for Deregistration of Company ; Company registration documents (e.g., COR14.1, COR14.3) ; Tax clearance certificate ; No annual returns due  - company needs to be compliant with CIPC
+DOCS: Certified ID copies  / Passport of all directors ; Letter on a company letterhead  to Request for Deregistration of Company ; Tax clearance certificate ; Company registration documents (e.g., COR14.1, COR14.3) ; Confirmation that the company has no assets or liabilities
+
+### Sole Proprietor Income Tax Return (ITR12) [SARS Services] R2950 | 3-5 working days
+DESC: Ensure accurate and compliant filing of your individual income tax return (ITR12) as a sole proprietor in South Africa.
+INCLUDED: Comprehensive review of your income and expenses for the tax year,Identification and application of all eligible tax deductions and allowances,Preparation and accurate completion of your ITR12 submission to SARS,Calculation of your final tax liability or refund,Liaison with SARS on your behalf for basic queries related to the submission
+PREREQ: Copy of your South African ID document or passport ; Proof of all income received (e.g., invoices, bank statements, IRP5s/IT3(a)s for any employment) ; Records of all business expenses (e.g., receipts, bank statements, vehicle logbook if applicable) ; Existing SARS eFiling login details (username and password) ; Any other relevant tax documents (e.g., medical aid certificates, retirement annuity certificates)
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### Share Register [Accounting Services] R750 | 1-2 working days
+DESC: Ensure accurate and compliant record-keeping of your company's shareholdings and shareholder information with our professional Share Register service.
+INCLUDED: Initial setup or update of the electronic Share Register,Recording of all share allotments, transfers, and cancellations,Maintenance of detailed shareholder information,Issuance of share certificates (digital or physical, upon request),Updates to CIPC records regarding share capital changes (if applicable)
+PREREQ: Certified copy of company registration documents (e.g., COR14.3) ; Details of all current and historical shareholders, including ID numbers and addresses ; Records of all past share transactions (allotments, transfers, buy-backs) ; Certified ID copies of all directors and major shareholders ; Latest Annual Financial Statements or management accounts
+DOCS: 
+
+### Tender Ready Company Registration Package [Entity Registrations] R1600 | 7-10 working days
+DESC: Seamlessly register your new company in South Africa with our comprehensive Company Registration Package.
+INCLUDED: CIPC Company Name Reservation,CIPC Company Registration (COR14.3),Company Incorporation Documents (COR14.1, COR14.1A, COR14.2, COR14.3, Memorandum of Incorporation),SARS Income Tax Number Registration for the Company,Basic BEE Sworn Affidavit Template (if applicable),FNB Bank Account (if needed),Tax Clearance Pin,Share Certificate
+PREREQ: Certified ID copies of all directors/shareholders ; Proof of residential address for all directors (utility bill, bank statement, etc., not older than 3 months) ; Four proposed company names in order of preference (no special characters) ; Details of shareholding structure ; Contact number for the Business ; Email address for the Business ; Contact number for the Director  ; Email address for the Director ; 4 Possible company names. Make sure the names don't include any special characters like !
+DOCS: 
+
+### UIF Registration [COIDA Services] R1200 | 30-60 working days
+DESC: Ensure your business complies with South African labour laws by accurately registering for UIF.
+INCLUDED: Completion and submission of all required UIF registration forms,Liaison with the Department of Labour/UIF officials on your behalf,Confirmation of your UIF registration number,Guidance on ongoing UIF contributions and declarations
+PREREQ: Certified copy of company registration documents (e.g., CIPC CoR14.3) ; Certified ID copies of all directors/members ; Proof of business address (utility bill) ; Business bank account details ; Details of employees (ID numbers, salaries, start dates)
+DOCS: 
+
+### Periodic VAT Calculation and Submission [Accounting Services] R1500 | 1-2 working days
+DESC: Ensure accurate and timely VAT compliance for your business with our expert calculation and submission service.
+INCLUDED: Review of sales and purchase records,Accurate calculation of input and output VAT,Preparation and reconciliation of VAT returns,Electronic submission of VAT 201 returns to SARS,Confirmation of successful submission
+PREREQ: Access to sales records (invoices, sales reports) ; Access to purchase records (supplier invoices, expense reports) ; Bank statements for the relevant VAT period ; Current SARS eFiling login details (or authorisation to act) ; Previous VAT return (if applicable)
+DOCS: 
+
+### Tax Clearance Certificate [SARS Services] R350 | 1-2 working days
+DESC: Obtain your official Tax Clearance Certificate from SARS quickly and efficiently through our expert service.
+INCLUDED: Comprehensive review of your tax compliance status,Preparation and submission of the Tax Clearance application to SARS,Proactive follow-up with SARS to expedite processing,Secure delivery of your official Tax Clearance Certificate,Expert advice on maintaining ongoing tax compliance
+PREREQ: SARS eFiling login details (username and password) ; Proof of identity (for individuals) or company registration documents (for businesses) ; Reason for requiring the Tax Clearance Certificate (e.g., tender, emigration) ; Any outstanding financial statements or tax returns required for compliance (if applicable) ; Signed power of attorney allowing My Accountant to act on your behalf
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password ; Company Registration Certificate
+
+### Annual Financial Statements for (VAT Registered Businesses) [Accounting Services] R7500 | 7-10 working days
+DESC: Ensure your VAT-registered business complies with SARS regulations by preparing accurate annual financial statements.
+INCLUDED: Preparation of Statement of Financial Position (Balance Sheet),Preparation of Statement of Comprehensive Income (Income Statement),Preparation of Statement of Cash Flows,Notes to the Financial Statements,Management report summarising key financial insights
+PREREQ: Trial Balance for the financial year ; Bank statements for the full financial year ; VAT returns and payment confirmations for the year ; Sales and purchase invoices (as requested for sampling/verification) ; Asset register or details of assets purchased/sold
+DOCS: 
+
+### NCR Form 40 Application & Compliance [NCR Registrations] R1950 | 3-5 working days upon receipt of all required information.
+DESC: We assist registered credit providers with the accurate completion and timely submission of their annual NCR Form 40 to the National Credit Regulator.
+INCLUDED: Review and verification of financial data for NCR Form 40,Accurate completion of the NCR Form 40 document,Assistance with the electronic submission process to the NCR,Confirmation of successful submission,Expert advice on maintaining ongoing NCR compliance
+PREREQ: Certified copy of the latest annual financial statements ; Detailed loan book report (outstanding balances, credit granted, etc.) ; Proof of payment for NCR annual fees (if applicable) ; Previous year's NCR Form 40 submission (if available) ; Access to your NCR Online Portal credentials (if applicable)
+DOCS: 
+
+### BEI Setup & Demonstration [Accounting Services] R4950 | Within 5 working days
+DESC: Get your Business Entity Identifier (BEI) configured and learn how to use it effectively for South African compliance.
+INCLUDED: Comprehensive BEI registration and configuration,Personalised, live demonstration of BEI usage,Guidance on integrating BEI with existing systems,Q&A session for all your BEI-related queries,Access to supportive documentation and resources
+PREREQ: Certified copy of company registration documents ; Proof of business address (not older than 3 months) ; Certified ID copies of all directors/members ; Authorisation letter for My Accountant to act on your behalf ; Details of any existing financial or accounting software
+DOCS: 
+
+### Remission of SARS Interest and Penalties [SARS Services] R1200 | 5-10 working days
+DESC: We assist individuals and businesses in South Africa with the formal application for the remission of SARS interest and penalties.
+INCLUDED: Comprehensive assessment of your eligibility for SARS interest and penalty remission.,Preparation and submission of the formal remission application to SARS.,Expert guidance on compiling all necessary supporting documentation.,Ongoing communication and follow-up with SARS on your behalf.,Professional advice on preventing future interest and penalties.
+PREREQ: SARS statements of account detailing the interest and penalties incurred. ; A clear, detailed explanation of the circumstances leading to the interest or penalties. ; Any relevant supporting documents (e.g., medical certificates, financial statements, proof of administrative error). ; Your SARS eFiling login credentials or signed Power of Attorney. ; Proof of identity and address (for individuals) or company registration documents (for businesses).
+DOCS: 
+
+### Annual Financial Statements (Draft and Sign Off Only) [Accounting Services] R3000 | 7-10 working days
+DESC: Expert drafting of Annual Financial Statements to ensure your business meets regulatory compliance in South Africa.
+INCLUDED: Professionally drafted Annual Financial Statements (AFS),Detailed Income Statement,Comprehensive Balance Sheet,Statement of Changes in Equity (if applicable),Statement of Cash Flows (if applicable),Relevant notes to the financial statements
+PREREQ: Complete general ledger for the financial year ; Trial Balance for the financial year ; Bank statements and reconciliations ; Asset register and depreciation schedule ; Previous year's Annual Financial Statements (if available)
+DOCS: 
+
+### Provisional Tax Return (IRP6) for Trading Entities [SARS Services] R350 | 1-2 working days
+DESC: Ensure your trading entity complies with SARS provisional tax requirements by accurately filing your IRP6.
+INCLUDED: Preparation and calculation of your Provisional Tax (IRP6) return,Submission of your IRP6 return to SARS,Communication with SARS regarding your submission,Guidance on provisional tax payment dates and methods,Expert tax advice related to your provisional tax obligations
+PREREQ: Latest Annual Financial Statements or Management Accounts ; Details of all income received during the provisional tax period ; Proof of any previous provisional tax payments made ; Details of estimated taxable income for the current period ; SARS eFiling login details (if applicable)
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### Tax Directive Application [SARS Services] R550 | 5-7 working days
+DESC: Obtain a SARS Tax Directive to ensure correct income tax deductions for specific types of income in South Africa.
+INCLUDED: Assessment of eligibility for a Tax Directive,Preparation and completion of the official Tax Directive application form (IT3(a)),Submission of the application to SARS on your behalf,Follow-up and liaison with SARS regarding your application status,Delivery of your approved Tax Directive upon completion
+PREREQ: Certified copy of your South African ID document or valid passport ; Your SARS income tax number ; Relevant source documents pertaining to the income (e.g., provident fund withdrawal statement, retrenchment letter, annuity details) ; Proof of banking details (e.g., cancelled cheque or bank statement) ; Contact details (phone number and email address)
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### External Company Registration [Entity Registrations] R1950 | 10-15 working days
+DESC: Seamlessly register your foreign company to operate legally in South Africa with our expert assistance.
+INCLUDED: CIPC registration as an External Company,Guidance on local compliance obligations for foreign entities,Preparation and submission of all necessary documents to CIPC,Official CIPC registration certificate upon completion,Appointment of local public officer for tax purposes (if required)
+PREREQ: Certified copies of foreign company's founding documents (e.g., Certificate of Incorporation, Memorandum) ; Certified ID/passport copies and proof of address for directors/shareholders ; Resolution from the foreign company authorising registration in South Africa ; Details of the proposed South African registered office address ; Power of Attorney if an agent is appointed to act on behalf of the foreign company
+DOCS: 
+
+### IRP6 Provisional Tax Return (Nil) [SARS Services] R200 | 1-2 working days
+DESC: Effortlessly file your IRP6 Provisional Tax Return (Nil) to declare no taxable income and maintain SARS compliance in South Africa.
+INCLUDED: Preparation and review of your IRP6 Provisional Tax Return (Nil),Electronic submission of the 'nil' return to SARS via eFiling,Confirmation of successful submission for your records,Guidance on maintaining SARS compliance for provisional taxpayers
+PREREQ: Your SARS eFiling login details (username and password) ; Confirmation that no taxable income was earned during the provisional tax period ; Any relevant correspondence from SARS regarding provisional tax ; Signed Power of Attorney (if My Accountant is not yet your registered tax practitioner)
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### CIPC Annual Fees [CIPC Services] R100 | 1 working day
+DESC: Ensure your company remains compliant with CIPC regulations by expertly managing your annual return submissions and fee payments.
+INCLUDED: Preparation and submission of CIPC annual returns.,Payment of CIPC annual fees on your behalf.,Confirmation of CIPC compliance status.,Record keeping of your submission for future reference.
+PREREQ: Company registration number. ; Latest CIPC annual return filing details (if available). ; Details of current company directors and their ID numbers. ; Signed Letter of Engagement/Power of Attorney.
+DOCS: 
+
+### NCR Registration [NCR Registrations] R1400 | 60 - 90 working days
+DESC: Ensure your credit provider business complies with South African regulations by securing your NCR Registration.
+INCLUDED: Comprehensive assistance with NCR application form completion,Detailed guidance on all required supporting documentation,Professional submission of your application to the NCR,Proactive follow-up and liaison with the NCR on your behalf,Regular updates on your application status until completion
+PREREQ: Certified ID copies of all directors/members - not older than 3 months ; Company registration documents (CIPC Certificate COR14.3) ; Proof of residential address for directors/members  - not older than 3 months ; Company Contact Information ; Tax Clearance  Status Certificate ; Accounting officers’ details (we can use our details if needed) ; Bank confirmation letter in the name of the company - not older than 3 months ; Criminal clearance certificate for all directors  - not older than 6 months
+DOCS: Company registration documents (COR14.3) ; Valid bank confirmation letter (in the business name, not older than 3 months) ; Tax Clearance Status Certificate ; Auditor/Accounting Officer appointment letter ; Proof of payment of the R1,800 non-refundable application fee ; Criminal clearance certificates (not older than 6 months) for all directors ; Business telephone number ; Business email address ; First language ; Second language ; Share percentages for all shareholders ; Main area of operation
+
+### VAT201 for Trading Companies [SARS Services] R350 | 1-2 working days
+DESC: We handle the accurate and timely submission of your VAT201 returns for trading companies in South Africa.
+INCLUDED: Electronic submission of your VAT201 to SARS,Confirmation of successful submission,Excludes the VAT calculation
+PREREQ: SARS eFiling login details or power of attorney
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### Clearing Agent Licence [SARS Registrations] R1150 | 1-2 working days
+DESC: Obtain your official customs clearing agent licence to facilitate efficient and compliant import and export operations in South Africa.
+INCLUDED: Comprehensive guidance on SARS Customs requirements for clearing agents,Preparation and submission of your Clearing Agent License application forms,Liaison with SARS Customs on your behalf throughout the application process,Assistance with compiling all necessary supporting documentation,Updates on the status of your application until approval
+PREREQ: Company registration documents (e.g., CIPC documents) ; Certified copies of ID documents for all directors/members ; Proof of business address (e.g., utility bill) ; SARS compliance status must be in good standing ; Details of your proposed customs bond or security arrangements ; An active tax representative appointed for the entity ; A verifiable cell phone number linked to the entity or individual’s SARS profile ; SARS eFiling login credentials for the entity or individual ; A valid bank confi
+DOCS: 
+
+### EMP201 Return Submission (Nil) [SARS Services] R200 | 1-2 working days
+DESC: Ensure SARS compliance by accurately submitting your EMP201 nil return for periods with no PAYE, UIF, or SDL liabilities.
+INCLUDED: Accurate preparation of your EMP201 Nil Return,Electronic submission to SARS,Confirmation of successful submission,Expert advice on EMP201 obligations
+PREREQ: Your SARS eFiling login details (username and password) ; Confirmation of no payroll activity for the specific month ; Company registration number (CIPC)
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### Income Tax Return for Sole Proprietors (ITR12) [SARS Registrations] R2500 | 3-5 working days
+DESC: Expert preparation and submission of your annual Income Tax Return (ITR12) for sole proprietors to SARS.
+INCLUDED: Preparation of your ITR12 income tax return,Accurate calculation of your tax liability or refund,Submission of the completed ITR12 to SARS,Review of relevant business expenses for eligible deductions,Assistance with minor SARS queries related to the submission
+PREREQ: SARS eFiling login details (username and password) ; Proof of income (e.g., invoices, bank statements, IRP5/IT3(a) certificates if applicable) ; Records of business-related expenses (e.g., receipts, invoices, mileage logs) ; Medical aid certificate and retirement annuity fund certificates (if applicable) ; Any other relevant income or expense information for the tax year
+DOCS: 
+
+### Remove Director [CIPC Services] R650 | 1-2 working days
+DESC: Efficiently process the official removal of a director from your South African company's records.
+INCLUDED: Consultation on the director removal process,Preparation and submission of CIPC forms (CoR39),Official update of company director records,Confirmation of director removal from CIPC
+PREREQ: Company registration number or COR14.3 certificate ; Certified ID copy of the resigning/removed director ; Certified ID copy of an active director/shareholder ; Resolution for director removal (if applicable) ; Contact details of the resigning director
+DOCS: Company registration number or COR14.3 certificate ; Certified ID copy of the resigning/removed director ; Contact details of the resigning director
+
+### Company Address Change [CIPC Services] R550 | 1-5 working days
+DESC: Streamline your company's address change process in South Africa with our expert assistance, ensuring CIPC compliance.
+INCLUDED: CIPC address change application and follow-up,Obtaining and forwarding your new Company Registration Certificate (CoR14.3) with the updated address
+PREREQ: Company registration documents (COR14.3) ; Proof of new address
+DOCS: Company registration document (COR14.3) ; Confirmation of new address - any statement / invoice as proof
+
+### NBC Provident Fund Company Registration [NCCA Registrations] R550 | 3-5 working days
+DESC: We assist businesses with the seamless registration of their employees for the NBC Provident Fund, ensuring compliance and future financial security.
+INCLUDED: Guidance on NBC Provident Fund requirements,Preparation and submission of all registration documents,Liaison with the NBC Provident Fund on your behalf,Confirmation of successful employee registration,Ongoing support for initial queries
+PREREQ: Company registration documents (e.g., CIPC COR14.3) ; Certified ID copies of all employees to be registered - not older than 3 months ; Employee details (full names, ID numbers, contact info) ; Proof of business address (Municipal bill, rates and Taxes -  not older than 3 months ; Contact information for all directors (email and contact)
+DOCS: 
+
+### EMP201 Submission for Trading Companies [SARS Services] R350 | 1-2 working days
+DESC: Ensure your trading company's monthly SARS EMP201 compliance for PAYE, UIF, and SDL.
+INCLUDED: Accurate calculation of PAYE, UIF, and SDL liabilities,Preparation of the monthly EMP201 declaration,Electronic submission of the EMP201 to SARS,Confirmation of successful submission,Record-keeping of submitted declarations
+PREREQ: Monthly payroll data (salaries, deductions, benefits) ; Updated employee information (if changes occurred) ; Previous EMP201 submissions and payment confirmations (for new clients) ; SARS eFiling login details (or delegated access) ; Bank statements reflecting payment of statutory contributions
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### CIDB Upgrades (Grades 2-9) [CIDB Services] R1800 | 21-30 working days
+DESC: Seamlessly upgrade your CIDB grading from Grade 2 to Grade 9 to unlock larger construction projects in South Africa.
+INCLUDED: Comprehensive review of current CIDB status and eligibility,Preparation and submission of all required upgrade documentation,Guidance on financial statements and tender experience compilation,Liaison with CIDB on your behalf during the application process,Successful processing of your CIDB grade upgrade,Excludes the fees payable to the CIDB
+PREREQ: Certified copy of company registration documents (CK/COR) ; Audited or management financial statements for the past two years ; Proof of completed projects (signed completion certificates, scope of work, values) ; Tax Clearance Certificate (TCC) or Acknowledgment of Tax Compliance status ; Relevant shareholder and director information ; Bank confirmation letter in the name of the business ; You must already be registered with the CIDB
+DOCS: CRS Number  ; CIBD Login Username ; CIBD Login Password ; Which category do you want to upgrade ; Relevant shareholder and director information ; Proof of completed projects (signed completion certificates, scope of work, values) ; Bank Confirmation Letter in the name of the business ; Company registration document (COR14.3) ; Tax Clearance Certificate (TCC) ; Audited or management financial statements for the past two years ; Letters of Award
+
+### Share Certificate [Accounting Services] R350 | 1-2 working days
+DESC: Secure your company's ownership records with a professionally prepared share certificate from My Accountant.
+INCLUDED: Professionally drafted Share Certificate(s),Issuance and recordal in company's share register,Digital copy for your records,Guidance on proper safekeeping
+PREREQ: Company name and registration number (CK number) ; Details of shareholders (full names, ID numbers/company registration numbers) ; Number and class of shares being issued or transferred ; Previous share certificate details (if applicable, for transfers) ; Copy of company Memorandum of Incorporation (MOI)
+DOCS: 
+
+### PBO Registration [SARS Registrations] R1800 | 60 - 90 working days
+DESC: Secure tax-exempt status for your non-profit organisation with our expert PBO registration service.
+INCLUDED: SARS PBO application preparation and submission,Guidance on complying with PBO requirements,Follow-up and communication with SARS on your behalf,Assistance with Section 18A approval (if applicable),Receiving and forwarding your official PBO approval letter
+PREREQ: Certified copy of the organisation's founding document (e.g., Trust Deed, MOI, Constitution) ; Latest audited or independently reviewed financial statements (if applicable) ; Detailed description of the public benefit activities conducted ; Proof of address for the organisation ; Certified copies of ID documents for all directors/trustees/office bearers
+DOCS: 
+
+### Annual Financial Statements (Non-VAT Registered) [Accounting Services] R5000 | 7-10 working days
+DESC: We prepare comprehensive Annual Financial Statements for businesses not registered for VAT in South Africa.
+INCLUDED: Professionally prepared Income Statement,Detailed Balance Sheet,Cash Flow Statement,Notes to the Financial Statements,Management letter with key insights and recommendations
+PREREQ: Access to your accounting software (e.g., Xero, QuickBooks, Sage) or detailed ledger records for the financial year ; Bank statements for the full financial year ; Details of all assets and liabilities (e.g., loan agreements, asset registers) ; Any relevant contracts or agreements (e.g., leases, supplier contracts) ; Previous year's financial statements (if applicable)
+DOCS: 
+
+### EMP501 Annual Reconciliation for Trading Companies [SARS Services] R550 | 1-2 working days
+DESC: Ensure accurate and compliant annual EMP501 submissions to SARS for your trading company.
+INCLUDED: Preparation and review of EMP501 declaration,Reconciliation of PAYE, UIF, and SDL against IRP5/IT3(a) data,Submission of the EMP501 to SARS via eFiling,Issuance of IRP5/IT3(a) certificates to employees,Assistance with any SARS queries related to the submission
+PREREQ: Access to your SARS eFiling profile ; Payroll reports for the entire tax year ; Monthly EMP201 submission records for the tax year ; Employee details including ID numbers, tax numbers, and remuneration data ; Confirmation of all IRP5/IT3(a) data issued
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### VAT Registration [SARS Registrations] R1400 | 21-30 working days
+DESC: Simplify your business's Value Added Tax (VAT) registration process with our expert assistance.
+INCLUDED: Thorough review of eligibility and required documentation.,Preparation and submission of your VAT 101 application to SARS,Communication and follow-up with SARS on your behalf,Confirmation of your VAT registration number,Expert advice on ongoing VAT compliance
+PREREQ: Certified copy of your ID document (South African) - not older than 3 months ; Proof of residential address - not older than 3 months ; Company registration documents (e.g., COR14.3, MOI) ; Proof of business bank account  - not older than 3 months ; Records to prove that the Total Value of Taxable Supplies exceeded R120 000 in the preceding 12 months ; SARS compliance status must be in good standing ; An active tax representative appointed for the entity ; SARS eFiling login credentials for the 
+DOCS: Certified copy of your ID document (South African) - not older than 3 months ; Proof of residential address - not older than 3 months ; Company registration documents (e.g., COR14.3 ; Proof of business address - not older than 3 months ; Proof of business bank account  - not older than 3 months ; Records to prove that the Total Value of Taxable Supplies exceeded R120 000 in the preceding 12 months - Need invoices to proof ;  Six Months Bank statements ; SARS eFiling login Username ; SARS eFiling
+
+### Export Licence [SARS Registrations] R950 | 1-2 working days
+DESC: Secure your South African Export Licence efficiently, enabling your business to trade goods internationally with full compliance.
+INCLUDED: Preparation and review of all required application documents,Submission of your Export License application to relevant authorities,Expert advice on export compliance and procedures
+PREREQ: Company registration documents (e.g., CIPC COR14.3, COR39) ; Certified ID copies of all directors/members  - not older than 3 months ; Proof of address for the business - not older than 3 months ; An active tax representative appointed for the entity ; Detailed description of goods to be exported and destination countries ; A bank confirmation letter in the name of the business or individual - not older than 3 months ; SARS compliance status must be in good standing ; SARS eFiling login credenti
+DOCS: Company registration documents (e.g., CIPC COR14.3) ; Proof of address for the business - not older than 3 months ; A bank confirmation letter in the name of the business or individual - not older than 3 months ; Detailed description of goods to be exported ; The entity’s SARS eFiling username ; The entity’s SARS eFiling password ; A verifiable cell phone number linked to the entity or individual’s SARS profile
+
+### Management Accounts [Accounting Services] R5000 | 3-5 working days
+DESC: Gain crucial insights into your business's financial performance with our tailored management accounts service.
+INCLUDED: Customised monthly or quarterly financial reports,Detailed Profit and Loss Statements,Comprehensive Balance Sheet Analysis,Cash Flow Forecasts and Budget vs. Actuals Reporting,Key Performance Indicator (KPI) analysis and commentary
+PREREQ: Access to your accounting software (e.g., Xero, Sage, QuickBooks) or detailed transaction data ; All bank statements for the reporting period ; Sales invoices and purchase invoices/expenses for the period ; Payroll summaries and related statutory returns (e.g., EMP201) ; Previous period's financial statements for comparative analysis
+DOCS: 
+
+### COIDA Registration [COIDA Services] R1400 | 1-2 working days
+DESC: Ensure your business complies with South African occupational injury and disease legislation through our efficient COIDA Registration service.
+INCLUDED: Preparation and submission of all COIDA registration forms.,Correspondence with the Compensation Fund on your behalf,Confirmation of your COIDA registration number,Guidance on annual COIDA return submissions,Assistance with obtaining your Letter of Good Standing (on request),Excludes fees payable to COIDA
+PREREQ: Company registration documents (CIPC Docs) ; Director(s) / Owner (s) Certified ID document(s)   - not older than 3 months ; Proof of business address  - not older than 3 months ; Proof of banking details  - not older than 3 months ; Estimated annual payroll figures ; Tax clearance certificate
+DOCS: Company registration documents (CIPC COR14.3) ; Director(s) / Owner (s) Certified ID document(s)   - not older than 3 months ; Proof of business address  - not older than 3 months ; Proof of banking details  - not older than 3 months ; Estimated annual payroll figures ; Tax Clearance Certificate
+
+### Director Amendment [CIPC Services] R650 | 1-2 working days
+DESC: Facilitate accurate and compliant updates to your company's director details with CIPC.
+INCLUDED: Review of current CIPC director information,Preparation and submission of CIPC amendment forms (CoR39),Follow-up with CIPC until the amendment is processed,Confirmation of successful director amendment
+PREREQ: Company registration number (CIPC CoR14.3) ; Certified ID copies for all directors (new and existing, if applicable) ; Proof of residential address for all directors (not older than 3 months) ; Details of the specific changes required (e.g., new director details, resignation date, updated address)
+DOCS: 
+
+### CSD Registration [CIPC Services] R950 | 1-2 working days
+DESC: We assist South African businesses with their Central Supplier Database (CSD) registration to enable seamless participation in government procurement.
+INCLUDED: Complete CSD online application submission,Verification of all submitted company information,Liaison with CSD for any query resolution,Issuance of your official CSD registration report
+PREREQ: Valid South African ID documents of all directors/members ; Company registration documents (e.g., CIPC Certificate) ; SARS Tax Compliance Status PIN ; Proof of business bank account (recent bank statement) ; Proof of business address
+DOCS: Company registration documents (e.g., CIPC Certificate) ; Proof of business bank account - not older than 3 months ; SARS Tax Compliance Status Certificate ; Valid South African ID documents  / Passport of all directors / members ; Proof of business address ; Details of goods and services the supplier can provide ; Details about the industry or sectors in which the supplier operates ; Preferred contact name ; Preferred email address ; Preferred cell number ; CSD Username ; CSD Password
+
+### ITR14 Company Income Tax Return (Nil) [SARS Services] R350 | 1-2 working days
+DESC: Ensure your company's SARS compliance with our efficient ITR14 Nil Income Tax Return filing service, specifically for businesses with no taxable income.
+INCLUDED: Review of company tax status for the relevant period,Preparation of the ITR14 Nil Income Tax Return,Electronic submission of the return to SARS via eFiling,Proof of submission for your records
+PREREQ: Company registration documents (e.g., CIPC CoR14.3) ; SARS eFiling login credentials (username and password) ; Confirmation that the company had no taxable income or business activity for the specific tax year ; Relevant tax year details for which the return is required
+DOCS: Company Name ; SARS eFiling Username ; SARS eFiling Password
+
+### NPO Registration [Entity Registrations] R1200 | 90 working days
+DESC: Seamlessly register your Non-Profit Organisation (NPO) in South Africa with expert assistance.
+INCLUDED: Preparation and submission of NPO registration forms,Guidance on NPO constitution requirements,Liaison with the Department of Social Development (DSD),Receipt of official NPO registration certificate
+PREREQ: Nonprofit Companies (NPCs) (registered with the CIPC under the Companies Act - register as an NPO with DSD) ; Details of founding members/directors (IDs, addresses) ; Founding documents - Signed Memorandum of Incorporation (MOI Documents), which you would have received when you registered your NPC with CIPC ; Registered proof of address for the organization  (NPO) (physical and postal address) ; Proof of Address director/members (physical and postal) ; At least 3 unrelated persons must serve as 
+DOCS: 
+

@@ -1,7 +1,7 @@
 'use server';
 
 import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
-import { AuditEntry, Order, DocumentUpload } from '@/lib/types';
+import { AuditEntry, Order, DocumentUpload, OrderChecklistItem } from '@/lib/types';
 import { sendOrderStatusUpdateEmailAction } from './order-actions';
 import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { getVerifiedAuthContext, getAuthContext } from '@/lib/server-auth';
@@ -317,6 +317,216 @@ export async function reviewOrderDocumentAtomic(
     });
   } catch (error: any) {
     console.error('Error reviewing order document:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export type ChecklistItemUpdate = {
+  status?: OrderChecklistItem['status'];
+  notes?: string;
+  artifactUrl?: string;
+  artifactName?: string;
+  isAiRecommended?: boolean;
+  aiNotes?: string;
+  /** Required when status is 'skipped'. */
+  skipReason?: string;
+};
+
+/**
+ * Updates a single SOP checklist step on an order atomically (rebuilt after v1 was removed in aba0cdd2).
+ *
+ * Guards:
+ * - Staff/admin or the internal system actor only. Partners may not tick checklist steps.
+ * - Skipping a step requires a reason, which is written to the audit log.
+ * - Never transitions the client-visible `status`; only `fulfillmentStatus` may be nudged, and
+ *   only from 'Awaiting Documents' → 'In Execution' when work starts. Completion still goes
+ *   through transitionOrderStatusAtomic and its guardrails.
+ */
+export async function updateOrderChecklistItemAtomic(
+  orderId: string,
+  stepId: string,
+  update: ChecklistItemUpdate,
+  performer: PerformerInput | InternalActor
+) {
+  try {
+    const db = getAdminDb();
+    const orderRef = db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+    if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
+
+    const orderData = orderDoc.data() || {};
+    const actor = await resolveVerifiedActor(performer, orderData as Order);
+    if (!actor.isStaffOrAdmin) {
+      throw new Error('Forbidden: Only staff may update fulfilment checklist steps.');
+    }
+
+    if (update.status === 'skipped' && !update.skipReason?.trim()) {
+      throw new Error('A reason is required to skip a checklist step.');
+    }
+
+    const checklist: OrderChecklistItem[] = orderData.checklist || [];
+    const idx = checklist.findIndex(c => c.id === stepId);
+    if (idx === -1) throw new Error(`Checklist step "${stepId}" not found on order #${orderId}`);
+
+    const previous = checklist[idx];
+    const nowIso = new Date().toISOString();
+    const nextStatus = update.status ?? previous.status;
+
+    const updatedItem: OrderChecklistItem = {
+      ...previous,
+      status: nextStatus,
+      ...(update.notes !== undefined ? { notes: update.notes } : {}),
+      ...(update.artifactUrl !== undefined ? { artifactUrl: update.artifactUrl } : {}),
+      ...(update.artifactName !== undefined ? { artifactName: update.artifactName } : {}),
+      ...(update.isAiRecommended !== undefined ? { isAiRecommended: update.isAiRecommended } : {}),
+      ...(update.aiNotes !== undefined ? { aiNotes: update.aiNotes } : {}),
+      ...(update.skipReason ? { notes: [previous.notes, `Skipped: ${update.skipReason}`].filter(Boolean).join('\n') } : {}),
+    };
+
+    if (nextStatus === 'completed' || nextStatus === 'skipped') {
+      updatedItem.completedAt = nowIso;
+      updatedItem.completedBy = actor.id;
+      updatedItem.completedByName = actor.name;
+    } else if (previous.status === 'completed' || previous.status === 'skipped') {
+      // Re-opened
+      delete (updatedItem as any).completedAt;
+      delete (updatedItem as any).completedBy;
+      delete (updatedItem as any).completedByName;
+    }
+
+    const updatedChecklist = [...checklist];
+    updatedChecklist[idx] = updatedItem;
+
+    let newFulfillmentStatus: Order['fulfillmentStatus'] = orderData.fulfillmentStatus;
+    const anyStarted = updatedChecklist.some(c => c.status === 'in_progress' || c.status === 'completed');
+    if (anyStarted && (!newFulfillmentStatus || newFulfillmentStatus === 'Awaiting Documents') && orderData.status === 'Processing') {
+      newFulfillmentStatus = 'In Execution';
+    }
+
+    const auditEntry: AuditEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      action: 'CHECKLIST_UPDATE',
+      performedBy: actor.id,
+      performedByName: actor.name,
+      timestamp: nowIso,
+      previousValue: previous.status,
+      newValue: nextStatus,
+      details: `Checklist step "${previous.title}" ${previous.status} → ${nextStatus}${update.skipReason ? ` (Skip reason: ${update.skipReason})` : ''}${update.notes ? ` — ${update.notes}` : ''}`,
+    };
+
+    const updatePayload = cleanFirestoreData({
+      checklist: updatedChecklist,
+      fulfillmentStatus: newFulfillmentStatus,
+      auditLog: [...(orderData.auditLog || []), auditEntry],
+      updatedAt: nowIso,
+    });
+
+    const batch = db.batch();
+    batch.update(orderRef, updatePayload);
+    const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
+    if (mirrorId) {
+      batch.update(db.collection('orders').doc(mirrorId), updatePayload);
+    }
+    await batch.commit();
+
+    return serializeDbData({
+      success: true,
+      message: `Step "${previous.title}" marked ${nextStatus}`,
+      checklist: updatedChecklist,
+      fulfillmentStatus: newFulfillmentStatus,
+    });
+  } catch (error: any) {
+    console.error('Error updating checklist item:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Reveals an encrypted credential value (isSecret requirement) to staff. Every reveal is
+ * audit-logged on the order. Partners and clients are refused.
+ */
+export async function revealSecretUploadValueAtomic(
+  orderId: string,
+  uploadId: string,
+  performer: PerformerInput | InternalActor
+) {
+  try {
+    const db = getAdminDb();
+    const orderRef = db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+    if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
+    const orderData = orderDoc.data() || {};
+    const actor = await resolveVerifiedActor(performer, orderData as Order);
+    if (!actor.isStaffOrAdmin) throw new Error('Forbidden: Only staff may reveal credentials.');
+
+    const upload = (orderData.documentUploads || []).find((u: DocumentUpload) => u.id === uploadId || u.requirementId === uploadId);
+    if (!upload) throw new Error('Upload not found');
+    if (!upload.textValue) throw new Error('This requirement has no text value');
+
+    const { decrypt } = await import('@/lib/encryption');
+    const value = upload.isEncrypted ? decrypt(upload.textValue) : upload.textValue;
+
+    const auditEntry: AuditEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      action: 'CREDENTIAL_REVEALED',
+      performedBy: actor.id,
+      performedByName: actor.name,
+      timestamp: new Date().toISOString(),
+      details: `Revealed credential "${upload.requirementLabel}"`,
+    };
+    await orderRef.update({ auditLog: [...(orderData.auditLog || []), auditEntry] });
+
+    return { success: true, value };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Posts a note to an order's Communication History server-side (mirrors the admin UI's
+ * arrayUnion write) and audit-logs it. Used by the AI agent's approved proposals.
+ */
+export async function postOrderNoteAtomic(
+  orderId: string,
+  note: { text: string; isInternal?: boolean; subject?: string | null; attachments?: { name: string; url: string }[] | null },
+  performer: PerformerInput | InternalActor
+) {
+  try {
+    const db = getAdminDb();
+    const orderRef = db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+    if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
+    const orderData = orderDoc.data() || {};
+    const actor = await resolveVerifiedActor(performer, orderData as Order);
+    if (!actor.isStaffOrAdmin) throw new Error('Forbidden: Only staff may post notes via this action.');
+
+    const nowIso = new Date().toISOString();
+    const newNote = cleanFirestoreData({
+      text: note.text,
+      authorId: actor.id,
+      date: new Date(),
+      type: 'note',
+      isInternal: !!note.isInternal,
+      subject: note.subject ?? null,
+      attachments: note.attachments && note.attachments.length ? note.attachments : null,
+    });
+    const auditEntry: AuditEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      action: note.isInternal ? 'INTERNAL_NOTE_POSTED' : 'CLIENT_NOTE_POSTED',
+      performedBy: actor.id,
+      performedByName: actor.name,
+      timestamp: nowIso,
+      details: `${note.isInternal ? 'Internal' : 'Client-visible'} note posted (${note.text.length} chars).`,
+    };
+    const { FieldValue } = await import('firebase-admin/firestore');
+    const batch = db.batch();
+    batch.update(orderRef, { notes: FieldValue.arrayUnion(newNote), auditLog: FieldValue.arrayUnion(auditEntry), updatedAt: nowIso });
+    const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
+    if (mirrorId) batch.update(db.collection('orders').doc(mirrorId), { notes: FieldValue.arrayUnion(newNote), updatedAt: nowIso });
+    await batch.commit();
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error posting order note:', error);
     return { success: false, error: error.message };
   }
 }

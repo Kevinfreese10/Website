@@ -276,6 +276,34 @@ service cloud.firestore {
       allow write: if isAdmin() || hasModule('Manage Products');
     }
 
+    // ─── AI order agent (AI-ORDER-AGENT-PLAN.md §6.8) ────────────────────────
+    // Written only by server actions with the Admin SDK. Staff may read proposals for
+    // their queue; partners and clients never see agent internals.
+    match /agentProposals/{proposalId} {
+      allow read: if isAdminOrStaff();
+      allow write: if false;
+    }
+    match /agentRuns/{runId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /autonomyPolicy/{serviceId} {
+      allow read: if isAdminOrStaff();
+      allow write: if false;
+    }
+    match /regulatorMail/{mailId} {
+      allow read: if isAdminOrStaff();
+      allow write: if false;
+    }
+    // Portal jobs carry encrypted credentials: no client reads at all. Server actions strip them.
+    match /portalJobs/{jobId} {
+      allow read, write: if false;
+    }
+    match /portalHealth/{portalId} {
+      allow read: if isAdminOrStaff();
+      allow write: if false;
+    }
+
     // ─── Orders ──────────────────────────────────────────────────────────────
     match /orders/{orderId} {
       allow read: if isAuthenticated() && (

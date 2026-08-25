@@ -1,0 +1,103 @@
+{
+  "slug": "non-profit-company-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC registration certificate (CoR14.3) for the NPC",
+    "Registered Memorandum of Incorporation (NPC)",
+    "SARS income tax reference number issued via CIPC",
+    "Note on applying for SARS income tax exemption / PBO status"
+  ],
+  "playbookCommonFailures": [
+    "Fewer than three directors / incorporators supplied — an NPC needs at least three",
+    "All four proposed names rejected or contain special characters",
+    "Certified ID older than 3 months or missing for one director",
+    "Objectives too vague to qualify as a public benefit or communal purpose in the MOI",
+    "Registered address supplied is a PO Box"
+  ],
+  "informationToProvide": [
+    { "label": "Certified copies of the ID or passport for each member", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back or Green Book) or passport per director / incorporator, Commissioner of Oaths / SAPS stamp dated within 3 months, legible ID number and names. Count them — an NPC needs at least three." },
+    { "label": "How many Directors", "type": "text", "isRequired": true, "helpText": "Minimum three for a non-profit company." },
+    { "label": "Director(s) Home Address", "type": "text", "isRequired": true },
+    { "label": "Proof of residential address for each director", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease", "Bank statement showing the address"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per director (utility bill, rates/taxes, lease or bank statement) in the director's own name." },
+    { "label": "Director(s) cell number", "type": "text", "isRequired": true },
+    { "label": "Company Year-end (Normally February)", "type": "text", "isRequired": true },
+    { "label": "Address to be captured for the NPC", "type": "text", "isRequired": true, "helpText": "Physical street address in South Africa." },
+    { "label": "Postal Address to be captured for the NPC", "type": "text", "isRequired": true },
+    { "label": "Email address for NPC", "type": "text", "isRequired": true },
+    { "label": "Preferred name 1", "type": "text", "isRequired": true, "helpText": "No special characters. CIPC adds 'NPC'." },
+    { "label": "Preferred name 2", "type": "text", "isRequired": true },
+    { "label": "Preferred name 3", "type": "text", "isRequired": true },
+    { "label": "Preferred name 4", "type": "text", "isRequired": true },
+    { "label": "Brief description of the NPC's objectives and activities", "type": "text", "isRequired": true, "helpText": "The public benefit or community purpose the NPC will pursue — this goes into the MOI." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "npc_collect",
+      "title": "Collect director details, names, addresses and objectives",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Certified ID and proof of address for at least three directors, four names, NPC addresses, year-end and objectives received",
+      "aiInstructions": "Explain plainly that an NPC needs at least three directors and that its income and assets may not be distributed to members — it is for a public benefit or community objective. Ask for four names without special characters. Mention that SARS tax exemption (PBO) is a separate application after registration. Turnaround 1-3 working days; never promise faster."
+    },
+    {
+      "id": "npc_verify",
+      "title": "Verify director documents and name availability",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass; at least three directors with ID and address; names screened",
+      "aiInstructions": "Extract full names, ID numbers, dates of birth and addresses from the IDs and proofs. ⚠ verify: CIPC requires a minimum of three incorporators AND three directors for an NPC (s13/Schedule 1) — the same three people can be both. Run a CIPC name search on each proposed name."
+    },
+    {
+      "id": "npc_draft",
+      "title": "Draft registration handoff sheet and MOI object clauses",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Handoff sheet with all CoR14.1 fields, the four names, directors/incorporators and the MOI object clauses drafted from the client's objectives",
+      "aiInstructions": "Use the CIPC standard NPC MOI (CoR15.1C) unless the client needs a customised MOI (e.g. voting members) — then flag for Kevin. Write the objects clause from the client's description in plain terms and include the non-distribution and dissolution clauses required by Schedule 1, which SARS also needs for PBO approval. Year-end defaults to February."
+    },
+    {
+      "id": "npc_file",
+      "title": "Reserve name and register NPC on CIPC",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.registerCompany:NPC",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Name reserved and NPC registration submitted with directors, incorporators, addresses, MOI and certified IDs; tracking number saved",
+      "aiInstructions": "CIPC e-Services (or BizPortal) > Register a company > Non-Profit Company. Reserve the four names in order (CoR9.1), then register with the approved name. Capture at least three incorporators and three directors, physical and postal address, year-end and upload certified IDs and the MOI. ⚠ verify current fees (name reservation ~R50, registration with standard MOI ~R125 / customised ~R475). Record the tracking number."
+    },
+    {
+      "id": "npc_wait",
+      "title": "Wait for CIPC to issue the certificate",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [2, 3],
+      "estimatedDays": 3,
+      "doneCriteria": "CoR14.3 and registered MOI downloadable; income tax number issued",
+      "aiInstructions": "Check the tracking status before following up. If the name is rejected, ask the client for replacements and re-reserve."
+    },
+    {
+      "id": "npc_deliver",
+      "title": "Deliver CoR14.3, MOI and tax number",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cor14_3", "moi", "sars_notice_of_registration"],
+      "estimatedDays": 1,
+      "doneCriteria": "Certificate, MOI and SARS tax number posted to Communication History",
+      "aiInstructions": "Explain next steps: bank account, SARS eFiling registration and tax representative, and that tax exemption requires a separate PBO application to the SARS Tax Exemption Unit (offer the PBO Registration service) and DSD NPO registration if funders require it (offer NPO Registration)."
+    },
+    {
+      "id": "npc_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

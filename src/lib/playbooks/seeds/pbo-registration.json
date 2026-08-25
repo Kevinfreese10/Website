@@ -1,0 +1,103 @@
+{
+  "slug": "pbo-registration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "SARS Tax Exemption Unit approval letter with PBO reference number (s30 approval)",
+    "Section 18A approval (where the activities qualify) with the s18A reference for donor receipts",
+    "Note on ongoing obligations (annual IT12EI return, s18A receipt format and annual s18A reporting, founding document restrictions)"
+  ],
+  "playbookCommonFailures": [
+    "Founding document (MOI / trust deed / constitution) lacks the compulsory s30(3) clauses — at least three unconnected fiduciaries, no distribution of surplus to members, dissolution clause transferring assets to another PBO",
+    "Activities described do not fall within the Ninth Schedule public benefit activities, or are described too vaguely for the TEU to classify",
+    "Organisation not yet registered for income tax (no tax number) so the EI1 cannot be linked",
+    "Certified IDs of office bearers older than 3 months or one fiduciary missing",
+    "Pack emailed to the wrong TEU mailbox or without the EI1 signed by an authorised office bearer — no acknowledgement ever arrives"
+  ],
+  "informationToProvide": [
+    { "label": "Certified copy of the organisation's founding document (e.g., Trust Deed, MOI, Constitution)", "documentKind": "moi", "inNameOf": "entity", "mustBeCertified": true, "isRequired": true, "alternatives": ["Trust deed with Master's letter of authority", "Signed constitution of a voluntary association"], "aiHint": "Complete, signed founding document: NPC MOI (with CIPC CoR14.3), trust deed plus Letters of Authority, or an association constitution. Check it contains the s30(3) clauses — three unconnected persons accepting fiduciary responsibility, no profit distribution, dissolution to a similar PBO/government, and the s18A wording if s18A is sought. If missing, flag: the founding document must be amended before the TEU will approve." },
+    { "label": "Latest audited or independently reviewed financial statements (if applicable)", "documentKind": "afs", "inNameOf": "entity", "isRequired": false, "alternatives": ["Budget / projected income and expenditure for a new organisation"], "aiHint": "Signed AFS for the last financial year if the organisation has operated. For a new organisation accept a 12-month budget showing sources of funding and planned spending on the public benefit activities." },
+    { "label": "Detailed description of the public benefit activities conducted", "type": "text", "isRequired": true, "aiHint": "Who benefits, what is done, where, how it is funded and how many beneficiaries. Map each activity to a Ninth Schedule Part I PBA category (welfare, health, education, conservation, religion, sport, etc.) and Part II for s18A. Ask for brochures, website or programme reports as evidence." },
+    { "label": "Proof of address for the organisation", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Lease agreement", "Letter from the property owner with their proof of address"], "aiHint": "Proof of the organisation's physical address dated within 3 months. Where it operates from an office bearer's home, accept their proof of address plus a short confirmation letter." },
+    { "label": "Certified copies of ID documents for all directors/trustees/office bearers", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport for foreign office bearers"], "aiHint": "One certified ID per director/trustee/office bearer named in the founding document or CoR14.3. Commissioner of Oaths or Police certification stamp dated within 3 months. Confirm at least three are not connected persons (not related, not employed by the same person)." },
+    { "label": "Organisation's SARS income tax reference number", "type": "text", "isRequired": true, "aiHint": "The organisation's own income tax number. If it has none, it must first be registered for income tax (offer the tax registration service) — the EI1 is linked to this number." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "pbo_collect",
+      "title": "Collect founding documents, activity description and office bearer IDs",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 7,
+      "doneCriteria": "Every required upload received, activities described in detail, s18A intention and funding sources answered",
+      "aiInstructions": "Name each document and why the Tax Exemption Unit needs it. Ask specifically: do they want s18A (donor tax-deductible receipts) — this needs Part II activities and specific founding-document wording; who funds them; whether they have a SARS tax number; and for programme evidence (reports, photos, website). Explain plainly that the TEU takes 60-90 working days and often longer — never promise shorter."
+    },
+    {
+      "id": "pbo_verify",
+      "title": "Verify founding document clauses, fiduciaries and activity mapping",
+      "type": "verify",
+      "owner": "kevin",
+      "estimatedDays": 2,
+      "doneCriteria": "Kevin confirms the founding document meets s30(3), at least three unconnected fiduciaries have certified IDs, and each activity maps to a Ninth Schedule PBA",
+      "aiInstructions": "Agent pre-checks and Kevin confirms. s30(3)(b) clauses to look for: ≥3 unconnected persons with fiduciary responsibility; no single person controls decisions; funds used solely for the object; no distribution to members/employees beyond reasonable remuneration; on dissolution assets go to a similar PBO, government or institution; no remuneration excessive; amendments submitted to SARS (⚠ verify the current clause list against the SARS Tax Exemption Guide). If clauses are missing, stop and draft a client message: the MOI/constitution must be amended (offer the MOI amendment / CIPC special resolution service). Map activities to Part I paragraph numbers and, if s18A is sought, Part II."
+    },
+    {
+      "id": "pbo_draft_pack",
+      "title": "Draft EI1 hand-off sheet, written motivation and cover letter",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet", "cover_letter", "power_of_attorney"],
+      "estimatedDays": 2,
+      "doneCriteria": "EI1 field values, a written motivation describing the activities against the Ninth Schedule, cover letter and POA drafted and posted for Kevin's review",
+      "aiInstructions": "EI1 (Application for exemption from income tax) fields: organisation details and tax number, entity type, founding document type, physical/postal address, fiduciaries with ID numbers, PBA paragraph numbers applied for, s18A yes/no with Part II paragraphs, funding sources, financial year end, bank details. Fill from verified facts only. The motivation is a factual description of each activity, beneficiaries, and funding with references to the attached evidence — no marketing language. POA authorises My Accountant to deal with the TEU. ⚠ verify the current EI1 form version on the SARS website before filling."
+    },
+    {
+      "id": "pbo_client_sign",
+      "title": "Send EI1, motivation and POA to office bearers for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "Signed EI1 (by an authorised office bearer), signed motivation and POA uploaded",
+      "aiInstructions": "Plain instructions: an authorised office bearer signs and dates the EI1 and POA; initial each page of the founding document copy where certification requires it; return as PDF. Name which pages need a commissioner of oaths if the template requires it."
+    },
+    {
+      "id": "pbo_submit",
+      "title": "Email application pack to the SARS Tax Exemption Unit",
+      "type": "email_submission",
+      "owner": "agent",
+      "emailTo": "teu@sars.gov.za",
+      "emailSubjectTemplate": "Application for PBO approval (s30) — {entityName} ({taxReference})",
+      "expectedReply": "TEU acknowledgement email with a case/reference number",
+      "estimatedDays": 1,
+      "doneCriteria": "Pack sent and TEU acknowledgement received",
+      "aiInstructions": "Attach: signed EI1, certified founding document, CoR14.3 / Letters of Authority, certified IDs of all fiduciaries, proof of address, AFS or budget, activity motivation with evidence, POA. Keep total attachment size within SARS mailbox limits (split into numbered parts if needed). ⚠ CONFIRM ADDRESS WITH KEVIN — plan §4 marks the channel ⚠: SARS may require submission via eFiling (Tax Exemption / SARS Online Query System) instead of or in addition to the teu@sars.gov.za mailbox; check current TEU guidance before first use."
+    },
+    {
+      "id": "pbo_wait",
+      "title": "Wait for TEU decision and follow up",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [30, 60, 90],
+      "estimatedDays": 90,
+      "doneCriteria": "PBO approval letter (with PBO reference and, where applied for, s18A approval) or a TEU query received",
+      "aiInstructions": "Draft a polite status-request email quoting the TEU reference at each follow-up point (TEU contact centre as an alternative). If the TEU raises a query (commonly: founding document amendments, clearer activity descriptions, confirmation of unconnected fiduciaries), create a proposal for Kevin with the query text and the documents it concerns, and a plain client message with what to supply. If a founding document amendment is required, route to the CIPC special resolution / MOI amendment service."
+    },
+    {
+      "id": "pbo_deliver",
+      "title": "Deliver PBO approval letter and compliance note",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["pbo_approval_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Approval letter, PBO/s18A reference numbers and obligations note posted to Communication History",
+      "aiInstructions": "Explain in plain English: annual IT12EI income tax return is still required; s18A receipts must contain the prescribed details and reference number and annual s18A donation reporting to SARS applies (⚠ verify current third-party data submission requirement); any change to the founding document must be sent to the TEU; trading income above the thresholds may be taxable. Offer the annual IT12EI and AFS services."
+    },
+    {
+      "id": "pbo_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

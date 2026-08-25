@@ -1,0 +1,79 @@
+{
+  "slug": "company-address-change",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC CoR21.1 confirmation of change of registered address",
+    "Updated CoR14.3 / disclosure certificate showing the new address"
+  ],
+  "playbookCommonFailures": [
+    "Proof of new address is a residential utility bill in a director's name with no link to the company",
+    "Postal address left blank or entered as the old address, so the register is only half updated",
+    "Company has outstanding annual returns and CIPC blocks the change",
+    "The new address is a PO Box — CIPC requires a physical street address for the registered office"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration document (COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and current registered address." },
+    { "label": "Confirmation of new address - any statement / invoice as proof", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "either", "maxAgeDays": 90, "alternatives": ["Signed lease agreement for the new premises", "Municipal rates account", "Letter from the landlord"], "isRequired": true, "aiHint": "A statement, invoice, lease or utility bill showing the new physical street address, dated within 3 months. Ideally in the company's name; a director's proof of address is acceptable where the registered office is the director's home. Extract the full street address, suburb, town and postal code." },
+    { "label": "New postal address (if different from the physical address)", "type": "text", "isRequired": false, "helpText": "Leave blank if the postal address is the same as the new physical address." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "addr_collect",
+      "title": "Collect company document and proof of new address",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "CoR14.3, proof of the new physical address and the postal address received; effective date confirmed",
+      "aiInstructions": "Ask whether the postal address also changes and from what date the new registered office applies. Explain that CIPC needs a physical street address (not a PO Box) for the registered office. Note that by law the change takes effect five business days after filing — hence the 1-5 working day turnaround; never promise faster."
+    },
+    {
+      "id": "addr_verify",
+      "title": "Verify address proof and company status",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Proof of address passes; address parsed into CIPC fields; company status 'In Business'",
+      "aiInstructions": "Extract street number, street, suburb/complex, town, province and 4-digit postal code from the proof. Confirm the company status on CIPC — outstanding annual returns block the CoR21 transaction; propose Annual Returns first if so. If the proof is not in the company's name, note the link (director's residence) on the handoff notes."
+    },
+    {
+      "id": "addr_file",
+      "title": "File change of registered address (CoR21.1) on CIPC e-Services",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileCoR21",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Address change staged with physical and postal address; Kevin has submitted and the tracking number is saved",
+      "aiInstructions": "CIPC e-Services > Transact > Company Address Change (CoR21.1). Capture the physical (registered office) address and postal address separately, plus the effective date. Upload the proof of address if the screen asks for supporting documents. ⚠ verify: whether CIPC currently charges a fee for CoR21 (understood to be free). Record the tracking number."
+    },
+    {
+      "id": "addr_wait",
+      "title": "Wait for CIPC to process the address change",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [3, 5],
+      "estimatedDays": 5,
+      "doneCriteria": "CoR21.1 confirmation received and the new address appears on the register",
+      "aiInstructions": "Check the tracking number on e-Services before following up. On rejection, quote the reason to Kevin."
+    },
+    {
+      "id": "addr_deliver",
+      "title": "Deliver CoR21.1 confirmation and updated CoR14.3",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cor21_confirmation", "cor14_3"],
+      "estimatedDays": 1,
+      "doneCriteria": "Confirmation and re-downloaded CoR14.3 posted to Communication History",
+      "aiInstructions": "Remind the client to update the address with SARS (eFiling registered particulars), the bank, CSD and any licences — CIPC does not push the change to SARS automatically."
+    },
+    {
+      "id": "addr_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

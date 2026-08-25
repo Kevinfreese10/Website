@@ -1,0 +1,102 @@
+{
+  "slug": "beneficial-ownership-declaration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC beneficial ownership filing confirmation",
+    "Beneficial ownership register (PDF)",
+    "Securities register (PDF)"
+  ],
+  "playbookCommonFailures": [
+    "Shareholding percentages supplied do not add up to 100% or do not match the share certificates",
+    "A shareholder is a trust or company and the natural persons behind it have not been identified",
+    "Certified ID copy older than 3 months for one of the beneficial owners",
+    "No signed mandate authorising My Accountant to file on the company's behalf",
+    "Company has no securities register at all, so there is nothing to upload"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration certificate (COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors." },
+    { "label": "Certified ID / passport copies of all shareholders/owners", "type": "pdf", "documentKind": "sa_id", "inNameOf": "either", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy for foreign owners"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back, or Green Book) or passport per natural person who directly or indirectly holds 5% or more, with a Commissioner of Oaths / SAPS stamp dated within 3 months. Count the owners named in the shareholding answer and flag any owner without an ID." },
+    { "label": "Personal Income Tax Number for Director(s)", "type": "text", "isRequired": false, "helpText": "SARS income tax reference number of each director / beneficial owner, if known." },
+    { "label": "Please indicate the percentage of shares held by the shareholder", "type": "text", "isRequired": true, "helpText": "List each shareholder with full name, ID number and percentage held. Percentages must total 100%.", "aiHint": "Free-text shareholding table. Must total 100%. Where a shareholder is a company or trust, the client must name the natural persons behind it and their effective percentage." },
+    { "label": "Share register or share certificates", "type": "pdf", "documentKind": "share_certificate", "inNameOf": "entity", "isRequired": false, "alternatives": ["Securities register", "Signed shareholders agreement"], "aiHint": "Share certificates or a securities register showing company name, shareholder names and share allocation. If none exists, the agent drafts one from the shareholding answer (template securities_register)." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "bo_collect",
+      "title": "Collect ownership structure and beneficial owner identities",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "CoR14.3, certified IDs for every beneficial owner, shareholding percentages totalling 100% and any trust/company shareholder unpacked to natural persons",
+      "aiInstructions": "A beneficial owner is a natural person who ultimately owns or controls 5% or more, directly or through other entities. Ask explicitly whether any shareholder is a trust, company or nominee; if yes, request the trust deed / that entity's shareholding and the IDs of the people behind it. Explain in plain language that CIPC now needs this before it will accept the annual return."
+    },
+    {
+      "id": "bo_verify",
+      "title": "Verify identities against shareholding",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Every owner in the shareholding table has a passing certified ID; percentages reconcile to share certificates or register if supplied",
+      "aiInstructions": "Reconcile the shareholding answer against any share certificates: names, ID numbers and numbers of shares must agree. Determine whether the company is an 'affected company' (regulated company under the Takeover Regulations, e.g. listed or state-owned) — for the typical private company it is not, and the filing is the standard BO register. If unsure, flag for Kevin rather than choosing."
+    },
+    {
+      "id": "bo_draft",
+      "title": "Draft beneficial ownership register, securities register and mandate",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["securities_register", "power_of_attorney", "handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "BO register, securities register (if the company had none) and mandate drafted; handoff sheet lists each BO with ID number, nationality, address, % held and nature of interest",
+      "aiInstructions": "CIPC requires the securities register and the beneficial interest register as uploads, plus a mandate/POA where a third party files. Populate each BO row: full names, ID/passport number, date of birth, nationality, residential address, email, % of shares, % of voting rights, nature of control (direct shareholding / via trust / via company). Never invent percentages. The mandate is signed by a current director on the CoR14.3."
+    },
+    {
+      "id": "bo_client_sign",
+      "title": "Send register and mandate to client for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Signed mandate and signed register uploaded",
+      "aiInstructions": "Ask a director to sign the mandate and the register, initial each page, and return as PDF. Tell the client this is what allows My Accountant to file on the company's behalf."
+    },
+    {
+      "id": "bo_file",
+      "title": "File beneficial ownership declaration on CIPC",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileBeneficialOwnership",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "BO declaration staged with all owners captured and documents uploaded; Kevin has submitted and the confirmation is saved",
+      "aiInstructions": "CIPC e-Services > Beneficial Ownership. Capture each BO exactly as on the handoff sheet, upload the securities register, BO register, mandate and each certified ID (PDF, each under the CIPC upload size limit — merge or compress if needed). Where the company itself is a wholly owned subsidiary, capture the parent and its natural-person owners. ⚠ verify: whether CIPC currently charges a filing fee for BO declarations (understood to be free). Save the confirmation PDF."
+    },
+    {
+      "id": "bo_wait",
+      "title": "Wait for CIPC confirmation",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [2, 5],
+      "estimatedDays": 2,
+      "doneCriteria": "Filing shows as processed on CIPC",
+      "aiInstructions": "Most BO filings process same day. If a rejection arrives, quote the reason to Kevin and identify which owner or upload it concerns."
+    },
+    {
+      "id": "bo_deliver",
+      "title": "Deliver filing confirmation and registers",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["bo_filing_confirmation", "securities_register"],
+      "estimatedDays": 1,
+      "doneCriteria": "Confirmation, BO register and securities register posted to Communication History",
+      "aiInstructions": "Tell the client the BO register must be updated with CIPC whenever ownership changes and re-confirmed with each annual return. Offer the Annual Returns service if it is due."
+    },
+    {
+      "id": "bo_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

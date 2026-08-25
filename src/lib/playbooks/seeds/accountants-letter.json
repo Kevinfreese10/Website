@@ -1,0 +1,89 @@
+{
+  "slug": "accountants-letter",
+  "playbookEntity": "either",
+  "playbookOutputs": [
+    "Accountant's letter on My Accountant letterhead signed by Kevin Freese, CBA(SA) #3561 (PDF)",
+    "Inflow reconciliation working paper supporting the figures in the letter"
+  ],
+  "playbookCommonFailures": [
+    "Bank statements cover fewer than 6 months or have gaps, so income cannot be verified for the period the institution asks for",
+    "Client asks the letter to state an income figure that the bank inflows do not support",
+    "Purpose or the requesting institution's exact wording requirements not supplied, so the letter is rejected by the bank / embassy",
+    "Letter requested for a company but statements are for a personal account (or vice versa)",
+    "Statements are screenshots or edited PDFs rather than bank-issued statements"
+  ],
+  "informationToProvide": [
+    { "label": "ID copy of individual", "type": "pdf", "documentKind": "sa_id", "inNameOf": "either", "isRequired": true, "alternatives": ["Passport copy"], "aiHint": "Clear copy of the SA ID or passport of the person the letter is about (or the director signing for a company). Names and ID number on the letter must match exactly." },
+    { "label": "Company registration document (COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is the letter about a company or business rather than an individual?", "aiHint": "CIPC CoR14.3 / CK document for the business the letter confirms, showing registration number and directors." },
+    { "label": "Bank statements - at least 6 months", "type": "pdf", "documentKind": "bank_statement", "inNameOf": "either", "isRequired": true, "aiHint": "Bank-issued statements (PDF from the bank, not screenshots) for at least the last 6 consecutive months of the account(s) into which the income is paid. Check the account holder name matches the person/company, that months are consecutive with no gaps, and that opening/closing balances chain from one statement to the next." },
+    { "label": "Explain the purpose of the accountant’s letter, including its role in verifying financial information and confirming accuracy", "type": "text", "isRequired": true, "helpText": "Who needs the letter (bank, embassy, landlord, tender), what it must confirm (e.g. monthly income, turnover, that the business is trading) and any wording they require." },
+    { "label": "Name and details of the institution requiring the letter", "type": "text", "isRequired": true },
+    { "label": "Supporting proof of income (payslips, invoices, financial statements)", "type": "pdf", "documentKind": "payslip", "inNameOf": "either", "isRequired": false, "alternatives": ["Sales invoices", "Management accounts", "AFS", "IRP5"], "aiHint": "Payslips, invoices, management accounts or AFS that explain the inflows on the statements. Used to classify deposits as income versus transfers or loans." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "al_collect",
+      "title": "Collect ID, bank statements, purpose and institution requirements",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "ID, at least 6 months of bank statements, the purpose, the institution's requirements and any supporting income proof received",
+      "aiInstructions": "Ask exactly what the institution needs confirmed and for what period, and whether they have a template or specific wording. Explain that Kevin can only confirm what the bank statements support — the letter verifies, it does not vouch for figures we cannot see. Ask for bank-issued PDF statements. Turnaround 1 working day after everything is in; never promise faster."
+    },
+    {
+      "id": "al_verify",
+      "title": "Verify statements are genuine, complete and in the right name",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Statements are bank-issued, cover 6+ consecutive months, balances chain, account holder matches the ID / CoR14.3",
+      "aiInstructions": "Check month-to-month continuity (closing balance = next opening balance), the account holder name and number on every page, and signs of editing (fonts, misaligned totals). If the letter is for a company, statements must be the company account. Flag anything doubtful to Kevin — a letter on a tampered statement is a professional risk."
+    },
+    {
+      "id": "al_calc",
+      "title": "Reconcile inflows from the bank statements",
+      "type": "calculate",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Working paper listing every credit per month, classified as income / transfer between own accounts / loan / refund / other, with monthly and average income totals",
+      "aiInstructions": "Use the AI Accountant bank-statement extraction. Classify each credit: salary or customer receipts = income; transfers from the client's own accounts, loans, refunds and reversals = not income. Produce a table per month: total credits, excluded items, verified income; then the 6-month (or requested period) total and monthly average. Note any single unusual deposit. The letter quotes only the verified income figure — never the gross credits."
+    },
+    {
+      "id": "al_draft",
+      "title": "Draft the accountant's letter",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["accountants_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Letter on letterhead addressed to the institution, stating the verified facts and the basis (bank statements reviewed for the period), posted for Kevin's review",
+      "aiInstructions": "Structure: addressee and date; who the letter concerns (full names, ID number / company and registration number); what was reviewed (bank statements of account X for months Y to Z); the verified figures from al_calc in Rand; a statement of the basis and limitation (figures are based on the documents provided, not an audit); Kevin's name, designation CBA(SA), practice number 3561 and contact details. Match any wording the institution required where it is true. Do not include opinions on creditworthiness or future income. Kevin's signature is applied only at approval."
+    },
+    {
+      "id": "al_client_review",
+      "title": "Send the draft to the client to confirm the facts",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Client confirms names, period and purpose are correct (or supplies corrections with evidence)",
+      "aiInstructions": "Ask the client to check names, ID number, addressee and period only. Explain that the income figure comes from the statements and can only change if further bank-issued evidence is supplied. Plain language, no threats."
+    },
+    {
+      "id": "al_deliver",
+      "title": "Deliver the signed accountant's letter",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["accountants_letter"],
+      "estimatedDays": 1,
+      "doneCriteria": "Signed PDF letter posted to Communication History",
+      "aiInstructions": "Deliver the signed PDF only after Kevin's approval has applied the signature. Mention that institutions sometimes contact the practice to confirm the letter, which is normal."
+    },
+    {
+      "id": "al_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin has reviewed the reconciliation, signed the letter and confirms the order can be completed"
+    }
+  ]
+}

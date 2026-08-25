@@ -1,0 +1,90 @@
+{
+  "slug": "director-amendment",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC CoR39 confirmation reflecting the amended director details",
+    "Updated CoR14.3 / disclosure certificate"
+  ],
+  "playbookCommonFailures": [
+    "The change requested is actually an appointment or resignation, which needs the Add / Remove Director service and its documents",
+    "Certified ID older than 3 months for the director whose details change",
+    "New residential address supplied without a proof of address in the director's name",
+    "Company has outstanding annual returns and CIPC blocks the CoR39"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration number (CIPC CoR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and current directors as registered." },
+    { "label": "Certified ID copies for all directors (new and existing, if applicable)", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "Certified SA ID or passport for each director whose details are being amended (and any director whose details are used to validate the change), Commissioner of Oaths / SAPS stamp dated within 3 months. Used to correct names, ID numbers or dates of birth." },
+    { "label": "Proof of residential address for all directors (not older than 3 months)", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Bank statement showing the address"], "isRequired": false, "isConditional": true, "conditionalQuestion": "Is a residential or postal address being changed?", "aiHint": "Utility bill, rates account, lease or bank statement dated within 3 months in the director's own name, showing the NEW address." },
+    { "label": "Details of the specific changes required (e.g., new director details, resignation date, updated address)", "type": "text", "isRequired": true, "helpText": "Tell us exactly what must change for which director: name, ID number, address, contact details, designation." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "da_collect",
+      "title": "Collect the requested changes and supporting documents",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "CoR14.3, a clear list of changes per director, and a certified ID (and proof of address where an address changes) received",
+      "aiInstructions": "Get a precise list: which director, which field, old value, new value. If the change is adding or removing a director, tell the client plainly that this service covers detail changes only and propose Add Director / Remove Director instead. Name changes (e.g. after marriage) need the ID reflecting the new name. Turnaround 1-2 working days; never promise faster."
+    },
+    {
+      "id": "da_verify",
+      "title": "Verify documents against the register",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Uploads pass; each change is supported by a document; company status 'In Business'",
+      "aiInstructions": "Compare the current CIPC register (directors tab on e-Services) with the requested changes so you know exactly which fields differ. Every ID number / name / date-of-birth change must match the certified ID; every address change must match the proof of address. Outstanding annual returns block the transaction — propose Annual Returns first if needed."
+    },
+    {
+      "id": "da_draft",
+      "title": "Draft CoR39 handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Handoff sheet with old value / new value per field per director, plus attachment list",
+      "aiInstructions": "One row per changed field: director, field, value currently on CIPC, new value, supporting document. Anything without a supporting document is flagged, not filed."
+    },
+    {
+      "id": "da_file",
+      "title": "File CoR39 director amendment on CIPC e-Services",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "cipc",
+      "portalProcedure": "cipc.fileCoR39",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Amendment staged with only the changed fields edited; Kevin has submitted; tracking number saved",
+      "aiInstructions": "CIPC e-Services > Transact > Director Amendments (CoR39). Edit the existing director record — do not delete and re-add, which creates a resignation and a new appointment. Upload the certified ID and proof of address as supporting documents. ⚠ verify: whether CIPC currently requires a signed CoR39 upload for detail-only amendments. Record the tracking number."
+    },
+    {
+      "id": "da_wait",
+      "title": "Wait for CIPC to process the amendment",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [2, 3],
+      "estimatedDays": 2,
+      "doneCriteria": "CoR39 confirmation received and the register reflects the change",
+      "aiInstructions": "Check tracking status before following up. On rejection quote the reason to Kevin."
+    },
+    {
+      "id": "da_deliver",
+      "title": "Deliver CoR39 confirmation and updated CoR14.3",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["cor39", "cor14_3"],
+      "estimatedDays": 1,
+      "doneCriteria": "Confirmation and re-downloaded CoR14.3 posted to Communication History",
+      "aiInstructions": "Remind the client to update the same details with SARS and the bank if they were changed."
+    },
+    {
+      "id": "da_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

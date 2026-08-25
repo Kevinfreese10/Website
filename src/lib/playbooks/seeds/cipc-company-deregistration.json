@@ -1,0 +1,102 @@
+{
+  "slug": "cipc-company-deregistration",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "CIPC acknowledgement of the deregistration request with a tracking reference",
+    "CIPC notice confirming the company is deregistered (status 'Deregistration Final')",
+    "Signed deregistration request letter and resolution (client copy)"
+  ],
+  "playbookCommonFailures": [
+    "Annual returns outstanding — CIPC refuses a voluntary deregistration until the company is compliant",
+    "Request letter not on the company letterhead or not signed by all active directors",
+    "Letter does not state that the company has ceased trading and has no assets or liabilities",
+    "Tax compliance status shows outstanding SARS returns, so the tax clearance cannot be produced",
+    "Certified ID copy of one director missing or older than 3 months"
+  ],
+  "informationToProvide": [
+    { "label": "Certified ID copies  / Passport of all directors", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID or passport per active director on the CoR14.3, with a Commissioner of Oaths / SAPS stamp dated within 3 months. Every director must be covered — flag any director without one." },
+    { "label": "Letter on a company letterhead  to Request for Deregistration of Company", "type": "pdf", "documentKind": "letterhead", "inNameOf": "entity", "isRequired": true, "aiHint": "Letter on the company's letterhead addressed to CIPC requesting voluntary deregistration, stating the company has ceased trading, has no assets and no liabilities, and giving the tax number; signed by ALL active directors. If the client has none, the agent drafts it (template deregistration_request_letter) for signature." },
+    { "label": "Tax clearance certificate", "type": "pdf", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status letter or PIN printout for the company showing 'Compliant'. A SARS confirmation that the company has no outstanding tax liability is accepted as an alternative. Note the PIN to verify on eFiling." },
+    { "label": "Company registration documents (e.g., COR14.1, COR14.3)", "type": "pdf", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3, CK1, CK2 or MOI document showing company registration number, registered enterprise name and active directors. Used to check which directors must sign." },
+    { "label": "Confirmation that the company has no assets or liabilities", "type": "text", "isRequired": true, "helpText": "Confirm in writing that the company has stopped trading and holds no assets and owes nothing, including to SARS." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "dereg_collect",
+      "title": "Collect director IDs, letter, tax clearance and confirmations",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 5,
+      "doneCriteria": "Every director's certified ID, company documents, tax clearance and the no-assets confirmation received",
+      "aiInstructions": "Explain that deregistration is only possible for a company that has stopped trading with no assets or liabilities, and that CIPC first needs the company to be up to date with annual returns. Ask whether the company has a bank account still open, property, vehicles or SARS debt — any of these means it is not ready. Turnaround is 2-4 months at CIPC; never promise faster."
+    },
+    {
+      "id": "dereg_verify",
+      "title": "Verify CIPC compliance, SARS status and director coverage",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass; annual returns are up to date on CIPC; every active director has a certified ID; TCS is Compliant",
+      "aiInstructions": "Check CIPC status and annual return history — if any year is outstanding, propose the Annual Returns service first and pause. Cross-check directors on the CoR14.3 against ID copies and the signatures on the letter. Verify the TCS PIN on eFiling. If the company is VAT or PAYE registered, remind the client those SARS registrations must be cancelled separately (VAT Deregistration service) — CIPC deregistration does not close SARS accounts."
+    },
+    {
+      "id": "dereg_draft",
+      "title": "Draft deregistration request letter and director resolution",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["deregistration_request_letter", "director_resolution", "handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Letter on letterhead and resolution drafted from verified facts; handoff sheet lists the attachments",
+      "aiInstructions": "Letter must contain: company name and registration number, income tax number, statement that the company has ceased trading / never traded, has no assets and no liabilities, that it is not the subject of any legal proceedings, the reason for deregistration, and signature blocks for every active director with ID numbers. Use the client's letterhead if uploaded, otherwise the letterhead template with the company details. The resolution records the directors' decision to apply for deregistration under s82(3)(b)(ii) of the Companies Act."
+    },
+    {
+      "id": "dereg_client_sign",
+      "title": "Send letter and resolution to all directors for signature",
+      "type": "draft_client_message",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "Letter signed by every active director and signed resolution uploaded",
+      "aiInstructions": "Every director must sign — one missing signature is the most common CIPC rejection. Ask for wet or valid electronic signatures and a PDF return. Plain language, no threats."
+    },
+    {
+      "id": "dereg_submit",
+      "title": "Email the deregistration pack to CIPC",
+      "type": "email_submission",
+      "owner": "agent",
+      "emailTo": "deregistrations@cipc.co.za",
+      "emailSubjectTemplate": "Voluntary deregistration request — {entityName} ({registrationNumber})",
+      "expectedReply": "CIPC auto-acknowledgement with a tracking / reference number",
+      "estimatedDays": 1,
+      "doneCriteria": "Pack sent and CIPC reference number recorded",
+      "aiInstructions": "⚠ CONFIRM ADDRESS WITH KEVIN — deregistrations@cipc.co.za is the best-known inbox; CIPC also offers a deregistration transaction on e-Services and Kevin decides which channel is used. Attach: signed request letter, resolution, certified director IDs, CoR14.3, tax clearance / SARS confirmation. Combine into one PDF if CIPC's size limit allows. Record the reference number from the acknowledgement."
+    },
+    {
+      "id": "dereg_wait",
+      "title": "Wait for CIPC to process deregistration and follow up",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [20, 45, 80],
+      "estimatedDays": 80,
+      "doneCriteria": "Company status on CIPC changes to 'Deregistration Final' or CIPC issues a query",
+      "aiInstructions": "Check the enterprise status on CIPC before each follow-up rather than emailing blindly. Status normally moves to 'Deregistration Process' first and then to 'Final'. Draft a polite status-request email quoting the reference at each point. If CIPC queries (usually outstanding ARs or a missing signature), create a proposal for Kevin with the query text."
+    },
+    {
+      "id": "dereg_deliver",
+      "title": "Deliver deregistration confirmation",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["deregistration_notice"],
+      "estimatedDays": 1,
+      "doneCriteria": "CIPC confirmation and a status printout posted to Communication History",
+      "aiInstructions": "Remind the client to deregister for income tax, VAT and PAYE with SARS and to close the bank account. Offer the VAT Deregistration service where relevant."
+    },
+    {
+      "id": "dereg_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

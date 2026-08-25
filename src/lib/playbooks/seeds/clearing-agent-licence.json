@@ -1,0 +1,108 @@
+{
+  "slug": "clearing-agent-licence",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "SARS Customs clearing agent licence (customs client code with agent licence type) issued via RLA",
+    "RLA approval notification and bond/security acceptance",
+    "Note on licensee obligations (annual licence renewal, security, record keeping, agent code use on declarations)"
+  ],
+  "playbookCommonFailures": [
+    "No active registered representative or unverifiable cell number on the entity's SARS profile — RLA rejects the application",
+    "Customs bond/security (bank guarantee or insurance surety in the SARS-prescribed form) not in place or for an amount SARS considers inadequate",
+    "Certified director IDs older than 3 months or a director missing from the pack",
+    "Tax compliance status not in good standing at the time of RLA submission",
+    "Premises proof is a P.O. Box / virtual office; Customs requires physical business premises and may inspect them"
+  ],
+  "informationToProvide": [
+    { "label": "Company registration documents (e.g., CIPC documents)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and active directors of the applicant clearing agent." },
+    { "label": "Certified copies of ID documents for all directors/members", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "isRequired": true, "alternatives": ["Certified passport for foreign directors"], "aiHint": "One certified ID per director on the CoR14.3. Commissioner of Oaths or Police certification stamp dated within 3 months, legible ID number and name. Flag any director without one." },
+    { "label": "Proof of business address (e.g., utility bill)", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Signed lease agreement", "Municipal account"], "aiHint": "Proof of the PHYSICAL business premises dated within 3 months, in the entity's name. Customs may inspect the premises; a P.O. Box or virtual office is not accepted." },
+    { "label": "Details of your proposed customs bond or security arrangements", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "alternatives": ["Bank guarantee in SARS-prescribed form", "Insurance surety bond", "Cash deposit confirmation"], "aiHint": "Bank guarantee or insurance surety in favour of SARS Customs, or the insurer's quotation/undertaking, showing the amount and the entity's name. SARS determines the security amount — ⚠ verify the current method and whether provisional security is accepted at application stage." },
+    { "label": "A valid bank confirmation letter in the name of the business - not older than 3 months", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Official Bank Account Confirmation Letter from a registered South African bank in the COMPANY's name dated within 3 months. Accept letters with official bank stamp OR digital verification reference/QR code." },
+    { "label": "SARS eFiling login credentials for the entity - Username", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "SARS eFiling login credentials for the entity - Password", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "A verifiable cell phone number linked to the entity or individual’s SARS profile", "type": "text", "isRequired": true, "aiHint": "The cell number currently on SARS Registered Details for the entity/representative. Ask for a cellphone invoice/contract, commissioned affidavit or accountant's letter tying the number to the applicant so RLA verification does not stall." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "cal_collect",
+      "title": "Collect licence application documents and security details",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "All required uploads received, bond/security details and premises details captured",
+      "aiInstructions": "Name each document and why Customs needs it. Explain that a clearing agent licence needs security (bank guarantee or insurance bond) in SARS's favour and that SARS sets the amount; ask who their bank/insurer is. Also ask for the customs client codes of any existing importer/exporter registrations, and the names of staff who will lodge declarations. Do not promise faster than 1-2 working days for our submission — Customs approval and security acceptance take longer."
+    },
+    {
+      "id": "cal_prereq_check",
+      "title": "Check registered representative, cell number and compliance status on eFiling",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.checkRegisteredRepresentative",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Active registered representative confirmed; cell number on SARS Registered Details matches the one supplied; TCS Compliant",
+      "aiInstructions": "Under SARS Registered Details confirm: (1) registered representative active — if not, stop and propose the Tax Representative Appointment service; (2) cell number on the profile equals the number supplied — if not, RAV01 contact details must be updated first (OTP; hand off to Kevin); (3) Tax Compliance Status Compliant — if not, draft a client message listing what is outstanding. Never attempt OTP or CAPTCHA."
+    },
+    {
+      "id": "cal_verify",
+      "title": "Verify documents against Customs licensing requirements",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass the rules engine or are approved by Kevin; every director has a certified ID; security document names SARS and the entity",
+      "aiInstructions": "Entity is the applicant company. Cross-check directors on the CoR14.3 against certified IDs. Bank letter, premises proof and security must be in the company's name. If the security is only a quotation, note that SARS will issue the required amount after assessment and the final bond must be lodged before the licence issues."
+    },
+    {
+      "id": "cal_handoff",
+      "title": "Prepare RLA clearing agent licence hand-off sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every RLA field value and upload list posted for Kevin",
+      "aiInstructions": "Fields (RLA licence type 'Clearing agent' — the DA185 + DA185.4B7 equivalent; ⚠ verify annexure number): applicant details, tax and VAT numbers, physical premises, directors, contact person and cell, bank details, security type and amount, ports/places of entry at which they will operate, existing customs codes, staff authorised to lodge declarations. Fill from verified facts only; leave unknowns blank and flag."
+    },
+    {
+      "id": "cal_file",
+      "title": "Submit clearing agent licence application on eFiling RLA",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.rla:clearing_agent",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "RLA application staged with all documents attached; Kevin submits and the RLA reference number is recorded",
+      "aiInstructions": "Path: eFiling > Customs > Registration Licensing and Accreditation (RLA) > New Application > Licence type 'Clearing agent' (⚠ verify current menu names). Stage all values, attach: CoR14.3, certified director IDs, bank letter, premises proof, security document, cell-number proof. Screenshot each screen and stop for Kevin to submit. Record the reference number."
+    },
+    {
+      "id": "cal_wait",
+      "title": "Wait for Customs assessment, security acceptance and licence issue",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [2, 5, 10],
+      "estimatedDays": 10,
+      "doneCriteria": "Licence issued on RLA / approval notification received, or SARS security determination received and actioned",
+      "aiInstructions": "Check the RLA dashboard at each follow-up. Customs commonly responds with the security amount required or a premises inspection; create a proposal for Kevin and a plain client message with what is needed (e.g. lodge bank guarantee for R x). Escalate via the Customs contact centre with the reference number if no movement by day 10."
+    },
+    {
+      "id": "cal_deliver",
+      "title": "Deliver licence and obligations note",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["customs_licence"],
+      "estimatedDays": 1,
+      "doneCriteria": "Licence, customs code and guidance posted to Communication History",
+      "aiInstructions": "Explain: the licence must be renewed annually (⚠ verify renewal cycle and fee), the security must stay in force, declarations must carry the agent code, and records are kept for 5 years. Offer the importer/exporter registrations for their own clients."
+    },
+    {
+      "id": "cal_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

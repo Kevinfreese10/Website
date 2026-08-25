@@ -1,0 +1,104 @@
+{
+  "slug": "ncr-form-39-annual-compliance-submission",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "Completed NCR Form 39 (statistical return) for the reporting period",
+    "NCR submission confirmation / acknowledgement",
+    "Working paper reconciling the Form 39 figures to the loan book and AFS"
+  ],
+  "playbookCommonFailures": [
+    "Loan book data not split the way Form 39 requires (by credit type, agreement size and term) so the return cannot be completed",
+    "Wrong reporting period — Form 39 is a periodic statistical return, not a financial-year return, and the client supplies annual figures only",
+    "NCRCP number unknown or the registration has lapsed for non-payment of the annual fee",
+    "Figures on Form 39 do not agree with the AFS or the previous return, triggering an NCR query",
+    "NCR portal credentials unknown or the registered contact person has left the company"
+  ],
+  "informationToProvide": [
+    { "label": "Latest audited or independently reviewed annual financial statements", "documentKind": "afs", "inNameOf": "entity", "isRequired": true, "aiHint": "Signed AFS for the most recent financial year of the credit provider, with the accountant's / auditor's report. Used to reconcile total credit granted, receivables and impairments to the loan book." },
+    { "label": "Your registered National Credit Regulator (NCR) registration number", "type": "text", "isRequired": true, "aiHint": "The NCRCP number from the NCR certificate (format NCRCP followed by digits). Confirm it against the certificate and the NCR's public register." },
+    { "label": "Details of credit granted and associated financials for the reporting period", "type": "excel", "documentKind": "other", "inNameOf": "entity", "alternatives": ["Loan management system export", "Debtors age analysis with new-agreement listing"], "isRequired": true, "aiHint": "Loan book export for the reporting period: every credit agreement with date, credit type (short-term, unsecured, developmental, mortgage, etc.), principal, term, interest rate and fees, plus outstanding balances and arrears at period end. Form 39 needs counts and rand values by agreement size band and term band, so a transaction-level list is essential." },
+    { "label": "Previous year's NCR Form 39 submission (if applicable)", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "aiHint": "The last Form 39 as submitted (PDF or portal printout). Used for continuity checks on opening balances and to copy the reporting conventions the client used before." },
+    { "label": "Signed Letter of Engagement or Power of Attorney (if required for submission)", "documentKind": "power_of_attorney", "inNameOf": "entity", "isRequired": false, "aiHint": "Signed engagement letter or Special POA authorising My Accountant to prepare and submit the return. If absent, the agent drafts the POA (template: power_of_attorney) for signature." },
+    { "label": "NCR online portal username", "type": "text", "isSecret": true, "isRequired": false },
+    { "label": "NCR online portal password", "type": "text", "isSecret": true, "isRequired": false }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "f39_collect",
+      "title": "Collect Form 39 inputs from client",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "AFS, NCRCP number, loan book for the period and (if any) prior Form 39 uploaded; portal access confirmed",
+      "aiInstructions": "Chase only what is missing; explain that the NCR needs the loan book at agreement level to complete the statistical bands. State the reporting period clearly — ⚠ verify: Form 39 is the NCR statistical return submitted periodically (historically for the half-years to 30 June and 31 December, due 15 August and 15 February) rather than once per financial year; confirm the period with Kevin and tell the client which months are needed. Ask for the NCR portal login or, failing that, the registered contact person's details. Do not promise a shorter turnaround than 5–7 working days."
+    },
+    {
+      "id": "f39_verify",
+      "title": "Verify registration status and data completeness",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "NCRCP number confirmed active, loan book columns complete, AFS signed",
+      "aiInstructions": "Check the NCRCP number against the certificate and note the registration's status (if the annual fee is unpaid the NCR may block submission — flag). Confirm the loan book has: agreement date, credit type, principal, term, rate, balance, arrears status. Flag missing columns per agreement rather than in bulk. Cross-check total credit granted per the loan book to revenue / receivables in the AFS at a high level."
+    },
+    {
+      "id": "f39_calc",
+      "title": "Compile Form 39 statistical figures from the loan book",
+      "type": "calculate",
+      "owner": "agent",
+      "estimatedDays": 2,
+      "doneCriteria": "Every Form 39 table populated from the loan book with a reconciliation to totals",
+      "aiInstructions": "Aggregate the loan book into the Form 39 tables: number and rand value of agreements by credit type, by agreement size band and by term band; applications received / rejected; outstanding book and arrears by ageing; consumer demographics where the form asks (income band, gender, age, province). ⚠ verify the current Form 39 layout on the NCR site before mapping bands. Produce a working paper showing every table's total ties back to the loan book totals and the previous return's closing figures. Flag any band where counts and values are inconsistent (e.g. value without count)."
+    },
+    {
+      "id": "f39_handoff",
+      "title": "Prepare Form 39 hand-off sheet and working paper for Kevin",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet", "power_of_attorney"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every Form 39 field value, the reconciliation, and POA (if needed) posted for Kevin",
+      "aiInstructions": "Lay out every Form 39 field in portal order with the value and its source table. Include the reconciliation and a list of judgement calls (e.g. how restructured agreements were classified). Draft the POA only if the client has not supplied an engagement letter / POA."
+    },
+    {
+      "id": "f39_file",
+      "title": "Submit Form 39 on the NCR online portal",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "ncr",
+      "portalProcedure": "ncr.submitForm39",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "Form 39 submitted on the NCR portal and the confirmation / acknowledgement PDF saved to the order",
+      "aiInstructions": "⚠ CHANNEL: plan §4.4 marks this ⚠ — confirm with Kevin whether Form 39 is captured on the NCR credit provider online portal under the client's login, or emailed as a completed form. Classification of credit types and bands requires judgement, so this step is manual. Save the submission confirmation with its reference number."
+    },
+    {
+      "id": "f39_wait",
+      "title": "Wait for NCR acknowledgement or query",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [3, 7],
+      "estimatedDays": 5,
+      "doneCriteria": "NCR acknowledgement received, or a query answered",
+      "aiInstructions": "If the NCR queries a figure, create a proposal for Kevin quoting the query and the working-paper line it concerns. Draft a status query if no acknowledgement arrives by the follow-up point."
+    },
+    {
+      "id": "f39_deliver",
+      "title": "Deliver Form 39 and submission confirmation to client",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["ncr_form_39", "ncr_submission_confirmation"],
+      "estimatedDays": 1,
+      "doneCriteria": "Submitted Form 39, confirmation and working paper posted to Communication History",
+      "aiInstructions": "Post the submitted return, the confirmation and the reconciliation working paper. Note the next Form 39 due date and the Form 40 / annual fee obligations; offer the Form 40 service."
+    },
+    {
+      "id": "f39_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

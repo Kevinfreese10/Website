@@ -1,0 +1,144 @@
+{
+  "slug": "emp201-submission-for-trading-companies",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "PAYE/UIF/SDL computation for the month",
+    "EMP201 submitted on eFiling",
+    "Submission confirmation and payment reference (PRN)"
+  ],
+  "playbookCommonFailures": [
+    "Payroll data received after the 7th so the return and payment are late (10% penalty)",
+    "UIF capped incorrectly (contribution ceiling) or SDL declared when payroll is under the R500k exemption",
+    "Employee tax numbers / ID numbers missing so the later EMP501 will not reconcile",
+    "ETI claimed for employees who do not qualify",
+    "Client pays a different amount from what was declared, creating an unallocated payment on the statement of account"
+  ],
+  "informationToProvide": [
+    {
+      "label": "Company Name",
+      "type": "text",
+      "isRequired": true,
+      "aiHint": "Registered company name as on the SARS profile with the PAYE reference number (7…), and UIF/SDL numbers if separate."
+    },
+    {
+      "label": "SARS eFiling Username",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "SARS eFiling Password",
+      "type": "text",
+      "isSecret": true,
+      "isRequired": true
+    },
+    {
+      "label": "Monthly payroll data (salaries, deductions, benefits)",
+      "documentKind": "payslip",
+      "inNameOf": "entity",
+      "alternatives": [
+        "Payroll summary report",
+        "Spreadsheet of gross pay per employee"
+      ],
+      "isRequired": true,
+      "aiHint": "Payroll run for the month: gross remuneration, fringe benefits, allowances, PAYE, UIF and SDL per employee. If payroll is run in AI Payroll, pull the EMP201 report from there instead."
+    },
+    {
+      "label": "Updated employee information (if changes occurred)",
+      "type": "text",
+      "isRequired": false
+    },
+    {
+      "label": "Previous EMP201 submissions and payment confirmations (for new clients)",
+      "documentKind": "other",
+      "inNameOf": "entity",
+      "alternatives": [
+        "eFiling statement of account"
+      ],
+      "isRequired": false,
+      "aiHint": "Last filed EMP201 and proof of payment — for continuity and to catch unallocated payments."
+    },
+    {
+      "label": "Bank statements reflecting payment of statutory contributions",
+      "documentKind": "bank_statement",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Statement showing the previous month's PAYE payment to SARS, used to reconcile the statement of account."
+    }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "emp201t_collect",
+      "title": "Collect eFiling access and monthly payroll data",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "Credentials and the month's payroll data (or AI Payroll run) on file",
+      "aiInstructions": "Ask for the month's payroll before the 5th so filing and payment are in time for the 7th. Name the data needed: gross pay per employee, benefits, PAYE, UIF, SDL. Do not promise a turnaround shorter than 1–2 working days."
+    },
+    {
+      "id": "emp201t_verify",
+      "title": "Verify payroll data and the return period",
+      "type": "verify",
+      "owner": "staff",
+      "estimatedDays": 1,
+      "doneCriteria": "Payroll totals reconcile per employee; EMP201 for the month is issued on eFiling",
+      "aiInstructions": "Check the month on eFiling (Returns → EMP201). Check UIF is 1% employee + 1% employer up to the ceiling (⚠ verify current ceiling), SDL only if annual payroll > R500k, and every employee has an ID and tax number. Flag new employees not yet registered for tax."
+    },
+    {
+      "id": "emp201t_calc",
+      "title": "Calculate PAYE, UIF, SDL and ETI",
+      "type": "calculate",
+      "owner": "staff",
+      "estimatedDays": 1,
+      "doneCriteria": "EMP201 totals produced from AI Payroll and reviewed by Kevin",
+      "aiInstructions": "Pull the EMP201 report from the AI Payroll module for the month: PAYE per tax tables, UIF, SDL, ETI (only for qualifying employees — Kevin confirms eligibility). Total liability = PAYE + UIF + SDL − ETI. ⚠ verify current tax tables and ETI rules."
+    },
+    {
+      "id": "emp201t_handoff",
+      "title": "Draft payroll computation and EMP201 handoff sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": [
+        "payroll_computation",
+        "handoff_sheet"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Handoff sheet lists PAYE, SDL, UIF, ETI and total payable for the month",
+      "aiInstructions": "Include the number of employees and the due date (7th of the following month, or the preceding business day ⚠ verify)."
+    },
+    {
+      "id": "emp201t_file",
+      "title": "Complete and submit the EMP201 on eFiling",
+      "type": "portal_filing",
+      "owner": "kevin",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.submitReturn:EMP201",
+      "submitMode": "manual",
+      "estimatedDays": 1,
+      "doneCriteria": "EMP201 submitted; confirmation and PRN saved",
+      "aiInstructions": "Returns → EMP201 → select the month. Enter PAYE, SDL, UIF, ETI from the handoff sheet; check the total. Agent drives to the summary; Kevin reviews and presses Submit and captures the PRN. eFiling login from a new device/IP triggers an OTP to the taxpayer's registered cell/email: pause, raise an otpRequest on the portal job via the OTP relay (Kevin, or the client through the Communication History link if allowed), 10-minute timeout then fail cleanly and reschedule. Never store OTPs. If a CAPTCHA appears, fall back to hand-off mode with the handoff sheet. Prefer filing from our practitioner profile if the taxpayer is already linked as a client; otherwise use the client's own login. If the taxpayer is not registered for the tax type on eFiling, stop and raise a proposal — do not activate tax types without Kevin."
+    },
+    {
+      "id": "emp201t_deliver",
+      "title": "Deliver confirmation and payment instructions",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": [
+        "payroll_computation",
+        "submission_confirmation"
+      ],
+      "estimatedDays": 1,
+      "doneCriteria": "Filed EMP201, PRN, amount and due date posted to Communication History",
+      "aiInstructions": "Give the amount, the PRN and the due date; explain payment must use the PRN so it allocates to the month. Keep a copy in the client's records for the EMP501 reconciliation. No deadline threats."
+    },
+    {
+      "id": "emp201t_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}

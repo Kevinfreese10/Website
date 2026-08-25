@@ -1,0 +1,108 @@
+{
+  "slug": "remover-of-goods-in-bond-licence-application",
+  "playbookEntity": "company",
+  "playbookOutputs": [
+    "SARS Customs Remover of Goods in Bond licence issued via RLA",
+    "RLA approval notification and security/surety acceptance",
+    "Note on licensee obligations (vehicle list kept current, security in force, annual renewal, bonded movement records)"
+  ],
+  "playbookCommonFailures": [
+    "Entity has no customs client number yet (importer/exporter registration) — the remover licence is layered on an existing customs registration",
+    "Vehicle and premises details incomplete (registration numbers, ownership/lease, storage premises) so Customs raises a query",
+    "Surety/bond not lodged in SARS-prescribed form or for the amount SARS determines",
+    "No active registered representative or unverifiable cell number on the SARS profile — RLA rejects the application",
+    "Tax compliance status not in good standing at the time of submission"
+  ],
+  "informationToProvide": [
+    { "label": "Company Name", "type": "text", "isRequired": true, "aiHint": "Registered name exactly as on the CIPC certificate, including '(Pty) Ltd'. Must match the entity on SARS Registered Details." },
+    { "label": "SARS eFiling Username", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "SARS eFiling Password", "type": "text", "isSecret": true, "isRequired": true },
+    { "label": "Company Registration Certificate", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2) showing the registered name, enterprise number and active directors of the applicant transporter." },
+    { "label": "Customs registration with SARS", "documentKind": "sars_notice_of_registration", "inNameOf": "entity", "isRequired": true, "alternatives": ["RLA dashboard screenshot showing the customs client number", "Customs registration letter"], "aiHint": "Proof that the entity already holds a SARS customs client number (importer/exporter or other customs registration). If none exists, propose the import/export licence service first — the remover licence cannot stand alone." },
+    { "label": "Customs transport documents", "documentKind": "other", "inNameOf": "entity", "isRequired": true, "alternatives": ["Vehicle registration certificates (NaTIS)", "Lease agreements for vehicles/premises", "Operating licence / cross-border road transport permit"], "aiHint": "Documents identifying the vehicles and premises used to move or store bonded goods: vehicle registration papers or leases with registration numbers, trailer details, storage premises proof, and any cross-border road transport permit. Build a vehicle schedule from them; flag vehicles not in the entity's name without a lease." },
+    { "label": "Proof of business physical address - not older than 3 months", "documentKind": "proof_of_address", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "alternatives": ["Signed lease agreement", "Municipal account"], "aiHint": "Proof of the PHYSICAL business premises dated within 3 months in the entity's name. Customs may inspect; P.O. Box or virtual office not accepted." },
+    { "label": "Surety/bond details (if required by SARS for your specific operation)", "documentKind": "other", "inNameOf": "entity", "isRequired": false, "alternatives": ["Bank guarantee in SARS-prescribed form", "Insurance surety bond", "Insurer quotation"], "aiHint": "Bank guarantee or insurance surety in favour of SARS Customs (or the insurer's undertaking) showing amount and the entity's name. SARS determines the amount after assessment — ⚠ verify whether provisional security is accepted at application stage." }
+  ],
+  "fulfillmentChecklist": [
+    {
+      "id": "rgb_collect",
+      "title": "Collect licence application documents, vehicle and security details",
+      "type": "collect",
+      "owner": "agent",
+      "estimatedDays": 3,
+      "doneCriteria": "All required uploads received; vehicle schedule, premises, routes/ports and security details captured",
+      "aiInstructions": "Name each document and why Customs needs it. Ask for: every vehicle/trailer with registration number and whether owned or leased; storage premises; the ports/border posts and routes they will operate; whether goods will move cross-border; existing customs client number; VAT number (improves approval chances); bank/insurer for the surety. Do not promise faster than 3-5 working days for our submission — Customs approval and security take longer."
+    },
+    {
+      "id": "rgb_prereq_check",
+      "title": "Check customs registration, registered representative, cell number and compliance status",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.checkRegisteredRepresentative",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "Customs client number exists on RLA; active registered representative; verifiable cell number on SARS Registered Details; TCS Compliant",
+      "aiInstructions": "On eFiling confirm: (1) an existing customs client number under Customs > RLA — if none, stop and propose the import/export licence service first; (2) registered representative active — if not, propose the Tax Representative Appointment service; (3) the cell number on the profile is verifiable (cellphone invoice, affidavit or accountant's letter) — if it differs from the client's number the RAV01 must be updated first (OTP; hand off to Kevin); (4) Tax Compliance Status Compliant. Never attempt OTP or CAPTCHA."
+    },
+    {
+      "id": "rgb_verify",
+      "title": "Verify documents and vehicle/premises schedule",
+      "type": "verify",
+      "owner": "agent",
+      "estimatedDays": 1,
+      "doneCriteria": "All uploads pass the rules engine or are approved by Kevin; every vehicle on the schedule is backed by a registration paper or lease",
+      "aiInstructions": "Entity is the transporter company. Cross-check the vehicle schedule against registration certificates/leases; flag vehicles registered to a director or third party without a lease. Premises and bank must be in the company's name. Security document must name SARS Customs."
+    },
+    {
+      "id": "rgb_handoff",
+      "title": "Prepare RLA remover of goods in bond hand-off sheet",
+      "type": "draft_document",
+      "owner": "agent",
+      "templateIds": ["handoff_sheet"],
+      "estimatedDays": 1,
+      "doneCriteria": "Hand-off sheet with every RLA field value, vehicle schedule and upload list posted for Kevin",
+      "aiInstructions": "Fields (RLA licence type 'Remover of goods in bond' — DA185 + the remover annexure, ⚠ verify annexure number): applicant details, existing customs code, tax and VAT numbers, physical premises, directors, contact person and cell, bank details, vehicle schedule (registration, make, type, owned/leased), storage premises, places of entry/exit and routes, security type and amount. Fill from verified facts only; leave unknowns blank and flag."
+    },
+    {
+      "id": "rgb_file",
+      "title": "Submit remover of goods in bond licence application on eFiling RLA",
+      "type": "portal_filing",
+      "owner": "agent",
+      "portalId": "efiling",
+      "portalProcedure": "efiling.rla:remover_of_goods_in_bond",
+      "submitMode": "stage",
+      "estimatedDays": 1,
+      "doneCriteria": "RLA application staged with all documents attached; Kevin submits and the RLA reference number is recorded",
+      "aiInstructions": "Path: eFiling > Customs > Registration Licensing and Accreditation (RLA) > New Application > Licence type 'Remover of goods in bond' (⚠ verify current menu names). Stage all values, attach: CoR14.3, certified ID of representative, customs registration proof, vehicle documents, premises proof, security document, cell-number proof. Screenshot each screen and stop for Kevin to submit. Record the reference number."
+    },
+    {
+      "id": "rgb_wait",
+      "title": "Wait for Customs assessment, security acceptance and licence issue",
+      "type": "wait_external",
+      "owner": "agent",
+      "followUpAfterDays": [3, 5, 10],
+      "estimatedDays": 10,
+      "doneCriteria": "Licence issued on RLA / approval notification received, or SARS security determination received and actioned",
+      "aiInstructions": "Check the RLA dashboard at each follow-up. Customs commonly responds with the required security amount or a premises/vehicle inspection; create a proposal for Kevin and a plain client message with what is needed. Escalate via the Customs contact centre with the reference number if no movement by day 10."
+    },
+    {
+      "id": "rgb_deliver",
+      "title": "Deliver licence and obligations note",
+      "type": "deliver",
+      "owner": "agent",
+      "deliverArtefacts": ["customs_licence"],
+      "estimatedDays": 1,
+      "doneCriteria": "Licence, customs code and guidance posted to Communication History",
+      "aiInstructions": "Explain: keep the vehicle list current on RLA (add/remove vehicles), keep the surety in force, renew annually (⚠ verify renewal cycle), keep bonded movement records (SAD500/transit documents, acquittals) for 5 years, and that failing to acquit a bonded movement makes the remover liable for the duty. Offer the annual compliance and VAT services."
+    },
+    {
+      "id": "rgb_signoff",
+      "title": "Final sign-off",
+      "type": "signoff",
+      "owner": "kevin",
+      "estimatedDays": 1,
+      "doneCriteria": "Kevin confirms the order can be completed"
+    }
+  ]
+}
