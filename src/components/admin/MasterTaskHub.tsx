@@ -813,8 +813,49 @@ export default function MasterTaskHub() {
 
             {/* Rendered Email Body Canvas */}
             <div className="p-6 bg-white dark:bg-slate-950 font-sans text-sm text-slate-800 dark:text-slate-200 leading-relaxed space-y-4">
-              <div className="whitespace-pre-wrap font-sans text-xs sm:text-sm">
-                {aiDraftText}
+              <div className="space-y-3">
+                {aiDraftText.split(/\n\n+/).map((para, pIdx) => {
+                  const cleanedPara = para
+                    .replace(/\*\*(.*?)\*\*/g, '$1')
+                    .replace(/^\s*\*\s*\*\*(.*?)\*\*:?/gm, '• $1:')
+                    .replace(/^\s*\*\s+/gm, '• ');
+
+                  const lines = cleanedPara.split('\n');
+                  return (
+                    <div key={pIdx} className="space-y-1">
+                      {lines.map((line, lIdx) => {
+                        const trimmed = line.trim();
+                        const isStepHeader = /^\d+\.\s+/.test(trimmed);
+                        const isBullet = /^[•\-]/.test(trimmed);
+                        const isFeeHighlight = /^[•\-]?\s*(Fee|Processing Time|Turnaround|Service|Scope):/i.test(trimmed);
+
+                        if (isStepHeader) {
+                          return (
+                            <div key={lIdx} className="font-bold text-slate-900 dark:text-white pt-2 text-sm">
+                              {trimmed}
+                            </div>
+                          );
+                        }
+                        if (isFeeHighlight) {
+                          return (
+                            <div key={lIdx} className="pl-4 text-slate-700 dark:text-slate-300 font-medium">
+                              {trimmed}
+                            </div>
+                          );
+                        }
+                        if (isBullet) {
+                          return (
+                            <div key={lIdx} className="pl-3 text-slate-700 dark:text-slate-300 flex items-start gap-1.5">
+                              <span>•</span>
+                              <span>{trimmed.replace(/^[•\-]\s*/, '')}</span>
+                            </div>
+                          );
+                        }
+                        return <p key={lIdx} className="m-0 leading-relaxed">{line}</p>;
+                      })}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Official Practice Signature Block */}

@@ -6,8 +6,6 @@ import { generateText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { sendEmail } from '@/lib/email';
 import { FieldValue } from 'firebase-admin/firestore';
-import imaps from 'imap-simple';
-import { simpleParser } from 'mailparser';
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY,
@@ -16,7 +14,12 @@ const google = createGoogleGenerativeAI({
 /**
  * Automated Spam / Newsletter / Marketing Detection
  */
-export async function isAutomatedSpamOrMarketing(senderEmail?: string, senderName?: string, subject?: string, bodyText?: string): Promise<boolean> {
+export async function isAutomatedSpamOrMarketing(
+  senderEmail?: string, 
+  senderName?: string, 
+  subject?: string, 
+  bodyText?: string
+): Promise<boolean> {
   const email = (senderEmail || '').toLowerCase();
   const name = (senderName || '').toLowerCase();
   const subj = (subject || '').toLowerCase();
@@ -79,6 +82,113 @@ export async function isAutomatedSpamOrMarketing(senderEmail?: string, senderNam
   }
 
   return false;
+}
+
+/**
+ * Clean raw markdown artifacts from draft reply text
+ */
+function cleanDraftReplyText(text: string): string {
+  if (!text) return '';
+  return text
+    // Replace markdown bold **text** with text (for clean plain-text copy-pasting)
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    // Replace * **Label:** with • Label:
+    .replace(/^\s*\*\s*\*\*(.*?)\*\*:?/gm, '• $1:')
+    // Replace * with • for bullet points
+    .replace(/^\s*\*\s+/gm, '• ')
+    // Remove markdown header hashes
+    .replace(/^#{1,6}\s+/gm, '')
+    // Clean up excessive blank lines
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * Format email body text into executive Outlook/HTML responsive email
+ */
+function convertTextToExecutiveHtml(bodyText: string): string {
+  const paragraphs = bodyText.split(/\n\n+/);
+  
+  const formattedParagraphs = paragraphs.map(para => {
+    const lines = para.split('\n');
+    
+    // Check if paragraph is a list of bullet points or numbered steps
+    if (lines.every(l => /^[•\-\*\d\.]/.test(l.trim()))) {
+      const items = lines.map(line => {
+        const cleaned = line.replace(/^[•\-\*]\s*/, '').trim();
+        return `<li style="margin-bottom: 6px; font-size: 14px; line-height: 1.6; color: #1e293b;">${cleaned}</li>`;
+      }).join('');
+      return `<ul style="margin: 12px 0 16px 20px; padding: 0; color: #1e293b;">${items}</ul>`;
+    }
+
+    // Standard paragraph with line breaks
+    const htmlLines = lines.map(line => {
+      // Bold numbered titles e.g. "1. Step Title"
+      if (/^\d+\.\s+/.test(line.trim())) {
+        return `<div style="font-weight: 700; color: #0f172a; margin-top: 12px; margin-bottom: 4px; font-size: 14px;">${line}</div>`;
+      }
+      // Highlight Fee lines
+      if (/^•\s*(Fee|Processing Time|Turnaround|Service|Scope):/i.test(line.trim())) {
+        return `<div style="padding-left: 14px; font-size: 13.5px; color: #334155; margin-bottom: 3px;">${line}</div>`;
+      }
+      return line;
+    }).join('<br/>');
+
+    return `<p style="margin: 0 0 14px 0; font-size: 14px; line-height: 1.65; color: #1e293b;">${htmlLines}</p>`;
+  }).join('');
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; padding: 24px 12px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 640px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <!-- Top Accent Bar -->
+          <tr>
+            <td height="4" style="background: linear-gradient(90deg, #0F2137 0%, #4F46E5 50%, #D4AF37 100%);"></td>
+          </tr>
+          
+          <!-- Message Body -->
+          <tr>
+            <td style="padding: 32px 28px;">
+              ${formattedParagraphs}
+              
+              <!-- Professional Email Signature -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                <tr>
+                  <td>
+                    <div style="font-size: 15px; font-weight: 700; color: #0F2137; margin-bottom: 2px;">Kevin Freese</div>
+                    <div style="font-size: 12px; font-weight: 600; color: #4F46E5; margin-bottom: 6px;">Chartered Business Accountant in Practice (SA) | CIBA #3561 • PR-0098553</div>
+                    <div style="font-size: 12px; font-weight: 600; color: #334155;">My Accountant (Pty) Ltd <span style="font-weight: 400; color: #64748b;">• Reg: 2020 / 548105 / 07</span></div>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 6px;">
+                      Tel: <a href="tel:0101091625" style="color: #0F2137; text-decoration: none; font-weight: 600;">010 109 1625</a> &nbsp;|&nbsp; 
+                      Web: <a href="https://myacc.co.za" style="color: #4F46E5; text-decoration: none; font-weight: 600;">myacc.co.za</a>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Footer Note -->
+          <tr>
+            <td style="background-color: #f1f5f9; padding: 12px 28px; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0;">
+              This correspondence is issued in accordance with CIBA engagement standards and practice governance.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
 }
 
 /**
@@ -226,22 +336,21 @@ Key Practice Context:
 LIVE OFFICIAL PRICING & SERVICES CATALOG (FROM DATABASE):
 ${servicesCatalog.slice(0, 50).join('\n')}
 
-INSTRUCTIONS FOR PRICING & QUOTES:
-1. Whenever a client asks for quotes, pricing, or fees, ALWAYS quote the exact official prices in South African Rand (ZAR / R) and turnaround times from the live catalog above.
-2. For Foreign Company Subsidiaries / Registrations:
-   - CIPC Company Registration (including MOI & Shares): R 990.00
-   - Beneficial Ownership Declaration: R 550.00
-   - SARS Income Tax Registration & Tax Clearance (PIN): Included / Free with registration
-   - SARS VAT Registration (Compulsory/Voluntary): R 1,800.00 – R 2,400.00
-   - Corporate Banking Assistance / Letter: R 1,500.00
-   - Registered Office & Local Representative / Secretary: R 450.00/month or R 3,500.00/annum
-3. For Monthly Accounting & Payroll Retainers:
-   - Sole Proprietor / Micro: R 950.00/month
-   - Non-VAT Trading Company (EMP201, Management Accounts, Annual Returns): R 1,850.00/month
-   - VAT Trading Company (Bi-monthly VAT201, Monthly EMP201, Management Accounts, Annual Financial Statements): R 3,450.00 – R 4,850.00/month
-4. If an active order is linked, reference their exact order number, company name, and current processing step.
-5. Tone: ${options?.tone || 'executive'}.
-6. Sign off as Kevin Freese / The My Accountant Team.`;
+CRITICAL FORMATTING & SYNTAX RULES:
+1. NEVER output raw markdown formatting symbols like asterisks (**bold**, *bullet*, *italic*), markdown hashes (#), or backticks.
+2. Draft clean, human-readable executive email prose.
+3. For numbered steps or item breakdowns, use clean indentation:
+   1. Service Title
+      • Fee: R X,XXX
+      • Turnaround: X working days
+      • Scope: Description...
+4. Sign off simply as:
+   Kind regards,
+   Kevin Freese
+   Chartered Business Accountant in Practice (SA)
+   My Accountant (Pty) Ltd
+
+Tone: ${options?.tone || 'executive'}.`;
 
     const userContent = `
 Task Category: ${task.category}
@@ -259,7 +368,7 @@ ${task.bodyText}
 ${task.customInstructions ? `Kevin's Specific Custom Instructions:\n"${task.customInstructions}"\n` : ''}
 ${options?.customPrompt ? `Additional Prompt Notes:\n"${options.customPrompt}"\n` : ''}
 
-Draft a polished, comprehensive, and ready-to-send response with exact prices, turnaround times, and next steps.
+Draft a polished, comprehensive, and ready-to-send response with exact prices, turnaround times, and next steps without any markdown asterisks.
 `;
 
     const result = await generateText({
@@ -268,7 +377,8 @@ Draft a polished, comprehensive, and ready-to-send response with exact prices, t
       prompt: userContent,
     });
 
-    const draftReply = result.text.trim();
+    const rawDraft = result.text.trim();
+    const draftReply = cleanDraftReplyText(rawDraft);
 
     // Save draft reply to task
     await db.collection('masterTasks').doc(taskId).update({
@@ -305,21 +415,9 @@ export async function sendMasterTaskReplyAction(
     const recipientEmail = options.toEmail || task.senderEmail;
     const replySubject = options.subject || (task.title.toLowerCase().startsWith('re:') ? task.title : `Re: ${task.title}`);
 
-    // 1. Send via SMTP if requested
+    // 1. Send via SMTP if requested with executive HTML styling
     if (options.sendSmtp && recipientEmail) {
-      const emailHtml = `
-        <div style="font-family: Arial, sans-serif; color: #1e293b; line-height: 1.6; font-size: 14px;">
-          ${replyBody.replace(/\n\n/g, '<br/><br/>').replace(/\n/g, '<br/>')}
-          <br/><br/>
-          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-          <div style="font-size: 12px; color: #64748b;">
-            <strong>Kevin Freese</strong><br/>
-            Chartered Business Accountant in Practice (SA) | CIBA #3561<br/>
-            <strong>My Accountant (Pty) Ltd</strong> • <a href="https://myacc.co.za" style="color: #0F2137;">myacc.co.za</a><br/>
-            Landline: 010 109 1625
-          </div>
-        </div>
-      `;
+      const emailHtml = convertTextToExecutiveHtml(replyBody);
 
       await sendEmail({
         to: recipientEmail,
