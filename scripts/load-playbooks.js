@@ -19,6 +19,23 @@ const fs = require('fs');
 const path = require('path');
 const admin = require(path.join(__dirname, '..', 'node_modules', 'firebase-admin'));
 
+// Plain `node` does not read .env.local (Next does). Load it here so the script works from the
+// repo root without exporting anything. Existing environment variables win.
+(function loadDotEnvLocal() {
+  const envPath = path.join(__dirname, '..', '.env.local');
+  if (!fs.existsSync(envPath)) return;
+  for (const raw of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq === -1) continue;
+    const k = line.slice(0, eq).trim();
+    let v = line.slice(eq + 1).trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+    if (process.env[k] === undefined) process.env[k] = v;
+  }
+})();
+
 function flag(name) { return process.argv.includes(`--${name}`); }
 function arg(name, fallback) {
   const i = process.argv.indexOf(`--${name}`);
@@ -30,14 +47,24 @@ const ONLY = arg('slug', null);
 const KEY = arg('key', process.env.GOOGLE_APPLICATION_CREDENTIALS);
 const SEED_DIR = path.join(__dirname, '..', 'src', 'lib', 'playbooks', 'seeds');
 
+
 if (!admin.apps.length) {
-  if (KEY && fs.existsSync(KEY)) {
-    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(fs.readFileSync(KEY, 'utf8'))) });
-  } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)) });
-  } else {
-    admin.initializeApp();
+  // Same resolution order as src/lib/firebase-admin.ts:
+  //   FIREBASE_SERVICE_ACCOUNT  = the JSON itself
+  //   FIREBASE_SERVICE_ACCOUNT_KEY = a path to the JSON file (or --key on the command line)
+  //   GOOGLE_APPLICATION_CREDENTIALS = a path to the JSON file
+  const PROJECT_ID = 'studio-2604127518-57889';
+  let sa = null;
+  const tryJson = (txt, label) => { try { return JSON.parse(txt); } catch (e) { console.error(`${label} is not valid service-account JSON: ${e.message}`); return null; } };
+  const tryFile = (p, label) => { if (p && fs.existsSync(p)) return tryJson(fs.readFileSync(p, 'utf8'), `${label} (${p})`); if (p) console.error(`${label} points to a file that does not exist: ${p}`); return null; };
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) sa = tryJson(process.env.FIREBASE_SERVICE_ACCOUNT, 'FIREBASE_SERVICE_ACCOUNT');
+  if (!sa) sa = tryFile(KEY, '--key / GOOGLE_APPLICATION_CREDENTIALS');
+  if (!sa) sa = tryFile(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'FIREBASE_SERVICE_ACCOUNT_KEY');
+  if (!sa) {
+    console.error('\nNo usable Firebase credentials. Either:\n  - put the service-account JSON file path in .env.local as FIREBASE_SERVICE_ACCOUNT_KEY=C:\\path\\to\\key.json, or\n  - run: node scripts/load-playbooks.js --key C:\\path\\to\\key.json');
+    process.exit(1);
   }
+  admin.initializeApp({ credential: admin.credential.cert(sa), projectId: sa.project_id || PROJECT_ID });
 }
 const db = admin.firestore();
 
