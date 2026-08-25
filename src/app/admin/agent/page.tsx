@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
+import { getFirestore, collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -21,8 +22,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Bot, Check, Loader2, Pencil, RefreshCw, X, ExternalLink, ShieldCheck, ShieldAlert, FileCheck2, MessageSquare, Hand, ArrowRightLeft, FileText, AlertTriangle, Mail, Link2, Globe, KeyRound, Send, RotateCcw } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Bot, Check, Loader2, Pencil, RefreshCw, X, ExternalLink, ShieldCheck, ShieldAlert, FileCheck2, MessageSquare, Hand, ArrowRightLeft, FileText, AlertTriangle, Mail, Link2, Globe, KeyRound, Send, RotateCcw, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getStatusVariant } from '@/lib/order-status';
 import { decideAgentProposalAction, getAgentQueueSummaryAction, linkRegulatorMailAction, listAgentProposalsAction, listAutonomyPoliciesAction, listPortalJobsAction, listRegulatorMailAction, pollSubmissionsInboxAction, requeuePortalJobAction, runOrderAgentAction, setAutonomyLevelAction } from '@/app/actions/agent-actions';
 import type { AgentProposal, AutonomyPolicy, ClientMessagePayload, DocumentDraftPayload, DocumentReviewPayload, EmailSubmissionPayload, HandoffPayload, OtpPayload, PortalHealth, PortalJob, PortalStagePayload, PortalSubmitPayload, RegulatorMail } from '@/lib/agent/types';
 import { PROMOTION_THRESHOLD } from '@/lib/agent/types';
@@ -60,6 +64,27 @@ export default function AgentInboxPage() {
   const [editReason, setEditReason] = useState('');
   const [runOrderId, setRunOrderId] = useState('');
   const [filterOrder, setFilterOrder] = useState('');
+  const [ordersList, setOrdersList] = useState<Array<{ id: string; customerName: string; status: string }>>([]);
+  const [orderSelectOpen, setOrderSelectOpen] = useState(false);
+
+  useEffect(() => {
+    const db = getFirestore(firebaseApp);
+    const q = query(collection(db, 'orders'), orderBy('date', 'desc'), limit(200));
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          customerName: d.customerName || d.endCustomerName || d.customerEmail || 'Client',
+          status: d.status || 'Processing',
+        };
+      });
+      setOrdersList(list);
+    }, (err) => {
+      console.warn("Could not load orders list for agent inbox:", err);
+    });
+    return () => unsub();
+  }, []);
 
   const token = useCallback(async () => {
     const t = await getAuth(firebaseApp).currentUser?.getIdToken();
@@ -207,10 +232,84 @@ export default function AgentInboxPage() {
           <h1 className="text-2xl font-bold flex items-center gap-2"><Bot className="h-6 w-6 text-primary" /> AI Order Agent</h1>
           <p className="text-sm text-muted-foreground">Everything the agent wants to do, ranked. Nothing a client or regulator sees happens without your approval.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Input placeholder="Order ID — run agent now" value={runOrderId} onChange={e => setRunOrderId(e.target.value)} className="h-9 w-56" />
-          <Button size="sm" onClick={runNow} disabled={busyId === 'run' || !runOrderId.trim()}>{busyId === 'run' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Run'}</Button>
-          <Button size="sm" variant="outline" onClick={load}><RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} /></Button>
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <Popover open={orderSelectOpen} onOpenChange={setOrderSelectOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={orderSelectOpen}
+                className="h-9 w-64 sm:w-80 justify-between text-xs font-normal border-primary/20 bg-background"
+              >
+                <span className="truncate">
+                  {runOrderId ? (
+                    (() => {
+                      const matched = ordersList.find(o => o.id === runOrderId);
+                      return matched 
+                        ? `#${matched.id} — ${matched.customerName} (${matched.status})`
+                        : `Order #${runOrderId}`;
+                    })()
+                  ) : (
+                    <span className="text-muted-foreground">Select Order to run agent...</span>
+                  )}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 sm:w-96 p-0" align="end">
+              <Command>
+                <CommandInput placeholder="Search order #, customer, or status..." className="h-9 text-xs" />
+                <CommandList className="max-h-64">
+                  <CommandEmpty className="p-3 text-xs text-muted-foreground text-center">
+                    No orders found.
+                  </CommandEmpty>
+                  <CommandGroup heading="Select Order">
+                    {ordersList.map(o => (
+                      <CommandItem
+                        key={o.id}
+                        value={`${o.id} ${o.customerName} ${o.status}`}
+                        onSelect={() => {
+                          setRunOrderId(o.id);
+                          setOrderSelectOpen(false);
+                        }}
+                        className="flex items-center justify-between text-xs py-2 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Check
+                            className={cn(
+                              "h-3.5 w-3.5 shrink-0",
+                              runOrderId === o.id ? "opacity-100 text-primary" : "opacity-0"
+                            )}
+                          />
+                          <div className="truncate">
+                            <span className="font-semibold font-mono text-primary">#{o.id}</span>
+                            <span className="text-muted-foreground ml-1.5 truncate">
+                              {o.customerName}
+                            </span>
+                          </div>
+                        </div>
+                        <Badge variant={getStatusVariant(o.status)} className="ml-2 text-[10px] shrink-0">
+                          {o.status}
+                        </Badge>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          <Button 
+            size="sm" 
+            onClick={runNow} 
+            disabled={busyId === 'run' || !runOrderId.trim()}
+            className="gap-1.5"
+          >
+            {busyId === 'run' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Run'}
+          </Button>
+          <Button size="sm" variant="outline" onClick={load} title="Refresh proposals">
+            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+          </Button>
         </div>
       </div>
 
@@ -232,7 +331,25 @@ export default function AgentInboxPage() {
             <TabsTrigger value="mail">Regulator mail</TabsTrigger>
             <TabsTrigger value="portal">Portal jobs</TabsTrigger>
           </TabsList>
-          {tab !== 'autonomy' && <Input placeholder="Filter by order #" value={filterOrder} onChange={e => setFilterOrder(e.target.value)} className="h-8 w-44 text-xs" />}
+          {tab !== 'autonomy' && (
+            <div className="relative">
+              <Input 
+                placeholder="Filter by order #..." 
+                value={filterOrder} 
+                onChange={e => setFilterOrder(e.target.value)} 
+                className="h-8 w-44 text-xs pr-7" 
+              />
+              {filterOrder && (
+                <button
+                  type="button"
+                  onClick={() => setFilterOrder('')}
+                  className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {(['pending', 'approved', 'edited', 'rejected'] as const).map(s => (
