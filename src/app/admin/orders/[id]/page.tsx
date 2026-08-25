@@ -164,7 +164,7 @@ export default function AdminOrderDetailsPage() {
         let fetchedServices = allServices;
 
         if (!silent || allStaff.length === 0) {
-          const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'partner', 'partner_staff', 'ai_accountant']));
+          const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'consultant', 'senior_accountant', 'accountant', 'support_agent']));
           const staffSnapshot = await getDocs(staffQuery);
           fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id, id: doc.id } as User));
           setAllStaff(fetchedStaff);
@@ -1698,7 +1698,7 @@ export default function AdminOrderDetailsPage() {
                                     <SelectValue placeholder="Reassign Staff..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {allStaff.filter(s => (s.role === 'staff' || s.role === 'admin') && isStaffActive(s)).map((staff) => (
+                                    {allStaff.filter(s => ['admin', 'staff', 'consultant', 'senior_accountant', 'accountant', 'support_agent'].includes(s.role) && isStaffActive(s)).map((staff) => (
                                         <SelectItem key={staff.id || (staff as any).uid} value={staff.id || (staff as any).uid}>
                                             {staff.name} ({staff.department || 'General'})
                                         </SelectItem>

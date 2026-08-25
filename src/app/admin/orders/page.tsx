@@ -98,15 +98,17 @@ export default function AdminOrdersPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [allStaff, setAllStaff] = useState<User[]>([]);
-
   const staffCounters = useRef<{ [key: string]: number }>({});
-  
-  const getNextStaffMember = (department: 'Accounting and Tax' | 'Administration' | 'CAP'): User | undefined => {
-      const activeStaff = allStaff.filter(u => 
-        (u.role === 'staff' || u.role === 'admin') && 
-        isStaffActive(u)
-      );
 
+  const eligibleStaff = useMemo(() => {
+    return allStaff.filter((s: User) => 
+      ['admin', 'staff', 'consultant', 'senior_accountant', 'accountant', 'support_agent'].includes(s.role) && 
+      isStaffActive(s)
+    );
+  }, [allStaff]);
+
+  const getNextStaffMember = (department: 'Accounting and Tax' | 'Administration' | 'CAP'): User | undefined => {
+      const activeStaff = eligibleStaff;
       const staffInDept = activeStaff.filter(u => u.department === department && u.role === 'staff');
       const candidates = staffInDept.length > 0 ? staffInDept : activeStaff;
       if (candidates.length === 0) return undefined;
@@ -134,7 +136,7 @@ export default function AdminOrdersPage() {
     if (!isStaff) return;
     setIsLoading(true);
 
-    const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'consultant', 'senior_accountant', 'accountant', 'support_agent', 'ai_accountant', 'cap_staff', 'cap_supervisor']));
+    const staffQuery = query(collection(db, "users"), where('role', 'in', ['staff', 'admin', 'consultant', 'senior_accountant', 'accountant', 'support_agent']));
     getDocs(staffQuery).then(staffSnapshot => {
         const fetchedStaff = staffSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
         fetchedStaff.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -290,30 +292,45 @@ export default function AdminOrdersPage() {
 
    const handleAssignment = async (orderId: string, staffId: string) => {
     try {
-        const batch = writeBatch(db);
-
-        // 1. Update the order
-        const orderRef = doc(db, 'orders', orderId);
-        batch.update(orderRef, { assignedTo: [staffId] });
-
-        // 2. Find and update the associated task
-        const tasksQuery = query(collection(db, 'tasks'), where('orderId', '==', orderId));
-        const tasksSnapshot = await getDocs(tasksQuery);
-        
-        if (!tasksSnapshot.empty) {
-            const taskDoc = tasksSnapshot.docs[0];
-            batch.update(taskDoc.ref, { assignedTo: [staffId] });
-        }
-
-        await batch.commit();
-
-        // Notify the assigned staff member via Server Action
-        await notifyStaffOfAssignment(orderId, staffId);
-
-        toast({
-            title: 'Order Reassigned',
-            description: `Order and its associated task have been assigned.`,
+        const selectedStaff = allStaff.find(s => s.id === staffId);
+        const performerToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+        const res = await reassignOrderStaffAtomic(orderId, [staffId], selectedStaff?.department as any || null, performerToken || {
+            id: user?.id || user?.uid || '',
+            name: user?.name || user?.email || 'Admin'
         });
+
+        if (res.success) {
+            // Find and update any associated tasks
+            try {
+                const tasksQuery = query(collection(db, 'tasks'), where('orderId', '==', orderId));
+                const tasksSnapshot = await getDocs(tasksQuery);
+                if (!tasksSnapshot.empty) {
+                    const batch = writeBatch(db);
+                    tasksSnapshot.docs.forEach(taskDoc => {
+                        batch.update(taskDoc.ref, { assignedTo: [staffId] });
+                    });
+                    await batch.commit();
+                }
+            } catch (taskErr) {
+                console.warn("Could not sync associated tasks:", taskErr);
+            }
+
+            // Notify the assigned staff member via Server Action
+            if (selectedStaff?.email) {
+                await notifyStaffOfAssignment(orderId, staffId);
+            }
+
+            toast({
+                title: 'Order Reassigned',
+                description: `Assigned to ${selectedStaff?.name || 'Staff member'}.`,
+            });
+        } else {
+            toast({
+                title: 'Assignment Failed',
+                description: res.error || 'There was a problem reassigning the order.',
+                variant: 'destructive',
+            });
+        }
     } catch (error) {
         console.error('Error reassigning order: ', error);
         toast({
@@ -586,10 +603,10 @@ export default function AdminOrdersPage() {
                                     <SelectItem value="all">All Staff</SelectItem>
                                     <SelectItem value="mine">My Orders</SelectItem>
                                     <SelectItem value="unassigned">Unassigned</SelectItem>
-                                    {allStaff.length > 0 && <SelectSeparator />}
-                                    {allStaff.map(staff => (
+                                    {eligibleStaff.length > 0 && <SelectSeparator />}
+                                    {eligibleStaff.map(staff => (
                                         <SelectItem key={staff.id} value={staff.id}>
-                                            {staff.name || staff.email} {staff.isActive === false ? '(Inactive)' : ''}
+                                            {staff.name || staff.email} {staff.department ? `(${staff.department})` : ''}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -850,13 +867,13 @@ export default function AdminOrdersPage() {
                                         <DropdownMenuSub>
                                         <DropdownMenuSubTrigger>Assign To</DropdownMenuSubTrigger>
                                         <DropdownMenuSubContent>
-                                            {allStaff.filter(staff => isStaffActive(staff)).map(staff => (
+                                            {eligibleStaff.map(staff => (
                                             <DropdownMenuItem 
                                                 key={staff.id} 
                                                 onClick={() => handleAssignment(order.id, staff.id)}
                                                 disabled={order.assignedTo?.[0] === staff.id}
                                             >
-                                                {staff.name}
+                                                {staff.name} {staff.department ? `(${staff.department})` : ''}
                                             </DropdownMenuItem>
                                             ))}
                                         </DropdownMenuSubContent>
