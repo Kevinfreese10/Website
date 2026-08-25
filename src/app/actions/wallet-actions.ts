@@ -7,7 +7,7 @@ import { notifyStaffOfAssignment, sendDocumentRequestEmailAction } from './order
 import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { getVerifiedAuthContext } from '@/lib/server-auth';
 import { reportNonFatal, reportError } from '@/lib/observability';
-import { isStaffActive } from '@/lib/utils';
+import { isStaffActive, isEligibleOrderStaff } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -386,7 +386,7 @@ export async function outsourceOrderFromWallet(
           const staffSnap = await db.collection('users').where('role', 'in', ['staff', 'admin']).get();
           const allActiveStaff = staffSnap.docs
             .map(d => ({ id: d.id, ...d.data() } as any))
-            .filter(isStaffActive);
+            .filter(isEligibleOrderStaff);
 
           const matchingStaff = allActiveStaff.filter(staff => {
             if (staff.role !== 'staff') return false;

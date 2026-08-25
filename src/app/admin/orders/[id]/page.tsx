@@ -45,7 +45,7 @@ import PartnerAssignmentEmail from '@/components/emails/PartnerAssignmentEmail';
 import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import { proofreadNote } from '@/ai/flows/proofread-note';
 import { customAlphabet } from 'nanoid';
-import { cn, formatDate, isStaffActive } from '@/lib/utils';
+import { cn, formatDate, isStaffActive, isEligibleOrderStaff } from '@/lib/utils';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 import { db, firebaseApp } from '@/lib/firebase';
@@ -1698,14 +1698,14 @@ export default function AdminOrderDetailsPage() {
                                     <SelectValue placeholder="Reassign Staff..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {allStaff.filter(s => ['admin', 'staff', 'consultant', 'senior_accountant', 'accountant', 'support_agent'].includes(s.role) && isStaffActive(s)).map((staff) => (
+                                    {allStaff.filter(isEligibleOrderStaff).map((staff) => (
                                         <SelectItem key={staff.id || (staff as any).uid} value={staff.id || (staff as any).uid}>
                                             {staff.name} ({staff.department || 'General'})
                                         </SelectItem>
                                     ))}
-                                    {assignee && !isStaffActive(assignee) && (
+                                    {assignee && !isEligibleOrderStaff(assignee) && (
                                         <SelectItem key={assignee.id || (assignee as any).uid} value={assignee.id || (assignee as any).uid} disabled>
-                                            {assignee.name} (Inactive - {assignee.department || 'General'})
+                                            {assignee.name} (Inactive / Ineligible - {assignee.department || 'General'})
                                         </SelectItem>
                                     )}
                                 </SelectContent>

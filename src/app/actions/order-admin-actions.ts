@@ -615,6 +615,20 @@ export async function reassignOrderStaffAtomic(
       throw new Error(`Order ${orderId} not found`);
     }
 
+    // Explicitly prevent assigning CAP staff, CAP supervisor, AI accountant, or non-staff accounts to orders
+    for (const staffId of staffIds) {
+      const userDoc = await db.collection('users').doc(staffId).get();
+      if (userDoc.exists) {
+        const u = userDoc.data();
+        if (u?.role === 'cap_staff' || u?.role === 'cap_supervisor' || u?.role === 'ai_accountant' || u?.role === 'client' || u?.role === 'supplier') {
+          return {
+            success: false,
+            error: `${u.name || staffId} has role "${u.role}" and cannot be assigned to orders.`
+          };
+        }
+      }
+    }
+
     const orderData = orderDoc.data() || {};
     const actor = await resolveVerifiedActor(performer, orderData as Order);
     const previousAssigned = orderData.assignedTo?.join(', ') || 'Unassigned';

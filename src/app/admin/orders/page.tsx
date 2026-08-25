@@ -8,7 +8,7 @@ import { getAuth } from 'firebase/auth';
 import { Order, User, Service, OrderNote, Task, ItnLog } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { services as allServices } from '@/lib/data';
-import { cn, isStaffActive } from '@/lib/utils';
+import { cn, isStaffActive, isEligibleOrderStaff } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -101,10 +101,7 @@ export default function AdminOrdersPage() {
   const staffCounters = useRef<{ [key: string]: number }>({});
 
   const eligibleStaff = useMemo(() => {
-    return allStaff.filter((s: User) => 
-      ['admin', 'staff', 'consultant', 'senior_accountant', 'accountant', 'support_agent'].includes(s.role) && 
-      isStaffActive(s)
-    );
+    return allStaff.filter(isEligibleOrderStaff);
   }, [allStaff]);
 
   const getNextStaffMember = (department: 'Accounting and Tax' | 'Administration' | 'CAP'): User | undefined => {

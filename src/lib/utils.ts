@@ -83,3 +83,34 @@ export function isStaffActive(user?: { isActive?: boolean; disabled?: boolean; s
   return true;
 }
 
+export const ORDER_FULFILLMENT_ROLES = [
+  'admin',
+  'staff',
+  'consultant',
+  'senior_accountant',
+  'accountant',
+  'support_agent'
+] as const;
+
+export const NON_ORDER_ROLES = [
+  'cap_staff',
+  'cap_supervisor',
+  'ai_accountant',
+  'client',
+  'supplier'
+] as const;
+
+/**
+ * Determines whether a user is an active staff member eligible for order assignment.
+ * Explicitly excludes CAP Staff, CAP Supervisor, AI Accountant, Client, and inactive accounts.
+ */
+export function isEligibleOrderStaff(user?: { role?: string; isActive?: boolean; disabled?: boolean; status?: string } | null): boolean {
+  if (!user) return false;
+  if (!isStaffActive(user)) return false;
+  if (!user.role) return false;
+  if (user.role === 'cap_staff' || user.role === 'cap_supervisor' || user.role === 'ai_accountant' || user.role === 'client' || user.role === 'supplier') {
+    return false;
+  }
+  return ORDER_FULFILLMENT_ROLES.includes(user.role as any);
+}
+
