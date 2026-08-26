@@ -85,18 +85,24 @@ export const NAME_MATCH_THRESHOLD = 0.6;
 // Kind equivalences: what counts as the same thing for a requirement
 // ---------------------------------------------------------------------------------------------
 
-const KIND_EQUIVALENTS: Partial<Record<DocumentKind, DocumentKind[]>> = {
+const KIND_EQUIVALENTS: Partial<Record<string, DocumentKind[]>> = {
   sa_id: ['passport'],
   passport: ['sa_id'],
+  director_id: ['sa_id', 'passport'],
+  id_document: ['sa_id', 'passport'],
+  identity_document: ['sa_id', 'passport'],
   proof_of_address: ['bank_statement', 'invoice'], // a recent statement/utility invoice is commonly accepted
   cor14_3: ['cor39', 'moi'],
   afs: ['management_accounts'],
   tcs_pin: ['sars_notice_of_registration'],
 };
 
-function kindAcceptable(expected: DocumentKind | undefined, actual: DocumentKind): 'exact' | 'equivalent' | 'no' {
+function kindAcceptable(expected: string | undefined, actual: DocumentKind): 'exact' | 'equivalent' | 'no' {
   if (!expected) return 'exact';
   if (expected === actual) return 'exact';
+  if (expected === 'director_id' || expected === 'id_document' || expected === 'identity_document') {
+    if (actual === 'sa_id' || actual === 'passport') return 'exact';
+  }
   if ((KIND_EQUIVALENTS[expected] || []).includes(actual)) return 'equivalent';
   return 'no';
 }

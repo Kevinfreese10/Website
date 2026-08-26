@@ -11,6 +11,9 @@ export type AIDocumentVerification = {
   modelName?: string;
   modelVersion?: string;
   adversarialCheckPassed?: boolean;
+  /** Who applied the approve/reject: the verification cycle or a staff member. */
+  decidedBy?: 'system' | 'staff';
+  decidedAt?: string;
 };
 
 export type UploadedFileItem = {
@@ -383,7 +386,7 @@ export type Order = {
   discountAmount: number | null;
   paymentMethod?: string;
   clientTotal?: number;
-  status: 'Pending Payment' | 'Processing' | 'Waiting on Customer' | 'Waiting for Information' | 'Waiting on External' | 'Under Review' | 'Completed' | 'Cancelled' | string;
+  status: 'Pending Payment' | 'Processing' | 'Waiting on Customer' | 'Waiting for Information' | 'Under Review' | 'Completed' | 'Cancelled' | string;
   isOutsourced?: boolean;
   assignedTo?: string[] | null;
   department?: 'Accounting and Tax' | 'Administration' | 'CAP' | null;
@@ -414,6 +417,19 @@ export type Order = {
   lastAgentRunId?: string;
   /** EMAIL adapter: submissions sent to regulators for this order (plan §6.5). */
   regulatorSubmissions?: import('./agent/types').RegulatorSubmission[];
+  /** Document verification cycle state (src/lib/agent/verification-cycle.ts). */
+  verification?: {
+    lastRunAt?: string;
+    lastTrigger?: string;
+    state?: 'awaiting_client' | 'awaiting_consultant' | 'complete' | 'skipped';
+    lastClientNoteKey?: string | null;
+    lastClientNoteAt?: string | null;
+    completeEmailKey?: string | null;
+    undecidedEmailKey?: string | null;
+    counts?: { approved: number; rejected: number; missing: number; pending: number };
+    /** Drafted client update awaiting staff confirmation. */
+    draftClientNote?: { text: string; key: string; state: string; createdAt: string; trigger: string } | null;
+  };
 };
 
 export interface AIOrderFulfillmentAdvice {

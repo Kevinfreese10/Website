@@ -15,7 +15,7 @@
 import { getAdminDb, cleanFirestoreData } from '@/lib/firebase-admin';
 import { INTERNAL_SYSTEM_ACTOR } from '@/lib/internal-actor';
 import type { Order, OrderChecklistItem, OrderServiceSnapshot, DocumentUpload, ServiceRequirement } from '@/lib/types';
-import { resolveOrderEntityContext } from '@/lib/service-utils';
+import { resolveOrderEntityContext, isLikelyPersonName } from '@/lib/service-utils';
 import { updateOrderChecklistItemAtomic } from '@/app/actions/order-admin-actions';
 import { checkCompleteness } from '@/lib/verification/mechanical';
 import { evaluateDocument, type EntityContext } from '@/lib/verification/rules';
@@ -376,15 +376,39 @@ async function finish(db: FirebaseFirestore.Firestore, run: AgentRun, ok: boolea
 function buildEntityContext(order: Order): EntityContext {
   const ctx = resolveOrderEntityContext(order);
   const persons = new Set<string>();
-  if (ctx.directorName) persons.add(ctx.directorName);
+  if (ctx.directorName && isLikelyPersonName(ctx.directorName)) persons.add(ctx.directorName);
+  
   for (const u of order.documentUploads || []) {
     const l = (u.requirementLabel || '').toLowerCase();
-    if (u.type === 'text' && u.textValue && !u.isEncrypted && /director|applicant|member|name of/.test(l) && !/company|entity|business/.test(l)) persons.add(u.textValue.trim());
+    const isExcluded = /phone|cell|tel|number|email|address|province|premises|language|share|percent|fee|amount|date|reason/.test(l);
+    if (u.type === 'text' && u.textValue && !u.isEncrypted && !isExcluded && /director|applicant|member|individual|name of/.test(l) && !/company|entity|business/.test(l)) {
+      if (isLikelyPersonName(u.textValue)) persons.add(u.textValue.trim());
+    }
+
+    // Collect director / individual names from AI extracted facts of any upload
+    const facts = ((u as any).aiVerification?.extractedData?.facts || (u as any).aiVerification?.extractedData) as ExtractedDocumentFacts | undefined;
+    if (facts && Array.isArray(facts.names)) {
+      for (const n of facts.names) {
+        if (n.role === 'director' || n.role === 'individual' || n.role === 'shareholder') {
+          if (isLikelyPersonName(n.name)) persons.add(n.name.trim());
+        }
+      }
+    }
   }
+
   // The ordering contact is a person; include them as a possible director ONLY for matching
   // director-name requirements. For entity-name requirements the engine ignores this list.
-  if (ctx.orderingContactName) persons.add(ctx.orderingContactName);
-  return { entityName: ctx.entityName, registrationNumber: ctx.registrationNumber, personNames: [...persons], idNumbers: ctx.idNumber ? [ctx.idNumber] : [], orderingContactName: ctx.orderingContactName };
+  if (ctx.orderingContactName && isLikelyPersonName(ctx.orderingContactName)) {
+    persons.add(ctx.orderingContactName);
+  }
+
+  return {
+    entityName: ctx.entityName,
+    registrationNumber: ctx.registrationNumber,
+    personNames: [...persons],
+    idNumbers: ctx.idNumber ? [ctx.idNumber] : [],
+    orderingContactName: ctx.orderingContactName,
+  };
 }
 
 async function extractUpload(up: DocumentUpload, req: ServiceRequirement, today: Date): Promise<ExtractedDocumentFacts> {

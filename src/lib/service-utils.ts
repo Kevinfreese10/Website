@@ -88,6 +88,22 @@ export function pickStepConfig(step: FulfillmentStep): OrderChecklistItem['stepC
  * genuinely unknown, callers should omit the expectation entirely and route to human review rather
  * than assert a mismatch that isn't real.
  */
+/**
+ * Determines whether a string looks like a human person's name rather than a phone number, email, or noise.
+ */
+export function isLikelyPersonName(val?: string | null): boolean {
+  if (!val || typeof val !== 'string') return false;
+  const s = val.trim();
+  if (s.length < 2 || s.length > 80) return false;
+  if (s.includes('@') || s.includes('http:') || s.includes('https:')) return false;
+  // If it is purely digits, phone symbols (+, -, (, ), /, digits), or punctuation
+  const digitsAndPunct = s.replace(/[\d\s\+\-\(\)\/\.\,]/g, '');
+  if (digitsAndPunct.length === 0) return false;
+  // Must contain letters
+  if (!/[a-zA-Z]/.test(s)) return false;
+  return true;
+}
+
 export function resolveOrderEntityContext(order: Order): {
   orderingContactName: string;
   entityName?: string;
@@ -98,10 +114,19 @@ export function resolveOrderEntityContext(order: Order): {
 } {
   const uploads = order.documentUploads || [];
 
-  const textFor = (...keywords: string[]): string | undefined => {
+  const textFor = (
+    options: { exclude?: string[]; validate?: (v: string) => boolean },
+    ...keywords: string[]
+  ): string | undefined => {
     const match = uploads.find(u => {
       const label = (u.requirementLabel || '').toLowerCase();
-      return keywords.some(k => label.includes(k)) && !!u.textValue?.trim();
+      if (options.exclude?.some(ex => label.includes(ex))) return false;
+      const matched = keywords.some(k => label.includes(k));
+      if (!matched) return false;
+      const val = u.textValue?.trim();
+      if (!val) return false;
+      if (options.validate && !options.validate(val)) return false;
+      return true;
     });
     return match?.textValue?.trim() || undefined;
   };
@@ -114,16 +139,38 @@ export function resolveOrderEntityContext(order: Order): {
   for (const u of uploads) {
     const ext = (u as any).aiVerification?.extractedData;
     if (!ext) continue;
+    const facts = ext.facts || ext;
+    if (facts.names && Array.isArray(facts.names)) {
+      if (!aiEntity) {
+        const comp = facts.names.find((n: any) => n.role === 'company' || n.role === 'entity' || n.role === 'account_holder');
+        if (comp && comp.name) aiEntity = comp.name;
+      }
+      if (!aiDirector) {
+        const dir = facts.names.find((n: any) => n.role === 'director' || n.role === 'individual' || n.role === 'applicant');
+        if (dir && dir.name && isLikelyPersonName(dir.name)) aiDirector = dir.name;
+      }
+    }
+    if (facts.identifiers && Array.isArray(facts.identifiers)) {
+      if (!aiReg) {
+        const reg = facts.identifiers.find((i: any) => i.type === 'cipc_reg');
+        if (reg && reg.value) aiReg = reg.value;
+      }
+      if (!aiId) {
+        const id = facts.identifiers.find((i: any) => i.type === 'sa_id' || i.type === 'passport');
+        if (id && id.value) aiId = id.value;
+      }
+    }
     aiEntity = aiEntity || ext.companyName || ext.enterpriseName || ext.registeredName;
     aiReg = aiReg || ext.registrationNumber || ext.regNumber;
     aiId = aiId || ext.idNumber || ext.directors?.[0]?.idNumber;
-    aiDirector = aiDirector || ext.directorName || ext.director || ext.directors?.[0]?.name;
+    aiDirector = (aiDirector && isLikelyPersonName(aiDirector)) ? aiDirector : (ext.directorName || ext.director || ext.directors?.[0]?.name);
+    if (aiDirector && !isLikelyPersonName(aiDirector)) aiDirector = undefined;
   }
 
   const orderAny = order as any;
 
   const entityName =
-    textFor('company name', 'entity name', 'registered name', 'business name', 'trading name') ||
+    textFor({ exclude: ['email', 'phone', 'director name', 'contact person'] }, 'company name', 'entity name', 'registered name', 'business name', 'trading name') ||
     orderAny.companyName ||
     orderAny.clientEntityName ||
     orderAny.businessName ||
@@ -131,24 +178,29 @@ export function resolveOrderEntityContext(order: Order): {
     undefined;
 
   const registrationNumber =
-    textFor('registration number', 'reg no', 'cipc', 'enterprise number') ||
+    textFor({}, 'registration number', 'reg no', 'cipc', 'enterprise number') ||
     orderAny.companyRegistrationNumber ||
     orderAny.registrationNumber ||
     aiReg ||
     undefined;
 
   const idNumber =
-    textFor('id number', 'identity number', 'id/passport') ||
+    textFor({}, 'id number', 'identity number', 'id/passport') ||
     orderAny.idNumber ||
     orderAny.directorIdNumber ||
     aiId ||
     undefined;
 
-  const directorName =
-    textFor('director name', 'applicant name', 'representative name', 'public officer') ||
+  const rawDirector =
+    textFor({
+      exclude: ['phone', 'cell', 'tel', 'number', 'email', 'address', 'province', 'premises', 'shares', 'percentage', 'fee', 'amount', 'language'],
+      validate: isLikelyPersonName
+    }, 'director name', 'applicant name', 'representative name', 'public officer') ||
     orderAny.directorName ||
     aiDirector ||
     undefined;
+
+  const directorName = (rawDirector && isLikelyPersonName(rawDirector)) ? rawDirector : undefined;
 
   return {
     orderingContactName: order.endCustomerName || order.customerName || '',
