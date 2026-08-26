@@ -462,7 +462,8 @@ export default function AdminOrderDetailsPage() {
         const uploadPromises = filesToUpload.map(async (file: any) => {
             const uniqueFileName = `${Date.now()}-${file.name}`;
             const storageRef = ref(storage, `orders/${order.id}/notes/${uniqueFileName}`);
-            const uploadTask = uploadBytesResumable(storageRef, file);
+            const contentType = file.type || (file.name?.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
+            const uploadTask = uploadBytesResumable(storageRef, file, { contentType });
             const snapshot = await uploadTask;
             const downloadURL = await getDownloadURL(snapshot.ref);
             return { name: file.name, url: downloadURL };
