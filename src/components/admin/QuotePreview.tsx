@@ -67,6 +67,13 @@ const QuotePreview = React.forwardRef<HTMLDivElement, { quote: Quote, client: Us
                         {renderAddress(client.address)}
                         {client.isVatRegistered && client.vatNumber && <p className="text-sm text-gray-600">VAT Reg: {client.vatNumber}</p>}
                     </div>
+
+                    <div className="space-y-1 pt-2">
+                        <p className="text-sm font-semibold text-gray-600">Quote To:</p>
+                        <p className="text-lg font-bold text-gray-800 break-words">{customer.name}</p>
+                        {renderAddress(customer.address)}
+                        {customer.vatNumber && <p className="text-sm text-gray-600">VAT Reg: {customer.vatNumber}</p>}
+                    </div>
                 </div>
 
                 {/* Right Column */}
@@ -87,13 +94,6 @@ const QuotePreview = React.forwardRef<HTMLDivElement, { quote: Quote, client: Us
                             <span className="font-semibold text-gray-600 text-right">Expiry Date:</span>
                             <span className="text-gray-900 text-left">{formatDate(expiryDateObj, 'long')}</span>
                         </div>
-                    </div>
-
-                    <div className="space-y-1">
-                        <p className="text-sm font-semibold text-gray-600">Quote To:</p>
-                        <p className="text-lg font-bold text-gray-800">{customer.name}</p>
-                        {renderAddress(customer.address)}
-                        {customer.vatNumber && <p className="text-sm text-gray-600">VAT Reg: {customer.vatNumber}</p>}
                     </div>
                 </div>
             </header>

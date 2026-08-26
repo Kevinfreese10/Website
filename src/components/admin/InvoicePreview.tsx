@@ -67,6 +67,13 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                         {renderAddress(client.address)}
                         {client.isVatRegistered && client.vatNumber && <p className="text-sm text-gray-600">VAT Reg: {client.vatNumber}</p>}
                     </div>
+
+                    <div className="space-y-1 pt-2">
+                        <p className="text-sm font-semibold text-gray-600">Bill To:</p>
+                        <p className="text-lg font-bold text-gray-800 break-words">{customer.name}</p>
+                        {renderAddress(customer.address)}
+                        {customer.vatNumber && <p className="text-sm text-gray-600">VAT Reg: {customer.vatNumber}</p>}
+                    </div>
                 </div>
 
                 {/* Right Column */}
@@ -87,13 +94,6 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                             <span className="font-semibold text-gray-600 text-right">Due Date:</span>
                             <span className="text-gray-900 text-left">{formatDate(invoice.dueDate, 'long')}</span>
                         </div>
-                    </div>
-
-                    <div className="space-y-1">
-                        <p className="text-sm font-semibold text-gray-600">Bill To:</p>
-                        <p className="text-lg font-bold text-gray-800">{customer.name}</p>
-                        {renderAddress(customer.address)}
-                        {customer.vatNumber && <p className="text-sm text-gray-600">VAT Reg: {customer.vatNumber}</p>}
                     </div>
 
                     {hasBankingDetails && (
