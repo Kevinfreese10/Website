@@ -1033,8 +1033,8 @@ export default function ClientOrderDetailsPage() {
 
                                                 {/* 3. Text Requirement Submitted Display */}
                                                 {hasTextValue && !hasFiles && !hasExplanation && !isEditing && (
-                                                    <div className="p-2.5 bg-green-50 text-green-900 rounded-md border border-green-200 text-xs flex items-center justify-between gap-2">
-                                                        <span className="font-medium truncate">Submitted: "{upload?.isEncrypted ? '•••••••• (stored encrypted)' : upload?.textValue}"</span>
+                                                    <div className="p-3 bg-green-50 text-green-900 rounded-md border border-green-200 text-xs flex items-start justify-between gap-3">
+                                                        <span className="font-medium whitespace-pre-wrap break-words leading-relaxed">Submitted: "{upload?.isEncrypted ? '•••••••• (stored encrypted)' : upload?.textValue}"</span>
                                                         <Button
                                                             type="button"
                                                             variant="ghost"

@@ -1433,7 +1433,7 @@ export default function AdminOrderDetailsPage() {
                                                                         <div className="flex items-center gap-1.5 font-bold text-amber-800">
                                                                             <HelpCircle className="h-4 w-4" /> Client Note: Document is Not Available
                                                                         </div>
-                                                                        <p className="pl-5 text-muted-foreground italic font-medium">"{upload.notAvailableReason}"</p>
+                                                                        <p className="pl-5 text-muted-foreground italic font-medium whitespace-pre-wrap break-words leading-relaxed">"{upload.notAvailableReason}"</p>
                                                                     </div>
                                                                 )}
 
@@ -1465,8 +1465,8 @@ export default function AdminOrderDetailsPage() {
                                                                         </a>
                                                                     </div>
                                                                 ) : upload.textValue ? (
-                                                                    <div className="bg-muted p-2.5 rounded-md border text-xs">
-                                                                        <p className="font-medium text-foreground truncate max-w-md">
+                                                                    <div className="bg-muted/70 p-3 rounded-md border text-xs">
+                                                                        <p className="font-medium text-foreground whitespace-pre-wrap break-words leading-relaxed">
                                                                             "{upload.textValue}"
                                                                         </p>
                                                                     </div>

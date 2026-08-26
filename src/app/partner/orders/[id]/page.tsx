@@ -1133,7 +1133,11 @@ export default function PartnerOrderDetailsPage() {
                                                                         <Download className="h-4 w-4" /> {upload.fileName || 'View Document'}
                                                                     </a>
                                                                 ) : upload.textValue ? (
-                                                                    <p className="text-sm p-2 bg-muted rounded-md mt-1">"{upload.textValue}"</p>
+                                                                    <div className="bg-muted/70 p-3 rounded-md border text-xs mt-1">
+                                                                        <p className="font-medium text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                                                                            "{upload.textValue}"
+                                                                        </p>
+                                                                    </div>
                                                                 ) : null}
                                                                 {!order.isOutsourced && upload.status === 'pending' && (
                                                                     <div className="flex items-center gap-2">
