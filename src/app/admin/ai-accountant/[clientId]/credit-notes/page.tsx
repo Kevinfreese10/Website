@@ -355,13 +355,14 @@ function CreditNotesPageContent() {
                 leftY += 5;
             }
 
-            const renderAddress = (address: any, startY: number, x: number = 20) => {
+            const renderAddress = (address: any, startY: number, x: number = 20, maxWidth: number = 90) => {
                 let currY = startY;
                 if (typeof address === 'string') {
                     const lines = address.split(',').map(part => part.trim()).filter(Boolean);
                     lines.forEach((line: string) => {
-                        doc.text(line, x, currY);
-                        currY += 5;
+                        const splitLines = doc.splitTextToSize(line, maxWidth);
+                        doc.text(splitLines, x, currY);
+                        currY += (splitLines.length * 4.5);
                     });
                 } else if (typeof address === 'object' && address !== null) {
                     const unitComplex = (address.unit && address.complex) 
@@ -370,14 +371,15 @@ function CreditNotesPageContent() {
                     const lines = [unitComplex, address.street, address.suburb, address.city, address.province, address.zip]
                         .filter(Boolean);
                     lines.forEach(line => {
-                        doc.text(String(line), x, currY);
-                        currY += 5;
+                        const splitLines = doc.splitTextToSize(String(line), maxWidth);
+                        doc.text(splitLines, x, currY);
+                        currY += (splitLines.length * 4.5);
                     });
                 }
                 return currY;
             };
 
-            leftY = renderAddress(client.address, leftY, 20);
+            leftY = renderAddress(client.address, leftY, 20, 90);
             if (client.isVatRegistered && client.vatNumber) {
                 doc.text(`VAT Reg: ${client.vatNumber}`, 20, leftY);
                 leftY += 5;
@@ -394,8 +396,10 @@ function CreditNotesPageContent() {
             doc.setFont('helvetica', 'bold');
             doc.text(`Credit Note #:`, 130, 35);
             doc.text(`Date:`, 130, 40);
+            let headY = 40;
             if (cn.invoiceId) {
-                doc.text(`Linked Invoice:`, 130, 45);
+                headY = 45;
+                doc.text(`Linked Invoice:`, 130, headY);
             }
 
             doc.setFont('helvetica', 'normal');
@@ -405,26 +409,31 @@ function CreditNotesPageContent() {
                 doc.text(cn.invoiceId, 190, 45, { align: 'right' });
             }
 
-            // Bill To
-            let rightY = cn.invoiceId ? 55 : 50;
+            // Bill To (Left)
+            let creditToY = Math.max(leftY + 6, 52);
             doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
             doc.setTextColor(100);
-            doc.text('CREDIT TO:', 130, rightY);
-            rightY += 5;
+            doc.text('CREDIT TO:', 20, creditToY);
+            creditToY += 5;
+
             doc.setFontSize(11);
             doc.setTextColor(0);
-            doc.text(customer.name, 130, rightY);
-            rightY += 6;
+            doc.setFont('helvetica', 'bold');
+            const custNameLines = doc.splitTextToSize(customer.name || 'Valued Customer', 90);
+            doc.text(custNameLines, 20, creditToY);
+            creditToY += (custNameLines.length * 5) + 1;
+
             doc.setFontSize(9);
             doc.setTextColor(100);
             doc.setFont('helvetica', 'normal');
-            rightY = renderAddress(customer.address, rightY, 130);
+            creditToY = renderAddress(customer.address, creditToY, 20, 90);
             if (customer.vatNumber) {
-                doc.text(`VAT Reg: ${customer.vatNumber}`, 130, rightY);
-                rightY += 5;
+                doc.text(`VAT Reg: ${customer.vatNumber}`, 20, creditToY);
+                creditToY += 5;
             }
 
-            const currentY = Math.max(leftY, rightY) + 5;
+            const currentY = Math.max(leftY, creditToY, headY) + 5;
 
             // Line Items Table
             const tableRows = cn.lineItems.map(item => {

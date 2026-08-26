@@ -63,13 +63,14 @@ export default function QuoteDownloadButton({ quote, client, customer }: QuoteDo
           leftY += 5;
       }
 
-      const renderAddress = (address: any, startY: number, x: number = 20) => {
+      const renderAddress = (address: any, startY: number, x: number = 20, maxWidth: number = 90) => {
           let currY = startY;
           if (typeof address === 'string') {
               const lines = address.split(',').map(part => part.trim()).filter(Boolean);
               lines.forEach((line: string) => {
-                  doc.text(line, x, currY);
-                  currY += 5;
+                  const splitLines = doc.splitTextToSize(line, maxWidth);
+                  doc.text(splitLines, x, currY);
+                  currY += (splitLines.length * 4.5);
               });
           } else if (typeof address === 'object' && address !== null) {
               const unitComplex = (address.unit && address.complex) 
@@ -78,14 +79,15 @@ export default function QuoteDownloadButton({ quote, client, customer }: QuoteDo
               const lines = [unitComplex, address.street, address.suburb, address.city, address.province, address.zip]
                   .filter(Boolean);
               lines.forEach(line => {
-                  doc.text(String(line), x, currY);
-                  currY += 5;
+                  const splitLines = doc.splitTextToSize(String(line), maxWidth);
+                  doc.text(splitLines, x, currY);
+                  currY += (splitLines.length * 4.5);
               });
           }
           return currY;
       };
 
-      leftY = renderAddress(client.address, leftY, 20);
+      leftY = renderAddress(client.address, leftY, 20, 90);
       if (client.isVatRegistered && client.vatNumber) {
           doc.text(`VAT Reg: ${client.vatNumber}`, 20, leftY);
           leftY += 5;
@@ -95,7 +97,7 @@ export default function QuoteDownloadButton({ quote, client, customer }: QuoteDo
       doc.setTextColor(200);
       doc.setFontSize(28);
       doc.setFont('helvetica', 'bold');
-      doc.text('QUOTE', 190, 25, { align: 'right' });
+      doc.text('QUOTATION', 190, 25, { align: 'right' });
 
       doc.setTextColor(100);
       doc.setFontSize(9);
@@ -115,7 +117,7 @@ export default function QuoteDownloadButton({ quote, client, customer }: QuoteDo
         doc.setFont('helvetica', 'bold');
         doc.text(`Reference:`, 135, qY, { align: 'right' });
         doc.setFont('helvetica', 'normal');
-        const refLines = doc.splitTextToSize(quote.reference, 55);
+        const refLines = doc.splitTextToSize(quote.reference, 50);
         doc.text(refLines, 139, qY);
         qY += (refLines.length * 5);
       }
@@ -132,21 +134,25 @@ export default function QuoteDownloadButton({ quote, client, customer }: QuoteDo
       doc.text(formatDate(expiryDateObj, 'long'), 139, qY);
 
       // 4. Client / Bill To Info
-      const startInfoY = Math.max(leftY, 50);
+      let startInfoY = Math.max(leftY + 6, 52);
       
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
       doc.setTextColor(50);
       doc.text('Quote To:', 20, startInfoY);
+      startInfoY += 5;
       
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
-      doc.text(customer.name, 20, startInfoY + 6);
+      doc.setTextColor(0);
+      const custNameLines = doc.splitTextToSize(customer.name || 'Valued Customer', 90);
+      doc.text(custNameLines, 20, startInfoY);
+      startInfoY += (custNameLines.length * 5) + 1;
       
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(100);
-      let customerY = startInfoY + 12;
-      customerY = renderAddress(customer.address, customerY, 20);
+      let customerY = renderAddress(customer.address, startInfoY, 20, 90);
       if (customer.vatNumber) {
           doc.text(`VAT Reg: ${customer.vatNumber}`, 20, customerY);
           customerY += 6;
