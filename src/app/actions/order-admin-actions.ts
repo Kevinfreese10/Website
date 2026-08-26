@@ -138,10 +138,6 @@ export async function transitionOrderStatusAtomic(
       targetFulfillmentStatus = 'Completed';
     } else if (newStatus === 'Cancelled') {
       targetFulfillmentStatus = 'Blocked';
-    } else if (newStatus === 'Waiting on Customer' || newStatus === 'Waiting for Information') {
-      targetFulfillmentStatus = 'Awaiting Documents';
-    } else if (newStatus === 'Waiting on External' || newStatus === 'Under Review') {
-      targetFulfillmentStatus = 'In Execution';
     } else if (newStatus === 'Processing' && (!targetFulfillmentStatus || targetFulfillmentStatus === 'Awaiting Documents')) {
       const allDocsApproved = (orderData.documentUploads || []).length > 0 && (orderData.documentUploads || []).every(d => d.status === 'approved');
       targetFulfillmentStatus = allDocsApproved ? 'In Execution' : 'Awaiting Documents';
@@ -221,8 +217,9 @@ export async function reviewOrderDocumentAtomic(
   orderId: string,
   identifier: string, // requirementId, fileUrl, or textValue
   status: 'approved' | 'rejected',
-  performer: PerformerInput,
-  reason?: string
+  performer: PerformerInput | InternalActor,
+  reason?: string,
+  options?: { suppressClientEmail?: boolean }
 ) {
   try {
     const db = getAdminDb();
@@ -294,7 +291,8 @@ export async function reviewOrderDocumentAtomic(
     await batch.commit();
 
     // If a document was rejected, send immediate feedback email to the client with reasons
-    if (status === 'rejected') {
+    // (the verification cycle sends one consolidated note instead, so it suppresses this).
+    if (status === 'rejected' && !options?.suppressClientEmail) {
       try {
         const clientEmail = orderData.endCustomerEmail || orderData.customerEmail;
         const clientName = orderData.endCustomerName || orderData.customerName || 'Valued Client';
@@ -536,6 +534,33 @@ export async function postOrderNoteAtomic(
 }
 
 /**
+ * Staff-triggered AI document audit: runs the verification cycle on an order (checks every item in
+ * Documents & Data Required, approves/rejects with reasons, posts the client note, emails Kevin
+ * when complete or undecided). Same cycle the client's "Notify Consultant" button runs.
+ */
+export async function runAiDocumentAuditAtomic(orderId: string, performer: PerformerInput) {
+  try {
+    const db = getAdminDb();
+    const orderDoc = await db.collection('orders').doc(orderId).get();
+    if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
+    const actor = await resolveVerifiedActor(performer, (orderDoc.data() || {}) as Order);
+    if (!actor.isStaffOrAdmin) throw new Error('Forbidden: Only staff may run the AI audit.');
+    const { runVerificationCycle } = await import('@/lib/agent/verification-cycle');
+    const r = await runVerificationCycle(orderId, 'manual');
+    const counts = {
+      approved: r.items.filter(i => i.outcome === 'approved').length,
+      rejected: r.items.filter(i => i.outcome === 'rejected').length,
+      missing: r.items.filter(i => i.outcome === 'missing').length,
+      pending: r.items.filter(i => i.outcome === 'pending').length,
+    };
+    return serializeDbData({ success: true, state: r.state, counts, notePosted: r.notePosted, emailedKevin: r.emailedKevin, statusSet: r.statusSet || null, modelCalls: r.modelCalls, notes: r.notes, items: r.items });
+  } catch (error: any) {
+    console.error('Error running AI document audit:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Requests a custom document from the client atomically and logs an audit trail.
  */
 export async function requestCustomDocumentAtomic(
@@ -617,20 +642,6 @@ export async function reassignOrderStaffAtomic(
     const orderDoc = await orderRef.get();
     if (!orderDoc.exists) {
       throw new Error(`Order ${orderId} not found`);
-    }
-
-    // Explicitly prevent assigning CAP staff, CAP supervisor, AI accountant, or non-staff accounts to orders
-    for (const staffId of staffIds) {
-      const userDoc = await db.collection('users').doc(staffId).get();
-      if (userDoc.exists) {
-        const u = userDoc.data();
-        if (u?.role === 'cap_staff' || u?.role === 'cap_supervisor' || u?.role === 'ai_accountant' || u?.role === 'client' || u?.role === 'supplier') {
-          return {
-            success: false,
-            error: `${u.name || staffId} has role "${u.role}" and cannot be assigned to orders.`
-          };
-        }
-      }
     }
 
     const orderData = orderDoc.data() || {};
