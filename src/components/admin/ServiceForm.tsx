@@ -3,8 +3,7 @@
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Service, PrerequisiteItem, PlaybookApproval } from '@/lib/types';
-import PlaybookEditor from './PlaybookEditor';
+import { Service, PrerequisiteItem } from '@/lib/types';
 import { Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -136,16 +135,7 @@ const formSchema = z.object({
     alternativesText: z.string().optional(),
     isSecret: z.boolean().optional(),
   })),
-  // AI order agent playbook (plan §5.1). Step objects are loosely typed here; PlaybookEditor owns the shape.
-  fulfillmentChecklist: z.array(z.object({
-    id: z.string(),
-    title: z.string().min(1, 'Step title is required.'),
-  }).passthrough()).optional(),
-  playbookEntity: z.enum(['company', 'individual', 'either']).optional(),
-  playbookOutputsText: z.string().optional(),
-  playbookCommonFailuresText: z.string().optional(),
-  playbookVersion: z.number().optional(),
-  playbookApproval: z.any().optional().nullable(),
+
   metaTitle: z.string().min(1, 'Meta Title is required.').max(59, 'Meta Title must be under 60 characters.'),
   metaDescription: z.string().max(160, 'Meta Description must be 160 characters or less.').optional().or(z.literal('')),
   metaKeywords: z.array(z.object({ value: z.string() })).optional(),
@@ -231,16 +221,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         ...r,
         alternativesText: Array.isArray((r as any).alternatives) ? (r as any).alternatives.join(', ') : '',
       })),
-      fulfillmentChecklist: (service?.fulfillmentChecklist || []).map(step => ({
-        ...step,
-        templateIdsText: Array.isArray(step.templateIds) ? step.templateIds.join(', ') : '',
-        followUpAfterDaysText: Array.isArray(step.followUpAfterDays) ? step.followUpAfterDays.join(', ') : '',
-      })),
-      playbookEntity: service?.playbookEntity || 'either',
-      playbookOutputsText: (service?.playbookOutputs || []).join('\n'),
-      playbookCommonFailuresText: (service?.playbookCommonFailures || []).join('\n'),
-      playbookVersion: service?.playbookVersion || 0,
-      playbookApproval: service?.playbookApproval || null,
       metaTitle: service?.metaTitle || '',
       metaDescription: service?.metaDescription || '',
       metaKeywords: service?.metaKeywords?.map(v => ({value: v})) || [{ value: '' }],
@@ -499,27 +479,8 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
       return { ...rest, ...(alternatives.length ? { alternatives } : { alternatives: [] }) };
     });
 
-    const splitList = (txt?: string, sep: RegExp = /\r?\n/) => String(txt || '').split(sep).map(x => x.trim()).filter(Boolean);
-
-    const fulfillmentChecklist = (values.fulfillmentChecklist || []).map((step: any) => {
-      const { templateIdsText, followUpAfterDaysText, ...rest } = step;
-      const templateIds = splitList(templateIdsText, /,/);
-      const followUpAfterDays = splitList(followUpAfterDaysText, /,/).map(Number).filter(n => Number.isFinite(n) && n > 0);
-      return {
-        ...rest,
-        ...(templateIds.length ? { templateIds } : {}),
-        ...(followUpAfterDays.length ? { followUpAfterDays } : {}),
-      };
-    });
-
-    const { playbookOutputsText, playbookCommonFailuresText, ...valuesWithoutPlaybookText } = values;
-
     const serviceData = {
-      ...valuesWithoutPlaybookText,
-      fulfillmentChecklist,
-      playbookOutputs: splitList(playbookOutputsText),
-      playbookCommonFailures: splitList(playbookCommonFailuresText),
-      playbookApproval: (values.playbookApproval as PlaybookApproval | null) || null,
+      ...values,
       slug,
       seoImageUrl: values.imageUrl,
       whatsIncluded: values.whatsIncluded.map(v => v.value).filter(Boolean),
@@ -617,13 +578,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
               <TabsTrigger value="intake" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
                 <ClipboardList className="h-3.5 w-3.5" />
                 Client Documents ({infoFields.length})
-              </TabsTrigger>
-              <TabsTrigger value="playbook" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
-                <Bot className="h-3.5 w-3.5" />
-                Agent Playbook
-                {form.watch('playbookApproval')?.approvedAt
-                  ? <Badge className="ml-1 h-4 px-1 text-[9px] bg-emerald-600">LIVE</Badge>
-                  : (form.watch('fulfillmentChecklist')?.length ? <Badge variant="outline" className="ml-1 h-4 px-1 text-[9px]">DRAFT</Badge> : null)}
               </TabsTrigger>
               <TabsTrigger value="seo" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
                 <Globe className="h-3.5 w-3.5" />
@@ -1422,29 +1376,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                     </p>
                   )}
                 </div>
-              </div>
-            </TabsContent>
-
-            {/* TAB: AI ORDER AGENT PLAYBOOK */}
-            <TabsContent value="playbook" className="space-y-4 m-0 focus-visible:outline-none">
-              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
-                <div className="pb-1 border-b">
-                  <div className="flex items-center gap-2">
-                    <Bot className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-bold text-foreground">Fulfilment Playbook</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    The written procedure the AI order agent follows for this service: what to collect, verify, draft, submit, wait for and deliver. See AI-ORDER-AGENT-PLAN.md §5.
-                  </p>
-                </div>
-                <PlaybookEditor
-                  control={form.control as any}
-                  setValue={form.setValue}
-                  getValues={form.getValues}
-                  requirements={(form.watch('informationToProvide') || []) as { id?: string; label: string }[]}
-                  currentUser={user as any}
-                  isAdmin={(user as any)?.role === 'admin'}
-                />
               </div>
             </TabsContent>
 

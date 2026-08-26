@@ -587,10 +587,18 @@ export default function ClientOrderDetailsPage() {
         assignedTo: order.assignedTo,
       });
 
-      toast({ 
-        title: "Documents Submitted!", 
-        description: "Your documents have been submitted and queued for your consultant's review." 
-      });
+      // Run the automated document check and tell the client the outcome.
+      try {
+        const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+        const { notifyConsultantAndVerifyAction } = await import('@/app/actions/client-order-actions');
+        const v = idToken ? await notifyConsultantAndVerifyAction({ idToken, orderId: order.id }) : null;
+        toast({
+          title: v?.success && v.state === 'complete' ? 'All documents approved' : 'Documents checked',
+          description: v?.success ? v.message : "Your documents have been submitted and queued for your consultant's review.",
+        });
+      } catch {
+        toast({ title: 'Documents Submitted!', description: "Your documents have been submitted and queued for your consultant's review." });
+      }
       fetchOrderAndServices(true);
     } catch(error) {
       console.error("Error submitting documents:", error);

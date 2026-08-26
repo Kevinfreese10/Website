@@ -17,7 +17,10 @@ import {
   linkOrderDependencyAtomic, 
   unlinkOrderDependencyAtomic,
   reviewOrderDocumentAtomic,
-  requestCustomDocumentAtomic
+  requestCustomDocumentAtomic,
+  runAiDocumentAuditAtomic,
+  postVerificationDraftAtomic,
+  discardVerificationDraftAtomic
 } from '@/app/actions/order-admin-actions';
 import { 
   ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, 
@@ -566,6 +569,59 @@ export default function AdminOrderDetailsPage() {
       toast({ title: "Proofreading Failed", description: e.message || "Failed to proofread note.", variant: "destructive" });
     } finally {
       setIsProofreading(false);
+    }
+  };
+
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [draftText, setDraftText] = useState<string>('');
+  const [draftBusy, setDraftBusy] = useState(false);
+  useEffect(() => { setDraftText(order?.verification?.draftClientNote?.text || ''); }, [order?.verification?.draftClientNote?.text]);
+
+  const handlePostDraft = async () => {
+    if (!order || !draftText.trim()) return;
+    setDraftBusy(true);
+    try {
+      const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+      if (!idToken) throw new Error('Not signed in');
+      const r: any = await postVerificationDraftAtomic(order.id, draftText, idToken);
+      if (!r.success) throw new Error(r.error);
+      toast({ title: 'Update posted to client', description: r.statusSet ? `Status → ${r.statusSet}` : 'Client has been emailed.' });
+      await fetchOrderAndStaff(true);
+    } catch (e: any) {
+      toast({ title: 'Could not post', description: e.message, variant: 'destructive' });
+    } finally { setDraftBusy(false); }
+  };
+  const handleDiscardDraft = async () => {
+    if (!order) return;
+    setDraftBusy(true);
+    try {
+      const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+      if (!idToken) throw new Error('Not signed in');
+      const r: any = await discardVerificationDraftAtomic(order.id, idToken);
+      if (!r.success) throw new Error(r.error);
+      await fetchOrderAndStaff(true);
+    } catch (e: any) {
+      toast({ title: 'Could not discard', description: e.message, variant: 'destructive' });
+    } finally { setDraftBusy(false); }
+  };
+  const handleAiAudit = async () => {
+    if (!order) return;
+    setIsAuditing(true);
+    try {
+      const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+      if (!idToken) throw new Error('Not signed in');
+      const res: any = await runAiDocumentAuditAtomic(order.id, idToken);
+      if (!res.success) throw new Error(res.error);
+      const c = res.counts;
+      toast({
+        title: res.state === 'complete' ? 'AI audit: all documents approved' : res.state === 'awaiting_consultant' ? 'AI audit: needs your decision' : 'AI audit: client has work to do',
+        description: `${c.approved} approved · ${c.rejected} rejected · ${c.missing} missing · ${c.pending} for you${res.notePosted ? ' · client update drafted below for your review' : ''}${res.emailedKevin ? ' · email sent' : ''}`,
+      });
+      await fetchOrderAndStaff(true);
+    } catch (e: any) {
+      toast({ title: 'AI audit failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setIsAuditing(false);
     }
   };
 
@@ -1315,6 +1371,9 @@ export default function AdminOrderDetailsPage() {
                                     </CardDescription>
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">
+                                    <Button variant="default" size="sm" className="text-xs h-8" onClick={handleAiAudit} disabled={isAuditing} title="Check every required document and answer, approve/reject with reasons, notify the client, and email Kevin when complete">
+                                        {isAuditing ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin"/> : <Sparkles className="h-3.5 w-3.5 mr-1.5"/>}Run AI Audit
+                                    </Button>
                                     {order.documentUploads && order.documentUploads.some(d => d.status === 'pending') && (
                                         <Button variant="outline" size="sm" className="text-green-600 hover:text-green-700 border-green-200 hover:bg-green-50 text-xs h-8" onClick={handleBatchApprove}>
                                             <CheckCircle className="h-3.5 w-3.5 mr-1.5"/>Approve All Pending
@@ -1454,6 +1513,22 @@ export default function AdminOrderDetailsPage() {
 
                     <Card>
                         <CardHeader><CardTitle>Communication History</CardTitle></CardHeader>
+                        {order.verification?.draftClientNote && (
+                          <div className="mx-6 mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-2">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <p className="text-sm font-semibold text-amber-900 flex items-center gap-2"><Sparkles className="h-4 w-4" />AI-drafted update to the client — not sent yet</p>
+                              <span className="text-[11px] text-amber-800">
+                                {order.verification.draftClientNote.state === 'complete' ? 'All documents approved' : order.verification.draftClientNote.state === 'awaiting_consultant' ? 'Waiting on your decisions' : 'Client has items to fix'} · drafted {new Date(order.verification.draftClientNote.createdAt).toLocaleString('en-ZA')}
+                              </span>
+                            </div>
+                            <Textarea rows={12} value={draftText} onChange={e => setDraftText(e.target.value)} className="bg-white text-sm" />
+                            <div className="flex items-center gap-2">
+                              <Button size="sm" onClick={handlePostDraft} disabled={draftBusy || !draftText.trim()}>{draftBusy ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Send className="h-4 w-4 mr-1.5" />}Post to client</Button>
+                              <Button size="sm" variant="ghost" onClick={handleDiscardDraft} disabled={draftBusy}>Discard</Button>
+                              <span className="text-[11px] text-muted-foreground">Posting adds this to Communication History, emails the client, and sets the status ({order.verification.draftClientNote.state === 'complete' ? 'Under Review' : order.verification.draftClientNote.state === 'awaiting_client' ? 'Waiting on Customer' : 'unchanged'}).</span>
+                            </div>
+                          </div>
+                        )}
                         <CardContent className="space-y-4">
                              <div className="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" onClick={() => generateNoteTemplate('payment')}><Phone className="h-4 w-4 mr-2"/>Payment Follow-up</Button>

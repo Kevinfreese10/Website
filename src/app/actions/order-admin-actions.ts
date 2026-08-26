@@ -219,7 +219,7 @@ export async function reviewOrderDocumentAtomic(
   status: 'approved' | 'rejected',
   performer: PerformerInput | InternalActor,
   reason?: string,
-  options?: { suppressClientEmail?: boolean }
+  options?: { suppressClientEmail?: boolean; decidedBy?: 'system' | 'staff' }
 ) {
   try {
     const db = getAdminDb();
@@ -245,6 +245,9 @@ export async function reviewOrderDocumentAtomic(
           ...doc,
           status,
           rejectionReason: status === 'rejected' ? (reason || '') : '',
+          // Who decided: lets a staff-triggered AI audit revisit its own earlier verdicts, and
+          // shows on the order which approvals were automatic.
+          aiVerification: { ...(doc.aiVerification || { status: 'pending', confidence: 0, recommendation: 'manual_review' }), decidedBy: options?.decidedBy || (performer === INTERNAL_SYSTEM_ACTOR ? 'system' : 'staff'), decidedAt: new Date().toISOString() } as any,
         };
         return updatedItem;
       }
@@ -556,6 +559,37 @@ export async function runAiDocumentAuditAtomic(orderId: string, performer: Perfo
     return serializeDbData({ success: true, state: r.state, counts, notePosted: r.notePosted, emailedKevin: r.emailedKevin, statusSet: r.statusSet || null, modelCalls: r.modelCalls, notes: r.notes, items: r.items });
   } catch (error: any) {
     console.error('Error running AI document audit:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/** Staff confirms the AI-drafted client update: posts it, emails the client, sets status, clears the draft. */
+export async function postVerificationDraftAtomic(orderId: string, text: string, performer: PerformerInput) {
+  try {
+    const db = getAdminDb();
+    const orderDoc = await db.collection('orders').doc(orderId).get();
+    if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
+    const actor = await resolveVerifiedActor(performer, (orderDoc.data() || {}) as Order);
+    if (!actor.isStaffOrAdmin) throw new Error('Forbidden: staff only.');
+    if (!text.trim()) throw new Error('The update is empty.');
+    const { postVerificationDraft } = await import('@/lib/agent/verification-cycle');
+    return await postVerificationDraft(orderId, text.trim(), performer);
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function discardVerificationDraftAtomic(orderId: string, performer: PerformerInput) {
+  try {
+    const db = getAdminDb();
+    const orderDoc = await db.collection('orders').doc(orderId).get();
+    if (!orderDoc.exists) throw new Error(`Order #${orderId} not found`);
+    const actor = await resolveVerifiedActor(performer, (orderDoc.data() || {}) as Order);
+    if (!actor.isStaffOrAdmin) throw new Error('Forbidden: staff only.');
+    const { discardVerificationDraft } = await import('@/lib/agent/verification-cycle');
+    await discardVerificationDraft(orderId);
+    return { success: true };
+  } catch (error: any) {
     return { success: false, error: error.message };
   }
 }

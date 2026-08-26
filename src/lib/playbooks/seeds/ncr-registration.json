@@ -2,24 +2,75 @@
   "slug": "ncr-registration",
   "playbookEntity": "company",
   "playbookOutputs": [
-    "NCR acknowledgement of application",
+    "NCR acknowledgement of application (CP application number)",
     "NCRCP registration number",
-    "NCR registration certificate"
+    "NCR credit provider registration certificate",
+    "Post-registration statutory compliance roadmap (Form 39 & Form 40 guide)"
   ],
   "playbookCommonFailures": [
-    "Bank confirmation letter is in a director's name instead of the company's",
-    "Criminal clearance certificate older than 6 months or missing for one director",
-    "Tax compliance status not in good standing at time of submission",
-    "Proof of payment for the NCR application fee missing or for the wrong amount",
-    "Director ID certification older than 3 months"
+    "Bank confirmation letter is in a director's personal name instead of the company's registered legal name",
+    "Bank confirmation letter or digital verification reference older than 3 months",
+    "Criminal clearance certificate / police clearance older than 6 months or missing for any active director",
+    "Certified ID copies of directors certified more than 3 months prior to submission",
+    "SARS Tax Compliance Status (TCS) PIN not in 'Compliant' status at time of lodgement",
+    "Proof of payment for NCR application fee missing the CIPC enterprise registration number as deposit reference",
+    "Form NCR 2 missing initials on bottom of each page or missing Section 8 declaration signature",
+    "Board / Sole Director Resolution authorising the signatory missing or unexecuted",
+    "Accounting Officer appointment letter or acceptance letter (CIBA #3561) missing"
   ],
   "informationToProvide": [
-    { "label": "Company registration documents (COR14.3)", "documentKind": "cor14_3", "inNameOf": "entity", "isRequired": true, "aiHint": "Official CIPC CoR14.3 (or CK1/CK2 for a CC) showing the registered name, enterprise number and active directors. Must match the entity the order is for, not the person placing the order." },
-    { "label": "Valid bank confirmation letter (in the business name, not older than 3 months)", "documentKind": "bank_confirmation", "inNameOf": "entity", "maxAgeDays": 90, "isRequired": true, "aiHint": "Bank account confirmation letter from a registered SA bank in the COMPANY's name, dated within 3 months. Accept a bank stamp OR a digital verification reference / QR code. A transaction statement is NOT acceptable for this requirement." },
-    { "label": "Tax Clearance Status Certificate", "documentKind": "tcs_pin", "inNameOf": "entity", "isRequired": true, "aiHint": "SARS Tax Compliance Status letter or PIN printout for the company showing status 'Compliant'. Note the PIN so it can be verified on eFiling before submission." },
-    { "label": "Auditor/Accounting Officer appointment letter", "documentKind": "letterhead", "inNameOf": "entity", "isRequired": false, "aiHint": "Letter appointing an accounting officer. If the client has none, the agent drafts the My Accountant appointment letter (template: accounting_officer_appointment) for signature." },
-    { "label": "Proof of payment of the R1,800 non-refundable application fee", "documentKind": "receipt", "inNameOf": "either", "isRequired": true, "aiHint": "Bank proof of payment to the NCR for the application fee. Check the amount and that the reference identifies the applicant." },
-    { "label": "Criminal clearance certificates (not older than 6 months) for all directors", "documentKind": "criminal_clearance", "inNameOf": "director", "maxAgeDays": 180, "isRequired": true, "aiHint": "SAPS police clearance certificate per director, issued within 6 months. One per director listed on the CoR14.3 — flag any director without one." }
+    {
+      "label": "Company registration documents (CIPC Certificate COR14.3 / Disclosure)",
+      "documentKind": "cor14_3",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "Official CIPC CoR14.3 (or CK1/CK2 for a CC) and latest Disclosure Certificate showing the legal entity name, enterprise registration number, registered office address, and all active directors. Must match the entity the order is placed for."
+    },
+    {
+      "label": "Valid bank confirmation letter (in the business name, not older than 3 months)",
+      "documentKind": "bank_confirmation",
+      "inNameOf": "entity",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "aiHint": "Official bank account confirmation letter from a registered South African bank in the COMPANY's registered legal name, dated within 3 months. Must include an official bank date stamp or digital verification QR code / hash. A regular bank statement is NOT accepted by the NCR."
+    },
+    {
+      "label": "Tax Clearance Status Certificate / TCS PIN",
+      "documentKind": "tcs_pin",
+      "inNameOf": "entity",
+      "isRequired": true,
+      "aiHint": "SARS Tax Compliance Status (TCS) PIN letter for the applicant entity confirming 'Good Standing / Compliant' tax status. The PIN is verified on SARS eFiling prior to statutory pack lodgement."
+    },
+    {
+      "label": "Auditor / Accounting Officer appointment letter",
+      "documentKind": "letterhead",
+      "inNameOf": "entity",
+      "isRequired": false,
+      "aiHint": "Statutory letter appointing a registered Accounting Officer. If the client has no existing appointment, the agent automatically drafts the My Accountant appointment & acceptance letters signed by Kevin Freese (CIBA #3561 / PR-0098553)."
+    },
+    {
+      "label": "Proof of payment of the NCR non-refundable application fee (R550 / R1,800)",
+      "documentKind": "receipt",
+      "inNameOf": "either",
+      "isRequired": true,
+      "aiHint": "Official bank proof of payment for the NCR statutory application fee paid to the National Credit Regulator's bank account. Must clearly show the company's CIPC Registration Number as the payment reference."
+    },
+    {
+      "label": "Criminal clearance certificates (not older than 6 months) for all directors",
+      "documentKind": "criminal_clearance",
+      "inNameOf": "director",
+      "maxAgeDays": 180,
+      "isRequired": true,
+      "aiHint": "SAPS Police Clearance Certificate or accredited biometric AFIS criminal record check per active director, issued within 6 months. Every director listed on the CIPC CoR14.3 must have a valid clearance certificate."
+    },
+    {
+      "label": "Certified ID copies of all directors (certified within 3 months)",
+      "documentKind": "director_id",
+      "inNameOf": "director",
+      "maxAgeDays": 90,
+      "isRequired": true,
+      "aiHint": "High-resolution color copies of South African Smart ID Cards (both sides), Green Barcoded ID Books, or Foreign Passports for all active directors, certified by a Commissioner of Oaths within the last 3 months."
+    }
   ],
   "fulfillmentChecklist": [
     {
@@ -28,17 +79,17 @@
       "type": "collect",
       "owner": "agent",
       "estimatedDays": 5,
-      "doneCriteria": "Every required item uploaded and every questionnaire field answered",
-      "aiInstructions": "Chase only what is missing; name each document and why the NCR needs it. Remind that certified IDs must be within 3 months and criminal clearances within 6 months. Do not promise a timeline shorter than 60 working days."
+      "doneCriteria": "Every required statutory document uploaded and all questionnaire fields answered",
+      "aiInstructions": "Chase only what is missing; name each document specifically and explain why the NCR requires it. Remind the client that certified ID copies must be within 3 months, criminal clearances within 6 months, and bank confirmation within 3 months. Ensure order status is set to 'Waiting on Customer'. Do not promise an NCR turnaround shorter than 60 working days."
     },
     {
       "id": "ncr_verify",
-      "title": "Verify documents against NCR requirements",
+      "title": "Verify documents against NCR statutory requirements",
       "type": "verify",
       "owner": "agent",
       "estimatedDays": 1,
       "doneCriteria": "All required uploads pass the rules engine or are approved by Kevin",
-      "aiInstructions": "The entity is the credit provider company, never the ordering contact. Bank letter and CoR14.3 must be in the company's name. Cross-check director names on the CoR14.3 against the ID copies and criminal clearances — every director needs both."
+      "aiInstructions": "The applicant entity is the credit provider company, never the ordering individual. Verify that the bank confirmation letter and CoR14.3 match the exact registered entity name. Cross-check all director names on the CoR14.3 against ID copies and police clearances — every active director must have both. Flag any missing director documents for Kevin's review."
     },
     {
       "id": "ncr_tcs_check",
@@ -49,67 +100,79 @@
       "portalProcedure": "efiling.verifyTcsPin",
       "submitMode": "manual",
       "estimatedDays": 1,
-      "doneCriteria": "TCS shows Compliant on the day of submission",
-      "aiInstructions": "If the status is non-compliant, stop and draft a client message explaining which returns or payments are outstanding. Do not assemble the pack."
+      "doneCriteria": "TCS shows Compliant on SARS eFiling on the day of submission",
+      "aiInstructions": "Verify the entity's TCS PIN on SARS eFiling. If the status is non-compliant, stop immediately and draft a client notification in Communication History detailing outstanding tax returns or liabilities. Do not assemble or lodge the pack with the NCR."
     },
     {
       "id": "ncr_draft_pack",
-      "title": "Draft NCR Form 2, fee annexure, accounting officer appointment and POA",
+      "title": "Draft NCR Form 2, fee annexure, accounting officer appointment, board resolution, and POA",
       "type": "draft_document",
       "owner": "agent",
-      "templateIds": ["ncr_form_2", "ncr_fee_annexure", "accounting_officer_appointment", "power_of_attorney"],
+      "templateIds": [
+        "ncr_form_2",
+        "ncr_fee_annexure",
+        "accounting_officer_appointment",
+        "power_of_attorney",
+        "board_resolution"
+      ],
       "estimatedDays": 1,
       "doneCriteria": "Drafts generated from verified facts and posted for Kevin's review",
-      "aiInstructions": "Fill every structured field from extracted facts and questionnaire answers; never invent a share percentage, language or area of operation — leave blank and flag. Use the fillable templates in public/templates. Kevin's signature is applied only at approval."
+      "aiInstructions": "Fill every structured field from extracted facts and questionnaire responses. Never invent operational areas, languages, or shareholding percentages — flag blanks for client confirmation. Populate Form NCR 2, Fee Annexure, Accounting Officer Appointment & Acceptance Letters (Kevin Freese, CIBA #3561 / PR-0098553), Board Resolution, and Power of Attorney."
     },
     {
       "id": "ncr_client_sign",
-      "title": "Send drafts to client for signature",
+      "title": "Send statutory pack to client for signature",
       "type": "draft_client_message",
       "owner": "agent",
       "estimatedDays": 3,
-      "doneCriteria": "Signed Form 2, appointment letter and POA uploaded by client",
-      "aiInstructions": "Post the approved drafts to Communication History with plain instructions: sign where marked, initial each page of Form 2, return as PDF. Ask for commissioner of oaths where the template requires it."
+      "doneCriteria": "Signed Form 2 (initialled on all pages), Board Resolution, and POA uploaded by client",
+      "aiInstructions": "Post the approved drafts to Communication History with clear signing instructions: (1) Initial every single page of Form NCR 2 at the bottom right, (2) Sign Section 8 Declaration in full, (3) Sign the Board Resolution & Power of Attorney, (4) Return the scanned document pack as a single high-quality PDF. Keep order status as 'Waiting on Customer'."
     },
     {
       "id": "ncr_submit",
-      "title": "Email application pack to the NCR",
+      "title": "Email complete application pack to the NCR",
       "type": "email_submission",
       "owner": "agent",
-      "emailTo": "registrations@ncr.org.za",
-      "emailSubjectTemplate": "Credit Provider Registration Application — {entityName} ({registrationNumber})",
-      "expectedReply": "NCR acknowledgement email with an application reference",
+      "emailTo": "applications@ncr.org.za",
+      "emailSubjectTemplate": "New Credit Provider Registration Application — {entityName} (Reg: {registrationNumber})",
+      "expectedReply": "NCR acknowledgement email with application reference (e.g. CP1090, CP1188)",
       "estimatedDays": 1,
-      "doneCriteria": "Pack sent and acknowledgement received",
-      "aiInstructions": "Attach: signed Form 2, fee annexure, proof of fee payment, CoR14.3, certified director IDs, criminal clearances, bank letter, TCS, accounting officer appointment, POA. Confirm the NCR address with Kevin before first use — ⚠ unverified."
+      "doneCriteria": "Pack emailed to applications@ncr.org.za (CC registrations@ncr.org.za and client) and order status transitioned to Waiting on External",
+      "aiInstructions": "Attach the complete 10-part statutory dossier: (1) Signed & initialled Form NCR 2, (2) Fee Annexure, (3) Proof of fee payment with Reg No reference, (4) CIPC CoR14.3 & Disclosure, (5) Certified Director IDs (<3 months), (6) Police Clearances (<6 months), (7) Bank Confirmation Letter (<3 months), (8) SARS TCS PIN document, (9) Accounting Officer Appointment & Acceptance Letters (CIBA #3561), (10) Board Resolution & POA. Immediately transition order status to 'Waiting on External' upon dispatch and log in Communication History."
     },
     {
       "id": "ncr_wait",
-      "title": "Wait for NCR decision and follow up",
+      "title": "Wait for NCR decision and automated SLA follow-ups",
       "type": "wait_external",
       "owner": "agent",
-      "followUpAfterDays": [30, 60, 75],
+      "followUpAfterDays": [
+        30,
+        60,
+        75
+      ],
       "estimatedDays": 75,
-      "doneCriteria": "NCRCP number or a query letter received from the NCR",
-      "aiInstructions": "Draft a polite status-request email quoting the NCR reference at each follow-up point. If the NCR raises a query, create a proposal for Kevin with the query text and the documents it concerns."
+      "doneCriteria": "NCRCP registration certificate or formal query letter received from the NCR",
+      "aiInstructions": "Keep order status in 'Waiting on External'. When the NCR issues the Acknowledgement Letter / Application Number (e.g. CP1090, CP1188), record the CP reference in the order notes, upload the letter to Communication History, and notify the client. Send polite follow-up emails to registrations@ncr.org.za at Day 30, Day 60, and Day 75 quoting the CP reference. If the NCR raises a query, draft a proposal for Kevin with the query text and required rectification."
     },
     {
       "id": "ncr_deliver",
-      "title": "Deliver NCR certificate and registration number to client",
+      "title": "Deliver NCR Certificate, NCRCP Number, and Compliance Roadmap to client",
       "type": "deliver",
       "owner": "agent",
-      "deliverArtefacts": ["ncr_certificate"],
+      "deliverArtefacts": [
+        "ncr_certificate"
+      ],
       "estimatedDays": 1,
-      "doneCriteria": "Certificate and NCRCP number posted to Communication History",
-      "aiInstructions": "Include a short note on ongoing obligations: annual Form 39/40 and annual fee. Offer the annual compliance service."
+      "doneCriteria": "Official NCR Certificate and NCRCP registration number delivered to client in Communication History",
+      "aiInstructions": "Deliver the official NCR Registration Certificate and NCRCP Number to the client. Provide an executive statutory compliance onboarding advisory detailing ongoing NCR obligations: annual Form 39 / 40 compliance reporting, annual registration renewal fee, credit bureau submission mandates, and National Consumer Tribunal adherence. Offer My Accountant's ongoing annual compliance retainer."
     },
     {
       "id": "ncr_signoff",
-      "title": "Final sign-off",
+      "title": "Final sign-off and order completion",
       "type": "signoff",
       "owner": "kevin",
       "estimatedDays": 1,
-      "doneCriteria": "Kevin confirms the order can be completed"
+      "doneCriteria": "Kevin confirms all deliverables are fulfilled and order transitions to Completed"
     }
   ]
 }

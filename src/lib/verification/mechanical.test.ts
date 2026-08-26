@@ -99,10 +99,12 @@ describe('inspectFile', () => {
     expect(r.facts.sha256).toHaveLength(64);
   });
 
-  it('fails a password-protected PDF', () => {
+  it('only warns on an encrypted PDF (bank letters are permissions-restricted but open fine)', () => {
     const r = inspectFile(pdf('<< /Encrypt 5 0 R >>'), 'bank.pdf', 'pdf');
-    expect(r.issues.map(i => i.code)).toContain('PASSWORD_PROTECTED');
+    const issue = r.issues.find(i => i.code === 'PASSWORD_PROTECTED');
+    expect(issue?.severity).toBe('warn');
     expect(r.facts.pdfEncrypted).toBe(true);
+    expect(summarize(r.issues, r.facts).status).toBe('warn');
   });
 
   it('warns on type mismatch but does not fail', () => {

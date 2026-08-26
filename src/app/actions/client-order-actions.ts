@@ -153,14 +153,14 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
       });
     }
 
-    // Wake the AI order agent after the response is sent (Next 15+ `after`). It only acts on
-    // services with an approved playbook; otherwise it records a run and does nothing.
+    // Run the verification cycle after the response is sent (Next 15+ `after`): the new file is
+    // checked and the client hears back in Communication History if anything is wrong.
     after(async () => {
       try {
-        const { runOrderAgent } = await import('@/lib/agent/orchestrator');
-        await runOrderAgent(params.orderId, 'upload', { maxModelCalls: 3 });
+        const { runVerificationCycle } = await import('@/lib/agent/verification-cycle');
+        await runVerificationCycle(params.orderId, 'upload');
       } catch (e) {
-        console.error('[submitClientDocumentUploadAction] agent trigger failed:', e);
+        console.error('[submitClientDocumentUploadAction] verification cycle failed:', e);
       }
     });
 
@@ -388,5 +388,37 @@ export async function syncClientQuestionnaireAction(params: SyncQuestionnairePar
   } catch (error: any) {
     console.error('[syncClientQuestionnaireAction] Error:', error);
     return { success: false, error: error.message || 'Failed to sync questionnaire.' };
+  }
+}
+
+/**
+ * Called when the client presses "Notify Consultant of All Submissions". Runs the full
+ * verification cycle for the order and returns a short summary for the toast.
+ */
+export async function notifyConsultantAndVerifyAction(params: { idToken: string; orderId: string }) {
+  try {
+    const authCtx = await getVerifiedAuthContext(params.idToken);
+    if (!authCtx) return { success: false, error: 'Unauthorized' };
+    const db = getAdminDb();
+    const snap = await db.collection('orders').doc(params.orderId).get();
+    if (!snap.exists) return { success: false, error: 'Order not found' };
+    const order = snap.data() as Order;
+    const isClient = authCtx.userId === order.userId || authCtx.userId === order.clientId ||
+      authCtx.user.email?.toLowerCase() === order.customerEmail?.toLowerCase() ||
+      authCtx.user.email?.toLowerCase() === order.endCustomerEmail?.toLowerCase();
+    if (!authCtx.isAdmin && !isClient) return { success: false, error: 'Forbidden' };
+
+    const { runVerificationCycle } = await import('@/lib/agent/verification-cycle');
+    const r = await runVerificationCycle(params.orderId, 'notify');
+    const c = { approved: r.items.filter(i => i.outcome === 'approved').length, rejected: r.items.filter(i => i.outcome === 'rejected').length, missing: r.items.filter(i => i.outcome === 'missing').length, pending: r.items.filter(i => i.outcome === 'pending').length };
+    const message = r.state === 'complete'
+      ? 'All your documents have been checked and approved. Your consultant has been notified.'
+      : r.state === 'awaiting_consultant'
+        ? `${c.approved} approved; ${c.pending} item(s) are with your consultant. Nothing further is needed from you right now.`
+        : `${c.approved} approved; ${c.rejected + c.missing} item(s) need your attention — see the note on this order.`;
+    return { success: true, state: r.state, counts: c, message };
+  } catch (e: any) {
+    console.error('[notifyConsultantAndVerifyAction]', e);
+    return { success: false, error: e.message || 'Verification failed' };
   }
 }

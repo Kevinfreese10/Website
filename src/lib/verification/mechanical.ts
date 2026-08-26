@@ -223,7 +223,11 @@ export function inspectFile(buf: Uint8Array | Buffer, fileName: string, expected
     facts.pdfEncrypted = pdf.encrypted;
     if (pdf.pageCount) facts.pdfPageCount = pdf.pageCount;
     if (pdf.encrypted) {
-      issues.push({ code: 'PASSWORD_PROTECTED', severity: 'fail', message: `${nice} is password-protected. Please remove the password (or print it to a new PDF) and upload again.` });
+      // Most bank letters carry an /Encrypt dictionary for *permissions* (no copy/edit) but open
+      // without a password. We cannot tell the two apart from the bytes alone, so this is only a
+      // warning; the extraction step decides — if the file genuinely cannot be opened, the
+      // verification cycle rejects it with the password message then.
+      issues.push({ code: 'PASSWORD_PROTECTED', severity: 'warn', message: `${nice} has security settings; we will still try to read it.` });
     } else if (!pdf.parseable) {
       issues.push({ code: 'UNREADABLE_PDF', severity: 'warn', message: `${nice} looks like a damaged or incomplete PDF. If it opens on your side, ignore this; otherwise please re-download and upload again.` });
     }

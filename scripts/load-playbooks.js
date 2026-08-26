@@ -14,6 +14,7 @@
  *   node scripts/load-playbooks.js --slug ncr-registration  # one service
  *   node scripts/load-playbooks.js                        # all seeds
  *   node scripts/load-playbooks.js --key path/to/sa.json  # explicit service account
+ *   node scripts/load-playbooks.js --unload               # remove playbook fields from every service
  */
 const fs = require('fs');
 const path = require('path');
@@ -43,6 +44,7 @@ function arg(name, fallback) {
 }
 
 const DRY = flag('dry-run');
+const UNLOAD = flag('unload');
 const ONLY = arg('slug', null);
 const KEY = arg('key', process.env.GOOGLE_APPLICATION_CREDENTIALS);
 const SEED_DIR = path.join(__dirname, '..', 'src', 'lib', 'playbooks', 'seeds');
@@ -112,7 +114,24 @@ function stripUndefined(v) {
   return v;
 }
 
+async function unload() {
+  const snap = await db.collection('services').get();
+  let n = 0;
+  for (const d of snap.docs) {
+    const data = d.data();
+    if (!data.fulfillmentChecklist && !data.playbookApproval && !data.playbookSeededAt) continue;
+    if (!DRY) await d.ref.update({
+      fulfillmentChecklist: admin.firestore.FieldValue.delete(), playbookApproval: admin.firestore.FieldValue.delete(), playbookVersion: admin.firestore.FieldValue.delete(),
+      playbookEntity: admin.firestore.FieldValue.delete(), playbookOutputs: admin.firestore.FieldValue.delete(), playbookCommonFailures: admin.firestore.FieldValue.delete(),
+      playbookSeededAt: admin.firestore.FieldValue.delete(), playbookSeedFile: admin.firestore.FieldValue.delete(),
+    });
+    n++; console.log(`${DRY ? '[dry-run] ' : ''}cleared playbook fields on ${data.slug || d.id}`);
+  }
+  console.log(`\nDone. ${DRY ? 'Would clear' : 'Cleared'} ${n} service(s). Document verification rules on each requirement row are kept.`);
+}
+
 async function main() {
+  if (UNLOAD) return unload();
   const files = fs.readdirSync(SEED_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_'));
   const servicesSnap = await db.collection('services').get();
   const bySlug = new Map();
