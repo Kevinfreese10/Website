@@ -27,7 +27,31 @@ export function findRequirement(order: Pick<Order, 'serviceSnapshots'>, serviceI
   const label = (requirementLabel || '').trim().toLowerCase();
   const inService = snaps.filter(s => !serviceId || s.serviceId === serviceId).flatMap(s => s.requirements || []);
   const pool = inService.length ? inService : snaps.flatMap(s => s.requirements || []);
-  return pool.find(r => (requirementId && r.id === requirementId)) || pool.find(r => (r.label || '').trim().toLowerCase() === label);
+
+  if (requirementId) {
+    const byId = pool.find(r => r.id === requirementId);
+    if (byId) return byId as any;
+  }
+
+  if (label) {
+    const byExactLabel = pool.find(r => (r.label || '').trim().toLowerCase() === label);
+    if (byExactLabel) return byExactLabel as any;
+
+    // Normalize stripped punctuation for fuzzy comparison
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normLabel = norm(label);
+    const byNorm = pool.find(r => norm(r.label || '') === normLabel);
+    if (byNorm) return byNorm as any;
+
+    // Partial contains
+    const byContains = pool.find(r => {
+      const nr = norm(r.label || '');
+      return nr.length > 5 && (nr.includes(normLabel) || normLabel.includes(nr));
+    });
+    if (byContains) return byContains as any;
+  }
+
+  return undefined;
 }
 
 async function fetchBytes(url: string): Promise<Uint8Array> {

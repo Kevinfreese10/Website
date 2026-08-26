@@ -20,6 +20,8 @@ import { updateOrderChecklistItemAtomic } from '@/app/actions/order-admin-action
 import { checkCompleteness } from '@/lib/verification/mechanical';
 import { evaluateDocument, type EntityContext } from '@/lib/verification/rules';
 import type { ExtractedDocumentFacts } from '@/lib/verification/facts';
+import { findRequirement } from '@/lib/verification/run-upload-checks';
+import { isPlaybookApproved, getServiceChecklist, normalizeRequirementsWithIds } from '@/lib/services';
 import type { AgentProposal, AgentRun, AgentTrigger, ClientMessagePayload, DocumentDraftPayload, DocumentReviewPayload, HandoffPayload, ProposalKind, RegulatorSubmission } from './types';
 import { buildSubmissionPayload, buildFollowUpPayload } from './email-channel';
 import { buildPortalInput, stagePayload, getActiveJobForStep, buildHandoffSheetFromJob } from './portal-channel';
@@ -27,7 +29,7 @@ import { findProcedure } from './portal-registry';
 import type { OtpPayload, PortalSubmitPayload } from './types';
 import { draftChaseMessage } from './drafting';
 
-const ACTIVE_STATUSES = new Set(['Processing', 'Waiting on Customer', 'Waiting for Information', 'Under Review']);
+const ACTIVE_STATUSES = new Set(['Processing', 'Waiting on Customer', 'Waiting for Information', 'Waiting on External', 'Under Review']);
 const MAX_UPLOAD_BYTES_FOR_EXTRACTION = 15 * 1024 * 1024;
 
 export type RunOptions = {
@@ -71,9 +73,71 @@ export async function runOrderAgent(orderId: string, trigger: AgentTrigger, opts
     };
 
     let uploads: DocumentUpload[] = order.documentUploads || [];
-    const checklist: OrderChecklistItem[] = order.checklist || [];
+    let checklist: OrderChecklistItem[] = order.checklist || [];
 
-    for (const svc of order.serviceSnapshots || []) {
+    // Resolve / sync service snapshots if missing or if playbook was approved in catalog
+    let snapshots: OrderServiceSnapshot[] = [...(order.serviceSnapshots || [])];
+    let updatedSnapshots = false;
+
+    if (snapshots.length === 0 && order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        if (!item.id && !item.title && !(item as any).name) continue;
+        let sDoc = item.id ? await db.collection('services').doc(item.id).get() : null;
+        if (!sDoc || !sDoc.exists) {
+          const match = await db.collection('services').where('title', '==', item.title || (item as any).name).limit(1).get();
+          if (!match.empty) sDoc = match.docs[0];
+        }
+        if (sDoc && sDoc.exists) {
+          const sData = sDoc.data() as any;
+          const playbookApproved = isPlaybookApproved(sData);
+          snapshots.push({
+            serviceId: sDoc.id,
+            title: sData.title || item.title || (item as any).name,
+            department: sData.department || 'Administration',
+            requirements: normalizeRequirementsWithIds(sData.informationToProvide || []),
+            checklist: getServiceChecklist(sData),
+            playbookApproved,
+            ...(sData.playbookVersion ? { playbookVersion: sData.playbookVersion } : {}),
+            ...(sData.playbookEntity ? { playbookEntity: sData.playbookEntity } : {}),
+          });
+          updatedSnapshots = true;
+        }
+      }
+    }
+
+    for (let i = 0; i < snapshots.length; i++) {
+      const snapSvc = snapshots[i];
+      if (!snapSvc.playbookApproved) {
+        let sDoc = await db.collection('services').doc(snapSvc.serviceId).get();
+        if (!sDoc.exists) {
+          const match = await db.collection('services').where('title', '==', snapSvc.title).limit(1).get();
+          if (!match.empty) sDoc = match.docs[0];
+        }
+        if (sDoc.exists) {
+          const sData = sDoc.data() as any;
+          if (isPlaybookApproved(sData)) {
+            snapshots[i] = {
+              ...snapSvc,
+              requirements: normalizeRequirementsWithIds(sData.informationToProvide || snapSvc.requirements || []),
+              checklist: getServiceChecklist(sData),
+              playbookApproved: true,
+              playbookVersion: sData.playbookVersion || sData.playbookApproval?.version,
+              playbookEntity: sData.playbookEntity || snapSvc.playbookEntity,
+            };
+            updatedSnapshots = true;
+          }
+        }
+      }
+    }
+
+    if (updatedSnapshots) {
+      await db.collection('orders').doc(orderId).update({
+        serviceSnapshots: snapshots,
+      });
+      run.writes.push(`orders/${orderId}.serviceSnapshots (synced approved playbook from catalog)`);
+    }
+
+    for (const svc of snapshots) {
       if (!svc.playbookApproved) {
         run.notes.push(`Service "${svc.title}": playbook not approved — left manual.`);
         continue;
@@ -84,7 +148,7 @@ export async function runOrderAgent(orderId: string, trigger: AgentTrigger, opts
       // ---- Layer 2 + 3 on every pending upload that hasn't been examined ------------------
       for (const up of svcUploads) {
         if (up.status !== 'pending' || up.type !== 'file') continue;
-        const req = reqs.find(r => r.id === up.requirementId) || reqs.find(r => r.label.trim().toLowerCase() === (up.requirementLabel || '').trim().toLowerCase());
+        const req = findRequirement({ serviceSnapshots: snapshots }, svc.serviceId, up.requirementId, up.requirementLabel);
         if (!req) { run.notes.push(`Upload "${up.requirementLabel}" has no matching requirement; skipped.`); continue; }
 
         // Mechanical failure → propose a rejection straight away, no AI needed.
