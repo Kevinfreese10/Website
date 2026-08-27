@@ -16,6 +16,8 @@ import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import Link from 'next/link';
 
+import { toPlainObject } from '@/lib/serialize-firestore';
+
 export const revalidate = 900;
 
 async function getService(slug: string): Promise<Service | null> {
@@ -31,13 +33,9 @@ async function getService(slug: string): Promise<Service | null> {
     const serviceData = {
         id: doc.id,
         ...data,
-    } as any;
-
-    if (data.createdAt) {
-        serviceData.createdAt = data.createdAt.toDate ? data.createdAt.toDate().toISOString() : data.createdAt;
-    }
+    };
     
-    return serviceData as Service;
+    return toPlainObject(serviceData) as Service;
 }
 
 type Props = {
