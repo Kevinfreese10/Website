@@ -28,6 +28,7 @@ import { render } from '@react-email/components';
 import PartnerWelcomeEmail from '../emails/PartnerWelcomeEmail';
 import { getNextOrderId } from '@/lib/sequence';
 import { Badge } from '@/components/ui/badge';
+import { submitPayFastPayment } from '@/lib/payfast-client';
 import { cn } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 
@@ -307,34 +308,22 @@ export default function PartnerSignupForm() {
 
             await setDoc(doc(db, 'orders', orderId), platformOrder);
 
-            const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-            const payfastForm = document.createElement('form');
-            payfastForm.method = 'POST';
-            payfastForm.action = payfastUrl;
+            const res = await submitPayFastPayment({
+                orderId,
+                amount: 1950.00,
+                itemName: 'Partner Platform Access Fee',
+                itemDescription: 'Annual Reseller Platform & Storefront Access Fee',
+                customerName: `${values.name} ${values.surname}`,
+                customerEmail: values.email,
+                customerPhone: values.contactNumber || '',
+                returnPath: '/partner/onboarding?platform_success=true',
+                cancelPath: '/partner/onboarding',
+            });
 
-            const data = {
-                merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-                merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-                return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/partner/onboarding?platform_success=true`,
-                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/partner/onboarding`,
-                notify_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/api/payfast/notify`,
-                name_first: values.name,
-                name_last: values.surname,
-                email_address: values.email,
-                m_payment_id: orderId,
-                amount: '1950.00',
-                item_name: 'Partner Platform Access Fee',
-            };
-
-            for (const key in data) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = (data as any)[key];
-                payfastForm.appendChild(input);
+            if (!res.success) {
+                toast({ title: 'Payment Error', description: res.error || 'Could not redirect to PayFast.', variant: 'destructive' });
+                setIsLoading(false);
             }
-            document.body.appendChild(payfastForm);
-            payfastForm.submit();
             return;
         }
 

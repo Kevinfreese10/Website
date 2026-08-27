@@ -22,6 +22,7 @@ import { Separator } from '../ui/separator';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
+import { submitPayFastPayment } from '@/lib/payfast-client';
 
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
@@ -130,40 +131,31 @@ export default function CheckoutForm({
     return () => clearTimeout(timer);
   }, [watchedEmail, user, form]);
   
-  const submitToPayFast = (order: Order) => {
-    const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-    const formElement = document.createElement('form');
-    formElement.method = 'POST';
-    formElement.action = payfastUrl;
-    formElement.setAttribute('target', '_top');
-
-    const data: { [key: string]: string } = {
-        merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-        merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success/${order.id}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cart`,
-        notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
-        name_first: order.customerName.split(' ')[0],
-        name_last: order.customerName.split(' ').slice(1).join(' '),
-        email_address: order.customerEmail,
-        cell_number: order.customerPhone || '',
-        m_payment_id: order.id,
-        amount: order.total.toFixed(2),
-        item_name: `Order #${order.id}`,
-        item_description: order.items.map(i => i.title).join(', '),
-    };
-
-    for (const key in data) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = data[key];
-        formElement.appendChild(input);
+  const submitToPayFast = async (order: Order) => {
+    toast({
+      title: 'Redirecting to PayFast...',
+      description: 'Opening secure payment gateway...',
+    });
+    const res = await submitPayFastPayment({
+      orderId: order.id,
+      amount: order.total,
+      itemName: `Order #${order.id}`,
+      itemDescription: (order.items || []).map(i => i.title).join(', '),
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      customerPhone: order.customerPhone,
+      returnPath: `/payment-success/${order.id}`,
+      cancelPath: `/cart`,
+    });
+    if (!res.success) {
+      toast({
+        title: 'Payment Error',
+        description: res.error || 'Could not redirect to PayFast.',
+        variant: 'destructive',
+      });
+      setIsLoading(false);
     }
-    
-    document.body.appendChild(formElement);
-    formElement.submit();
-  }
+  };
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {

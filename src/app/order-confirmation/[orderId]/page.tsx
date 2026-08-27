@@ -14,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { addDays, format } from 'date-fns';
 
 import { getOrderDetailsAction } from '@/app/actions/order-actions';
+import { submitPayFastPayment } from '@/lib/payfast-client';
 
 const db = getFirestore(firebaseApp);
 
@@ -84,44 +85,24 @@ export default function OrderConfirmationPage() {
         };
     }, [orderId]); 
 
-    const handlePayNow = (order: Order) => {
-        const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = payfastUrl;
-
-        const customerName = order.customerName || 'Customer';
-        const nameParts = customerName.split(' ');
-        const firstName = nameParts[0] || 'Customer';
-        const lastName = nameParts.slice(1).join(' ') || 'Client';
-
-        const data: { [key: string]: string } = {
-            merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-            merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-            return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/payment-success/${order.id}`,
-            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/dashboard/orders`,
-            notify_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/api/payfast/notify`,
-            name_first: firstName,
-            name_last: lastName,
-            email_address: order.customerEmail || '',
-            cell_number: order.customerPhone || '',
-            m_payment_id: order.id,
-            amount: (order.clientTotal || order.total).toFixed(2),
-            item_name: `Order #${order.id}`,
-            item_description: (order.items || []).map(i => i.title).join(', ') || 'Service Order',
-        };
-
-        for (const key in data) {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = data[key];
-            form.appendChild(input);
+    const handlePayNow = async (order: Order) => {
+        setIsLoading(true);
+        const res = await submitPayFastPayment({
+            orderId: order.id,
+            amount: order.clientTotal || order.total,
+            itemName: `Order #${order.id}`,
+            itemDescription: (order.items || []).map(i => i.title).join(', ') || 'Service Order',
+            customerName: order.customerName,
+            customerEmail: order.customerEmail,
+            customerPhone: order.customerPhone,
+            returnPath: `/payment-success/${order.id}`,
+            cancelPath: `/dashboard/orders`,
+        });
+        if (!res.success) {
+            alert(res.error || 'Failed to redirect to PayFast.');
+            setIsLoading(false);
         }
-        
-        document.body.appendChild(form);
-        form.submit();
-  }
+    };
 
     if (isLoading) {
         return (

@@ -46,6 +46,7 @@ import { getNextOrderId } from '@/lib/sequence';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { submitPayFastPayment } from '@/lib/payfast-client';
 
 const db = getFirestore(firebaseApp);
 
@@ -105,35 +106,22 @@ function TopUpDialog({ partner }: { partner: User }) {
                 errorEmitter.emit('permission-error', permissionError);
             });
 
-            const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = payfastUrl;
+            const res = await submitPayFastPayment({
+                orderId,
+                amount: numericAmount,
+                itemName: `Practice Credit Top-up`,
+                itemDescription: `Practice credit wallet top-up of R${numericAmount.toFixed(2)}`,
+                customerName: partner.name,
+                customerEmail: partner.email,
+                customerPhone: partner.contactNumber || '',
+                returnPath: '/partner/dashboard',
+                cancelPath: '/partner/dashboard',
+            });
 
-            const data: { [key: string]: string } = {
-                merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-                merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-                return_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/dashboard`,
-                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/dashboard`,
-                notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
-                name_first: partner.name.split(' ')[0],
-                name_last: partner.name.split(' ').slice(1).join(' '),
-                email_address: partner.email,
-                m_payment_id: orderId,
-                amount: numericAmount.toFixed(2),
-                item_name: `Practice Credit Top-up`,
-            };
-
-            for (const key in data) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = data[key];
-                form.appendChild(input);
+            if (!res.success) {
+                toast({ title: 'Payment Gateway Error', description: res.error || 'Could not redirect to PayFast.', variant: 'destructive' });
+                setIsProcessing(false);
             }
-            
-            document.body.appendChild(form);
-            form.submit();
 
         } catch (e) {
             console.error(e);

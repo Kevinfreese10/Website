@@ -23,6 +23,7 @@ import { getNextOrderId } from '@/lib/sequence';
 import { adminCreateUserAction, sendOrderConfirmationEmailAction } from '@/app/actions';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import Link from 'next/link';
+import { submitPayFastPayment } from '@/lib/payfast-client';
 import { customAlphabet } from 'nanoid';
 
 const db = getFirestore(firebaseApp);
@@ -426,37 +427,26 @@ export default function CreatePartnerOrderForm({ onOrderCreated }: { onOrderCrea
         } else {
             toast({ title: 'Redirecting to PayFast...', description: 'Initiating wholesale payment.' });
 
-            const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-            const payfastForm = document.createElement('form');
-            payfastForm.method = 'POST';
-            payfastForm.action = payfastUrl;
+            const res = await submitPayFastPayment({
+                orderId,
+                amount: resellerTotal,
+                itemName: `Order #${orderId}`,
+                itemDescription: orderData.items.map(i => i.title).join(', '),
+                customerName: partner.companyName || partner.name || 'Partner User',
+                customerEmail: partner.email,
+                customerPhone: partner.contactNumber || '',
+                returnPath: `/payment-success/${orderId}`,
+                cancelPath: `/partner/orders`,
+            });
 
-            const nameParts = (partner.companyName || partner.name || 'Partner User').split(' ');
-            const payfastData: { [key: string]: string } = {
-                merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-                merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-                return_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/payment-success/${orderId}`,
-                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/partner/orders`,
-                notify_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za'}/api/payfast/notify`,
-                name_first: nameParts[0] || 'Partner',
-                name_last: nameParts.slice(1).join(' ') || 'User',
-                email_address: partner.email,
-                m_payment_id: orderId,
-                amount: resellerTotal.toFixed(2),
-                item_name: `Order #${orderId}`,
-                item_description: orderData.items.map(i => i.title).join(', '),
-            };
-
-            for (const key in payfastData) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = payfastData[key];
-                payfastForm.appendChild(input);
+            if (!res.success) {
+                toast({
+                    title: 'Payment Gateway Error',
+                    description: res.error || 'Could not redirect to PayFast.',
+                    variant: 'destructive'
+                });
+                setIsLoading(false);
             }
-
-            document.body.appendChild(payfastForm);
-            payfastForm.submit();
         }
 
     } catch (error: any) {

@@ -10,6 +10,7 @@ import { getFirestore, collection, query, where, getDocs } from 'firebase/firest
 import { firebaseApp } from '@/lib/firebase';
 import { Badge } from "@/components/ui/badge";
 import Link from 'next/link';
+import { submitPayFastPayment } from '@/lib/payfast-client';
 
 const db = getFirestore(firebaseApp);
 
@@ -52,35 +53,22 @@ export function PendingSetupScreen({ user }: { user: User }) {
             }
 
             // Redirect to PayFast
-            const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = payfastUrl;
+            const res = await submitPayFastPayment({
+                orderId: setupOrder.id,
+                amount: setupOrder.total,
+                itemName: 'Partner Platform Access Fee',
+                itemDescription: 'Annual Reseller Platform & Storefront Access Fee',
+                customerName: user.name,
+                customerEmail: user.email,
+                customerPhone: user.contactNumber || '',
+                returnPath: '/partner/dashboard',
+                cancelPath: '/partner/dashboard',
+            });
 
-            const data: { [key: string]: string } = {
-                merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-                merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-                return_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/dashboard`,
-                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/partner/dashboard`,
-                notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
-                name_first: user.name.split(' ')[0],
-                name_last: user.name.split(' ').slice(1).join(' '),
-                email_address: user.email,
-                m_payment_id: setupOrder.id,
-                amount: setupOrder.total.toFixed(2),
-                item_name: 'Partner Platform Access Fee',
-            };
-
-            for (const key in data) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = data[key];
-                form.appendChild(input);
+            if (!res.success) {
+                toast({ title: "Payment Gateway Error", description: res.error || "Could not redirect to PayFast.", variant: "destructive" });
+                setIsProcessing(false);
             }
-            
-            document.body.appendChild(form);
-            form.submit();
 
         } catch (e) {
             console.error("Setup retrieval failed:", e);

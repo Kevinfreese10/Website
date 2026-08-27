@@ -17,6 +17,7 @@ import { getNextOrderId } from '@/lib/sequence';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { submitPayFastPayment } from '@/lib/payfast-client';
 
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-ZA', {
@@ -101,40 +102,28 @@ export default function SubscriptionsPage() {
             await setDoc(doc(db, 'orders', orderId), orderData);
             
             // Redirect to PayFast with subscription parameters
-            const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = payfastUrl;
+            const res = await submitPayFastPayment({
+                orderId,
+                amount: newTotal,
+                itemName: `My Accountant Subscription`,
+                itemDescription: `Monthly subscription for AI Accountant services.`,
+                customerName: user.name,
+                customerEmail: user.email,
+                customerPhone: user.contactNumber || '',
+                returnPath: `/payment-success/${orderId}`,
+                cancelPath: `/dashboard/subscriptions`,
+                subscription: {
+                    subscription_type: '1',
+                    frequency: '3', // monthly
+                    cycles: '0', // indefinite
+                }
+            });
 
-            const data: { [key: string]: string } = {
-                merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-                merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-                return_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success/${orderId}`,
-                cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscriptions`,
-                notify_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payfast/notify`,
-                name_first: user.name.split(' ')[0],
-                name_last: user.name.split(' ').slice(1).join(' '),
-                email_address: user.email,
-                cell_number: user.contactNumber || '',
-                m_payment_id: orderId,
-                amount: newTotal.toFixed(2),
-                item_name: `My Accountant Subscription`,
-                item_description: `Monthly subscription for AI Accountant services.`,
-                subscription_type: '1', // 1 for subscription
-                frequency: '3', // 3 for monthly
-                cycles: '0', // 0 for indefinite
-            };
-
-            for (const key in data) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = data[key];
-                form.appendChild(input);
+            if (!res.success) {
+                toast({ title: 'Payment Error', description: res.error || 'Could not redirect to PayFast.', variant: 'destructive' });
+                setIsLoading(false);
+                setIsConfirmOpen(false);
             }
-            
-            document.body.appendChild(form);
-            form.submit();
 
         } catch (e) {
             console.error(e);

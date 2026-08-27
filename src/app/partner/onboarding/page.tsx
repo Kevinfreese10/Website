@@ -23,6 +23,7 @@ import { Progress } from '@/components/ui/progress';
 import { getNextOrderId } from '@/lib/sequence';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Order } from '@/lib/types';
+import { submitPayFastPayment } from '@/lib/payfast-client';
 import { checkSlugAvailability, revalidatePartnerStorefront } from '@/app/actions/partner-settings';
 
 const db = getFirestore(firebaseApp);
@@ -300,35 +301,22 @@ export default function PartnerOnboardingPage() {
       
       await setDoc(doc(db, 'orders', orderId), dfyOrder);
 
-      const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = payfastUrl;
+      const res = await submitPayFastPayment({
+        orderId,
+        amount: 1950.00,
+        itemName: 'Done-For-You Onboarding Setup',
+        itemDescription: 'Full setup and configuration of your accounting practice storefront.',
+        customerName: user.name,
+        customerEmail: user.email,
+        customerPhone: user.contactNumber || '',
+        returnPath: '/partner/onboarding?dfy_success=true',
+        cancelPath: '/partner/onboarding',
+      });
 
-      const data = {
-        merchant_id: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312',
-        merchant_key: process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx',
-        return_url: process.env.NEXT_PUBLIC_APP_URL + '/partner/onboarding?dfy_success=true',
-        cancel_url: process.env.NEXT_PUBLIC_APP_URL + '/partner/onboarding',
-        notify_url: process.env.NEXT_PUBLIC_APP_URL + '/api/payfast/notify',
-        name_first: user.name.split(' ')[0],
-        name_last: user.name.split(' ').slice(1).join(' '),
-        email_address: user.email,
-        m_payment_id: orderId,
-        amount: '1950.00',
-        item_name: 'Done-For-You Onboarding Setup',
-      };
-
-      for (const key in data) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = (data as any)[key];
-        form.appendChild(input);
+      if (!res.success) {
+        toast({ title: 'Payment Error', description: res.error || 'Could not redirect to PayFast.', variant: 'destructive' });
+        setIsProcessingDFY(false);
       }
-      
-      document.body.appendChild(form);
-      form.submit();
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'Could not initialize Done-For-You order.', variant: 'destructive' });
