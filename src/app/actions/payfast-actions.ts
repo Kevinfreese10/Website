@@ -67,6 +67,12 @@ const PAYFAST_CANONICAL_ORDER = [
   'cycles',
 ] as const;
 
+function rfc3986Encode(str: string): string {
+  return encodeURIComponent(str)
+    .replace(/[!'()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())
+    .replace(/%20/g, '+');
+}
+
 /**
  * Server action to generate an authenticated, MD5-signed PayFast checkout payload.
  * Strictly adheres to official PayFast integration requirements.
@@ -101,8 +107,8 @@ export async function createPayFastPaymentSessionAction(req: PayFastPaymentReque
     const firstName = nameParts[0] || 'Valued';
     const lastName = nameParts.slice(1).join(' ') || (firstName === 'Valued' ? 'Customer' : 'Client');
 
-    const cleanItemName = (req.itemName || `Order #${req.orderId}`).slice(0, 100);
-    const cleanItemDesc = (req.itemDescription || cleanItemName).slice(0, 255);
+    const cleanItemName = (req.itemName || `Order #${req.orderId}`).replace(/[\r\n\t]/g, ' ').trim().slice(0, 100);
+    const cleanItemDesc = (req.itemDescription || cleanItemName).replace(/[\r\n\t]/g, ' ').trim().slice(0, 255);
     const cleanPhone = (req.customerPhone || '').replace(/[^0-9+]/g, '').trim();
 
     const rawData: Record<string, string | undefined> = {
@@ -131,7 +137,7 @@ export async function createPayFastPaymentSessionAction(req: PayFastPaymentReque
       rawData.cycles = req.subscription.cycles || '0';
     }
 
-    // Build URL-encoded query string in exact canonical PayFast order
+    // Build URL-encoded query string in exact canonical PayFast order (RFC 3986)
     const fields: Record<string, string> = {};
     let pfOutput = '';
 
@@ -140,13 +146,13 @@ export async function createPayFastPaymentSessionAction(req: PayFastPaymentReque
       if (val !== undefined && val !== null && val.trim() !== '') {
         const trimmedVal = val.trim();
         fields[key] = trimmedVal;
-        pfOutput += `${key}=${encodeURIComponent(trimmedVal).replace(/%20/g, '+')}&`;
+        pfOutput += `${key}=${rfc3986Encode(trimmedVal)}&`;
       }
     }
 
     let finalString = pfOutput.slice(0, -1);
     if (passphrase) {
-      finalString += `&passphrase=${encodeURIComponent(passphrase).replace(/%20/g, '+')}`;
+      finalString += `&passphrase=${rfc3986Encode(passphrase)}`;
     }
 
     const signature = crypto.createHash('md5').update(finalString).digest('hex');
