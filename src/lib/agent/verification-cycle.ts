@@ -186,24 +186,78 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
     result.notePosted = true; // a draft was (re)generated
   }
 
-  // ---- 4. Emails to Kevin (status changes happen when the draft is posted) --------------------
-  if (result.state === 'complete') {
-    if (prev.completeEmailKey !== stateKey) { await sendCompleteEmail(order, result.items); result.emailedKevin = 'complete'; }
-  } else if (result.state === 'awaiting_consultant') {
-    const undecidedKey = keyOf(undecided);
-    if (prev.undecidedEmailKey !== undecidedKey) { await sendUndecidedEmail(order, result.items); result.emailedKevin = 'undecided'; }
+  // ---- 4. Emails to Kevin (Consolidated & Atomic Deduplication) --------------------
+  // Use a Firestore transaction to claim the email dispatch atomically so concurrent
+  // background runs or sequential upload events cannot send duplicate emails.
+  if (result.state === 'complete' || result.state === 'awaiting_consultant') {
+    let shouldSendComplete = false;
+    let shouldSendUndecided = false;
+
+    try {
+      await db.runTransaction(async (t) => {
+        const freshSnap = await t.get(ref);
+        if (!freshSnap.exists) return;
+        const freshOrder = freshSnap.data() as Order;
+        const currentV = (freshOrder as any).verification || {};
+
+        if (result.state === 'complete') {
+          if (!currentV.completeEmailSent && currentV.completeEmailKey !== stateKey) {
+            shouldSendComplete = true;
+            t.update(ref, {
+              'verification.completeEmailKey': stateKey,
+              'verification.completeEmailSent': true,
+              'verification.completeEmailSentAt': new Date().toISOString(),
+            });
+          }
+        } else if (result.state === 'awaiting_consultant') {
+          const undecidedKey = keyOf(undecided);
+          if (!currentV.undecidedEmailSent && currentV.undecidedEmailKey !== undecidedKey) {
+            shouldSendUndecided = true;
+            t.update(ref, {
+              'verification.undecidedEmailKey': undecidedKey,
+              'verification.undecidedEmailSent': true,
+              'verification.undecidedEmailSentAt': new Date().toISOString(),
+            });
+          }
+        }
+      });
+    } catch (txErr) {
+      console.error('[runVerificationCycle] Email dispatch transaction error:', txErr);
+    }
+
+    if (shouldSendComplete) {
+      try {
+        await sendCompleteEmail(order, result.items);
+        result.emailedKevin = 'complete';
+      } catch (err) {
+        console.error('[runVerificationCycle] Failed to send complete email:', err);
+      }
+    } else if (shouldSendUndecided) {
+      try {
+        await sendUndecidedEmail(order, result.items);
+        result.emailedKevin = 'undecided';
+      } catch (err) {
+        console.error('[runVerificationCycle] Failed to send undecided email:', err);
+      }
+    }
   }
 
   await ref.update(cleanFirestoreData({
     verification: {
-      lastRunAt: new Date().toISOString(), lastTrigger: trigger, state: result.state,
+      lastRunAt: new Date().toISOString(),
+      lastTrigger: trigger,
+      state: result.state,
       lastClientNoteKey: prev.lastClientNoteKey || null,
       lastClientNoteAt: prev.lastClientNoteAt || null,
       draftClientNote: result.draftClientNote
         ? { text: result.draftClientNote, key: stateKey, state: result.state, createdAt: new Date().toISOString(), trigger }
         : (alreadyTold ? null : prev.draftClientNote || null),
-      completeEmailKey: result.emailedKevin === 'complete' ? stateKey : prev.completeEmailKey || null,
-      undecidedEmailKey: result.emailedKevin === 'undecided' ? keyOf(undecided) : prev.undecidedEmailKey || null,
+      completeEmailKey: result.state === 'complete' ? stateKey : null,
+      completeEmailSent: result.state === 'complete' ? (prev.completeEmailSent || result.emailedKevin === 'complete') : false,
+      completeEmailSentAt: result.emailedKevin === 'complete' ? new Date().toISOString() : prev.completeEmailSentAt || null,
+      undecidedEmailKey: result.state === 'awaiting_consultant' ? keyOf(undecided) : null,
+      undecidedEmailSent: result.state === 'awaiting_consultant' ? (prev.undecidedEmailSent || result.emailedKevin === 'undecided') : false,
+      undecidedEmailSentAt: result.emailedKevin === 'undecided' ? new Date().toISOString() : prev.undecidedEmailSentAt || null,
       counts: { approved: result.items.filter(i => i.outcome === 'approved').length, rejected: result.items.filter(i => i.outcome === 'rejected').length, missing: result.items.filter(i => i.outcome === 'missing').length, pending: undecided.length },
     },
     lastAgentRunAt: new Date().toISOString(),
