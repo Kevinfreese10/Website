@@ -29,6 +29,45 @@ export interface PayFastSessionResult {
 }
 
 /**
+ * PayFast official canonical parameter ordering for payment initiation.
+ * Parameters must be strictly in this order when constructing the signature
+ * and the submitted form payload.
+ */
+const PAYFAST_CANONICAL_ORDER = [
+  'merchant_id',
+  'merchant_key',
+  'return_url',
+  'cancel_url',
+  'notify_url',
+  'name_first',
+  'name_last',
+  'email_address',
+  'cell_number',
+  'm_payment_id',
+  'amount',
+  'item_name',
+  'item_description',
+  'custom_int1',
+  'custom_int2',
+  'custom_int3',
+  'custom_int4',
+  'custom_int5',
+  'custom_str1',
+  'custom_str2',
+  'custom_str3',
+  'custom_str4',
+  'custom_str5',
+  'email_confirmation',
+  'confirmation_address',
+  'payment_method',
+  'subscription_type',
+  'billing_date',
+  'recurring_amount',
+  'frequency',
+  'cycles',
+] as const;
+
+/**
  * Server action to generate an authenticated, MD5-signed PayFast checkout payload.
  * Strictly adheres to official PayFast integration requirements.
  */
@@ -41,7 +80,7 @@ export async function createPayFastPaymentSessionAction(req: PayFastPaymentReque
     const merchantId = process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID || '23836312';
     const merchantKey = process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY || 'h4fkhz6ouoksx';
     const processUrl = process.env.NEXT_PUBLIC_PAYFAST_PROCESS_URL || 'https://www.payfast.co.za/eng/process';
-    const passphrase = process.env.PAYFAST_PASSPHRASE || 'MikeOxlong10';
+    const passphrase = (process.env.PAYFAST_PASSPHRASE || '').trim();
 
     const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za').replace(/\/+$/, '');
     
@@ -66,7 +105,7 @@ export async function createPayFastPaymentSessionAction(req: PayFastPaymentReque
     const cleanItemDesc = (req.itemDescription || cleanItemName).slice(0, 255);
     const cleanPhone = (req.customerPhone || '').replace(/[^0-9+]/g, '').trim();
 
-    const data: Record<string, string> = {
+    const rawData: Record<string, string | undefined> = {
       merchant_id: merchantId,
       merchant_key: merchantKey,
       return_url: returnUrl,
@@ -75,49 +114,48 @@ export async function createPayFastPaymentSessionAction(req: PayFastPaymentReque
       name_first: firstName,
       name_last: lastName,
       email_address: (req.customerEmail || 'client@myacc.co.za').trim(),
+      cell_number: cleanPhone || undefined,
       m_payment_id: String(req.orderId),
       amount: Number(req.amount).toFixed(2),
       item_name: cleanItemName,
       item_description: cleanItemDesc,
     };
 
-    if (cleanPhone) {
-      data.cell_number = cleanPhone;
-    }
-
     if (req.subscription) {
-      data.subscription_type = req.subscription.subscription_type || '1';
-      data.frequency = req.subscription.frequency || '3';
-      data.cycles = req.subscription.cycles || '0';
-      if (req.subscription.billing_date) {
-        data.billing_date = req.subscription.billing_date;
-      }
-      if (req.subscription.recurring_amount !== undefined) {
-        data.recurring_amount = Number(req.subscription.recurring_amount).toFixed(2);
-      }
+      rawData.subscription_type = req.subscription.subscription_type || '1';
+      rawData.billing_date = req.subscription.billing_date;
+      rawData.recurring_amount = req.subscription.recurring_amount !== undefined 
+        ? Number(req.subscription.recurring_amount).toFixed(2) 
+        : undefined;
+      rawData.frequency = req.subscription.frequency || '3';
+      rawData.cycles = req.subscription.cycles || '0';
     }
 
-    // Build URL encoded query string in exact order for PayFast MD5 signature
+    // Build URL-encoded query string in exact canonical PayFast order
+    const fields: Record<string, string> = {};
     let pfOutput = '';
-    for (const key in data) {
-      const val = data[key];
-      if (val !== undefined && val !== null && val !== '') {
-        pfOutput += `${key}=${encodeURIComponent(val).replace(/%20/g, '+')}&`;
+
+    for (const key of PAYFAST_CANONICAL_ORDER) {
+      const val = rawData[key];
+      if (val !== undefined && val !== null && val.trim() !== '') {
+        const trimmedVal = val.trim();
+        fields[key] = trimmedVal;
+        pfOutput += `${key}=${encodeURIComponent(trimmedVal).replace(/%20/g, '+')}&`;
       }
     }
 
     let finalString = pfOutput.slice(0, -1);
-    if (passphrase && passphrase.trim() !== '') {
-      finalString += `&passphrase=${encodeURIComponent(passphrase.trim()).replace(/%20/g, '+')}`;
+    if (passphrase) {
+      finalString += `&passphrase=${encodeURIComponent(passphrase).replace(/%20/g, '+')}`;
     }
 
     const signature = crypto.createHash('md5').update(finalString).digest('hex');
-    data.signature = signature;
+    fields.signature = signature;
 
     return {
       success: true,
       processUrl,
-      fields: data,
+      fields,
     };
   } catch (error: any) {
     console.error('Error generating PayFast payment session:', error);
