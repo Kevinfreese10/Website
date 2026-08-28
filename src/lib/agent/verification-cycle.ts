@@ -80,7 +80,30 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
   const uploadsToWrite: DocumentUpload[] = [];
 
   // ---- 1. Decide every requirement -----------------------------------------------------------
-  for (const svc of order.serviceSnapshots || []) {
+  const serviceSnapshots: OrderServiceSnapshot[] = (order.serviceSnapshots && order.serviceSnapshots.length > 0)
+    ? order.serviceSnapshots
+    : (order.items || []).map((item: any) => ({
+        serviceId: item.serviceId || item.service?.id || item.id || 'service',
+        title: item.title || item.name || item.service?.title || 'Service',
+        checklist: [],
+        requirements: (item.service?.informationToProvide || item.informationToProvide || []).map((r: any) => ({
+          id: r.id,
+          label: r.label,
+          type: r.type,
+          helpText: r.helpText,
+          isRequired: r.isRequired !== false,
+          isConditional: r.isConditional,
+          conditionalQuestion: r.conditionalQuestion,
+          isSecret: r.isSecret,
+          documentKind: r.documentKind,
+          inNameOf: r.inNameOf,
+          maxAgeDays: r.maxAgeDays,
+          mustBeCertified: r.mustBeCertified,
+          aiHint: r.aiHint,
+        })),
+      }));
+
+  for (const svc of serviceSnapshots) {
     for (const req of svc.requirements || []) {
       const up = findUpload(uploads, svc, req);
       const item: ItemVerdict = { requirementId: req.id, label: req.label, serviceTitle: svc.title, uploadId: up?.id, outcome: 'missing', changedThisRun: false };
@@ -107,11 +130,12 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
         item.outcome = 'missing'; item.clientFix = `Please upload "${req.label}".`; result.items.push(item); continue;
       }
 
-      // Text answer → format check only.
+      // Text answer → format check & fact extraction.
       if (up.type === 'text' || (!up.fileUrl && !up.files?.length && up.textValue)) {
-        const mech = up.mechanicalCheck || summarizeText(req, up);
-        if (mech.status === 'fail') {
-          const msg = mech.issues.filter(i => i.severity === 'fail').map(i => i.message).join(' ');
+        const textSummary = summarizeText(req, up);
+        item.facts = textSummary.facts;
+        if (textSummary.status === 'fail') {
+          const msg = textSummary.issues.filter(i => i.severity === 'fail').map(i => i.message).join(' ');
           await decide(orderId, up, 'rejected', msg, result); item.outcome = 'rejected'; item.reason = msg; item.clientFix = msg; item.changedThisRun = true;
         } else {
           await decide(orderId, up, 'approved', 'Format check passed.', result); item.outcome = 'approved'; item.changedThisRun = true;
@@ -286,9 +310,24 @@ async function decide(orderId: string, up: DocumentUpload, status: 'approved' | 
   if (!(r as any).success) result.notes.push(`could not mark "${up.requirementLabel}" ${status}: ${(r as any).error}`);
 }
 
-function summarizeText(req: ServiceRequirement, up: DocumentUpload) {
+function summarizeText(req: ServiceRequirement, up: DocumentUpload): { status: 'pass' | 'fail'; issues: any[]; facts?: ItemVerdict['facts'] } {
+  const val = up.isEncrypted ? '•••••••• (encrypted)' : (up.textValue || '');
   const r = checkTextValue({ label: req.label, documentKind: req.documentKind, isSecret: req.isSecret }, up.isEncrypted ? 'x' : (up.textValue || ''));
-  return { status: r.issues.some(i => i.severity === 'fail') ? 'fail' as const : 'pass' as const, issues: r.issues };
+  const isFail = r.issues.some(i => i.severity === 'fail');
+  
+  let facts: ItemVerdict['facts'] = undefined;
+  const l = (req.label || '').toLowerCase();
+  if (l.includes('username')) {
+    facts = { kind: 'sars_efiling_username', names: [up.textValue || ''] };
+  } else if (l.includes('password') || req.isSecret) {
+    facts = { kind: 'sars_efiling_password', identifiers: ['Password: Provided & Encrypted at rest'] };
+  } else if (l.includes('otp')) {
+    facts = { kind: 'sars_efiling_otp_preference', identifiers: [`Value: ${val}`] };
+  } else if (val) {
+    facts = { kind: 'text_input', identifiers: [`Value: ${val}`] };
+  }
+
+  return { status: isFail ? 'fail' : 'pass', issues: r.issues, facts };
 }
 
 async function extract(up: DocumentUpload, req: ServiceRequirement, today: Date): Promise<ExtractedDocumentFacts> {
