@@ -192,22 +192,14 @@ export const SARS_EFILING_LOGIN_PACK: DocumentRequirementPreset[] = [
     aiHint: 'SARS eFiling login password.',
   },
   {
-    id: 'doc_sars_efiling_otp_required',
-    label: 'SARS eFiling OTP Required? (Yes / No)',
-    type: 'text',
-    helpText: 'Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).',
-    isRequired: true,
-    aiHint: 'Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).',
-  },
-  {
     id: 'doc_sars_efiling_otp_time',
     label: 'Best Time to Contact for SARS OTP',
     type: 'text',
     helpText: 'Preferred time window (e.g. 10:00 - 12:00) and direct phone number so our team can coordinate live OTP approval.',
-    isRequired: false,
+    isRequired: true,
     isConditional: true,
-    conditionalQuestion: 'If OTP is required, when is the best time and number to contact you?',
-    aiHint: 'Client preferred contact window and phone number for OTP coordination during filing.',
+    conditionalQuestion: 'Does your SARS eFiling login require an OTP or Mobile App confirmation? (Yes / No)',
+    aiHint: 'Client preferred contact window and phone number for OTP coordination if OTP is required.',
   },
 ];
 
