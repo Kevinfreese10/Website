@@ -97,7 +97,7 @@ export type DocumentKind =
   | 'afs' | 'management_accounts' | 'trial_balance' | 'payslip' | 'irp5' | 'it3'
   | 'medical_aid_cert' | 'ra_cert' | 'logbook' | 'invoice' | 'receipt'
   | 'share_certificate' | 'resolution' | 'power_of_attorney' | 'letterhead'
-  | 'criminal_clearance' | 'letter_of_good_standing' | 'coida_registration'
+  | 'criminal_clearance' | 'letter_of_good_standing' | 'coida_registration' | 'coida_industry' | 'coida_cf1b'
   | 'cidb_certificate' | 'completion_certificate' | 'letter_of_award' | 'photo' | 'other';
 
 export type PortalId = 'cipc' | 'efiling' | 'cf_filing' | 'ufiling' | 'cidb' | 'csd' | 'ncr' | 'nhbrc' | 'dsd' | 'other';

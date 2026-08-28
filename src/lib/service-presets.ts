@@ -217,6 +217,48 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
     ],
   },
   {
+    category: 'COIDA & Labour Compliance',
+    items: [
+      {
+        id: 'doc_coida_industry_classification',
+        label: 'COIDA Classification of Industries',
+        type: 'coida_industry',
+        helpText: 'Select one or more applicable industry classifications from the official 23 COIDA classes (W.Cl.150T) for Compensation Fund assessment rate.',
+        isRequired: true,
+        aiHint: 'Official COIDA Classification of Industries selection matching business activities.',
+      },
+      {
+        id: 'doc_coida_reference',
+        label: 'Compensation Fund (COIDA) Reference Number',
+        type: 'text',
+        helpText: 'Department of Employment & Labour 99-series compensation registration number.',
+        isRequired: false,
+      },
+      {
+        id: 'doc_coida_cf1b',
+        label: 'COIDA CF-1B Change of Nature of Business Application',
+        type: 'pdf',
+        helpText: 'Completed Department of Labour CF-1B form with proof of operations and director signature.',
+        isRequired: true,
+        aiHint: 'COIDA CF-1B application form for Compensation Fund registration or nature of business classification change.',
+      },
+      {
+        id: 'doc_coida_logs',
+        label: 'COIDA Letter of Good Standing (LOGS)',
+        type: 'pdf',
+        helpText: 'Valid Certificate or Letter of Good Standing issued by the Compensation Commissioner.',
+        isRequired: false,
+      },
+      {
+        id: 'doc_payroll_summary',
+        label: 'Monthly Payroll Summary / Employee Register',
+        type: 'excel',
+        helpText: 'Spreadsheet detailing employee full names, ID numbers, designations, and earnings for COIDA assessment.',
+        isRequired: true,
+      },
+    ],
+  },
+  {
     category: 'Banking & Financial Statements',
     items: [
       {
@@ -312,33 +354,6 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
         label: 'SARS Vehicle Travel Logbook',
         type: 'excel',
         helpText: 'Detailed electronic logbook with business kilometers, private kilometers, and vehicle details.',
-        isRequired: false,
-      },
-    ],
-  },
-  {
-    category: 'Labour & Payroll Data (COIDA / UIF)',
-    items: [
-      {
-        id: 'doc_coida_industry_classification',
-        label: 'COIDA Nature of Business / Industry Classification (W.Cl.150T)',
-        type: 'coida_industry',
-        helpText: 'Select one or more applicable industry classifications from the official 23 COIDA classes for Compensation Fund assessment rate.',
-        isRequired: true,
-        aiHint: 'Official COIDA Classification of Industries selection matching business activities.',
-      },
-      {
-        id: 'doc_payroll_summary',
-        label: 'Monthly Payroll Summary / Employee Register',
-        type: 'excel',
-        helpText: 'Spreadsheet detailing employee full names, ID numbers, designations, and earnings.',
-        isRequired: true,
-      },
-      {
-        id: 'doc_coida_reference',
-        label: 'Compensation Fund (COIDA) Reference Number',
-        type: 'text',
-        helpText: 'Department of Labour 99-series compensation registration number.',
         isRequired: false,
       },
     ],

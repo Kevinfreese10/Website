@@ -90,6 +90,8 @@ const DOCUMENT_KIND_OPTIONS: { value: string; label: string }[] = [
   { value: 'criminal_clearance', label: 'Criminal clearance' },
   { value: 'letter_of_good_standing', label: 'Letter of good standing' },
   { value: 'coida_registration', label: 'COIDA registration' },
+  { value: 'coida_industry', label: 'COIDA Classification of Industries' },
+  { value: 'coida_cf1b', label: 'COIDA CF-1B Form (Nature of Business)' },
   { value: 'cidb_certificate', label: 'CIDB certificate' },
   { value: 'completion_certificate', label: 'Completion certificate' },
   { value: 'letter_of_award', label: 'Letter of award' },
@@ -1153,13 +1155,13 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                       className="h-8 text-xs font-bold border-indigo-500/40 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 gap-1.5 shadow-xs"
                       onClick={() => appendInfo({ 
                         id: `req_coida_${Date.now().toString(36)}`, 
-                        label: 'COIDA Nature of Business / Industry Classification', 
+                        label: 'COIDA Classification of Industries', 
                         type: 'coida_industry', 
-                        helpText: 'Select one or more applicable industry classifications from the official 23 COIDA classes (W.Cl.150T).', 
+                        helpText: 'Select one or more applicable industry classifications from the official 23 COIDA classes (W.Cl.150T) for Compensation Fund assessment rates.', 
                         isRequired: true 
                       })}
                     >
-                      <Building2 className="h-3.5 w-3.5" /> + COIDA Industries
+                      <Building2 className="h-3.5 w-3.5" /> + COIDA Classification of Industries
                     </Button>
 
                     <Button 
@@ -1222,7 +1224,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                           control={form.control}
                           name={`informationToProvide.${index}.type`}
                           render={({ field }) => (
-                            <FormItem className="w-52 shrink-0 space-y-1">
+                            <FormItem className="w-64 shrink-0 space-y-1">
                               <FormLabel className="text-xs font-semibold">Accepted Format</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value || 'pdf'}>
                                 <FormControl>
@@ -1236,7 +1238,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                                   <SelectItem value="excel">File (Excel/CSV)</SelectItem>
                                   <SelectItem value="any">File (Any format)</SelectItem>
                                   <SelectItem value="text">Text / Number Input</SelectItem>
-                                  <SelectItem value="coida_industry">🏛️ COIDA Industries Dropdown</SelectItem>
+                                  <SelectItem value="coida_industry">🏛️ COIDA Classification of Industries (Dropdown)</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
