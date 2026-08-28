@@ -168,7 +168,7 @@ type ServiceFormProps = {
 export default function ServiceForm({ service, allServices, onSubmit, onCancel }: ServiceFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'deliverables' | 'prerequisites' | 'intake' | 'coida' | 'seo'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'deliverables' | 'prerequisites' | 'intake' | 'seo'>('overview');
   const [isAiUpdating, setIsAiUpdating] = useState(false);
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [mediaLibraryTarget, setMediaLibraryTarget] = useState<'image' | 'attachment'>('image');
@@ -249,7 +249,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
   const watchedPrice = form.watch('price') || 0;
   const watchedResellerPrice = form.watch('resellerPrice') || 0;
   const watchedTitle = form.watch('title') || '';
-  const watchedCoidaIndustries = form.watch('coidaIndustries') || [];
   const metaTitleLength = form.watch('metaTitle')?.length || 0;
   const metaDescriptionLength = form.watch('metaDescription')?.length || 0;
 
@@ -585,10 +584,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                 <ClipboardList className="h-3.5 w-3.5" />
                 Client Documents ({infoFields.length})
               </TabsTrigger>
-              <TabsTrigger value="coida" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
-                <Building2 className="h-3.5 w-3.5 text-primary" />
-                COIDA Industries ({watchedCoidaIndustries.length})
-              </TabsTrigger>
               <TabsTrigger value="seo" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
                 <Globe className="h-3.5 w-3.5" />
                 SEO & Google Trust
@@ -734,25 +729,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                     )}
                   />
                 </div>
-              </div>
-
-              {/* COIDA Industries Classification Card */}
-              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
-                <FormField
-                  control={form.control}
-                  name="coidaIndustries"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <CoidaIndustrySelect
-                          value={field.value || []}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               {/* Pricing & Profit Margins Card */}
@@ -1431,37 +1407,6 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                     </p>
                   )}
                 </div>
-              </div>
-            </TabsContent>
-
-            {/* TAB: COIDA INDUSTRIES */}
-            <TabsContent value="coida" className="space-y-4 m-0 focus-visible:outline-none">
-              <div className="p-5 rounded-xl border bg-card space-y-4 shadow-sm">
-                <div className="flex items-center gap-2 pb-2 border-b">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground">COIDA Classification of Industries</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Link this service to official Department of Employment & Labour industry classifications (W.Cl.150T) across all 23 statutory classes.
-                    </p>
-                  </div>
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="coidaIndustries"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <CoidaIndustrySelect
-                          value={field.value || []}
-                          onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
             </TabsContent>
 
