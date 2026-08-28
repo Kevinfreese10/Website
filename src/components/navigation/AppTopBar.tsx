@@ -6,6 +6,7 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { QuickCreate } from '@/components/navigation/QuickCreate';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
+import { FeatureTip } from '@/components/onboarding/FeatureTip';
 
 /**
  * Slim sticky top bar for the admin and client dashboard shells:
@@ -27,6 +28,7 @@ export function AppTopBar({
   }, []);
 
   return (
+    <>
     <header className="sticky top-0 z-30 -mx-4 mb-4 flex h-[53px] items-center gap-3 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
       <SidebarTrigger className="md:hidden" />
       <Breadcrumbs homeHref={homeHref} className="min-w-0 flex-1" />
@@ -54,5 +56,16 @@ export function AppTopBar({
       {extra}
       {showQuickCreate && <QuickCreate />}
     </header>
+    <FeatureTip
+      id="command-palette"
+      title="Jump anywhere with the command palette"
+      className="mb-4"
+    >
+      Press <kbd className="rounded border bg-muted px-1 font-mono text-[10px]">{isMac ? '⌘' : 'Ctrl'}</kbd>{' '}
+      <kbd className="rounded border bg-muted px-1 font-mono text-[10px]">K</kbd> to search clients, orders and
+      pages, or press <kbd className="rounded border bg-muted px-1 font-mono text-[10px]">?</kbd> to see every
+      keyboard shortcut.
+    </FeatureTip>
+    </>
   );
 }

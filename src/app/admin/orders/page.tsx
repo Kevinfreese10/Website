@@ -26,6 +26,7 @@ import { OrdersTable } from '@/components/admin/orders/OrdersTable';
 import { OrderQuickView } from '@/components/admin/orders/OrderQuickView';
 import { FilterChips } from '@/components/data-table/filter-chips';
 import { SavedViewsMenu } from '@/components/data-table/saved-views-menu';
+import { FeatureTip } from '@/components/onboarding/FeatureTip';
 import { useSavedViews, type SavedView } from '@/components/data-table/use-saved-views';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -814,7 +815,16 @@ export default function AdminOrdersPage() {
                         onDelete={savedViews.deleteView}
                     />
                 }
-                subheader={<FilterChips chips={filterChips} onClearAll={clearAllFilters} />}
+                subheader={
+                    <div className="space-y-2">
+                        <FilterChips chips={filterChips} onClearAll={clearAllFilters} />
+                        <FeatureTip id="saved-views" title="Save the filters you use every day">
+                            Set up a search and filters, then hit the bookmark icon to save them as a view —
+                            &quot;My overdue&quot;, &quot;Waiting for client&quot;, whatever fits how you work. Select rows to
+                            assign or change status in bulk.
+                        </FeatureTip>
+                    </div>
+                }
                 empty={
                     <EmptyState
                         icon={Search}
