@@ -10,6 +10,7 @@ import ExternalScripts from '@/components/layout/ExternalScripts';
 import Script from 'next/script';
 import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/schema/productSchema';
 import { SITE_URL, STATIC_OG_IMAGE } from '@/lib/constants';
+import { ConnectivityBanner } from '@/components/shared/ConnectivityBanner';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -47,6 +48,7 @@ export const metadata: Metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#1a73e8',
 };
 
 export default function RootLayout({
@@ -75,6 +77,7 @@ export default function RootLayout({
             <ClientProviders>
                 <FirebaseErrorListener />
                 <AppShell>
+                  <ConnectivityBanner />
                   {children}
                 </AppShell>
             </ClientProviders>
