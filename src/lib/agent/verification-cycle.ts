@@ -78,16 +78,37 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
   let uploads: DocumentUpload[] = order.documentUploads || [];
   let extractions = 0;
   const uploadsToWrite: DocumentUpload[] = [];
+  if (order.originalOrderId && uploads.length === 0) {
+    const origSnap = await db.collection('orders').doc(order.originalOrderId).get();
+    if (origSnap.exists) {
+      const origData = origSnap.data() as Order;
+      uploads = origData.documentUploads || [];
+    }
+  }
 
   // ---- 1. Decide every requirement -----------------------------------------------------------
-  const serviceSnapshots: OrderServiceSnapshot[] = (order.serviceSnapshots && order.serviceSnapshots.length > 0)
+  let serviceSnapshots: OrderServiceSnapshot[] = (order.serviceSnapshots && order.serviceSnapshots.length > 0)
     ? order.serviceSnapshots
-    : (order.items || []).map((item: any) => ({
-        serviceId: item.serviceId || item.service?.id || item.id || 'service',
-        title: item.title || item.name || item.service?.title || 'Service',
+    : [];
+
+  if (serviceSnapshots.length === 0 || serviceSnapshots.every(s => !s.requirements || s.requirements.length === 0)) {
+    const servicesSnap = await db.collection('services').get();
+    const allServices = servicesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+
+    serviceSnapshots = (order.items || []).map((item: any) => {
+      const itemId = item.id || item.serviceId || item.title;
+      const svc = allServices.find(s =>
+        s.id === itemId ||
+        (item.id && s.title?.toLowerCase() === String(item.id).toLowerCase()) ||
+        (item.title && s.title?.toLowerCase() === String(item.title).toLowerCase()) ||
+        s.slug === itemId
+      );
+      return {
+        serviceId: svc?.id || item.serviceId || item.id || 'service',
+        title: svc?.title || item.title || item.name || 'Service',
         checklist: [],
-        requirements: (item.service?.informationToProvide || item.informationToProvide || []).map((r: any) => ({
-          id: r.id,
+        requirements: (svc?.informationToProvide || item.service?.informationToProvide || item.informationToProvide || []).map((r: any) => ({
+          id: r.id || r.label,
           label: r.label,
           type: r.type,
           helpText: r.helpText,
@@ -101,7 +122,9 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
           mustBeCertified: r.mustBeCertified,
           aiHint: r.aiHint,
         })),
-      }));
+      };
+    });
+  }
 
   for (const svc of serviceSnapshots) {
     for (const req of svc.requirements || []) {
@@ -115,7 +138,12 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
       if (!up) { item.outcome = 'missing'; item.clientFix = `Please upload "${req.label}"${req.helpText ? ` — ${req.helpText}` : ''}.`; result.items.push(item); continue; }
 
       // Already decided (by Kevin or a previous run) → carry forward.
-      if (up.status === 'approved') { item.outcome = 'approved'; item.facts = factsSummary((up.aiVerification?.extractedData as any)?.facts); result.items.push(item); continue; }
+      if (up.status === 'approved') {
+        item.outcome = 'approved';
+        item.facts = factsSummary((up.aiVerification?.extractedData as any)?.facts) || (up.type === 'text' || up.textValue ? summarizeText(req, up).facts : undefined);
+        result.items.push(item);
+        continue;
+      }
       // System-rejected = flagged by us (marker), or the rejection reason is verbatim one of our own mechanical messages.
       const systemRejected = up.status === 'rejected' && ((up as any).aiVerification?.decidedBy === 'system' || (up.mechanicalCheck?.issues || []).some(i => i.message === up.rejectionReason));
       if (up.status === 'rejected' && !(trigger === 'manual' && systemRejected)) { item.outcome = 'rejected'; item.reason = up.rejectionReason; item.clientFix = up.rejectionReason || `Please re-upload "${req.label}".`; result.items.push(item); continue; }
@@ -249,7 +277,7 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
       console.error('[runVerificationCycle] Email dispatch transaction error:', txErr);
     }
 
-    if (trigger === 'notify') {
+    if (trigger === 'notify' || trigger === 'manual') {
       try {
         await sendAuditFindingsEmail(order, result.items, result.state, trigger);
         result.emailedKevin = result.state === 'complete' ? 'complete' : 'undecided';
