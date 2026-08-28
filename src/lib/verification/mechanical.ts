@@ -200,6 +200,7 @@ const TYPE_EXPECTATIONS: Record<NonNullable<ServiceRequirement['type']>, Mechani
   excel: ['xlsx', 'csv'],
   any: ['pdf', 'jpeg', 'png', 'webp', 'heic', 'xlsx', 'csv', 'docx', 'zip'],
   text: [],
+  coida_industry: [],
 };
 
 export function inspectFile(buf: Uint8Array | Buffer, fileName: string, expectedType: ServiceRequirement['type'] = 'any'): { issues: MechanicalIssue[]; facts: MechanicalFacts } {

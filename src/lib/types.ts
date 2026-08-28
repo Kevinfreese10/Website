@@ -219,7 +219,7 @@ export type FulfillmentStep = {
 export type ServiceRequirement = {
   id?: string;
   label: string;
-  type?: 'text' | 'pdf' | 'excel' | 'image' | 'any';
+  type?: 'text' | 'pdf' | 'excel' | 'image' | 'any' | 'coida_industry';
   helpText?: string;
   isConditional?: boolean;
   conditionalQuestion?: string;

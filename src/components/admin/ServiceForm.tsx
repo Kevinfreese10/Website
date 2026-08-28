@@ -16,7 +16,7 @@ import {
   Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload, 
   ArrowUp, ArrowDown, HelpCircle, CheckCircle2, DollarSign, Package, 
   ClipboardList, Globe, Clock, Layers, Star, ExternalLink, Search, Copy, BookOpen,
-  FileText, FileSignature, Check, Eye
+  FileText, FileSignature, Check, Eye, Building2
 } from 'lucide-react';
 import { generateServiceDetails } from '@/ai/flows/generate-service-details';
 import { generateBlogPostSeo } from '@/ai/flows/generate-blog-post-seo';
@@ -122,7 +122,7 @@ const formSchema = z.object({
   informationToProvide: z.array(z.object({
     id: z.string().optional(),
     label: z.string().min(1, 'Label cannot be empty.'),
-    type: z.enum(['text', 'pdf', 'excel', 'image', 'any']).optional(),
+    type: z.enum(['text', 'pdf', 'excel', 'image', 'any', 'coida_industry']).optional(),
     helpText: z.string().optional(),
     isConditional: z.boolean().optional(),
     conditionalQuestion: z.string().optional(),
@@ -166,7 +166,7 @@ type ServiceFormProps = {
 export default function ServiceForm({ service, allServices, onSubmit, onCancel }: ServiceFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'deliverables' | 'prerequisites' | 'intake' | 'seo'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'deliverables' | 'prerequisites' | 'intake' | 'coida' | 'seo'>('overview');
   const [isAiUpdating, setIsAiUpdating] = useState(false);
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [mediaLibraryTarget, setMediaLibraryTarget] = useState<'image' | 'attachment'>('image');
@@ -247,6 +247,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
   const watchedPrice = form.watch('price') || 0;
   const watchedResellerPrice = form.watch('resellerPrice') || 0;
   const watchedTitle = form.watch('title') || '';
+  const watchedCoidaIndustries = form.watch('coidaIndustries') || [];
   const metaTitleLength = form.watch('metaTitle')?.length || 0;
   const metaDescriptionLength = form.watch('metaDescription')?.length || 0;
 
@@ -581,6 +582,10 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
               <TabsTrigger value="intake" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
                 <ClipboardList className="h-3.5 w-3.5" />
                 Client Documents ({infoFields.length})
+              </TabsTrigger>
+              <TabsTrigger value="coida" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
+                <Building2 className="h-3.5 w-3.5 text-primary" />
+                COIDA Industries ({watchedCoidaIndustries.length})
               </TabsTrigger>
               <TabsTrigger value="seo" className="gap-2 text-xs font-semibold data-[state=active]:shadow-sm">
                 <Globe className="h-3.5 w-3.5" />
@@ -1145,6 +1150,22 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                       type="button" 
                       variant="outline" 
                       size="sm" 
+                      className="h-8 text-xs font-bold border-indigo-500/40 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 gap-1.5 shadow-xs"
+                      onClick={() => appendInfo({ 
+                        id: `req_coida_${Date.now().toString(36)}`, 
+                        label: 'COIDA Nature of Business / Industry Classification', 
+                        type: 'coida_industry', 
+                        helpText: 'Select one or more applicable industry classifications from the official 23 COIDA classes (W.Cl.150T).', 
+                        isRequired: true 
+                      })}
+                    >
+                      <Building2 className="h-3.5 w-3.5" /> + COIDA Industries
+                    </Button>
+
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
                       className="h-8 text-xs font-bold border-primary/40 text-primary hover:bg-primary/5 gap-1.5 shadow-xs"
                       onClick={() => setIsDocMultiOpen(true)}
                     >
@@ -1201,7 +1222,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                           control={form.control}
                           name={`informationToProvide.${index}.type`}
                           render={({ field }) => (
-                            <FormItem className="w-44 shrink-0 space-y-1">
+                            <FormItem className="w-52 shrink-0 space-y-1">
                               <FormLabel className="text-xs font-semibold">Accepted Format</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value || 'pdf'}>
                                 <FormControl>
@@ -1215,6 +1236,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                                   <SelectItem value="excel">File (Excel/CSV)</SelectItem>
                                   <SelectItem value="any">File (Any format)</SelectItem>
                                   <SelectItem value="text">Text / Number Input</SelectItem>
+                                  <SelectItem value="coida_industry">🏛️ COIDA Industries Dropdown</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -1257,6 +1279,15 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                           </Button>
                         </div>
                       </div>
+
+                      {form.watch(`informationToProvide.${index}.type`) === 'coida_industry' && (
+                        <div className="p-2.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center gap-2 text-xs text-indigo-900 dark:text-indigo-200">
+                          <Building2 className="h-4 w-4 text-indigo-600 shrink-0" />
+                          <span>
+                            <strong>Interactive COIDA Dropdown:</strong> When the client completes this requirement on their order dashboard, they will be presented with a searchable multi-select dropdown covering all 23 official COIDA Industry Classes (W.Cl.150T).
+                          </span>
+                        </div>
+                      )}
 
                       <FormField
                         control={form.control}
@@ -1398,6 +1429,37 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                     </p>
                   )}
                 </div>
+              </div>
+            </TabsContent>
+
+            {/* TAB: COIDA INDUSTRIES */}
+            <TabsContent value="coida" className="space-y-4 m-0 focus-visible:outline-none">
+              <div className="p-5 rounded-xl border bg-card space-y-4 shadow-sm">
+                <div className="flex items-center gap-2 pb-2 border-b">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">COIDA Classification of Industries</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Link this service to official Department of Employment & Labour industry classifications (W.Cl.150T) across all 23 statutory classes.
+                    </p>
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="coidaIndustries"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <CoidaIndustrySelect
+                          value={field.value || []}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </TabsContent>
 

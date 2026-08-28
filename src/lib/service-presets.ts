@@ -17,7 +17,7 @@ export type PrerequisitePreset = {
 export type DocumentRequirementPreset = {
   id: string;
   label: string;
-  type: 'pdf' | 'excel' | 'image' | 'text' | 'any';
+  type: 'pdf' | 'excel' | 'image' | 'text' | 'any' | 'coida_industry';
   helpText: string;
   isRequired: boolean;
   aiHint?: string;
@@ -319,6 +319,14 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
   {
     category: 'Labour & Payroll Data (COIDA / UIF)',
     items: [
+      {
+        id: 'doc_coida_industry_classification',
+        label: 'COIDA Nature of Business / Industry Classification (W.Cl.150T)',
+        type: 'coida_industry',
+        helpText: 'Select one or more applicable industry classifications from the official 23 COIDA classes for Compensation Fund assessment rate.',
+        isRequired: true,
+        aiHint: 'Official COIDA Classification of Industries selection matching business activities.',
+      },
       {
         id: 'doc_payroll_summary',
         label: 'Monthly Payroll Summary / Employee Register',

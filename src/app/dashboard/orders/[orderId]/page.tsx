@@ -14,7 +14,7 @@ import {
   ArrowLeft, Loader2, Upload, ClipboardCheck, MessageSquare, Send, Mail, 
   CheckCircle, AlertTriangle, Paperclip, FileText, FileSpreadsheet, FileImage, 
   File as FileIcon, Trash2, ExternalLink, HelpCircle, Info, Plus, RefreshCw, Edit3, CheckCircle2,
-  MessageSquareQuote, Clock, Calendar, ShoppingBag, CreditCard, User as UserIcon, Phone
+  MessageSquareQuote, Clock, Calendar, ShoppingBag, CreditCard, User as UserIcon, Phone, Check
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/utils';
@@ -36,6 +36,7 @@ import { getAuth } from 'firebase/auth';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 import { db, firebaseApp } from '@/lib/firebase';
 import { getStatusVariant } from '@/lib/order-status';
+import CoidaIndustrySelect from '@/components/admin/CoidaIndustrySelect';
 
 const storage = getStorage(firebaseApp);
 
@@ -1158,6 +1159,23 @@ export default function ClientOrderDetailsPage() {
                                                                                     onChange={(e) => e.target.files && handleFilesUpload(e.target.files, item.service?.id || item.id, info.label, true)} 
                                                                                 />
                                                                                 <p className="text-[11px] text-muted-foreground">You can select multiple files of any type.</p>
+                                                                            </div>
+                                                                        ) : info.type === 'coida_industry' ? (
+                                                                            <div className="space-y-3 p-3 bg-muted/20 border rounded-lg">
+                                                                                <CoidaIndustrySelect 
+                                                                                    value={textInputs[info.label] ? textInputs[info.label].split(',').map(s => s.trim()).filter(Boolean) : []}
+                                                                                    onChange={(selected) => handleTextChange(info.label, selected.join(', '))}
+                                                                                />
+                                                                                <div className="flex justify-end">
+                                                                                    <Button 
+                                                                                        size="sm" 
+                                                                                        className="h-8 text-xs gap-1.5"
+                                                                                        disabled={!textInputs[info.label]}
+                                                                                        onClick={() => handleTextSubmit(item.service?.id || item.id, info.label)}
+                                                                                    >
+                                                                                        <Check className="h-3.5 w-3.5" /> Save COIDA Industries
+                                                                                    </Button>
+                                                                                </div>
                                                                             </div>
                                                                         ) : (
                                                                             <div className="flex items-center gap-2">
