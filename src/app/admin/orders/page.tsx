@@ -23,6 +23,7 @@ import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Fil
 import { TableSkeleton } from '@/components/ui/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
 import { OrdersTable } from '@/components/admin/orders/OrdersTable';
+import { OrderQuickView } from '@/components/admin/orders/OrderQuickView';
 import { FilterChips } from '@/components/data-table/filter-chips';
 import { SavedViewsMenu } from '@/components/data-table/saved-views-menu';
 import { useSavedViews, type SavedView } from '@/components/data-table/use-saved-views';
@@ -300,6 +301,7 @@ export default function AdminOrdersPage() {
   type OrdersViewState = { searchTerm: string; statusFilter: string; assignedFilter: string };
   const savedViews = useSavedViews<OrdersViewState>('admin-orders', user?.id);
   const [activeViewName, setActiveViewName] = useState<string | null>(null);
+  const [quickViewOrder, setQuickViewOrder] = useState<Order | null>(null);
 
   const applySavedView = (view: SavedView<OrdersViewState>) => {
     setSearchTerm(view.state.searchTerm ?? '');
@@ -790,6 +792,7 @@ export default function AdminOrdersPage() {
                 isLoading={isLoading}
                 onAssign={handleAssignment}
                 onUpdateStatus={handleUpdateStatus}
+                onRowView={setQuickViewOrder}
                 toolbarRight={
                     <SavedViewsMenu
                         views={savedViews.views}
@@ -821,6 +824,13 @@ export default function AdminOrdersPage() {
                     </Button>
                 )}
             </CardFooter>
+            <OrderQuickView
+                order={quickViewOrder ? orders.find(o => o.id === quickViewOrder.id) ?? quickViewOrder : null}
+                staff={allStaff}
+                onOpenChange={(open) => { if (!open) setQuickViewOrder(null); }}
+                onUpdateStatus={handleUpdateStatus}
+                canEdit={user?.role === 'admin' || user?.role === 'staff'}
+            />
         </Card>
     </div>
   );

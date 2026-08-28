@@ -74,6 +74,8 @@ export interface OrdersTableProps {
   onAssign: (orderId: string, staffId: string) => Promise<void> | void;
   onUpdateStatus: (orderId: string, status: Order['status']) => Promise<void> | void;
   empty?: React.ReactNode;
+  /** Row click → open quick view. */
+  onRowView?: (order: Order) => void;
   toolbar?: React.ReactNode;
   toolbarRight?: React.ReactNode;
   subheader?: React.ReactNode;
@@ -93,6 +95,7 @@ export function OrdersTable({
   onAssign,
   onUpdateStatus,
   empty,
+  onRowView,
   toolbar,
   toolbarRight,
   subheader,
@@ -408,6 +411,7 @@ export function OrdersTable({
         toolbar={toolbar}
         toolbarRight={toolbarRight}
         subheader={subheader}
+        onRowClick={onRowView}
       />
       <BulkActionBar count={selectedRows.length} onClear={() => setRowSelection({})}>
         {canAssign && (

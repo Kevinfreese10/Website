@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { recordRecentItem } from '@/hooks/use-recent-items';
+import { OrderStickyHeader } from '@/components/admin/orders/OrderStickyHeader';
+import { DocumentPreviewDrawer, type PreviewDoc } from '@/components/shared/DocumentPreviewDrawer';
+import { FileDropZone } from '@/components/ui/file-drop-zone';
 import { notFound, useParams } from 'next/navigation';
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp, collection, getDocs, where, query, setDoc, orderBy, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -146,6 +149,7 @@ export default function AdminOrderDetailsPage() {
   const [pendingStatusChange, setPendingStatusChange] = useState<Order['status'] | null>(null);
   // Attached files & Screenshots state for live preview
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [previewDoc, setPreviewDoc] = useState<PreviewDoc | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const noteForm = useForm<z.infer<typeof noteFormSchema>>({
@@ -1205,6 +1209,14 @@ export default function AdminOrderDetailsPage() {
 
             <Button variant="outline" asChild><Link href="/admin/orders"><ArrowLeft className="mr-2 h-4 w-4" />Back to Orders</Link></Button>
 
+            <OrderStickyHeader
+                order={order}
+                customerName={order.endCustomerName || order.customerName}
+                onStatusChange={handleStatusChangeRequest}
+            />
+
+            <DocumentPreviewDrawer doc={previewDoc} onOpenChange={(open) => { if (!open) setPreviewDoc(null); }} />
+
             {/* Prerequisite Dependency Warning Banner */}
             {incompletePrerequisites.length > 0 && (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3.5 text-amber-900">
@@ -1437,9 +1449,9 @@ export default function AdminOrderDetailsPage() {
                                                                         <div className="grid grid-cols-1 gap-1.5">
                                                                             {upload.files.map((f, fIdx) => (
                                                                                 <div key={f.id || fIdx} className="flex items-center justify-between bg-card p-2 rounded-md border text-xs gap-2">
-                                                                                    <a href={f.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline flex items-center gap-1.5 truncate max-w-md">
+                                                                                    <button type="button" onClick={() => setPreviewDoc({ name: f.fileName || `Attachment ${fIdx + 1}`, url: f.fileUrl })} className="text-primary font-semibold hover:underline flex items-center gap-1.5 truncate max-w-md text-left">
                                                                                         <Download className="h-3.5 w-3.5 shrink-0 text-primary" /> {f.fileName || `Attachment ${fIdx + 1}`}
-                                                                                    </a>
+                                                                                    </button>
                                                                                     {f.fileSize && (
                                                                                         <span className="text-[10px] text-muted-foreground font-mono shrink-0">
                                                                                             {formatFileSize(f.fileSize)}
@@ -1451,9 +1463,9 @@ export default function AdminOrderDetailsPage() {
                                                                     </div>
                                                                 ) : upload.fileUrl ? (
                                                                     <div className="flex items-center justify-between bg-card p-2.5 rounded-md border text-xs">
-                                                                        <a href={upload.fileUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold hover:underline flex items-center gap-1.5 truncate max-w-md">
+                                                                        <button type="button" onClick={() => setPreviewDoc({ name: upload.fileName || 'Uploaded Document', url: upload.fileUrl! })} className="text-primary font-semibold hover:underline flex items-center gap-1.5 truncate max-w-md text-left">
                                                                             <Download className="h-4 w-4 shrink-0 text-primary" /> {upload.fileName || 'View Uploaded Document'}
-                                                                        </a>
+                                                                        </button>
                                                                     </div>
                                                                 ) : upload.textValue ? (
                                                                     <div className="bg-muted/70 p-3 rounded-md border text-xs">
@@ -1577,6 +1589,10 @@ export default function AdminOrderDetailsPage() {
                             </div>
                             <Separator className="my-4" />
                             <Form {...noteForm}>
+                            <FileDropZone
+                                onFiles={(files) => setAttachedFiles(prev => [...prev, ...files])}
+                                onRejected={(msg) => toast({ title: 'File rejected', description: msg, variant: 'destructive' })}
+                            >
                             <form onSubmit={noteForm.handleSubmit(onNoteSubmit)} className="space-y-4">
                                 <FormField control={noteForm.control} name="noteText" render={({ field }) => ( 
                                     <FormItem>
@@ -1669,6 +1685,7 @@ export default function AdminOrderDetailsPage() {
 
                                 <div className="flex justify-between items-center"><div className="flex gap-2"><Button type="submit" size="sm" disabled={isLoading}>{isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}Post Note</Button><Button type="button" variant="outline" size="sm" onClick={handleProofread} disabled={isProofreading}>{isProofreading ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Sparkles className="mr-2" />}Proofread</Button></div></div>
                             </form>
+                            </FileDropZone>
                             </Form>
                              <Separator className="my-4" />
                             
@@ -1728,7 +1745,7 @@ export default function AdminOrderDetailsPage() {
                                                         <p className="text-xs text-muted-foreground">{safeFormatDate(note.date, 'dd/MM/yyyy, HH:mm')}</p>
                                                     </div>
                                                     {isEmail ? ( <div><div className="flex items-center gap-2 mb-1"><Mail className="h-4 w-4 text-muted-foreground" /><p className="text-sm font-semibold">{note.subject}</p></div><p className="text-sm italic text-muted-foreground">"{note.text}"</p></div> ) : ( <p className="text-sm whitespace-pre-wrap">{note.text}</p> )}
-                                                     {note.attachments && note.attachments.length > 0 && ( <div className="mt-2 space-y-1">{note.attachments.map((att, i) => ( <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1"><Paperclip className="h-4 w-4"/>{att.name}</a> ))}</div> )}
+                                                     {note.attachments && note.attachments.length > 0 && ( <div className="mt-2 space-y-1">{note.attachments.map((att, i) => ( <button key={i} type="button" onClick={() => setPreviewDoc({ name: att.name, url: att.url })} className="text-sm text-primary hover:underline flex items-center gap-1 text-left"><Paperclip className="h-4 w-4"/>{att.name}</button> ))}</div> )}
                                                 </div>
                                             </div>
                                         );
