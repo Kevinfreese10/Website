@@ -20,6 +20,9 @@ export type DocumentRequirementPreset = {
   type: 'pdf' | 'excel' | 'image' | 'text' | 'any' | 'coida_industry';
   helpText: string;
   isRequired: boolean;
+  isSecret?: boolean;
+  isConditional?: boolean;
+  conditionalQuestion?: string;
   aiHint?: string;
 };
 
@@ -170,7 +173,49 @@ export const STANDARD_PREREQUISITE_GROUPS: PresetCategory<PrerequisitePreset>[] 
 /**
  * Curated standard client document uploads & intake data requirements.
  */
+export const SARS_EFILING_LOGIN_PACK: DocumentRequirementPreset[] = [
+  {
+    id: 'doc_sars_efiling_username',
+    label: 'SARS eFiling Username',
+    type: 'text',
+    helpText: 'Primary eFiling username for your personal or company profile. Please ensure the username is active.',
+    isRequired: true,
+    aiHint: 'SARS eFiling login username.',
+  },
+  {
+    id: 'doc_sars_efiling_password',
+    label: 'SARS eFiling Password',
+    type: 'text',
+    helpText: '⚠️ IMPORTANT: Please test your password on sarsefiling.co.za before submitting to avoid delays or account lockouts. (Stored encrypted at rest).',
+    isRequired: true,
+    isSecret: true,
+    aiHint: 'SARS eFiling login password.',
+  },
+  {
+    id: 'doc_sars_efiling_otp_required',
+    label: 'SARS eFiling OTP Required? (Yes / No)',
+    type: 'text',
+    helpText: 'Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).',
+    isRequired: true,
+    aiHint: 'Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).',
+  },
+  {
+    id: 'doc_sars_efiling_otp_time',
+    label: 'Best Time to Contact for SARS OTP',
+    type: 'text',
+    helpText: 'Preferred time window (e.g. 10:00 - 12:00) and direct phone number so our team can coordinate live OTP approval.',
+    isRequired: false,
+    isConditional: true,
+    conditionalQuestion: 'If OTP is required, when is the best time and number to contact you?',
+    aiHint: 'Client preferred contact window and phone number for OTP coordination during filing.',
+  },
+];
+
 export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequirementPreset>[] = [
+  {
+    category: 'SARS eFiling Login & OTP Pack',
+    items: SARS_EFILING_LOGIN_PACK,
+  },
   {
     category: 'Identity & Statutory Documents',
     items: [

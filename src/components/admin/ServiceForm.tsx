@@ -16,7 +16,7 @@ import {
   Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload, 
   ArrowUp, ArrowDown, HelpCircle, CheckCircle2, DollarSign, Package, 
   ClipboardList, Globe, Clock, Layers, Star, ExternalLink, Search, Copy, BookOpen,
-  FileText, FileSignature, Check, Eye, Building2
+  FileText, FileSignature, Check, Eye, Building2, KeyRound
 } from 'lucide-react';
 import { generateServiceDetails } from '@/ai/flows/generate-service-details';
 import { generateBlogPostSeo } from '@/ai/flows/generate-blog-post-seo';
@@ -37,6 +37,7 @@ import { normalizeRequirementsWithIds } from '@/lib/service-utils';
 import { 
   STANDARD_PREREQUISITE_GROUPS, 
   STANDARD_DOCUMENT_REQUIREMENT_GROUPS, 
+  SARS_EFILING_LOGIN_PACK,
   extractUniquePrerequisitesFromServices, 
   extractUniqueDocumentsFromServices,
   DocumentRequirementPreset
@@ -306,12 +307,51 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         type: preset.type,
         helpText: preset.helpText || '',
         isRequired: preset.isRequired ?? true,
+        isSecret: preset.isSecret ?? false,
+        isConditional: preset.isConditional ?? false,
+        conditionalQuestion: preset.conditionalQuestion || '',
+        aiHint: preset.aiHint || '',
       });
     });
     toast({
       title: 'Documents Added',
       description: `Added ${selectedPresets.length} standard client document requirement${selectedPresets.length > 1 ? 's' : ''}.`,
     });
+  };
+
+  const handleAddSarsEfilingPack = () => {
+    let addedCount = 0;
+    SARS_EFILING_LOGIN_PACK.forEach(preset => {
+      const existing = form.getValues('informationToProvide')?.some(
+        (i: any) => i?.label?.trim().toLowerCase() === preset.label.trim().toLowerCase()
+      );
+      if (!existing) {
+        appendInfo({
+          id: `req_sars_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
+          label: preset.label,
+          type: preset.type,
+          helpText: preset.helpText || '',
+          isRequired: preset.isRequired ?? true,
+          isSecret: preset.isSecret ?? false,
+          isConditional: preset.isConditional ?? false,
+          conditionalQuestion: preset.conditionalQuestion || '',
+          aiHint: preset.aiHint || '',
+        });
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      toast({
+        title: 'SARS eFiling Login Pack Added',
+        description: `Populated ${addedCount} credential & OTP intake fields with automated testing warning notices.`,
+      });
+    } else {
+      toast({
+        title: 'Already Added',
+        description: 'The SARS eFiling login requirements are already in this service.',
+      });
+    }
   };
 
   const handleAiUpdate = async () => {
@@ -1138,6 +1178,16 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                       })}
                     >
                       <Building2 className="h-3.5 w-3.5" /> + COIDA Classification of Industries
+                    </Button>
+
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 text-xs font-bold border-amber-500/40 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 gap-1.5 shadow-xs"
+                      onClick={handleAddSarsEfilingPack}
+                    >
+                      <KeyRound className="h-3.5 w-3.5 text-amber-600" /> + SARS eFiling Login Pack
                     </Button>
 
                     <Button 

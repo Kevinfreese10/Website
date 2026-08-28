@@ -1178,17 +1178,30 @@ export default function ClientOrderDetailsPage() {
                                                                                 </div>
                                                                             </div>
                                                                         ) : (
-                                                                            <div className="flex items-center gap-2">
-                                                                                <Input 
-                                                                                    type={info.isSecret || info.label.toLowerCase().includes('password') ? "password" : "text"} 
-                                                                                    className="h-8 text-xs font-medium" 
-                                                                                    placeholder={info.isSecret || info.label.toLowerCase().includes('password') ? "Enter password securely..." : "Enter information here..."} 
-                                                                                    value={textInputs[info.label] || ''} 
-                                                                                    onChange={(e) => handleTextChange(info.label, e.target.value)} 
-                                                                                />
-                                                                                <Button size="sm" className="h-8 text-xs shrink-0" onClick={() => handleTextSubmit(item.service?.id || item.id, info.label)}>
-                                                                                    Save
-                                                                                </Button>
+                                                                            <div className="space-y-2">
+                                                                                {(info.isSecret || info.label.toLowerCase().includes('password') || info.label.toLowerCase().includes('efiling username')) && (
+                                                                                    <div className="p-2.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2">
+                                                                                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                                                                                        <div>
+                                                                                            <p className="font-bold">Please test your login details before submitting</p>
+                                                                                            <p className="text-[11px] text-amber-800 dark:text-amber-300">
+                                                                                                Please verify your username & password on <a href="https://www.sarsefiling.co.za" target="_blank" rel="noopener noreferrer" className="underline font-semibold hover:text-amber-950">sarsefiling.co.za</a> before saving to prevent login rejections or account lockouts.
+                                                                                            </p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <Input 
+                                                                                        type={info.isSecret || info.label.toLowerCase().includes('password') ? "password" : "text"} 
+                                                                                        className="h-8 text-xs font-medium" 
+                                                                                        placeholder={info.isSecret || info.label.toLowerCase().includes('password') ? "Enter password securely..." : "Enter information here..."} 
+                                                                                        value={textInputs[info.label] || ''} 
+                                                                                        onChange={(e) => handleTextChange(info.label, e.target.value)} 
+                                                                                    />
+                                                                                    <Button size="sm" className="h-8 text-xs shrink-0" onClick={() => handleTextSubmit(item.service?.id || item.id, info.label)}>
+                                                                                        Save
+                                                                                    </Button>
+                                                                                </div>
                                                                             </div>
                                                                         )}
 
