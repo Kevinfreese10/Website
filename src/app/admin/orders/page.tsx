@@ -22,6 +22,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter, RefreshCw, Link as LinkIcon, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { TableSkeleton } from '@/components/ui/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
+import { OrdersTable } from '@/components/admin/orders/OrdersTable';
+import { FilterChips } from '@/components/data-table/filter-chips';
+import { SavedViewsMenu } from '@/components/data-table/saved-views-menu';
+import { useSavedViews, type SavedView } from '@/components/data-table/use-saved-views';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -291,6 +295,48 @@ export default function AdminOrdersPage() {
         return true;
     });
   }, [orders, searchTerm, statusFilter, assignedFilter, user]);
+
+  // ── Saved views + filter chips (Premium UI Phase 3) ──
+  type OrdersViewState = { searchTerm: string; statusFilter: string; assignedFilter: string };
+  const savedViews = useSavedViews<OrdersViewState>('admin-orders', user?.id);
+  const [activeViewName, setActiveViewName] = useState<string | null>(null);
+
+  const applySavedView = (view: SavedView<OrdersViewState>) => {
+    setSearchTerm(view.state.searchTerm ?? '');
+    handleStatusFilterChange(view.state.statusFilter ?? 'active');
+    handleAssignedFilterChange(view.state.assignedFilter ?? 'all');
+    setActiveViewName(view.name);
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    handleStatusFilterChange('active');
+    handleAssignedFilterChange('all');
+    setActiveViewName(null);
+  };
+
+  const filterChips = useMemo(() => {
+    const chips: { id: string; label: string; onRemove: () => void }[] = [];
+    if (searchTerm) {
+      chips.push({ id: 'search', label: `Search: "${searchTerm}"`, onRemove: () => setSearchTerm('') });
+    }
+    if (statusFilter !== 'active') {
+      chips.push({
+        id: 'status',
+        label: statusFilter === 'all' ? 'Status: All (incl. history)' : `Status: ${statusFilter}`,
+        onRemove: () => handleStatusFilterChange('active'),
+      });
+    }
+    if (assignedFilter !== 'all') {
+      const label =
+        assignedFilter === 'mine' ? 'Assigned: Me'
+        : assignedFilter === 'unassigned' ? 'Assigned: Unassigned'
+        : `Assigned: ${allStaff.find(st => st.id === assignedFilter)?.name ?? assignedFilter}`;
+      chips.push({ id: 'assigned', label, onRemove: () => handleAssignedFilterChange('all') });
+    }
+    return chips;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, statusFilter, assignedFilter, allStaff]);
 
    const handleAssignment = async (orderId: string, staffId: string) => {
     try {
@@ -735,222 +781,35 @@ export default function AdminOrdersPage() {
                 </div>
             </CardHeader>
             <CardContent className="p-0">
-            {isLoading ? (
-                <div className="p-6"><TableSkeleton rows={8} columns={8} /></div>
-            ) : filteredOrders.length === 0 ? (
-                <EmptyState
-                    icon={Search}
-                    title="No orders match your filters"
-                    description="Try a different search term or clear the active filters to see all orders."
-                    action={
-                        <Button variant="outline" onClick={() => { 
-                            setSearchTerm(''); 
-                            handleStatusFilterChange('all'); 
-                            handleAssignedFilterChange('all'); 
-                        }}>Clear Filters</Button>
-                    }
-                />
-            ) : (
-                <Table>
-                <TableHeader className="bg-muted/5">
-                    <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Assigned To</TableHead>
-                    <TableHead>Last Update</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {filteredOrders.map((order) => {
-                    const assignee = getAssignee(order.assignedTo?.[0]);
-                    const lastNote = order.notes && order.notes.length > 0 ? order.notes[order.notes.length - 1] : null;
-                    const lastNoteAuthor = lastNote ? getAssignee(lastNote.authorId) : null;
-                    const customerName = getCustomerName(order);
-                    return (
-                    <TableRow key={order.id} className="hover:bg-muted/5 transition-colors">
-                        <TableCell className="font-bold text-slate-900">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                                <p>{order.originalOrderId || order.id}</p>
-                                {order.dependsOnOrderIds && order.dependsOnOrderIds.length > 0 && (() => {
-                                    const hasIncomplete = orders.some(o => order.dependsOnOrderIds?.includes(o.id) && o.status !== 'Completed');
-                                    return (
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <span className="cursor-help inline-flex">
-                                                        {hasIncomplete ? (
-                                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-500/10 text-amber-700 border-amber-500/30 gap-1 font-bold">
-                                                                <AlertTriangle className="h-2.5 w-2.5 text-amber-600" />
-                                                                Blocked
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-700 border-emerald-500/30 gap-1 font-bold">
-                                                                <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600" />
-                                                                Prereqs Done
-                                                            </Badge>
-                                                        )}
-                                                    </span>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p className="text-xs">Prerequisites: {order.dependsOnOrderIds.map(id => `#${id}`).join(', ')}</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    );
-                                })()}
-                                {order.blockedOrderIds && order.blockedOrderIds.length > 0 && (
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <span className="cursor-help inline-flex">
-                                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-500/10 text-blue-700 border-blue-500/30 gap-1 font-bold">
-                                                        <LinkIcon className="h-2.5 w-2.5 text-blue-600" />
-                                                        Blocks #{order.blockedOrderIds.join(', #')}
-                                                    </Badge>
-                                                </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p className="text-xs">Dependent Orders waiting on this: {order.blockedOrderIds.map(id => `#${id}`).join(', ')}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                )}
-                            </div>
-                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{safeFormatDate(order.date, 'dd MMM yyyy')}</p>
-                        </TableCell>
-                        <TableCell>
-                            <div className="flex flex-col">
-                                <span className="font-semibold text-slate-700">{customerName}</span>
-                                <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{order.customerEmail}</span>
-                            </div>
-                        </TableCell>
-                        <TableCell>
-                        {assignee ? (
-                            <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Badge variant="outline" className="font-bold border-primary/20 text-primary bg-primary/5 cursor-help">
-                                        {assignee.name.split(' ')[0]}
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                <p>{assignee.name} ({assignee.department})</p>
-                                </TooltipContent>
-                            </Tooltip>
-                            </TooltipProvider>
-                        ) : (
-                            <span className="text-muted-foreground text-xs italic">Unassigned</span>
-                        )}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                            {lastNote ? (
-                                <div className="flex items-start gap-2">
-                                    <MessageSquare className="h-3 w-3 text-primary flex-shrink-0 mt-0.5" />
-                                    <div className="text-[10px] leading-tight">
-                                        <span className="font-black text-slate-900">{lastNoteAuthor ? lastNoteAuthor.name.split(' ')[0] : 'Client'}:</span>
-                                        <span className="text-muted-foreground ml-1">"{lastNote.subject || lastNote.text}"</span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tighter opacity-50">No updates</span>
-                            )}
-                        </TableCell>
-                        <TableCell>
-                        <Badge variant={getStatusVariant(order.status)} className="text-[10px] uppercase font-black px-2 py-0.5">
-                            {(order.status as string) === 'Outsourced' ? 'Processing' : order.status}
-                        </Badge>
-                        </TableCell>
-                        <TableCell>
-                        <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-tighter">{getSourceText(order)}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-black tabular-nums text-slate-900">{formatPrice(order.total)}</TableCell>
-                        <TableCell className="text-right">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem asChild>
-                                     <Link href={`/admin/orders/${order.id}`}>View Order</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                {(user?.role === 'admin' || user?.role === 'staff') && (
-                                    <>
-                                        <DropdownMenuSub>
-                                        <DropdownMenuSubTrigger>Assign To</DropdownMenuSubTrigger>
-                                        <DropdownMenuSubContent>
-                                            {eligibleStaff.map(staff => (
-                                            <DropdownMenuItem 
-                                                key={staff.id} 
-                                                onClick={() => handleAssignment(order.id, staff.id)}
-                                                disabled={order.assignedTo?.[0] === staff.id}
-                                            >
-                                                {staff.name} {staff.department ? `(${staff.department})` : ''}
-                                            </DropdownMenuItem>
-                                            ))}
-                                        </DropdownMenuSubContent>
-                                        </DropdownMenuSub>
-                                        <DropdownMenuSeparator />
-                                    </>
-                                )}
-                                <DropdownMenuItem
-                                    onClick={() => handleUpdateStatus(order.id, 'Pending Payment')}
-                                    disabled={order.status === 'Pending Payment'}
-                                >
-                                    Mark as Pending Payment
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => handleUpdateStatus(order.id, 'Processing')}
-                                    disabled={order.status === 'Processing'}
-                                >
-                                    Mark as Processing
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => handleUpdateStatus(order.id, 'Waiting on Customer')}
-                                    disabled={order.status === 'Waiting on Customer'}
-                                >
-                                    Mark as Waiting on Customer
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => handleUpdateStatus(order.id, 'Waiting on External')}
-                                    disabled={order.status === 'Waiting on External'}
-                                >
-                                    Mark as Waiting on External
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => handleUpdateStatus(order.id, 'Under Review')}
-                                    disabled={order.status === 'Under Review'}
-                                >
-                                    Mark as Under Review
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => handleUpdateStatus(order.id, 'Completed')}
-                                    disabled={order.status === 'Completed'}
-                                >
-                                    Mark as Completed
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => handleUpdateStatus(order.id, 'Cancelled')}
-                                    className="text-destructive"
-                                    disabled={order.status === 'Cancelled'}
-                                >
-                                    Cancel Order
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        </TableCell>
-                    </TableRow>
-                    )})}
-                </TableBody>
-                </Table>
-            )}
+            <OrdersTable
+                orders={filteredOrders}
+                allOrders={orders}
+                staff={allStaff}
+                eligibleStaff={eligibleStaff}
+                canAssign={user?.role === 'admin' || user?.role === 'staff'}
+                isLoading={isLoading}
+                onAssign={handleAssignment}
+                onUpdateStatus={handleUpdateStatus}
+                toolbarRight={
+                    <SavedViewsMenu
+                        views={savedViews.views}
+                        activeView={activeViewName}
+                        currentState={{ searchTerm, statusFilter, assignedFilter }}
+                        onApply={applySavedView}
+                        onSave={savedViews.saveView}
+                        onDelete={savedViews.deleteView}
+                    />
+                }
+                subheader={<FilterChips chips={filterChips} onClearAll={clearAllFilters} />}
+                empty={
+                    <EmptyState
+                        icon={Search}
+                        title="No orders match your filters"
+                        description="Try a different search term or clear the active filters to see all orders."
+                        action={<Button variant="outline" onClick={clearAllFilters}>Clear Filters</Button>}
+                    />
+                }
+            />
             </CardContent>
             <CardFooter className="bg-muted/30 border-t py-3 justify-between items-center">
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
