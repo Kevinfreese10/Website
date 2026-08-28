@@ -1,7 +1,7 @@
 ---
 name: order-audit-and-document-generator
 description: >
-  Audits client orders across all My Accountant services, verifies uploaded KYC/statutory documents with AI vision, generates compliant statutory PDFs (Accounting Officer Letters, NCR Form 2, resolutions, share certificates, COIDA Form CF-1B, Power of Attorney, BEE affidavits, etc.), and routes delivery via Communication History or Kevin's review inbox based on confidence thresholds.
+  Audits client orders across all My Accountant services, verifies uploaded KYC/statutory documents with AI vision, generates compliant statutory PDFs (Accounting Officer Letters, NCR Form 2, Fee Annexures, resolutions, share certificates, COIDA Form CF-1B, Special Power of Attorney, BEE affidavits, etc.), and routes delivery via Communication History or Kevin's review inbox based on strict confidence thresholds and state machine rules.
 ---
 
 # Order Audit & Document Generator
@@ -11,132 +11,168 @@ This skill guides the end-to-end audit, document verification, statutory PDF gen
 ## Overview
 
 ```
-[Order Triggered (Single ID / Batch / Service Filter)]
+[Order Triggered (Single ID / Batch / Live Listener)]
                          │
                          ▼
         [1. Ingest & Fetch Order Context]
                          │
                          ▼
-   [2. Document Verification (Gemini Multimodal)]
-     ├─ Missing docs? ──► Auto-draft client reminder in Communication History (order.notes)
-     └─ Valid docs?   ──► Extract entity metadata & confidence score
+    [2. Document Verification & KYC Pre-Flight]
+      ├─ Missing docs? ──► Move to "Waiting on Customer" & post checklist reminder
+      └─ Valid docs?   ──► Extract entity metadata & proceed to Drafting
                          │
                          ▼
-          [3. Generate Statutory PDFs]
-     (Accounting Officer Letter, NCR Form 2, CF-1B, Special POA, BEE Affidavits, etc.)
+           [3. Generate Statutory PDFs]
+      (Form NCR 2, Fee Annexure, Special POA, Resolutions, Accountant's Letters, etc.)
                          │
                          ▼
-  [4. CHECKPOINT: Present PDF Summary to Kevin]
+   [4. CHECKPOINT: Present PDF Summary / Dispatch Review]
                          │
-          ┌──────────────┴──────────────┐
-          ▼                             ▼
- [Confidence ≥ 90%]            [Confidence < 90%]
-          │                             │
- [Auto-post Deliverable to]     [Email PDF to Kevin for review]
- [Communication History]                │
-                                [Kevin approves → Deliver to order.notes]
+           ┌─────────────┴─────────────┐
+           ▼                           ▼
+  [Client Signature Needed]     [Statutory Lodgement / Delivery]
+           │                           │
+  [Post Drafts to Notes &]      [Lodge with Regulator (NCR/COIDA)]
+  [Set "Waiting on Customer"]   [Set "Waiting on External"]
+                                       │
+                                [Approved / Issued]
+                                [Set "Completed"]
 ```
 
 ## Dependencies
 
 - `order-fulfillment-agent`: Platform SOP checklist rules, state machine, and portal communication policy.
-- `src/lib/pdf/template-generators.ts`: PDF generation engine with official brand letterhead, CIBA CBA (SA) #3561 credentials, and statutory templates.
+- `src/lib/pdf/template-generators.ts` & `src/lib/documents/renderers/`: PDF generation engine with official brand letterhead, CIBA CBA (SA) #3561 credentials, and statutory templates.
 - `src/lib/firebase-admin.ts`: Firestore database & Firebase Storage client.
-- `src/lib/email.ts`: Nodemailer SMTP transport for review notifications.
+- `src/lib/email.ts` / Nodemailer: SMTP transport (`mail.myacc.co.za:465`) for review notifications and client communications.
 
-## Order Status Taxonomy & Visual Standards
+---
+
+## Canonical Order Status Taxonomy & State Machine
 
 | Status | Badge Color | Purpose / When to Apply |
 |---|---|---|
-| **`Processing`** | 🔵 Info (Blue) | Active order currently being worked on by staff/agent. |
-| **`Waiting on Customer`** | 🟡 Amber / Orange | Waiting for customer uploads, signature on Form CF-1B/POA/resolutions, or client review. |
-| **`Under Review`** | 🟣 Indigo / Purple | Statutory draft(s) generated and uploaded; awaiting Kevin's review. |
-| **`Pending Payment`** | 🟡 Warning (Yellow) | Awaiting payment confirmation. |
-| **`Completed`** | 🟢 Success (Green) | All statutory deliverables posted to Communication History and confirmed. |
+| **`Processing`** | 🔵 Info (Blue) | Active order currently being worked on by staff/agent (document verification, trial balance, drafting). |
+| **`Waiting on Customer`** | 🟡 Amber / Orange | Waiting for customer document uploads, digital/physical signatures on Form NCR 2 / POA / Resolutions, or client feedback on drafts. |
+| **`Waiting on External`** | 🟣 Purple / Indigo | All documents verified and submitted to external regulators or government bodies (e.g. NCR at `applications@ncr.org.za`, COIDA Commissioner, SARS, CIPC). |
+| **`Pending Payment`** | 🟡 Warning (Yellow) | Awaiting payment confirmation or ITN clearance. |
+| **`Completed`** | 🟢 Success (Green) | All statutory deliverables, registration certificates, or signed letters posted to Communication History and confirmed. |
 
-## Quick Start Commands
+---
 
-```bash
-# 1. Fetch and inspect order snapshot & uploads
-npx tsx .agents/skills/order-audit-and-document-generator/scripts/audit_order.ts fetch --order-id 10138
+## Strict Email Routing Guardrail
 
-# 2. Generate statutory draft(s)
-npx tsx .agents/skills/order-audit-and-document-generator/scripts/audit_order.ts generate --order-id 10138 --doc accounting-officer-letter
-# or generate all applicable drafts:
-npx tsx .agents/skills/order-audit-and-document-generator/scripts/audit_order.ts generate --order-id 10138 --doc all
+> [!IMPORTANT]
+> **Internal Review Emails**: Review emails and sign-off drafts must be routed **strictly to `kev@thinkestry.co.za`**.
+> **NEVER include or CC `freesekevin@gmail.com`**.
+>
+> **Client Outbound Emails**: Dispatched from `winifred@myacc.co.za` / `info@myacc.co.za` (via `mail.myacc.co.za:465`) with responsive HTML layout and clean plain-text fallback, CCing `winifred@myacc.co.za` and `kev@thinkestry.co.za`.
 
-# 3. Present PDF summary to Kevin and wait for confirmation.
-
-# 4. Upload to Firebase Storage and route delivery (auto-posts if confidence >= 90%, else emails Kevin)
-npx tsx .agents/skills/order-audit-and-document-generator/scripts/deliver_order.ts --order-id 10138
-
-# 5. If Kevin reviewed and gave approval, publish to Communication History:
-npx tsx .agents/skills/order-audit-and-document-generator/scripts/deliver_order.ts --order-id 10138 --approve-and-post
-```
+---
 
 ## Step-by-Step Workflow Protocol
 
 ### Step 1: Ingest & Inspect
-Run `audit_order.ts fetch --order-id <ID>`:
-- Check client identity, business entity name, registration number, and tax number.
-- Inspect uploaded files (`documentUploads`) and SOP checklist steps.
-- Check prerequisite orders (if any are linked via `dependsOnOrderIds`).
+- Fetch order details: Customer Name, Email, Phone, Legal Entity Name, Registration Number, SARS Tax Number, Order Items, and Total.
+- Inspect `documentUploads`, `uploadedFiles`, and `notes` (Communication History).
 
 ### Step 2: Document Verification & Extraction
-- If documents are missing: Auto-draft a polite reminder requesting the specific missing documents and post it to Communication History (`order.notes`). Set SOP checklist step to `Blocked` or status to `Waiting on Customer`.
-- If documents are uploaded: Run Gemini multimodal extraction to retrieve entity details (Legal Entity Name, Reg Number, SARS Tax Number, Director Name, ID Number, Registered Office Address).
-- **Data Mismatch Handling**: If extracted data contradicts Firestore records, log the discrepancy in the verification report for Kevin's review, but continue using the extracted data for drafting.
+- **Auditing Checklist against Service Playbook**:
+  - **NCR Registration**: CIPC CoR14.3, Certified Director IDs (<3 months), SAPS/AFISwitch Criminal Clearance (<6 months), Bank Confirmation Letter in entity name (<3 months), SARS TCS PIN, Proof of Payment (R1,800).
+  - **Accountant's Income Letter**: Certified ID, 6-month bank statements (PDF), proof of contract/invoice earnings, addressee details.
+- **Handling Incomplete Documents**: Move order status to `Waiting on Customer` and post a clear itemized list of required documents to `order.notes`.
+- **False-Positive Handling**: If automated vision flags valid contractor invoices (e.g., "Expected payslip but found invoice"), override to approved if justified by contractor/self-employed status.
+
+---
 
 ### Step 3: Statutory PDF Generation Guidelines
 
-#### A. Accountant's Confirmation of Income & Drawings (Bank Proof of Income)
-- **No Commissioner Stamp / No Signature PNG**: Standard accountant letters must use the clean executive digital signature card without a Commissioner of Oaths stamp.
-- **Signature Block Format**:
+#### A. Accountant's Confirmation of Income & Drawings
+* **Typography & Word Wrapping**: Use dynamic font measurement to wrap text strictly on word boundaries (`wrapText`). Never truncate or split words across line breaks.
+* **Layout Spacing**: Maintain generous vertical breathing room (12–16pt) between cards, paragraphs, tables, and the highlight box.
+* **Scope Limitation**: Confine confirmation strictly to the examination of verified bank statements and invoices. Do NOT claim unperformed reviews (e.g., tax profile or billing audits).
+* **Dedicated Digital Signature Slot**: Use an expanded signature box (85pt height) with a clean ~38pt open blank area above Kevin's printed name so digital signature stamps can be applied cleanly without overlapping text:
   ```text
-  FOR MY ACCOUNTANT (PTY) LTD (REG: 2020 / 548105 / 07):
+  FOR MY ACCOUNTANT (PTY) LTD (REGISTRATION NO: 2020 / 548105 / 07):
+
+  [ OPEN ~38PT BLANK SPACE FOR DIGITAL SIGNATURE ]
+
   Kevin Freese
-  DIGITALLY SIGNED • CBA (SA) #3561 • Date: [Date]
-  Chartered Business Accountant in Practice (CBAP SA #3561) • PR-0098553
+  Chartered Business Accountant in Practice • CBAP (SA) #3561
+  Practice Number: PR-0098553 • CIBA Member in Good Standing
   ```
-- **Omit Debit Outflows**: Keep the financial table strictly focused on `STATEMENT PERIOD`, `STATEMENT REFERENCE`, and `VERIFIED CREDIT INFLOWS (ZAR)`.
-- **Conservative Inflow Reconciliation**: Substantively audit all credit inflows to exclude interbank/own-account transfers, loan receipts (e.g. Wonga), interest rebates, and non-income credits. Disclose verified net income and add a footnote explaining the conservative exclusion.
-- **Layout Spacing**: Maintain generous vertical padding (at least 24–28pt) between financial summary tables and section headings (e.g. `CONFIRMATION OF SUSTAINABLE DRAWINGS / NET INCOME:`).
 
-#### B. COIDA Nature of Business Change Pack
-- **Official Form CF-1B (3 Pages)**: Use the official 3-page template (`CF-1B Form Application for Change of Nature of Business_ORIGINAL_BACKUP.pdf`).
-  - Section A: Digitally populate Employer Name, CF Reg No (digit boxes), CIPC Reg No (digit boxes), Tax No (digit boxes), Address, City, Province, Postal Code, Phone numbers, and Email.
-  - Section B: Detailed description of retail/business operations, Current Classification, Target Subclass (e.g. `Subclass 0710`), Reason for Change, and Effective Date.
-  - Page 2: 5 representative trade clients with contact numbers and goods/services supplied, 5 key activities, and photographs checkbox.
-  - Page 3: Supporting document ticks (AFS, Proof of Address, Photos), Employer signature block, and Consultant signature block (Kevin Freese, CIBA #3561).
-- **Special Power of Attorney (COIDA Mandate)**:
-  - Generate on My Accountant executive letterhead.
-  - Formally appoint Kevin Freese (CIBA #3561, ID: `8606205046085`) to represent the employer, submit Form CF-1B, and liaise with the Compensation Commissioner.
+#### B. NCR Credit Provider Registration Pack
+* **Form NCR 2 (7 Pages)**:
+  - Populate from official AcroForm template: `public/templates/NCR_Form_2_Fillable.pdf`.
+  - Fill all applicant details, trading name, registration number, commencement date, FYE, tax number, physical/postal address, telephone, email, sole director/management profile, premises details, and disqualification questions (all NO, SAPS consent YES).
+* **NCR Fee Annexure (Confirmation of Payment of Fees)**:
+  - Populate from official AcroForm template: `public/templates/NCR_Annexure_Confirmation_of_Fees_Fillable.pdf`.
+  - Reflect standard fee breakdown: R550.00 Application Fee + R1,250.00 Initial Registration Fee = **R 1,800.00 Total**.
+* **Special Power of Attorney**:
+  - Generate on My Accountant letterhead appointing Kevin Freese (CIBA #3561) to represent the entity before the National Credit Regulator.
+  - Include director signature line and Kevin's statutory acceptance card.
+* **Sole Director / Board Written Resolution**:
+  - Authorising credit provider registration under Section 40 of NCA and authorising director to execute Form 2.
 
-#### C. B-BBEE Sworn Affidavit (EME - General)
-- Use official dtic template `public/templates/Affidavit-EME-Gen.pdf`.
-- Embed high-res trimmed signature asset `public/templates/Signature_Kevin_New.png`.
-- Position signature compactly above `Commissioner of Oaths:` header.
-- Place official Commissioner of Oaths stamp box neatly below.
-- Scale FYE date font size to $\le 7.2\text{pt}$ so text like `"28 February 2026"` fits between $X=246.5$ and $X=314.2$ without overlapping printed text.
+#### C. COIDA Nature of Business Change Pack
+* **Official Form CF-1B (3 Pages)**: Use `public/templates/CF-1B Form Application for Change of Nature of Business_ORIGINAL_BACKUP.pdf`.
+* **Special Power of Attorney**: Appointing Kevin Freese (CIBA #3561, ID: `8606205046085`) before the Compensation Commissioner.
 
-### Step 4: Mandatory Checkpoint (Kevin Confirmation)
-**Always pause after PDF generation** and present a summary to Kevin showing:
-- Entity Name, Registration Number, Director Name & ID.
-- Generated documents with file size and status.
-- Wait for Kevin's go-ahead before executing client delivery.
+#### D. B-BBEE Sworn Affidavit (EME - General)
+* Use official dtic template `public/templates/Affidavit-EME-Gen.pdf`.
+* Embed trimmed signature asset `public/templates/Signature_Kevin_New.png`.
+* Position signature compactly above `Commissioner of Oaths:` header with Commissioner stamp box below.
 
-### Step 5: Delivery Routing & Communication History
-- **Firestore Data Structure (CRITICAL)**:
-  - Notes and deliverables must be appended directly to the `order.notes` **array on the order document** (`orders/{orderId}`) using `FieldValue.arrayUnion()`.
-  - Attachments must follow the object schema: `attachments: [{ name: "filename.pdf", url: "https://..." }]`.
-- **Client Delivery Policy**:
-  - Never email end clients directly via raw SMTP. All client updates and download links must be posted to `order.notes`.
-- **Review Emails**:
-  - Emails sent via SMTP are reserved for internal review alerts to Kevin (`kev@thinkestry.co.za` & `freesekevin@gmail.com`) with attachments for sign-off.
+---
 
-## Safeguards & Rules
+### Step 4: Storage Upload & Client Communication History
 
-1. **Strict Statutory Prerequisite Gate (No Drafting on Incomplete Info)**: Never generate statutory registration documents until ALL prerequisite source documents have been verified and extracted. (e.g. Tax Clearance PIN for NCR Form 2; Signed AFS & Instruction letter for COIDA CF-1B).
-2. **Strict Communication History Policy**: All client communications belong in `orders/{orderId}` under `order.notes`.
-3. **WinAnsi Encoding Constraint**: In pdf-lib, avoid unicode bullets or smart quotes. Use standard ASCII characters (`•` as ASCII bullet or dash).
-4. **Single Page Strictness**: Letters and statutory certificates must fit neatly on a single page unless inherently multi-page (e.g. NCR Form 2, Form CF-1B).
+* **Storage Upload Path**: `orders/{orderId}/notes/{timestamp}_{filename}.pdf` (public read permissions).
+* **Firestore Data Structure**:
+  - Notes and deliverables must be appended directly to `order.notes` using `FieldValue.arrayUnion()`.
+  - Schema:
+    ```javascript
+    const note = {
+      id: `note_${Date.now()}`,
+      text: "...",
+      authorId: "LRM285EOq3gwNMKayY6vtzooaC03",
+      authorName: "Kevin Freese (Director)",
+      date: new Date(),
+      type: "note",
+      subject: "...",
+      isInternal: false,
+      attachments: [{ name: "Document.pdf", url: "https://storage.googleapis.com/..." }]
+    };
+    ```
+
+---
+
+### Step 5: External Regulator Lodgement Protocol (NCR)
+
+When all 10 statutory documents are signed and ready for lodgement:
+1. **Lodgement Target**: `applications@ncr.org.za`
+2. **CC List**: `registrations@ncr.org.za`, `kev@thinkestry.co.za`, client email, `winifred@myacc.co.za`.
+3. **Attachments**: 26-page master combined PDF pack + individual signed statutory PDFs.
+4. **Order Status Transition**: Update Firestore status immediately to **`Waiting on External`**.
+5. **Log Confirmation**: Post confirmation note to Communication History with email timestamp and Message ID.
+
+---
+
+## Live Event Listener Integration Patterns
+
+To run this skill continuously or reactively in Antigravity:
+
+1. **Firestore `onSnapshot` Daemon**:
+   ```javascript
+   db.collection('orders')
+     .where('status', 'in', ['Processing', 'Waiting on Customer'])
+     .onSnapshot(snap => {
+       snap.docChanges().forEach(change => {
+         if (change.type === 'modified') {
+           // Auto-trigger pre-flight audit when documentUploads array updates
+         }
+       });
+     });
+   ```
+2. **Cron Scheduler (`/schedule`)**: Run recurring audits every 30 minutes to check orders awaiting customer response and draft polite follow-ups after 48 hours.
