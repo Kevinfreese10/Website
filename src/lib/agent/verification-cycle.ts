@@ -137,6 +137,14 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
       if (!up && req.isRequired === false) { item.outcome = 'not_applicable'; result.items.push(item); continue; }
       if (!up) { item.outcome = 'missing'; item.clientFix = `Please upload "${req.label}"${req.helpText ? ` — ${req.helpText}` : ''}.`; result.items.push(item); continue; }
 
+      // Manually ignored / bypassed by staff → not applicable.
+      if (up.status === 'ignored' || up.isIgnored) {
+        item.outcome = 'not_applicable';
+        item.reason = 'Requirement bypassed / ignored by staff consultant.';
+        result.items.push(item);
+        continue;
+      }
+
       // Already decided (by Kevin or a previous run) → carry forward.
       if (up.status === 'approved') {
         item.outcome = 'approved';
@@ -231,12 +239,8 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
   // ---- 3. Draft the client update (never posted automatically — staff confirm on the order page)
   const stateKey = keyOf(result.items);
   const prev = (order as any).verification || {};
-  const alreadyTold = prev.lastClientNoteKey === stateKey;
-  if (!alreadyTold && result.items.length) {
-    const text = composeClientNote(order, result.items, result.state);
-    result.draftClientNote = text;
-    result.notePosted = true; // a draft was (re)generated
-  }
+  result.draftClientNote = undefined;
+  result.notePosted = false;
 
   // ---- 4. Emails to Kevin (Consolidated & Atomic Deduplication) --------------------
   // Use a Firestore transaction to claim the email dispatch atomically so concurrent
@@ -306,11 +310,9 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
       lastRunAt: new Date().toISOString(),
       lastTrigger: trigger,
       state: result.state,
-      lastClientNoteKey: prev.lastClientNoteKey || null,
-      lastClientNoteAt: prev.lastClientNoteAt || null,
-      draftClientNote: result.draftClientNote
-        ? { text: result.draftClientNote, key: stateKey, state: result.state, createdAt: new Date().toISOString(), trigger }
-        : (alreadyTold ? null : prev.draftClientNote || null),
+      lastClientNoteKey: null,
+      lastClientNoteAt: null,
+      draftClientNote: null,
       completeEmailKey: result.state === 'complete' ? stateKey : null,
       completeEmailSent: result.state === 'complete' ? (prev.completeEmailSent || result.emailedKevin === 'complete') : false,
       completeEmailSentAt: result.emailedKevin === 'complete' ? new Date().toISOString() : prev.completeEmailSentAt || null,

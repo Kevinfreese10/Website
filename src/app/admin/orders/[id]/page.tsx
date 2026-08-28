@@ -18,9 +18,7 @@ import {
   unlinkOrderDependencyAtomic,
   reviewOrderDocumentAtomic,
   requestCustomDocumentAtomic,
-  runAiDocumentAuditAtomic,
-  postVerificationDraftAtomic,
-  discardVerificationDraftAtomic
+  runAiDocumentAuditAtomic
 } from '@/app/actions/order-admin-actions';
 import { 
   ArrowLeft, Loader2, User as UserIcon, Users, Mail, Phone, Send, FileText, Star, MessageSquare, 
@@ -574,37 +572,7 @@ export default function AdminOrderDetailsPage() {
   };
 
   const [isAuditing, setIsAuditing] = useState(false);
-  const [draftText, setDraftText] = useState<string>('');
-  const [draftBusy, setDraftBusy] = useState(false);
-  useEffect(() => { setDraftText(order?.verification?.draftClientNote?.text || ''); }, [order?.verification?.draftClientNote?.text]);
 
-  const handlePostDraft = async () => {
-    if (!order || !draftText.trim()) return;
-    setDraftBusy(true);
-    try {
-      const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
-      if (!idToken) throw new Error('Not signed in');
-      const r: any = await postVerificationDraftAtomic(order.id, draftText, idToken);
-      if (!r.success) throw new Error(r.error);
-      toast({ title: 'Update posted to client', description: r.statusSet ? `Status → ${r.statusSet}` : 'Client has been emailed.' });
-      await fetchOrderAndStaff(true);
-    } catch (e: any) {
-      toast({ title: 'Could not post', description: e.message, variant: 'destructive' });
-    } finally { setDraftBusy(false); }
-  };
-  const handleDiscardDraft = async () => {
-    if (!order) return;
-    setDraftBusy(true);
-    try {
-      const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
-      if (!idToken) throw new Error('Not signed in');
-      const r: any = await discardVerificationDraftAtomic(order.id, idToken);
-      if (!r.success) throw new Error(r.error);
-      await fetchOrderAndStaff(true);
-    } catch (e: any) {
-      toast({ title: 'Could not discard', description: e.message, variant: 'destructive' });
-    } finally { setDraftBusy(false); }
-  };
   const handleAiAudit = async () => {
     if (!order) return;
     setIsAuditing(true);
@@ -616,7 +584,7 @@ export default function AdminOrderDetailsPage() {
       const c = res.counts;
       toast({
         title: res.state === 'complete' ? 'AI audit: all documents approved' : res.state === 'awaiting_consultant' ? 'AI audit: needs your decision' : 'AI audit: client has work to do',
-        description: `${c.approved} approved · ${c.rejected} rejected · ${c.missing} missing · ${c.pending} for you${res.notePosted ? ' · client update drafted below for your review' : ''}${res.emailedKevin ? ' · email sent' : ''}`,
+        description: `${c.approved} approved · ${c.rejected} rejected · ${c.missing} missing · ${c.pending} for you${res.emailedKevin ? ' · report sent to kev@thinkestry.co.za' : ''}`,
       });
       await fetchOrderAndStaff(true);
     } catch (e: any) {
@@ -626,7 +594,12 @@ export default function AdminOrderDetailsPage() {
     }
   };
 
-  const handleDocumentStatusUpdate = async (identifier: string, status: 'approved' | 'rejected', reason?: string) => {
+  const handleDocumentStatusUpdate = async (
+    identifier: string, 
+    status: 'approved' | 'rejected' | 'ignored' | 'pending', 
+    reason?: string,
+    options?: { serviceId?: string; requirementLabel?: string }
+  ) => {
     if (!order || !currentUser) return;
     try {
       const auth = getAuth(firebaseApp);
@@ -636,9 +609,12 @@ export default function AdminOrderDetailsPage() {
         name: currentUser.name || currentUser.email || 'Admin',
       };
 
-      const res = await reviewOrderDocumentAtomic(order.id, identifier, status, performer, reason);
+      const res = await reviewOrderDocumentAtomic(order.id, identifier, status, performer, reason, options);
       if (res.success) {
-        toast({ title: 'Document Status Updated', description: res.message });
+        toast({ 
+          title: status === 'ignored' ? 'Requirement Bypassed / Ignored' : status === 'pending' ? 'Requirement Reset' : 'Document Status Updated', 
+          description: status === 'ignored' ? 'Requirement will bypass AI validation and not block order progress.' : (res.message || 'Status updated.') 
+        });
         await fetchOrderAndStaff(true);
       } else {
         throw new Error(res.error || 'Failed to update document status.');
@@ -1398,14 +1374,16 @@ export default function AdminOrderDetailsPage() {
                                             {item.service.informationToProvide.map((req, index) => {
                                                 const upload = order.documentUploads?.find(d => 
                                                     (req.id && d.requirementId === req.id) ||
-                                                    ((d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === req.label)
+                                                    ((d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === req.label) ||
+                                                    d.requirementLabel === req.label
                                                 );
                                                 const identifier = upload ? (upload.requirementId || upload.id || (upload.type === 'file' ? upload.fileUrl! : upload.textValue!) || upload.requirementLabel) : (req.id || req.label);
+                                                const isIgnored = upload?.status === 'ignored' || upload?.isIgnored;
 
                                                 return (
-                                                    <li key={index} className="pt-2 p-3 rounded-lg bg-muted/20 border border-border/50 space-y-2.5">
+                                                    <li key={index} className="pt-2 p-3.5 rounded-lg bg-muted/20 border border-border/60 space-y-2.5">
                                                         <div className="flex items-center justify-between flex-wrap gap-2">
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-2 flex-wrap">
                                                                 <p className="font-semibold text-sm text-foreground">
                                                                     {req.label}
                                                                 </p>
@@ -1416,7 +1394,11 @@ export default function AdminOrderDetailsPage() {
                                                                 )}
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                {upload ? ( 
+                                                                {isIgnored ? (
+                                                                    <Badge variant="secondary" className="text-xs font-semibold bg-purple-100 text-purple-800 border-purple-300 gap-1">
+                                                                        <EyeOff className="h-3 w-3" /> IGNORED / BYPASSED
+                                                                    </Badge>
+                                                                ) : upload ? ( 
                                                                     <Badge variant={upload.status === 'approved' ? 'success' : upload.status === 'rejected' ? 'destructive' : 'warning'} className="text-xs font-semibold">
                                                                         {upload.status === 'approved' && <CheckCircle className="mr-1 h-3 w-3" />}
                                                                         {upload.status === 'rejected' && <AlertTriangle className="mr-1 h-3 w-3" />}
@@ -1468,30 +1450,93 @@ export default function AdminOrderDetailsPage() {
                                                                 ) : upload.textValue ? (
                                                                     <div className="bg-muted/70 p-3 rounded-md border text-xs">
                                                                         <p className="font-medium text-foreground whitespace-pre-wrap break-words leading-relaxed">
-                                                                            "{upload.textValue}"
+                                                                            "{upload.isEncrypted ? '•••••••• (stored encrypted)' : upload.textValue}"
                                                                         </p>
                                                                     </div>
                                                                 ) : null}
 
-                                                                {/* Manual Review Actions */}
-                                                                {upload.status === 'pending' && (
-                                                                    <div className="flex items-center gap-2 pt-1">
-                                                                        <Button size="xs" variant="outline" className="h-7 text-xs font-semibold text-green-700 hover:bg-green-50 border-green-300" onClick={() => handleDocumentStatusUpdate(identifier, 'approved')}>
-                                                                            <CheckCircle className="h-3 w-3 mr-1" /> Approve
-                                                                        </Button>
-                                                                        <Button size="xs" variant="destructive" className="h-7 text-xs font-semibold" onClick={() => handleOpenRejectionDialog(upload)}>
-                                                                            <XCircle className="h-3 w-3 mr-1" /> Reject with Reason
-                                                                        </Button>
+                                                                {/* AI Verification Findings & Rule Followed */}
+                                                                {isIgnored ? (
+                                                                    <div className="p-2 rounded-md bg-purple-50/80 border border-purple-200 text-xs text-purple-900 flex items-center gap-2">
+                                                                        <EyeOff className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+                                                                        <span>Requirement manually ignored / bypassed by consultant (will not block order processing or fail AI audits).</span>
                                                                     </div>
-                                                                )}
-
-                                                                {upload.status === 'rejected' && upload.rejectionReason && (
-                                                                    <p className="text-xs text-destructive italic font-medium">
-                                                                        Rejection Reason: {upload.rejectionReason}
-                                                                    </p>
-                                                                )}
+                                                                ) : upload.status === 'approved' ? (
+                                                                    <div className="p-2.5 rounded-md bg-green-50/90 border border-green-200 text-xs space-y-1 text-green-950">
+                                                                        <div className="flex items-center gap-1.5 font-bold text-green-800">
+                                                                            <ShieldCheck className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                                                                            <span>AI Verification Rule Followed:</span>
+                                                                        </div>
+                                                                        <p className="text-[11px] text-green-900 leading-relaxed pl-5">
+                                                                            {upload.aiVerification?.summary || upload.aiVerification?.reason || (upload.textValue ? 'Format, length, and syntax check passed.' : 'Statutory document rules verified (validity dates, name matching, and required format).')}
+                                                                        </p>
+                                                                        {upload.aiVerification?.extractedData?.facts && (
+                                                                            <div className="pl-5 text-[11px] text-green-800/90 font-mono">
+                                                                                Facts: {[
+                                                                                    upload.aiVerification.extractedData.facts.documentKind && `Kind: ${upload.aiVerification.extractedData.facts.documentKind}`,
+                                                                                    upload.aiVerification.extractedData.facts.names?.length && `Names: ${upload.aiVerification.extractedData.facts.names.map((n: any) => n.name || n).join(', ')}`,
+                                                                                    upload.aiVerification.extractedData.facts.dates?.length && `Dates: ${upload.aiVerification.extractedData.facts.dates.map((d: any) => d.date || d).join(', ')}`,
+                                                                                    upload.aiVerification.extractedData.facts.certified && 'Certified: Yes',
+                                                                                ].filter(Boolean).join(' · ')}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ) : upload.status === 'rejected' ? (
+                                                                    <div className="p-2.5 rounded-md bg-red-50/90 border border-red-200 text-xs space-y-1 text-red-950">
+                                                                        <div className="flex items-center gap-1.5 font-bold text-red-800">
+                                                                            <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                                                                            <span>AI Rule Violated / Rejection Reason:</span>
+                                                                        </div>
+                                                                        <p className="text-[11px] text-red-900 leading-relaxed pl-5">
+                                                                            {upload.rejectionReason || upload.aiVerification?.reason || 'Document or input does not meet statutory compliance requirements.'}
+                                                                        </p>
+                                                                    </div>
+                                                                ) : null}
                                                             </div>
                                                         )}
+
+                                                        {/* Staff Actions Toolbar for Every Requirement */}
+                                                        <div className="flex items-center gap-2 pt-1 flex-wrap">
+                                                            {upload?.status !== 'approved' && !isIgnored && (
+                                                                <Button 
+                                                                    size="xs" 
+                                                                    variant="outline" 
+                                                                    className="h-7 text-xs font-semibold text-green-700 hover:bg-green-50 border-green-300 gap-1" 
+                                                                    onClick={() => handleDocumentStatusUpdate(identifier, 'approved', undefined, { serviceId: item.service?.id || item.id, requirementLabel: req.label })}
+                                                                >
+                                                                    <CheckCircle className="h-3 w-3" /> Approve
+                                                                </Button>
+                                                            )}
+                                                            {upload && upload.status !== 'rejected' && !isIgnored && (
+                                                                <Button 
+                                                                    size="xs" 
+                                                                    variant="destructive" 
+                                                                    className="h-7 text-xs font-semibold gap-1" 
+                                                                    onClick={() => handleOpenRejectionDialog(upload)}
+                                                                >
+                                                                    <XCircle className="h-3 w-3" /> Reject with Reason
+                                                                </Button>
+                                                            )}
+                                                            {isIgnored ? (
+                                                                <Button 
+                                                                    size="xs" 
+                                                                    variant="outline" 
+                                                                    className="h-7 text-xs font-semibold text-muted-foreground hover:bg-muted gap-1" 
+                                                                    onClick={() => handleDocumentStatusUpdate(identifier, 'pending', undefined, { serviceId: item.service?.id || item.id, requirementLabel: req.label })}
+                                                                >
+                                                                    <RefreshCw className="h-3 w-3" /> Unignore / Reset
+                                                                </Button>
+                                                            ) : (
+                                                                <Button 
+                                                                    size="xs" 
+                                                                    variant="outline" 
+                                                                    className="h-7 text-xs font-semibold text-purple-700 hover:bg-purple-50 border-purple-300 gap-1" 
+                                                                    onClick={() => handleDocumentStatusUpdate(identifier, 'ignored', undefined, { serviceId: item.service?.id || item.id, requirementLabel: req.label })}
+                                                                >
+                                                                    <EyeOff className="h-3 w-3" /> Ignore / Bypass AI
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </li>
                                                 );
                                             })}
@@ -1514,22 +1559,6 @@ export default function AdminOrderDetailsPage() {
 
                     <Card>
                         <CardHeader><CardTitle>Communication History</CardTitle></CardHeader>
-                        {order.verification?.draftClientNote && (
-                          <div className="mx-6 mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-2">
-                            <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <p className="text-sm font-semibold text-amber-900 flex items-center gap-2"><Sparkles className="h-4 w-4" />AI-drafted update to the client — not sent yet</p>
-                              <span className="text-[11px] text-amber-800">
-                                {order.verification.draftClientNote.state === 'complete' ? 'All documents approved' : order.verification.draftClientNote.state === 'awaiting_consultant' ? 'Waiting on your decisions' : 'Client has items to fix'} · drafted {new Date(order.verification.draftClientNote.createdAt).toLocaleString('en-ZA')}
-                              </span>
-                            </div>
-                            <Textarea rows={12} value={draftText} onChange={e => setDraftText(e.target.value)} className="bg-white text-sm" />
-                            <div className="flex items-center gap-2">
-                              <Button size="sm" onClick={handlePostDraft} disabled={draftBusy || !draftText.trim()}>{draftBusy ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Send className="h-4 w-4 mr-1.5" />}Post to client</Button>
-                              <Button size="sm" variant="ghost" onClick={handleDiscardDraft} disabled={draftBusy}>Discard</Button>
-                              <span className="text-[11px] text-muted-foreground">Posting adds this to Communication History, emails the client, and sets the status ({order.verification.draftClientNote.state === 'complete' ? 'Under Review' : order.verification.draftClientNote.state === 'awaiting_client' ? 'Waiting on Customer' : 'unchanged'}).</span>
-                            </div>
-                          </div>
-                        )}
                         <CardContent className="space-y-4">
                              <div className="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" onClick={() => generateNoteTemplate('payment')}><Phone className="h-4 w-4 mr-2"/>Payment Follow-up</Button>

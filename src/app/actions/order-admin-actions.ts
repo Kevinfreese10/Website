@@ -216,10 +216,10 @@ export async function updateOrderStatusAtomic(
 export async function reviewOrderDocumentAtomic(
   orderId: string,
   identifier: string, // requirementId, fileUrl, or textValue
-  status: 'approved' | 'rejected',
+  status: 'approved' | 'rejected' | 'ignored' | 'pending',
   performer: PerformerInput | InternalActor,
   reason?: string,
-  options?: { suppressClientEmail?: boolean; decidedBy?: 'system' | 'staff' }
+  options?: { suppressClientEmail?: boolean; decidedBy?: 'system' | 'staff'; serviceId?: string; requirementLabel?: string }
 ) {
   try {
     const db = getAdminDb();
@@ -229,34 +229,66 @@ export async function reviewOrderDocumentAtomic(
 
     const orderData = orderDoc.data() || {};
     const actor = await resolveVerifiedActor(performer, orderData as Order);
-    const uploads: DocumentUpload[] = orderData.documentUploads || [];
+    let uploads: DocumentUpload[] = orderData.documentUploads || [];
 
-    let targetDocLabel = '';
+    let targetDocLabel = options?.requirementLabel || '';
+    let matched = false;
     const updatedUploads = uploads.map(doc => {
       const isMatch = (doc.id && doc.id === identifier) ||
                       (doc.requirementId && doc.requirementId === identifier) ||
                       doc.fileUrl === identifier ||
                       doc.textValue === identifier ||
-                      doc.requirementLabel === identifier;
+                      doc.requirementLabel === identifier ||
+                      (options?.requirementLabel && doc.requirementLabel === options.requirementLabel);
 
       if (isMatch) {
+        matched = true;
         targetDocLabel = doc.requirementLabel;
         const updatedItem: DocumentUpload = {
           ...doc,
           status,
+          isIgnored: status === 'ignored',
           rejectionReason: status === 'rejected' ? (reason || '') : '',
-          // Who decided: lets a staff-triggered AI audit revisit its own earlier verdicts, and
-          // shows on the order which approvals were automatic.
-          aiVerification: { ...(doc.aiVerification || { status: 'pending', confidence: 0, recommendation: 'manual_review' }), decidedBy: options?.decidedBy || (performer === INTERNAL_SYSTEM_ACTOR ? 'system' : 'staff'), decidedAt: new Date().toISOString() } as any,
+          aiVerification: {
+            ...(doc.aiVerification || { status: 'pending', confidence: 0, recommendation: 'manual_review' }),
+            decidedBy: options?.decidedBy || (performer === INTERNAL_SYSTEM_ACTOR ? 'system' : 'staff'),
+            decidedAt: new Date().toISOString(),
+            summary: status === 'ignored' ? 'Manually bypassed / ignored by staff.' : doc.aiVerification?.summary,
+          } as any,
         };
         return updatedItem;
       }
       return doc;
     });
 
+    if (!matched && status === 'ignored') {
+      const newIgnoredDoc: DocumentUpload = {
+        id: `ign_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
+        serviceId: options?.serviceId || 'default',
+        requirementId: identifier,
+        requirementLabel: options?.requirementLabel || identifier,
+        type: 'explanation',
+        textValue: 'Bypassed / Ignored by staff',
+        notAvailableReason: 'Requirement waived by staff consultant.',
+        status: 'ignored',
+        isIgnored: true,
+        uploadedAt: new Date().toISOString(),
+        aiVerification: {
+          status: 'verified',
+          summary: 'Manually bypassed / ignored by staff consultant.',
+          reason: 'Requirement waived / ignored by staff.',
+          recommendation: 'approve',
+          decidedBy: 'staff',
+          decidedAt: new Date().toISOString(),
+        } as any,
+      };
+      updatedUploads.push(newIgnoredDoc);
+      targetDocLabel = newIgnoredDoc.requirementLabel;
+    }
+
     const cleanedUploads = cleanFirestoreData(updatedUploads);
 
-    const allApproved = cleanedUploads.length > 0 && cleanedUploads.every((d: any) => d.status === 'approved');
+    const allApproved = cleanedUploads.length > 0 && cleanedUploads.every((d: any) => d.status === 'approved' || d.status === 'ignored');
     let newFulfillmentStatus: Order['fulfillmentStatus'] = orderData.fulfillmentStatus;
     if (allApproved && orderData.status === 'Processing' && (!orderData.fulfillmentStatus || orderData.fulfillmentStatus === 'Awaiting Documents')) {
       newFulfillmentStatus = 'In Execution';
@@ -272,7 +304,7 @@ export async function reviewOrderDocumentAtomic(
       timestamp: new Date().toISOString(),
       previousValue: 'pending',
       newValue: status,
-      details: `${status === 'approved' ? 'Approved' : 'Rejected'} document: "${targetDocLabel || identifier}"${reason ? ` (Reason: ${reason})` : ''}`,
+      details: `${status === 'approved' ? 'Approved' : status === 'ignored' ? 'Bypassed / Ignored' : 'Rejected'} requirement: "${targetDocLabel || identifier}"${reason ? ` (Reason: ${reason})` : ''}`,
     };
 
     const batch = db.batch();

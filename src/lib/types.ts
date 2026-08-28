@@ -22,7 +22,7 @@ export type UploadedFileItem = {
   fileName: string;
   fileSize?: number;
   uploadedAt: any;
-  status?: 'pending' | 'approved' | 'rejected';
+  status?: 'pending' | 'approved' | 'rejected' | 'ignored';
   rejectionReason?: string;
   aiVerification?: AIDocumentVerification;
 };
@@ -39,7 +39,7 @@ export type DocumentUpload = {
   textValue?: string;
   notAvailableReason?: string; // Client reason for why document cannot be provided
   uploadedAt: any; // Firestore Timestamp
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'ignored';
   rejectionReason?: string;
   adminComment?: string;
   verifiedAt?: any;
@@ -48,6 +48,8 @@ export type DocumentUpload = {
   mechanicalCheck?: import('./verification/mechanical').MechanicalCheckResult;
   /** True when the stored textValue is encrypted at rest (isSecret requirements). */
   isEncrypted?: boolean;
+  /** True when requirement is explicitly bypassed / ignored by staff. */
+  isIgnored?: boolean;
 };
 
 export type PrerequisiteItem = 
