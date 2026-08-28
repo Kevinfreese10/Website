@@ -146,32 +146,31 @@ export default function AdminDashboardPage() {
         getDocs(usersRef).then(usersSnapshot => {
             const fetchedUsers = usersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, uid: doc.id } as User));
             setAllUsers(fetchedUsers.sort((a,b) => (a.name || '').localeCompare(b.name || '')));
-        });
+        }).catch(err => console.error('[CommandCenter] users fetch error:', err));
 
+        // 1. Fetch Command Center secondary feeds via getDocs (fast, resilient, avoids socket contention)
+        getDocs(query(collection(db, 'community_posts'), where('status', '==', 'pending')))
+            .then(snap => setPendingPosts(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+            .catch(err => console.log('[CommandCenter] community_posts fetch:', err));
+
+        getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(50)))
+            .then(snap => setAllOrdersList(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))))
+            .catch(err => console.log('[CommandCenter] orders fetch:', err));
+
+        getDocs(query(collection(db, 'cvLeads'), orderBy('createdAt', 'desc'), limit(10)))
+            .then(snap => setCvLeadsList(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+            .catch(err => console.log('[CommandCenter] cvLeads fetch:', err));
+
+        // 2. Real-time tasks stream
         const tasksUnsubscribe = onSnapshot(query(collection(db, 'tasks'), orderBy('dueDate', 'asc')), (snapshot) => {
             setTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
             setIsLoading(false);
+        }, (err) => {
+            console.warn('[CommandCenter] tasks listener warning:', err);
+            setIsLoading(false);
         });
 
-        // 1. Listen for Pending Community Posts
-        const postsQ = query(collection(db, 'community_posts'), where('status', '==', 'pending'));
-        const postsUnsub = onSnapshot(postsQ, (snap) => {
-            setPendingPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        }, (err) => console.log('[CommandCenter] community_posts listener:', err));
-
-        // 2. Listen for All Orders
-        const ordersAllQ = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(50));
-        const ordersAllUnsub = onSnapshot(ordersAllQ, (snap) => {
-            setAllOrdersList(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order)));
-        }, (err) => console.log('[CommandCenter] orders listener:', err));
-
-        // 3. Listen for CV Leads
-        const cvQ = query(collection(db, 'cvLeads'), orderBy('createdAt', 'desc'), limit(10));
-        const cvUnsub = onSnapshot(cvQ, (snap) => {
-            setCvLeadsList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        }, (err) => console.log('[CommandCenter] cvLeads listener:', err));
-
-        // Fetch recent communications from assigned orders
+        // 3. Fetch recent communications from assigned orders
         let ordersUnsubscribe = () => {};
         if (user?.id) {
             const ordersQ = query(
@@ -209,7 +208,6 @@ export default function AdminDashboardPage() {
                     let text = "No recent communications.";
                     let subject = "Status: Processing";
                     
-                    // Determine the main display content (prefer email for the main block, as it was originally "Recent Client Emails")
                     if (latestEmail) {
                         text = latestEmail.text;
                         subject = latestEmail.subject || 'Client Email';
@@ -218,7 +216,6 @@ export default function AdminDashboardPage() {
                         subject = 'Internal Note';
                     }
                     
-                    // The date used for sorting and cache-busting (unarchiving) must be the absolute latest date across all notes
                     if (emailDate && otherDate) {
                         date = emailDate.getTime() > otherDate.getTime() ? emailDate : otherDate;
                     } else if (emailDate) {
@@ -242,21 +239,18 @@ export default function AdminDashboardPage() {
                     });
                 });
                 comms.sort((a, b) => b.date.getTime() - a.date.getTime());
-                setRecentComms(comms.slice(0, 20)); // Keep more in case some are archived
-            });
+                setRecentComms(comms.slice(0, 20));
+            }, (err) => console.warn('[CommandCenter] assigned orders listener:', err));
         }
 
         const demoLeadsUnsubscribe = onSnapshot(query(collection(db, 'demoLeads'), orderBy('createdAt', 'desc'), limit(10)), (snapshot) => {
             setDemoLeads(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as DemoLead)));
-        });
+        }, (err) => console.warn('[CommandCenter] demoLeads listener:', err));
 
         return () => {
-            tasksUnsubscribe();
-            ordersUnsubscribe();
-            demoLeadsUnsubscribe();
-            postsUnsub();
-            ordersAllUnsub();
-            cvUnsub();
+            try { tasksUnsubscribe(); } catch {}
+            try { ordersUnsubscribe(); } catch {}
+            try { demoLeadsUnsubscribe(); } catch {}
         };
     }, [user?.id]);
 

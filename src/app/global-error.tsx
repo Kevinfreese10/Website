@@ -19,13 +19,16 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    // If this is a transient Firestore watch stream teardown assertion during navigation, avoid logging as critical app crash
+    const isFirestoreTeardown = error.message?.includes('INTERNAL ASSERTION FAILED') || error.message?.includes('TargetState.Ue');
     reportError(error, {
       operation: 'app.global',
       detail: {
         digest: error.digest,
         path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        isFirestoreTeardown,
       },
-    }, 'CRITICAL');
+    }, isFirestoreTeardown ? 'WARNING' : 'CRITICAL');
   }, [error]);
 
   return (
