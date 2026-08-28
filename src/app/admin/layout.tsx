@@ -2,8 +2,12 @@
 
 import { ReactNode, useEffect } from 'react';
 import { ProtectedRoute, useAuth } from '@/contexts/AuthContext';
-import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import DashboardNav from '@/components/dashboard/DashboardNav';
+import { AppTopBar } from '@/components/navigation/AppTopBar';
+import { CommandPalette } from '@/components/navigation/CommandPalette';
+import { NotificationCenter } from '@/components/navigation/NotificationCenter';
+import { MobileBottomNav } from '@/components/navigation/MobileBottomNav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 
@@ -50,20 +54,20 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <ProtectedRoute>
       <SidebarProvider>
-        <div className="flex min-h-screen bg-white">
+        <div className="flex min-h-screen bg-background">
           {user && (
             <Sidebar collapsible="icon" className="border-r">
               <DashboardNav user={user} />
             </Sidebar>
           )}
           <SidebarInset>
-              <div className="p-4 sm:p-6 lg:p-8">
-                <div className="flex items-center gap-4 mb-4">
-                    <SidebarTrigger className="md:hidden" />
-                </div>
+              <div className="p-4 pb-24 sm:p-6 lg:p-8 pt-0 sm:pt-0 lg:pt-0 md:pb-8">
+                <AppTopBar homeHref="/admin/dashboard" showQuickCreate extra={<NotificationCenter />} />
                 {children}
               </div>
           </SidebarInset>
+          <CommandPalette />
+          <MobileBottomNav variant="admin" />
         </div>
       </SidebarProvider>
     </ProtectedRoute>

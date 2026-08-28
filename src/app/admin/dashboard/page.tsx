@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
+import { AdminKpis } from '@/components/dashboard/AdminKpis';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -801,6 +802,9 @@ export default function AdminDashboardPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* PREMIUM UI: Interactive business KPIs */}
+            <AdminKpis />
 
             {/* CENTRAL COMMAND HUB: Real-Time Operational Action Banners */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

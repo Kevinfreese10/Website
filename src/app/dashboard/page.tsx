@@ -6,7 +6,10 @@ import { Order, User, OrderNote } from '@/lib/types';
 import { useState, useEffect, useMemo } from 'react';
 import { getFirestore, collection, orderBy, query, onSnapshot, doc, updateDoc, arrayUnion, where, or } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { Loader2, ArrowRight, Inbox, Archive } from 'lucide-react';
+import { Loader2, ArrowRight, Inbox, Archive, ShoppingBag, FileText, MessageSquare } from 'lucide-react';
+import { ListSkeleton } from '@/components/ui/skeletons';
+import { FirstRunCard } from '@/components/onboarding/FirstRunCard';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
@@ -178,9 +181,28 @@ export default function DashboardPage() {
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Welcome, {user?.name}!</h1>
-                <p className="text-muted-foreground">Here's a summary of your recent activity and notifications.</p>
+                <h1 className="text-page-title">Welcome, {user?.name}!</h1>
+                <p className="text-support">Here&apos;s a summary of your recent activity and notifications.</p>
             </div>
+
+            {!isLoading && orders.length === 0 && (
+                <FirstRunCard
+                    id="client-welcome"
+                    title="Welcome to My Accountant"
+                    description="Here's how to get going — most clients are set up in a few minutes."
+                    steps={[
+                        { icon: ShoppingBag, title: 'Choose a service', description: 'Browse accounting, tax, payroll and compliance services.' },
+                        { icon: FileText, title: 'Share your documents', description: 'Upload what we ask for; we chase nothing you have already sent.' },
+                        { icon: MessageSquare, title: 'Track progress here', description: 'Status updates and notes from your accountant land on this dashboard.' },
+                    ]}
+                    action={
+                        <>
+                            <Button asChild size="sm"><Link href="/products">Browse services</Link></Button>
+                            <Button asChild size="sm" variant="outline"><Link href="/contact">Talk to us first</Link></Button>
+                        </>
+                    }
+                />
+            )}
             
             <Card>
                 <CardHeader>
@@ -189,7 +211,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
-                        <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary"aria-hidden="true" /><span className="sr-only">Loading…</span></div>
+                        <ListSkeleton items={4} className="p-2" />
                     ) : activeNotifications.length > 0 ? (
                         <ScrollArea className="h-96">
                             <div className="space-y-6">
@@ -230,11 +252,12 @@ export default function DashboardPage() {
                             </div>
                         </ScrollArea>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                            <Inbox className="h-12 w-12 mb-4 opacity-20"/>
-                            <p className="font-semibold">All caught up!</p>
-                            <p className="text-sm">You have no new notifications.</p>
-                        </div>
+                        <EmptyState
+                            compact
+                            icon={Inbox}
+                            title="All caught up!"
+                            description="You have no new notifications."
+                        />
                     )}
                 </CardContent>
             </Card>

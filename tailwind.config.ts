@@ -77,6 +77,20 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      boxShadow: {
+        surface: 'var(--shadow-surface)',
+        raised: 'var(--shadow-raised)',
+        overlay: 'var(--shadow-overlay)',
+      },
+      transitionDuration: {
+        fast: '150ms',
+        base: '250ms',
+        slow: '400ms',
+      },
+      transitionTimingFunction: {
+        'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
@@ -103,6 +117,18 @@ export default {
           '50%': { backgroundPosition: '100% 50%' },
           '100%': { backgroundPosition: '0% 50%' },
         },
+        'fade-up': {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
+        'scale-in': {
+          from: { opacity: '0', transform: 'scale(0.97)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
         'aurora-drift': {
           '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
           '25%': { transform: 'translate(30px, -20px) scale(1.05)' },
@@ -118,6 +144,9 @@ export default {
         'shimmer': 'shimmer 3s ease-in-out infinite',
         'gradient-shift': 'gradient-shift 8s ease infinite',
         'aurora-drift': 'aurora-drift 15s ease-in-out infinite',
+        'fade-up': 'fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'fade-in': 'fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'scale-in': 'scale-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both',
       },
     },
   },

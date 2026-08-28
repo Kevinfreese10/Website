@@ -22,6 +22,9 @@ import {
   Sparkles,
   MessageSquare
 } from 'lucide-react';
+import { AiThinking } from '@/components/ai/AiThinking';
+import { AiConfidenceBadge } from '@/components/ai/AiConfidenceBadge';
+import { AiSuggestionChips } from '@/components/ai/AiSuggestionChips';
 import * as XLSX from 'xlsx-js-style';
 import { analyzeSpreadsheetAllocationsAction, applySpreadsheetAllocationsAction } from '@/app/actions';
 import { cn } from '@/lib/utils';
@@ -400,12 +403,7 @@ export default function KhaiChatPopup({ clientId, client }: { clientId: string, 
                                       <Badge variant="outline" className="text-[10px] font-bold py-0 h-4 border-primary/20 text-primary bg-primary/5">
                                         {getAllocationLabel(match.accountId, match.accountType)}
                                       </Badge>
-                                      <Badge className={cn(
-                                        "text-[9px] py-0 h-4",
-                                        match.confidence >= 80 ? "bg-green-600 text-white hover:bg-green-600" : "bg-yellow-500 text-white hover:bg-yellow-500"
-                                      )}>
-                                        {match.confidence}% match
-                                      </Badge>
+                                      <AiConfidenceBadge confidence={match.confidence} className="h-4 py-0 text-[9px]" />
                                     </div>
                                     <p className="text-[10px] text-muted-foreground italic leading-tight">
                                       "{match.explanation}"
@@ -438,22 +436,23 @@ export default function KhaiChatPopup({ clientId, client }: { clientId: string, 
                   </div>
                 ))}
 
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-2 border shadow-sm flex-shrink-0 mt-0.5">
-                      <Bot className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="bg-muted border rounded-2xl rounded-bl-none px-4 py-3 flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-xs font-bold text-primary italic">Khai is working...</span>
-                    </div>
-                  </div>
-                )}
+                {isLoading && <AiThinking label="Khai is working…" />}
               </div>
             </ScrollArea>
           </CardContent>
 
-          <CardFooter className="p-3 border-t bg-muted/30">
+          <CardFooter className="flex-col items-stretch p-3 border-t bg-muted/30">
+            {messages.length <= 1 && !isLoading && (
+              <AiSuggestionChips
+                className="mb-2"
+                suggestions={[
+                  'How do I allocate a transaction?',
+                  'What can you do?',
+                  'Explain my unallocated items',
+                ]}
+                onSelect={(sugg) => setInputValue(sugg)}
+              />
+            )}
             <form onSubmit={handleSendMessage} className="flex w-full gap-2 items-center">
               <Input
                 type="file"

@@ -3,8 +3,11 @@
 
 import { ReactNode, useEffect } from 'react';
 import { ProtectedRoute, useAuth } from '@/contexts/AuthContext';
-import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import DashboardNav from '@/components/dashboard/DashboardNav';
+import { AppTopBar } from '@/components/navigation/AppTopBar';
+import { CommandPalette } from '@/components/navigation/CommandPalette';
+import { MobileBottomNav } from '@/components/navigation/MobileBottomNav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -73,11 +76,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </Sidebar>
             )}
             <SidebarInset>
-                <div className="p-4 sm:p-6 lg:p-8">
-                    <SidebarTrigger className="md:hidden mb-4" />
+                <div className="p-4 pb-24 sm:p-6 lg:p-8 pt-0 sm:pt-0 lg:pt-0 md:pb-8">
+                    <AppTopBar homeHref="/dashboard" />
                     {children}
                 </div>
             </SidebarInset>
+            <CommandPalette />
+            <MobileBottomNav variant="client" />
           </div>
         </SidebarProvider>
       </PartnerProvider>

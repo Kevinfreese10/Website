@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MoreHorizontal, PlusCircle, Loader2, Calendar, ClipboardList, Edit, Check, Trash2, Paperclip } from 'lucide-react';
+import { TableSkeleton } from '@/components/ui/skeletons';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UserIcon, AlertOctagon, CheckSquare, Settings2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -49,6 +51,15 @@ export default function AdminTasksPage() {
   const [allStaff, setAllStaff] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // Quick Create: open the task form when arriving with ?new=1
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1') {
+      setIsFormOpen(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskTypeFilter, setTaskTypeFilter] = useState('all');
   const { toast } = useToast();
@@ -357,7 +368,7 @@ export default function AdminTasksPage() {
             </CardHeader>
             <CardContent className="p-0">
               {isLoading ? (
-                <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
+                <div className="p-6"><TableSkeleton rows={8} columns={5} /></div>
               ) : (
               <Table>
                 <TableHeader className="bg-slate-50/20">
@@ -372,7 +383,13 @@ export default function AdminTasksPage() {
                 <TableBody>
                   {filteredTasks.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={5} className="text-center text-slate-400 py-16 font-medium">No tasks to display.</TableCell>
+                        <TableCell colSpan={5} className="p-0">
+                          <EmptyState
+                            icon={ClipboardList}
+                            title="No tasks to display"
+                            description="Tasks assigned to staff will appear here. Create one to get started."
+                          />
+                        </TableCell>
                     </TableRow>
                   ) : (
                     filteredTasks.map(task => {
