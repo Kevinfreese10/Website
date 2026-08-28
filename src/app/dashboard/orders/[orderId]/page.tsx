@@ -689,24 +689,42 @@ export default function ClientOrderDetailsPage() {
             <div className="space-y-8">
                 {allSubmitted && (
                     isCurrentlyUnderReview ? (
-                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-800">
-                            <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
-                            <div>
-                                <p className="font-semibold text-green-900">All documents submitted!</p>
-                                <p className="text-sm">Your consultant has been notified and is currently reviewing your documents. We will update you here and via email once the review is complete.</p>
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-green-800">
+                            <div className="flex items-start gap-3">
+                                <CheckCircle className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-semibold text-green-900">All information submitted & under review!</p>
+                                    <p className="text-sm">Your consultant has received the AI audit report. If you've updated any files or information, you can notify them again.</p>
+                                </div>
                             </div>
+                            <Button 
+                                onClick={handleNotifyConsultant} 
+                                disabled={isSubmitting} 
+                                size="sm" 
+                                variant="outline"
+                                className="border-green-600 text-green-800 hover:bg-green-100 shrink-0 gap-1.5"
+                            >
+                                {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                                {isSubmitting ? 'Running AI Audit...' : 'Re-Run AI Audit & Notify'}
+                            </Button>
                         </div>
                     ) : (
                         <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-amber-800">
                             <div className="flex items-start gap-3">
                                 <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                                 <div>
-                                    <p className="font-semibold text-amber-900">{hasRejectedUploads ? 'Revision Ready: Submit for Re-Review' : 'Action Required: Submit for Review'}</p>
-                                    <p className="text-sm">{hasRejectedUploads ? 'You have updated the requested documents. Please notify your consultant to re-review.' : 'All required items have been completed or explained. Please submit them so your consultant can start processing your order.'}</p>
+                                    <p className="font-semibold text-amber-900">{hasRejectedUploads ? 'Revision Ready: Submit for Re-Review' : 'All Required Information Completed!'}</p>
+                                    <p className="text-sm">{hasRejectedUploads ? 'You have updated the requested documents. Please notify your consultant to re-review.' : 'All required items have been saved. Click below to run the automated AI audit and notify your consultant.'}</p>
                                 </div>
                             </div>
-                            <Button onClick={handleNotifyConsultant} disabled={isSubmitting} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
-                                {hasRejectedUploads ? 'Submit Re-submission' : 'Submit Documents Now'}
+                            <Button 
+                                onClick={handleNotifyConsultant} 
+                                disabled={isSubmitting} 
+                                size="sm" 
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 gap-1.5 font-bold shadow-sm"
+                            >
+                                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                {isSubmitting ? 'Running AI Audit...' : 'Notify Consultant of All Submissions'}
                             </Button>
                         </div>
                     )
@@ -1250,19 +1268,37 @@ export default function ClientOrderDetailsPage() {
                         </div>
                     </CardContent>
                     {allRequirements.length > 0 && (
-                        <CardFooter>
+                        <CardFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                            <div className="text-xs text-muted-foreground">
+                                {allSubmitted ? (
+                                    <span className="text-green-700 font-semibold flex items-center gap-1">
+                                        <CheckCircle className="h-3.5 w-3.5 text-green-600" /> All {requiredRequirements.length} required items completed
+                                    </span>
+                                ) : (
+                                    <span>
+                                        {submittedCount} of {requiredRequirements.length} required items completed
+                                    </span>
+                                )}
+                            </div>
                             <Button 
                                 onClick={handleNotifyConsultant} 
-                                disabled={isSubmitting || !allSubmitted || isCurrentlyUnderReview}
+                                disabled={isSubmitting || !allSubmitted}
+                                className="font-bold gap-2"
                             >
                                 {isSubmitting ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : isCurrentlyUnderReview ? (
-                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    <RefreshCw className="h-4 w-4" />
                                 ) : (
-                                    <Send className="mr-2 h-4 w-4" />
+                                    <Send className="h-4 w-4" />
                                 )}
-                                {isCurrentlyUnderReview ? "Consultant Reviewing" : "Notify Consultant of All Submissions"}
+                                {isSubmitting 
+                                    ? "Running AI Audit & Submitting..." 
+                                    : !allSubmitted
+                                    ? `Complete All Requirements (${submittedCount}/${requiredRequirements.length})`
+                                    : isCurrentlyUnderReview 
+                                    ? "Re-Run AI Audit & Notify Consultant" 
+                                    : "Notify Consultant of All Submissions"}
                             </Button>
                         </CardFooter>
                     )}

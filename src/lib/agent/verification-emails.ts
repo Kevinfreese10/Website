@@ -53,3 +53,135 @@ export async function sendUndecidedEmail(order: Order & { id: string }, items: I
   </div>`;
   await sendEmail({ to: TO, subject: `⚠️ Order #${n} — ${pending.length} document${pending.length > 1 ? 's' : ''} need your decision`, html });
 }
+
+/**
+ * Sends a full, consolidated AI Audit Findings report email to kev@thinkestry.co.za
+ * triggered immediately when a client submits their documents or clicks "Notify Consultant".
+ */
+export async function sendAuditFindingsEmail(
+  order: Order & { id: string }, 
+  items: ItemVerdict[], 
+  state: 'awaiting_client' | 'awaiting_consultant' | 'complete' | 'skipped',
+  trigger: string
+) {
+  const n = order.originalOrderId || order.id || (order as any).orderNumber;
+  const customerName = order.endCustomerName || order.customerName || 'Client';
+  const customerEmail = order.endCustomerEmail || order.customerEmail || '';
+  const customerPhone = order.endCustomerPhone || order.customerPhone || '';
+  const entityName = (order as any).companyName || (order as any).entityName || (order as any).shippingAddress?.company || '';
+  const services = (order.serviceSnapshots || []).map(s => s.title).join(', ') || (order.items || []).map(i => i.title || (i as any).name).join(', ');
+
+  const approved = items.filter(i => i.outcome === 'approved');
+  const rejected = items.filter(i => i.outcome === 'rejected');
+  const pending = items.filter(i => i.outcome === 'pending');
+  const missing = items.filter(i => i.outcome === 'missing');
+
+  const isComplete = state === 'complete';
+  const headerTitle = isComplete 
+    ? '✅ AI Order Audit Completed — All Documents Approved' 
+    : rejected.length > 0 
+      ? '⚠️ AI Order Audit Completed — Issues Identified / Attention Required'
+      : '📋 AI Order Audit Findings — Submissions Received';
+
+  const subject = isComplete
+    ? `✅ [AI Audit Passed] Order #${n} — All Documents & Data Verified (${customerName})`
+    : rejected.length > 0
+      ? `⚠️ [AI Audit Issues] Order #${n} — Revisions Required (${customerName})`
+      : `📋 [AI Audit Report] Order #${n} — Submissions Received (${customerName})`;
+
+  const statusBg = isComplete ? '#dcfce7' : rejected.length > 0 ? '#fee2e2' : '#fef3c7';
+  const statusColor = isComplete ? '#166534' : rejected.length > 0 ? '#991b1b' : '#92400e';
+  const statusBorder = isComplete ? '#86efac' : rejected.length > 0 ? '#fca5a5' : '#fde68a';
+
+  const html = `
+  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: #1e293b; max-width: 780px; margin: 0 auto; line-height: 1.5;">
+    
+    <!-- Top Brand Header -->
+    <div style="background: #0f172a; padding: 18px 24px; border-radius: 8px 8px 0 0; color: #ffffff;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td>
+            <div style="font-size: 18px; font-weight: 700; color: #ffffff;">My Accountant — AI Order Audit</div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Automated Document Verification & Compliance Engine</div>
+          </td>
+          <td align="right">
+            <span style="background: rgba(255,255,255,0.15); font-size: 13px; padding: 4px 10px; border-radius: 4px; color: #f8fafc; font-weight: 600;">
+              Order #${esc(n)}
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Body Container -->
+    <div style="border: 1px solid #e2e8f0; border-top: none; padding: 24px; border-radius: 0 0 8px 8px; background: #ffffff;">
+      
+      <!-- Status Alert Box -->
+      <div style="background: ${statusBg}; border: 1px solid ${statusBorder}; border-radius: 6px; padding: 14px 18px; margin-bottom: 20px;">
+        <div style="font-size: 15px; font-weight: 700; color: ${statusColor};">${esc(headerTitle)}</div>
+        <div style="font-size: 12px; color: ${statusColor}; margin-top: 4px;">
+          Triggered by client: <b>${esc(customerName)}</b> via Order Dashboard (${esc(trigger)}) · Timestamp: ${new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })}
+        </div>
+      </div>
+
+      <!-- Quick Metrics Counters -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; text-align: center;">
+        <tr>
+          <td style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px 0 0 6px;">
+            <div style="font-size: 20px; font-weight: 700; color: #16a34a;">${approved.length}</div>
+            <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Approved</div>
+          </td>
+          <td style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-left: none;">
+            <div style="font-size: 20px; font-weight: 700; color: #dc2626;">${rejected.length}</div>
+            <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Needs Attention</div>
+          </td>
+          <td style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-left: none;">
+            <div style="font-size: 20px; font-weight: 700; color: #d97706;">${pending.length}</div>
+            <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Pending Review</div>
+          </td>
+          <td style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-left: none; border-radius: 0 6px 6px 0;">
+            <div style="font-size: 20px; font-weight: 700; color: #64748b;">${missing.length}</div>
+            <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Outstanding</div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Order & Client Details Table -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; margin-bottom: 24px;">
+        <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Client & Order Details</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr>
+            <td style="color: #64748b; padding: 3px 0; width: 140px;">Client Name:</td>
+            <td style="font-weight: 600; color: #0f172a;">${esc(customerName)}</td>
+          </tr>
+          ${customerEmail ? `<tr><td style="color: #64748b; padding: 3px 0;">Email Address:</td><td><a href="mailto:${esc(customerEmail)}" style="color: #2563eb; text-decoration: none;">${esc(customerEmail)}</a></td></tr>` : ''}
+          ${customerPhone ? `<tr><td style="color: #64748b; padding: 3px 0;">Phone:</td><td style="color: #0f172a;">${esc(customerPhone)}</td></tr>` : ''}
+          ${entityName ? `<tr><td style="color: #64748b; padding: 3px 0;">Entity / Company:</td><td style="font-weight: 600; color: #0f172a;">${esc(entityName)}</td></tr>` : ''}
+          <tr>
+            <td style="color: #64748b; padding: 3px 0;">Services:</td>
+            <td style="color: #0f172a;">${esc(services)}</td>
+          </tr>
+          ${order.total ? `<tr><td style="color: #64748b; padding: 3px 0;">Order Value:</td><td style="font-weight: 600; color: #16a34a;">R${Number(order.total).toFixed(2)}</td></tr>` : ''}
+        </table>
+      </div>
+
+      <!-- Itemized Audit Findings Table -->
+      <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Itemized Verification Breakdown</div>
+      ${table(items.filter(i => i.outcome !== 'not_applicable'))}
+
+      <!-- Admin Action Button -->
+      <div style="margin-top: 28px; text-align: center; padding-top: 18px; border-top: 1px solid #e2e8f0;">
+        <a href="${APP}/admin/orders/${order.id}" style="background: #0F2137; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          Open Order #${esc(n)} in Admin Portal →
+        </a>
+      </div>
+
+    </div>
+  </div>`;
+
+  await sendEmail({
+    to: TO,
+    subject,
+    html,
+  });
+}

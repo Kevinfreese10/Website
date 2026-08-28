@@ -26,7 +26,7 @@ import { postOrderNoteAtomic, reviewOrderDocumentAtomic, transitionOrderStatusAt
 import { checkTextValue } from '@/lib/verification/mechanical';
 import { evaluateDocument, type EntityContext, type RuleOutcome } from '@/lib/verification/rules';
 import type { ExtractedDocumentFacts } from '@/lib/verification/facts';
-import { sendCompleteEmail, sendUndecidedEmail } from './verification-emails';
+import { sendCompleteEmail, sendUndecidedEmail, sendAuditFindingsEmail } from './verification-emails';
 
 export type CycleTrigger = 'notify' | 'upload' | 'cron' | 'manual';
 
@@ -225,7 +225,14 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
       console.error('[runVerificationCycle] Email dispatch transaction error:', txErr);
     }
 
-    if (shouldSendComplete) {
+    if (trigger === 'notify') {
+      try {
+        await sendAuditFindingsEmail(order, result.items, result.state, trigger);
+        result.emailedKevin = result.state === 'complete' ? 'complete' : 'undecided';
+      } catch (err) {
+        console.error('[runVerificationCycle] Failed to send audit findings email:', err);
+      }
+    } else if (shouldSendComplete) {
       try {
         await sendCompleteEmail(order, result.items);
         result.emailedKevin = 'complete';

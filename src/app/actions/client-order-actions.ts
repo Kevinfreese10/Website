@@ -410,12 +410,26 @@ export async function notifyConsultantAndVerifyAction(params: { idToken: string;
 
     const { runVerificationCycle } = await import('@/lib/agent/verification-cycle');
     const r = await runVerificationCycle(params.orderId, 'notify');
-    const c = { approved: r.items.filter(i => i.outcome === 'approved').length, rejected: r.items.filter(i => i.outcome === 'rejected').length, missing: r.items.filter(i => i.outcome === 'missing').length, pending: r.items.filter(i => i.outcome === 'pending').length };
+    
+    // Ensure order is flagged as Under Review
+    await db.collection('orders').doc(params.orderId).update({
+      fulfillmentStatus: 'Under Review',
+      lastClientSubmissionAt: new Date().toISOString(),
+    });
+
+    const c = { 
+      approved: r.items.filter(i => i.outcome === 'approved').length, 
+      rejected: r.items.filter(i => i.outcome === 'rejected').length, 
+      missing: r.items.filter(i => i.outcome === 'missing').length, 
+      pending: r.items.filter(i => i.outcome === 'pending').length 
+    };
+
     const message = r.state === 'complete'
-      ? 'All your documents have been checked and approved. Your consultant has been notified.'
+      ? 'All your documents have been verified and approved. Your consultant has received the full audit report.'
       : r.state === 'awaiting_consultant'
-        ? `${c.approved} approved; ${c.pending} item(s) are with your consultant. Nothing further is needed from you right now.`
-        : `${c.approved} approved; ${c.rejected + c.missing} item(s) need your attention — see the note on this order.`;
+        ? `${c.approved} document(s) verified; ${c.pending} item(s) are with your consultant for review. Audit report sent.`
+        : `${c.approved} approved; ${c.rejected + c.missing} item(s) need your attention — see your order notes. Audit report sent to consultant.`;
+
     return { success: true, state: r.state, counts: c, message };
   } catch (e: any) {
     console.error('[notifyConsultantAndVerifyAction]', e);
