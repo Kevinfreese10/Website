@@ -6,6 +6,7 @@ import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar'
 import DashboardNav from '@/components/dashboard/DashboardNav';
 import { AppTopBar } from '@/components/navigation/AppTopBar';
 import { CommandPalette } from '@/components/navigation/CommandPalette';
+import { NotificationCenter } from '@/components/navigation/NotificationCenter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 
@@ -60,7 +61,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           )}
           <SidebarInset>
               <div className="p-4 sm:p-6 lg:p-8 pt-0 sm:pt-0 lg:pt-0">
-                <AppTopBar homeHref="/admin/dashboard" showQuickCreate />
+                <AppTopBar homeHref="/admin/dashboard" showQuickCreate extra={<NotificationCenter />} />
                 {children}
               </div>
           </SidebarInset>

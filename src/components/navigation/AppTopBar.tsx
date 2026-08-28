@@ -14,9 +14,12 @@ import { Search } from 'lucide-react';
 export function AppTopBar({
   homeHref,
   showQuickCreate = false,
+  extra,
 }: {
   homeHref: string;
   showQuickCreate?: boolean;
+  /** Extra controls (e.g. notification centre) rendered before Quick Create. */
+  extra?: React.ReactNode;
 }) {
   const [isMac, setIsMac] = React.useState(false);
   React.useEffect(() => {
@@ -48,6 +51,7 @@ export function AppTopBar({
       >
         <Search className="h-4 w-4" />
       </Button>
+      {extra}
       {showQuickCreate && <QuickCreate />}
     </header>
   );

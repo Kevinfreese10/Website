@@ -303,6 +303,17 @@ export default function AdminOrdersPage() {
   const [activeViewName, setActiveViewName] = useState<string | null>(null);
   const [quickViewOrder, setQuickViewOrder] = useState<Order | null>(null);
 
+  // Deep-link support: /admin/orders?status=Completed (used by dashboard KPIs)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('status');
+    if (status) {
+      handleStatusFilterChange(status);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const applySavedView = (view: SavedView<OrdersViewState>) => {
     setSearchTerm(view.state.searchTerm ?? '');
     handleStatusFilterChange(view.state.statusFilter ?? 'active');
