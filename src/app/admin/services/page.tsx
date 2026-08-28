@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Loader2, Copy, Info, AlertTriangle, Download, RefreshCw, Calculator, ArrowUp, ArrowUpDown, CheckCircle2, XCircle, ShieldOff, FileSpreadsheet } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, Copy, Info, AlertTriangle, Download, RefreshCw, Calculator, ArrowUp, ArrowUpDown, CheckCircle2, XCircle, ShieldOff, FileSpreadsheet, Building2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import ServiceForm from '@/components/admin/ServiceForm';
@@ -649,7 +650,17 @@ export default function AdminServicesPage() {
                       <Image src={service.imageUrl} alt={service.title} width={40} height={40} className="rounded-md object-cover" />
                   </TableCell>
                   <TableCell className="font-medium">
-                    <span>{service.title}</span>
+                    <div className="flex flex-col gap-1">
+                      <span>{service.title}</span>
+                      {service.coidaIndustries && service.coidaIndustries.length > 0 && (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <Badge variant="outline" className="text-[10px] font-normal bg-primary/5 text-primary border-primary/20 gap-1 py-0 px-1.5 h-4">
+                            <Building2 className="h-2.5 w-2.5" />
+                            {service.coidaIndustries.length} COIDA {service.coidaIndustries.length === 1 ? 'Industry' : 'Industries'}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                    <TableCell>
                        <TooltipProvider>

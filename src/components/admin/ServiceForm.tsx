@@ -43,6 +43,7 @@ import {
 } from '@/lib/service-presets';
 import PrerequisiteMultiSelectDialog from './PrerequisiteMultiSelectDialog';
 import DocumentMultiSelectDialog from './DocumentMultiSelectDialog';
+import CoidaIndustrySelect from './CoidaIndustrySelect';
 
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
@@ -152,6 +153,7 @@ const formSchema = z.object({
   reviewCount: z.preprocess(val => Number(val), z.number().optional()),
   priceValidUntilOverride: z.string().optional(),
   requiredProductIds: z.array(z.string()).optional(),
+  coidaIndustries: z.array(z.string()).optional(),
 });
 
 type ServiceFormProps = {
@@ -207,6 +209,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
       category: service?.category || '',
       department: service?.department || 'Administration',
       turnaroundTime: service?.turnaroundTime || '',
+      coidaIndustries: service?.coidaIndustries || [],
       whatsIncluded: service?.whatsIncluded?.map(v => ({ value: v })) || [{ value: '' }],
       clientRequirements: service?.clientRequirements?.map(item => {
         if (typeof item === 'string') {
@@ -724,6 +727,25 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                     )}
                   />
                 </div>
+              </div>
+
+              {/* COIDA Industries Classification Card */}
+              <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
+                <FormField
+                  control={form.control}
+                  name="coidaIndustries"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <CoidaIndustrySelect
+                          value={field.value || []}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {/* Pricing & Profit Margins Card */}

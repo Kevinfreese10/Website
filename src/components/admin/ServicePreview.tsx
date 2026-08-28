@@ -45,6 +45,23 @@ export default function ServicePreview({ service }: ServicePreviewProps) {
         </div>
       )}
 
+      {service.coidaIndustries && service.coidaIndustries.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <span>COIDA Industry Classification</span>
+            <Badge variant="secondary" className="text-xs">{service.coidaIndustries.length}</Badge>
+          </h2>
+          <Separator className="my-2" />
+          <div className="flex flex-wrap gap-2">
+            {service.coidaIndustries.map(code => (
+              <Badge key={code} variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs py-1 px-2.5">
+                {code.replace('_', ' ')}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
       {service.whatsIncluded && service.whatsIncluded.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold">What's Included</h2>

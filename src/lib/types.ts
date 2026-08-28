@@ -283,6 +283,7 @@ export type Service = {
   isFeatured?: boolean;
   subcontractorFee?: number;
   requiredProductIds?: string[];
+  coidaIndustries?: string[];
 };
 
 export type BlogPost = {
