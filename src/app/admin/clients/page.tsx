@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MoreHorizontal, PlusCircle, Loader2, RotateCw, Search, Users, DollarSign, TrendingUp, HeartPulse, CheckCircle2, AlertOctagon, SlidersHorizontal, Eye, X, Edit, Calendar, Building2, Landmark, CircleUser } from 'lucide-react';
+import { TableSkeleton } from '@/components/ui/skeletons';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -888,7 +890,7 @@ export default function AdminClientsPage() {
         {/* Client List Table */}
         <div className="overflow-x-auto">
           {isLoading && clients.length === 0 ? (
-            <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-72"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
+            <div className="p-6"><TableSkeleton rows={10} columns={7} /></div>
           ) : (
           <Table>
             <TableHeader className="bg-slate-50/20">
@@ -988,9 +990,12 @@ export default function AdminClientsPage() {
               })}
               {filteredClients.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-16 text-slate-400 font-medium">
-                    <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-slate-200" />
-                    No clients matched the filter.
+                  <TableCell colSpan={7} className="p-0">
+                    <EmptyState
+                      icon={Users}
+                      title="No clients matched the filter"
+                      description="Adjust your search or filters to find the client you're looking for."
+                    />
                   </TableCell>
                 </TableRow>
               )}

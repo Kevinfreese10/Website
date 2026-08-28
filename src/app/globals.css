@@ -330,3 +330,111 @@ body.home-light-theme .glass {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
+/* ════════════════════════════════════════════════════════════════════
+   PREMIUM UI FOUNDATION (Phase 0)
+   Motion tokens · Elevation system · Typography hierarchy · Interaction
+   ════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* ── Motion tokens ── */
+    --duration-fast: 150ms;
+    --duration-base: 250ms;
+    --duration-slow: 400ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);       /* ease-out-expo: snappy, premium */
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* subtle overshoot for success moments */
+
+    /* ── Elevation system (3 tiers, replaces arbitrary shadows) ── */
+    --shadow-surface: 0 1px 2px 0 hsl(224 71% 9% / 0.05);
+    --shadow-raised: 0 2px 4px -1px hsl(224 71% 9% / 0.06), 0 6px 16px -2px hsl(224 71% 9% / 0.08);
+    --shadow-overlay: 0 8px 16px -4px hsl(224 71% 9% / 0.1), 0 20px 40px -8px hsl(224 71% 9% / 0.14);
+  }
+}
+
+@layer utilities {
+  /* ── Elevation utilities ── */
+  .shadow-surface { box-shadow: var(--shadow-surface); }
+  .shadow-raised { box-shadow: var(--shadow-raised); }
+  .shadow-overlay { box-shadow: var(--shadow-overlay); }
+
+  /* ── Typography hierarchy ── */
+  .text-page-title {
+    @apply font-headline text-2xl font-bold tracking-tight text-foreground md:text-3xl;
+  }
+  .text-section-title {
+    @apply font-headline text-lg font-semibold tracking-tight text-foreground;
+  }
+  .text-meta {
+    @apply text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+  .text-support {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* ── Interaction: hover lift for interactive cards ── */
+  .hover-lift {
+    transition: transform var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-raised);
+  }
+
+  /* ── Interaction: press feedback ── */
+  .press-scale {
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+  .press-scale:active {
+    transform: scale(0.97);
+  }
+
+  /* ── Content entrance (used by page/section reveals) ── */
+  .animate-fade-up {
+    animation: fade-up var(--duration-slow) var(--ease-out) both;
+  }
+  .animate-fade-in {
+    animation: fade-in var(--duration-base) var(--ease-out) both;
+  }
+  .animate-scale-in {
+    animation: scale-in var(--duration-base) var(--ease-out) both;
+  }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ── Staggered list entrance: apply .stagger-children to a parent ── */
+.stagger-children > * {
+  animation: fade-up var(--duration-slow) var(--ease-out) both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 160ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(n+7) { animation-delay: 240ms; }
+
+/* ── Accessibility: honour reduced-motion everywhere ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

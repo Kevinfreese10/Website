@@ -50,7 +50,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <ProtectedRoute>
       <SidebarProvider>
-        <div className="flex min-h-screen bg-white">
+        <div className="flex min-h-screen bg-background">
           {user && (
             <Sidebar collapsible="icon" className="border-r">
               <DashboardNav user={user} />

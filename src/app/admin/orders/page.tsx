@@ -20,6 +20,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter, RefreshCw, Link as LinkIcon, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { TableSkeleton } from '@/components/ui/skeletons';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -734,16 +736,20 @@ export default function AdminOrdersPage() {
             </CardHeader>
             <CardContent className="p-0">
             {isLoading ? (
-                <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
+                <div className="p-6"><TableSkeleton rows={8} columns={8} /></div>
             ) : filteredOrders.length === 0 ? (
-                <div className="py-20 text-center space-y-4">
-                    <p className="text-muted-foreground font-medium">No active orders matching your search or filters.</p>
-                    <Button variant="outline" onClick={() => { 
-                        setSearchTerm(''); 
-                        handleStatusFilterChange('all'); 
-                        handleAssignedFilterChange('all'); 
-                    }}>Clear Filters</Button>
-                </div>
+                <EmptyState
+                    icon={Search}
+                    title="No orders match your filters"
+                    description="Try a different search term or clear the active filters to see all orders."
+                    action={
+                        <Button variant="outline" onClick={() => { 
+                            setSearchTerm(''); 
+                            handleStatusFilterChange('all'); 
+                            handleAssignedFilterChange('all'); 
+                        }}>Clear Filters</Button>
+                    }
+                />
             ) : (
                 <Table>
                 <TableHeader className="bg-muted/5">

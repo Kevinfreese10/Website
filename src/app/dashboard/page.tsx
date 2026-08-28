@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { getFirestore, collection, orderBy, query, onSnapshot, doc, updateDoc, arrayUnion, where, or } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Loader2, ArrowRight, Inbox, Archive } from 'lucide-react';
+import { ListSkeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
@@ -189,7 +190,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
-                        <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary"aria-hidden="true" /><span className="sr-only">Loading…</span></div>
+                        <ListSkeleton items={4} className="p-2" />
                     ) : activeNotifications.length > 0 ? (
                         <ScrollArea className="h-96">
                             <div className="space-y-6">
