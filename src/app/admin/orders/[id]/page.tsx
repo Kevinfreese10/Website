@@ -5,6 +5,8 @@ import { recordRecentItem } from '@/hooks/use-recent-items';
 import { OrderStickyHeader } from '@/components/admin/orders/OrderStickyHeader';
 import { DocumentPreviewDrawer, type PreviewDoc } from '@/components/shared/DocumentPreviewDrawer';
 import { FileDropZone } from '@/components/ui/file-drop-zone';
+import { useFormDraft } from '@/components/forms/use-form-draft';
+import { AutosaveIndicator } from '@/components/forms/AutosaveIndicator';
 import { notFound, useParams } from 'next/navigation';
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp, collection, getDocs, where, query, setDoc, orderBy, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -156,6 +158,16 @@ export default function AdminOrderDetailsPage() {
     resolver: zodResolver(noteFormSchema),
     defaultValues: { noteText: "" },
   });
+
+  // Draft autosave + recovery for the note editor (Premium UI Phase 6)
+  const noteTextValue = noteForm.watch('noteText') || '';
+  const noteDraft = useFormDraft(`order-note.${id}`, noteTextValue);
+  useEffect(() => {
+    if (noteDraft.restored && !noteForm.getValues('noteText')) {
+      noteForm.setValue('noteText', noteDraft.restored);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteDraft.restored]);
 
   const rejectionForm = useForm<z.infer<typeof rejectionFormSchema>>({
     resolver: zodResolver(rejectionFormSchema),
@@ -549,6 +561,7 @@ export default function AdminOrderDetailsPage() {
         description: isInternalNote ? "Saved internally. Client cannot see this note." : "Your note has been saved and client notified." 
       });
       noteForm.reset();
+      noteDraft.clear();
       setAttachedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
       await fetchOrderAndStaff(true); 
@@ -1683,7 +1696,7 @@ export default function AdminOrderDetailsPage() {
                                   )} 
                                 />
 
-                                <div className="flex justify-between items-center"><div className="flex gap-2"><Button type="submit" size="sm" disabled={isLoading}>{isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}Post Note</Button><Button type="button" variant="outline" size="sm" onClick={handleProofread} disabled={isProofreading}>{isProofreading ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Sparkles className="mr-2" />}Proofread</Button></div></div>
+                                <div className="flex justify-between items-center gap-3"><AutosaveIndicator status={noteDraft.status} savedAt={noteDraft.savedAt} className="order-last" /><div className="flex gap-2"><Button type="submit" size="sm" disabled={isLoading}>{isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}Post Note</Button><Button type="button" variant="outline" size="sm" onClick={handleProofread} disabled={isProofreading}>{isProofreading ? <Loader2 className="mr-2 h-4 w-4 animate-spin mr-2" /> : <Sparkles className="mr-2" />}Proofread</Button></div></div>
                             </form>
                             </FileDropZone>
                             </Form>

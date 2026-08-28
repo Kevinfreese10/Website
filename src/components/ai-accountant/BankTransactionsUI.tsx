@@ -11,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FileUp, Loader2, PlusCircle, Search, Settings, Trash2, Edit, ArrowRightLeft, BookOpen, Sparkles, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, CheckCheck, ChevronsUpDown, MoreHorizontal, RotateCcw, AlertTriangle, Download, BrainCircuit, Play, CheckCircle2, Clock, Undo2, RotateCw, History, Info, X, ArrowRight, MessageSquareQuote, Send, AlertCircle, StopCircle, GripVertical, Layers, FileSpreadsheet, Save, MessageSquare, RefreshCw, Calendar as CalendarIcon, Users, Zap, Unlink, Split } from 'lucide-react';
+import { AiConfidenceBadge } from '@/components/ai/AiConfidenceBadge';
 import Papa from 'papaparse';
 import { ImportedTransaction, ChartOfAccount, User, VatType, AllocatedTransaction, AllocationRule, ClientCustomer, Invoice, SmartAllocationResult, Supplier } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -151,15 +152,7 @@ function AIAllocationReviewDialog({ open, onOpenChange, suggestion, transaction,
                 <div className="space-y-6 py-4">
                     <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-3">
                         <div className="flex justify-between items-center">
-                            <Badge className={cn(
-                                suggestion.confidence > 80 
-                                ? "bg-green-600 hover:bg-green-600 text-white" 
-                                : suggestion.confidence < 20 
-                                ? "bg-destructive hover:bg-destructive text-white animate-pulse" 
-                                : "bg-yellow-500 hover:bg-yellow-500 text-white"
-                            )}>
-                                {suggestion.confidence < 20 ? "No Match Found" : `${suggestion.confidence}% Confidence`}
-                            </Badge>
+                            <AiConfidenceBadge confidence={suggestion.confidence} />
                             <span className="text-[10px] font-bold uppercase text-muted-foreground">AI Intelligence Layer</span>
                         </div>
                         <p className="text-sm italic text-muted-foreground leading-relaxed">
