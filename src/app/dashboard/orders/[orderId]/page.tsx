@@ -1180,9 +1180,9 @@ export default function ClientOrderDetailsPage() {
                                                                         ) : (
                                                                             <div className="flex items-center gap-2">
                                                                                 <Input 
-                                                                                    type="text" 
+                                                                                    type={info.isSecret || info.label.toLowerCase().includes('password') ? "password" : "text"} 
                                                                                     className="h-8 text-xs font-medium" 
-                                                                                    placeholder="Enter information here..." 
+                                                                                    placeholder={info.isSecret || info.label.toLowerCase().includes('password') ? "Enter password securely..." : "Enter information here..."} 
                                                                                     value={textInputs[info.label] || ''} 
                                                                                     onChange={(e) => handleTextChange(info.label, e.target.value)} 
                                                                                 />
