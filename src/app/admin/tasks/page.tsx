@@ -51,6 +51,15 @@ export default function AdminTasksPage() {
   const [allStaff, setAllStaff] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // Quick Create: open the task form when arriving with ?new=1
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1') {
+      setIsFormOpen(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskTypeFilter, setTaskTypeFilter] = useState('all');
   const { toast } = useToast();

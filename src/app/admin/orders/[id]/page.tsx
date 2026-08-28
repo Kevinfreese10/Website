@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { recordRecentItem } from '@/hooks/use-recent-items';
 import { notFound, useParams } from 'next/navigation';
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion, Timestamp, collection, getDocs, where, query, setDoc, orderBy, limit } from 'firebase/firestore';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -208,6 +209,13 @@ export default function AdminOrderDetailsPage() {
           }
 
           setOrder(fetchedOrder);
+          recordRecentItem({
+            type: 'order',
+            id: fetchedOrder.id,
+            label: `${fetchedOrder.id} — ${fetchedOrder.customerName || fetchedOrder.customerEmail || 'Order'}`,
+            sublabel: fetchedOrder.status,
+            href: `/admin/orders/${fetchedOrder.id}`,
+          });
           
           if (fetchedOrder.assignedTo && fetchedOrder.assignedTo.length > 0) {
             const assignedUser = fetchedStaff.find(u => u.uid === fetchedOrder.assignedTo![0]);

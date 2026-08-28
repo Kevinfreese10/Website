@@ -308,6 +308,20 @@ export default function AdminClientsPage() {
   
   // Dialog (Add Client) & Sheet (Client Workspace Detail)
   const [isAddOpen, setIsAddOpen] = useState(false);
+
+  // Quick Create: open the Add Client dialog when arriving with ?new=1
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1') {
+      setIsAddOpen(true);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    const q = params.get('q');
+    if (q) {
+      setSearchTerm(q);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
   const [selectedClient, setSelectedClient] = useState<User | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
