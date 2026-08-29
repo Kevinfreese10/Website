@@ -50,7 +50,7 @@ export async function analyzeKbContent(
 
 const analyzePrompt = ai.definePrompt({
   name: 'analyzeKbContentPrompt',
-  model: 'googleai/gemini-3.5-flash-lite',
+  model: 'googleai/gemini-3.5-flash',
   input: { schema: AnalyzeKbContentInputSchema },
   output: { schema: AnalyzeKbContentOutputSchema },
   prompt: `You are Khai, the AI assistant for My Accountant. Your task is to evaluate the following knowledge base entry to ensure you understand it perfectly so you can explain it to clients.
@@ -129,7 +129,7 @@ export async function integrateKbClarifications(
 
 const integratePrompt = ai.definePrompt({
   name: 'integrateKbClarificationsPrompt',
-  model: 'googleai/gemini-3.5-flash-lite',
+  model: 'googleai/gemini-3.5-flash',
   input: { schema: IntegrateKbClarificationsInputSchema },
   output: { schema: IntegrateKbClarificationsOutputSchema },
   prompt: `You are Khai, the AI assistant. Your task is to update and enrich the existing knowledge base content by seamlessly integrating the administrator's clarifications.

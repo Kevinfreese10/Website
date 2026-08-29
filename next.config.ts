@@ -290,6 +290,24 @@ const nextConfig: NextConfig = {
       { source: '/products/business-advisory', destination: '/financial-advisory', permanent: true },
       { source: '/products/business-advisory-services', destination: '/financial-advisory', permanent: true },
 
+      // --- Double-hyphen URL fixes ---
+      { source: '/products/ncr-form-40-application--compliance', destination: '/products/ncr-form-40-application-compliance', permanent: true },
+      { source: '/products/sars-login-assistance--troubleshooting', destination: '/products/sars-login-assistance-troubleshooting', permanent: true },
+      { source: '/products/bei-setup--demonstration', destination: '/become-a-partner', permanent: true },
+
+      // --- Duplicate & Typo Blog Consolidation (Keyword Cannibalization Fixes) ---
+      { source: '/blog/my-accoutant-sa-best-accountants-your-financial-partner', destination: '/blog/why-my-accountant-is-the-best-in-sa-your-financial-partner', permanent: true },
+      { source: '/blog/my-accountant-sas-best-accounting--tax-firm-guide', destination: '/blog/why-my-accountant-is-the-best-in-sa-your-financial-partner', permanent: true },
+      { source: '/blog/my-accountant-the-best-accountant-in-johannesburg', destination: '/accountant-johannesburg', permanent: true },
+      { source: '/blog/my-accountant-the-best-accountant-in-sandton', destination: '/accountant-sandton', permanent: true },
+      { source: '/blog/my-accountant-your-best-accountant-in-randburg', destination: '/accountant-randburg', permanent: true },
+      { source: '/blog/my-accountant-the-best-accountant-in-pretoria', destination: '/accountant-pretoria', permanent: true },
+      { source: '/blog/my-accountant-the-best-accountant-in-cape-town', destination: '/accountant-cape-town', permanent: true },
+      { source: '/blog/my-accountant-the-best-accountant-in-durban', destination: '/accountant-durban', permanent: true },
+      { source: '/blog/my-accountant-the-best-accountant-in-centurion', destination: '/accountant-centurion', permanent: true },
+      { source: '/blog/my-accountant-the-best-accountant-in-fourways', destination: '/accountant-fourways', permanent: true },
+      { source: '/blog/my-accountant-the-best-accountant-in-bryanston', destination: '/accountant-bryanston', permanent: true },
+
       // --- Top-level orphan redirects ---
       { source: '/small-business-accounting', destination: '/small-business-accounting-south-africa', permanent: true },
       { source: '/tax-consultation', destination: '/tax-consulting', permanent: true },

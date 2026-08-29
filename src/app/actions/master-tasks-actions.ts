@@ -372,7 +372,7 @@ Draft a polished, comprehensive, and ready-to-send response with exact prices, t
 `;
 
     const result = await generateText({
-      model: google('gemini-2.5-flash'),
+      model: google('gemini-3.5-flash'),
       system: systemPrompt,
       prompt: userContent,
     });

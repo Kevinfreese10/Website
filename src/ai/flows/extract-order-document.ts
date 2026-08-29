@@ -23,7 +23,7 @@ const InputSchema = z.object({
 });
 export type ExtractOrderDocumentInput = z.infer<typeof InputSchema>;
 
-const EXTRACTION_MODEL = process.env.AGENT_EXTRACTION_MODEL || 'googleai/gemini-3.5-flash-lite';
+const EXTRACTION_MODEL = process.env.AGENT_EXTRACTION_MODEL || 'googleai/gemini-3.5-flash';
 
 export async function extractOrderDocument(input: ExtractOrderDocumentInput): Promise<ExtractedDocumentFacts & { modelName: string }> {
   const mimeType = input.fileDataUri.split(';')[0].split(':')[1] || 'application/pdf';

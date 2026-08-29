@@ -79,7 +79,7 @@ Respond ONLY with a single raw JSON object matching the following structure (do 
 
   try {
     const response = await customAi.generate({
-      model: 'googleai/gemini-3.5-flash-lite',
+      model: 'googleai/gemini-3.5-flash',
       config: {
         googleSearchRetrieval: true,
       },

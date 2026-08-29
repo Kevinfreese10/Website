@@ -5,7 +5,11 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
+        allow: [
+          '/',
+          '/partner-signup',
+          '/become-a-partner',
+        ],
         disallow: [
           '/login',
           '/signup',
@@ -13,7 +17,7 @@ export default function robots(): MetadataRoute.Robots {
           '/cart',
           '/checkout',
           '/admin',
-          '/partner',      // Authenticated partner portal — not indexable
+          '/partner/',     // Authenticated partner portal — not indexable
           '/reseller/',    // Reseller portal — not indexable
           '/p/',           // Partner/vendor pages — not indexable
         ],

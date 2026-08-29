@@ -123,7 +123,7 @@ export async function generateFollowUpEmailDraft(chatHistoryText: string, client
     }
 
     const { object } = await generateObject({
-      model: googleProvider('gemini-2.5-flash-lite'),
+      model: googleProvider('gemini-3.5-flash'),
       schema: z.object({
         subject: z.string().describe('The subject line of the email.'),
         body: z.string().describe('The body of the email in plain text.'),

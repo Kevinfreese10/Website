@@ -308,7 +308,11 @@ export default async function BlogPostPage({ params }: Props) {
 
         <div
           className="prose prose-lg md:prose-xl max-w-none prose-headings:font-headline prose-headings:font-black prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4 prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-primary prose-a:font-semibold hover:prose-a:text-primary/80 prose-li:text-slate-700 prose-li:marker:text-primary prose-ul:space-y-2 prose-ol:space-y-2 prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-slate-50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:font-medium prose-blockquote:text-slate-900 prose-img:rounded-2xl prose-img:shadow-lg"
-          dangerouslySetInnerHTML={{ __html: post.content }}
+          dangerouslySetInnerHTML={{ 
+            __html: (post.content || '')
+              .replace(/<h1(\s|>)/gi, '<h2$1')
+              .replace(/<\/h1>/gi, '</h2>') 
+          }}
           suppressHydrationWarning
         />
 

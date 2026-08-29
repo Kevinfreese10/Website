@@ -7,8 +7,8 @@ export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'My Accountant | Professional Accounting & Tax Services',
-        description: 'Professional Accounting & Tax Services for South Africa. We handle SARS, CIPC, and all your compliance needs so you can focus on your business.',
+        title: 'My Accountant | Online Accounting & Tax Services South Africa',
+        description: 'Professional online accounting, bookkeeping, VAT submissions, and tax compliance for South African businesses. Get certified accountants and fast CIPC & SARS filing.',
     };
     return getStaticPageMetadata('home', defaults);
 }

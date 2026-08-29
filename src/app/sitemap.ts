@@ -137,6 +137,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/accountant-stellenbosch',
   ].map((route) => ({
     url: `${BASE_URL}${route}`,
+    lastModified: new Date(),
+    changeFrequency: (route === '/' || route === '/products' || route === '/blog' ? 'daily' : 'weekly') as any,
+    priority: route === '/' ? 1.0 : route.startsWith('/calculators') || route.startsWith('/accountant') ? 0.9 : 0.8,
   }));
   
   let serviceRoutes: MetadataRoute.Sitemap = [];
@@ -149,10 +152,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const dateField = service.updatedAt || service.createdAt;
       if (dateField) {
         lastModifiedDate = typeof dateField === 'object' && 'toDate' in dateField ? dateField.toDate() : new Date(dateField);
+      } else {
+        lastModifiedDate = new Date();
       }
+      // Normalize double-hyphens in slugs if any
+      const cleanSlug = (service.slug || '').replace(/--+/g, '-');
       return {
-        url: `${BASE_URL}/products/${service.slug}`,
-        ...(lastModifiedDate && { lastModified: lastModifiedDate })
+        url: `${BASE_URL}/products/${cleanSlug}`,
+        lastModified: lastModifiedDate,
+        changeFrequency: 'weekly' as any,
+        priority: 0.8,
       };
     });
   } catch (error) {
@@ -165,21 +174,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const blogPostsSnapshot = await db.collection("blogPosts").orderBy("date", "desc").get();
     const blogPosts = blogPostsSnapshot.docs.map(doc => serializeDbData(doc.data()) as BlogPost);
     
-    blogPostRoutes = blogPosts.map((post) => {
-      let lastModifiedDate;
-      if (post.date && typeof post.date === 'object' && 'toDate' in post.date) {
-          lastModifiedDate = (post.date as any).toDate();
-      } else if (typeof post.date === 'string') {
-          lastModifiedDate = new Date(post.date);
-      } else {
-          lastModifiedDate = new Date();
-      }
-      
-      return {
-          url: `${BASE_URL}/blog/${post.slug}`,
-          lastModified: lastModifiedDate,
-      }
-    });
+    blogPostRoutes = blogPosts
+      .filter((post) => {
+        // Exclude typo / redirect slugs from sitemap so crawlers only index authoritative URLs
+        const slug = post.slug || '';
+        return !slug.includes('my-accoutant-sa-best-accountants');
+      })
+      .map((post) => {
+        let lastModifiedDate;
+        if (post.date && typeof post.date === 'object' && 'toDate' in post.date) {
+            lastModifiedDate = (post.date as any).toDate();
+        } else if (typeof post.date === 'string') {
+            lastModifiedDate = new Date(post.date);
+        } else {
+            lastModifiedDate = new Date();
+        }
+        
+        const cleanSlug = (post.slug || '').replace(/--+/g, '-');
+        return {
+            url: `${BASE_URL}/blog/${cleanSlug}`,
+            lastModified: lastModifiedDate,
+            changeFrequency: 'monthly' as any,
+            priority: 0.7,
+        }
+      });
   } catch (error) {
     console.error("Error fetching blog posts for sitemap:", error);
   }

@@ -272,7 +272,7 @@ export default function HomePageClient() {
                       alt="Kevin Freese"
                       className="h-20 w-20 rounded-full object-cover border-4 border-white/10 shadow-xl shrink-0 mb-4"
                     />
-                    <h4 className="text-lg font-black text-foreground">Kevin Freese</h4>
+                    <h3 className="text-lg font-black text-foreground">Kevin Freese</h3>
                     <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director & Founder</p>
                     
                     <div className="mt-4 w-full border-t border-white/[0.06] pt-4 space-y-2 text-[10px] font-semibold text-muted-foreground text-left">

@@ -37,7 +37,7 @@ export async function GET(request: Request) {
         if (data.messages && data.messages.length > 2) {
           try {
             const { text } = await generateText({
-              model: google('gemini-3.5-flash-lite'),
+              model: google('gemini-3.5-flash'),
               prompt: `Summarize the following chat conversation between a user (${data.userName || 'Guest'}) and a support bot/agent. Be concise, professional, and highlight any requested services, issues, or next steps. Do not include the closing message in the summary.\n\nConversation:\n${chatHistoryText}`,
             });
             summary = text;

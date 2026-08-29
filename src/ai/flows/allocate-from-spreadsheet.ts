@@ -40,7 +40,7 @@ export async function allocateFromSpreadsheet(
 
 const prompt = ai.definePrompt({
   name: 'allocateFromSpreadsheetPrompt',
-  model: 'googleai/gemini-3.5-flash-lite',
+  model: 'googleai/gemini-3.5-flash',
   input: { schema: AllocateFromSpreadsheetInputSchema },
   output: { schema: AllocateFromSpreadsheetOutputSchema },
   prompt: `You are 'Khai', an expert South African Chartered Accountant. Your task is to analyze an uploaded spreadsheet of transactions/allocations and map it to a list of unallocated bank transactions.
