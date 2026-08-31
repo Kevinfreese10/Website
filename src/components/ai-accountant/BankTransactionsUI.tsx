@@ -1312,10 +1312,12 @@ function SplitTransactionDialog({
 // #endregion
 
 interface SmartMatchResult {
-    transactionId: string;
+    groupId: string;
+    groupKey: string;
     description: string;
-    amount: number;
-    date: string;
+    transactionCount: number;
+    totalAmount: number;
+    transactionIds: string[];
     merchantName: string;
     merchantCategory: string;
     suggestedAccountId: string;
@@ -1365,9 +1367,39 @@ function SmartMatchQueueModal({
             return;
         }
 
+        // 1. Group selected transactions by merchantKey / normalized description
+        const groupMap = new Map<string, {
+            groupId: string;
+            groupKey: string;
+            description: string;
+            transactions: ImportedTransaction[];
+            totalAmount: number;
+        }>();
+
+        for (const tx of selectedTransactions) {
+            const rawKey = (tx.merchantKey || tx.description || '').trim();
+            const normalizedKey = rawKey.toUpperCase() || 'UNKNOWN';
+            
+            if (!groupMap.has(normalizedKey)) {
+                groupMap.set(normalizedKey, {
+                    groupId: `grp_${groupMap.size + 1}_${normalizedKey.substring(0, 12).replace(/[^A-Z0-9]/g, '_')}`,
+                    groupKey: normalizedKey,
+                    description: tx.description,
+                    transactions: [],
+                    totalAmount: 0,
+                });
+            }
+
+            const g = groupMap.get(normalizedKey)!;
+            g.transactions.push(tx);
+            g.totalAmount += (Number(tx.amount) || 0);
+        }
+
+        const distinctGroups = Array.from(groupMap.values());
+
         isAbortedRef.current = false;
         setPhase('running');
-        setProgress({ processed: 0, total: selectedTransactions.length });
+        setProgress({ processed: 0, total: distinctGroups.length });
         setResults([]);
         setSelectedForRules(new Set());
         setRuleEdits(new Map());
@@ -1387,13 +1419,13 @@ function SmartMatchQueueModal({
             const initialSelected = new Set<string>();
             const initialEdits = new Map<string, string>();
 
-            for (let i = 0; i < selectedTransactions.length; i++) {
+            for (let i = 0; i < distinctGroups.length; i++) {
                 if (isAbortedRef.current) break;
 
-                const tx = selectedTransactions[i];
+                const group = distinctGroups[i];
                 try {
                     const output = await suggestTransactionAllocationWeb({
-                        description: tx.description,
+                        description: group.description,
                         chartOfAccounts: coaJson,
                         isVatRegistered: client?.isVatRegistered,
                         apiKey: client?.geminiApiKey,
@@ -1405,30 +1437,32 @@ function SmartMatchQueueModal({
                         const existingRule = allRules.find(r => r.accountId === output.accountId);
 
                         const res: SmartMatchResult = {
-                            transactionId: tx.id,
-                            description: tx.description,
-                            amount: tx.amount,
-                            date: tx.date,
-                            merchantName: output.merchantName || 'Identified Merchant',
+                            groupId: group.groupId,
+                            groupKey: group.groupKey,
+                            description: group.description,
+                            transactionCount: group.transactions.length,
+                            totalAmount: group.totalAmount,
+                            transactionIds: group.transactions.map(t => t.id),
+                            merchantName: output.merchantName || group.groupKey,
                             merchantCategory: output.merchantCategory || 'General',
                             suggestedAccountId: output.accountId,
                             suggestedAccountLabel: accountLabel,
                             vatType: (output.vatType as VatType) || 'no_vat',
                             confidence: output.confidence,
-                            suggestedKeyword: (output.suggestedKeyword || tx.description).toUpperCase(),
+                            suggestedKeyword: (output.suggestedKeyword || group.groupKey).toUpperCase(),
                             existingRule,
                         };
 
                         matchedResults.push(res);
-                        initialSelected.add(tx.id);
-                        initialEdits.set(tx.id, res.suggestedKeyword);
+                        initialSelected.add(group.groupId);
+                        initialEdits.set(group.groupId, res.suggestedKeyword);
                     }
                 } catch (err) {
-                    console.error(`Error in Smart Match analysis for tx ${tx.id}:`, err);
+                    console.error(`Error in Smart Match analysis for group ${group.groupKey}:`, err);
                 }
 
                 if (!isAbortedRef.current) {
-                    setProgress({ processed: i + 1, total: selectedTransactions.length });
+                    setProgress({ processed: i + 1, total: distinctGroups.length });
                 }
             }
 
@@ -1451,36 +1485,36 @@ function SmartMatchQueueModal({
 
     const handleToggleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedForRules(new Set(results.map(r => r.transactionId)));
+            setSelectedForRules(new Set(results.map(r => r.groupId)));
         } else {
             setSelectedForRules(new Set());
         }
     };
 
-    const handleToggleSelectRow = (txId: string, checked: boolean) => {
+    const handleToggleSelectRow = (groupId: string, checked: boolean) => {
         setSelectedForRules(prev => {
             const next = new Set(prev);
             if (checked) {
-                next.add(txId);
+                next.add(groupId);
             } else {
-                next.delete(txId);
+                next.delete(groupId);
             }
             return next;
         });
     };
 
-    const handleKeywordEdit = (txId: string, value: string) => {
+    const handleKeywordEdit = (groupId: string, value: string) => {
         setRuleEdits(prev => {
             const next = new Map(prev);
-            next.set(txId, value);
+            next.set(groupId, value);
             return next;
         });
     };
 
-    const handleAccountEdit = (txId: string, accountId: string) => {
+    const handleAccountEdit = (groupId: string, accountId: string) => {
         setAccountEdits(prev => {
             const next = new Map(prev);
-            next.set(txId, accountId);
+            next.set(groupId, accountId);
             return next;
         });
     };
@@ -1490,7 +1524,7 @@ function SmartMatchQueueModal({
         setPhase('saving');
 
         try {
-            const selectedResults = results.filter(r => selectedForRules.has(r.transactionId));
+            const selectedResults = results.filter(r => selectedForRules.has(r.groupId));
 
             const clientDocRef = doc(db, 'aiAccountantClients', client.uid);
             const clientSnap = await getDoc(clientDocRef);
@@ -1503,10 +1537,11 @@ function SmartMatchQueueModal({
 
             let createdCount = 0;
             let updatedCount = 0;
+            const totalTxsCovered = selectedResults.reduce((sum, r) => sum + r.transactionCount, 0);
 
             for (const result of selectedResults) {
-                const keyword = (ruleEdits.get(result.transactionId) || result.suggestedKeyword).trim().toUpperCase();
-                const accountId = accountEdits.get(result.transactionId) || result.suggestedAccountId;
+                const keyword = (ruleEdits.get(result.groupId) || result.suggestedKeyword).trim().toUpperCase();
+                const accountId = accountEdits.get(result.groupId) || result.suggestedAccountId;
                 
                 if (!keyword || !accountId) continue;
 
@@ -1556,7 +1591,6 @@ function SmartMatchQueueModal({
                         keywords: [keyword],
                         accountId: accountId,
                         vatType: result.vatType || 'no_vat',
-                        type: 'hard',
                         scope: 'global',
                         priority: 99,
                         createdAt: serverTimestamp()
@@ -1570,7 +1604,7 @@ function SmartMatchQueueModal({
 
             toast({
                 title: 'Rules Created & Global Rules Updated',
-                description: `${createdCount} client rule(s) created, ${updatedCount} updated. Global practice rules updated with new keywords.`
+                description: `${selectedResults.length} merchant group(s) processed covering ${totalTxsCovered} transaction(s). ${createdCount} new rule(s) created, ${updatedCount} updated.`
             });
 
             onRulesSaved();
@@ -1595,7 +1629,7 @@ function SmartMatchQueueModal({
                         AI Smart Match Queue
                     </DialogTitle>
                     <DialogDescription>
-                        Analyses selected transactions using AI web search grounding to identify merchants (ÔëÑ90% confidence) and create allocation rules.
+                        Analyses selected transactions by merchant group using AI web search grounding to identify merchants (≥ 90% confidence) and create automated allocation rules.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -1607,15 +1641,15 @@ function SmartMatchQueueModal({
                                 <Sparkles className="h-6 w-6 text-emerald-500 absolute inset-0 m-auto" />
                             </div>
                             <div className="space-y-2 max-w-sm">
-                                <h3 className="font-semibold text-lg">Analyzing Transactions...</h3>
+                                <h3 className="font-semibold text-lg">Analyzing Merchant Groups...</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Searching web databases to identify merchants and match GL accounts.
+                                    Searching web databases once per unique merchant to match GL accounts.
                                 </p>
                             </div>
                             <div className="w-full max-w-md space-y-2">
                                 <Progress value={progress.total > 0 ? (progress.processed / progress.total) * 100 : 0} className="h-2" />
                                 <p className="text-xs text-muted-foreground font-mono">
-                                    Analysing {progress.processed} of {progress.total}...
+                                    Analysing group {progress.processed} of {progress.total} ({selectedTransactions.length} total transactions)...
                                 </p>
                             </div>
                         </div>
@@ -1636,28 +1670,28 @@ function SmartMatchQueueModal({
                                     <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
                                     <h3 className="font-semibold text-base">No High-Confidence Matches Found</h3>
                                     <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                                        None of the selected transactions reached the 90%+ confidence threshold for automated rule creation.
+                                        None of the analyzed merchant groups reached the 90%+ confidence threshold for automated rule creation.
                                     </p>
                                 </div>
                             ) : (
                                 <>
                                     <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 p-3 rounded-lg border gap-4 flex-wrap">
-                                        <span>Found <strong className="text-foreground">{results.length}</strong> high-confidence (ÔëÑ90%) merchant match(es) from {selectedTransactions.length} analyzed transaction(s).</span>
+                                        <span>Found <strong className="text-foreground">{results.length}</strong> high-confidence (≥ 90%) merchant group match(es) covering <strong className="text-foreground">{results.reduce((sum, r) => sum + r.transactionCount, 0)}</strong> of {selectedTransactions.length} selected transaction(s).</span>
                                         <div className="flex items-center gap-4 flex-wrap">
-                                            <span className="font-semibold text-emerald-600">{selectedForRules.size} selected for rule creation</span>
+                                            <span className="font-semibold text-emerald-600">{selectedForRules.size} group(s) selected</span>
                                             {selectedForRules.size > 0 && (
                                                 <Select
                                                     onValueChange={(accountId) => {
                                                         setAccountEdits(prev => {
                                                             const next = new Map(prev);
-                                                            selectedForRules.forEach(txId => {
-                                                                next.set(txId, accountId);
+                                                            selectedForRules.forEach(groupId => {
+                                                                next.set(groupId, accountId);
                                                             });
                                                             return next;
                                                         });
                                                         toast({
                                                             title: "Bulk Allocations Applied",
-                                                            description: `Allocated ${selectedForRules.size} selected items.`
+                                                            description: `Allocated ${selectedForRules.size} selected group(s).`
                                                         });
                                                     }}
                                                 >
@@ -1686,8 +1720,8 @@ function SmartMatchQueueModal({
                                                             onCheckedChange={(c) => handleToggleSelectAll(!!c)} 
                                                         />
                                                     </TableHead>
-                                                    <TableHead>Transaction</TableHead>
-                                                    <TableHead>Merchant & Category</TableHead>
+                                                    <TableHead>Merchant Group</TableHead>
+                                                    <TableHead>Identified Merchant & Category</TableHead>
                                                     <TableHead>Suggested GL Account</TableHead>
                                                     <TableHead className="w-[90px] text-center">Confidence</TableHead>
                                                     <TableHead className="w-[180px]">Rule Keyword</TableHead>
@@ -1695,24 +1729,29 @@ function SmartMatchQueueModal({
                                             </TableHeader>
                                             <TableBody>
                                                 {results.map(r => {
-                                                    const isChecked = selectedForRules.has(r.transactionId);
-                                                    const currentKeyword = ruleEdits.get(r.transactionId) ?? r.suggestedKeyword;
+                                                    const isChecked = selectedForRules.has(r.groupId);
+                                                    const currentKeyword = ruleEdits.get(r.groupId) ?? r.suggestedKeyword;
                                                     const is100 = r.confidence === 100;
 
                                                     return (
-                                                        <TableRow key={r.transactionId} className={cn(isChecked && "bg-emerald-500/5")}>
+                                                        <TableRow key={r.groupId} className={cn(isChecked && "bg-emerald-500/5")}>
                                                             <TableCell>
                                                                 <Checkbox 
                                                                     checked={isChecked} 
-                                                                    onCheckedChange={(checked) => handleToggleSelectRow(r.transactionId, !!checked)} 
+                                                                    onCheckedChange={(checked) => handleToggleSelectRow(r.groupId, !!checked)} 
                                                                 />
                                                             </TableCell>
-                                                            <TableCell className="max-w-[200px]">
-                                                                <div className="font-medium text-xs truncate" title={r.description}>
-                                                                    {r.description}
+                                                            <TableCell className="max-w-[220px]">
+                                                                <div className="font-semibold text-xs text-foreground truncate" title={r.groupKey}>
+                                                                    {r.groupKey}
                                                                 </div>
-                                                                <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                                                                    R {formatPrice(r.amount)} ÔÇó {new Date(r.date).toLocaleDateString('en-GB')}
+                                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                                                                        {r.transactionCount} {r.transactionCount === 1 ? 'tx' : 'txs'} • R {formatPrice(r.totalAmount)}
+                                                                    </Badge>
+                                                                </div>
+                                                                <div className="text-[10px] text-muted-foreground font-mono truncate mt-0.5" title={r.description}>
+                                                                    {r.description}
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell>
@@ -1725,8 +1764,8 @@ function SmartMatchQueueModal({
                                                             </TableCell>
                                                             <TableCell>
                                                                 <Select
-                                                                    value={accountEdits.get(r.transactionId) || r.suggestedAccountId}
-                                                                    onValueChange={(val) => handleAccountEdit(r.transactionId, val)}
+                                                                    value={accountEdits.get(r.groupId) || r.suggestedAccountId}
+                                                                    onValueChange={(val) => handleAccountEdit(r.groupId, val)}
                                                                 >
                                                                     <SelectTrigger className="h-8 text-xs font-medium w-full max-w-[250px] border-transparent hover:border-input bg-transparent hover:bg-muted/50 transition-colors">
                                                                         <SelectValue placeholder="Select account" />
@@ -1740,14 +1779,14 @@ function SmartMatchQueueModal({
                                                                     </SelectContent>
                                                                 </Select>
                                                                 {(() => {
-                                                                    const currentAccountId = accountEdits.get(r.transactionId) || r.suggestedAccountId;
+                                                                    const currentAccountId = accountEdits.get(r.groupId) || r.suggestedAccountId;
                                                                     const allRules = [...(client?.allocationRules || []), ...(globalRules || [])];
                                                                     const matchingRule = allRules.find(rule => rule.accountId === currentAccountId);
                                                                     if (matchingRule) {
                                                                         return (
                                                                             <div className="text-[10px] text-emerald-600 flex items-center gap-1 font-medium mt-0.5 ml-2">
                                                                                 <Zap className="h-3 w-3 fill-emerald-500 text-emerald-500 inline shrink-0" />
-                                                                                <span>ÔÜí Adds to existing rule: {matchingRule.description || matchingRule.keywords.join(', ')}</span>
+                                                                                <span>Adds to existing rule: {matchingRule.description || matchingRule.keywords.join(', ')}</span>
                                                                             </div>
                                                                         );
                                                                     }
@@ -1769,7 +1808,7 @@ function SmartMatchQueueModal({
                                                             <TableCell>
                                                                 <Input 
                                                                     value={currentKeyword}
-                                                                    onChange={(e) => handleKeywordEdit(r.transactionId, e.target.value.toUpperCase())}
+                                                                    onChange={(e) => handleKeywordEdit(r.groupId, e.target.value.toUpperCase())}
                                                                     className="h-8 text-xs uppercase font-mono border-primary/30 focus:border-primary"
                                                                     placeholder="KEYWORD"
                                                                 />
@@ -1802,7 +1841,7 @@ function SmartMatchQueueModal({
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                             >
                                 <Save className="mr-2 h-4 w-4" />
-                                Create Rules for Selected ({selectedForRules.size})
+                                Create Rules for Selected ({selectedForRules.size} groups)
                             </Button>
                         )}
                         <Button variant="outline" onClick={() => onOpenChange(false)} disabled={phase === 'saving'}>
