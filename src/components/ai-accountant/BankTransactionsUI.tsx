@@ -1377,7 +1377,8 @@ function SmartMatchQueueModal({
         }>();
 
         for (const tx of selectedTransactions) {
-            const rawKey = (tx.merchantKey || tx.description || '').trim();
+            const processed = BankCleaner.process(tx.description || '');
+            const rawKey = (tx.merchantKey || tx.cleanDescription || processed.merchantKey || processed.cleanDescription || tx.description || '').trim();
             const normalizedKey = rawKey.toUpperCase() || 'UNKNOWN';
             
             if (!groupMap.has(normalizedKey)) {
@@ -2589,7 +2590,8 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
             // Build groups reactively
             const merchantGroups: { [key: string]: ImportedTransaction[] } = {};
             txs.forEach(tx => {
-                const key = tx.merchantKey || tx.cleanDescription || 'UNKNOWN';
+                const processed = BankCleaner.process(tx.description || '');
+                const key = tx.merchantKey || tx.cleanDescription || processed.merchantKey || processed.cleanDescription || 'UNKNOWN';
                 if (!merchantGroups[key]) merchantGroups[key] = [];
                 merchantGroups[key].push(tx);
             });

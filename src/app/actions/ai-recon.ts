@@ -133,9 +133,12 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
             const tx = d.data() as ImportedTransaction;
             const result = BankCleaner.process(tx.description);
 
-            const match = allRules.find(r => r.keywords.some(kw => result.cleanDescription.includes(kw.toUpperCase())));
+            const match = allRules.find(r => 
+                r && Array.isArray(r.keywords) && r.keywords.some(kw => typeof kw === 'string' && kw.trim() && result.cleanDescription.includes(kw.trim().toUpperCase()))
+            );
 
             if (match) {
+                const matchedKw = match.keywords.find(kw => typeof kw === 'string' && kw.trim() && result.cleanDescription.includes(kw.trim().toUpperCase()));
                 batch.update(d.ref, {
                     ...result,
                     status: 'ai_review',
@@ -146,7 +149,7 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
                         confidence: 100,
                         summary: `Match found for rule keyword.`,
                         ruleId: match.id,
-                        matchedKeyword: match.keywords.find(kw => result.cleanDescription.includes(kw.toUpperCase()))
+                        matchedKeyword: matchedKw
                     },
                     allocationSource: 'rule'
                 });

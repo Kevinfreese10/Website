@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "test:rules": "firebase emulators:exec \"tsx scratch/test_firestore_rules.ts\"",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "telegram:bot": "node scripts/telegram_bot.js"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.22",
@@ -67,6 +68,7 @@
     "lucide-react": "^0.475.0",
     "mailparser": "^3.7.1",
     "next": "^16.2.10",
+    "node-telegram-bot-api": "^2.1.0",
     "nodemailer": "^6.9.14",
     "papaparse": "^5.4.1",
     "patch-package": "^8.0.0",
