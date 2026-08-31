@@ -354,7 +354,7 @@ export async function sendOrderConfirmationEmailAction({
     })
   );
 
-  const defaultBcc = ['kev@thinkestry.co.za', 'winifred@myacc.co.za'];
+  const defaultBcc = ['info@myacc.co.za', 'winifred@myacc.co.za'];
   const finalBcc = bcc
     ? (Array.isArray(bcc) ? [...bcc, ...defaultBcc] : [bcc, ...defaultBcc])
     : defaultBcc;

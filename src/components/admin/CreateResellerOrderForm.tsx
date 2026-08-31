@@ -211,7 +211,7 @@ export default function CreateOrderForm() {
       const emailHtml = render(<OrderConfirmationEmail order={orderData} />);
       await sendEmail({
         to: email,
-        bcc: ['kev@thinkestry.co.za', 'winifred@myacc.co.za'],
+        bcc: ['info@myacc.co.za', 'winifred@myacc.co.za'],
         subject: confirmationEmailSubject,
         html: emailHtml,
       });

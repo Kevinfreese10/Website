@@ -142,14 +142,14 @@ async function deliverCmd(orderId: string, options: { forcePost?: boolean; force
     }));
 
     await sendEmail({
-      to: ['kev@thinkestry.co.za', 'freesekevin@gmail.com'],
+      to: ['info@myacc.co.za'],
       subject,
       html,
       attachments,
       fromNameOverride: 'My Accountant Operations',
     });
 
-    console.log(`Review email sent to kev@thinkestry.co.za & freesekevin@gmail.com.`);
+    console.log(`Review email sent to info@myacc.co.za.`);
   }
 }
 

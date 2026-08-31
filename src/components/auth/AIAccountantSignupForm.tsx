@@ -152,7 +152,7 @@ export default function AIAccountantSignupForm() {
                 idToken: welcomeIdToken,
                 subject: `Welcome to My Accountant!`,
                 html: emailHtml,
-                bcc: 'kev@thinkestry.co.za',
+                bcc: 'info@myacc.co.za',
             });
         } catch (emailError) {
             console.error("Failed to send welcome email:", emailError);

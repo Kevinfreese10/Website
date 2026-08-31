@@ -662,14 +662,14 @@ export async function POST(req: NextRequest) {
 
                               await sendEmail({
                                   to: partnerEmail,
-                                  cc: ['kev@thinkestry.co.za'],
+                                  cc: ['info@myacc.co.za'],
                                   subject: "Your My Accountant Practice is Activated! 🚀",
                                   html: onboardingHtml,
                               });
 
                               await orderRef.update({
                                   notes: FieldValue.arrayUnion({
-                                      text: `Sent "Practice Onboarding" email to ${partnerEmail} and CC'd kev@thinkestry.co.za (Automated via PayFast ITN).`,
+                                      text: `Sent "Practice Onboarding" email to ${partnerEmail} and CC'd info@myacc.co.za (Automated via PayFast ITN).`,
                                       date: new Date(),
                                       authorId: 'system',
                                       type: 'email',

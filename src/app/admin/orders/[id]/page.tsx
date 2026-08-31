@@ -609,7 +609,7 @@ export default function AdminOrderDetailsPage() {
       const c = res.counts;
       toast({
         title: res.state === 'complete' ? 'AI audit: all documents approved' : res.state === 'awaiting_consultant' ? 'AI audit: needs your decision' : 'AI audit: client has work to do',
-        description: `${c.approved} approved · ${c.rejected} rejected · ${c.missing} missing · ${c.pending} for you${res.emailedKevin ? ' · report sent to kev@thinkestry.co.za' : ''}`,
+        description: `${c.approved} approved · ${c.rejected} rejected · ${c.missing} missing · ${c.pending} for you${res.emailedKevin ? ' · report sent to info@myacc.co.za' : ''}`,
       });
       await fetchOrderAndStaff(true);
     } catch (e: any) {

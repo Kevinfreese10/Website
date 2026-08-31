@@ -1,12 +1,12 @@
 /**
- * Emails to Kevin from the verification cycle. Plain HTML tables — no React Email needed.
- * Recipient: AGENT_NOTIFY_EMAIL (default kev@thinkestry.co.za).
+ * Emails from the verification cycle. Plain HTML tables — no React Email needed.
+ * Recipient: AGENT_NOTIFY_EMAIL (default info@myacc.co.za).
  */
 import { sendEmail } from '@/lib/email';
 import type { Order } from '@/lib/types';
 import type { ItemVerdict } from './verification-cycle';
 
-const TO = process.env.AGENT_NOTIFY_EMAIL || 'kev@thinkestry.co.za';
+const TO = process.env.AGENT_NOTIFY_EMAIL || 'info@myacc.co.za';
 const APP = process.env.NEXT_PUBLIC_APP_URL || 'https://www.myacc.co.za';
 
 const esc = (s: any) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

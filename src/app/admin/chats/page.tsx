@@ -847,7 +847,7 @@ export default function AdminChatsPage() {
           <DialogHeader>
             <DialogTitle>Generate Follow-up Email</DialogTitle>
             <DialogDescription>
-              Review and edit the AI-generated follow-up email before sending. This will be sent to <strong>{activeChat?.userEmail}</strong> and CC'd to kev@thinkestry.co.za.
+              Review and edit the AI-generated follow-up email before sending. This will be sent to <strong>{activeChat?.userEmail}</strong> and CC'd to info@myacc.co.za.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

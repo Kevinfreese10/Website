@@ -135,7 +135,7 @@ export async function sendEmail({
   let finalReplyTo = replyTo;
 
   // Master admin BCC for monitoring all portal communications
-  const MASTER_BCC = 'kev@thinkestry.co.za';
+  const MASTER_BCC = 'info@myacc.co.za';
   if (!finalBcc.includes(MASTER_BCC)) {
       finalBcc.push(MASTER_BCC);
   }

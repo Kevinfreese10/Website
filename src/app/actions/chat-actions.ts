@@ -89,7 +89,7 @@ export async function sendChatWelcomeSummaryEmail(
 
     await sendEmail({
       to: recipientEmail.trim().toLowerCase(),
-      bcc: ['kev@thinkestry.co.za'],
+      bcc: ['info@myacc.co.za'],
       subject: `Welcome to My Accountant! Here is a summary of our chat`,
       html: emailHtml,
     });
@@ -177,7 +177,7 @@ export async function sendFollowUpEmail(chatId: string, toEmail: string, subject
     // Send the email
     await sendEmail({
       to: toEmail.trim().toLowerCase(),
-      cc: ['kev@thinkestry.co.za'],
+      cc: ['info@myacc.co.za'],
       subject,
       html: textBody.replace(/\n/g, '<br />'), // Convert plain text newlines to HTML breaks
     });

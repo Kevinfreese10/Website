@@ -192,7 +192,7 @@ export async function sendNewPayrollNoteNotification({
     `;
 
     await sendEmail({
-      to: ['winifred@myacc.co.za', 'kev@thinkestry.co.za'],
+      to: ['winifred@myacc.co.za', 'info@myacc.co.za'],
       subject,
       html,
     });

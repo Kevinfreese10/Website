@@ -267,7 +267,7 @@ export default function PartnerSignupForm() {
                 // client-supplied form value — reuses the token obtained above.
                 await sendOwnWelcomeEmail({
                     idToken: partnerIdToken,
-                    cc: 'kev@thinkestry.co.za',
+                    cc: 'info@myacc.co.za',
                     subject: `Welcome to the My Accountant Partner Program!`,
                     html: emailHtml,
                 });
