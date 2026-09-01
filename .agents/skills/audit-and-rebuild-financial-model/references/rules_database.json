@@ -1,0 +1,221 @@
+{
+  "rules": [
+    {
+      "account_code": "1000-000",
+      "account_name": "Sales",
+      "vat_direction": "Output",
+      "vat_rate": 0.15,
+      "keywords": ["WIOCC", "INT-BANKING PMT FRM KBC", "FIBRE TO THE GROUND", "SALES", "COMMERCIAL INVOICE", "REVENUE"]
+    },
+    {
+      "account_code": "2000-000",
+      "account_name": "Cost of Sales / Purchases",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["BUILD IT", "BUILT IT", "PLANNING FOR FIBER", "IC LOGISTIX", "BIOMETRICS 3G", "PROJECT HARDWARE", "MATERIALS", "SUBCONTRACT"]
+    },
+    {
+      "account_code": "2000-000",
+      "account_name": "Cost of Sales / Purchases",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["CASH SEND", "ATM CASH", "FACILITATION", "INSTANTMON", "CASH WITHDRAWAL", "TELLER CASH", "SEND MONEY", "RECOVERY", "ABR", "ABU"]
+    },
+    {
+      "account_code": "3000-000",
+      "account_name": "Accounting Fees",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["MY ACCOUNTANT", "PADACHEY", "CIPC", "ACCOUNTING", "SECRETARIAL", "AUDIT FEE"]
+    },
+    {
+      "account_code": "3000-001",
+      "account_name": "Advertising & Promotions",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["ADVERT", "MARKETING", "FACEB", "TIKTOK ADS", "GOOGLE ADS"]
+    },
+    {
+      "account_code": "3000-004",
+      "account_name": "Bank Charges",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["FEE", "CHARGE", "COMMISSION", "SASWITCH", "CROSS BORDER", "STNDRDBANK BOL", "NEDBANK SEND-IMALI", "BYC DEBIT", "BANK CHARGES", "NSF"]
+    },
+    {
+      "account_code": "3000-006",
+      "account_name": "Computer Expenses",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["COMPUTER", "SOFTWARE", "CLOUD", "DOMAIN", "HOSTING", "WEBSITE", "PASTEL", "SAGE", "MICROSOFT", "ADOBE", "QUICKBOOKS", "XERO", "BITDEFENDER", "NORTON", "MCAFEE", "ZOOM", "AWS", "AZURE", "OVH", "ITUNES", "GOOGLE PLAY", "APPLE", "AMAZON", "GOOGLE", "TAKEALOT", "DELL", "LENOVO", "SAMSUNG", "RECTRON", "FRONTIER", "MATRIX", "HI-FI", "INCREDIBLE", "AFRIHOST", "VOX", "MWEB", "HOSTAFRICA", "HETZNER", "WEBAFRICA", "ZOHO", "SILICONWORX", "OPENAI", "ISTORE", "CAPCUT", "MANYCHAT", "NERDSHOP", "KARAB TECH", "ANTHROPIC", "LANGCHAIN", "PERPLEXIT", "TWILIO", "VERCEL", "CLAUDE", "GAMMA", "SMARTLEAD", "CALENDLY", "ATTIO", "NOTION", "ATLASSIAN", "LINEAR", "GITHUB", "LOGO DEV", "NAME CHEAP", "OUTRANK", "SENTRY", "SUPERSCALE", "CLORO", "LUSHA", "APOLLO.IO", "CHATGPT", "GODADDY", "SHOPIFY", "SLACK", "DROPBOX", "SALESFORCE", "HUBSPOT", "SEMRUSH", "AWEBER", "MAILCHIMP", "HOSTINGER", "BLUEHOST", "CANVA", "LINKEDIN", "NETFLIX", "SPOTIFY", "DSTV", "SHOWMAX", "APPLEMUSIC", "YOUTUBE", "NEWS24", "TIMESLIVE", "HULU", "DISNEY", "PRIME", "VIRGINACTIVE", "PLANETFITNESS", "BODYTEC", "SABC"]
+    },
+    {
+      "account_code": "3000-009",
+      "account_name": "Consulting Fees",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["CONSULTANT", "CONSULT", "CONSULTATIO", "PROFESSIONAL FEES", "PROFESSIONAL SVC", "ADVISORY", "ADVISORY FEES", "BUSINESS ADVISORY", "MANAGEMENT CONSULT", "STRATEGIC CONSULT", "FINANCIAL ADVISORY", "EXPERT FEES", "SPECIALIST FEES", "SERVICE FEES", "ATTORNEY"]
+    },
+    {
+      "account_code": "3000-010",
+      "account_name": "Courier & Postage",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["BIDAIR CARGO", "FEDEX", "COURIER", "POSTAGE", "POSTNET FREIGHT"]
+    },
+    {
+      "account_code": "3000-015",
+      "account_name": "Donations",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["CHURCH", "DONATE", "MOSQUE", "SYNAGOGUE", "TEMPLE", "RELIGIOUS", "MINISTRY", "CHARITY", "FOUNDATION", "WELFARE", "RELIEF", "SPONSOR", "ALMS", "TITHE", "OFFERING", "RED CROSS", "SPCA", "CHOC", "WWF", "HABITAT", "FEEDING", "HOMELESS", "ORPHANAGE", "HOSPICE", "MISSION", "ADOPT", "COMMUNITY CHEST", "HEART", "CHILDREN", "ANIMAL", "FUNDRAISING", "SAVE THE CHILDREN", "SANCTUARY", "DONATION"]
+    },
+    {
+      "account_code": "3000-016",
+      "account_name": "Electricity",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["ELECTRICITY", "ESKOM", "EASYPAY", "PAYPOINT", "FLASH", "UNI PIN", "BLU LABEL"]
+    },
+    {
+      "account_code": "3000-018",
+      "account_name": "Rates & Taxes (Municipal)",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["RATES", "MUNICIPAL", "COUNCIL", "JOHANNESBURG", "COJ", "CAPE TOWN", "CCT", "ETHEKWINI", "TSHWANE", "NELSON MANDELA BAY", "SEWERAGE", "REFUSE", "CITY OF JHB", "MADIBENG LOCAL MUNI"]
+    },
+    {
+      "account_code": "3000-020",
+      "account_name": "Entertainment Expenses",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["DEBONAIRS", "DOPPIO", "UBER EATS", "FISH AWAYS", "KFC", "MCD", "MUGG & BEAN", "NANDOS", "MY KITCHEN", "PIZZA", "STEERS", "WIMPY", "SPUR", "MOCHACHOS", "TAKE AWAY", "RESTAURANT", "HUNGRY LION", "POPEYE", "PLATO", "COFFEE", "TOPS", "LIQUOR", "KUNG FU", "FAHRENHEIT", "BK", "CATERING", "BOOTLEGGER", "CHICKEN", "CHUCKYS BAR", "GOLDEN ROSE", "HENNIES", "HOOTERS", "OCEAN BASKET", "BOTTLE STO", "THE IRISH ROCK", "THE MEAT VALLEY", "THE POT LUCK CLUB", "THE ROOFTOP GRILL", "THE SASSY ITALIAN", "THE VAPE GURU", "VAPE CLICK", "VAPERITE", "VAPE JUNCTION", "CANNAFRICA", "FISHERMANS", "KING PIE", "MR D FOOD", "MUGG AND BEAN", "FISHERHAVE", "BILTONG", "SMOKE SIGNALS", "BREADLINE", "THE GREEN ROOM", "BAKER", "STARBUCKS", "KRISPY KREME", "KHANS FOOD", "ROCOMAMAS", "GALITOS", "MEAT", "NANODS", "SOCIAL ON MAIN", "STEAKHOUSE", "KOLONAKI", "LOCK STOCK BEER", "W CAFE", "CAFE GODDESS", "GIFTS", "TAVERN", "CAFE", "HUSSAR", "WINE", "NELLY'S PUB", "NORMAN GOODFELLOWS", "LOUNGE", "SHISHA", "ANDICCIO", "FAT CAKE", "PORT FISHERIES", "BLACK AND WHITE LIQ", "KEKES KITCHEN", "DIRECTORS MEETING"]
+    },
+    {
+      "account_code": "3000-023",
+      "account_name": "Insurance",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["INSURANCE", "PREMIUM", "POLICY", "ASSURANCE", "UNDERWRITERS", "OUTSURANCE", "SANLAM", "FNB LIFE", "DISCOVERY", "HOLLARD", "OLD MUTUAL", "LIBERTY", "SANTAM", "MOMENTUM", "PPS", "KING PRICE", "NAKED INS", "YOUSURE", "BRIGHTROCK", "DIAL DIRECT", "DOTSURE", "GUARDRISK", "METROPOLITAN", "AUTO AND GENERAL", "FIRST FOR WOMEN", "NEMESIS", "DISCINSURE", "INSURE", "DISC PREM", "MOZAMBIK"]
+    },
+    {
+      "account_code": "3000-024",
+      "account_name": "Security / Alarm / Armed Response",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["SECURITY", "ANTIVIRUS", "TROJAN", "ALARM", "SECURE", "DMS SECUR"]
+    },
+    {
+      "account_code": "3000-025",
+      "account_name": "Interest Paid",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["INTEREST", "INTRST", "FINANCE CHARGE", "INT ON DEBIT BALANCE", "INP"]
+    },
+    {
+      "account_code": "3000-032",
+      "account_name": "Motor Vehicle Expenses",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["TRACKER", "NETSTAR", "TYRE", "MIDAS", "AUTOZONE", "BOSCH", "MOTOR", "NATIS", "VEHICLE", "CAR WASH", "WASH", "AEROBRAKE", "GOLDWAGEN", "GOLFWAGEN", "SPARE", "TWT", "CARTRACK", "LICENSE DISCS", "NUMBER PLATE"]
+    },
+    {
+      "account_code": "3000-033",
+      "account_name": "Fuel",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["FUEL", "ENGEN", "SASOL", "TOTAL", "SHELL", "CALTEX", "BP", "PUMA", "ASTRON", "FILLING STATION", "SERVICE STATION", "MBT", "BSP AUTO", "PETROLEUM", "PETROL", "DIESEL"]
+    },
+    {
+      "account_code": "3000-036",
+      "account_name": "Printing & Stationery",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["STATIONERY", "PNA", "CNA", "WALTONS", "EXCELL OFFICE", "MAKRO", "POSTNET", "JETLINE", "PRINTING", "COPYING", "STATIONARY", "OFFICE SUPPLIES", "PRINT A LABEL", "CRAZY ST", "WEST PACK", "TONER", "MINUTEMAN", "FOTO FIRST", "STATIONERS", "EXCLUSIVE BOOKS", "COTTON ON - TYPO", "REHMAN STATIONERS"]
+    },
+    {
+      "account_code": "3000-038",
+      "account_name": "Rent Paid",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["RENT", "GROWTHPOINT", "VUKILE", "ATTACQ", "REDEFINE", "OLD MUTUAL PROP", "LIBERTY TWODEGREES", "WEWORK", "REGUS", "INOSPACE", "ACCELERIT", "ACCELERATE", "PROP MGMT"]
+    },
+    {
+      "account_code": "3000-039",
+      "account_name": "Repairs & Maintenance",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["REPAIR", "MAINTAIN", "FIX", "PLUMBING", "ELECTRICAL", "ALIGNMENT", "BODYSHOP", "PART", "GLASS", "PAINT", "TIMBER", "BUILDERS", "HARDWARE", "CASHBUILD", "MICA", "LEROY MERLIN", "BEX", "BWH", "REGAL", "AFROX", "CTM", "MAINTENANCE", "RANBURG LOCKSMITHS", "CENTRAL LOCKSMITH LOCKSMITH", "POOL TEAM"]
+    },
+    {
+      "account_code": "3000-040",
+      "account_name": "Salaries & Wages",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["SALAR", "EMP", "DRAWINGS", "WAGE", "PAYROLL", "SAL", "SAD", "SRT", "SRR", "SRU"]
+    },
+    {
+      "account_code": "3000-048",
+      "account_name": "Staff Training",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["TRAINING", "EDUCATION", "COURSE", "TUITION", "COLLEGE", "ACADEMY", "COACHING", "SAICA", "SAIPA", "ICB"]
+    },
+    {
+      "account_code": "3000-049",
+      "account_name": "Staff Welfare",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["CHECKERS", "CLICKS", "DISCHEM", "PNP", "SPAR", "WOOLWORTHS", "SHOPRITE", "OK FOODS", "FOOD LOVERS MARKET", "WELLNESS WAREHOUSE", "DENTAL", "DOCTOR", "AQUAZANIA", "DIS-CHEM", "FOODZONE", "BARBER", "OK MINI", "PHARMACY", "MEDICLINIC", "AMPATH", "MEDICAL"]
+    },
+    {
+      "account_code": "3000-051",
+      "account_name": "Telephone & Internet",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["MTN", "VODACOM", "RAIN", "CELLC", "TELKOM", "AIRTIME", "DATA", "RECHARGE", "PHONE", "VOD PREPAID", "WIRULINK", "WIFI", "CELLULAR"]
+    },
+    {
+      "account_code": "3000-052",
+      "account_name": "Travel & Accommodation",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["TRAVEL", "HOTEL", "MOTEL", "LODGE", "GUESTHOUSE", "AIRBNB", "PROTEA", "SOUTHERN SUN", "CITY LODGE", "ROAD LODGE", "HOLIDAY INN", "SUN 1", "AIRLINK", "SAA", "FLYSAF", "LIFTAIR", "BRITISH AIRWAYS", "QANTAS", "EMIRATES", "FLIGHT", "AIRLINE", "ACSA", "AIRPORT", "OR TAMBO", "LANSERIA", "KING SHAKA", "TICKET", "RENTAL", "AVIS", "BUDGET", "EUROPCAR", "THRIFTY", "SIXT", "UBER", "BOLT", "LIFT", "TAXI", "TOLL", "SANRAL", "GAUTRAIN", "INTERCAPE", "GREYHOUND", "BUS", "TRAIN", "TRAVELSTART", "FLIGHT CENTRE", "TOURVEST", "PLAZA", "N3 DE HOEK", "MARIANHILL", "MARIKANA", "BRITS", "DOORNPOORT", "CAROUSEL", "N1 VAAL", "N1 GRASMERE", "PUMULANI", "MOOI", "N1 VERKEER", "ORIBI", "GOSFORTH", "ZAMBESI", "ERMELO", "TRANSPORT", "SOUTH AFRICAN AIR", "CAPRICORN", "PETROPORT", "TUGELA", "ACCOMMODATION", "CEMAIR", "PHUMULANI", "DALPARK", "GREENSTONE", "TRICHARDT", "RADISSON", "TAP GO", "CAR HIRE", "MAINLINE", "TAPNGO", "STORMVOEL", "TAP N GO", "SERVEST", "ADVANCE"]
+    },
+    {
+      "account_code": "3000-053",
+      "account_name": "Staff Uniforms / Protective Clothing",
+      "vat_direction": "Input",
+      "vat_rate": 0.15,
+      "keywords": ["TEMU", "GOLF SHIRTS", "WORKWEAR", "OVERALLS", "GIOVANE G", "H&M MALL OF AFRICA", "UNIFORM", "PPE"]
+    },
+    {
+      "account_code": "3000-055",
+      "account_name": "Office Refreshments & Supplies",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["E SHOP CARLSWALD", "GAME MALL OF AFRICA", "OASIS VORNA VALLEY"]
+    },
+    {
+      "account_code": "9000-001",
+      "account_name": "Shareholder Loan Account",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["PERSONAL", "DIRECTOR DISBURSEMENT", "SHAREHOLDER"]
+    },
+    {
+      "account_code": "9500-001",
+      "account_name": "Unallocated Suspense",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["UNALLOCATED"]
+    },
+    {
+      "account_code": "9500-003",
+      "account_name": "Bank Transfer Suspense",
+      "vat_direction": null,
+      "vat_rate": 0.00,
+      "keywords": ["SAVING", "PETTY CASH", "TRANSFER", "DTT"]
+    }
+  ]
+}

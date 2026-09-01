@@ -55,7 +55,7 @@ export async function sendUndecidedEmail(order: Order & { id: string }, items: I
 }
 
 /**
- * Sends a full, consolidated AI Audit Findings report email to kev@thinkestry.co.za
+ * Sends a full, consolidated AI Audit Findings report email to info@myacc.co.za
  * triggered immediately when a client submits their documents or clicks "Notify Consultant".
  */
 export async function sendAuditFindingsEmail(

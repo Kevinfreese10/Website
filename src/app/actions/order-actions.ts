@@ -39,8 +39,10 @@ export async function notifyStaffOfAssignment(orderId: string, staffId: string) 
         
         const emailHtml = render(React.createElement(StaffAssignmentEmail, { order: orderToAssign, staffName }));
         
+        const targetEmail = staffData.email.toLowerCase().trim() === 'kev@thinkestry.co.za' ? 'info@myacc.co.za' : staffData.email;
+
         await sendEmail({
-            to: staffData.email,
+            to: targetEmail,
             subject: `New Order Assigned: #${orderToAssign.originalOrderId || orderToAssign.id}`,
             html: emailHtml,
         });

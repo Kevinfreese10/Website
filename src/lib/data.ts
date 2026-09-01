@@ -6,7 +6,7 @@ export const users: Omit<User, 'uid'>[] = [
   { 
     id: 'user-2',
     name: 'Kevin Freese', 
-    email: 'kev@thinkestry.co.za', 
+    email: 'info@myacc.co.za', 
     role: 'admin',
     department: 'Administration',
     smtpDetails: {

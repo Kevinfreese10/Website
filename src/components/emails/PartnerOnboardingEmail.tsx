@@ -140,7 +140,7 @@ export const PartnerOnboardingEmail = ({ partnerName, email, creditAmount, login
                 <Hr style={hr} />
                 
                 <Text style={paragraph}>
-                    If you have any questions or need immediate technical support, please don&apos;t hesitate to contact <strong>Kevin Freese</strong> directly at <Link href="mailto:kev@thinkestry.co.za" style={anchor}>kev@thinkestry.co.za</Link> or call us at 010 109 1625.
+                    If you have any questions or need immediate technical support, please don&apos;t hesitate to contact <strong>Kevin Freese</strong> directly at <Link href="mailto:info@myacc.co.za" style={anchor}>info@myacc.co.za</Link> or call us at 010 109 1625.
                 </Text>
 
                 <Text style={paragraph}>

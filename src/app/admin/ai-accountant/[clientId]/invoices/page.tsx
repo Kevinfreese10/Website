@@ -111,7 +111,7 @@ export default function InvoicesPage() {
     const [accounts, setAccounts] = useState<ChartOfAccount[]>([]);
     const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
     const [emailInvoice, setEmailInvoice] = useState<Invoice | null>(null);
-    const [emailAddress, setEmailAddress] = useState("kev@thinkestry.co.za");
+    const [emailAddress, setEmailAddress] = useState("info@myacc.co.za");
     const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -765,7 +765,7 @@ export default function InvoicesPage() {
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onSelect={() => {
                                                                     setEmailInvoice(invoice);
-                                                                    setEmailAddress("kev@thinkestry.co.za");
+                                                                    setEmailAddress("info@myacc.co.za");
                                                                 }}><Mail className="mr-2 h-4 w-4" />Email to Client</DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>

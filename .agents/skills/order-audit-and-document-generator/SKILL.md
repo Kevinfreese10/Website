@@ -54,7 +54,7 @@ This skill guides the end-to-end audit, document verification, statutory PDF gen
 |---|---|---|
 | **`Processing`** | 🔵 Info (Blue) | Active order currently being worked on by staff/agent (document verification, trial balance, drafting). |
 | **`Waiting on Customer`** | 🟡 Amber / Orange | Waiting for customer document uploads, digital/physical signatures on Form NCR 2 / POA / Resolutions, or client feedback on drafts. |
-| **`Waiting on External`** | 🟣 Purple / Indigo | All documents verified and submitted to external regulators or government bodies (e.g. NCR at `applications@ncr.org.za`, COIDA Commissioner, SARS, CIPC). |
+| **`Waiting on External`** | 🟣 Purple / Indigo | All documents verified and submitted to external regulators or government bodies (e.g. NCR at `registrations@ncr.org.za`, COIDA Commissioner, SARS, CIPC). |
 | **`Pending Payment`** | 🟡 Warning (Yellow) | Awaiting payment confirmation or ITN clearance. |
 | **`Completed`** | 🟢 Success (Green) | All statutory deliverables, registration certificates, or signed letters posted to Communication History and confirmed. |
 
@@ -124,13 +124,51 @@ This skill guides the end-to-end audit, document verification, statutory PDF gen
 * Embed trimmed signature asset `public/templates/Signature_Kevin_New.png`.
 * Position signature compactly above `Commissioner of Oaths:` header with Commissioner stamp box below.
 
+#### E. Company Voluntary Liquidation Application & CM100 Pack
+* **Master Templates**:
+  - Application Pack (Core): `public/templates/LIQUIDATION_APPLICATION_MASTER.docx` (based on `ARP FAMILY ENTERPRISE (PTY) LTD - LIQUIDATION APPLICATION.docx`).
+  - Statement of Affairs: `public/templates/CM100_CALLENDRA_HOLDINGS_22_Pages.pdf` (22-page official Master AcroForm).
+* **Strict Terminology Invariant (Pty Ltd Companies)**:
+  - Enterprise Type: Private Company / Maatskappy
+  - Officers: Strictly use `Director` / `Direkteur` and `Shareholder` / `Aandeelhouer` (NEVER use `Member`, `Lid`, `Membership Interest`, or `Corporation`).
+* **Document Package Architecture**:
+  1. **Core Application Pack (Pages 1 to 7)**:
+     - Page 1: Form CM 26 (Special Resolution of Company for Voluntary Liquidation by Creditors)
+     - Page 2: Form CM 25A (Consent to waive notice of meeting)
+     - Page 3: Attachment Note
+     - Page 4: Notice of Meeting of Shareholders and Directors
+     - Page 5: Extract from Minutes of Meeting of Shareholders and Directors
+     - Page 6: Letter of Instruction to CIPC Registrar of Companies
+     - Page 7: Sworn Affidavit by Director
+  2. **CM100 Statement of Affairs (22 Pages)**:
+     - Standalone official AcroForm pre-populated with SARS preferent debts, liabilities, and assets (do not duplicate inline pages).
+#### F. Accountant Confirmation of Income, Shareholding & Financial Standing Letter
+* **Purpose & Authority**: Independent Professional Accounting Officer confirmation issued under Kevin Freese (Director, CBAP SA #3561, Practice No: PR-0098553) for banking institutions, vehicle asset finance, home loans, leases, and regulatory bodies.
+* **Document Architecture & Typography Standards**:
+  1. **Strict Fixed-Column Amount Grid**:
+     - All currency figures in breakdown lists (e.g. Director Drawings, Living Expenses, Fuel, Mobile, Life Cover, Armed Response) MUST be vertically aligned along a fixed uniform X-coordinate column (`x: 380` on A4).
+     - Never use staggered or ragged inline currency text.
+  2. **Multi-Currency & Banking Reconciliation**:
+     - Cross-reference signed Annual Financial Statements (AFS), SARS tax filings (ITA34 / ITR14), and multi-currency bank statements (ZAR Gold Business + CFC USD accounts).
+  3. **Categorized Remuneration Structure**:
+     - **Part A: Net Personal Drawings / Direct Remuneration**: Regular cash drawings taken by the Director.
+     - **Part B: Direct Company-Paid Living & Operating Subsidies**: Specific expenses paid directly by the company on behalf of the Director (e.g. Fuel, Mobile Contract, Life Insurance, Security).
+     - **Part C: Total Effective Monthly Realized Benefits**: Accurately totaled monthly cashflow benefit.
+  4. **Professional Solvency & Going-Concern Declaration**:
+     - Formal confirmation of company solvency, liquidity, and sustained cashflow capacity.
+
 ---
 
-### Step 4: Storage Upload & Client Communication History
+### Step 4: Storage Upload & Client Communication History (CRITICAL INVARIANT)
 
+* **Strict Communication History Rule**:
+  - **NEVER** email draft documents, review requests, or queries directly to clients' email addresses.
+  - **ALWAYS** post exclusively to the Order's Communication History (`order.notes` in Firestore) with public download links.
+  - Keeps 100% of client dialogue and document history centralized in the portal dashboard.
 * **Storage Upload Path**: `orders/{orderId}/notes/{timestamp}_{filename}.pdf` (public read permissions).
 * **Firestore Data Structure**:
   - Notes and deliverables must be appended directly to `order.notes` using `FieldValue.arrayUnion()`.
+
   - Schema:
     ```javascript
     const note = {
@@ -150,12 +188,14 @@ This skill guides the end-to-end audit, document verification, statutory PDF gen
 
 ### Step 5: External Regulator Lodgement Protocol (NCR)
 
-When all 10 statutory documents are signed and ready for lodgement:
-1. **Lodgement Target**: `applications@ncr.org.za`
-2. **CC List**: `registrations@ncr.org.za`, `info@myacc.co.za`, client email.
-3. **Attachments**: 26-page master combined PDF pack + individual signed statutory PDFs.
-4. **Order Status Transition**: Update Firestore status immediately to **`Waiting on External`**.
-5. **Log Confirmation**: Post confirmation note to Communication History with email timestamp and Message ID.
+When all statutory documents are signed and ready for lodgement:
+1. **Lodgement Target**: `registrations@ncr.org.za`
+2. **Officer Inboxes (Direct)**: `dndaba@ncr.org.za`, `emoleko@ncr.org.za`, `mgoba@ncr.org.za`, `JBaloyi@ncr.org.za`, `vkhumo@ncr.org.za`
+   *(DO NOT use `applications@ncr.org.za` — permanently rejected / access denied)*.
+3. **CC List**: `info@myacc.co.za`, client email.
+4. **Attachments**: Complete signed statutory application pack + proof of payment (R1,800.00 to NCR).
+5. **Order Status Transition**: Update Firestore status immediately to **`Waiting on External`**.
+6. **Log Confirmation**: Post confirmation note to Communication History with email timestamp and Message ID.
 
 ---
 

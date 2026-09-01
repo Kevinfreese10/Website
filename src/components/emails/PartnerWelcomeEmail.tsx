@@ -116,7 +116,7 @@ export const PartnerWelcomeEmail = ({ partnerName, email, password, loginUrl }: 
                 <Hr style={hr} />
                 
                  <Text style={paragraph}>
-                    If you have any questions or need technical support, please don&apos;t hesitate to reach out to <strong>Kevin Freese</strong> at <Link href="mailto:kev@thinkestry.co.za" style={anchor}>kev@thinkestry.co.za</Link>.
+                    If you have any questions or need technical support, please don&apos;t hesitate to reach out to <strong>Kevin Freese</strong> at <Link href="mailto:info@myacc.co.za" style={anchor}>info@myacc.co.za</Link>.
                 </Text>
 
                 <Text style={paragraph}>

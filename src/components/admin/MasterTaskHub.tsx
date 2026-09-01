@@ -289,7 +289,7 @@ export default function MasterTaskHub() {
             <h1 className="text-xl font-bold tracking-tight text-white">Master Email & Compliance Task Hub</h1>
           </div>
           <p className="text-xs text-indigo-200/80 max-w-2xl">
-            Real-time inbox triage for <span className="font-semibold text-white">kev@thinkestry.co.za</span>, spam quarantine, statutory practice compliance, AI response drafts, and order cross-referencing.
+            Real-time inbox triage for <span className="font-semibold text-white">info@myacc.co.za</span>, spam quarantine, statutory practice compliance, AI response drafts, and order cross-referencing.
           </p>
         </div>
 
@@ -793,7 +793,7 @@ export default function MasterTaskHub() {
             <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-b space-y-1.5 text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-foreground w-16">From:</span>
-                <span className="text-foreground">Kevin Freese &lt;kev@thinkestry.co.za&gt;</span>
+                <span className="text-foreground">Kevin Freese &lt;info@myacc.co.za&gt;</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-foreground w-16">To:</span>
