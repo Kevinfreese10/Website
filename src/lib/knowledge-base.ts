@@ -17,6 +17,31 @@ export let knowledgeBaseItems: KnowledgeBaseItem[] = [
         id: 'kb-3',
         question: 'What is your refund policy?',
         answer: 'All services are non-refundable once work has begun. Refunds may be considered only if the service has not yet started, and a processing fee of 10% will be deducted from any approved refund. Refund requests must be submitted within 48 hours of purchase.'
+    },
+    {
+        id: 'kb-vat-1',
+        question: 'What are the new South African VAT registration thresholds (effective 1 April 2026)?',
+        answer: 'With effect from 1 April 2026, South Africa’s VAT registration thresholds increased: Compulsory VAT registration increased from R1,000,000 to R2,300,000 (taxable supplies/turnover in any consecutive 12-month period), and Voluntary VAT registration increased from R50,000 to R120,000. SARS is actively administering all new registrations under these updated thresholds.'
+    },
+    {
+        id: 'kb-vat-2',
+        question: 'When is VAT registration compulsory in South Africa?',
+        answer: 'A business must register for VAT where its taxable supplies/turnover exceed R2.3 million (R2,300,000) in any consecutive 12-month period, or where it has entered into a written contractual obligation that will result in taxable supplies exceeding R2.3 million in a 12-month period. Note that this threshold is based on total taxable turnover, not profit.'
+    },
+    {
+        id: 'kb-vat-3',
+        question: 'What is the voluntary VAT registration threshold?',
+        answer: 'If taxable supplies are below R2.3 million, a business can apply for voluntary VAT registration once its taxable supplies exceed R120,000 in a 12-month period, subject to standard SARS compliance requirements, banking confirmation, and commercial trading proofs.'
+    },
+    {
+        id: 'kb-vat-4',
+        question: 'What happens to existing VAT vendors whose turnover is below R2.3 million?',
+        answer: 'Existing VAT registrations are NOT automatically cancelled. If your business is already VAT registered and generates turnover below R2.3 million (e.g. R1.5 million), you may choose to remain VAT registered to continue claiming input tax and invoicing corporate clients, or you may choose to apply to SARS for voluntary deregistration.'
+    },
+    {
+        id: 'kb-vat-5',
+        question: 'What is Exit VAT upon VAT deregistration?',
+        answer: 'When a business deregisters from VAT, it must pay exit VAT (output tax) on the lesser of the cost or open market value of all assets and trading stock held immediately before deregistration on which input VAT was previously claimed.'
     }
 ];
 

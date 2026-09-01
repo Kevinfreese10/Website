@@ -277,6 +277,16 @@ export async function websiteQAndA(
   const popiaPolicyContent = `
     POPIA Compliance: ${companyName} is committed to safeguarding personal information in line with POPIA. We process information lawfully and for legitimate business purposes. We do not sell personal information. Our Information Officer is Kevin William Freese, reachable at ${contactEmail}.
   `;
+
+  const vatRegulationsContent = `
+    SOUTH AFRICA VAT REGISTRATION REGULATIONS (EFFECTIVE 1 APRIL 2026):
+    - New Official Thresholds: With effect from 1 April 2026, South Africa’s VAT registration thresholds increased. SARS is already actively administering registrations under the new thresholds.
+    - Compulsory VAT Registration: R2,300,000 (previously R1,000,000). A business must register for VAT where its taxable supplies/turnover exceed R2.3 million in any consecutive 12-month period, or where a written contractual obligation means it will exceed R2.3 million in a 12-month period. Note: This applies to total taxable supplies/turnover, NOT net profit.
+    - Voluntary VAT Registration: R120,000 (previously R50,000). If taxable supplies are below R2.3 million, a business can apply for voluntary registration once taxable supplies exceed R120,000 in a 12-month period, subject to standard SARS requirements and commercial proofs.
+    - Existing Registered Vendors with turnover below R2.3m: Registration is NOT automatically cancelled. A business already VAT-registered whose turnover is, for example, R1.5 million can choose to remain registered or apply for voluntary deregistration.
+    - Exit VAT on Deregistration: Deregistration requires careful planning because exit VAT is payable to SARS on the lesser of the cost or market value of assets and trading stock where input VAT was previously claimed.
+    - VAT Registration Service: Available at /products/vat-registration (Fee: R1,400 once-off).
+  `;
   
   const footerContent = `
     CONTACT INFORMATION:
@@ -316,6 +326,9 @@ export async function websiteQAndA(
 
     COMPLIANCE SERVICES:
     ${compliancePageContent}
+
+    VAT REGULATIONS & THRESHOLDS (EFFECTIVE 1 APRIL 2026):
+    ${vatRegulationsContent}
 
     REFUND POLICY:
     ${refundPolicyContent}

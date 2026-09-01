@@ -290,7 +290,7 @@ export const blogPosts: BlogPost[] = [
       <h3 class="font-headline text-xl font-semibold mt-4 mb-2">What is VAT?</h3>
       <p>Currently set at 15%, VAT is added to the price of most goods and services. Businesses that are registered for VAT (known as vendors) collect this tax on behalf of the government.</p>
       <h3 class="font-headline text-xl font-semibold mt-4 mb-2">When Do You Need to Register?</h3>
-      <p>VAT registration is compulsory if the total value of your taxable supplies (income) is more than R1 million in any consecutive 12-month period, or is expected to exceed this amount. You can also register voluntarily if your income is more than R50,000 in a 12-month period.</p>
+      <p>VAT registration is compulsory if the total value of your taxable supplies (turnover) exceeds R2.3 million (R2,300,000) in any consecutive 12-month period, or is contractually expected to exceed this amount. You can also register voluntarily once your taxable supplies exceed R120,000 in a 12-month period (effective 1 April 2026).</p>
       <h3 class="font-headline text-xl font-semibold mt-4 mb-2">Input vs. Output VAT</h3>
       <p><strong>Output VAT</strong> is the tax you collect on your sales. <strong>Input VAT</strong> is the tax you pay on your business purchases. As a vendor, you pay the difference between your output and input VAT to SARS. If your input VAT is more than your output VAT, SARS will refund you the difference.</p>
     `,

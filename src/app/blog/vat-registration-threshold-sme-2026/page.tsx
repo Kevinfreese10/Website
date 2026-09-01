@@ -55,30 +55,74 @@ export default function VatThresholdPage() {
         <ShareWidget postTitle={title} postSlug="vat-registration-threshold-sme-2026" />
 
         <div className="prose prose-lg md:prose-xl max-w-none prose-headings:font-headline prose-headings:font-black prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-blue-600">
-          <h2>Mandatory VAT Registration</h2>
+          <h2>New South African VAT Registration Thresholds (Effective 1 April 2026)</h2>
           <p>
-            In South Africa, any business that makes taxable supplies exceeding R1 million in any consecutive 12-month period is legally obligated to register for Value-Added Tax (VAT). Failing to register when you cross this threshold can result in substantial penalties and back-taxes being owed to SARS.
-          </p>
-          
-          <h3>Voluntary Registration</h3>
-          <p>
-            If your taxable supplies exceed R50,000 in a 12-month period, you may choose to register for VAT voluntarily. This is often advantageous for B2B companies, as being VAT registered allows you to claim input VAT on your business expenses and makes your business appear more established to corporate clients.
+            South Africa’s Value-Added Tax (VAT) registration thresholds have officially increased with effect from <strong>1 April 2026</strong>. The South African Revenue Service (SARS) is already actively administering all VAT registrations under these new statutory thresholds.
           </p>
 
-          <h2>The Registration Process in 2026</h2>
+          <div className="my-8 overflow-x-auto">
+            <table className="w-full text-left border-collapse border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+              <thead className="bg-slate-100 text-slate-800 text-sm font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="p-4 border-b border-slate-200">VAT Registration Category</th>
+                  <th className="p-4 border-b border-slate-200">Old Threshold</th>
+                  <th className="p-4 border-b border-slate-200 text-blue-700">New Threshold (From 1 April 2026)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 text-slate-700 text-base">
+                <tr className="hover:bg-slate-50">
+                  <td className="p-4 font-semibold text-slate-900">Compulsory VAT Registration</td>
+                  <td className="p-4 text-slate-500 line-through">R1,000,000</td>
+                  <td className="p-4 font-bold text-emerald-600">R2,300,000</td>
+                </tr>
+                <tr className="hover:bg-slate-50">
+                  <td className="p-4 font-semibold text-slate-900">Voluntary VAT Registration</td>
+                  <td className="p-4 text-slate-500 line-through">R50,000</td>
+                  <td className="p-4 font-bold text-emerald-600">R120,000</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>1. Compulsory VAT Registration — R2.3 Million</h2>
           <p>
-            SARS has digitized much of the VAT registration process via eFiling. However, the supporting documentation required (proof of address, bank statements, representative details) is scrutinized closely to prevent VAT fraud. 
+            A business is legally required to register for VAT where the total value of its <strong>taxable supplies (turnover)</strong> exceeds <strong>R2.3 million</strong> in any consecutive 12-month period, or where it enters into a written contractual agreement that will cause taxable supplies to exceed R2.3 million within 12 months.
+          </p>
+          <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg my-6 text-amber-900 text-base">
+            <strong>Important Note:</strong> This threshold applies strictly to <em>taxable turnover (gross sales)</em>, not net business profit. Crossing R2.3m triggers mandatory registration within 21 days of the month-end.
+          </div>
+
+          <h2>2. Voluntary VAT Registration — R120,000</h2>
+          <p>
+            If your business has not reached the compulsory threshold of R2.3 million, you may still choose to apply for <strong>voluntary VAT registration</strong> once your taxable supplies exceed <strong>R120,000</strong> in a 12-month period.
+          </p>
+          <p>
+            Voluntary registration offers major commercial advantages, especially for B2B enterprises, allowing you to claim back 15% input VAT on operational expenses, capital equipment, and stock, while enhancing commercial credibility with corporate clients and government tenders.
+          </p>
+
+          <h2>3. Existing VAT Vendors with Turnover Below R2.3 Million</h2>
+          <p>
+            This is critical for existing business owners: If your company is already registered for VAT and your annual turnover is currently below the new compulsory threshold (e.g. R1.5 million), <strong>your VAT registration is NOT automatically cancelled</strong>.
+          </p>
+          <ul>
+            <li><strong>Option A (Remain Registered):</strong> Continue submitting bi-monthly VAT201 returns, claiming input VAT, and charging 15% VAT on invoices.</li>
+            <li><strong>Option B (Apply for Deregistration):</strong> You may choose to apply to SARS for voluntary deregistration if administrative overhead outweighs your input tax benefits.</li>
+          </ul>
+
+          <h2>4. Important Caution: Exit VAT on Deregistration</h2>
+          <p>
+            Deregistering from VAT requires careful tax planning. Under Section 8(2) of the VAT Act, when a vendor deregisters, SARS levies <strong>Exit VAT (Output Tax)</strong> on the lesser of the original cost or the open market value of all assets and trading stock held immediately prior to deregistration on which input VAT was previously claimed.
           </p>
 
           <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
             <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white m-0">Need to Register for VAT?</h2>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white m-0">Need Help with VAT Registration or Assessment?</h2>
               <p className="text-lg text-slate-300 font-medium">
-                We handle VAT registrations seamlessly, ensuring you are fully compliant without the administrative headache.
+                Our qualified Tax Practitioners and Chartered Business Accountants handle fast, compliant SARS VAT registrations and deregistration assessments online.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
                 <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-blue-600 hover:bg-blue-500 text-white w-full sm:w-auto">
-                  <Link href="/products/vat-registration">Register Now</Link>
+                  <Link href="/products/vat-registration">Register for VAT Online (R1,400)</Link>
                 </Button>
               </div>
             </div>
