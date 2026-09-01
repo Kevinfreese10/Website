@@ -1,11 +1,11 @@
 ---
 name: quote-generator
-description: Generates and sends standardized, beautifully formatted formal quotations (Outlook-compatible HTML) from winifred@myacc.co.za for once-off registrations and monthly accounting/payroll retainers.
+description: Generates and sends standardized, beautifully formatted formal quotations (Outlook-compatible HTML) from info@myacc.co.za for once-off registrations and monthly accounting/payroll retainers.
 ---
 
 # My Accountant Quote Generator
 
-This skill defines the standard quotation template, pricing guidelines, and email structure for sending client quotations on behalf of My Accountant (`winifred@myacc.co.za`).
+This skill defines the standard quotation template, pricing guidelines, and email structure for sending client quotations on behalf of My Accountant (`info@myacc.co.za`).
 
 ## Standard Retainer Packages
 
@@ -58,4 +58,4 @@ Before drafting or emailing any formal quotation, the agent MUST programmaticall
 - Use web-safe typography: `Segoe UI, Arial, sans-serif`.
 - Include product links with direct URLs for once-off registrations.
 - Provide both HTML and plain-text fallback.
-- Send from `winifred@myacc.co.za` via SMTP SSL (`mail.myacc.co.za:465`).
+- Send from `info@myacc.co.za` via SMTP SSL (`mail.myacc.co.za:465`).

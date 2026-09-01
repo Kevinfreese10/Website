@@ -76,12 +76,6 @@ export async function sendDocumentRequestEmailAction(orderId: string, replyToEma
         
         await sendEmail({
             to: emailTo,
-            // These were CC'd, so on a partner-sold order the partner's client saw two
-            // myacc.co.za addresses on an email that is supposed to come from their own
-            // accountant. Moved to BCC, which keeps internal visibility without breaking the
-            // white-label. (sendEmail already BCCs the master monitoring address and, for
-            // reseller orders, the partner themselves.)
-            bcc: ['winifred@myacc.co.za'],
             subject: subject,
             html: emailHtml,
             resellerId: orderData.resellerId,

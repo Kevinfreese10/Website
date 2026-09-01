@@ -127,7 +127,7 @@ async function execute(proposal: AgentProposal, payload: AgentProposal['payload'
       if (!r.success) return { ok: false, message: r.error || 'Could not post note' };
       const parts = ['Note posted to Communication History'];
       if (p.sendEmail) {
-        const e = await sendDocumentRequestEmailAction(orderId, 'winifred@myacc.co.za', p.setStatus || 'Waiting on Customer');
+        const e = await sendDocumentRequestEmailAction(orderId, 'info@myacc.co.za', p.setStatus || 'Waiting on Customer');
         parts.push(e.success ? `email sent to ${(e as any).emailTo}` : `email failed: ${(e as any).error}`);
       }
       if (p.setStatus && (AGENT_ALLOWED_STATUSES as readonly string[]).includes(p.setStatus)) {

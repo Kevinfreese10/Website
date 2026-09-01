@@ -622,7 +622,6 @@ export async function websiteQAndA(
 
           await sendEmail({
               to: emailClean,
-              bcc: ['info@myacc.co.za', 'winifred@myacc.co.za'],
               subject: `Order Confirmation #${orderId}`,
               html: emailHtml,
           });

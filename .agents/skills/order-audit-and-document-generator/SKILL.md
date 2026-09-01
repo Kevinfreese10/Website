@@ -66,7 +66,7 @@ This skill guides the end-to-end audit, document verification, statutory PDF gen
 > **Internal Review Emails**: Review emails and sign-off drafts must be routed **strictly to `info@myacc.co.za`**.
 > **NEVER include or CC `freesekevin@gmail.com`**.
 >
-> **Client Outbound Emails**: Dispatched from `winifred@myacc.co.za` / `info@myacc.co.za` (via `mail.myacc.co.za:465`) with responsive HTML layout and clean plain-text fallback, CCing `winifred@myacc.co.za` and `info@myacc.co.za`.
+> **Client Outbound Emails**: Dispatched from `info@myacc.co.za` (via `mail.myacc.co.za:465`) with responsive HTML layout and clean plain-text fallback, CCing `info@myacc.co.za`.
 
 ---
 
@@ -152,7 +152,7 @@ This skill guides the end-to-end audit, document verification, statutory PDF gen
 
 When all 10 statutory documents are signed and ready for lodgement:
 1. **Lodgement Target**: `applications@ncr.org.za`
-2. **CC List**: `registrations@ncr.org.za`, `info@myacc.co.za`, client email, `winifred@myacc.co.za`.
+2. **CC List**: `registrations@ncr.org.za`, `info@myacc.co.za`, client email.
 3. **Attachments**: 26-page master combined PDF pack + individual signed statutory PDFs.
 4. **Order Status Transition**: Update Firestore status immediately to **`Waiting on External`**.
 5. **Log Confirmation**: Post confirmation note to Communication History with email timestamp and Message ID.
