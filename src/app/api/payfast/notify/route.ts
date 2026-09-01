@@ -463,65 +463,34 @@ export async function POST(req: NextRequest) {
                   .map(doc => ({ id: doc.id, ...doc.data() } as User))
                   .filter(isEligibleOrderStaff);
 
-              const matchingStaff = allActiveStaff.filter(staff => {
-                  if (staff.role !== 'staff') return false;
-                  if (staff.department === department) return true;
-                  if (Array.isArray(staff.departments) && staff.departments.includes(department)) return true;
-                  return false;
+              // All new orders are allocated to Kevin Freese (kev@thinkestry.co.za) by default
+              let assignedStaffId: string | null = null;
+              let staffUser: User | null = null;
+
+              const kevinDoc = staffSnapshot.docs.find(d => {
+                  const data = d.data() as User;
+                  const email = (data.email || '').toLowerCase().trim();
+                  return email === 'kev@thinkestry.co.za' || email === 'info@myacc.co.za';
               });
 
-              // If department has active staff, use them; otherwise fallback to other active staff or active admin
-              const candidateStaff = matchingStaff.length > 0 ? matchingStaff : allActiveStaff;
-              
-              let assignedStaffId: string | null = null;
-              
-              if (candidateStaff.length > 0) {
-                  const processingOrdersSnapshot = await adminDb.collection('orders')
-                      .where('status', '==', 'Processing')
-                      .get();
-                  
-                  const workloadMap: { [userId: string]: number } = {};
-                  candidateStaff.forEach(staff => {
-                      workloadMap[staff.id] = 0;
-                  });
-                  
-                  processingOrdersSnapshot.docs.forEach(doc => {
-                      const orderData = doc.data();
-                      const assigned = orderData.assignedTo;
-                      if (Array.isArray(assigned)) {
-                          assigned.forEach((staffId: string) => {
-                              if (workloadMap[staffId] !== undefined) {
-                                  workloadMap[staffId]++;
-                              }
-                          });
-                      } else if (typeof assigned === 'string') {
-                          if (workloadMap[assigned] !== undefined) {
-                              workloadMap[assigned]++;
-                          }
-                      }
-                  });
-                  
-                  let minWorkload = Infinity;
-                  candidateStaff.forEach(staff => {
-                      const workload = workloadMap[staff.id] || 0;
-                      if (workload < minWorkload) {
-                          minWorkload = workload;
-                          assignedStaffId = staff.id;
-                      }
-                  });
+              if (kevinDoc) {
+                  assignedStaffId = kevinDoc.id;
+                  staffUser = { id: kevinDoc.id, ...kevinDoc.data() } as User;
+              } else if (allActiveStaff.length > 0) {
+                  const adminStaff = allActiveStaff.find(s => s.role === 'admin') || allActiveStaff[0];
+                  assignedStaffId = adminStaff.id;
+                  staffUser = adminStaff;
               }
-              
-              if (assignedStaffId) {
-                  const staffUser = staffSnapshot.docs.find(d => d.id === assignedStaffId)?.data() as User;
-                  const staffName = staffUser ? staffUser.name : 'Unknown Staff';
-                  
-                  console.log(`Assigning order ${orderId} to staff member ${staffName} (${assignedStaffId})`);
+
+              if (assignedStaffId && staffUser) {
+                  const staffName = staffUser.name || 'Kevin Freese';
+                  console.log(`Assigning order ${orderId} to ${staffName} (${assignedStaffId})`);
                   
                   await orderRef.update({
                       assignedTo: [assignedStaffId],
                       department: department,
                       notes: FieldValue.arrayUnion({
-                          text: `Order automatically assigned to ${staffName} (Department: ${department}) based on least active workload.`,
+                          text: `Order automatically assigned to ${staffName} (${staffUser.email}) for review and reallocation.`,
                           date: new Date(),
                           authorId: 'system',
                           type: 'note',
@@ -530,16 +499,17 @@ export async function POST(req: NextRequest) {
                       })
                   });
                   
-                  if (staffUser && staffUser.email) {
+                  if (staffUser.email) {
                       try {
                           await sendEmail({
                               to: staffUser.email,
                               subject: `New Order Assigned: #${orderId}`,
                               html: `
                                   <p>Hi ${staffName},</p>
-                                  <p>A new order (<strong>#${orderId}</strong>) has been automatically assigned to you based on your department (${department}).</p>
+                                  <p>A new order (<strong>#${orderId}</strong>) has been placed and assigned to you for review and reallocation.</p>
+                                  <p><strong>Department:</strong> ${department}</p>
                                   <p><strong>Customer:</strong> ${currentOrderData.customerName}</p>
-                                  <p>Please log in to the dashboard to review and fulfill the services.</p>
+                                  <p>Please log in to the dashboard to review and reallocate or fulfill the services.</p>
                                   <br/>
                                   <p>Best regards,<br/>My Accountant System</p>
                               `
@@ -550,12 +520,12 @@ export async function POST(req: NextRequest) {
                       }
                   }
               } else {
-                  console.warn(`No staff available for department ${department}. Order ${orderId} remains unassigned.`);
+                  console.warn(`Could not assign staff. Order ${orderId} remains unassigned.`);
                   await orderRef.update({
                       assignedTo: [],
                       department: department,
                       notes: FieldValue.arrayUnion({
-                          text: `Order set to department: ${department}. Could not assign staff (no active staff members found in this department).`,
+                          text: `Order set to department: ${department}. Could not assign staff.`,
                           date: new Date(),
                           authorId: 'system',
                           type: 'note',

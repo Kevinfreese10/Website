@@ -388,28 +388,21 @@ export async function outsourceOrderFromWallet(
             .map(d => ({ id: d.id, ...d.data() } as any))
             .filter(isEligibleOrderStaff);
 
-          const matchingStaff = allActiveStaff.filter(staff => {
-            if (staff.role !== 'staff') return false;
-            if (staff.department === department) return true;
-            if (Array.isArray(staff.departments) && staff.departments.includes(department)) return true;
-            return false;
+          // All new orders are allocated to Kevin Freese (kev@thinkestry.co.za) by default
+          const kevinDoc = staffSnap.docs.find(d => {
+            const data = d.data();
+            const email = (data.email || '').toLowerCase().trim();
+            return email === 'kev@thinkestry.co.za' || email === 'info@myacc.co.za';
           });
 
-          // Prioritize matching department staff, then any active staff, then active admin
-          const candidates = matchingStaff.length > 0 ? matchingStaff : allActiveStaff;
-          candidates.sort((a, b) => {
-            if (a.role === 'staff' && b.role !== 'staff') return -1;
-            if (a.role !== 'staff' && b.role === 'staff') return 1;
-            return (a.name || '').localeCompare(b.name || '');
-          });
+          const targetStaff = kevinDoc
+            ? { id: kevinDoc.id, ...kevinDoc.data() } as any
+            : (allActiveStaff.find(s => s.role === 'admin') || allActiveStaff[0]);
 
-          if (candidates.length > 0) {
-            const targetStaff = candidates[0];
-            if (targetStaff) {
-              await orderRef.update({ assignedTo: [targetStaff.id], department });
-              await notifyStaffOfAssignment(orderId, targetStaff.id);
-              console.log(`[wallet-actions] Auto-assigned active staff ${targetStaff.name || targetStaff.email} (${targetStaff.id}) to order #${orderId}`);
-            }
+          if (targetStaff) {
+            await orderRef.update({ assignedTo: [targetStaff.id], department });
+            await notifyStaffOfAssignment(orderId, targetStaff.id);
+            console.log(`[wallet-actions] Assigned order #${orderId} to ${targetStaff.name || targetStaff.email} (${targetStaff.id})`);
           }
         } catch (staffErr) {
           reportError(staffErr, { operation: 'wallet.outsource.staffAllocation', orderId, detail: { impact: 'Partner was charged; order may be unassigned.' } });
