@@ -370,8 +370,8 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
 
           {periodPreset === 'custom' && (
             <DateRangePicker
-              date={customRange}
-              setDate={setCustomRange}
+              value={customRange}
+              onDateChange={setCustomRange}
             />
           )}
 

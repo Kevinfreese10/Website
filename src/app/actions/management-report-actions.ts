@@ -2,7 +2,6 @@
 
 import { getAdminDb } from '@/lib/firebase-admin';
 import { generateManagementReportAnalysis, ManagementReportAnalysisInput } from '@/ai/flows/generate-management-report-analysis';
-import { requireAdminOrPartnerUser } from '@/firebase/server-auth';
 
 export interface ManagementReportSectionItem {
   accountNumber?: string;
