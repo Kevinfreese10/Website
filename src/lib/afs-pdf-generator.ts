@@ -88,6 +88,8 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     doc.line(leftMargin, 39, pageWidth - rightMargin, 39);
   };
 
+  let runningPageNumber = 1;
+
   const drawPageFooter = (pageNum: number, disclaimer?: string) => {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
@@ -156,7 +158,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   addInfoRow('Preparer', ['The financial statements were internally compiled by:', generalInfo.preparerName, generalInfo.preparerDesignation]);
   addInfoRow('Issued', generalInfo.issuedDate);
 
-  drawPageFooter(1);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 3: INDEX
   doc.addPage();
@@ -201,7 +203,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
       columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
     });
   }
-  drawPageFooter(2);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 4: DIRECTOR'S RESPONSIBILITIES AND APPROVAL
   doc.addPage();
@@ -224,7 +226,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   doc.setFont('helvetica', 'normal');
   doc.text(directorsResponsibilities.signatoryName || generalInfo.directors[0]?.name || 'Director', leftMargin, pY + 30);
   doc.text(directorsResponsibilities.signatoryTitle || 'Director', leftMargin, pY + 34);
-  drawPageFooter(3);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 5-7: PRACTITIONER REPORT
   doc.addPage();
@@ -245,7 +247,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   const basisText = `We performed this compilation engagement in accordance with International Standard on Related Services 4410 (Revised), Compilation Engagements. We have applied our expertise in accounting and financial reporting to assist you in the preparation and presentation of these financial statements on the basis of International Financial Reporting Standard for Small and Medium-sized Entities and the requirements of the Companies Act of South Africa.`;
   const basisSplit = doc.splitTextToSize(basisText, contentWidth);
   doc.text(basisSplit, leftMargin, 61 + opSplit.length * 4 + 9);
-  drawPageFooter(4);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 6
   doc.addPage();
@@ -264,7 +266,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   const audResp = `Since a compilation engagement is not an assurance engagement, we are not required to verify the accuracy or completeness of the information you provided to us to compile these financial statements. Accordingly, we do not express an audit opinion or a review conclusion on whether these financial statements are prepared in accordance with IFRS for SMEs.`;
   const audRespSplit = doc.splitTextToSize(audResp, contentWidth);
   doc.text(audRespSplit, leftMargin, 53 + dirRespSplit.length * 4 + 9);
-  drawPageFooter(5);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 7: Sign-off
   doc.addPage();
@@ -282,7 +284,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   doc.text(generalInfo.auditorOrPractitionerAddress, leftMargin, 90);
   doc.setFont('helvetica', 'bold');
   doc.text(generalInfo.issuedDate, leftMargin, 96);
-  drawPageFooter(6);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 8-9: DIRECTOR'S REPORT
   doc.addPage();
@@ -378,7 +380,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     dY += 16;
   }
 
-  drawPageFooter(7);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 9: DIRECTOR'S REPORT (CONTINUED)
   doc.addPage();
@@ -413,7 +415,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     doc.text(directorsReport.auditorOrPractitionerContinuance, leftMargin, d2Y + 5);
   }
 
-  drawPageFooter(8);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 10: STATEMENT OF FINANCIAL POSITION
   doc.addPage();
@@ -447,7 +449,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     styles: { fontSize: 8.5, cellPadding: 2 },
     columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 20, halign: 'center' }, 2: { cellWidth: 30, halign: 'right' } },
   });
-  drawPageFooter(9);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 11: STATEMENT OF COMPREHENSIVE INCOME
   doc.addPage();
@@ -473,7 +475,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     styles: { fontSize: 8.5, cellPadding: 2.5 },
     columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 20, halign: 'center' }, 2: { cellWidth: 30, halign: 'right' } },
   });
-  drawPageFooter(10);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 12: STATEMENT OF CHANGES IN EQUITY
   doc.addPage();
@@ -495,14 +497,14 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     head: [['Figures in Rand', 'Share capital', 'Accumulated loss', 'Total equity']],
     body: eqRows as any,
     styles: { fontSize: 8.5, cellPadding: 2.5 },
-    columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 30, halign: 'right' }, 2: { cellWidth: 30, halign: 'right' }, 3: { cellWidth: 30, halign: 'right' } },
+    columnStyles: { 0: { cellWidth: 80 }, 1: { cellWidth: 30, halign: 'right' }, 2: { cellWidth: 30, halign: 'right' } },
   });
 
   const eqFinalY = (doc as any).lastAutoTable?.finalY || 100;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.text('Note 3', leftMargin, eqFinalY + 5);
-  drawPageFooter(11);
+  drawPageFooter(runningPageNumber++);
 
   // PAGE 13: STATEMENT OF CASH FLOWS
   doc.addPage();
@@ -530,9 +532,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     styles: { fontSize: 8.5, cellPadding: 2.5 },
     columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 20, halign: 'center' }, 2: { cellWidth: 30, halign: 'right' } },
   });
-  drawPageFooter(12);
+  drawPageFooter(runningPageNumber++);
 
-  // PAGE 14: ACCOUNTING POLICIES
+  // PAGE 14+: ACCOUNTING POLICIES (AUTO-PAGINATED)
   doc.addPage();
   drawPageHeader('Accounting Policies');
 
@@ -540,10 +542,20 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   const activePolicies = (accountingPolicies?.policies || []).filter((p) => p.enabled);
 
   activePolicies.forEach((pol) => {
+    const paragraphs = pol.content.split('\n\n').filter(Boolean);
+
+    // If starting a new policy near the bottom of page, start new page
+    if (polY > pageHeight - 35) {
+      drawPageFooter(runningPageNumber++);
+      doc.addPage();
+      drawPageHeader('Accounting Policies (Continued)');
+      polY = 48;
+    }
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.text(pol.title, leftMargin, polY);
-    polY += 4;
+    polY += 4.5;
 
     if (pol.subTitle) {
       doc.setFont('helvetica', 'bold');
@@ -554,14 +566,25 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    const split = doc.splitTextToSize(pol.content, contentWidth);
-    doc.text(split, leftMargin, polY);
-    polY += split.length * 3.8 + 4;
+
+    paragraphs.forEach((para) => {
+      const split = doc.splitTextToSize(para.trim(), contentWidth);
+      if (polY + split.length * 3.8 > pageHeight - 20) {
+        drawPageFooter(runningPageNumber++);
+        doc.addPage();
+        drawPageHeader('Accounting Policies (Continued)');
+        polY = 48;
+      }
+      doc.text(split, leftMargin, polY);
+      polY += split.length * 3.8 + 2.5;
+    });
+
+    polY += 2;
   });
 
-  drawPageFooter(13);
+  drawPageFooter(runningPageNumber++);
 
-  // PAGE 15: NOTES (PART 1)
+  // STATUTORY NOTES (PART 1)
   doc.addPage();
   drawPageHeader('Notes to the Financial Statements');
 
@@ -653,9 +676,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     });
   }
 
-  drawPageFooter(14);
+  drawPageFooter(runningPageNumber++);
 
-  // PAGE 16: NOTES (PART 2)
+  // STATUTORY NOTES (PART 2)
   doc.addPage();
   drawPageHeader('Notes to the Financial Statements (Continued)');
 
@@ -743,9 +766,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     doc.text(notes.note10EventsAfterReportingPeriod.statementText, leftMargin, n6Y + 6);
   }
 
-  drawPageFooter(15);
+  drawPageFooter(runningPageNumber++);
 
-  // PAGE 17: DETAILED INCOME STATEMENT
+  // DETAILED INCOME STATEMENT
   if (toggles.showDetailedIncomeStatement) {
     doc.addPage();
     drawPageHeader('Detailed Income Statement');
@@ -775,7 +798,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
       columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
     });
 
-    drawPageFooter(16, 'The supplementary information presented does not form part of the financial statements and is unaudited');
+    drawPageFooter(runningPageNumber++, 'The supplementary information presented does not form part of the financial statements and is unaudited');
   }
 
   return doc;

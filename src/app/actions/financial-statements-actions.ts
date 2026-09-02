@@ -9,6 +9,7 @@ import type {
   AfsDirectorsReportData,
   AfsAccountingPoliciesData,
   AfsSectionToggles,
+  AfsAccountingPolicyItem,
 } from '@/lib/afs-types';
 
 export async function getAnnualFinancialStatementsDataAction({
@@ -328,69 +329,285 @@ The financial statements set out on pages 5 to 12, which have been prepared on t
         'My Accountant will continue in office as accounting officers for the company for the next financial year.',
     };
 
-    // Accounting Policies Data
-    const defaultPoliciesList = [
+    // Standard 23 IFRS for SMEs Accounting Policies
+    const defaultPoliciesList: AfsAccountingPolicyItem[] = [
       {
-        id: 'basis_of_prep',
-        title: '1. Basis of preparation and summary of material accounting policies',
-        content:
-          'The financial statements have been prepared on a going concern basis in accordance with the International Financial Reporting Standard for Small and Medium-sized Entities (IFRS for SMEs) and the requirements of the Companies Act of South Africa. The financial statements have been prepared on the historical cost basis, and incorporate the principal accounting policies set out below. They are presented in South African Rands.',
-        enabled: defaultSectionToggles.showBasisOfPreparation,
+        id: 'policy_1',
+        title: '1. Basis of preparation',
+        content: `The annual financial statements have been prepared in accordance with the International Financial Reporting Standard for Small and Medium-sized Entities (IFRS for SMEs) issued by the International Accounting Standards Board.
+
+The annual financial statements have been prepared on the historical cost basis, except where otherwise stated in the accounting policies, and incorporate the principal accounting policies set out below. They are presented in South African Rand, which is the entity's functional and presentation currency.
+
+The accounting policies have been applied consistently with those of the previous reporting period, unless otherwise stated.`,
+        enabled: true,
       },
       {
-        id: 'judgements',
-        title: '1.1 Significant judgements and sources of estimation uncertainty',
-        subTitle: 'Critical judgements in applying accounting policies',
-        content:
-          'Management did not make critical judgements in the application of accounting policies, apart from those involving estimations, which would significantly affect the financial statements.',
-        enabled: defaultSectionToggles.showJudgements,
+        id: 'policy_2',
+        title: '2. Going concern',
+        content: `The annual financial statements have been prepared on the going concern basis.
+
+Management has assessed the entity's ability to continue as a going concern and has no intention to liquidate the entity or cease trading, nor is management aware of any material uncertainties related to events or conditions that may cast significant doubt upon the entity's ability to continue as a going concern.
+
+Where material uncertainties exist, appropriate disclosure is made in the annual financial statements.`,
+        enabled: true,
       },
       {
-        id: 'financial_instruments',
-        title: '1.2 Financial instruments',
-        subTitle: 'Initial and Subsequent Measurement',
-        content:
-          'Financial instruments including loans, are initially measured at the transaction price (including transaction costs except in the initial measurement of financial assets and liabilities that are measured at fair value through profit or loss) unless the arrangement constitutes, in effect, a financing transaction in which case it is measured at the present value of the future payments discounted at a market rate of interest.',
-        enabled: defaultSectionToggles.showFinancialInstruments,
+        id: 'policy_3',
+        title: '3. Significant judgements and estimates',
+        content: `The preparation of annual financial statements in conformity with IFRS for SMEs requires management to make judgements, estimates and assumptions that affect the application of accounting policies and the reported amounts of assets, liabilities, income and expenses.
+
+Estimates and underlying assumptions are reviewed on an ongoing basis and are based on historical experience and other factors considered reasonable under the circumstances.
+
+Revisions to accounting estimates are recognised prospectively in the period in which the estimates are revised and in any future periods affected.`,
+        enabled: true,
       },
       {
-        id: 'ppe',
-        title: '1.3 Property, plant and equipment',
-        subTitle: 'Depreciation & Measurement',
-        content:
-          'Property, plant and equipment are tangible items that are held for use in the production or supply of goods or services, for rental to others, or for administrative purposes; and are expected to be used during more than one period. Property, plant and equipment is carried at cost less accumulated depreciation and accumulated impairment losses.',
-        enabled: defaultSectionToggles.showPpePolicy,
+        id: 'policy_4',
+        title: '4. Property, plant and equipment',
+        content: `Property, plant and equipment are initially measured at cost.
+
+Cost includes expenditure directly attributable to the acquisition or construction of an asset and bringing the asset to the location and condition necessary for it to operate in the manner intended by management.
+
+Subsequent to initial recognition, property, plant and equipment are measured at cost less accumulated depreciation and accumulated impairment losses.
+
+Depreciation is recognised on a systematic basis over the estimated useful lives of the assets to their estimated residual values. Where significant components of an asset have different useful lives or patterns of consumption, those components are depreciated separately.
+
+Depreciation commences when an asset is available for use. The residual values, useful lives and depreciation methods are reviewed when indicators exist that they may have changed significantly.
+
+An item of property, plant and equipment is derecognised on disposal or when no future economic benefits are expected from its use or disposal. Any resulting gain or loss is recognised in profit or loss.`,
+        enabled: true,
       },
       {
-        id: 'income_tax',
-        title: '1.4 Income Tax',
-        subTitle: 'Current and Deferred Tax',
-        content:
-          'Current tax for current period is, to the extent unpaid, recognised as a liability. If the amount already paid in respect of current period exceeds the amount due for that period, the excess is recognised as an asset.',
-        enabled: defaultSectionToggles.showIncomeTaxPolicy,
+        id: 'policy_5',
+        title: '5. Intangible assets',
+        content: `Intangible assets acquired separately are initially measured at cost.
+
+Subsequently, intangible assets are measured at cost less accumulated amortisation and accumulated impairment losses.
+
+Intangible assets are considered to have finite useful lives and are amortised systematically over their estimated useful lives.
+
+The amortisation period and amortisation method are reviewed when indicators exist that they may have changed significantly since the previous reporting date.
+
+Expenditure on internally generated research and development activities is recognised as an expense when incurred unless it forms part of the cost of another asset that meets the recognition requirements of IFRS for SMEs.`,
+        enabled: false,
       },
       {
-        id: 'share_capital',
-        title: '1.5 Share capital and equity',
-        subTitle: 'Equity Instruments',
-        content: 'Equity instruments issued by the company are recognised at the proceeds received, net of direct issue costs.',
-        enabled: defaultSectionToggles.showShareCapitalPolicy,
+        id: 'policy_6',
+        title: '6. Impairment of assets',
+        content: `At each reporting date, the entity assesses whether there is any indication that an asset may be impaired.
+
+Where an indication of impairment exists, the entity estimates the recoverable amount of the asset.
+
+An impairment loss is recognised in profit or loss when the carrying amount of an asset exceeds its recoverable amount.
+
+Where an impairment loss subsequently reverses, the carrying amount of the asset is increased to its revised recoverable amount, subject to the limitations prescribed by IFRS for SMEs.`,
+        enabled: true,
       },
       {
-        id: 'revenue',
-        title: '1.6 Revenue recognition',
-        subTitle: 'Rendering of Services & Sale of Goods',
-        content:
-          'Revenue is recognised to the extent that the company has transferred the significant risks and rewards of ownership of goods to the buyer, or has rendered the services, and it is probable that the economic benefits associated with the transaction will flow to the company and the amount of revenue can be measured reliably.',
-        enabled: defaultSectionToggles.showRevenuePolicy,
+        id: 'policy_7',
+        title: '7. Financial instruments',
+        content: `Financial instruments are recognised when the entity becomes a party to the contractual provisions of the instrument.
+
+Basic financial instruments are initially measured at the transaction price, including transaction costs, except where the arrangement constitutes a financing transaction.
+
+Where an arrangement constitutes a financing transaction, the financial asset or financial liability is initially measured at the present value of future payments discounted at an appropriate market rate of interest for a similar instrument.
+
+Basic debt instruments are subsequently measured at amortised cost using the effective interest method, where applicable.
+
+At each reporting date, financial assets measured at cost or amortised cost are assessed for objective evidence of impairment. Impairment losses are recognised immediately in profit or loss.
+
+Financial assets are derecognised when the contractual rights to the cash flows expire or when substantially all the risks and rewards of ownership have been transferred.
+
+Financial liabilities are derecognised when the contractual obligation is discharged, cancelled or expires.`,
+        enabled: true,
       },
       {
-        id: 'leases',
-        title: '1.7 Leases',
-        subTitle: 'Operating Leases',
-        content:
-          'A lease is classified as an operating lease if it does not transfer substantially all the risks and rewards incidental to ownership. Operating lease payments are recognised as an expense on a straight-line basis over the lease term.',
-        enabled: defaultSectionToggles.showLeasesPolicy,
+        id: 'policy_8',
+        title: '8. Trade and other receivables',
+        content: `Trade and other receivables are initially measured at the transaction price unless the arrangement constitutes a financing transaction.
+
+They are subsequently measured at amortised cost using the effective interest method, where applicable, less any impairment losses.
+
+At each reporting date, trade and other receivables are assessed for objective evidence of impairment. Where objective evidence of impairment exists, the impairment loss is recognised immediately in profit or loss.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_9',
+        title: '9. Cash and cash equivalents',
+        content: `Cash and cash equivalents comprise cash on hand, demand deposits and short-term highly liquid investments that are readily convertible into known amounts of cash and are subject to an insignificant risk of changes in value.
+
+Bank overdrafts that are repayable on demand and form an integral part of the entity's cash management are included as a component of cash and cash equivalents for purposes of the statement of cash flows.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_10',
+        title: '10. Share capital and equity',
+        content: `An equity instrument is a contract that evidences a residual interest in the assets of the entity after deducting all of its liabilities.
+
+Ordinary shares are classified as equity.
+
+Equity instruments issued by the entity are recognised at the proceeds received, net of directly attributable transaction costs.
+
+Distributions to owners are recognised directly in equity. Dividends are recognised as liabilities when the entity has an obligation to distribute the dividend to its shareholders.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_11',
+        title: '11. Trade and other payables',
+        content: `Trade and other payables are initially measured at the transaction price unless the arrangement constitutes a financing transaction.
+
+Where the arrangement constitutes a financing transaction, the liability is initially measured at the present value of future payments discounted at an appropriate market rate of interest.
+
+Trade and other payables are subsequently measured at amortised cost using the effective interest method, where applicable.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_12',
+        title: '12. Loans from/to shareholders and directors',
+        content: `Loans to and from shareholders and directors are recognised when the entity becomes party to the contractual provisions of the instrument.
+
+Loans are initially measured at the transaction price unless the arrangement constitutes a financing transaction.
+
+Where the arrangement constitutes a financing transaction, the loan is initially measured at the present value of future payments discounted at an appropriate market rate of interest for a similar debt instrument.
+
+Loans are subsequently measured at amortised cost using the effective interest method, less impairment in the case of financial assets.
+
+The current or non-current classification is determined according to the contractual terms of the loan and the requirements of IFRS for SMEs.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_13',
+        title: '13. Provisions',
+        content: `Provisions are recognised when the entity has an obligation at the reporting date as a result of a past event, it is probable that the entity will be required to transfer economic benefits in settlement, and the amount of the obligation can be estimated reliably.
+
+Provisions are measured at the best estimate of the amount required to settle the obligation at the reporting date.
+
+Where the effect of the time value of money is material, provisions are measured at the present value of the amount expected to be required to settle the obligation.
+
+Provisions are reviewed at each reporting date and adjusted to reflect the current best estimate.`,
+        enabled: false,
+      },
+      {
+        id: 'policy_14',
+        title: '14. Revenue recognition',
+        content: `Revenue is measured at the fair value of the consideration received or receivable, taking into account trade discounts, prompt settlement discounts and volume rebates allowed by the entity.
+
+Revenue excludes amounts collected on behalf of third parties, including value-added tax.
+
+Revenue from the sale of goods is recognised when the significant risks and rewards of ownership have transferred to the buyer, the entity retains neither continuing managerial involvement nor effective control over the goods, the amount of revenue and associated costs can be measured reliably, and it is probable that economic benefits will flow to the entity.
+
+Revenue from the rendering of services is recognised by reference to the stage of completion of the transaction at the reporting date when the outcome can be estimated reliably.
+
+Where the outcome of a service transaction cannot be estimated reliably, revenue is recognised only to the extent of expenses recognised that are recoverable.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_15',
+        title: '15. Finance income and finance costs',
+        content: `Finance income comprises interest income earned on funds invested and other financial assets.
+
+Interest income is recognised using the effective interest method.
+
+Finance costs comprise interest expense on borrowings and other costs incurred in connection with the borrowing of funds.
+
+Borrowing costs are recognised as an expense in profit or loss in the period in which they are incurred.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_16',
+        title: '16. Income tax',
+        content: `Income tax expense comprises current tax and deferred tax.
+
+Current tax is recognised for the amount of income tax payable or recoverable in respect of the taxable profit or loss for the current and prior periods.
+
+Current tax assets and liabilities are measured at the amount expected to be recovered from or paid to the taxation authorities using tax rates and tax laws that have been enacted or substantively enacted by the reporting date.
+
+Tax expense is recognised in the same component of total comprehensive income or equity as the transaction or event that resulted in the tax expense.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_17',
+        title: '17. Deferred tax',
+        content: `Deferred tax is recognised in respect of temporary differences between the carrying amounts of assets and liabilities in the annual financial statements and their corresponding tax bases.
+
+Deferred tax is also recognised in respect of the carry-forward of unused tax losses and unused tax credits, subject to the recognition requirements of IFRS for SMEs.
+
+Deferred tax assets are recognised to the extent required by IFRS for SMEs and are reviewed at each reporting date.
+
+Deferred tax assets and liabilities are measured using tax rates and tax laws that have been enacted or substantively enacted by the reporting date and that are expected to apply when the related deferred tax asset is realised or liability is settled.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_18',
+        title: '18. Value-added tax',
+        content: `Revenue, expenses and assets are recognised net of value-added tax (VAT), except where VAT incurred on the purchase of assets or services is not recoverable from the taxation authority, in which case VAT is recognised as part of the cost of the asset or as part of the expense.
+
+Receivables and payables are stated inclusive of VAT where applicable.
+
+The net amount of VAT recoverable from, or payable to, the taxation authority is included as part of receivables or payables in the statement of financial position.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_19',
+        title: '19. Employee benefits',
+        content: `Employee benefits are recognised as an expense when employees have rendered the service giving rise to the entitlement.
+
+Short-term employee benefits include salaries, wages, paid annual leave, paid sick leave, bonuses and other benefits expected to be settled within the applicable short-term period.
+
+A liability is recognised for employee benefits where the entity has a present legal or constructive obligation as a result of services rendered by employees and the obligation can be measured reliably.
+
+Contributions to defined contribution plans are recognised as an expense when employees have rendered services entitling them to the contributions.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_20',
+        title: '20. Leases',
+        content: `Leases are classified as finance leases where substantially all the risks and rewards incidental to ownership of an asset are transferred to the lessee. All other leases are classified as operating leases.
+
+At the commencement of a finance lease, the entity recognises the leased asset and corresponding liability at the fair value of the leased property or, if lower, the present value of the minimum lease payments.
+
+Lease payments are apportioned between the finance charge and reduction of the outstanding liability using the effective interest method.
+
+Payments made under operating leases are recognised as an expense on a straight-line basis over the lease term unless another systematic basis is more representative of the pattern of benefit.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_21',
+        title: '21. Foreign currencies',
+        content: `The entity's functional and presentation currency is the South African Rand.
+
+Foreign currency transactions are initially recorded in the functional currency using the spot exchange rate at the date of the transaction.
+
+At each reporting date, monetary items denominated in foreign currencies are translated using the closing exchange rate.
+
+Non-monetary items measured at historical cost in a foreign currency are translated using the exchange rate at the date of the transaction.
+
+Exchange differences arising on the settlement or translation of monetary items are recognised in profit or loss, except where IFRS for SMEs requires otherwise.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_22',
+        title: '22. Events after the reporting period',
+        content: `Events occurring after the reporting period that provide additional evidence of conditions that existed at the reporting date are treated as adjusting events, and the amounts recognised in the annual financial statements are adjusted accordingly.
+
+Events occurring after the reporting period that are indicative of conditions that arose after the reporting date are treated as non-adjusting events.
+
+Material non-adjusting events are disclosed in the notes to the annual financial statements together with an estimate of their financial effect, where such an estimate can be made reliably.`,
+        enabled: true,
+      },
+      {
+        id: 'policy_23',
+        title: '23. Accounting policies, estimates and errors',
+        content: `Accounting policies are the specific principles, bases, conventions, rules and practices applied by the entity in preparing and presenting its annual financial statements.
+
+Where IFRS for SMEs specifically addresses a transaction, event or condition, the entity applies the requirements of the Standard. Where the Standard does not specifically address a transaction, event or condition, management uses judgement in developing and applying an accounting policy that results in information that is relevant and reliable.
+
+Changes in accounting policies are applied retrospectively when required by IFRS for SMEs or when the change results in reliable and more relevant information, except where retrospective application is impracticable or specific transitional provisions apply.
+
+Changes in accounting estimates resulting from new information or developments are recognised prospectively in profit or loss in the period of the change and, where applicable, future periods.
+
+Material prior-period errors are corrected retrospectively in the first annual financial statements authorised for issue after their discovery by restating comparative amounts for prior periods presented, except to the extent that retrospective restatement is impracticable.`,
+        enabled: true,
       },
     ];
 
