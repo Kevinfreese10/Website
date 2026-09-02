@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ManagementReportData } from '@/app/actions/management-report-actions';
-import { ManagementReportAnalysisOutput } from '@/ai/flows/generate-management-report-analysis';
+import type { ManagementReportData, ManagementReportAnalysisOutput } from '@/lib/management-report-types';
 
 interface ManagementReportPdfDownloadButtonProps {
   data: ManagementReportData;

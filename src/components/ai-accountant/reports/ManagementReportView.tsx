@@ -34,9 +34,8 @@ import { useToast } from '@/hooks/use-toast';
 import {
   getManagementReportDataAction,
   generateManagementReportAnalysisAction,
-  ManagementReportData,
 } from '@/app/actions/management-report-actions';
-import { ManagementReportAnalysisOutput } from '@/ai/flows/generate-management-report-analysis';
+import type { ManagementReportData, ManagementReportAnalysisOutput } from '@/lib/management-report-types';
 import ManagementReportPdfDownloadButton from '@/components/pdf/ManagementReportPdfDownloadButton';
 import * as XLSX from 'xlsx-js-style';
 

@@ -14,7 +14,7 @@ const TopExpenseCategorySchema = z.object({
   percentOfTotal: z.number(),
 });
 
-export const ManagementReportAnalysisInputSchema = z.object({
+const ManagementReportAnalysisInputSchema = z.object({
   companyName: z.string().describe('The name of the company.'),
   periodLabel: z.string().describe('The reporting period (e.g. "February 2026" or "FY2026 YTD").'),
   comparativePeriodLabel: z.string().optional().describe('The comparative period label (e.g. "January 2026").'),
@@ -44,7 +44,7 @@ export const ManagementReportAnalysisInputSchema = z.object({
 });
 export type ManagementReportAnalysisInput = z.infer<typeof ManagementReportAnalysisInputSchema>;
 
-export const ManagementReportAnalysisOutputSchema = z.object({
+const ManagementReportAnalysisOutputSchema = z.object({
   executiveSummary: z.string().describe('Crisp 2-3 paragraph executive summary of overall financial performance and position.'),
   revenueAndMarginInsights: z.string().describe('Analysis of revenue trends, gross margin expansion/compression, and driver dynamics.'),
   costControlObservations: z.string().describe('Observations on operational expenditure, overhead efficiency, and significant expense categories.'),

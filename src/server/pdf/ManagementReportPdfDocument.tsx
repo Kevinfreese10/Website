@@ -1,7 +1,6 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
-import { ManagementReportData } from '@/app/actions/management-report-actions';
-import { ManagementReportAnalysisOutput } from '@/ai/flows/generate-management-report-analysis';
+import type { ManagementReportData, ManagementReportAnalysisOutput } from '@/lib/management-report-types';
 
 const formatZar = (amount: number) => {
   if (amount === 0) return 'R 0.00';
