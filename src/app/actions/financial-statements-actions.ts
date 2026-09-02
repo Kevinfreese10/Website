@@ -7,6 +7,8 @@ import type {
   AfsDirector,
   AfsDirectorsResponsibilities,
   AfsDirectorsReportData,
+  AfsAccountingPoliciesData,
+  AfsSectionToggles,
 } from '@/lib/afs-types';
 
 export async function getAnnualFinancialStatementsDataAction({
@@ -55,7 +57,7 @@ export async function getAnnualFinancialStatementsDataAction({
       const mIdx = months.findIndex((m) => m.toLowerCase() === clientData.yearEnd.toLowerCase());
       const targetMonth = mIdx >= 0 ? mIdx : 2; // default March (idx 2)
       const yr = now.getMonth() <= targetMonth ? now.getFullYear() : now.getFullYear();
-      currentFye = new Date(yr, targetMonth + 1, 0); // Last day of month
+      currentFye = new Date(yr, targetMonth + 1, 0);
     } else {
       currentFye = new Date(2026, 2, 31); // 31 March 2026 default
     }
@@ -223,6 +225,37 @@ export async function getAnnualFinancialStatementsDataAction({
     const entityName = clientData.companyName || clientData.name || 'Ngelosiyokukhanya (Pty) Ltd';
     const regNumber = clientData.registrationNumber || clientData.companyRegistrationNumber || '2023/123456/07';
 
+    // Section Toggles
+    const defaultSectionToggles: AfsSectionToggles = {
+      showIncorporation: true,
+      showNatureOfBusiness: true,
+      showReviewOfActivities: true,
+      showShareCapital: true,
+      showDirectors: true,
+      showEventsAfterReportingPeriod: true,
+      showGoingConcern: true,
+      showAuditorContinuance: true,
+      showBasisOfPreparation: true,
+      showJudgements: true,
+      showFinancialInstruments: true,
+      showPpePolicy: true,
+      showIncomeTaxPolicy: true,
+      showShareCapitalPolicy: true,
+      showRevenuePolicy: true,
+      showLeasesPolicy: true,
+      showNoteCash: true,
+      showNoteShareCapital: true,
+      showNoteShareholderLoans: true,
+      showNoteOperatingExpenses: true,
+      showNoteCashUsedInOps: true,
+      showNoteTaxation: true,
+      showNoteRelatedParties: true,
+      showNoteGoingConcern: true,
+      showNoteEventsAfterReportingPeriod: true,
+      showDetailedIncomeStatement: true,
+      ...(savedConfig?.sectionToggles || {}),
+    };
+
     // General Information
     const generalInfo: AfsGeneralInfo = {
       companyName: entityName,
@@ -295,12 +328,84 @@ The financial statements set out on pages 5 to 12, which have been prepared on t
         'My Accountant will continue in office as accounting officers for the company for the next financial year.',
     };
 
+    // Accounting Policies Data
+    const defaultPoliciesList = [
+      {
+        id: 'basis_of_prep',
+        title: '1. Basis of preparation and summary of material accounting policies',
+        content:
+          'The financial statements have been prepared on a going concern basis in accordance with the International Financial Reporting Standard for Small and Medium-sized Entities (IFRS for SMEs) and the requirements of the Companies Act of South Africa. The financial statements have been prepared on the historical cost basis, and incorporate the principal accounting policies set out below. They are presented in South African Rands.',
+        enabled: defaultSectionToggles.showBasisOfPreparation,
+      },
+      {
+        id: 'judgements',
+        title: '1.1 Significant judgements and sources of estimation uncertainty',
+        subTitle: 'Critical judgements in applying accounting policies',
+        content:
+          'Management did not make critical judgements in the application of accounting policies, apart from those involving estimations, which would significantly affect the financial statements.',
+        enabled: defaultSectionToggles.showJudgements,
+      },
+      {
+        id: 'financial_instruments',
+        title: '1.2 Financial instruments',
+        subTitle: 'Initial and Subsequent Measurement',
+        content:
+          'Financial instruments including loans, are initially measured at the transaction price (including transaction costs except in the initial measurement of financial assets and liabilities that are measured at fair value through profit or loss) unless the arrangement constitutes, in effect, a financing transaction in which case it is measured at the present value of the future payments discounted at a market rate of interest.',
+        enabled: defaultSectionToggles.showFinancialInstruments,
+      },
+      {
+        id: 'ppe',
+        title: '1.3 Property, plant and equipment',
+        subTitle: 'Depreciation & Measurement',
+        content:
+          'Property, plant and equipment are tangible items that are held for use in the production or supply of goods or services, for rental to others, or for administrative purposes; and are expected to be used during more than one period. Property, plant and equipment is carried at cost less accumulated depreciation and accumulated impairment losses.',
+        enabled: defaultSectionToggles.showPpePolicy,
+      },
+      {
+        id: 'income_tax',
+        title: '1.4 Income Tax',
+        subTitle: 'Current and Deferred Tax',
+        content:
+          'Current tax for current period is, to the extent unpaid, recognised as a liability. If the amount already paid in respect of current period exceeds the amount due for that period, the excess is recognised as an asset.',
+        enabled: defaultSectionToggles.showIncomeTaxPolicy,
+      },
+      {
+        id: 'share_capital',
+        title: '1.5 Share capital and equity',
+        subTitle: 'Equity Instruments',
+        content: 'Equity instruments issued by the company are recognised at the proceeds received, net of direct issue costs.',
+        enabled: defaultSectionToggles.showShareCapitalPolicy,
+      },
+      {
+        id: 'revenue',
+        title: '1.6 Revenue recognition',
+        subTitle: 'Rendering of Services & Sale of Goods',
+        content:
+          'Revenue is recognised to the extent that the company has transferred the significant risks and rewards of ownership of goods to the buyer, or has rendered the services, and it is probable that the economic benefits associated with the transaction will flow to the company and the amount of revenue can be measured reliably.',
+        enabled: defaultSectionToggles.showRevenuePolicy,
+      },
+      {
+        id: 'leases',
+        title: '1.7 Leases',
+        subTitle: 'Operating Leases',
+        content:
+          'A lease is classified as an operating lease if it does not transfer substantially all the risks and rewards incidental to ownership. Operating lease payments are recognised as an expense on a straight-line basis over the lease term.',
+        enabled: defaultSectionToggles.showLeasesPolicy,
+      },
+    ];
+
+    const accountingPolicies: AfsAccountingPoliciesData = {
+      policies: savedConfig?.accountingPolicies?.policies || defaultPoliciesList,
+    };
+
     const effectiveShareholderLoan = shareholderLoanCur > 0 ? shareholderLoanCur : 619901;
 
     const data: AnnualFinancialStatementsData = {
       generalInfo,
       directorsResponsibilities,
       directorsReport,
+      accountingPolicies,
+      sectionToggles: defaultSectionToggles,
       statementOfFinancialPosition: {
         nonCurrentAssets: {
           items: nonCurrentAssetsCur > 0 ? [{ name: 'Property, plant and equipment', currentAmount: nonCurrentAssetsCur, priorAmount: 0 }] : [],

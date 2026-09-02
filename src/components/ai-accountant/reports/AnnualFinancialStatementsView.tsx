@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   FileText,
@@ -22,8 +23,9 @@ import {
   Plus,
   Trash2,
   Calendar,
-  ClipboardList,
   BookOpen,
+  Settings2,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -36,6 +38,9 @@ import type {
   AfsDirector,
   AfsDirectorsResponsibilities,
   AfsDirectorsReportData,
+  AfsAccountingPoliciesData,
+  AfsSectionToggles,
+  AfsAccountingPolicyItem,
 } from '@/lib/afs-types';
 import AnnualFinancialStatementsPdfDownloadButton from '@/components/pdf/AnnualFinancialStatementsPdfDownloadButton';
 import * as XLSX from 'xlsx-js-style';
@@ -63,6 +68,8 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
   const [generalInfoForm, setGeneralInfoForm] = useState<AfsGeneralInfo | null>(null);
   const [responsibilitiesForm, setResponsibilitiesForm] = useState<AfsDirectorsResponsibilities | null>(null);
   const [directorsReportForm, setDirectorsReportForm] = useState<AfsDirectorsReportData | null>(null);
+  const [accountingPoliciesForm, setAccountingPoliciesForm] = useState<AfsAccountingPoliciesData | null>(null);
+  const [sectionTogglesForm, setSectionTogglesForm] = useState<AfsSectionToggles | null>(null);
 
   const fetchAfsData = useCallback(async () => {
     setIsLoading(true);
@@ -73,6 +80,8 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         setGeneralInfoForm(res.data.generalInfo);
         setResponsibilitiesForm(res.data.directorsResponsibilities);
         setDirectorsReportForm(res.data.directorsReport);
+        setAccountingPoliciesForm(res.data.accountingPolicies);
+        setSectionTogglesForm(res.data.sectionToggles);
       } else {
         toast({ title: 'Error', description: res.error || 'Failed to compile AFS data', variant: 'destructive' });
       }
@@ -89,7 +98,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
   }, [fetchAfsData]);
 
   const handleSaveConfig = async () => {
-    if (!generalInfoForm || !responsibilitiesForm || !directorsReportForm) return;
+    if (!generalInfoForm || !responsibilitiesForm || !directorsReportForm || !accountingPoliciesForm || !sectionTogglesForm) return;
     setIsSaving(true);
     try {
       const payload = {
@@ -105,11 +114,13 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         eventsAfterReportingPeriod: directorsReportForm.eventsAfterReportingPeriod,
         goingConcernText: directorsReportForm.goingConcernText,
         auditorOrPractitionerContinuance: directorsReportForm.auditorOrPractitionerContinuance,
+        accountingPolicies: accountingPoliciesForm,
+        sectionToggles: sectionTogglesForm,
       };
 
       const res = await saveAnnualFinancialStatementsConfigAction({ clientId, config: payload });
       if (res.success) {
-        toast({ title: 'Settings Saved', description: 'Statutory AFS details updated successfully.' });
+        toast({ title: 'Settings Saved', description: 'Statutory AFS details & section toggles updated successfully.' });
         fetchAfsData();
       } else {
         toast({ title: 'Save Failed', description: res.error, variant: 'destructive' });
@@ -208,9 +219,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
     );
   }
 
-  if (!data || !generalInfoForm || !responsibilitiesForm || !directorsReportForm) return null;
+  if (!data || !generalInfoForm || !responsibilitiesForm || !directorsReportForm || !accountingPoliciesForm || !sectionTogglesForm) return null;
 
-  // Sync state for updated PDF rendering
+  // Sync state for live PDF rendering
   const liveAfsData: AnnualFinancialStatementsData = {
     ...data,
     generalInfo: generalInfoForm,
@@ -219,6 +230,8 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
       ...directorsReportForm,
       directors: generalInfoForm.directors,
     },
+    accountingPolicies: accountingPoliciesForm,
+    sectionToggles: sectionTogglesForm,
   };
 
   return (
@@ -280,20 +293,23 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           <TabsTrigger value="directors_report" className="font-bold text-xs">
             3. Director's Report
           </TabsTrigger>
+          <TabsTrigger value="accounting_policies" className="font-bold text-xs">
+            4. Accounting Policies
+          </TabsTrigger>
           <TabsTrigger value="balance_sheet" className="font-bold text-xs">
-            4. Statement of Financial Position
+            5. Statement of Financial Position
           </TabsTrigger>
           <TabsTrigger value="income_statement" className="font-bold text-xs">
-            5. Comprehensive Income (P&L)
+            6. Comprehensive Income (P&L)
           </TabsTrigger>
           <TabsTrigger value="equity_cashflows" className="font-bold text-xs">
-            6. Equity & Cash Flows
+            7. Equity & Cash Flows
           </TabsTrigger>
           <TabsTrigger value="notes" className="font-bold text-xs">
-            7. Notes & Disclosures (Notes 2-10)
+            8. Notes & Disclosures (Notes 2-10)
           </TabsTrigger>
           <TabsTrigger value="detailed_income" className="font-bold text-xs">
-            8. Detailed Income Schedule
+            9. Detailed Income Schedule
           </TabsTrigger>
         </TabsList>
 
@@ -628,7 +644,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               <div>
                 <CardTitle className="text-base font-bold">Director's Report</CardTitle>
                 <CardDescription className="text-xs">
-                  Review and customize statutory report sections: Incorporation, Nature of business, Review of activities, Share capital, Going concern, and Events after reporting period.
+                  Review and customize statutory report sections with on/off section visibility toggles.
                 </CardDescription>
               </div>
               <Button size="sm" onClick={handleSaveConfig} disabled={isSaving} className="gap-1.5 font-bold text-xs">
@@ -636,99 +652,319 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 Save Report
               </Button>
             </CardHeader>
-            <CardContent className="p-6 space-y-5 text-xs">
-              <div className="space-y-1.5">
-                <Label className="font-bold text-slate-800">1. Incorporation</Label>
-                <Input
-                  value={directorsReportForm.incorporationText}
-                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, incorporationText: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="font-bold text-slate-800">2. Nature of business</Label>
-                <Textarea
-                  rows={3}
-                  value={directorsReportForm.natureOfBusiness}
-                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, natureOfBusiness: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="font-bold text-slate-800">3. Review of financial results and activities</Label>
-                <Textarea
-                  rows={4}
-                  value={directorsReportForm.reviewOfActivities}
-                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, reviewOfActivities: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="font-bold text-slate-800">4. Share capital</Label>
-                <Textarea
-                  rows={3}
-                  value={directorsReportForm.shareCapitalDetails}
-                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, shareCapitalDetails: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="font-bold text-slate-800">5. Director in Office</Label>
-                <div className="bg-slate-50 p-3 rounded-lg border">
-                  <Table className="text-xs">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Director</TableHead>
-                        <TableHead>Office</TableHead>
-                        <TableHead>Designation</TableHead>
-                        <TableHead>Nationality</TableHead>
-                        <TableHead>Appointment Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {generalInfoForm.directors.map((d, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-bold">{d.name}</TableCell>
-                          <TableCell>{d.office || 'Chief Executive Officer'}</TableCell>
-                          <TableCell>{d.designation || 'Executive'}</TableCell>
-                          <TableCell>{d.nationality || 'South African'}</TableCell>
-                          <TableCell className="font-mono">{d.appointmentDate || '2023-01-16'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+            <CardContent className="p-6 space-y-6 text-xs">
+              {/* 1. Incorporation */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold text-slate-900 text-sm">1. Incorporation</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showIncorporation ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showIncorporation}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showIncorporation: checked })}
+                    />
+                  </div>
                 </div>
+                {sectionTogglesForm.showIncorporation && (
+                  <Input
+                    value={directorsReportForm.incorporationText}
+                    onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, incorporationText: e.target.value })}
+                    className="bg-white text-xs mt-2"
+                  />
+                )}
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="font-bold text-slate-800">6. Events after the reporting period</Label>
-                <Input
-                  value={directorsReportForm.eventsAfterReportingPeriod}
-                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, eventsAfterReportingPeriod: e.target.value })}
-                />
+              {/* 2. Nature of business */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold text-slate-900 text-sm">2. Nature of business</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNatureOfBusiness ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showNatureOfBusiness}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showNatureOfBusiness: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showNatureOfBusiness && (
+                  <Textarea
+                    rows={3}
+                    value={directorsReportForm.natureOfBusiness}
+                    onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, natureOfBusiness: e.target.value })}
+                    className="bg-white text-xs mt-2"
+                  />
+                )}
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="font-bold text-slate-800">7. Going concern</Label>
-                <Textarea
-                  rows={3}
-                  value={directorsReportForm.goingConcernText}
-                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, goingConcernText: e.target.value })}
-                />
+              {/* 3. Review of financial results and activities */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold text-slate-900 text-sm">3. Review of financial results and activities</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showReviewOfActivities ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showReviewOfActivities}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showReviewOfActivities: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showReviewOfActivities && (
+                  <Textarea
+                    rows={4}
+                    value={directorsReportForm.reviewOfActivities}
+                    onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, reviewOfActivities: e.target.value })}
+                    className="bg-white text-xs mt-2"
+                  />
+                )}
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="font-bold text-slate-800">8. Accounting Officer / Auditor Continuance</Label>
-                <Input
-                  value={directorsReportForm.auditorOrPractitionerContinuance}
-                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, auditorOrPractitionerContinuance: e.target.value })}
-                />
+              {/* 4. Share capital */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold text-slate-900 text-sm">4. Share capital</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showShareCapital ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showShareCapital}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showShareCapital: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showShareCapital && (
+                  <Textarea
+                    rows={3}
+                    value={directorsReportForm.shareCapitalDetails}
+                    onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, shareCapitalDetails: e.target.value })}
+                    className="bg-white text-xs mt-2"
+                  />
+                )}
+              </div>
+
+              {/* 5. Director in Office */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold text-slate-900 text-sm">5. Director in Office Table</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showDirectors ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showDirectors}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showDirectors: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showDirectors && (
+                  <div className="bg-white p-3 rounded-lg border mt-2">
+                    <Table className="text-xs">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Director</TableHead>
+                          <TableHead>Office</TableHead>
+                          <TableHead>Designation</TableHead>
+                          <TableHead>Nationality</TableHead>
+                          <TableHead>Appointment Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {generalInfoForm.directors.map((d, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="font-bold">{d.name}</TableCell>
+                            <TableCell>{d.office || 'Chief Executive Officer'}</TableCell>
+                            <TableCell>{d.designation || 'Executive'}</TableCell>
+                            <TableCell>{d.nationality || 'South African'}</TableCell>
+                            <TableCell className="font-mono">{d.appointmentDate || '2023-01-16'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+
+              {/* 6. Events after the reporting period */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold text-slate-900 text-sm">6. Events after the reporting period</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showEventsAfterReportingPeriod ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showEventsAfterReportingPeriod}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showEventsAfterReportingPeriod: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showEventsAfterReportingPeriod && (
+                  <Input
+                    value={directorsReportForm.eventsAfterReportingPeriod}
+                    onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, eventsAfterReportingPeriod: e.target.value })}
+                    className="bg-white text-xs mt-2"
+                  />
+                )}
+              </div>
+
+              {/* 7. Going concern */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold text-slate-900 text-sm">7. Going concern statement</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showGoingConcern ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showGoingConcern}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showGoingConcern: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showGoingConcern && (
+                  <Textarea
+                    rows={3}
+                    value={directorsReportForm.goingConcernText}
+                    onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, goingConcernText: e.target.value })}
+                    className="bg-white text-xs mt-2"
+                  />
+                )}
+              </div>
+
+              {/* 8. Accounting Officer / Auditor Continuance */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-bold text-slate-900 text-sm">8. Accounting Officer Continuance</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showAuditorContinuance ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showAuditorContinuance}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showAuditorContinuance: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showAuditorContinuance && (
+                  <Input
+                    value={directorsReportForm.auditorOrPractitionerContinuance}
+                    onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, auditorOrPractitionerContinuance: e.target.value })}
+                    className="bg-white text-xs mt-2"
+                  />
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* TAB 4: STATEMENT OF FINANCIAL POSITION */}
+        {/* TAB 4: ACCOUNTING POLICIES */}
+        <TabsContent value="accounting_policies">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-blue-600" /> Material Accounting Policies (IFRS for SMEs®)
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Enable/disable policies, customize wording, or add company-specific accounting policies.
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const newPolicy: AfsAccountingPolicyItem = {
+                      id: `custom_${Date.now()}`,
+                      title: `${accountingPoliciesForm.policies.length + 1}. Custom Policy`,
+                      content: 'Description of the accounting policy.',
+                      enabled: true,
+                    };
+                    setAccountingPoliciesForm({
+                      ...accountingPoliciesForm,
+                      policies: [...accountingPoliciesForm.policies, newPolicy],
+                    });
+                  }}
+                  className="h-8 text-xs font-bold gap-1"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Policy
+                </Button>
+                <Button size="sm" onClick={handleSaveConfig} disabled={isSaving} className="gap-1.5 font-bold text-xs h-8">
+                  {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Save Policies
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4 text-xs">
+              {accountingPoliciesForm.policies.map((policy, idx) => (
+                <div key={policy.id || idx} className={`p-4 rounded-lg border transition-all ${policy.enabled ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50/70 border-slate-100 opacity-60'}`}>
+                  <div className="flex items-center justify-between pb-2 border-b mb-3">
+                    <div className="flex-1 mr-4">
+                      <Input
+                        value={policy.title}
+                        onChange={(e) => {
+                          const updated = [...accountingPoliciesForm.policies];
+                          updated[idx].title = e.target.value;
+                          setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
+                        }}
+                        className="font-bold text-xs h-8 bg-transparent"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-muted-foreground">{policy.enabled ? 'Enabled' : 'Disabled'}</span>
+                        <Switch
+                          checked={policy.enabled}
+                          onCheckedChange={(checked) => {
+                            const updated = [...accountingPoliciesForm.policies];
+                            updated[idx].enabled = checked;
+                            setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
+                          }}
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const updated = accountingPoliciesForm.policies.filter((_, i) => i !== idx);
+                          setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
+                        }}
+                        className="h-7 w-7 text-rose-600 hover:text-rose-700"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {policy.enabled && (
+                    <div className="space-y-2">
+                      {policy.subTitle !== undefined && (
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Sub-heading</Label>
+                          <Input
+                            value={policy.subTitle || ''}
+                            placeholder="Optional sub-heading"
+                            onChange={(e) => {
+                              const updated = [...accountingPoliciesForm.policies];
+                              updated[idx].subTitle = e.target.value;
+                              setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
+                            }}
+                            className="h-7 text-xs bg-slate-50 mt-0.5"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Policy Text</Label>
+                        <Textarea
+                          rows={3}
+                          value={policy.content}
+                          onChange={(e) => {
+                            const updated = [...accountingPoliciesForm.policies];
+                            updated[idx].content = e.target.value;
+                            setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
+                          }}
+                          className="text-xs leading-relaxed mt-0.5 bg-slate-50/50"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 5: STATEMENT OF FINANCIAL POSITION */}
         <TabsContent value="balance_sheet">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b">
@@ -812,7 +1048,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 5: STATEMENT OF COMPREHENSIVE INCOME */}
+        {/* TAB 6: STATEMENT OF COMPREHENSIVE INCOME */}
         <TabsContent value="income_statement">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b">
@@ -877,7 +1113,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 6: EQUITY & CASH FLOWS */}
+        {/* TAB 7: EQUITY & CASH FLOWS */}
         <TabsContent value="equity_cashflows" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="shadow-sm">
@@ -969,89 +1205,231 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </div>
         </TabsContent>
 
-        {/* TAB 7: STATUTORY NOTES & DISCLOSURES */}
+        {/* TAB 8: STATUTORY NOTES & DISCLOSURES */}
         <TabsContent value="notes" className="space-y-4">
           <Card className="shadow-sm">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-base font-bold">Notes to the Financial Statements (Notes 2 to 10)</CardTitle>
-              <CardDescription className="text-xs">
-                Statutory disclosures, share capital, shareholder loan terms & subordination, tax reconciliation (27%), and going concern.
-              </CardDescription>
+            <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold">Notes to the Financial Statements (Notes 2 to 10)</CardTitle>
+                <CardDescription className="text-xs">
+                  Statutory disclosures with on/off note visibility switches.
+                </CardDescription>
+              </div>
+              <Button size="sm" onClick={handleSaveConfig} disabled={isSaving} className="gap-1.5 font-bold text-xs">
+                {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save Notes
+              </Button>
             </CardHeader>
-            <CardContent className="p-6 space-y-6 text-xs">
+            <CardContent className="p-6 space-y-5 text-xs">
               {/* Note 2 */}
-              <div className="space-y-2 p-3 bg-slate-50 rounded-lg border">
-                <h4 className="font-bold text-slate-900 text-sm">Note 2. Cash and cash equivalents</h4>
-                <p className="text-slate-600">Bank balances: <span className="font-mono font-bold text-slate-900">{formatRand(data.notes.note2CashAndCashEquivalents.total.current)}</span></p>
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-sm">Note 2. Cash and cash equivalents</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteCash ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showNoteCash}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showNoteCash: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showNoteCash && (
+                  <p className="text-slate-600">Bank balances: <span className="font-mono font-bold text-slate-900">{formatRand(data.notes.note2CashAndCashEquivalents.total.current)}</span></p>
+                )}
               </div>
 
               {/* Note 3 */}
-              <div className="space-y-2 p-3 bg-slate-50 rounded-lg border">
-                <h4 className="font-bold text-slate-900 text-sm">Note 3. Share capital</h4>
-                <p className="text-slate-600">Authorised: <span className="font-bold text-slate-900">{data.notes.note3ShareCapital.authorisedShares}</span></p>
-                <p className="text-slate-600">Issued: <span className="font-bold text-slate-900">{data.notes.note3ShareCapital.issuedShares} ({formatRand(data.notes.note3ShareCapital.issuedAmount.current)})</span></p>
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-sm">Note 3. Share capital</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteShareCapital ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showNoteShareCapital}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showNoteShareCapital: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showNoteShareCapital && (
+                  <div>
+                    <p className="text-slate-600">Authorised: <span className="font-bold text-slate-900">{data.notes.note3ShareCapital.authorisedShares}</span></p>
+                    <p className="text-slate-600">Issued: <span className="font-bold text-slate-900">{data.notes.note3ShareCapital.issuedShares} ({formatRand(data.notes.note3ShareCapital.issuedAmount.current)})</span></p>
+                  </div>
+                )}
               </div>
 
               {/* Note 4 */}
-              <div className="space-y-2 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
-                <h4 className="font-bold text-blue-950 text-sm">Note 4. Loans from shareholders & Subordination Terms</h4>
-                <p className="text-slate-700 font-bold">{data.notes.note4LoansFromShareholders.loans[0]?.name}: <span className="font-mono">{formatRand(data.notes.note4LoansFromShareholders.total.current)}</span></p>
-                <p className="text-slate-600 leading-relaxed italic">{data.notes.note4LoansFromShareholders.loans[0]?.terms}</p>
+              <div className="p-3.5 bg-blue-50/50 rounded-lg border border-blue-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-blue-950 text-sm">Note 4. Loans from shareholders & Subordination Terms</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteShareholderLoans ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showNoteShareholderLoans}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showNoteShareholderLoans: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showNoteShareholderLoans && (
+                  <div>
+                    <p className="text-slate-700 font-bold">{data.notes.note4LoansFromShareholders.loans[0]?.name}: <span className="font-mono">{formatRand(data.notes.note4LoansFromShareholders.total.current)}</span></p>
+                    <p className="text-slate-600 leading-relaxed italic mt-1">{data.notes.note4LoansFromShareholders.loans[0]?.terms}</p>
+                  </div>
+                )}
               </div>
 
               {/* Note 5 */}
-              <div className="space-y-2 p-3 bg-slate-50 rounded-lg border">
-                <h4 className="font-bold text-slate-900 text-sm">Note 5. Operating expenses breakdown</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-                  {data.notes.note5OperatingExpenses.remunerationOtherThanEmployees.map((item, i) => (
-                    <div key={i} className="flex justify-between py-1 border-b">
-                      <span>{item.name}:</span>
-                      <span className="font-mono font-bold">{formatRand(item.current)}</span>
-                    </div>
-                  ))}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-sm">Note 5. Operating expenses breakdown</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteOperatingExpenses ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showNoteOperatingExpenses}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showNoteOperatingExpenses: checked })}
+                    />
+                  </div>
                 </div>
+                {sectionTogglesForm.showNoteOperatingExpenses && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                    {data.notes.note5OperatingExpenses.remunerationOtherThanEmployees.map((item, i) => (
+                      <div key={i} className="flex justify-between py-1 border-b">
+                        <span>{item.name}:</span>
+                        <span className="font-mono font-bold">{formatRand(item.current)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Note 6 */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-sm">Note 6. Cash used in operations reconciliation</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteCashUsedInOps ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showNoteCashUsedInOps}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showNoteCashUsedInOps: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showNoteCashUsedInOps && (
+                  <p className="text-slate-600">Net loss before tax: <span className="font-mono font-bold text-slate-900">{formatRand(data.notes.note6CashUsedInOperations.total.current)}</span></p>
+                )}
               </div>
 
               {/* Note 7 */}
-              <div className="space-y-2 p-3 bg-slate-50 rounded-lg border">
-                <h4 className="font-bold text-slate-900 text-sm">Note 7. Taxation & 27% Rate Reconciliation</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="flex justify-between py-1 border-b">
-                    <span>Accounting loss:</span>
-                    <span className="font-mono">{formatRand(data.notes.note7Taxation.accountingLoss.current)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b">
-                    <span>Tax at 27%:</span>
-                    <span className="font-mono">{formatRand(data.notes.note7Taxation.taxAtApplicableRate27.current)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b">
-                    <span>Loss carried forward:</span>
-                    <span className="font-mono">{formatRand(data.notes.note7Taxation.lossCarriedForward.current)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b">
-                    <span>Tax expense:</span>
-                    <span className="font-mono font-bold">R 0 (Nil)</span>
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-sm">Note 7. Taxation & 27% Rate Reconciliation</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteTaxation ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showNoteTaxation}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showNoteTaxation: checked })}
+                    />
                   </div>
                 </div>
+                {sectionTogglesForm.showNoteTaxation && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+                    <div className="flex justify-between py-1 border-b">
+                      <span>Accounting loss:</span>
+                      <span className="font-mono">{formatRand(data.notes.note7Taxation.accountingLoss.current)}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b">
+                      <span>Tax at 27%:</span>
+                      <span className="font-mono">{formatRand(data.notes.note7Taxation.taxAtApplicableRate27.current)}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b">
+                      <span>Loss carried forward:</span>
+                      <span className="font-mono">{formatRand(data.notes.note7Taxation.lossCarriedForward.current)}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b">
+                      <span>Tax expense:</span>
+                      <span className="font-mono font-bold">R 0 (Nil)</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Note 8 */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-sm">Note 8. Related parties</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteRelatedParties ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showNoteRelatedParties}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showNoteRelatedParties: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showNoteRelatedParties && (
+                  <p className="text-slate-600">Directors & Shareholder balances: <span className="font-bold text-slate-900">{generalInfoForm.directors.map(d => d.name).join(', ')}</span></p>
+                )}
               </div>
 
               {/* Note 9 */}
-              <div className="space-y-2 p-3 bg-amber-50/60 rounded-lg border border-amber-200">
-                <h4 className="font-bold text-amber-950 text-sm">Note 9. Going Concern & Solvency Evaluation</h4>
-                <p className="text-amber-900 leading-relaxed">{data.notes.note9GoingConcern.subordinationNoteText}</p>
+              <div className="p-3.5 bg-amber-50/60 rounded-lg border border-amber-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-amber-950 text-sm">Note 9. Going Concern Disclosures</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteGoingConcern ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showNoteGoingConcern}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showNoteGoingConcern: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showNoteGoingConcern && (
+                  <p className="text-amber-900 leading-relaxed">{data.notes.note9GoingConcern.subordinationNoteText}</p>
+                )}
+              </div>
+
+              {/* Note 10 */}
+              <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-sm">Note 10. Events after the reporting period</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteEventsAfterReportingPeriod ? 'Included' : 'Excluded'}</span>
+                    <Switch
+                      checked={sectionTogglesForm.showNoteEventsAfterReportingPeriod}
+                      onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showNoteEventsAfterReportingPeriod: checked })}
+                    />
+                  </div>
+                </div>
+                {sectionTogglesForm.showNoteEventsAfterReportingPeriod && (
+                  <p className="text-slate-600">{data.notes.note10EventsAfterReportingPeriod.statementText}</p>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* TAB 8: DETAILED INCOME STATEMENT SCHEDULE */}
+        {/* TAB 9: DETAILED INCOME STATEMENT SCHEDULE */}
         <TabsContent value="detailed_income">
           <Card className="shadow-sm">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-base font-bold">Detailed Income Statement (Unaudited Supplementary Schedule)</CardTitle>
-              <CardDescription className="text-xs">
-                Comprehensive nominal ledger schedule of operating expenses and other income accounts.
-              </CardDescription>
+            <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold">Detailed Income Statement (Unaudited Supplementary Schedule)</CardTitle>
+                <CardDescription className="text-xs">
+                  Comprehensive nominal ledger schedule of operating expenses and other income accounts.
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 mr-2">
+                  <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showDetailedIncomeStatement ? 'Included in PDF' : 'Excluded from PDF'}</span>
+                  <Switch
+                    checked={sectionTogglesForm.showDetailedIncomeStatement}
+                    onCheckedChange={(checked) => setSectionTogglesForm({ ...sectionTogglesForm, showDetailedIncomeStatement: checked })}
+                  />
+                </div>
+                <Button size="sm" onClick={handleSaveConfig} disabled={isSaving} className="gap-1.5 font-bold text-xs h-8">
+                  {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Save Setup
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table className="text-xs">

@@ -51,6 +51,54 @@ export interface AfsDirectorsReportData {
   auditorOrPractitionerContinuance: string;
 }
 
+export interface AfsAccountingPolicyItem {
+  id: string;
+  title: string;
+  subTitle?: string;
+  content: string;
+  enabled: boolean;
+}
+
+export interface AfsAccountingPoliciesData {
+  policies: AfsAccountingPolicyItem[];
+}
+
+export interface AfsSectionToggles {
+  // Director's Report toggles
+  showIncorporation: boolean;
+  showNatureOfBusiness: boolean;
+  showReviewOfActivities: boolean;
+  showShareCapital: boolean;
+  showDirectors: boolean;
+  showEventsAfterReportingPeriod: boolean;
+  showGoingConcern: boolean;
+  showAuditorContinuance: boolean;
+
+  // Accounting Policies toggles
+  showBasisOfPreparation: boolean;
+  showJudgements: boolean;
+  showFinancialInstruments: boolean;
+  showPpePolicy: boolean;
+  showIncomeTaxPolicy: boolean;
+  showShareCapitalPolicy: boolean;
+  showRevenuePolicy: boolean;
+  showLeasesPolicy: boolean;
+
+  // Notes toggles
+  showNoteCash: boolean;
+  showNoteShareCapital: boolean;
+  showNoteShareholderLoans: boolean;
+  showNoteOperatingExpenses: boolean;
+  showNoteCashUsedInOps: boolean;
+  showNoteTaxation: boolean;
+  showNoteRelatedParties: boolean;
+  showNoteGoingConcern: boolean;
+  showNoteEventsAfterReportingPeriod: boolean;
+
+  // Supplementary
+  showDetailedIncomeStatement: boolean;
+}
+
 export interface AfsStatementLine {
   name: string;
   noteNumber?: string | number;
@@ -177,6 +225,8 @@ export interface AnnualFinancialStatementsData {
   generalInfo: AfsGeneralInfo;
   directorsResponsibilities: AfsDirectorsResponsibilities;
   directorsReport: AfsDirectorsReportData;
+  accountingPolicies: AfsAccountingPoliciesData;
+  sectionToggles: AfsSectionToggles;
   statementOfFinancialPosition: AfsStatementOfFinancialPosition;
   statementOfComprehensiveIncome: AfsStatementOfComprehensiveIncome;
   statementOfChangesInEquity: AfsStatementOfChangesInEquity;

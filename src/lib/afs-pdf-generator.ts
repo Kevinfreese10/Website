@@ -19,6 +19,8 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     generalInfo,
     directorsResponsibilities,
     directorsReport,
+    accountingPolicies,
+    sectionToggles,
     statementOfFinancialPosition,
     statementOfComprehensiveIncome,
     statementOfChangesInEquity,
@@ -26,6 +28,35 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     notes,
     detailedIncomeStatement,
   } = data;
+
+  const toggles = sectionToggles || {
+    showIncorporation: true,
+    showNatureOfBusiness: true,
+    showReviewOfActivities: true,
+    showShareCapital: true,
+    showDirectors: true,
+    showEventsAfterReportingPeriod: true,
+    showGoingConcern: true,
+    showAuditorContinuance: true,
+    showBasisOfPreparation: true,
+    showJudgements: true,
+    showFinancialInstruments: true,
+    showPpePolicy: true,
+    showIncomeTaxPolicy: true,
+    showShareCapitalPolicy: true,
+    showRevenuePolicy: true,
+    showLeasesPolicy: true,
+    showNoteCash: true,
+    showNoteShareCapital: true,
+    showNoteShareholderLoans: true,
+    showNoteOperatingExpenses: true,
+    showNoteCashUsedInOps: true,
+    showNoteTaxation: true,
+    showNoteRelatedParties: true,
+    showNoteGoingConcern: true,
+    showNoteEventsAfterReportingPeriod: true,
+    showDetailedIncomeStatement: true,
+  };
 
   const formatRand = (val: number, blankIfZero = false) => {
     if (val === 0) return blankIfZero ? '-' : '-';
@@ -156,18 +187,20 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   });
 
   const finalY = (doc as any).lastAutoTable?.finalY || 100;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.text('The following supplementary information does not form part of the financial statements and is unaudited:', leftMargin, finalY + 8);
+  if (toggles.showDetailedIncomeStatement) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('The following supplementary information does not form part of the financial statements and is unaudited:', leftMargin, finalY + 8);
 
-  autoTable(doc, {
-    startY: finalY + 12,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    body: [['Detailed Income Statement', '16']],
-    styles: { fontSize: 8.5, cellPadding: 2 },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
-  });
+    autoTable(doc, {
+      startY: finalY + 12,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      body: [['Detailed Income Statement', '16']],
+      styles: { fontSize: 8.5, cellPadding: 2 },
+      columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
+    });
+  }
   drawPageFooter(2);
 
   // PAGE 4: DIRECTOR'S RESPONSIBILITIES AND APPROVAL
@@ -259,95 +292,125 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   doc.text(`The director has pleasure in submitting her report on the financial statements of ${generalInfo.companyName} for the year ended ${generalInfo.financialYearEndedDate}.`, leftMargin, 48);
 
   let dY = 56;
-  if (directorsReport.incorporationText) {
+  let sectionIndex = 1;
+
+  if (toggles.showIncorporation && directorsReport.incorporationText) {
     doc.setFont('helvetica', 'bold');
-    doc.text('1. Incorporation', leftMargin, dY);
+    doc.text(`${sectionIndex++}. Incorporation`, leftMargin, dY);
     doc.setFont('helvetica', 'normal');
     doc.text(directorsReport.incorporationText, leftMargin, dY + 4);
     dY += 12;
   }
 
-  doc.setFont('helvetica', 'bold');
-  doc.text('2. Nature of business', leftMargin, dY);
-  doc.setFont('helvetica', 'normal');
-  const natSplit = doc.splitTextToSize(directorsReport.natureOfBusiness, contentWidth);
-  doc.text(natSplit, leftMargin, dY + 4);
-  dY += natSplit.length * 4 + 5;
+  if (toggles.showNatureOfBusiness && directorsReport.natureOfBusiness) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${sectionIndex++}. Nature of business`, leftMargin, dY);
+    doc.setFont('helvetica', 'normal');
+    const natSplit = doc.splitTextToSize(directorsReport.natureOfBusiness, contentWidth);
+    doc.text(natSplit, leftMargin, dY + 4);
+    dY += natSplit.length * 4 + 5;
+  }
 
-  doc.setFont('helvetica', 'bold');
-  doc.text('3. Review of financial results and activities', leftMargin, dY);
-  doc.setFont('helvetica', 'normal');
-  const revSplit = doc.splitTextToSize(directorsReport.reviewOfActivities, contentWidth);
-  doc.text(revSplit, leftMargin, dY + 4);
-  dY += revSplit.length * 4 + 5;
+  if (toggles.showReviewOfActivities && directorsReport.reviewOfActivities) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${sectionIndex++}. Review of financial results and activities`, leftMargin, dY);
+    doc.setFont('helvetica', 'normal');
+    const revSplit = doc.splitTextToSize(directorsReport.reviewOfActivities, contentWidth);
+    doc.text(revSplit, leftMargin, dY + 4);
+    dY += revSplit.length * 4 + 5;
+  }
 
-  doc.setFont('helvetica', 'bold');
-  doc.text('4. Share capital', leftMargin, dY);
-  dY += 4;
+  if (toggles.showShareCapital) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${sectionIndex++}. Share capital`, leftMargin, dY);
+    dY += 4;
 
-  autoTable(doc, {
-    startY: dY,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    head: [['Authorised', 'Number of shares']],
-    body: [[notes.note3ShareCapital.authorisedShares, '100']],
-    styles: { fontSize: 8, cellPadding: 1.5 },
-  });
+    autoTable(doc, {
+      startY: dY,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      head: [['Authorised', 'Number of shares']],
+      body: [[notes.note3ShareCapital.authorisedShares, '100']],
+      styles: { fontSize: 8, cellPadding: 1.5 },
+    });
 
-  const scY = (doc as any).lastAutoTable?.finalY || dY + 12;
-  autoTable(doc, {
-    startY: scY + 2,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    head: [['Issued', '2026 (R)', '2025 (R)', 'Number of shares']],
-    body: [[notes.note3ShareCapital.issuedShares, `${formatRand(notes.note3ShareCapital.issuedAmount.current)}`, `${formatRand(notes.note3ShareCapital.issuedAmount.prior || 100)}`, '100']],
-    styles: { fontSize: 8, cellPadding: 1.5 },
-  });
+    const scY = (doc as any).lastAutoTable?.finalY || dY + 12;
+    autoTable(doc, {
+      startY: scY + 2,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      head: [['Issued', '2026 (R)', '2025 (R)', 'Number of shares']],
+      body: [[notes.note3ShareCapital.issuedShares, `${formatRand(notes.note3ShareCapital.issuedAmount.current)}`, `${formatRand(notes.note3ShareCapital.issuedAmount.prior || 100)}`, '100']],
+      styles: { fontSize: 8, cellPadding: 1.5 },
+    });
 
-  const sc2Y = (doc as any).lastAutoTable?.finalY || scY + 12;
-  doc.setFont('helvetica', 'bold');
-  doc.text('5. Director', leftMargin, sc2Y + 5);
+    dY = (doc as any).lastAutoTable?.finalY || scY + 12;
+  }
 
-  const directorRows = generalInfo.directors.map((d) => [
-    d.name,
-    d.office || 'Chief Executive Officer',
-    d.designation || 'Executive',
-    d.nationality || 'South African',
-  ]);
+  if (toggles.showDirectors) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${sectionIndex++}. Director`, leftMargin, dY + 5);
 
-  autoTable(doc, {
-    startY: sc2Y + 8,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    head: [['Director', 'Office', 'Designation', 'Nationality']],
-    body: directorRows,
-    styles: { fontSize: 8, cellPadding: 1.5 },
-  });
+    const directorRows = generalInfo.directors.map((d) => [
+      d.name,
+      d.office || 'Chief Executive Officer',
+      d.designation || 'Executive',
+      d.nationality || 'South African',
+    ]);
 
-  const dirY = (doc as any).lastAutoTable?.finalY || sc2Y + 22;
-  doc.setFont('helvetica', 'bold');
-  doc.text('6. Events after the reporting period', leftMargin, dirY + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.text(directorsReport.eventsAfterReportingPeriod, leftMargin, dirY + 9);
+    autoTable(doc, {
+      startY: dY + 8,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      head: [['Director', 'Office', 'Designation', 'Nationality']],
+      body: directorRows,
+      styles: { fontSize: 8, cellPadding: 1.5 },
+    });
+
+    dY = (doc as any).lastAutoTable?.finalY || dY + 22;
+  }
+
+  if (toggles.showEventsAfterReportingPeriod) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${sectionIndex++}. Events after the reporting period`, leftMargin, dY + 5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(directorsReport.eventsAfterReportingPeriod, leftMargin, dY + 9);
+    dY += 16;
+  }
 
   drawPageFooter(7);
 
   // PAGE 9: DIRECTOR'S REPORT (CONTINUED)
   doc.addPage();
   drawPageHeader("Director's Report (Continued)");
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('7. Going concern', leftMargin, 48);
-  doc.setFont('helvetica', 'normal');
-  const gcText1 =
-    'The financial statements have been prepared on the basis of accounting policies applicable to a going concern. This basis presumes that funds will be available to finance future operations and that the realisation of assets and settlement of liabilities, contingent obligations and commitments will occur in the ordinary course of business.';
-  const gc1Split = doc.splitTextToSize(gcText1, contentWidth);
-  doc.text(gc1Split, leftMargin, 53);
+  let d2Y = 48;
 
-  const gcText2 = directorsReport.goingConcernText;
-  if (gcText2 && gcText2 !== gcText1) {
-    const gc2Split = doc.splitTextToSize(gcText2, contentWidth);
-    doc.text(gc2Split, leftMargin, 53 + gc1Split.length * 4 + 3);
+  if (toggles.showGoingConcern) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text(`${sectionIndex++}. Going concern`, leftMargin, d2Y);
+    doc.setFont('helvetica', 'normal');
+    const gcText1 =
+      'The financial statements have been prepared on the basis of accounting policies applicable to a going concern. This basis presumes that funds will be available to finance future operations and that the realisation of assets and settlement of liabilities, contingent obligations and commitments will occur in the ordinary course of business.';
+    const gc1Split = doc.splitTextToSize(gcText1, contentWidth);
+    doc.text(gc1Split, leftMargin, d2Y + 5);
+
+    const gcText2 = directorsReport.goingConcernText;
+    if (gcText2 && gcText2 !== gcText1) {
+      const gc2Split = doc.splitTextToSize(gcText2, contentWidth);
+      doc.text(gc2Split, leftMargin, d2Y + 5 + gc1Split.length * 4 + 3);
+      d2Y += 5 + gc1Split.length * 4 + gc2Split.length * 4 + 8;
+    } else {
+      d2Y += 5 + gc1Split.length * 4 + 8;
+    }
+  }
+
+  if (toggles.showAuditorContinuance) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text(`${sectionIndex++}. Accounting Officer / Auditor Continuance`, leftMargin, d2Y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(directorsReport.auditorOrPractitionerContinuance, leftMargin, d2Y + 5);
   }
 
   drawPageFooter(8);
@@ -472,52 +535,29 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   // PAGE 14: ACCOUNTING POLICIES
   doc.addPage();
   drawPageHeader('Accounting Policies');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('1. Basis of preparation and summary of material accounting policies', leftMargin, 48);
-  doc.setFont('helvetica', 'normal');
-  const p1 =
-    'The financial statements have been prepared on a going concern basis in accordance with the International Financial Reporting Standard for Small and Medium-sized Entities (IFRS for SMEs) and the requirements of the Companies Act of South Africa. The financial statements have been prepared on the historical cost basis, and incorporate the principal accounting policies set out below. They are presented in South African Rands.';
-  const p1Split = doc.splitTextToSize(p1, contentWidth);
-  doc.text(p1Split, leftMargin, 53);
 
-  let polY = 53 + p1Split.length * 4 + 4;
-  doc.setFont('helvetica', 'bold');
-  doc.text('1.1 Significant judgements and sources of estimation uncertainty', leftMargin, polY);
-  doc.text('Critical judgements in applying accounting policies', leftMargin, polY + 4);
-  doc.setFont('helvetica', 'normal');
-  const p2 =
-    'Management did not make critical judgements in the application of accounting policies, apart from those involving estimations, which would significantly affect the financial statements.';
-  const p2Split = doc.splitTextToSize(p2, contentWidth);
-  doc.text(p2Split, leftMargin, polY + 9);
+  let polY = 48;
+  const activePolicies = (accountingPolicies?.policies || []).filter((p) => p.enabled);
 
-  polY = polY + 9 + p2Split.length * 4 + 4;
-  doc.setFont('helvetica', 'bold');
-  doc.text('1.2 Financial instruments', leftMargin, polY);
-  doc.text('Initial measurement', leftMargin, polY + 4);
-  doc.setFont('helvetica', 'normal');
-  const p3 =
-    'Financial instruments including loans, are initially measured at the transaction price (including transaction costs except in the initial measurement of financial assets and liabilities that are measured at fair value through profit or loss) unless the arrangement constitutes, in effect, a financing transaction in which case it is measured at the present value of the future payments discounted at a market rate of interest.';
-  const p3Split = doc.splitTextToSize(p3, contentWidth);
-  doc.text(p3Split, leftMargin, polY + 9);
+  activePolicies.forEach((pol) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text(pol.title, leftMargin, polY);
+    polY += 4;
 
-  polY = polY + 9 + p3Split.length * 4 + 4;
-  doc.setFont('helvetica', 'bold');
-  doc.text('1.3 Income Tax', leftMargin, polY);
-  doc.text('Current tax assets and liabilities', leftMargin, polY + 4);
-  doc.setFont('helvetica', 'normal');
-  const p4 =
-    'Current tax for current period is, to the extent unpaid, recognised as a liability. If the amount already paid in respect of current period exceeds the amount due for that period, the excess is recognised as an asset.';
-  const p4Split = doc.splitTextToSize(p4, contentWidth);
-  doc.text(p4Split, leftMargin, polY + 9);
+    if (pol.subTitle) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text(pol.subTitle, leftMargin, polY);
+      polY += 4;
+    }
 
-  polY = polY + 9 + p4Split.length * 4 + 4;
-  doc.setFont('helvetica', 'bold');
-  doc.text('1.4 Share capital and equity', leftMargin, polY);
-  doc.setFont('helvetica', 'normal');
-  const p5 = 'Equity instruments issued by the company are recognised at the proceeds received, net of direct issue costs.';
-  const p5Split = doc.splitTextToSize(p5, contentWidth);
-  doc.text(p5Split, leftMargin, polY + 5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    const split = doc.splitTextToSize(pol.content, contentWidth);
+    doc.text(split, leftMargin, polY);
+    polY += split.length * 3.8 + 4;
+  });
 
   drawPageFooter(13);
 
@@ -526,82 +566,92 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   drawPageHeader('Notes to the Financial Statements');
 
   let nY = 48;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('2. Cash and cash equivalents', leftMargin, nY);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Cash and cash equivalents consist of:', leftMargin, nY + 4);
 
-  autoTable(doc, {
-    startY: nY + 7,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    body: [['Bank balances', formatRand(notes.note2CashAndCashEquivalents.total.current)]],
-    styles: { fontSize: 8, cellPadding: 1.5 },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
-  });
+  if (toggles.showNoteCash) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('2. Cash and cash equivalents', leftMargin, nY);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Cash and cash equivalents consist of:', leftMargin, nY + 4);
 
-  let n2Y = (doc as any).lastAutoTable?.finalY || nY + 18;
-  doc.setFont('helvetica', 'bold');
-  doc.text('3. Share capital', leftMargin, n2Y + 4);
-  doc.setFont('helvetica', 'normal');
+    autoTable(doc, {
+      startY: nY + 7,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      body: [['Bank balances', formatRand(notes.note2CashAndCashEquivalents.total.current)]],
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
+    });
+    nY = (doc as any).lastAutoTable?.finalY || nY + 18;
+  }
 
-  autoTable(doc, {
-    startY: n2Y + 7,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    body: [
-      ['Authorised', ''],
-      [notes.note3ShareCapital.authorisedShares, '100'],
-      ['Issued', ''],
-      [notes.note3ShareCapital.issuedShares, formatRand(notes.note3ShareCapital.issuedAmount.current)],
-    ],
-    styles: { fontSize: 8, cellPadding: 1.5 },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
-  });
+  if (toggles.showNoteShareCapital) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('3. Share capital', leftMargin, nY + 4);
+    doc.setFont('helvetica', 'normal');
 
-  let n3Y = (doc as any).lastAutoTable?.finalY || n2Y + 30;
-  doc.setFont('helvetica', 'bold');
-  doc.text('4. Loans from shareholders', leftMargin, n3Y + 4);
-  doc.setFont('helvetica', 'normal');
+    autoTable(doc, {
+      startY: nY + 7,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      body: [
+        ['Authorised', ''],
+        [notes.note3ShareCapital.authorisedShares, '100'],
+        ['Issued', ''],
+        [notes.note3ShareCapital.issuedShares, formatRand(notes.note3ShareCapital.issuedAmount.current)],
+      ],
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
+    });
+    nY = (doc as any).lastAutoTable?.finalY || nY + 30;
+  }
 
-  autoTable(doc, {
-    startY: n3Y + 7,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    body: [[notes.note4LoansFromShareholders.loans[0]?.name || generalInfo.holdingCompany || 'Shareholder', `(${formatRand(notes.note4LoansFromShareholders.total.current)})`]],
-    styles: { fontSize: 8, cellPadding: 1.5 },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
-  });
+  if (toggles.showNoteShareholderLoans) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('4. Loans from shareholders', leftMargin, nY + 4);
+    doc.setFont('helvetica', 'normal');
 
-  let n4Y = (doc as any).lastAutoTable?.finalY || n3Y + 20;
-  const loanTerms =
-    notes.note4LoansFromShareholders.loans[0]?.terms ||
-    'The loan is unsecured and bears no interest. There are no fixed repayment terms of the loan. The loan has been subordinated in favour of other creditors, until the assets of the company, fairly valued, exceeds its liabilities.';
-  const loanSplit = doc.splitTextToSize(loanTerms, contentWidth);
-  doc.text(loanSplit, leftMargin, n4Y + 3);
+    autoTable(doc, {
+      startY: nY + 7,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      body: [[notes.note4LoansFromShareholders.loans[0]?.name || generalInfo.holdingCompany || 'Shareholder', `(${formatRand(notes.note4LoansFromShareholders.total.current)})`]],
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
+    });
 
-  let n5StartY = n4Y + 3 + loanSplit.length * 4 + 4;
-  doc.setFont('helvetica', 'bold');
-  doc.text('5. Operating expenses', leftMargin, n5StartY);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Operating expenses include the following expenses:', leftMargin, n5StartY + 4);
-  doc.text('Remuneration, other than to employees, for:', leftMargin, n5StartY + 8);
+    const loanTermsY = (doc as any).lastAutoTable?.finalY || nY + 20;
+    const loanTerms =
+      notes.note4LoansFromShareholders.loans[0]?.terms ||
+      'The loan is unsecured and bears no interest. There are no fixed repayment terms of the loan. The loan has been subordinated in favour of other creditors, until the assets of the company, fairly valued, exceeds its liabilities.';
+    const loanSplit = doc.splitTextToSize(loanTerms, contentWidth);
+    doc.text(loanSplit, leftMargin, loanTermsY + 3);
 
-  const opRows: any[] = notes.note5OperatingExpenses.remunerationOtherThanEmployees.map((r) => [r.name, formatRand(r.current)]);
-  opRows.push([
-    { content: '', styles: { fontStyle: 'bold' } },
-    { content: formatRand(notes.note5OperatingExpenses.totalOperatingExpensesNote.current), styles: { fontStyle: 'bold' } },
-  ]);
+    nY = loanTermsY + 3 + loanSplit.length * 4 + 4;
+  }
 
-  autoTable(doc, {
-    startY: n5StartY + 11,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    body: opRows,
-    styles: { fontSize: 8, cellPadding: 1.5 },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
-  });
+  if (toggles.showNoteOperatingExpenses) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('5. Operating expenses', leftMargin, nY);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Operating expenses include the following expenses:', leftMargin, nY + 4);
+    doc.text('Remuneration, other than to employees, for:', leftMargin, nY + 8);
+
+    const opRows: any[] = notes.note5OperatingExpenses.remunerationOtherThanEmployees.map((r) => [r.name, formatRand(r.current)]);
+    opRows.push([
+      { content: '', styles: { fontStyle: 'bold' } },
+      { content: formatRand(notes.note5OperatingExpenses.totalOperatingExpensesNote.current), styles: { fontStyle: 'bold' } },
+    ]);
+
+    autoTable(doc, {
+      startY: nY + 11,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      body: opRows,
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
+    });
+  }
 
   drawPageFooter(14);
 
@@ -610,109 +660,123 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   drawPageHeader('Notes to the Financial Statements (Continued)');
 
   let n6Y = 48;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('6. Cash used in operations', leftMargin, n6Y);
-  doc.setFont('helvetica', 'normal');
 
-  autoTable(doc, {
-    startY: n6Y + 4,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    body: [['Net loss before income tax', formatRand(notes.note6CashUsedInOperations.netLossBeforeTax.current)]],
-    styles: { fontSize: 8, cellPadding: 1.5 },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
-  });
+  if (toggles.showNoteCashUsedInOps) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text('6. Cash used in operations', leftMargin, n6Y);
+    doc.setFont('helvetica', 'normal');
 
-  let n7Y = (doc as any).lastAutoTable?.finalY || n6Y + 15;
-  doc.setFont('helvetica', 'bold');
-  doc.text('7. Taxation', leftMargin, n7Y + 4);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Reconciliation of the tax expense', leftMargin, n7Y + 8);
+    autoTable(doc, {
+      startY: n6Y + 4,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      body: [['Net loss before income tax', formatRand(notes.note6CashUsedInOperations.netLossBeforeTax.current)]],
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
+    });
+    n6Y = (doc as any).lastAutoTable?.finalY || n6Y + 15;
+  }
 
-  autoTable(doc, {
-    startY: n7Y + 11,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    body: [
-      ['Accounting loss', formatRand(notes.note7Taxation.accountingLoss.current)],
-      ['Tax at the applicable tax rate of 27%', formatRand(notes.note7Taxation.taxAtApplicableRate27.current)],
-      ['Tax effect of adjustments on taxable income', ''],
-      ['Loss carried forward', formatRand(notes.note7Taxation.lossCarriedForward.current)],
-      ['', '-'],
-    ],
-    styles: { fontSize: 8, cellPadding: 1.5 },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
-  });
+  if (toggles.showNoteTaxation) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('7. Taxation', leftMargin, n6Y + 4);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Reconciliation of the tax expense', leftMargin, n6Y + 8);
 
-  let n8Y = (doc as any).lastAutoTable?.finalY || n7Y + 35;
-  doc.text(notes.note7Taxation.taxNoteText, leftMargin, n8Y + 3);
+    autoTable(doc, {
+      startY: n6Y + 11,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      body: [
+        ['Accounting loss', formatRand(notes.note7Taxation.accountingLoss.current)],
+        ['Tax at the applicable tax rate of 27%', formatRand(notes.note7Taxation.taxAtApplicableRate27.current)],
+        ['Tax effect of adjustments on taxable income', ''],
+        ['Loss carried forward', formatRand(notes.note7Taxation.lossCarriedForward.current)],
+        ['', '-'],
+      ],
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
+    });
 
-  doc.setFont('helvetica', 'bold');
-  doc.text('8. Related parties', leftMargin, n8Y + 10);
-  doc.setFont('helvetica', 'normal');
+    const taxY = (doc as any).lastAutoTable?.finalY || n6Y + 35;
+    doc.text(notes.note7Taxation.taxNoteText, leftMargin, taxY + 3);
+    n6Y = taxY + 8;
+  }
 
-  autoTable(doc, {
-    startY: n8Y + 13,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    body: [
-      ['Relationships', ''],
-      ['Holding company', generalInfo.holdingCompany || ''],
-      ['Directors', generalInfo.directors.map((d) => d.name).join(', ')],
-      ['Related party balances', ''],
-      ['Loan accounts - Owing (to) by related parties', ''],
-      [generalInfo.holdingCompany || '', formatRand(notes.note4LoansFromShareholders.total.current)],
-    ],
-    styles: { fontSize: 8, cellPadding: 1.5 },
-    columnStyles: { 0: { cellWidth: 100 }, 1: { cellWidth: 70, halign: 'right' } },
-  });
+  if (toggles.showNoteRelatedParties) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('8. Related parties', leftMargin, n6Y + 4);
+    doc.setFont('helvetica', 'normal');
 
-  let n9Y = (doc as any).lastAutoTable?.finalY || n8Y + 35;
-  doc.setFont('helvetica', 'bold');
-  doc.text('9. Going concern', leftMargin, n9Y + 4);
-  doc.setFont('helvetica', 'normal');
-  const gcNoteSplit = doc.splitTextToSize(notes.note9GoingConcern.subordinationNoteText, contentWidth);
-  doc.text(gcNoteSplit, leftMargin, n9Y + 8);
+    autoTable(doc, {
+      startY: n6Y + 7,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      body: [
+        ['Relationships', ''],
+        ['Holding company', generalInfo.holdingCompany || ''],
+        ['Directors', generalInfo.directors.map((d) => d.name).join(', ')],
+        ['Related party balances', ''],
+        ['Loan accounts - Owing (to) by related parties', ''],
+        [generalInfo.holdingCompany || '', formatRand(notes.note4LoansFromShareholders.total.current)],
+      ],
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      columnStyles: { 0: { cellWidth: 100 }, 1: { cellWidth: 70, halign: 'right' } },
+    });
+    n6Y = (doc as any).lastAutoTable?.finalY || n6Y + 35;
+  }
 
-  let n10Y = n9Y + 8 + gcNoteSplit.length * 4 + 3;
-  doc.setFont('helvetica', 'bold');
-  doc.text('10. Events after the reporting period', leftMargin, n10Y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(notes.note10EventsAfterReportingPeriod.statementText, leftMargin, n10Y + 4);
+  if (toggles.showNoteGoingConcern) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('9. Going concern', leftMargin, n6Y + 4);
+    doc.setFont('helvetica', 'normal');
+    const gcNoteSplit = doc.splitTextToSize(notes.note9GoingConcern.subordinationNoteText, contentWidth);
+    doc.text(gcNoteSplit, leftMargin, n6Y + 8);
+    n6Y = n6Y + 8 + gcNoteSplit.length * 4 + 3;
+  }
+
+  if (toggles.showNoteEventsAfterReportingPeriod) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('10. Events after the reporting period', leftMargin, n6Y + 2);
+    doc.setFont('helvetica', 'normal');
+    doc.text(notes.note10EventsAfterReportingPeriod.statementText, leftMargin, n6Y + 6);
+  }
 
   drawPageFooter(15);
 
   // PAGE 17: DETAILED INCOME STATEMENT
-  doc.addPage();
-  drawPageHeader('Detailed Income Statement');
+  if (toggles.showDetailedIncomeStatement) {
+    doc.addPage();
+    drawPageHeader('Detailed Income Statement');
 
-  const detRows: any[] = [
-    [{ content: 'Other income', styles: { fontStyle: 'bold' } }, ''],
-    ...detailedIncomeStatement.otherIncomeItems.map((i) => [i.name, formatRand(i.current)]),
-    ['', { content: formatRand(detailedIncomeStatement.totalOtherIncome.current), styles: { fontStyle: 'bold' } }],
-    ['', ''],
-    [{ content: 'Operating expenses', styles: { fontStyle: 'bold' } }, ''],
-    ...detailedIncomeStatement.operatingExpenseItems.map((i) => [i.name, `(${formatRand(i.current)})`]),
-    ['', { content: `(${formatRand(detailedIncomeStatement.totalOperatingExpenses.current)})`, styles: { fontStyle: 'bold' } }],
-    ['', ''],
-    [
-      { content: 'Loss for the year', styles: { fontStyle: 'bold' } },
-      { content: `(${formatRand(Math.abs(detailedIncomeStatement.lossOrProfitForTheYear.current))})`, styles: { fontStyle: 'bold' } },
-    ],
-  ];
+    const detRows: any[] = [
+      [{ content: 'Other income', styles: { fontStyle: 'bold' } }, ''],
+      ...detailedIncomeStatement.otherIncomeItems.map((i) => [i.name, formatRand(i.current)]),
+      ['', { content: formatRand(detailedIncomeStatement.totalOtherIncome.current), styles: { fontStyle: 'bold' } }],
+      ['', ''],
+      [{ content: 'Operating expenses', styles: { fontStyle: 'bold' } }, ''],
+      ...detailedIncomeStatement.operatingExpenseItems.map((i) => [i.name, `(${formatRand(i.current)})`]),
+      ['', { content: `(${formatRand(detailedIncomeStatement.totalOperatingExpenses.current)})`, styles: { fontStyle: 'bold' } }],
+      ['', ''],
+      [
+        { content: 'Loss for the year', styles: { fontStyle: 'bold' } },
+        { content: `(${formatRand(Math.abs(detailedIncomeStatement.lossOrProfitForTheYear.current))})`, styles: { fontStyle: 'bold' } },
+      ],
+    ];
 
-  autoTable(doc, {
-    startY: 48,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'plain',
-    head: [['Figures in Rand', '2026']],
-    body: detRows,
-    styles: { fontSize: 8, cellPadding: 1.5 },
-    columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
-  });
+    autoTable(doc, {
+      startY: 48,
+      margin: { left: leftMargin, right: rightMargin },
+      theme: 'plain',
+      head: [['Figures in Rand', '2026']],
+      body: detRows,
+      styles: { fontSize: 8, cellPadding: 1.5 },
+      columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
+    });
 
-  drawPageFooter(16, 'The supplementary information presented does not form part of the financial statements and is unaudited');
+    drawPageFooter(16, 'The supplementary information presented does not form part of the financial statements and is unaudited');
+  }
 
   return doc;
 }
