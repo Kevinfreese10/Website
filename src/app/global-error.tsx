@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { reportError } from '@/lib/observability';
 
 /**
@@ -53,7 +54,7 @@ export default function GlobalError({
               >
                 Try again
               </button>
-              <a
+              <Link
                 href="/"
                 style={{
                   padding: '0.6rem 1.1rem', borderRadius: '8px', border: '1px solid #cbd5e1',
@@ -61,7 +62,7 @@ export default function GlobalError({
                 }}
               >
                 Back to home
-              </a>
+              </Link>
             </div>
           </div>
         </div>

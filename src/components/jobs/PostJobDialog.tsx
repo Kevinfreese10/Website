@@ -28,9 +28,6 @@ const postJobSchema = z.object({
 
 export default function PostJobDialog({ onSuccess }: { onSuccess?: () => void }) {
   const { user } = useAuth();
-
-  if (!user || (user.role !== 'partner' && user.role !== 'admin')) return null;
-
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,6 +41,8 @@ export default function PostJobDialog({ onSuccess }: { onSuccess?: () => void })
       locationPreference: 'Remote',
     },
   });
+
+  if (!user || (user.role !== 'partner' && user.role !== 'admin')) return null;
 
   const onSubmit = async (values: z.infer<typeof postJobSchema>) => {
     if (!user) return;
