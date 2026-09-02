@@ -25,8 +25,17 @@ declare global {
 
 export default function ExternalScripts() {
   const pathname = usePathname();
-  // Check if the current route is a partner landing page
-  const isPartnerPage = pathname?.startsWith('/p/');
+  
+  const isDashboardPage = pathname ? (
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/partner') ||
+    pathname.startsWith('/p/')
+  ) : false;
+
+  if (isDashboardPage) {
+    return null;
+  }
 
   return (
     <>

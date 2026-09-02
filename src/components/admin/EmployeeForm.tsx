@@ -402,9 +402,9 @@ export default function EmployeeForm({
           </div>
         </section>
 
-        <div className="flex justify-end gap-2 pt-4 sticky bottom-0 bg-background pb-2 border-t">
-          <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-          <Button type="submit" disabled={isLoading}>
+        <div className="flex items-center justify-end gap-3 pt-4 pb-4 px-4 sticky bottom-0 bg-background/95 backdrop-blur-md border-t z-30 shadow-md rounded-b-xl mt-6 pr-20 sm:pr-24 md:pr-4">
+          <Button type="button" variant="outline" onClick={onCancel} className="px-5">Cancel</Button>
+          <Button type="submit" disabled={isLoading} className="px-6 font-semibold shadow-sm">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             {employee?.id ? 'Update Employee' : 'Confirm & Save'}
           </Button>

@@ -24,6 +24,8 @@ import { TableSkeleton } from '@/components/ui/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
 import { OrdersTable } from '@/components/admin/orders/OrdersTable';
 import { OrderQuickView } from '@/components/admin/orders/OrderQuickView';
+import { AwaitingClientResponseCard } from '@/components/admin/orders/AwaitingClientResponseCard';
+import { getOrdersAwaitingClientResponse } from '@/lib/order-communication';
 import { FilterChips } from '@/components/data-table/filter-chips';
 import { SavedViewsMenu } from '@/components/data-table/saved-views-menu';
 import { FeatureTip } from '@/components/onboarding/FeatureTip';
@@ -243,10 +245,19 @@ export default function AdminOrdersPage() {
     localStorage.setItem('adminOrdersStatusFilter', value);
   };
 
+  const awaitingOrders = useMemo(() => {
+    return getOrdersAwaitingClientResponse(orders, allStaff);
+  }, [orders, allStaff]);
+
+  const handleOrderNoteUpdated = (orderId: string, updatedNote: OrderNote) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, notes: [...(o.notes || []), updatedNote] } : o));
+  };
+
   const statusCounts = useMemo(() => {
     return {
       all: orders.length,
       active: orders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length,
+      awaitingReply: awaitingOrders.length,
       processing: orders.filter(o => o.status === 'Processing' || (o.status as any) === 'Outsourced').length,
       pending: orders.filter(o => o.status === 'Pending Payment').length,
       waiting: orders.filter(o => o.status === 'Waiting on Customer' || o.status === 'Waiting for Information' || (o.status as any) === 'Waiting on Client').length,
@@ -255,12 +266,15 @@ export default function AdminOrdersPage() {
       completed: orders.filter(o => o.status === 'Completed').length,
       cancelled: orders.filter(o => o.status === 'Cancelled').length,
     };
-  }, [orders]);
+  }, [orders, awaitingOrders]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-        // Status filter: 'active' shows non-completed/non-cancelled; specific tabs match canonical groups
-        if (statusFilter === 'active') {
+        // Status filter: 'awaiting_reply' or 'active' or specific tabs match canonical groups
+        if (statusFilter === 'awaiting_reply') {
+            const awaitingIds = new Set(awaitingOrders.map(a => a.order.id));
+            if (!awaitingIds.has(order.id)) return false;
+        } else if (statusFilter === 'active') {
             if (order.status === 'Completed' || order.status === 'Cancelled') return false;
         } else if (statusFilter === 'Processing') {
             if (order.status !== 'Processing' && (order.status as any) !== 'Outsourced') return false;
@@ -296,7 +310,7 @@ export default function AdminOrdersPage() {
 
         return true;
     });
-  }, [orders, searchTerm, statusFilter, assignedFilter, user]);
+  }, [orders, searchTerm, statusFilter, assignedFilter, user, awaitingOrders]);
 
   // ── Saved views + filter chips (Premium UI Phase 3) ──
   type OrdersViewState = { searchTerm: string; statusFilter: string; assignedFilter: string };
@@ -636,6 +650,14 @@ export default function AdminOrdersPage() {
             </div>
         </div>
 
+        {/* Priority Alert Card: Orders where Client Responded via Communication History */}
+        <AwaitingClientResponseCard 
+          awaitingOrders={awaitingOrders}
+          currentUser={user}
+          onOrderUpdated={handleOrderNoteUpdated}
+          onFilterTableToAwaiting={() => handleStatusFilterChange('awaiting_reply')}
+        />
+
         <Card className="border-2 shadow-sm">
             <CardHeader className="bg-muted/10 pb-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -680,6 +702,7 @@ export default function AdminOrdersPage() {
                                 <SelectContent>
                                     <SelectItem value="all">All Statuses</SelectItem>
                                     <SelectItem value="active">Active Orders</SelectItem>
+                                    <SelectItem value="awaiting_reply">Client Responded (Awaiting Reply)</SelectItem>
                                     <SelectItem value="Processing">Processing</SelectItem>
                                     <SelectItem value="Waiting on Customer">Waiting on Customer</SelectItem>
                                     <SelectItem value="Waiting on External">Waiting on External</SelectItem>
@@ -708,6 +731,26 @@ export default function AdminOrdersPage() {
                             {statusCounts.all}
                         </span>
                     </Button>
+                    {statusCounts.awaitingReply > 0 && (
+                        <Button
+                            type="button"
+                            variant={statusFilter === 'awaiting_reply' ? 'default' : 'outline'}
+                            size="sm"
+                            className={cn(
+                                "h-8 text-xs font-semibold rounded-full gap-1.5 border-amber-400/80 transition-all",
+                                statusFilter === 'awaiting_reply' 
+                                  ? "bg-amber-600 hover:bg-amber-700 text-white" 
+                                  : "text-amber-900 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100"
+                            )}
+                            onClick={() => handleStatusFilterChange('awaiting_reply')}
+                        >
+                            <MessageSquare className="h-3 w-3 text-amber-500" />
+                            Client Responded
+                            <span className={cn("px-1.5 py-0.2 rounded-full text-[10px] font-black", statusFilter === 'awaiting_reply' ? "bg-white/20 text-white" : "bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100")}>
+                                {statusCounts.awaitingReply}
+                            </span>
+                        </Button>
+                    )}
                     <Button
                         type="button"
                         variant={statusFilter === 'Processing' ? 'default' : 'outline'}
