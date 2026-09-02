@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter, RefreshCw, Link as LinkIcon, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter, RefreshCw, Link as LinkIcon, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { TableSkeleton } from '@/components/ui/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
 import { OrdersTable } from '@/components/admin/orders/OrdersTable';
@@ -298,14 +298,54 @@ export default function AdminOrdersPage() {
 
         // Search term filter
         if (searchTerm.trim()) {
-            const term = searchTerm.toLowerCase();
+            const term = searchTerm.toLowerCase().trim();
             const matchesId = order.id.toLowerCase().includes(term);
-            const matchesOriginalId = order.originalOrderId?.toLowerCase().includes(term);
-            const matchesName = order.customerName?.toLowerCase().includes(term) || order.endCustomerName?.toLowerCase().includes(term);
-            const matchesEmail = order.customerEmail?.toLowerCase().includes(term) || order.endCustomerEmail?.toLowerCase().includes(term);
-            const matchesPhone = order.customerPhone?.toLowerCase().includes(term);
+            const matchesOriginalId = Boolean(order.originalOrderId?.toLowerCase().includes(term));
             
-            if (!matchesId && !matchesOriginalId && !matchesName && !matchesEmail && !matchesPhone) return false;
+            const matchesName = Boolean(
+              order.customerName?.toLowerCase().includes(term) || 
+              order.endCustomerName?.toLowerCase().includes(term) ||
+              (order as any).companyName?.toLowerCase().includes(term) ||
+              (order as any).entityName?.toLowerCase().includes(term)
+            );
+            
+            const matchesEmail = Boolean(
+              order.customerEmail?.toLowerCase().includes(term) || 
+              order.endCustomerEmail?.toLowerCase().includes(term) ||
+              (order as any).userEmail?.toLowerCase().includes(term) ||
+              (order as any).email?.toLowerCase().includes(term) ||
+              (order as any).clientEmail?.toLowerCase().includes(term) ||
+              (order as any).billingEmail?.toLowerCase().includes(term) ||
+              (order as any).contactEmail?.toLowerCase().includes(term) ||
+              (order as any).resellerEmail?.toLowerCase().includes(term) ||
+              (order as any).customerDetails?.email?.toLowerCase().includes(term) ||
+              (order as any).clientDetails?.email?.toLowerCase().includes(term) ||
+              (order as any).formValues?.email?.toLowerCase().includes(term) ||
+              (order as any).formValues?.customerEmail?.toLowerCase().includes(term) ||
+              (order as any).formData?.email?.toLowerCase().includes(term)
+            );
+            
+            const matchesPhone = Boolean(
+              order.customerPhone?.toLowerCase().includes(term) ||
+              (order as any).phone?.toLowerCase().includes(term) ||
+              (order as any).cellNumber?.toLowerCase().includes(term)
+            );
+
+            const matchesServices = Boolean(
+              order.serviceSnapshots?.some(s => s.title?.toLowerCase().includes(term)) ||
+              order.items?.some(i => i.title?.toLowerCase().includes(term))
+            );
+
+            const matchesNotes = Boolean(
+              order.notes?.some(n => 
+                n.text?.toLowerCase().includes(term) || 
+                n.subject?.toLowerCase().includes(term)
+              )
+            );
+            
+            if (!matchesId && !matchesOriginalId && !matchesName && !matchesEmail && !matchesPhone && !matchesServices && !matchesNotes) {
+              return false;
+            }
         }
 
         return true;
@@ -668,14 +708,24 @@ export default function AdminOrdersPage() {
                         </CardDescription>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-3">
-                        <div className="relative w-full sm:w-64">
+                        <div className="relative w-full sm:w-72">
                             <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
                             <Input 
-                                placeholder="Search orders, customers..." 
-                                className="pl-9 h-10 border-primary/10" 
+                                placeholder="Search by email, customer, order #..." 
+                                className="pl-9 pr-8 h-10 border-primary/10" 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
+                            {searchTerm && (
+                                <button 
+                                    type="button" 
+                                    onClick={() => setSearchTerm('')} 
+                                    className="absolute right-2.5 top-3 text-muted-foreground hover:text-foreground"
+                                    aria-label="Clear search"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                             <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />

@@ -241,8 +241,8 @@ export function OrdersTable({
             <span className="font-semibold text-foreground">
               {row.original.endCustomerName || row.original.customerName}
             </span>
-            <span className="max-w-[150px] truncate text-[10px] text-muted-foreground">
-              {row.original.customerEmail}
+            <span className="max-w-[200px] truncate text-[10px] text-muted-foreground font-mono" title={row.original.endCustomerEmail || row.original.customerEmail || (row.original as any).email || (row.original as any).userEmail}>
+              {row.original.endCustomerEmail || row.original.customerEmail || (row.original as any).email || (row.original as any).userEmail}
             </span>
           </div>
         ),
