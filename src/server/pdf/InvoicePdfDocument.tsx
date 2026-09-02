@@ -347,6 +347,7 @@ export function InvoicePdfDocument({
   const accountHolder = safeText(client?.bankingDetails?.accountHolder, '');
   const accountNumber = safeText(client?.bankingDetails?.accountNumber, '');
   const branchCode = safeText(client?.bankingDetails?.branchCode, '');
+  const swiftCode = safeText((client?.bankingDetails as any)?.swiftCode, '');
   const vatNumber = safeText(client?.vatNumber, '');
   const customerVatNumber = safeText(customer?.vatNumber, '');
 
@@ -476,6 +477,13 @@ export function InvoicePdfDocument({
               <Text style={styles.bankingLabel}>Branch Code:</Text>
               <Text style={styles.bankingValue}>{branchCode}</Text>
             </View>
+
+            {swiftCode ? (
+              <View style={styles.bankingRow}>
+                <Text style={styles.bankingLabel}>SWIFT Code:</Text>
+                <Text style={styles.bankingValue}>{swiftCode}</Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
 

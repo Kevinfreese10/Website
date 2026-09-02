@@ -108,6 +108,12 @@ const InvoicePreview = React.forwardRef<HTMLDivElement, { invoice: Invoice, clie
                                 <span className="text-left">{client.bankingDetails?.accountNumber}</span>
                                 <span className="font-medium text-gray-600 text-right">Branch Code:</span>
                                 <span className="text-left">{client.bankingDetails?.branchCode}</span>
+                                {client.bankingDetails?.swiftCode && (
+                                    <>
+                                        <span className="font-medium text-gray-600 text-right">SWIFT Code:</span>
+                                        <span className="text-left font-mono">{client.bankingDetails.swiftCode}</span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}

@@ -851,6 +851,8 @@ export type User = {
     accountHolder?: string;
     accountNumber?: string;
     branchCode?: string;
+    swiftCode?: string;
+    accountType?: string;
   },
   smtpDetails?: {
     host?: string;

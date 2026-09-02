@@ -73,6 +73,7 @@ const formSchema = z.object({
     accountHolder: z.string().optional(),
     accountNumber: z.string().optional(),
     branchCode: z.string().optional(),
+    swiftCode: z.string().optional(),
   }).optional(),
   logoUrl: z.string().url().optional().or(z.literal('')),
   useGlobalRules: z.boolean().default(false),
@@ -130,7 +131,8 @@ export default function ClientForm({
                 bankName: client?.bankingDetails?.bankName || '',
                 accountHolder: client?.bankingDetails?.accountHolder || '',
                 accountNumber: client?.bankingDetails?.accountNumber || '', 
-                branchCode: client?.bankingDetails?.branchCode || ''
+                branchCode: client?.bankingDetails?.branchCode || '',
+                swiftCode: (client?.bankingDetails as any)?.swiftCode || '',
             },
             logoUrl: client?.logoUrl || '',
             useGlobalRules: false,
@@ -419,10 +421,22 @@ export default function ClientForm({
                             <CreditCard className="h-4 w-4" /> Banking Details (For Invoicing)
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                             <FormField control={form.control} name="bankingDetails.bankName" render={({ field }) => ( <FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                             <FormField control={form.control} name="bankingDetails.accountNumber" render={({ field }) => ( <FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                             <FormField control={form.control} name="bankingDetails.accountHolder" render={({ field }) => ( <FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                             <FormField control={form.control} name="bankingDetails.branchCode" render={({ field }) => ( <FormItem><FormLabel>Branch Code</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                             <FormField control={form.control} name="bankingDetails.bankName" render={({ field }) => ( <FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input placeholder="e.g. Standard Bank" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                             <FormField control={form.control} name="bankingDetails.accountNumber" render={({ field }) => ( <FormItem><FormLabel>Account Number</FormLabel><FormControl><Input placeholder="e.g. 123456789" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                             <FormField control={form.control} name="bankingDetails.accountHolder" render={({ field }) => ( <FormItem><FormLabel>Account Holder</FormLabel><FormControl><Input placeholder="e.g. Company Name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                             <FormField control={form.control} name="bankingDetails.branchCode" render={({ field }) => ( <FormItem><FormLabel>Branch Code</FormLabel><FormControl><Input placeholder="e.g. 051001" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                             <FormField control={form.control} name="bankingDetails.swiftCode" render={({ field }) => ( 
+                                <FormItem className="md:col-span-2">
+                                    <FormLabel>SWIFT / BIC Code</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g. SBZAJJ (Optional for international clients)" {...field} />
+                                    </FormControl>
+                                    <FormDescription className="text-[10px]">
+                                        Used on invoices so international clients can make cross-border EFT / wire payments.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                             )} />
                         </div>
                     </section>
 

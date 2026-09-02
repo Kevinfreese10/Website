@@ -243,6 +243,10 @@ export default function InvoiceDownloadButton({ invoice, client, customer }: Inv
           bankY += 5;
           doc.text(`Account: ${client.bankingDetails.accountNumber}`, 25, bankY);
           doc.text(`Branch: ${client.bankingDetails.branchCode}`, 100, bankY);
+          if ((client.bankingDetails as any)?.swiftCode) {
+              bankY += 5;
+              doc.text(`SWIFT Code: ${(client.bankingDetails as any).swiftCode}`, 25, bankY);
+          }
           finalY += 45;
       }
 
