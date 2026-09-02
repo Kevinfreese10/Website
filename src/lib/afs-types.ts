@@ -1,7 +1,11 @@
 export interface AfsDirector {
   name: string;
-  designation: string; // 'Executive Director' | 'Non-executive Director'
-  changes?: string; // 'Appointed 25 July 2024'
+  office?: string; // e.g. 'Chief Executive Officer' | 'Director' | 'Managing Director'
+  designation: string; // 'Executive' | 'Non-Executive'
+  nationality?: string; // 'South African'
+  appointmentDate?: string; // 'YYYY-MM-DD'
+  resignationDate?: string; // 'YYYY-MM-DD'
+  changes?: string; // 'Appointed 16 January 2023'
 }
 
 export interface AfsGeneralInfo {
@@ -10,22 +14,41 @@ export interface AfsGeneralInfo {
   registrationNumber: string;
   taxNumber?: string;
   vatNumber?: string;
-  financialYearEndedDate: string; // e.g. "30 June 2025"
+  financialYearEndedDate: string; // e.g. "31 March 2026"
+  financialYearEndedDateIso?: string; // e.g. "2026-03-31"
   countryOfIncorporation: string; // "South Africa"
-  natureOfBusiness: string; // "Financial services provider"
+  natureOfBusiness: string; // "Financial services provider" or "Property investment"
   registeredOffice: string;
   businessAddress: string;
   holdingCompany?: string;
-  assuranceLevel: 'audited' | 'accounting_officer' | 'independent_review';
-  auditorOrPractitionerFirm: string; // "Moore Johannesburg Inc." or "My Accountant (Pty) Ltd"
-  auditorOrPractitionerTitle: string; // "Registered Auditors" or "Accounting Officer"
-  auditorOrPractitionerAddress: string;
-  leadPartnerName?: string; // "TC Chiripanyanga" or "Kevin Freese"
-  leadPartnerTitle?: string; // "Director / Registered Auditor" or "Accounting Officer BAP(SA)"
-  preparerName: string; // "Lethabo Leoka"
-  preparerDesignation: string; // "Director"
-  issuedDate: string; // "30 October 2025"
+  assuranceLevel: 'accounting_officer' | 'audited' | 'independent_review';
+  auditorOrPractitionerFirm: string; // "My Accountant"
+  auditorOrPractitionerTitle: string; // "Accounting Officer / BAP(SA)"
+  auditorOrPractitionerAddress: string; // "Office 102, 1st Floor, Block B, 150 Rivonia Road, Sandton, Johannesburg, 2196"
+  leadPartnerName?: string; // "Kevin Freese"
+  leadPartnerTitle?: string; // "Accounting Officer / BAP(SA)"
+  preparerName: string; // "Kevin Freese"
+  preparerDesignation: string; // "Accounting Officer BAP(SA)"
+  issuedDate: string; // "2026-08-19" or "19 August 2026"
   directors: AfsDirector[];
+}
+
+export interface AfsDirectorsResponsibilities {
+  responsibilitiesText: string;
+  approvalDate: string; // "YYYY-MM-DD"
+  signatoryName: string;
+  signatoryTitle: string;
+}
+
+export interface AfsDirectorsReportData {
+  incorporationText: string;
+  natureOfBusiness: string;
+  reviewOfActivities: string;
+  shareCapitalDetails: string;
+  directors: AfsDirector[];
+  eventsAfterReportingPeriod: string;
+  goingConcernText: string;
+  auditorOrPractitionerContinuance: string;
 }
 
 export interface AfsStatementLine {
@@ -97,8 +120,8 @@ export interface AfsStatutoryNotes {
     total: { current: number; prior: number };
   };
   note3ShareCapital: {
-    authorisedShares: string; // "1 000 Ordinary Share at no par value"
-    issuedShares: string; // "100 Ordinary Shares at no par value"
+    authorisedShares: string;
+    issuedShares: string;
     issuedAmount: { current: number; prior: number };
     issuedShareCount: number;
   };
@@ -152,15 +175,8 @@ export interface AfsDetailedIncomeStatement {
 
 export interface AnnualFinancialStatementsData {
   generalInfo: AfsGeneralInfo;
-  directorsReport: {
-    natureOfBusiness: string;
-    reviewOfActivities: string;
-    shareCapitalDetails: string;
-    directors: AfsDirector[];
-    eventsAfterReportingPeriod: string;
-    goingConcernText: string;
-    auditorOrPractitionerContinuance: string;
-  };
+  directorsResponsibilities: AfsDirectorsResponsibilities;
+  directorsReport: AfsDirectorsReportData;
   statementOfFinancialPosition: AfsStatementOfFinancialPosition;
   statementOfComprehensiveIncome: AfsStatementOfComprehensiveIncome;
   statementOfChangesInEquity: AfsStatementOfChangesInEquity;

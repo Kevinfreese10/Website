@@ -5,6 +5,8 @@ import type {
   AnnualFinancialStatementsData,
   AfsGeneralInfo,
   AfsDirector,
+  AfsDirectorsResponsibilities,
+  AfsDirectorsReportData,
 } from '@/lib/afs-types';
 
 export async function getAnnualFinancialStatementsDataAction({
@@ -46,15 +48,16 @@ export async function getAnnualFinancialStatementsDataAction({
     let currentFye: Date;
     if (yearEndDateStr) {
       currentFye = new Date(yearEndDateStr);
+    } else if (savedConfig?.financialYearEndedDateIso) {
+      currentFye = new Date(savedConfig.financialYearEndedDateIso);
     } else if (clientData.yearEnd) {
-      // Month name
       const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
       const mIdx = months.findIndex((m) => m.toLowerCase() === clientData.yearEnd.toLowerCase());
-      const targetMonth = mIdx >= 0 ? mIdx : 1; // default Feb
+      const targetMonth = mIdx >= 0 ? mIdx : 2; // default March (idx 2)
       const yr = now.getMonth() <= targetMonth ? now.getFullYear() : now.getFullYear();
       currentFye = new Date(yr, targetMonth + 1, 0); // Last day of month
     } else {
-      currentFye = new Date(2025, 5, 30); // 30 June 2025 default (or 28 Feb)
+      currentFye = new Date(2026, 2, 31); // 31 March 2026 default
     }
 
     const currentYearStart = new Date(currentFye.getFullYear() - 1, currentFye.getMonth(), currentFye.getDate() + 1);
@@ -62,6 +65,7 @@ export async function getAnnualFinancialStatementsDataAction({
     const priorYearStart = new Date(priorFye.getFullYear() - 1, priorFye.getMonth(), priorFye.getDate() + 1);
 
     const fyeFormatted = currentFye.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+    const fyeIso = currentFye.toISOString().split('T')[0];
 
     // Calculate balances
     const curBalances = new Map<string, number>();
@@ -145,7 +149,6 @@ export async function getAnnualFinancialStatementsDataAction({
             detailedOtherIncomeList.push({ name: acc.description, current: c, prior: p });
           }
         } else {
-          // Operating Expenses / Finance Costs
           curOpex += cur;
           priOpex += pri;
           if (cur !== 0 || pri !== 0) {
@@ -155,7 +158,6 @@ export async function getAnnualFinancialStatementsDataAction({
       }
     });
 
-    // Sort Detailed Expenses alphabetically
     detailedExpensesList.sort((a, b) => a.name.localeCompare(b.name));
 
     const curGrossProfit = curRevenue - curCos;
@@ -171,15 +173,11 @@ export async function getAnnualFinancialStatementsDataAction({
     let bankCur = 0;
     let bankPri = 0;
     let shareCapitalCur = 100;
-    let shareCapitalPri = 0;
+    let shareCapitalPri = 100;
     let shareholderLoanCur = 0;
     let shareholderLoanPri = 0;
     let nonCurrentAssetsCur = 0;
     let nonCurrentAssetsPri = 0;
-    let otherCurrentAssetsCur = 0;
-    let otherCurrentAssetsPri = 0;
-    let otherCurrentLiabilitiesCur = 0;
-    let otherCurrentLiabilitiesPri = 0;
 
     chartOfAccounts.forEach((acc) => {
       if (acc.section === 'Balance Sheet') {
@@ -195,91 +193,114 @@ export async function getAnnualFinancialStatementsDataAction({
           if (c > 0) shareCapitalCur = c;
           if (p > 0) shareCapitalPri = p;
         } else if (acc.fsGroup === 'Loans from shareholders' || acc.accountNumber === '9000-001') {
-          // Credit balance (liability)
           shareholderLoanCur += -cur;
           shareholderLoanPri += -pri;
         } else if (acc.fsGroup === 'Property, plant and equipment' || acc.category === 'Non-Current Assets') {
           nonCurrentAssetsCur += cur;
           nonCurrentAssetsPri += pri;
-        } else if (acc.category === 'Current Assets' || acc.fsGroup === 'Trade and other receivables') {
-          otherCurrentAssetsCur += cur;
-          otherCurrentAssetsPri += pri;
-        } else if (acc.category === 'Current Liabilities' || acc.fsGroup === 'Trade and other payables') {
-          otherCurrentLiabilitiesCur += -cur;
-          otherCurrentLiabilitiesPri += -pri;
         }
       }
     });
 
-    // Total Cash
-    const totalCashCur = bankCur > 0 ? bankCur : 109897; // fallback to Vachellia verified cash balance if empty
+    const totalCashCur = bankCur > 0 ? bankCur : 109897;
     const totalCashPri = bankPri;
 
-    // Accumulated Loss / Retained Earnings
-    // If accumulated loss is negative, displayed as (510 104)
     const accumulatedLossCur = curLossOrProfitForTheYear < 0 ? curLossOrProfitForTheYear : -curLossOrProfitForTheYear;
     const totalEquityCur = shareCapitalCur + accumulatedLossCur;
 
-    // Default Vachellia / entity directors
+    // Default directors setup
     const defaultDirectors: AfsDirector[] = savedConfig?.directors || [
-      { name: clientData.directorName || 'Lethabo Leoka', designation: 'Executive Director', changes: 'Appointed 25 July 2024' },
-      { name: 'Roberto Alunni', designation: 'Non-executive Director', changes: 'Appointed 14 November 2024' },
+      {
+        name: clientData.directorName || 'Lerato Khoza',
+        office: 'Chief Executive Officer',
+        designation: 'Executive',
+        nationality: 'South African',
+        appointmentDate: '2023-01-16',
+        changes: 'Appointed 16 January 2023',
+      },
     ];
 
+    const entityName = clientData.companyName || clientData.name || 'Ngelosiyokukhanya (Pty) Ltd';
+    const regNumber = clientData.registrationNumber || clientData.companyRegistrationNumber || '2023/123456/07';
+
+    // General Information
     const generalInfo: AfsGeneralInfo = {
-      companyName: clientData.companyName || clientData.name || 'Vachellia Investments Proprietary Limited',
+      companyName: entityName,
       tradingName: clientData.tradingName,
-      registrationNumber: clientData.registrationNumber || clientData.companyRegistrationNumber || '2024/303261/07',
+      registrationNumber: regNumber,
       taxNumber: clientData.taxNumber || '9012345678',
       vatNumber: clientData.vatNumber,
       financialYearEndedDate: fyeFormatted,
+      financialYearEndedDateIso: fyeIso,
       countryOfIncorporation: savedConfig?.countryOfIncorporation || 'South Africa',
-      natureOfBusiness: savedConfig?.natureOfBusiness || 'Financial services provider',
-      registeredOffice: savedConfig?.registeredOffice || '111 Roseways 17 Trywhitt Avenue, Rosebank, Johannesburg, Gauteng, 2196',
-      businessAddress: savedConfig?.businessAddress || '111 Roseways 17 Trywhitt Avenue, Rosebank, Johannesburg, Gauteng, 2196',
-      holdingCompany: savedConfig?.holdingCompany || 'Vachellia Investment Holdings Proprietary Limited',
-      assuranceLevel: savedConfig?.assuranceLevel || 'audited',
-      auditorOrPractitionerFirm: savedConfig?.auditorOrPractitionerFirm || 'Moore Johannesburg Inc.',
-      auditorOrPractitionerTitle: savedConfig?.auditorOrPractitionerTitle || 'Registered Auditors',
-      auditorOrPractitionerAddress: savedConfig?.auditorOrPractitionerAddress || '50 Oxford Road, Parktown, Johannesburg, 2193',
-      leadPartnerName: savedConfig?.leadPartnerName || 'TC Chiripanyanga',
-      leadPartnerTitle: savedConfig?.leadPartnerTitle || 'Director / Registered Auditor',
-      preparerName: savedConfig?.preparerName || 'Lethabo Leoka',
-      preparerDesignation: savedConfig?.preparerDesignation || 'Director',
-      issuedDate: savedConfig?.issuedDate || `30 October ${currentFye.getFullYear()}`,
+      natureOfBusiness: savedConfig?.natureOfBusiness || 'Property investment',
+      registeredOffice: savedConfig?.registeredOffice || 'Office 102, 1st Floor, Block B, 150 Rivonia Road, Sandton, Johannesburg, 2196',
+      businessAddress: savedConfig?.businessAddress || 'Office 102, 1st Floor, Block B, 150 Rivonia Road, Sandton, Johannesburg, 2196',
+      holdingCompany: savedConfig?.holdingCompany || '',
+      assuranceLevel: savedConfig?.assuranceLevel || 'accounting_officer',
+      auditorOrPractitionerFirm: savedConfig?.auditorOrPractitionerFirm || 'My Accountant',
+      auditorOrPractitionerTitle: savedConfig?.auditorOrPractitionerTitle || 'Accounting Officer / BAP(SA)',
+      auditorOrPractitionerAddress: savedConfig?.auditorOrPractitionerAddress || 'Office 102, 1st Floor, Block B, 150 Rivonia Road, Sandton, Johannesburg, 2196',
+      leadPartnerName: savedConfig?.leadPartnerName || 'Kevin Freese',
+      leadPartnerTitle: savedConfig?.leadPartnerTitle || 'Accounting Officer / Business Accountant in Practice (SA)',
+      preparerName: savedConfig?.preparerName || 'Kevin Freese',
+      preparerDesignation: savedConfig?.preparerDesignation || 'Accounting Officer BAP(SA)',
+      issuedDate: savedConfig?.issuedDate || '2026-08-19',
       directors: defaultDirectors,
+    };
+
+    // Directors' Responsibilities and Approval
+    const defaultResponsibilitiesText = `The director is required by the Companies Act of South Africa, to maintain adequate accounting records and is responsible for the content and integrity of the financial statements and related financial information included in this report. It is her responsibility to ensure that the financial statements fairly present the state of affairs of the company as at the end of the financial year and the results of its operations and cash flows for the period then ended, in conformity with the International Financial Reporting Standard for Small and Medium-sized Entities.
+
+The financial statements are prepared in accordance with the International Financial Reporting Standard for Small and Medium-sized Entities and are based upon appropriate accounting policies consistently applied and supported by reasonable and prudent judgements and estimates.
+
+The director acknowledges that she is ultimately responsible for the system of internal financial control established by the company and places considerable importance on maintaining a strong control environment. To enable the director to meet these responsibilities, the director sets standards for internal control aimed at reducing the risk of error or loss in a cost effective manner. The standards include the proper delegation of responsibilities within a clearly defined framework, effective accounting procedures and adequate segregation of duties to ensure an acceptable level of risk. These controls are monitored throughout the company and all employees are required to maintain the highest ethical standards in ensuring the company’s business is conducted in a manner that in all reasonable circumstances is above reproach. The focus of risk management in the company is on identifying, assessing, managing and monitoring all known forms of risk across the company. While operating risk cannot be fully eliminated, the company endeavours to minimise it by ensuring that appropriate infrastructure, controls, systems and ethical behaviour are applied and managed within predetermined procedures and constraints.
+
+The director is of the opinion, based on the information and explanations given by management, that the system of internal control provides reasonable assurance that the financial records may be relied on for the preparation of the financial statements. However, any system of internal financial control can provide only reasonable, and not absolute, assurance against material misstatement or loss.
+
+The director has reviewed the company’s cash flow forecast for the year to 31 March 2027 and, in the light of this review and the current financial position, she is satisfied that the company has or has access to adequate resources to continue in operational existence for the foreseeable future.
+
+The financial statements set out on pages 5 to 12, which have been prepared on the going concern basis, were approved by the director on 19 August 2026 and were signed on its behalf by:`;
+
+    const directorsResponsibilities: AfsDirectorsResponsibilities = {
+      responsibilitiesText: savedConfig?.responsibilitiesText || defaultResponsibilitiesText,
+      approvalDate: savedConfig?.approvalDate || '2026-08-19',
+      signatoryName: savedConfig?.signatoryName || defaultDirectors[0]?.name || 'Lerato Khoza',
+      signatoryTitle: savedConfig?.signatoryTitle || 'Director',
+    };
+
+    // Directors' Report
+    const directorsReport: AfsDirectorsReportData = {
+      incorporationText:
+        savedConfig?.incorporationText ||
+        'The company was incorporated on 16 January 2023 and obtained its certificate to commence business on the same day.',
+      natureOfBusiness:
+        savedConfig?.natureOfBusinessReport ||
+        `${entityName} was incorporated in South Africa with interests in the property investment industry. The company operates in South Africa.\nThere have been no material changes to the nature of the company's business from the prior year.`,
+      reviewOfActivities:
+        savedConfig?.reviewOfActivities ||
+        'The financial statements have been prepared in accordance with International Financial Reporting Standard for Small and Medium-sized Entities and the requirements of the Companies Act of South Africa. The accounting policies have been applied consistently compared to the prior year.\nFull details of the financial position, results of operations and cash flows of the company are set out in these financial statements.',
+      shareCapitalDetails:
+        savedConfig?.shareCapitalDetails ||
+        'Authorised: 100 Ordinary shares at no par value. Issued: 100 Ordinary shares (R 100). There have been no changes to the authorised or issued share capital during the year under review.',
+      directors: defaultDirectors,
+      eventsAfterReportingPeriod:
+        savedConfig?.eventsAfterReportingPeriod ||
+        'The director is not aware of any material event which occurred after the reporting date and up to the date of this report.',
+      goingConcernText:
+        savedConfig?.goingConcernText ||
+        'The financial statements have been prepared on the basis of accounting policies applicable to a going concern. This basis presumes that funds will be available to finance future operations and that the realisation of assets and settlement of liabilities, contingent obligations and commitments will occur in the ordinary course of business.',
+      auditorOrPractitionerContinuance:
+        savedConfig?.auditorOrPractitionerContinuance ||
+        'My Accountant will continue in office as accounting officers for the company for the next financial year.',
     };
 
     const effectiveShareholderLoan = shareholderLoanCur > 0 ? shareholderLoanCur : 619901;
 
-    // Statutory Notes Assembly
-    const note5Remuneration: { name: string; current: number; prior: number }[] = [
-      { name: 'Legal Fees', current: 410308, prior: 0 },
-      { name: 'License and membership fees', current: 35348, prior: 0 },
-      { name: 'Exam Fees', current: 31435, prior: 0 },
-      { name: 'Auditor fees', current: 9200, prior: 0 },
-      { name: 'Graphic design fees', current: 6501, prior: 0 },
-      { name: 'Annual CIPC Fees', current: 6080, prior: 0 },
-    ];
-    const totalNote5 = note5Remuneration.reduce((sum, item) => sum + item.current, 0);
-
     const data: AnnualFinancialStatementsData = {
       generalInfo,
-      directorsReport: {
-        natureOfBusiness: generalInfo.natureOfBusiness,
-        reviewOfActivities: `The financial statements have been prepared in accordance with IFRS for SMEs® Accounting Standard as issued by the International Accounting Standards Board (IASB) and the requirements of the Companies Act of South Africa. Full details of the financial position, results of operations and cash flows of the company are set out in these financial statements.`,
-        shareCapitalDetails: `Authorised: 1 000 Ordinary Shares at no par value. Issued: 100 Ordinary shares at no par value (R 100).`,
-        directors: defaultDirectors,
-        eventsAfterReportingPeriod: `The directors are not aware of any material event which occurred after the reporting date and up to the date of this report.`,
-        goingConcernText: `We draw attention to the fact that at ${fyeFormatted}, the company had accumulated losses of R ${Math.abs(
-          accumulatedLossCur
-        ).toLocaleString('en-ZA')} and that the company's total liabilities exceed its total assets by R ${Math.abs(
-          totalEquityCur
-        ).toLocaleString(
-          'en-ZA'
-        )}. The ability of the company to continue as a going concern is dependent on a number of factors, including the subordination agreement in note 4 remaining in full force.`,
-        auditorOrPractitionerContinuance: `${generalInfo.auditorOrPractitionerFirm} continued in office as auditors for the company for ${currentFye.getFullYear()}.`,
-      },
+      directorsResponsibilities,
+      directorsReport,
       statementOfFinancialPosition: {
         nonCurrentAssets: {
           items: nonCurrentAssetsCur > 0 ? [{ name: 'Property, plant and equipment', currentAmount: nonCurrentAssetsCur, priorAmount: 0 }] : [],
@@ -369,15 +390,15 @@ export async function getAnnualFinancialStatementsDataAction({
           total: { current: totalCashCur, prior: 0 },
         },
         note3ShareCapital: {
-          authorisedShares: '1 000 Ordinary Share at no par value',
-          issuedShares: '100 Ordinary Shares at no par value',
+          authorisedShares: '100 Ordinary shares at no par value',
+          issuedShares: '100 Ordinary shares at no par value',
           issuedAmount: { current: shareCapitalCur, prior: 0 },
           issuedShareCount: 100,
         },
         note4LoansFromShareholders: {
           loans: [
             {
-              name: generalInfo.holdingCompany || 'Vachellia Investment Holdings Proprietary Limited',
+              name: generalInfo.holdingCompany || 'Shareholder Loan Account',
               current: effectiveShareholderLoan,
               prior: 0,
               terms: 'The loan is unsecured and bears no interest. There are no fixed repayment terms of the loan. The loan has been subordinated in favour of other creditors until the assets of the company, fairly valued, exceed its liabilities.',
@@ -387,7 +408,14 @@ export async function getAnnualFinancialStatementsDataAction({
           total: { current: effectiveShareholderLoan, prior: 0 },
         },
         note5OperatingExpenses: {
-          remunerationOtherThanEmployees: detailedExpensesList.length > 0 ? detailedExpensesList.slice(0, 8) : note5Remuneration,
+          remunerationOtherThanEmployees: detailedExpensesList.length > 0 ? detailedExpensesList.slice(0, 8) : [
+            { name: 'Legal Fees', current: 410308, prior: 0 },
+            { name: 'License and membership fees', current: 35348, prior: 0 },
+            { name: 'Exam Fees', current: 31435, prior: 0 },
+            { name: 'Auditor / Accounting Officer fees', current: 9200, prior: 0 },
+            { name: 'Graphic design fees', current: 6501, prior: 0 },
+            { name: 'Annual CIPC Fees', current: 6080, prior: 0 },
+          ],
           totalOperatingExpensesNote: { current: curOpex > 0 ? curOpex : 498872, prior: 0 },
         },
         note6CashUsedInOperations: {
@@ -405,22 +433,16 @@ export async function getAnnualFinancialStatementsDataAction({
           holdingCompany: generalInfo.holdingCompany,
           directors: defaultDirectors.map((d) => d.name),
           relatedPartyBalances: [
-            { name: generalInfo.holdingCompany || 'Holding Company', current: effectiveShareholderLoan, prior: 0 },
+            { name: generalInfo.holdingCompany || 'Holding Company / Shareholder', current: effectiveShareholderLoan, prior: 0 },
           ],
         },
         note9GoingConcern: {
           accumulatedLoss: Math.abs(accumulatedLossCur),
           liabilitiesExceedAssetsBy: Math.abs(totalEquityCur),
-          subordinationNoteText: `We draw attention to the fact that at ${fyeFormatted}, the company had accumulated losses of R ${Math.abs(
-            accumulatedLossCur
-          ).toLocaleString(
-            'en-ZA'
-          )} and that the company's total liabilities exceed its total assets by R ${Math.abs(totalEquityCur).toLocaleString(
-            'en-ZA'
-          )}. The ability of the company to continue as a going concern is dependent on a number of factors. The most significant of these is that the directors continue to procure funding for ongoing operations and that the subordination agreement referred to in note 4 will remain in force.`,
+          subordinationNoteText: `The financial statements have been prepared on the basis of accounting policies applicable to a going concern. This basis presumes that funds will be available to finance future operations and that the realisation of assets and settlement of liabilities, contingent obligations and commitments will occur in the ordinary course of business.`,
         },
         note10EventsAfterReportingPeriod: {
-          statementText: `The directors are not aware of any material event which occurred after the reporting date and up to the date of this report.`,
+          statementText: `The director is not aware of any material event which occurred after the reporting date and up to the date of this report.`,
         },
       },
       detailedIncomeStatement: {
@@ -434,7 +456,7 @@ export async function getAnnualFinancialStatementsDataAction({
           { name: 'Design Fees', current: 6501, prior: 0 },
           { name: 'LinkedIn Fees', current: 2610, prior: 0 },
           { name: 'Annual CIPC', current: 6080, prior: 0 },
-          { name: 'Auditor Fees', current: 9200, prior: 0 },
+          { name: 'Accounting Officer Fees', current: 9200, prior: 0 },
           { name: 'Legal expenses', current: 410308, prior: 0 },
           { name: 'Printing and stationery', current: 1510, prior: 0 },
         ],
@@ -455,7 +477,7 @@ export async function saveAnnualFinancialStatementsConfigAction({
   config,
 }: {
   clientId: string;
-  config: Partial<AfsGeneralInfo>;
+  config: Record<string, any>;
 }) {
   try {
     const adminDb = getAdminDb();

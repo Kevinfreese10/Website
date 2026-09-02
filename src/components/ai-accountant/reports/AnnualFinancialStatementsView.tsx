@@ -15,23 +15,28 @@ import {
   FileSpreadsheet,
   Download,
   Loader2,
-  CheckCircle2,
-  Building,
   ShieldCheck,
-  Landmark,
+  Building,
   UserCheck,
   Save,
   Plus,
   Trash2,
-  RefreshCw,
-  Edit3,
+  Calendar,
+  ClipboardList,
+  BookOpen,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   getAnnualFinancialStatementsDataAction,
   saveAnnualFinancialStatementsConfigAction,
 } from '@/app/actions/financial-statements-actions';
-import type { AnnualFinancialStatementsData, AfsGeneralInfo, AfsDirector } from '@/lib/afs-types';
+import type {
+  AnnualFinancialStatementsData,
+  AfsGeneralInfo,
+  AfsDirector,
+  AfsDirectorsResponsibilities,
+  AfsDirectorsReportData,
+} from '@/lib/afs-types';
 import AnnualFinancialStatementsPdfDownloadButton from '@/components/pdf/AnnualFinancialStatementsPdfDownloadButton';
 import * as XLSX from 'xlsx-js-style';
 
@@ -56,6 +61,8 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
 
   // Custom configuration state
   const [generalInfoForm, setGeneralInfoForm] = useState<AfsGeneralInfo | null>(null);
+  const [responsibilitiesForm, setResponsibilitiesForm] = useState<AfsDirectorsResponsibilities | null>(null);
+  const [directorsReportForm, setDirectorsReportForm] = useState<AfsDirectorsReportData | null>(null);
 
   const fetchAfsData = useCallback(async () => {
     setIsLoading(true);
@@ -64,6 +71,8 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
       if (res.success && res.data) {
         setData(res.data);
         setGeneralInfoForm(res.data.generalInfo);
+        setResponsibilitiesForm(res.data.directorsResponsibilities);
+        setDirectorsReportForm(res.data.directorsReport);
       } else {
         toast({ title: 'Error', description: res.error || 'Failed to compile AFS data', variant: 'destructive' });
       }
@@ -80,10 +89,25 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
   }, [fetchAfsData]);
 
   const handleSaveConfig = async () => {
-    if (!generalInfoForm) return;
+    if (!generalInfoForm || !responsibilitiesForm || !directorsReportForm) return;
     setIsSaving(true);
     try {
-      const res = await saveAnnualFinancialStatementsConfigAction({ clientId, config: generalInfoForm });
+      const payload = {
+        ...generalInfoForm,
+        responsibilitiesText: responsibilitiesForm.responsibilitiesText,
+        approvalDate: responsibilitiesForm.approvalDate,
+        signatoryName: responsibilitiesForm.signatoryName,
+        signatoryTitle: responsibilitiesForm.signatoryTitle,
+        incorporationText: directorsReportForm.incorporationText,
+        natureOfBusinessReport: directorsReportForm.natureOfBusiness,
+        reviewOfActivities: directorsReportForm.reviewOfActivities,
+        shareCapitalDetails: directorsReportForm.shareCapitalDetails,
+        eventsAfterReportingPeriod: directorsReportForm.eventsAfterReportingPeriod,
+        goingConcernText: directorsReportForm.goingConcernText,
+        auditorOrPractitionerContinuance: directorsReportForm.auditorOrPractitionerContinuance,
+      };
+
+      const res = await saveAnnualFinancialStatementsConfigAction({ clientId, config: payload });
       if (res.success) {
         toast({ title: 'Settings Saved', description: 'Statutory AFS details updated successfully.' });
         fetchAfsData();
@@ -110,7 +134,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         [`Registration number: ${data.generalInfo.registrationNumber}`],
         [`Statement of Financial Position as at ${data.generalInfo.financialYearEndedDate}`],
         [],
-        ['Figures in Rand', 'Notes', '2025'],
+        ['Figures in Rand', 'Notes', '2026'],
         ['Assets'],
         ['Current Assets'],
         ...data.statementOfFinancialPosition.currentAssets.items.map((i) => [i.name, i.noteNumber || '', i.currentAmount]),
@@ -135,7 +159,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         [`Registration number: ${data.generalInfo.registrationNumber}`],
         [`Statement of Profit or Loss and Other Comprehensive Income for the year ended ${data.generalInfo.financialYearEndedDate}`],
         [],
-        ['Figures in Rand', 'Notes', '2025'],
+        ['Figures in Rand', 'Notes', '2026'],
         ['Other income', '', data.statementOfComprehensiveIncome.otherIncome.currentAmount],
         ['Operating expenses', '5', data.statementOfComprehensiveIncome.operatingExpenses.currentAmount],
         ['Operating loss', '', data.statementOfComprehensiveIncome.operatingProfitOrLoss.currentAmount],
@@ -152,7 +176,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         [data.generalInfo.companyName.toUpperCase()],
         ['Detailed Income Statement (Unaudited Supplementary Schedule)'],
         [],
-        ['Figures in Rand', '2025'],
+        ['Figures in Rand', '2026'],
         ['Other income'],
         ...data.detailedIncomeStatement.otherIncomeItems.map((i) => [i.name, i.current]),
         ['Total Other Income', data.detailedIncomeStatement.totalOtherIncome.current],
@@ -184,7 +208,18 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
     );
   }
 
-  if (!data || !generalInfoForm) return null;
+  if (!data || !generalInfoForm || !responsibilitiesForm || !directorsReportForm) return null;
+
+  // Sync state for updated PDF rendering
+  const liveAfsData: AnnualFinancialStatementsData = {
+    ...data,
+    generalInfo: generalInfoForm,
+    directorsResponsibilities: responsibilitiesForm,
+    directorsReport: {
+      ...directorsReportForm,
+      directors: generalInfoForm.directors,
+    },
+  };
 
   return (
     <div className="space-y-6 pb-16">
@@ -202,7 +237,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {data.generalInfo.companyName} • Registration: {data.generalInfo.registrationNumber} • Year ended {data.generalInfo.financialYearEndedDate}
+              {generalInfoForm.companyName} • Registration: {generalInfoForm.registrationNumber} • Year ended {generalInfoForm.financialYearEndedDate}
             </p>
           </div>
 
@@ -217,7 +252,18 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               <span>Export AFS Excel</span>
             </Button>
 
-            <AnnualFinancialStatementsPdfDownloadButton data={data} />
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSaveConfig}
+              disabled={isSaving}
+              className="font-bold text-xs h-9 gap-1.5 bg-slate-900 hover:bg-slate-800 text-white"
+            >
+              {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              <span>Save AFS Setup</span>
+            </Button>
+
+            <AnnualFinancialStatementsPdfDownloadButton data={liveAfsData} />
           </div>
         </div>
       </div>
@@ -228,20 +274,26 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           <TabsTrigger value="general_info" className="font-bold text-xs">
             1. General Info & Assurance
           </TabsTrigger>
+          <TabsTrigger value="responsibilities" className="font-bold text-xs">
+            2. Director's Responsibilities & Approval
+          </TabsTrigger>
+          <TabsTrigger value="directors_report" className="font-bold text-xs">
+            3. Director's Report
+          </TabsTrigger>
           <TabsTrigger value="balance_sheet" className="font-bold text-xs">
-            2. Statement of Financial Position
+            4. Statement of Financial Position
           </TabsTrigger>
           <TabsTrigger value="income_statement" className="font-bold text-xs">
-            3. Comprehensive Income (P&L)
+            5. Comprehensive Income (P&L)
           </TabsTrigger>
           <TabsTrigger value="equity_cashflows" className="font-bold text-xs">
-            4. Equity & Cash Flows
+            6. Equity & Cash Flows
           </TabsTrigger>
           <TabsTrigger value="notes" className="font-bold text-xs">
-            5. Notes & Disclosures (Notes 2-10)
+            7. Notes & Disclosures (Notes 2-10)
           </TabsTrigger>
           <TabsTrigger value="detailed_income" className="font-bold text-xs">
-            6. Detailed Income Schedule
+            8. Detailed Income Schedule
           </TabsTrigger>
         </TabsList>
 
@@ -252,7 +304,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               <div>
                 <CardTitle className="text-base font-bold">General Information & Statutory Preamble</CardTitle>
                 <CardDescription className="text-xs">
-                  Configure company details, assurance level, auditor/practitioner details, and directors in office.
+                  Configure company details, assurance level, practitioner details, issued date, and directors in office.
                 </CardDescription>
               </div>
               <Button size="sm" onClick={handleSaveConfig} disabled={isSaving} className="gap-1.5 font-bold text-xs">
@@ -284,9 +336,10 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="font-bold">Holding Company</Label>
+                  <Label className="font-bold">Holding Company (Optional)</Label>
                   <Input
                     value={generalInfoForm.holdingCompany || ''}
+                    placeholder="None / Parent Company Name"
                     onChange={(e) => setGeneralInfoForm({ ...generalInfoForm, holdingCompany: e.target.value })}
                   />
                 </div>
@@ -315,15 +368,15 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="audited">Audited (Registered Auditor)</SelectItem>
                         <SelectItem value="accounting_officer">Accounting Officer / Compilation Report</SelectItem>
+                        <SelectItem value="audited">Audited (Registered Auditor)</SelectItem>
                         <SelectItem value="independent_review">Independent Review</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="font-bold">Auditor / Practitioner Firm Name</Label>
+                    <Label className="font-bold">Practitioner Firm Name</Label>
                     <Input
                       value={generalInfoForm.auditorOrPractitionerFirm}
                       onChange={(e) => setGeneralInfoForm({ ...generalInfoForm, auditorOrPractitionerFirm: e.target.value })}
@@ -338,8 +391,16 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                     />
                   </div>
 
+                  <div className="space-y-1.5">
+                    <Label className="font-bold">Practitioner Designation</Label>
+                    <Input
+                      value={generalInfoForm.auditorOrPractitionerTitle}
+                      onChange={(e) => setGeneralInfoForm({ ...generalInfoForm, auditorOrPractitionerTitle: e.target.value })}
+                    />
+                  </div>
+
                   <div className="space-y-1.5 md:col-span-2">
-                    <Label className="font-bold">Auditor / Practitioner Address</Label>
+                    <Label className="font-bold">Practitioner Address</Label>
                     <Input
                       value={generalInfoForm.auditorOrPractitionerAddress}
                       onChange={(e) => setGeneralInfoForm({ ...generalInfoForm, auditorOrPractitionerAddress: e.target.value })}
@@ -347,10 +408,14 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="font-bold">Issued Date</Label>
+                    <Label className="font-bold flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-blue-600" /> Issued Date (Date Selector)
+                    </Label>
                     <Input
-                      value={generalInfoForm.issuedDate}
+                      type="date"
+                      value={generalInfoForm.issuedDate?.includes('-') && generalInfoForm.issuedDate.length === 10 ? generalInfoForm.issuedDate : '2026-08-19'}
                       onChange={(e) => setGeneralInfoForm({ ...generalInfoForm, issuedDate: e.target.value })}
+                      className="h-9 text-xs"
                     />
                   </div>
                 </div>
@@ -359,16 +424,29 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               {/* Directors in Office */}
               <div className="pt-4 border-t space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-black text-slate-800 text-sm flex items-center gap-2">
-                    <UserCheck className="h-4 w-4 text-blue-600" /> Directors in Office
-                  </h3>
+                  <div>
+                    <h3 className="font-black text-slate-800 text-sm flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 text-blue-600" /> Directors in Office
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">Manage active directors, office title, designation, nationality, and appointment date.</p>
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() =>
                       setGeneralInfoForm({
                         ...generalInfoForm,
-                        directors: [...generalInfoForm.directors, { name: '', designation: 'Executive Director', changes: 'In office' }],
+                        directors: [
+                          ...generalInfoForm.directors,
+                          {
+                            name: '',
+                            office: 'Chief Executive Officer',
+                            designation: 'Executive',
+                            nationality: 'South African',
+                            appointmentDate: new Date().toISOString().split('T')[0],
+                            changes: 'Appointed',
+                          },
+                        ],
                       })
                     }
                     className="h-7 text-xs font-bold gap-1"
@@ -377,50 +455,93 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   </Button>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {generalInfoForm.directors.map((d, idx) => (
-                    <div key={idx} className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border">
-                      <Input
-                        placeholder="Director Name"
-                        value={d.name}
-                        onChange={(e) => {
-                          const updated = [...generalInfoForm.directors];
-                          updated[idx].name = e.target.value;
-                          setGeneralInfoForm({ ...generalInfoForm, directors: updated });
-                        }}
-                        className="h-8 text-xs bg-white"
-                      />
-                      <Input
-                        placeholder="Designation (e.g. Executive Director)"
-                        value={d.designation}
-                        onChange={(e) => {
-                          const updated = [...generalInfoForm.directors];
-                          updated[idx].designation = e.target.value;
-                          setGeneralInfoForm({ ...generalInfoForm, directors: updated });
-                        }}
-                        className="h-8 text-xs bg-white"
-                      />
-                      <Input
-                        placeholder="Changes (e.g. Appointed 25 July 2024)"
-                        value={d.changes || ''}
-                        onChange={(e) => {
-                          const updated = [...generalInfoForm.directors];
-                          updated[idx].changes = e.target.value;
-                          setGeneralInfoForm({ ...generalInfoForm, directors: updated });
-                        }}
-                        className="h-8 text-xs bg-white"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          const updated = generalInfoForm.directors.filter((_, i) => i !== idx);
-                          setGeneralInfoForm({ ...generalInfoForm, directors: updated });
-                        }}
-                        className="h-8 w-8 text-rose-600 hover:text-rose-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div key={idx} className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-slate-50 p-3 rounded-lg border items-center">
+                      <div className="sm:col-span-3">
+                        <Label className="text-[10px] text-muted-foreground">Director Name</Label>
+                        <Input
+                          placeholder="Director Name"
+                          value={d.name}
+                          onChange={(e) => {
+                            const updated = [...generalInfoForm.directors];
+                            updated[idx].name = e.target.value;
+                            setGeneralInfoForm({ ...generalInfoForm, directors: updated });
+                          }}
+                          className="h-8 text-xs bg-white mt-1"
+                        />
+                      </div>
+                      <div className="sm:col-span-3">
+                        <Label className="text-[10px] text-muted-foreground">Office</Label>
+                        <Input
+                          placeholder="Office (e.g. Chief Executive Officer)"
+                          value={d.office || ''}
+                          onChange={(e) => {
+                            const updated = [...generalInfoForm.directors];
+                            updated[idx].office = e.target.value;
+                            setGeneralInfoForm({ ...generalInfoForm, directors: updated });
+                          }}
+                          className="h-8 text-xs bg-white mt-1"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label className="text-[10px] text-muted-foreground">Designation</Label>
+                        <Select
+                          value={d.designation || 'Executive'}
+                          onValueChange={(val) => {
+                            const updated = [...generalInfoForm.directors];
+                            updated[idx].designation = val;
+                            setGeneralInfoForm({ ...generalInfoForm, directors: updated });
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs bg-white mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Executive">Executive</SelectItem>
+                            <SelectItem value="Non-Executive">Non-Executive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label className="text-[10px] text-muted-foreground">Nationality</Label>
+                        <Input
+                          placeholder="Nationality"
+                          value={d.nationality || 'South African'}
+                          onChange={(e) => {
+                            const updated = [...generalInfoForm.directors];
+                            updated[idx].nationality = e.target.value;
+                            setGeneralInfoForm({ ...generalInfoForm, directors: updated });
+                          }}
+                          className="h-8 text-xs bg-white mt-1"
+                        />
+                      </div>
+                      <div className="sm:col-span-2 flex items-center gap-1.5 mt-4 sm:mt-0">
+                        <div className="flex-1">
+                          <Label className="text-[10px] text-muted-foreground">Appointment Date</Label>
+                          <Input
+                            type="date"
+                            value={d.appointmentDate || '2023-01-16'}
+                            onChange={(e) => {
+                              const updated = [...generalInfoForm.directors];
+                              updated[idx].appointmentDate = e.target.value;
+                              setGeneralInfoForm({ ...generalInfoForm, directors: updated });
+                            }}
+                            className="h-8 text-xs bg-white mt-1"
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const updated = generalInfoForm.directors.filter((_, i) => i !== idx);
+                            setGeneralInfoForm({ ...generalInfoForm, directors: updated });
+                          }}
+                          className="h-8 w-8 text-rose-600 hover:text-rose-700 mt-4"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -429,11 +550,189 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 2: STATEMENT OF FINANCIAL POSITION */}
+        {/* TAB 2: DIRECTOR'S RESPONSIBILITIES AND APPROVAL */}
+        <TabsContent value="responsibilities">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold">Director's Responsibilities and Approval</CardTitle>
+                <CardDescription className="text-xs">
+                  Review and customize the statutory director responsibilities and approval declaration.
+                </CardDescription>
+              </div>
+              <Button size="sm" onClick={handleSaveConfig} disabled={isSaving} className="gap-1.5 font-bold text-xs">
+                {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save Declaration
+              </Button>
+            </CardHeader>
+            <CardContent className="p-6 space-y-5 text-xs">
+              <div className="space-y-2">
+                <Label className="font-bold text-slate-800">Responsibilities and Internal Financial Control Statement</Label>
+                <Textarea
+                  rows={14}
+                  value={responsibilitiesForm.responsibilitiesText}
+                  onChange={(e) => setResponsibilitiesForm({ ...responsibilitiesForm, responsibilitiesText: e.target.value })}
+                  className="font-sans text-xs leading-relaxed p-4 bg-slate-50/50"
+                />
+              </div>
+
+              <div className="pt-4 border-t grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="font-bold flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-blue-600" /> Approval Date (Date Selector)
+                  </Label>
+                  <Input
+                    type="date"
+                    value={responsibilitiesForm.approvalDate || '2026-08-19'}
+                    onChange={(e) => setResponsibilitiesForm({ ...responsibilitiesForm, approvalDate: e.target.value })}
+                    className="h-9 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-bold">Signatory Director</Label>
+                  <Select
+                    value={responsibilitiesForm.signatoryName || generalInfoForm.directors[0]?.name}
+                    onValueChange={(val) => setResponsibilitiesForm({ ...responsibilitiesForm, signatoryName: val })}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {generalInfoForm.directors.map((d, i) => (
+                        <SelectItem key={i} value={d.name || `Director ${i + 1}`}>
+                          {d.name || `Director ${i + 1}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="font-bold">Signatory Designation</Label>
+                  <Input
+                    value={responsibilitiesForm.signatoryTitle || 'Director'}
+                    onChange={(e) => setResponsibilitiesForm({ ...responsibilitiesForm, signatoryTitle: e.target.value })}
+                    className="h-9 text-xs"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 3: DIRECTOR'S REPORT */}
+        <TabsContent value="directors_report">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold">Director's Report</CardTitle>
+                <CardDescription className="text-xs">
+                  Review and customize statutory report sections: Incorporation, Nature of business, Review of activities, Share capital, Going concern, and Events after reporting period.
+                </CardDescription>
+              </div>
+              <Button size="sm" onClick={handleSaveConfig} disabled={isSaving} className="gap-1.5 font-bold text-xs">
+                {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save Report
+              </Button>
+            </CardHeader>
+            <CardContent className="p-6 space-y-5 text-xs">
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800">1. Incorporation</Label>
+                <Input
+                  value={directorsReportForm.incorporationText}
+                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, incorporationText: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800">2. Nature of business</Label>
+                <Textarea
+                  rows={3}
+                  value={directorsReportForm.natureOfBusiness}
+                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, natureOfBusiness: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800">3. Review of financial results and activities</Label>
+                <Textarea
+                  rows={4}
+                  value={directorsReportForm.reviewOfActivities}
+                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, reviewOfActivities: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800">4. Share capital</Label>
+                <Textarea
+                  rows={3}
+                  value={directorsReportForm.shareCapitalDetails}
+                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, shareCapitalDetails: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800">5. Director in Office</Label>
+                <div className="bg-slate-50 p-3 rounded-lg border">
+                  <Table className="text-xs">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Director</TableHead>
+                        <TableHead>Office</TableHead>
+                        <TableHead>Designation</TableHead>
+                        <TableHead>Nationality</TableHead>
+                        <TableHead>Appointment Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {generalInfoForm.directors.map((d, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="font-bold">{d.name}</TableCell>
+                          <TableCell>{d.office || 'Chief Executive Officer'}</TableCell>
+                          <TableCell>{d.designation || 'Executive'}</TableCell>
+                          <TableCell>{d.nationality || 'South African'}</TableCell>
+                          <TableCell className="font-mono">{d.appointmentDate || '2023-01-16'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800">6. Events after the reporting period</Label>
+                <Input
+                  value={directorsReportForm.eventsAfterReportingPeriod}
+                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, eventsAfterReportingPeriod: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800">7. Going concern</Label>
+                <Textarea
+                  rows={3}
+                  value={directorsReportForm.goingConcernText}
+                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, goingConcernText: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800">8. Accounting Officer / Auditor Continuance</Label>
+                <Input
+                  value={directorsReportForm.auditorOrPractitionerContinuance}
+                  onChange={(e) => setDirectorsReportForm({ ...directorsReportForm, auditorOrPractitionerContinuance: e.target.value })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 4: STATEMENT OF FINANCIAL POSITION */}
         <TabsContent value="balance_sheet">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-base font-bold">Statement of Financial Position as at {data.generalInfo.financialYearEndedDate}</CardTitle>
+              <CardTitle className="text-base font-bold">Statement of Financial Position as at {generalInfoForm.financialYearEndedDate}</CardTitle>
               <CardDescription className="text-xs">
                 Official statutory balance sheet with Note cross-references.
               </CardDescription>
@@ -444,7 +743,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   <TableRow>
                     <TableHead>Figures in Rand</TableHead>
                     <TableHead className="w-[100px] text-center">Notes</TableHead>
-                    <TableHead className="w-[160px] text-right">2025</TableHead>
+                    <TableHead className="w-[160px] text-right">2026</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -513,13 +812,13 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 3: STATEMENT OF COMPREHENSIVE INCOME */}
+        {/* TAB 5: STATEMENT OF COMPREHENSIVE INCOME */}
         <TabsContent value="income_statement">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base font-bold">Statement of Profit or Loss and Other Comprehensive Income</CardTitle>
               <CardDescription className="text-xs">
-                For the year ended {data.generalInfo.financialYearEndedDate}
+                For the year ended {generalInfoForm.financialYearEndedDate}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -528,7 +827,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   <TableRow>
                     <TableHead>Figures in Rand</TableHead>
                     <TableHead className="w-[100px] text-center">Note(s)</TableHead>
-                    <TableHead className="w-[160px] text-right">2025</TableHead>
+                    <TableHead className="w-[160px] text-right">2026</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -578,7 +877,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 4: EQUITY & CASH FLOWS */}
+        {/* TAB 6: EQUITY & CASH FLOWS */}
         <TabsContent value="equity_cashflows" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="shadow-sm">
@@ -609,7 +908,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                       <TableCell className="text-right font-mono font-bold">{formatRand(data.statementOfChangesInEquity.shareCapital.change)}</TableCell>
                     </TableRow>
                     <TableRow className="font-bold bg-slate-100 border-t-2">
-                      <TableCell>Balance at {data.generalInfo.financialYearEndedDate}</TableCell>
+                      <TableCell>Balance at {generalInfoForm.financialYearEndedDate}</TableCell>
                       <TableCell className="text-right font-mono">{formatRand(data.statementOfChangesInEquity.shareCapital.current)}</TableCell>
                       <TableCell className="text-right font-mono">{formatRand(data.statementOfChangesInEquity.accumulatedLoss.current)}</TableCell>
                       <TableCell className="text-right font-mono font-black">{formatRand(data.statementOfChangesInEquity.totalEquity.current)}</TableCell>
@@ -629,7 +928,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                     <TableRow>
                       <TableHead>Figures in Rand</TableHead>
                       <TableHead className="w-[80px] text-center">Notes</TableHead>
-                      <TableHead className="text-right">2025</TableHead>
+                      <TableHead className="text-right">2026</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -670,7 +969,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </div>
         </TabsContent>
 
-        {/* TAB 5: STATUTORY NOTES & DISCLOSURES */}
+        {/* TAB 7: STATUTORY NOTES & DISCLOSURES */}
         <TabsContent value="notes" className="space-y-4">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b">
@@ -745,7 +1044,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 6: DETAILED INCOME STATEMENT SCHEDULE */}
+        {/* TAB 8: DETAILED INCOME STATEMENT SCHEDULE */}
         <TabsContent value="detailed_income">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b">
@@ -759,7 +1058,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 <TableHeader className="bg-slate-50 font-bold">
                   <TableRow>
                     <TableHead>Account Description</TableHead>
-                    <TableHead className="w-[160px] text-right">2025 (ZAR)</TableHead>
+                    <TableHead className="w-[160px] text-right">2026 (ZAR)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

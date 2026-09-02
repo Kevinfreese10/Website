@@ -17,6 +17,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
 
   const {
     generalInfo,
+    directorsResponsibilities,
     directorsReport,
     statementOfFinancialPosition,
     statementOfComprehensiveIncome,
@@ -134,9 +135,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   doc.text('The reports and statements set out below comprise the financial statements presented to the shareholder:', leftMargin, 48);
 
   const indexItems = [
-    ["Directors' Responsibilities and Approval", '3'],
+    ["Director's Responsibilities and Approval", '3'],
     [generalInfo.assuranceLevel === 'audited' ? "Independent Auditor's Report" : "Report of the Accounting Officer", '4 - 6'],
-    ["Directors' Report", '7 - 8'],
+    ["Director's Report", '7 - 8'],
     ['Statement of Financial Position', '9'],
     ['Statement of Profit or Loss and Other Comprehensive Income', '10'],
     ['Statement of Changes in Equity', '11'],
@@ -169,33 +170,27 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   });
   drawPageFooter(2);
 
-  // PAGE 4: DIRECTORS' RESPONSIBILITIES AND APPROVAL
+  // PAGE 4: DIRECTOR'S RESPONSIBILITIES AND APPROVAL
   doc.addPage();
-  drawPageHeader("Directors' Responsibilities and Approval");
+  drawPageHeader("Director's Responsibilities and Approval");
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
 
-  const respParas = [
-    'The directors are required by the Companies Act of South Africa, to maintain adequate accounting records and are responsible for the content and integrity of the financial statements and related financial information included in this report. It is their responsibility to ensure that the financial statements fairly present the state of affairs of the company as at the end of the financial year and the results of its operations and cash flows for the period then ended, in conformity with the IFRS for SMEs® Accounting Standard as issued by the International Accounting Standards Board (IASB).',
-    'The financial statements are prepared in accordance with the requirements of IFRS for SMEs Accounting Standards and the requirements of the Companies Act of South Africa and are based upon appropriate accounting policies consistently applied and supported by reasonable and prudent judgements and estimates.',
-    'The directors acknowledge that they are ultimately responsible for the system of internal financial control established by the company and place considerable importance on maintaining a strong control environment. To enable the directors to meet these responsibilities, the directors set standards for internal control aimed at reducing the risk of error or loss in a cost effective manner.',
-    'The directors are of the opinion, based on the information and explanations given by management, that the system of internal control provides reasonable assurance that the financial records may be relied on for the preparation of the financial statements.',
-    `The directors have reviewed the company's cash flow forecast for the year to ${generalInfo.financialYearEndedDate} and, in the light of this review and the current financial position, they are satisfied that the company has or has access to adequate resources to continue in operational existence for the foreseeable future.`,
-    `The financial statements set out on pages 9 to 16, which have been prepared on the going concern basis, were approved by the directors on ${generalInfo.issuedDate} and were signed on their behalf by:`,
-  ];
+  const respParas = (directorsResponsibilities.responsibilitiesText || '').split('\n\n').filter(Boolean);
 
   let pY = 48;
   respParas.forEach((p) => {
-    const split = doc.splitTextToSize(p, contentWidth);
+    const split = doc.splitTextToSize(p.trim(), contentWidth);
     doc.text(split, leftMargin, pY);
-    pY += split.length * 4 + 4;
+    pY += split.length * 3.8 + 3.5;
   });
 
   doc.setFont('helvetica', 'bold');
-  doc.text('Approval of financial statements', leftMargin, pY + 10);
-  doc.line(leftMargin, pY + 30, leftMargin + 65, pY + 30);
+  doc.text('Approval of financial statements', leftMargin, pY + 8);
+  doc.line(leftMargin, pY + 26, leftMargin + 65, pY + 26);
   doc.setFont('helvetica', 'normal');
-  doc.text(generalInfo.directors[0]?.name || generalInfo.preparerName, leftMargin, pY + 34);
+  doc.text(directorsResponsibilities.signatoryName || generalInfo.directors[0]?.name || 'Director', leftMargin, pY + 30);
+  doc.text(directorsResponsibilities.signatoryTitle || 'Director', leftMargin, pY + 34);
   drawPageFooter(3);
 
   // PAGE 5-7: PRACTITIONER REPORT
@@ -205,126 +200,144 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   doc.setFontSize(8.5);
   doc.text(`To the Shareholder of ${generalInfo.companyName}`, leftMargin, 48);
 
-  doc.text('Opinion', leftMargin, 56);
+  doc.text('Opinion / Report of the Accounting Officer', leftMargin, 56);
   doc.setFont('helvetica', 'normal');
-  const opText = `We have audited the financial statements of ${generalInfo.companyName} set out on pages 9 to 15, which comprise the statement of financial position as at ${generalInfo.financialYearEndedDate}, and the statement of profit or loss and other comprehensive income, the statement of changes in equity and the statement of cash flows for the year then ended, and notes to the financial statements, including a summary of material accounting policies. In our opinion, the financial statements present fairly, in all material respects, the financial position of ${generalInfo.companyName} as at ${generalInfo.financialYearEndedDate}, and its financial performance and cash flows for the year then ended in accordance with The IFRS for SMEs® Accounting Standard and the requirements of the Companies Act of South Africa.`;
+  const opText = `We have compiled the financial statements of ${generalInfo.companyName} set out on pages 9 to 15, which comprise the statement of financial position as at ${generalInfo.financialYearEndedDate}, and the statement of profit or loss and other comprehensive income, the statement of changes in equity and the statement of cash flows for the year then ended, and notes to the financial statements, including a summary of material accounting policies. The financial statements have been compiled in accordance with the International Standard on Related Services (ISRS 4410) and the requirements of the Companies Act of South Africa.`;
   const opSplit = doc.splitTextToSize(opText, contentWidth);
   doc.text(opSplit, leftMargin, 61);
 
   doc.setFont('helvetica', 'bold');
-  doc.text('Basis for Opinion', leftMargin, 61 + opSplit.length * 4 + 4);
+  doc.text('Basis of Compilation', leftMargin, 61 + opSplit.length * 4 + 4);
   doc.setFont('helvetica', 'normal');
-  const basisText = `We conducted our audit in accordance with International Standards on Auditing (ISAs). Our responsibilities under those standards are further described in the Auditor's Responsibilities section of our report. We are independent of the company in accordance with the Independent Regulatory Board for Auditors' Code of Professional Conduct for Registered Auditors (IRBA Code). We believe that the audit evidence we have obtained is sufficient and appropriate to provide a basis for our opinion.`;
+  const basisText = `We performed this compilation engagement in accordance with International Standard on Related Services 4410 (Revised), Compilation Engagements. We have applied our expertise in accounting and financial reporting to assist you in the preparation and presentation of these financial statements on the basis of International Financial Reporting Standard for Small and Medium-sized Entities and the requirements of the Companies Act of South Africa.`;
   const basisSplit = doc.splitTextToSize(basisText, contentWidth);
   doc.text(basisSplit, leftMargin, 61 + opSplit.length * 4 + 9);
   drawPageFooter(4);
 
   // PAGE 6
   doc.addPage();
-  drawPageHeader(generalInfo.assuranceLevel === 'audited' ? "Independent Auditor's Report (Continued)" : "Report of the Accounting Officer");
+  drawPageHeader(generalInfo.assuranceLevel === 'audited' ? "Independent Auditor's Report (Continued)" : "Report of the Accounting Officer (Continued)");
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.text('Responsibilities of the Directors for the Financial Statements', leftMargin, 48);
+  doc.text('Responsibilities of the Director for the Financial Statements', leftMargin, 48);
   doc.setFont('helvetica', 'normal');
-  const dirResp = `The directors are responsible for the preparation and fair presentation of the financial statements in accordance with IFRS for SMEs Accounting Standard and the requirements of the Companies Act of South Africa, and for such internal control as the directors determine is necessary to enable the preparation of financial statements that are free from material misstatement, whether due to fraud or error. In preparing the financial statements, the directors are responsible for assessing the company's ability to continue as a going concern.`;
+  const dirResp = `The director is responsible for the preparation and fair presentation of the financial statements in accordance with International Financial Reporting Standard for Small and Medium-sized Entities and the requirements of the Companies Act of South Africa, and for such internal control as the director determines is necessary to enable the preparation of financial statements that are free from material misstatement, whether due to fraud or error.`;
   const dirRespSplit = doc.splitTextToSize(dirResp, contentWidth);
   doc.text(dirRespSplit, leftMargin, 53);
 
   doc.setFont('helvetica', 'bold');
-  doc.text("Auditor's Responsibilities for the Audit of the Financial Statements", leftMargin, 53 + dirRespSplit.length * 4 + 4);
+  doc.text("Accounting Officer's Responsibilities", leftMargin, 53 + dirRespSplit.length * 4 + 4);
   doc.setFont('helvetica', 'normal');
-  const audResp = `Our objectives are to obtain reasonable assurance about whether the financial statements as a whole are free from material misstatement, whether due to fraud or error, and to issue an auditor's report that includes our opinion.`;
+  const audResp = `Since a compilation engagement is not an assurance engagement, we are not required to verify the accuracy or completeness of the information you provided to us to compile these financial statements. Accordingly, we do not express an audit opinion or a review conclusion on whether these financial statements are prepared in accordance with IFRS for SMEs.`;
   const audRespSplit = doc.splitTextToSize(audResp, contentWidth);
   doc.text(audRespSplit, leftMargin, 53 + dirRespSplit.length * 4 + 9);
   drawPageFooter(5);
 
   // PAGE 7: Sign-off
   doc.addPage();
-  drawPageHeader(generalInfo.assuranceLevel === 'audited' ? "Independent Auditor's Report (Sign-off)" : "Report of the Accounting Officer");
+  drawPageHeader(generalInfo.assuranceLevel === 'audited' ? "Independent Auditor's Report (Sign-off)" : "Report of the Accounting Officer (Sign-off)");
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.text('We communicate with the directors regarding, among other matters, the planned scope and timing of the audit.', leftMargin, 48);
+  doc.text('We communicate with the directors regarding, among other matters, the planned scope and timing of our compilation procedures.', leftMargin, 48);
 
   doc.setFont('helvetica', 'bold');
   doc.text(generalInfo.auditorOrPractitionerFirm, leftMargin, 65);
   doc.setFont('helvetica', 'normal');
   doc.text(generalInfo.auditorOrPractitionerTitle, leftMargin, 70);
-  doc.text(`Per: ${generalInfo.leadPartnerName || 'Director'}`, leftMargin, 78);
-  doc.text(generalInfo.leadPartnerTitle || 'Registered Auditor', leftMargin, 82);
+  doc.text(`Per: ${generalInfo.leadPartnerName || 'Kevin Freese'}`, leftMargin, 78);
+  doc.text(generalInfo.leadPartnerTitle || 'Accounting Officer BAP(SA)', leftMargin, 82);
   doc.text(generalInfo.auditorOrPractitionerAddress, leftMargin, 90);
   doc.setFont('helvetica', 'bold');
   doc.text(generalInfo.issuedDate, leftMargin, 96);
   drawPageFooter(6);
 
-  // PAGE 8-9: DIRECTORS' REPORT
+  // PAGE 8-9: DIRECTOR'S REPORT
   doc.addPage();
-  drawPageHeader("Directors' Report");
+  drawPageHeader("Director's Report");
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.text(`The directors have pleasure in submitting their report on the financial statements of ${generalInfo.companyName} for the year ended ${generalInfo.financialYearEndedDate}.`, leftMargin, 48);
+  doc.text(`The director has pleasure in submitting her report on the financial statements of ${generalInfo.companyName} for the year ended ${generalInfo.financialYearEndedDate}.`, leftMargin, 48);
+
+  let dY = 56;
+  if (directorsReport.incorporationText) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('1. Incorporation', leftMargin, dY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(directorsReport.incorporationText, leftMargin, dY + 4);
+    dY += 12;
+  }
 
   doc.setFont('helvetica', 'bold');
-  doc.text('1. Nature of business', leftMargin, 56);
+  doc.text('2. Nature of business', leftMargin, dY);
   doc.setFont('helvetica', 'normal');
-  doc.text(`${generalInfo.companyName} was incorporated in South Africa with interests in the ${generalInfo.natureOfBusiness} industry. The company operates in South Africa.`, leftMargin, 61);
+  const natSplit = doc.splitTextToSize(directorsReport.natureOfBusiness, contentWidth);
+  doc.text(natSplit, leftMargin, dY + 4);
+  dY += natSplit.length * 4 + 5;
 
   doc.setFont('helvetica', 'bold');
-  doc.text('2. Review of financial results and activities', leftMargin, 70);
+  doc.text('3. Review of financial results and activities', leftMargin, dY);
   doc.setFont('helvetica', 'normal');
   const revSplit = doc.splitTextToSize(directorsReport.reviewOfActivities, contentWidth);
-  doc.text(revSplit, leftMargin, 75);
+  doc.text(revSplit, leftMargin, dY + 4);
+  dY += revSplit.length * 4 + 5;
 
-  let dY = 75 + revSplit.length * 4 + 4;
   doc.setFont('helvetica', 'bold');
-  doc.text('3. Share capital', leftMargin, dY);
-  dY += 5;
+  doc.text('4. Share capital', leftMargin, dY);
+  dY += 4;
 
   autoTable(doc, {
     startY: dY,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
     head: [['Authorised', 'Number of shares']],
-    body: [[notes.note3ShareCapital.authorisedShares, '1 000']],
+    body: [[notes.note3ShareCapital.authorisedShares, '100']],
     styles: { fontSize: 8, cellPadding: 1.5 },
   });
 
-  const scY = (doc as any).lastAutoTable?.finalY || dY + 15;
+  const scY = (doc as any).lastAutoTable?.finalY || dY + 12;
   autoTable(doc, {
     startY: scY + 2,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
-    head: [['Issued', 'R', 'Number of shares']],
-    body: [[notes.note3ShareCapital.issuedShares, `${formatRand(notes.note3ShareCapital.issuedAmount.current)}`, '100']],
+    head: [['Issued', '2026 (R)', '2025 (R)', 'Number of shares']],
+    body: [[notes.note3ShareCapital.issuedShares, `${formatRand(notes.note3ShareCapital.issuedAmount.current)}`, `${formatRand(notes.note3ShareCapital.issuedAmount.prior || 100)}`, '100']],
     styles: { fontSize: 8, cellPadding: 1.5 },
   });
 
-  const sc2Y = (doc as any).lastAutoTable?.finalY || scY + 15;
+  const sc2Y = (doc as any).lastAutoTable?.finalY || scY + 12;
   doc.setFont('helvetica', 'bold');
-  doc.text('4. Directors', leftMargin, sc2Y + 6);
+  doc.text('5. Director', leftMargin, sc2Y + 5);
+
+  const directorRows = generalInfo.directors.map((d) => [
+    d.name,
+    d.office || 'Chief Executive Officer',
+    d.designation || 'Executive',
+    d.nationality || 'South African',
+  ]);
 
   autoTable(doc, {
-    startY: sc2Y + 9,
+    startY: sc2Y + 8,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
-    head: [['Directors', 'Designation', 'Changes']],
-    body: generalInfo.directors.map((d) => [d.name, d.designation, d.changes || 'In office']),
+    head: [['Director', 'Office', 'Designation', 'Nationality']],
+    body: directorRows,
     styles: { fontSize: 8, cellPadding: 1.5 },
   });
 
-  const dirY = (doc as any).lastAutoTable?.finalY || sc2Y + 25;
+  const dirY = (doc as any).lastAutoTable?.finalY || sc2Y + 22;
   doc.setFont('helvetica', 'bold');
-  doc.text('5. Events after the reporting period', leftMargin, dirY + 6);
+  doc.text('6. Events after the reporting period', leftMargin, dirY + 5);
   doc.setFont('helvetica', 'normal');
-  doc.text(directorsReport.eventsAfterReportingPeriod, leftMargin, dirY + 11);
+  doc.text(directorsReport.eventsAfterReportingPeriod, leftMargin, dirY + 9);
 
   drawPageFooter(7);
 
-  // PAGE 9
+  // PAGE 9: DIRECTOR'S REPORT (CONTINUED)
   doc.addPage();
-  drawPageHeader("Directors' Report (Continued)");
+  drawPageHeader("Director's Report (Continued)");
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.text('6. Going concern', leftMargin, 48);
+  doc.text('7. Going concern', leftMargin, 48);
   doc.setFont('helvetica', 'normal');
   const gcText1 =
     'The financial statements have been prepared on the basis of accounting policies applicable to a going concern. This basis presumes that funds will be available to finance future operations and that the realisation of assets and settlement of liabilities, contingent obligations and commitments will occur in the ordinary course of business.';
@@ -332,14 +345,11 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   doc.text(gc1Split, leftMargin, 53);
 
   const gcText2 = directorsReport.goingConcernText;
-  const gc2Split = doc.splitTextToSize(gcText2, contentWidth);
-  doc.text(gc2Split, leftMargin, 53 + gc1Split.length * 4 + 3);
+  if (gcText2 && gcText2 !== gcText1) {
+    const gc2Split = doc.splitTextToSize(gcText2, contentWidth);
+    doc.text(gc2Split, leftMargin, 53 + gc1Split.length * 4 + 3);
+  }
 
-  const gcY = 53 + gc1Split.length * 4 + gc2Split.length * 4 + 8;
-  doc.setFont('helvetica', 'bold');
-  doc.text('7. Auditors / Accounting Officer', leftMargin, gcY);
-  doc.setFont('helvetica', 'normal');
-  doc.text(directorsReport.auditorOrPractitionerContinuance, leftMargin, gcY + 5);
   drawPageFooter(8);
 
   // PAGE 10: STATEMENT OF FINANCIAL POSITION
@@ -369,7 +379,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     startY: 48,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
-    head: [['Figures in Rand', 'Notes', '2025']],
+    head: [['Figures in Rand', 'Notes', '2026']],
     body: bsRows as any,
     styles: { fontSize: 8.5, cellPadding: 2 },
     columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 20, halign: 'center' }, 2: { cellWidth: 30, halign: 'right' } },
@@ -395,7 +405,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     startY: 48,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
-    head: [['Figures in Rand', 'Note(s)', '2025']],
+    head: [['Figures in Rand', 'Note(s)', '2026']],
     body: pnlTableRows as any,
     styles: { fontSize: 8.5, cellPadding: 2.5 },
     columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 20, halign: 'center' }, 2: { cellWidth: 30, halign: 'right' } },
@@ -452,7 +462,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     startY: 48,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
-    head: [['Figures in Rand', 'Notes', '2025']],
+    head: [['Figures in Rand', 'Notes', '2026']],
     body: cfRows as any,
     styles: { fontSize: 8.5, cellPadding: 2.5 },
     columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 20, halign: 'center' }, 2: { cellWidth: 30, halign: 'right' } },
@@ -467,7 +477,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   doc.text('1. Basis of preparation and summary of material accounting policies', leftMargin, 48);
   doc.setFont('helvetica', 'normal');
   const p1 =
-    'The financial statements have been prepared on a going concern basis in accordance with the IFRS for SMEs® Accounting Standard as issued by the International Accounting Standards Board (IASB) and the requirements of the Companies Act of South Africa. The financial statements have been prepared on the historical cost basis, and incorporate the principal accounting policies set out below. They are presented in South African Rands.';
+    'The financial statements have been prepared on a going concern basis in accordance with the International Financial Reporting Standard for Small and Medium-sized Entities (IFRS for SMEs) and the requirements of the Companies Act of South Africa. The financial statements have been prepared on the historical cost basis, and incorporate the principal accounting policies set out below. They are presented in South African Rands.';
   const p1Split = doc.splitTextToSize(p1, contentWidth);
   doc.text(p1Split, leftMargin, 53);
 
@@ -542,7 +552,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     theme: 'plain',
     body: [
       ['Authorised', ''],
-      [notes.note3ShareCapital.authorisedShares, '1 000'],
+      [notes.note3ShareCapital.authorisedShares, '100'],
       ['Issued', ''],
       [notes.note3ShareCapital.issuedShares, formatRand(notes.note3ShareCapital.issuedAmount.current)],
     ],
@@ -696,7 +706,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     startY: 48,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
-    head: [['Figures in Rand', '2025']],
+    head: [['Figures in Rand', '2026']],
     body: detRows,
     styles: { fontSize: 8, cellPadding: 1.5 },
     columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 30, halign: 'right' } },
