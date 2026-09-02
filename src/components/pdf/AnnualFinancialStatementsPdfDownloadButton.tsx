@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, Download } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { AnnualFinancialStatementsData } from '@/lib/afs-types';
+import { generateAfsPdf } from '@/lib/afs-pdf-generator';
 
 interface AnnualFinancialStatementsPdfDownloadButtonProps {
   data: AnnualFinancialStatementsData;
@@ -23,33 +24,14 @@ export default function AnnualFinancialStatementsPdfDownloadButton({
   const handleDownload = async () => {
     setIsGenerating(true);
     try {
-      const res = await fetch('/api/financial-statements/pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ data }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate AFS PDF');
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${(data.generalInfo.companyName || 'Company')
+      const doc = generateAfsPdf(data);
+      const filename = `${(data.generalInfo.companyName || 'Company')
         .replace(/[^a-zA-Z0-9]/g, '_')}_Financial_Statements_${(data.generalInfo.financialYearEndedDate || 'AFS').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      doc.save(filename);
 
       toast({
         title: 'AFS PDF Downloaded',
-        description: 'Statutory IFRS for SMEs Annual Financial Statements PDF generated.',
+        description: 'Statutory IFRS for SMEs Annual Financial Statements PDF generated successfully.',
       });
     } catch (err: any) {
       console.error('AFS PDF generation error:', err);

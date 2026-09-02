@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Loader2, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ManagementReportData, ManagementReportAnalysisOutput } from '@/lib/management-report-types';
+import { generateManagementReportPdf } from '@/lib/management-report-pdf-generator';
 
 interface ManagementReportPdfDownloadButtonProps {
   data: ManagementReportData;
@@ -25,40 +26,17 @@ export default function ManagementReportPdfDownloadButton({
   const handleDownload = async () => {
     setIsGenerating(true);
     try {
-      const res = await fetch('/api/management-report/pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          data,
-          analysis,
-          customNotes,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate PDF');
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Management_Report_${(data.client.companyName || 'Company')
+      const doc = generateManagementReportPdf({ data, analysis, customNotes });
+      const filename = `Management_Report_${(data.client.companyName || 'Company')
         .replace(/[^a-zA-Z0-9]/g, '_')}_${(data.period.label || 'Period').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      doc.save(filename);
 
       toast({
         title: 'PDF Downloaded',
         description: 'Executive Management Report PDF successfully generated.',
       });
     } catch (err: any) {
-      console.error('PDF generation error:', err);
+      console.error('Management Report PDF generation error:', err);
       toast({
         title: 'Download Failed',
         description: err.message || 'Could not generate management report PDF.',
@@ -71,17 +49,17 @@ export default function ManagementReportPdfDownloadButton({
 
   return (
     <Button
-      variant="outline"
+      variant="default"
       onClick={handleDownload}
       disabled={isGenerating}
-      className={className || 'gap-2 font-bold text-xs h-9'}
+      className={className || 'gap-2 font-bold text-xs h-9 bg-slate-900 hover:bg-slate-800 text-white'}
     >
       {isGenerating ? (
-        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        <Loader2 className="h-4 w-4 animate-spin text-white" />
       ) : (
-        <FileText className="h-4 w-4 text-primary" />
+        <FileText className="h-4 w-4 text-white" />
       )}
-      <span>{isGenerating ? 'Generating Board Pack...' : 'Export Executive PDF'}</span>
+      <span>{isGenerating ? 'Compiling PDF Report...' : 'Download Executive PDF'}</span>
     </Button>
   );
 }
