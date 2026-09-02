@@ -9,7 +9,7 @@ import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Bot, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Menubar,
@@ -30,6 +30,7 @@ export default function AIAccountantClientLayout({ children }: { children: React
     const clientId = params.clientId as string;
     const [client, setClient] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isKhaiOpen, setIsKhaiOpen] = useState(false);
     const { user: currentUser } = useAuth();
     
     useEffect(() => {
@@ -63,15 +64,27 @@ export default function AIAccountantClientLayout({ children }: { children: React
 
     return (
         <div className="space-y-4">
-             <div>
-                 <Button variant="outline" size="sm" asChild className="mb-4">
-                    <Link href={backLink}>
-                        <ChevronLeft className="mr-2 h-4 w-4" />
-                        Back to All Clients
-                    </Link>
-                </Button>
-                <h1 className="text-2xl font-bold tracking-tight">{client?.companyName || client?.name}</h1>
-                <p className="text-muted-foreground">AI Accountant Module</p>
+             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                 <div>
+                     <Button variant="outline" size="sm" asChild className="mb-2">
+                        <Link href={backLink}>
+                            <ChevronLeft className="mr-2 h-4 w-4" />
+                            Back to All Clients
+                        </Link>
+                    </Button>
+                    <h1 className="text-2xl font-bold tracking-tight">{client?.companyName || client?.name}</h1>
+                    <p className="text-muted-foreground text-sm">AI Accountant Module</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Button 
+                        onClick={() => setIsKhaiOpen(true)}
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs h-9 px-4 gap-2 shadow-md rounded-xl transition-all hover:scale-[1.02]"
+                    >
+                        <Bot className="h-4 w-4 text-white" />
+                        <span>Chat with Khai (AI)</span>
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+                    </Button>
+                </div>
             </div>
 
             <Menubar className="w-full bg-card text-[12px] h-auto flex-wrap text-slate-700">
@@ -147,13 +160,21 @@ export default function AIAccountantClientLayout({ children }: { children: React
                         <MenubarItem asChild><Link href={`/admin/ai-accountant/${clientId}/reports/account-transactions`}>Account Transactions</Link></MenubarItem>
                     </MenubarContent>
                 </MenubarMenu>
+                <MenubarMenu>
+                    <MenubarTrigger 
+                        onClick={() => setIsKhaiOpen(true)}
+                        className="py-2 ml-auto text-primary font-bold hover:text-primary cursor-pointer flex items-center gap-1.5"
+                    >
+                        <Sparkles className="h-3.5 w-3.5 text-yellow-500" /> Ask Khai (AI)
+                    </MenubarTrigger>
+                </MenubarMenu>
             </Menubar>
             
             <main>
                 {children}
             </main>
 
-            <KhaiChatPopup clientId={clientId} client={client} />
+            <KhaiChatPopup clientId={clientId} client={client} isOpen={isKhaiOpen} onOpenChange={setIsKhaiOpen} />
         </div>
     );
 }

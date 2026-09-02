@@ -3,6 +3,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getFirestore, doc, collection, getDocs, onSnapshot, query } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose
+} from "@/components/ui/sheet";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,9 +54,24 @@ type Message = {
   timestamp: Date;
 };
 
-export default function KhaiChatPopup({ clientId, client }: { clientId: string, client: any }) {
+interface KhaiChatPopupProps {
+  clientId: string;
+  client: any;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function KhaiChatPopup({ 
+  clientId, 
+  client,
+  isOpen: controlledIsOpen,
+  onOpenChange: controlledOnOpenChange
+}: KhaiChatPopupProps) {
   const { toast } = useToast();
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const setIsOpen = controlledOnOpenChange || setInternalIsOpen;
+
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'bot',
@@ -313,184 +336,164 @@ export default function KhaiChatPopup({ clientId, client }: { clientId: string, 
   };
 
   return (
-    <>
-      {/* Floating Toggle Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-ring group"
-        aria-label="Toggle chat with Khai"
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetContent 
+        side="right" 
+        className="w-full sm:max-w-md md:max-w-lg p-0 flex flex-col h-full bg-background border-l shadow-2xl z-50 overflow-hidden"
       >
-        {isOpen ? (
-          <X className="h-6 w-6 transform rotate-90 duration-300 transition-transform" />
-        ) : (
-          <div className="relative">
-            <MessageSquare className="h-6 w-6" />
-            <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse" />
-          </div>
-        )}
-      </button>
-
-      {/* Chat window */}
-      {isOpen && (
-        <Card className="fixed bottom-24 right-6 z-50 w-[420px] h-[600px] flex flex-col shadow-2xl border bg-card backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-300 rounded-2xl overflow-hidden">
-          <CardHeader className="bg-primary text-primary-foreground py-4 px-5 flex flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary-foreground/20 flex items-center justify-center shadow-sm">
-                <Bot className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <CardTitle className="text-base font-bold flex items-center gap-1.5">
-                  Chat with Khai
-                  <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
-                </CardTitle>
-                <CardDescription className="text-primary-foreground/80 text-[10px] font-medium tracking-wide">AI Accountant (He/Him)</CardDescription>
-              </div>
+        <SheetHeader className="bg-primary text-primary-foreground py-4 px-5 flex flex-row items-center justify-between border-b space-y-0 text-left">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary-foreground/20 flex items-center justify-center shadow-sm">
+              <Bot className="h-6 w-6 text-primary-foreground" />
             </div>
-            <Button aria-label="Close"
-              variant="ghost"
-              size="icon"
-              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 rounded-full h-8 w-8"
-              onClick={() => setIsOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </CardHeader>
+            <div>
+              <SheetTitle className="text-base font-bold flex items-center gap-1.5 text-primary-foreground">
+                Chat with Khai
+                <Sparkles className="h-4 w-4 text-yellow-300 animate-pulse" />
+              </SheetTitle>
+              <SheetDescription className="text-primary-foreground/80 text-[11px] font-medium tracking-wide">
+                AI Accountant • Spreadsheet & Transaction Assistant
+              </SheetDescription>
+            </div>
+          </div>
+        </SheetHeader>
 
-          <CardContent className="flex-grow p-4 overflow-hidden relative">
-            <ScrollArea className="h-full pr-3" ref={scrollRef}>
-              <div className="space-y-4 pb-2">
-                {messages.map((m, i) => (
-                  <div key={i} className={cn("flex w-full", m.role === 'user' ? "justify-end" : "justify-start")}>
-                    {m.role === 'bot' && (
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-2 border shadow-sm flex-shrink-0 mt-0.5">
-                        <Bot className="h-4 w-4 text-primary" />
-                      </div>
-                    )}
-                    <div className={cn(
-                      "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm leading-relaxed",
-                      m.role === 'user'
-                        ? "bg-primary text-primary-foreground rounded-br-none"
-                        : "bg-muted border rounded-bl-none text-foreground"
-                    )}>
-                      {m.isMatchCard && m.matches ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-primary font-bold border-b pb-1.5 mb-2">
-                            <FileSpreadsheet className="h-4 w-4" />
-                            <span>Matched spreadsheet results:</span>
-                          </div>
-                          <p className="text-xs mb-3 text-muted-foreground font-medium">{m.content}</p>
-                          
-                          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                            {m.matches.map((match: any, index: number) => {
-                              const isSelected = selectedMatches[match.transactionId] ?? false;
-                              return (
-                                <div key={index} className="p-2 border rounded-lg bg-card text-xs shadow-sm flex items-start gap-2.5">
-                                  <Checkbox
-                                    checked={isSelected}
-                                    onCheckedChange={(checked) => setSelectedMatches(prev => ({
-                                      ...prev,
-                                      [match.transactionId]: !!checked
-                                    }))}
-                                    id={`chk-${match.transactionId}`}
-                                    className="mt-0.5"
-                                  />
-                                  <div className="space-y-1 flex-grow">
-                                    <p className="font-bold text-foreground">
-                                      {getTxDescription(match.transactionId)}
-                                    </p>
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-muted-foreground">Allocate:</span>
-                                      <Badge variant="outline" className="text-[10px] font-bold py-0 h-4 border-primary/20 text-primary bg-primary/5">
-                                        {getAllocationLabel(match.accountId, match.accountType)}
-                                      </Badge>
-                                      <AiConfidenceBadge confidence={match.confidence} className="h-4 py-0 text-[9px]" />
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground italic leading-tight">
-                                      "{match.explanation}"
-                                    </p>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          <div className="pt-2 border-t flex gap-2 justify-end">
-                            <Button
-                              size="sm"
-                              className="bg-primary text-primary-foreground font-bold h-8 text-xs hover:bg-primary/90 gap-1.5"
-                              onClick={() => handleApplyAllocations(m.matches || [])}
-                              disabled={isApplying}
-                            >
-                              {isApplying ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                              Apply {m.matches.filter(match => selectedMatches[match.transactionId]).length} Allocations
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="whitespace-pre-wrap font-medium">{m.content}</p>
-                      )}
-                      <p className="text-[9px] text-right mt-1 opacity-70">
-                        {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+        {/* Body content */}
+        <div className="flex-grow p-4 overflow-hidden relative flex flex-col">
+          <ScrollArea className="h-full pr-3" ref={scrollRef}>
+            <div className="space-y-4 pb-2">
+              {messages.map((m, i) => (
+                <div key={i} className={cn("flex w-full", m.role === 'user' ? "justify-end" : "justify-start")}>
+                  {m.role === 'bot' && (
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-2 border shadow-sm flex-shrink-0 mt-0.5">
+                      <Bot className="h-4 w-4 text-primary" />
                     </div>
+                  )}
+                  <div className={cn(
+                    "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm leading-relaxed",
+                    m.role === 'user'
+                      ? "bg-primary text-primary-foreground rounded-br-none"
+                      : "bg-muted border rounded-bl-none text-foreground"
+                  )}>
+                    {m.isMatchCard && m.matches ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-primary font-bold border-b pb-1.5 mb-2">
+                          <FileSpreadsheet className="h-4 w-4" />
+                          <span>Matched spreadsheet results:</span>
+                        </div>
+                        <p className="text-xs mb-3 text-muted-foreground font-medium">{m.content}</p>
+                        
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                          {m.matches.map((match: any, index: number) => {
+                            const isSelected = selectedMatches[match.transactionId] ?? false;
+                            return (
+                              <div key={index} className="p-2 border rounded-lg bg-card text-xs shadow-sm flex items-start gap-2.5">
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={(checked) => setSelectedMatches(prev => ({
+                                    ...prev,
+                                    [match.transactionId]: !!checked
+                                  }))}
+                                  id={`chk-${match.transactionId}`}
+                                  className="mt-0.5"
+                                />
+                                <div className="space-y-1 flex-grow">
+                                  <p className="font-bold text-foreground">
+                                    {getTxDescription(match.transactionId)}
+                                  </p>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-muted-foreground">Allocate:</span>
+                                    <Badge variant="outline" className="text-[10px] font-bold py-0 h-4 border-primary/20 text-primary bg-primary/5">
+                                      {getAllocationLabel(match.accountId, match.accountType)}
+                                    </Badge>
+                                    <AiConfidenceBadge confidence={match.confidence} className="h-4 py-0 text-[9px]" />
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground italic leading-tight">
+                                    "{match.explanation}"
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="pt-2 border-t flex gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            className="bg-primary text-primary-foreground font-bold h-8 text-xs hover:bg-primary/90 gap-1.5"
+                            onClick={() => handleApplyAllocations(m.matches || [])}
+                            disabled={isApplying}
+                          >
+                            {isApplying ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                            Apply {m.matches.filter(match => selectedMatches[match.transactionId]).length} Allocations
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="whitespace-pre-wrap font-medium">{m.content}</p>
+                    )}
+                    <p className="text-[9px] text-right mt-1 opacity-70">
+                      {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
-                ))}
+                </div>
+              ))}
 
-                {isLoading && <AiThinking label="Khai is working…" />}
-              </div>
-            </ScrollArea>
-          </CardContent>
+              {isLoading && <AiThinking label="Khai is working…" />}
+            </div>
+          </ScrollArea>
+        </div>
 
-          <CardFooter className="flex-col items-stretch p-3 border-t bg-muted/30">
-            {messages.length <= 1 && !isLoading && (
-              <AiSuggestionChips
-                className="mb-2"
-                suggestions={[
-                  'How do I allocate a transaction?',
-                  'What can you do?',
-                  'Explain my unallocated items',
-                ]}
-                onSelect={(sugg) => setInputValue(sugg)}
-              />
-            )}
-            <form onSubmit={handleSendMessage} className="flex w-full gap-2 items-center">
-              <Input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <Button aria-label="Attach file"
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 flex-shrink-0 rounded-full border-slate-200 text-slate-500 hover:text-primary hover:bg-primary/10"
-                onClick={handleFileClick}
-                disabled={isLoading}
-              >
-                <Paperclip className="h-5 w-5" />
-              </Button>
-              <Input
-                placeholder="Type a message..."
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                disabled={isLoading}
-                className="flex-grow bg-background text-xs font-bold h-10 border-slate-200 focus-visible:ring-primary"
-                autoComplete="off"
-              />
-              <Button aria-label="Send"
-                type="submit"
-                size="icon"
-                disabled={isLoading || !inputValue.trim()}
-                className="h-10 w-10 rounded-full flex-shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-          </CardFooter>
-        </Card>
-      )}
-    </>
+        {/* Footer input */}
+        <div className="flex-col items-stretch p-3 border-t bg-muted/30">
+          {messages.length <= 1 && !isLoading && (
+            <AiSuggestionChips
+              className="mb-2"
+              suggestions={[
+                'How do I allocate a transaction?',
+                'What can you do?',
+                'Explain my unallocated items',
+              ]}
+              onSelect={(sugg) => setInputValue(sugg)}
+            />
+          )}
+          <form onSubmit={handleSendMessage} className="flex w-full gap-2 items-center">
+            <Input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <Button aria-label="Attach file"
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 flex-shrink-0 rounded-full border-slate-200 text-slate-500 hover:text-primary hover:bg-primary/10"
+              onClick={handleFileClick}
+              disabled={isLoading}
+            >
+              <Paperclip className="h-5 w-5" />
+            </Button>
+            <Input
+              placeholder="Type a message or upload spreadsheet..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              disabled={isLoading}
+              className="flex-grow bg-background text-xs font-bold h-10 border-slate-200 focus-visible:ring-primary"
+              autoComplete="off"
+            />
+            <Button aria-label="Send"
+              type="submit"
+              size="icon"
+              disabled={isLoading || !inputValue.trim()}
+              className="h-10 w-10 rounded-full flex-shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
