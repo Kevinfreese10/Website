@@ -174,12 +174,16 @@ export default function PayslipEditor({
         return list;
     });
     const [contributions, setContributions] = useState<PayslipItem[]>(() => {
-        const list = [...(payslip.contributions || [])];
+        let list = [...(payslip.contributions || [])];
+        if (client.excludeSdl) {
+            list = list.filter(c => c.label !== 'Skills development levy');
+        } else {
+            if (!list.some(c => c.label === 'Skills development levy' && c.isStatutory)) {
+                list.push({ label: 'Skills development levy', amount: 0, isStatutory: true });
+            }
+        }
         if (!list.some(c => c.label === 'Unemployment insurance fund' && c.isStatutory)) {
             list.push({ label: 'Unemployment insurance fund', amount: 0, isStatutory: true });
-        }
-        if (!client.excludeSdl && !list.some(c => c.label === 'Skills development levy' && c.isStatutory)) {
-            list.push({ label: 'Skills development levy', amount: 0, isStatutory: true });
         }
         return list;
     });
@@ -290,7 +294,7 @@ export default function PayslipEditor({
     }, [hoursWorked, overtime10, overtime15, overtime20, employee.payType, employee.hourlyRate, employee.basicSalary]);
 
     const handleSyncFromProfile = () => {
-        const basePeriod = client.firstProcessingMonth || 'Current Period';
+        const basePeriod = client.firstProcessingMonth || payslip.period || 'Current Period';
         const baseValue = employee.payType === 'Hourly' ? (employee.hourlyRate || 0) : (employee.basicSalary || 0);
         
         const freshEarnings = PayrollService.calculateEarningsList(employee, baseValue, basePeriod, frequency, { normal: hoursWorked });
@@ -308,7 +312,12 @@ export default function PayslipEditor({
         ));
         setContributions(PayrollService.getInitialContributions(gross, basePeriod, frequency, !!client.excludeSdl));
         
-        toast({ title: "Synced with Profile", description: "Basic salary and statutory items refreshed." });
+        toast({ 
+            title: "Synced with Profile", 
+            description: client.excludeSdl 
+                ? "Refreshed earnings & deductions. SDL excluded per company profile." 
+                : "Basic salary and statutory items refreshed from employee & company profile." 
+        });
     };
 
     // Dynamic Recalculation logic
@@ -318,7 +327,7 @@ export default function PayslipEditor({
                              fringeBenefits.reduce((sum, f) => sum + PayrollService.calculateTaxableAmount(f), 0);
         const bonusGross = earnings.reduce((sum, e) => sum + (e.taxCategory === 'bonus' ? PayrollService.calculateTaxableAmount(e) : 0), 0) +
                            fringeBenefits.reduce((sum, f) => sum + (f.taxCategory === 'bonus' ? PayrollService.calculateTaxableAmount(f) : 0), 0);
-        const period = client.firstProcessingMonth;
+        const period = client.firstProcessingMonth || payslip.period;
         
         const updatedDeductions = [...deductions];
         const updatedContributions = [...contributions];
@@ -342,7 +351,16 @@ export default function PayslipEditor({
         }
         if (uifIdx > -1) updatedDeductions[uifIdx].amount = PayrollService.calculateUif(gross, period, frequency);
         if (uifContribIdx > -1) updatedContributions[uifContribIdx].amount = PayrollService.calculateUif(gross, period, frequency);
-        if (sdlIdx > -1) updatedContributions[sdlIdx].amount = parseFloat((gross * 0.01).toFixed(2));
+        
+        if (client.excludeSdl) {
+            if (sdlIdx > -1) {
+                updatedContributions.splice(sdlIdx, 1);
+            }
+        } else {
+            if (sdlIdx > -1) {
+                updatedContributions[sdlIdx].amount = parseFloat((gross * 0.01).toFixed(2));
+            }
+        }
 
         const totalDeductions = updatedDeductions.reduce((sum, item) => sum + item.amount, 0);
         const totalContrib = updatedContributions.reduce((sum, item) => sum + item.amount, 0);
@@ -543,11 +561,15 @@ export default function PayslipEditor({
                 payslipId: payslip.id,
                 data: finalData,
                 employeeId: employee.id,
-                recurringItems: newRecurringItems
+                recurringItems: newRecurringItems,
+                allowFinalizedEdit: true
             });
 
             if (res.success) {
-                toast({ title: "Payslip Finalized", description: `Updated record for ${employee.name} ${employee.surname}. Reports updated.` });
+                toast({ 
+                    title: payslip.status === 'finalized' ? "Correction Saved & Archived" : "Payslip Finalized", 
+                    description: `Updated record for ${employee.name} ${employee.surname}. Reports & statutory history updated.` 
+                });
                 onSave();
             } else {
                 toast({ title: "Save Failed", description: res.error || "Could not save payslip.", variant: "destructive" });
@@ -646,7 +668,19 @@ export default function PayslipEditor({
                         </div>
                     </div>
                     <div className="text-right">
-                        <Badge variant="outline" className="mb-1 font-bold uppercase tracking-widest text-[9px]">{payslip.period}</Badge>
+                        <div className="flex items-center justify-end gap-1.5 mb-1">
+                            <Badge variant="outline" className="font-bold uppercase tracking-widest text-[9px]">{payslip.period}</Badge>
+                            {client.excludeSdl && (
+                                <Badge variant="secondary" className="font-bold text-[9px] bg-amber-100 text-amber-900 border-amber-300">
+                                    SDL Excluded
+                                </Badge>
+                            )}
+                            {payslip.status === 'finalized' && (
+                                <Badge variant="outline" className="font-bold text-[9px] bg-blue-50 text-blue-900 border-blue-200">
+                                    Finalised
+                                </Badge>
+                            )}
+                        </div>
                         <p className="text-sm font-black text-slate-900">
                             Rate: {formatCurrency(employee.payType === 'Hourly' ? (employee.hourlyRate || 0) : (employee.basicSalary || 0))}
                             {employee.payType === 'Hourly' ? '/hr' : '/mo'}
