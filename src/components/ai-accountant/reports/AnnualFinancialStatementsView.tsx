@@ -42,6 +42,7 @@ import type {
   AfsSectionToggles,
   AfsAccountingPolicyItem,
 } from '@/lib/afs-types';
+import { getDynamicNoteNumbers } from '@/lib/afs-pdf-generator';
 import AnnualFinancialStatementsPdfDownloadButton from '@/components/pdf/AnnualFinancialStatementsPdfDownloadButton';
 import * as XLSX from 'xlsx-js-style';
 
@@ -52,6 +53,8 @@ const formatRand = (amount: number) => {
   const formatted = abs.toLocaleString('en-ZA', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
   return isNegative ? `-R ${formatted}` : `R ${formatted}`;
 };
+
+const cleanTitleText = (title: string) => title.replace(/^\d+(\.\d+)*\.\s*/, '').trim();
 
 interface AnnualFinancialStatementsViewProps {
   clientId: string;
@@ -120,7 +123,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
 
       const res = await saveAnnualFinancialStatementsConfigAction({ clientId, config: payload });
       if (res.success) {
-        toast({ title: 'Settings Saved', description: 'Statutory AFS details & section toggles updated successfully.' });
+        toast({ title: 'Settings Saved', description: 'Statutory AFS details & dynamic numbering updated successfully.' });
         fetchAfsData();
       } else {
         toast({ title: 'Save Failed', description: res.error, variant: 'destructive' });
@@ -221,6 +224,31 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
 
   if (!data || !generalInfoForm || !responsibilitiesForm || !directorsReportForm || !accountingPoliciesForm || !sectionTogglesForm) return null;
 
+  // Dynamic note numbering based on active switches
+  const dynamicNotes = getDynamicNoteNumbers(sectionTogglesForm);
+
+  // Dynamic director report numbering
+  let dirCounter = 1;
+  const secIncorporation = sectionTogglesForm.showIncorporation ? dirCounter++ : null;
+  const secNatureOfBusiness = sectionTogglesForm.showNatureOfBusiness ? dirCounter++ : null;
+  const secReviewOfActivities = sectionTogglesForm.showReviewOfActivities ? dirCounter++ : null;
+  const secShareCapital = sectionTogglesForm.showShareCapital ? dirCounter++ : null;
+  const secDirectors = sectionTogglesForm.showDirectors ? dirCounter++ : null;
+  const secEventsAfterReportingPeriod = sectionTogglesForm.showEventsAfterReportingPeriod ? dirCounter++ : null;
+  const secGoingConcern = sectionTogglesForm.showGoingConcern ? dirCounter++ : null;
+  const secAuditorContinuance = sectionTogglesForm.showAuditorContinuance ? dirCounter++ : null;
+
+  // Dynamic policy numbering map
+  let policyCounter = 1;
+  const policyNumberMap = new Map<number, number | null>();
+  accountingPoliciesForm.policies.forEach((p, idx) => {
+    if (p.enabled) {
+      policyNumberMap.set(idx, policyCounter++);
+    } else {
+      policyNumberMap.set(idx, null);
+    }
+  });
+
   // Sync state for live PDF rendering
   const liveAfsData: AnnualFinancialStatementsData = {
     ...data,
@@ -306,7 +334,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
             7. Equity & Cash Flows
           </TabsTrigger>
           <TabsTrigger value="notes" className="font-bold text-xs">
-            8. Notes & Disclosures (Notes 2-10)
+            8. Notes & Disclosures
           </TabsTrigger>
           <TabsTrigger value="detailed_income" className="font-bold text-xs">
             9. Detailed Income Schedule
@@ -644,7 +672,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               <div>
                 <CardTitle className="text-base font-bold">Director's Report</CardTitle>
                 <CardDescription className="text-xs">
-                  Review and customize statutory report sections with on/off section visibility toggles.
+                  Review and customize statutory report sections with automatic sequential numbering.
                 </CardDescription>
               </div>
               <Button size="sm" onClick={handleSaveConfig} disabled={isSaving} className="gap-1.5 font-bold text-xs">
@@ -656,7 +684,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               {/* 1. Incorporation */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="font-bold text-slate-900 text-sm">1. Incorporation</Label>
+                  <Label className="font-bold text-slate-900 text-sm">
+                    {secIncorporation ? `${secIncorporation}. ` : ''}Incorporation
+                  </Label>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showIncorporation ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -677,7 +707,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               {/* 2. Nature of business */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="font-bold text-slate-900 text-sm">2. Nature of business</Label>
+                  <Label className="font-bold text-slate-900 text-sm">
+                    {secNatureOfBusiness ? `${secNatureOfBusiness}. ` : ''}Nature of business
+                  </Label>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNatureOfBusiness ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -699,7 +731,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               {/* 3. Review of financial results and activities */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="font-bold text-slate-900 text-sm">3. Review of financial results and activities</Label>
+                  <Label className="font-bold text-slate-900 text-sm">
+                    {secReviewOfActivities ? `${secReviewOfActivities}. ` : ''}Review of financial results and activities
+                  </Label>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showReviewOfActivities ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -721,7 +755,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               {/* 4. Share capital */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="font-bold text-slate-900 text-sm">4. Share capital</Label>
+                  <Label className="font-bold text-slate-900 text-sm">
+                    {secShareCapital ? `${secShareCapital}. ` : ''}Share capital
+                  </Label>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showShareCapital ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -743,7 +779,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               {/* 5. Director in Office */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="font-bold text-slate-900 text-sm">5. Director in Office Table</Label>
+                  <Label className="font-bold text-slate-900 text-sm">
+                    {secDirectors ? `${secDirectors}. ` : ''}Director in Office Table
+                  </Label>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showDirectors ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -783,7 +821,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               {/* 6. Events after the reporting period */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="font-bold text-slate-900 text-sm">6. Events after the reporting period</Label>
+                  <Label className="font-bold text-slate-900 text-sm">
+                    {secEventsAfterReportingPeriod ? `${secEventsAfterReportingPeriod}. ` : ''}Events after the reporting period
+                  </Label>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showEventsAfterReportingPeriod ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -804,7 +844,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               {/* 7. Going concern */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="font-bold text-slate-900 text-sm">7. Going concern statement</Label>
+                  <Label className="font-bold text-slate-900 text-sm">
+                    {secGoingConcern ? `${secGoingConcern}. ` : ''}Going concern statement
+                  </Label>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showGoingConcern ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -826,7 +868,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               {/* 8. Accounting Officer / Auditor Continuance */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="font-bold text-slate-900 text-sm">8. Accounting Officer Continuance</Label>
+                  <Label className="font-bold text-slate-900 text-sm">
+                    {secAuditorContinuance ? `${secAuditorContinuance}. ` : ''}Accounting Officer Continuance
+                  </Label>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showAuditorContinuance ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -856,7 +900,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   <BookOpen className="h-4 w-4 text-blue-600" /> Material Accounting Policies (IFRS for SMEs®)
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Enable/disable policies, customize wording, or add company-specific accounting policies.
+                  Policies are automatically re-numbered sequentially when items are enabled or disabled.
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -866,7 +910,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   onClick={() => {
                     const newPolicy: AfsAccountingPolicyItem = {
                       id: `custom_${Date.now()}`,
-                      title: `${accountingPoliciesForm.policies.length + 1}. Custom Policy`,
+                      title: 'Custom Accounting Policy',
                       content: 'Description of the accounting policy.',
                       enabled: true,
                     };
@@ -886,80 +930,99 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               </div>
             </CardHeader>
             <CardContent className="p-6 space-y-4 text-xs">
-              {accountingPoliciesForm.policies.map((policy, idx) => (
-                <div key={policy.id || idx} className={`p-4 rounded-lg border transition-all ${policy.enabled ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50/70 border-slate-100 opacity-60'}`}>
-                  <div className="flex items-center justify-between pb-2 border-b mb-3">
-                    <div className="flex-1 mr-4">
-                      <Input
-                        value={policy.title}
-                        onChange={(e) => {
-                          const updated = [...accountingPoliciesForm.policies];
-                          updated[idx].title = e.target.value;
-                          setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
-                        }}
-                        className="font-bold text-xs h-8 bg-transparent"
-                      />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] text-muted-foreground">{policy.enabled ? 'Enabled' : 'Disabled'}</span>
-                        <Switch
-                          checked={policy.enabled}
-                          onCheckedChange={(checked) => {
-                            const updated = [...accountingPoliciesForm.policies];
-                            updated[idx].enabled = checked;
-                            setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
-                          }}
-                        />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          const updated = accountingPoliciesForm.policies.filter((_, i) => i !== idx);
-                          setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
-                        }}
-                        className="h-7 w-7 text-rose-600 hover:text-rose-700"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
+              {accountingPoliciesForm.policies.map((policy, idx) => {
+                const dynamicNum = policyNumberMap.get(idx);
+                const cleanTitle = cleanTitleText(policy.title);
 
-                  {policy.enabled && (
-                    <div className="space-y-2">
-                      {policy.subTitle !== undefined && (
-                        <div>
-                          <Label className="text-[10px] text-muted-foreground">Sub-heading</Label>
-                          <Input
-                            value={policy.subTitle || ''}
-                            placeholder="Optional sub-heading"
-                            onChange={(e) => {
-                              const updated = [...accountingPoliciesForm.policies];
-                              updated[idx].subTitle = e.target.value;
-                              setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
-                            }}
-                            className="h-7 text-xs bg-slate-50 mt-0.5"
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Policy Text</Label>
-                        <Textarea
-                          rows={3}
-                          value={policy.content}
+                return (
+                  <div
+                    key={policy.id || idx}
+                    className={`p-4 rounded-lg border transition-all ${
+                      policy.enabled ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50/70 border-slate-100 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between pb-2 border-b mb-3">
+                      <div className="flex items-center gap-2 flex-1 mr-4">
+                        {policy.enabled && dynamicNum ? (
+                          <span className="font-bold text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                            {dynamicNum}.
+                          </span>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-muted-foreground bg-slate-100">
+                            Disabled
+                          </Badge>
+                        )}
+                        <Input
+                          value={cleanTitle}
                           onChange={(e) => {
                             const updated = [...accountingPoliciesForm.policies];
-                            updated[idx].content = e.target.value;
+                            updated[idx].title = e.target.value;
                             setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
                           }}
-                          className="text-xs leading-relaxed mt-0.5 bg-slate-50/50"
+                          className="font-bold text-xs h-8 bg-transparent flex-1"
                         />
                       </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-muted-foreground">{policy.enabled ? 'Enabled' : 'Disabled'}</span>
+                          <Switch
+                            checked={policy.enabled}
+                            onCheckedChange={(checked) => {
+                              const updated = [...accountingPoliciesForm.policies];
+                              updated[idx].enabled = checked;
+                              setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
+                            }}
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            const updated = accountingPoliciesForm.policies.filter((_, i) => i !== idx);
+                            setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
+                          }}
+                          className="h-7 w-7 text-rose-600 hover:text-rose-700"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {policy.enabled && (
+                      <div className="space-y-2">
+                        {policy.subTitle !== undefined && (
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Sub-heading</Label>
+                            <Input
+                              value={policy.subTitle || ''}
+                              placeholder="Optional sub-heading"
+                              onChange={(e) => {
+                                const updated = [...accountingPoliciesForm.policies];
+                                updated[idx].subTitle = e.target.value;
+                                setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
+                              }}
+                              className="h-7 text-xs bg-slate-50 mt-0.5"
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Policy Text</Label>
+                          <Textarea
+                            rows={3}
+                            value={policy.content}
+                            onChange={(e) => {
+                              const updated = [...accountingPoliciesForm.policies];
+                              updated[idx].content = e.target.value;
+                              setAccountingPoliciesForm({ ...accountingPoliciesForm, policies: updated });
+                            }}
+                            className="text-xs leading-relaxed mt-0.5 bg-slate-50/50"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
         </TabsContent>
@@ -970,7 +1033,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base font-bold">Statement of Financial Position as at {generalInfoForm.financialYearEndedDate}</CardTitle>
               <CardDescription className="text-xs">
-                Official statutory balance sheet with Note cross-references.
+                Official statutory balance sheet with dynamic note cross-references.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -992,7 +1055,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   {data.statementOfFinancialPosition.currentAssets.items.map((i, idx) => (
                     <TableRow key={idx}>
                       <TableCell className="pl-10">{i.name}</TableCell>
-                      <TableCell className="text-center font-bold text-blue-600">{i.noteNumber}</TableCell>
+                      <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteCash || ''}</TableCell>
                       <TableCell className="text-right font-mono font-medium">{formatRand(i.currentAmount)}</TableCell>
                     </TableRow>
                   ))}
@@ -1008,13 +1071,16 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   <TableRow className="font-semibold text-slate-700">
                     <TableCell colSpan={3} className="pl-6">Equity</TableCell>
                   </TableRow>
-                  {data.statementOfFinancialPosition.equity.items.map((i, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="pl-10">{i.name}</TableCell>
-                      <TableCell className="text-center font-bold text-blue-600">{i.noteNumber || ''}</TableCell>
-                      <TableCell className="text-right font-mono font-medium">{formatRand(i.currentAmount)}</TableCell>
-                    </TableRow>
-                  ))}
+                  <TableRow>
+                    <TableCell className="pl-10">Share capital</TableCell>
+                    <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteShareCapital || ''}</TableCell>
+                    <TableCell className="text-right font-mono font-medium">{formatRand(data.statementOfFinancialPosition.equity.items[0]?.currentAmount || 100)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="pl-10">Accumulated loss</TableCell>
+                    <TableCell className="text-center font-bold text-blue-600"></TableCell>
+                    <TableCell className="text-right font-mono font-medium">{formatRand(data.statementOfFinancialPosition.equity.items[1]?.currentAmount || -510104)}</TableCell>
+                  </TableRow>
                   <TableRow className="font-bold text-slate-800">
                     <TableCell className="pl-6"></TableCell>
                     <TableCell className="text-center"></TableCell>
@@ -1024,13 +1090,11 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   <TableRow className="font-semibold text-slate-700">
                     <TableCell colSpan={3} className="pl-6">Current Liabilities</TableCell>
                   </TableRow>
-                  {data.statementOfFinancialPosition.currentLiabilities.items.map((i, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="pl-10">{i.name}</TableCell>
-                      <TableCell className="text-center font-bold text-blue-600">{i.noteNumber || ''}</TableCell>
-                      <TableCell className="text-right font-mono font-medium">{formatRand(i.currentAmount)}</TableCell>
-                    </TableRow>
-                  ))}
+                  <TableRow>
+                    <TableCell className="pl-10">Loans from shareholder</TableCell>
+                    <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteShareholderLoans || ''}</TableCell>
+                    <TableCell className="text-right font-mono font-medium">{formatRand(data.statementOfFinancialPosition.currentLiabilities.items[0]?.currentAmount || 619901)}</TableCell>
+                  </TableRow>
                   <TableRow className="font-bold bg-slate-50 border-t">
                     <TableCell className="pl-6">Total Liabilities</TableCell>
                     <TableCell className="text-center"></TableCell>
@@ -1074,7 +1138,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   </TableRow>
                   <TableRow>
                     <TableCell>Operating expenses</TableCell>
-                    <TableCell className="text-center font-bold text-blue-600">5</TableCell>
+                    <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteOperatingExpenses || ''}</TableCell>
                     <TableCell className="text-right font-mono">{formatRand(data.statementOfComprehensiveIncome.operatingExpenses.currentAmount)}</TableCell>
                   </TableRow>
                   <TableRow className="font-bold bg-slate-50">
@@ -1089,7 +1153,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   </TableRow>
                   <TableRow>
                     <TableCell>Income tax</TableCell>
-                    <TableCell className="text-center font-bold text-blue-600">7</TableCell>
+                    <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteTaxation || ''}</TableCell>
                     <TableCell className="text-right font-mono">-</TableCell>
                   </TableRow>
                   <TableRow className="font-bold bg-slate-100 text-sm">
@@ -1170,12 +1234,12 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   <TableBody>
                     <TableRow>
                       <TableCell>Cash used in operations</TableCell>
-                      <TableCell className="text-center font-bold text-blue-600">6</TableCell>
+                      <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteCashUsedInOps || ''}</TableCell>
                       <TableCell className="text-right font-mono">{formatRand(data.statementOfCashFlows.cashUsedInOperations.current)}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Proceeds on share issue</TableCell>
-                      <TableCell className="text-center font-bold text-blue-600">3</TableCell>
+                      <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteShareCapital || ''}</TableCell>
                       <TableCell className="text-right font-mono">{formatRand(data.statementOfCashFlows.proceedsOnShareIssue.current)}</TableCell>
                     </TableRow>
                     <TableRow>
@@ -1195,7 +1259,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                     </TableRow>
                     <TableRow className="font-bold">
                       <TableCell>Total cash at end of the year</TableCell>
-                      <TableCell className="text-center font-bold text-blue-600">2</TableCell>
+                      <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteCash || ''}</TableCell>
                       <TableCell className="text-right font-mono font-black text-blue-700">{formatRand(data.statementOfCashFlows.totalCashAtEndOfTheYear.current)}</TableCell>
                     </TableRow>
                   </TableBody>
@@ -1210,9 +1274,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-base font-bold">Notes to the Financial Statements (Notes 2 to 10)</CardTitle>
+                <CardTitle className="text-base font-bold">Notes to the Financial Statements</CardTitle>
                 <CardDescription className="text-xs">
-                  Statutory disclosures with on/off note visibility switches.
+                  Statutory notes are dynamically numbered based on active items.
                 </CardDescription>
               </div>
               <Button size="sm" onClick={handleSaveConfig} disabled={isSaving} className="gap-1.5 font-bold text-xs">
@@ -1221,10 +1285,12 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
               </Button>
             </CardHeader>
             <CardContent className="p-6 space-y-5 text-xs">
-              {/* Note 2 */}
+              {/* Note Cash */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-sm">Note 2. Cash and cash equivalents</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {dynamicNotes.noteCash ? `Note ${dynamicNotes.noteCash}. ` : ''}Cash and cash equivalents
+                  </h4>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteCash ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -1238,10 +1304,12 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 )}
               </div>
 
-              {/* Note 3 */}
+              {/* Note Share Capital */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-sm">Note 3. Share capital</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {dynamicNotes.noteShareCapital ? `Note ${dynamicNotes.noteShareCapital}. ` : ''}Share capital
+                  </h4>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteShareCapital ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -1258,10 +1326,12 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 )}
               </div>
 
-              {/* Note 4 */}
+              {/* Note Shareholder Loans */}
               <div className="p-3.5 bg-blue-50/50 rounded-lg border border-blue-100 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-blue-950 text-sm">Note 4. Loans from shareholders & Subordination Terms</h4>
+                  <h4 className="font-bold text-blue-950 text-sm">
+                    {dynamicNotes.noteShareholderLoans ? `Note ${dynamicNotes.noteShareholderLoans}. ` : ''}Loans from shareholders & Subordination Terms
+                  </h4>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteShareholderLoans ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -1278,10 +1348,12 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 )}
               </div>
 
-              {/* Note 5 */}
+              {/* Note Operating Expenses */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-sm">Note 5. Operating expenses breakdown</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {dynamicNotes.noteOperatingExpenses ? `Note ${dynamicNotes.noteOperatingExpenses}. ` : ''}Operating expenses breakdown
+                  </h4>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteOperatingExpenses ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -1302,10 +1374,12 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 )}
               </div>
 
-              {/* Note 6 */}
+              {/* Note Cash in Ops */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-sm">Note 6. Cash used in operations reconciliation</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {dynamicNotes.noteCashUsedInOps ? `Note ${dynamicNotes.noteCashUsedInOps}. ` : ''}Cash used in operations reconciliation
+                  </h4>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteCashUsedInOps ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -1319,10 +1393,12 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 )}
               </div>
 
-              {/* Note 7 */}
+              {/* Note Taxation */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-sm">Note 7. Taxation & 27% Rate Reconciliation</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {dynamicNotes.noteTaxation ? `Note ${dynamicNotes.noteTaxation}. ` : ''}Taxation & 27% Rate Reconciliation
+                  </h4>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteTaxation ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -1353,10 +1429,12 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 )}
               </div>
 
-              {/* Note 8 */}
+              {/* Note Related Parties */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-sm">Note 8. Related parties</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {dynamicNotes.noteRelatedParties ? `Note ${dynamicNotes.noteRelatedParties}. ` : ''}Related parties
+                  </h4>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteRelatedParties ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -1370,10 +1448,12 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 )}
               </div>
 
-              {/* Note 9 */}
+              {/* Note Going Concern */}
               <div className="p-3.5 bg-amber-50/60 rounded-lg border border-amber-200 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-amber-950 text-sm">Note 9. Going Concern Disclosures</h4>
+                  <h4 className="font-bold text-amber-950 text-sm">
+                    {dynamicNotes.noteGoingConcern ? `Note ${dynamicNotes.noteGoingConcern}. ` : ''}Going Concern Disclosures
+                  </h4>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteGoingConcern ? 'Included' : 'Excluded'}</span>
                     <Switch
@@ -1387,10 +1467,12 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 )}
               </div>
 
-              {/* Note 10 */}
+              {/* Note Events after Reporting Period */}
               <div className="p-3.5 bg-slate-50 rounded-lg border space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-sm">Note 10. Events after the reporting period</h4>
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {dynamicNotes.noteEventsAfterReportingPeriod ? `Note ${dynamicNotes.noteEventsAfterReportingPeriod}. ` : ''}Events after the reporting period
+                  </h4>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-muted-foreground">{sectionTogglesForm.showNoteEventsAfterReportingPeriod ? 'Included' : 'Excluded'}</span>
                     <Switch

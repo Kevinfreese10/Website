@@ -1,6 +1,31 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { AnnualFinancialStatementsData } from './afs-types';
+import type { AnnualFinancialStatementsData, AfsSectionToggles } from './afs-types';
+
+export function getDynamicNoteNumbers(toggles: AfsSectionToggles) {
+  let noteCounter = 2; // Note 1 is Accounting Policies
+  const noteCash = toggles.showNoteCash ? noteCounter++ : '';
+  const noteShareCapital = toggles.showNoteShareCapital ? noteCounter++ : '';
+  const noteShareholderLoans = toggles.showNoteShareholderLoans ? noteCounter++ : '';
+  const noteOperatingExpenses = toggles.showNoteOperatingExpenses ? noteCounter++ : '';
+  const noteCashUsedInOps = toggles.showNoteCashUsedInOps ? noteCounter++ : '';
+  const noteTaxation = toggles.showNoteTaxation ? noteCounter++ : '';
+  const noteRelatedParties = toggles.showNoteRelatedParties ? noteCounter++ : '';
+  const noteGoingConcern = toggles.showNoteGoingConcern ? noteCounter++ : '';
+  const noteEventsAfterReportingPeriod = toggles.showNoteEventsAfterReportingPeriod ? noteCounter++ : '';
+
+  return {
+    noteCash,
+    noteShareCapital,
+    noteShareholderLoans,
+    noteOperatingExpenses,
+    noteCashUsedInOps,
+    noteTaxation,
+    noteRelatedParties,
+    noteGoingConcern,
+    noteEventsAfterReportingPeriod,
+  };
+}
 
 export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   const doc = new jsPDF({
@@ -29,7 +54,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     detailedIncomeStatement,
   } = data;
 
-  const toggles = sectionToggles || {
+  const toggles: AfsSectionToggles = sectionToggles || {
     showIncorporation: true,
     showNatureOfBusiness: true,
     showReviewOfActivities: true,
@@ -57,6 +82,10 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     showNoteEventsAfterReportingPeriod: true,
     showDetailedIncomeStatement: true,
   };
+
+  const dynamicNotes = getDynamicNoteNumbers(toggles);
+
+  const cleanTitleText = (title: string) => title.replace(/^\d+(\.\d+)*\.\s*/, '').trim();
 
   const formatRand = (val: number, blankIfZero = false) => {
     if (val === 0) return blankIfZero ? '-' : '-';
@@ -417,25 +446,25 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
 
   drawPageFooter(runningPageNumber++);
 
-  // PAGE 10: STATEMENT OF FINANCIAL POSITION
+  // STATEMENT OF FINANCIAL POSITION
   doc.addPage();
   drawPageHeader(`Statement of Financial Position as at ${generalInfo.financialYearEndedDate}`);
 
   const bsRows = [
     [{ content: 'Assets', styles: { fontStyle: 'bold' } }, '', ''],
     [{ content: 'Current Assets', styles: { fontStyle: 'bold' } }, '', ''],
-    ['Cash and cash equivalents', '2', formatRand(statementOfFinancialPosition.currentAssets.total.current)],
+    ['Cash and cash equivalents', dynamicNotes.noteCash ? `${dynamicNotes.noteCash}` : '', formatRand(statementOfFinancialPosition.currentAssets.total.current)],
     [{ content: 'Total Assets', styles: { fontStyle: 'bold' } }, '', { content: formatRand(statementOfFinancialPosition.totalAssets.current), styles: { fontStyle: 'bold' } }],
     ['', '', ''],
     [{ content: 'Equity and Liabilities', styles: { fontStyle: 'bold' } }, '', ''],
     [{ content: 'Equity', styles: { fontStyle: 'bold' } }, '', ''],
-    ['Share capital', '3', formatRand(statementOfFinancialPosition.equity.items[0]?.currentAmount || 100)],
+    ['Share capital', dynamicNotes.noteShareCapital ? `${dynamicNotes.noteShareCapital}` : '', formatRand(statementOfFinancialPosition.equity.items[0]?.currentAmount || 100)],
     ['Accumulated loss', '', formatRand(statementOfFinancialPosition.equity.items[1]?.currentAmount || -510104)],
     ['', '', { content: formatRand(statementOfFinancialPosition.equity.total.current), styles: { fontStyle: 'bold' } }],
     ['', '', ''],
     [{ content: 'Liabilities', styles: { fontStyle: 'bold' } }, '', ''],
     [{ content: 'Current Liabilities', styles: { fontStyle: 'bold' } }, '', ''],
-    ['Loans from shareholder', '4', formatRand(statementOfFinancialPosition.currentLiabilities.items[0]?.currentAmount || 619901)],
+    ['Loans from shareholder', dynamicNotes.noteShareholderLoans ? `${dynamicNotes.noteShareholderLoans}` : '', formatRand(statementOfFinancialPosition.currentLiabilities.items[0]?.currentAmount || 619901)],
     [{ content: 'Total Liabilities', styles: { fontStyle: 'bold' } }, '', { content: formatRand(statementOfFinancialPosition.totalLiabilities.current), styles: { fontStyle: 'bold' } }],
     [{ content: 'Total Equity and Liabilities', styles: { fontStyle: 'bold' } }, '', { content: formatRand(statementOfFinancialPosition.totalEquityAndLiabilities.current), styles: { fontStyle: 'bold' } }],
   ];
@@ -451,16 +480,16 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   });
   drawPageFooter(runningPageNumber++);
 
-  // PAGE 11: STATEMENT OF COMPREHENSIVE INCOME
+  // STATEMENT OF COMPREHENSIVE INCOME
   doc.addPage();
   drawPageHeader('Statement of Profit or Loss and Other Comprehensive Income');
 
   const pnlTableRows = [
     ['Other income', '', formatRand(statementOfComprehensiveIncome.otherIncome.currentAmount)],
-    ['Operating expenses', '5', formatRand(statementOfComprehensiveIncome.operatingExpenses.currentAmount)],
+    ['Operating expenses', dynamicNotes.noteOperatingExpenses ? `${dynamicNotes.noteOperatingExpenses}` : '', formatRand(statementOfComprehensiveIncome.operatingExpenses.currentAmount)],
     [{ content: 'Operating loss', styles: { fontStyle: 'bold' } }, '', { content: formatRand(statementOfComprehensiveIncome.operatingProfitOrLoss.currentAmount), styles: { fontStyle: 'bold' } }],
     [{ content: 'Loss before income tax', styles: { fontStyle: 'bold' } }, '', { content: formatRand(statementOfComprehensiveIncome.profitOrLossBeforeTax.currentAmount), styles: { fontStyle: 'bold' } }],
-    ['Income tax', '7', '-'],
+    ['Income tax', dynamicNotes.noteTaxation ? `${dynamicNotes.noteTaxation}` : '', '-'],
     [{ content: 'Loss for the year', styles: { fontStyle: 'bold' } }, '', { content: formatRand(statementOfComprehensiveIncome.profitOrLossForTheYear.currentAmount), styles: { fontStyle: 'bold' } }],
     ['Other comprehensive loss', '', '-'],
     [{ content: 'Total comprehensive loss for the year', styles: { fontStyle: 'bold' } }, '', { content: formatRand(statementOfComprehensiveIncome.totalComprehensiveLossOrIncome.currentAmount), styles: { fontStyle: 'bold' } }],
@@ -477,7 +506,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   });
   drawPageFooter(runningPageNumber++);
 
-  // PAGE 12: STATEMENT OF CHANGES IN EQUITY
+  // STATEMENT OF CHANGES IN EQUITY
   doc.addPage();
   drawPageHeader('Statement of Changes in Equity');
 
@@ -503,24 +532,26 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   const eqFinalY = (doc as any).lastAutoTable?.finalY || 100;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text('Note 3', leftMargin, eqFinalY + 5);
+  if (dynamicNotes.noteShareCapital) {
+    doc.text(`Note ${dynamicNotes.noteShareCapital}`, leftMargin, eqFinalY + 5);
+  }
   drawPageFooter(runningPageNumber++);
 
-  // PAGE 13: STATEMENT OF CASH FLOWS
+  // STATEMENT OF CASH FLOWS
   doc.addPage();
   drawPageHeader('Statement of Cash Flows');
 
   const cfRows = [
     [{ content: 'Cash flows from operating activities', styles: { fontStyle: 'bold' } }, '', ''],
-    ['Cash used in operations', '6', formatRand(statementOfCashFlows.cashUsedInOperations.current)],
+    ['Cash used in operations', dynamicNotes.noteCashUsedInOps ? `${dynamicNotes.noteCashUsedInOps}` : '', formatRand(statementOfCashFlows.cashUsedInOperations.current)],
     ['', '', ''],
     [{ content: 'Cash flows from financing activities', styles: { fontStyle: 'bold' } }, '', ''],
-    ['Proceeds on share issue', '3', formatRand(statementOfCashFlows.proceedsOnShareIssue.current)],
+    ['Proceeds on share issue', dynamicNotes.noteShareCapital ? `${dynamicNotes.noteShareCapital}` : '', formatRand(statementOfCashFlows.proceedsOnShareIssue.current)],
     ['Cash advances received on loans from shareholders', '', formatRand(statementOfCashFlows.cashAdvancesReceivedOnLoansFromShareholders.current)],
     [{ content: 'Net cash from financing activities', styles: { fontStyle: 'bold' } }, '', { content: formatRand(statementOfCashFlows.netCashFromFinancingActivities.current), styles: { fontStyle: 'bold' } }],
     ['', '', ''],
     [{ content: 'Total cash movement for the year', styles: { fontStyle: 'bold' } }, '', { content: formatRand(statementOfCashFlows.totalCashMovementForTheYear.current), styles: { fontStyle: 'bold' } }],
-    ['Total cash at end of the year', '2', { content: formatRand(statementOfCashFlows.totalCashAtEndOfTheYear.current), styles: { fontStyle: 'bold' } }],
+    ['Total cash at end of the year', dynamicNotes.noteCash ? `${dynamicNotes.noteCash}` : '', { content: formatRand(statementOfCashFlows.totalCashAtEndOfTheYear.current), styles: { fontStyle: 'bold' } }],
   ];
 
   autoTable(doc, {
@@ -534,17 +565,17 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   });
   drawPageFooter(runningPageNumber++);
 
-  // PAGE 14+: ACCOUNTING POLICIES (AUTO-PAGINATED)
+  // ACCOUNTING POLICIES (DYNAMIC NUMBERING 1, 2, 3...)
   doc.addPage();
   drawPageHeader('Accounting Policies');
 
   let polY = 48;
   const activePolicies = (accountingPolicies?.policies || []).filter((p) => p.enabled);
 
-  activePolicies.forEach((pol) => {
+  activePolicies.forEach((pol, policyIdx) => {
     const paragraphs = pol.content.split('\n\n').filter(Boolean);
+    const dynamicPolicyTitle = `${policyIdx + 1}. ${cleanTitleText(pol.title)}`;
 
-    // If starting a new policy near the bottom of page, start new page
     if (polY > pageHeight - 35) {
       drawPageFooter(runningPageNumber++);
       doc.addPage();
@@ -554,7 +585,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.text(pol.title, leftMargin, polY);
+    doc.text(dynamicPolicyTitle, leftMargin, polY);
     polY += 4.5;
 
     if (pol.subTitle) {
@@ -590,10 +621,10 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
 
   let nY = 48;
 
-  if (toggles.showNoteCash) {
+  if (toggles.showNoteCash && dynamicNotes.noteCash) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.text('2. Cash and cash equivalents', leftMargin, nY);
+    doc.text(`${dynamicNotes.noteCash}. Cash and cash equivalents`, leftMargin, nY);
     doc.setFont('helvetica', 'normal');
     doc.text('Cash and cash equivalents consist of:', leftMargin, nY + 4);
 
@@ -608,9 +639,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     nY = (doc as any).lastAutoTable?.finalY || nY + 18;
   }
 
-  if (toggles.showNoteShareCapital) {
+  if (toggles.showNoteShareCapital && dynamicNotes.noteShareCapital) {
     doc.setFont('helvetica', 'bold');
-    doc.text('3. Share capital', leftMargin, nY + 4);
+    doc.text(`${dynamicNotes.noteShareCapital}. Share capital`, leftMargin, nY + 4);
     doc.setFont('helvetica', 'normal');
 
     autoTable(doc, {
@@ -629,9 +660,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     nY = (doc as any).lastAutoTable?.finalY || nY + 30;
   }
 
-  if (toggles.showNoteShareholderLoans) {
+  if (toggles.showNoteShareholderLoans && dynamicNotes.noteShareholderLoans) {
     doc.setFont('helvetica', 'bold');
-    doc.text('4. Loans from shareholders', leftMargin, nY + 4);
+    doc.text(`${dynamicNotes.noteShareholderLoans}. Loans from shareholders`, leftMargin, nY + 4);
     doc.setFont('helvetica', 'normal');
 
     autoTable(doc, {
@@ -653,9 +684,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     nY = loanTermsY + 3 + loanSplit.length * 4 + 4;
   }
 
-  if (toggles.showNoteOperatingExpenses) {
+  if (toggles.showNoteOperatingExpenses && dynamicNotes.noteOperatingExpenses) {
     doc.setFont('helvetica', 'bold');
-    doc.text('5. Operating expenses', leftMargin, nY);
+    doc.text(`${dynamicNotes.noteOperatingExpenses}. Operating expenses`, leftMargin, nY);
     doc.setFont('helvetica', 'normal');
     doc.text('Operating expenses include the following expenses:', leftMargin, nY + 4);
     doc.text('Remuneration, other than to employees, for:', leftMargin, nY + 8);
@@ -684,10 +715,10 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
 
   let n6Y = 48;
 
-  if (toggles.showNoteCashUsedInOps) {
+  if (toggles.showNoteCashUsedInOps && dynamicNotes.noteCashUsedInOps) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.text('6. Cash used in operations', leftMargin, n6Y);
+    doc.text(`${dynamicNotes.noteCashUsedInOps}. Cash used in operations`, leftMargin, n6Y);
     doc.setFont('helvetica', 'normal');
 
     autoTable(doc, {
@@ -701,9 +732,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     n6Y = (doc as any).lastAutoTable?.finalY || n6Y + 15;
   }
 
-  if (toggles.showNoteTaxation) {
+  if (toggles.showNoteTaxation && dynamicNotes.noteTaxation) {
     doc.setFont('helvetica', 'bold');
-    doc.text('7. Taxation', leftMargin, n6Y + 4);
+    doc.text(`${dynamicNotes.noteTaxation}. Taxation`, leftMargin, n6Y + 4);
     doc.setFont('helvetica', 'normal');
     doc.text('Reconciliation of the tax expense', leftMargin, n6Y + 8);
 
@@ -727,9 +758,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     n6Y = taxY + 8;
   }
 
-  if (toggles.showNoteRelatedParties) {
+  if (toggles.showNoteRelatedParties && dynamicNotes.noteRelatedParties) {
     doc.setFont('helvetica', 'bold');
-    doc.text('8. Related parties', leftMargin, n6Y + 4);
+    doc.text(`${dynamicNotes.noteRelatedParties}. Related parties`, leftMargin, n6Y + 4);
     doc.setFont('helvetica', 'normal');
 
     autoTable(doc, {
@@ -750,18 +781,18 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     n6Y = (doc as any).lastAutoTable?.finalY || n6Y + 35;
   }
 
-  if (toggles.showNoteGoingConcern) {
+  if (toggles.showNoteGoingConcern && dynamicNotes.noteGoingConcern) {
     doc.setFont('helvetica', 'bold');
-    doc.text('9. Going concern', leftMargin, n6Y + 4);
+    doc.text(`${dynamicNotes.noteGoingConcern}. Going concern`, leftMargin, n6Y + 4);
     doc.setFont('helvetica', 'normal');
     const gcNoteSplit = doc.splitTextToSize(notes.note9GoingConcern.subordinationNoteText, contentWidth);
     doc.text(gcNoteSplit, leftMargin, n6Y + 8);
     n6Y = n6Y + 8 + gcNoteSplit.length * 4 + 3;
   }
 
-  if (toggles.showNoteEventsAfterReportingPeriod) {
+  if (toggles.showNoteEventsAfterReportingPeriod && dynamicNotes.noteEventsAfterReportingPeriod) {
     doc.setFont('helvetica', 'bold');
-    doc.text('10. Events after the reporting period', leftMargin, n6Y + 2);
+    doc.text(`${dynamicNotes.noteEventsAfterReportingPeriod}. Events after the reporting period`, leftMargin, n6Y + 2);
     doc.setFont('helvetica', 'normal');
     doc.text(notes.note10EventsAfterReportingPeriod.statementText, leftMargin, n6Y + 6);
   }
