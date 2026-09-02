@@ -1141,6 +1141,9 @@ export type ChartOfAccount = {
   type?: 'Income' | 'Expense' | 'Asset' | 'Liability' | 'Equity' | string;
   description: string;
   section?: string;
+  category?: string;
+  fsGroup?: string;
+  fsNote?: string;
   bankBalance?: number;
 };
 

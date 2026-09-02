@@ -19,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { chartOfAccounts as masterChartOfAccounts } from "@/lib/chart-of-accounts";
+import { chartOfAccounts as masterChartOfAccounts, FS_GROUPS, FS_NOTES } from "@/lib/chart-of-accounts";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandGroup, CommandList, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,9 @@ const accountFormSchema = z.object({
   accountNumber: z.string().min(1, "Account number is required."),
   description: z.string().min(3, "Description is required."),
   section: z.enum(['Income Statement', 'Balance Sheet']),
+  category: z.string().optional(),
+  fsGroup: z.string().optional(),
+  fsNote: z.string().optional(),
 });
 
 type AccountFormValues = z.infer<typeof accountFormSchema>;
@@ -159,11 +162,17 @@ function AccountForm({ account, onSave, onCancel }: { account: Partial<ChartOfAc
         defaultValues: account ? {
             ...account,
             section: (account.section === 'Balance Sheet' ? 'Balance Sheet' : 'Income Statement') as 'Income Statement' | 'Balance Sheet',
+            category: account.category || '',
+            fsGroup: account.fsGroup || '',
+            fsNote: account.fsNote || '',
         } : {
             id: undefined,
             accountNumber: '',
             description: '',
             section: 'Income Statement',
+            category: '',
+            fsGroup: '',
+            fsNote: '',
         },
     });
 
@@ -173,6 +182,46 @@ function AccountForm({ account, onSave, onCancel }: { account: Partial<ChartOfAc
                 <FormField control={form.control} name="accountNumber" render={({ field }) => ( <FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="description" render={({ field }) => ( <FormItem><FormLabel>Description</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="section" render={({ field }) => ( <FormItem><FormLabel>Section</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a section" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Income Statement">Income Statement</SelectItem><SelectItem value="Balance Sheet">Balance Sheet</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+                
+                <FormField control={form.control} name="fsGroup" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Financial Statement (FS) Grouping</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select standard statutory line item..." />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-56">
+                                {FS_GROUPS.map((g) => (
+                                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+
+                <FormField control={form.control} name="fsNote" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Statutory Note Reference (Optional)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value || 'none'}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select statutory note disclosure..." />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="none">None / Unmapped</SelectItem>
+                                {FS_NOTES.map((n) => (
+                                    <SelectItem key={n} value={n}>{n}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+
                 <DialogFooter>
                     <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
                     <Button type="submit">Save Account</Button>
@@ -351,18 +400,42 @@ export default function ChartOfAccountsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Account Number</TableHead>
+                                <TableHead className="w-[120px]">Account Number</TableHead>
                                 <TableHead>Description</TableHead>
                                 <TableHead>Section</TableHead>
+                                <TableHead>FS Grouping</TableHead>
+                                <TableHead>Statutory Note</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredAccounts.map(acc => (
                                 <TableRow key={acc.id}>
-                                    <TableCell className="font-mono">{acc.accountNumber}</TableCell>
-                                    <TableCell>{acc.description}</TableCell>
-                                    <TableCell>{acc.section}</TableCell>
+                                    <TableCell className="font-mono font-medium">{acc.accountNumber}</TableCell>
+                                    <TableCell className="font-semibold">{acc.description}</TableCell>
+                                    <TableCell>
+                                        <span className={`text-[11px] px-2 py-0.5 rounded font-bold ${acc.section === 'Balance Sheet' ? 'bg-indigo-50 text-indigo-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                                            {acc.section}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        {acc.fsGroup ? (
+                                            <span className="text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-medium">
+                                                {acc.fsGroup}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground italic">Auto-mapped</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {acc.fsNote ? (
+                                            <span className="text-xs text-blue-700 font-medium bg-blue-50 px-2 py-0.5 rounded">
+                                                {acc.fsNote}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-slate-400">—</span>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-right">
                                          <AlertDialog>
                                             <Button aria-label="Edit" variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingAccount(acc); setIsFormOpen(true);}}>

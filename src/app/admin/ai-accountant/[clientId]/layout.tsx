@@ -150,6 +150,11 @@ export default function AIAccountantClientLayout({ children }: { children: React
                                 ✨ Executive Management Report
                             </Link>
                         </MenubarItem>
+                        <MenubarItem asChild className="font-bold text-blue-700 bg-blue-50/70">
+                            <Link href={`/admin/ai-accountant/${clientId}/reports/financial-statements`}>
+                                📜 Annual Financial Statements (AFS)
+                            </Link>
+                        </MenubarItem>
                         <MenubarSeparator />
                         <MenubarItem asChild><Link href={`/admin/ai-accountant/${clientId}/reports/profit-and-loss`}>Profit & Loss</Link></MenubarItem>
                         <MenubarItem asChild><Link href={`/admin/ai-accountant/${clientId}/reports/balance-sheet`}>Balance Sheet</Link></MenubarItem>
