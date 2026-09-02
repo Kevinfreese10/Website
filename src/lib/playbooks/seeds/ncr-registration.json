@@ -133,11 +133,11 @@
       "title": "Email complete application pack to the NCR",
       "type": "email_submission",
       "owner": "agent",
-      "emailTo": "applications@ncr.org.za",
+      "emailTo": "registrations@ncr.org.za",
       "emailSubjectTemplate": "New Credit Provider Registration Application — {entityName} (Reg: {registrationNumber})",
       "expectedReply": "NCR acknowledgement email with application reference (e.g. CP1090, CP1188)",
       "estimatedDays": 1,
-      "doneCriteria": "Pack emailed to applications@ncr.org.za (CC registrations@ncr.org.za and client) and order status transitioned to Waiting on External",
+      "doneCriteria": "Pack emailed to registrations@ncr.org.za (CC dndaba@ncr.org.za, emoleko@ncr.org.za, client) and order status transitioned to Waiting on External",
       "aiInstructions": "Attach the complete 10-part statutory dossier: (1) Signed & initialled Form NCR 2, (2) Fee Annexure, (3) Proof of fee payment with Reg No reference, (4) CIPC CoR14.3 & Disclosure, (5) Certified Director IDs (<3 months), (6) Police Clearances (<6 months), (7) Bank Confirmation Letter (<3 months), (8) SARS TCS PIN document, (9) Accounting Officer Appointment & Acceptance Letters (CIBA #3561), (10) Board Resolution & POA. Immediately transition order status to 'Waiting on External' upon dispatch and log in Communication History."
     },
     {
