@@ -192,9 +192,6 @@ export default function AnnualFinancialStatementsPage() {
               src={KEVIN_FREESE_PROFILE_IMAGE}
               alt="Kevin Freese - Managing Director"
               className="h-14 w-14 rounded-full object-cover border-2 border-primary/20 shadow-sm shrink-0"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/kevin-freese.jpg';
-              }}
             />
             <div>
               <h4 className="text-base font-black text-foreground leading-tight">Kevin Freese</h4>

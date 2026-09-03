@@ -209,9 +209,6 @@ export default function OutsourcingVsHiringPage() {
                   src={KEVIN_FREESE_PROFILE_IMAGE}
                   alt="Kevin Freese - Managing Director & Founder of My Accountant"
                   className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md mb-4"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/kevin-freese.jpg';
-                  }}
                 />
                 <h3 className="text-lg font-black text-slate-900">Kevin Freese</h3>
                 <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director &amp; Founder</p>
