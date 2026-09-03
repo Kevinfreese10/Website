@@ -24,6 +24,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { extractStatementChunk } from '@/app/actions';
+import { matchesRuleKeyword } from '@/lib/bank-cleaner';
 import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx-js-style';
 import { Progress } from '@/components/ui/progress';
@@ -716,7 +717,7 @@ export default function AIBulkStatementImportDialog({
 
         filtered.forEach(tx => {
           const isExpense = tx.amount < 0;
-          const match = isExpense ? allRules.find(r => r.keywords.some(kw => tx.description.toUpperCase().includes(kw.toUpperCase()))) : null;
+          const match = isExpense ? allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(tx.description, kw))) : null;
 
           const txData: any = {
             clientId: client.id,
@@ -730,7 +731,7 @@ export default function AIBulkStatementImportDialog({
           };
 
           if (isExpense && match) {
-            const keyword = match.keywords.find(kw => tx.description.toUpperCase().includes(kw.toUpperCase()));
+            const keyword = match.keywords.find(kw => matchesRuleKeyword(tx.description, kw));
             txData.allocatedTo = { value: match.accountId, type: 'account' };
             txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
             txData.allocatedAt = serverTimestamp();

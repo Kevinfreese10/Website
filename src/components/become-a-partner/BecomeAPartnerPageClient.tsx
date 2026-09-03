@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 import PageHero from '@/components/shared/PageHero';
+import { KEVIN_FREESE_PROFILE_IMAGE } from '@/lib/constants';
 
 const TrustIndexWidget = dynamicImport(() => import('@/components/shared/TrustIndexWidget'), {
   ssr: false,
@@ -406,9 +407,12 @@ export default function BecomeAPartnerPageClient() {
                     {/* Left Column: Avatar & Credentials */}
                     <div className="md:col-span-5 flex flex-col items-center text-center p-6 bg-slate-100/50 border border-slate-200/60 rounded-2xl shadow-sm">
                         <img
-                            src="/kevin-freese.jpg"
-                            alt="Kevin Freese"
+                            src={KEVIN_FREESE_PROFILE_IMAGE}
+                            alt="Kevin Freese - Managing Director & Founder"
                             className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md shrink-0 mb-4"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/kevin-freese.jpg';
+                            }}
                         />
                         <h4 className="text-lg font-black text-slate-900">Kevin Freese</h4>
                         <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director & Founder</p>
@@ -568,7 +572,7 @@ export default function BecomeAPartnerPageClient() {
                 Get started today at no cost and start growing your practice.
             </p>
             <div className="flex items-center justify-center">
-                <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-lg">
+                <Button asChild size="lg" className="h-auto min-h-14 py-3.5 px-6 sm:px-10 text-base sm:text-lg font-bold shadow-lg text-center">
                     <Link href="/partner-signup">Join Partner Program Free</Link>
                 </Button>
             </div>

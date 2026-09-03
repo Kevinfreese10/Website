@@ -29,12 +29,13 @@ export function AppTopBar({
 
   return (
     <>
-    <header className="sticky top-0 z-30 -mx-4 mb-4 flex h-[53px] items-center gap-3 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-      <SidebarTrigger className="md:hidden" />
-      <Breadcrumbs homeHref={homeHref} className="min-w-0 flex-1" />
+    <header className="sticky top-0 z-30 -mx-4 mb-4 flex h-[53px] items-center gap-2 sm:gap-3 border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+      <SidebarTrigger className="md:hidden h-10 w-10 min-h-[44px] min-w-[44px] -ml-2" aria-label="Toggle navigation menu" />
+      <Breadcrumbs homeHref={homeHref} className="min-w-0 flex-1 overflow-hidden" />
       <Button
         variant="outline"
         size="sm"
+        aria-label="Open command search"
         className="hidden items-center gap-2 text-muted-foreground sm:flex"
         onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
       >
@@ -47,11 +48,11 @@ export function AppTopBar({
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 sm:hidden"
-        aria-label="Search"
+        className="h-10 w-10 min-h-[44px] min-w-[44px] sm:hidden"
+        aria-label="Open command search"
         onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
       >
-        <Search className="h-4 w-4" />
+        <Search className="h-5 w-5" />
       </Button>
       {extra}
       {showQuickCreate && <QuickCreate />}

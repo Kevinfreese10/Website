@@ -24,8 +24,7 @@ import {
   Trash2,
   Calendar,
   BookOpen,
-  Settings2,
-  SlidersHorizontal,
+  Award,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -37,6 +36,7 @@ import type {
   AfsGeneralInfo,
   AfsDirector,
   AfsDirectorsResponsibilities,
+  AfsAccountingOfficerReport,
   AfsDirectorsReportData,
   AfsAccountingPoliciesData,
   AfsSectionToggles,
@@ -46,8 +46,8 @@ import { getDynamicNoteNumbers } from '@/lib/afs-pdf-generator';
 import AnnualFinancialStatementsPdfDownloadButton from '@/components/pdf/AnnualFinancialStatementsPdfDownloadButton';
 import * as XLSX from 'xlsx-js-style';
 
-const formatRand = (amount: number) => {
-  if (amount === 0) return 'R 0';
+const formatRand = (amount?: number) => {
+  if (amount === undefined || amount === 0) return 'R 0';
   const isNegative = amount < 0;
   const abs = Math.abs(amount);
   const formatted = abs.toLocaleString('en-ZA', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
@@ -70,6 +70,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
   // Custom configuration state
   const [generalInfoForm, setGeneralInfoForm] = useState<AfsGeneralInfo | null>(null);
   const [responsibilitiesForm, setResponsibilitiesForm] = useState<AfsDirectorsResponsibilities | null>(null);
+  const [accountingOfficerReportForm, setAccountingOfficerReportForm] = useState<AfsAccountingOfficerReport | null>(null);
   const [directorsReportForm, setDirectorsReportForm] = useState<AfsDirectorsReportData | null>(null);
   const [accountingPoliciesForm, setAccountingPoliciesForm] = useState<AfsAccountingPoliciesData | null>(null);
   const [sectionTogglesForm, setSectionTogglesForm] = useState<AfsSectionToggles | null>(null);
@@ -82,6 +83,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         setData(res.data);
         setGeneralInfoForm(res.data.generalInfo);
         setResponsibilitiesForm(res.data.directorsResponsibilities);
+        setAccountingOfficerReportForm(res.data.accountingOfficerReport);
         setDirectorsReportForm(res.data.directorsReport);
         setAccountingPoliciesForm(res.data.accountingPolicies);
         setSectionTogglesForm(res.data.sectionToggles);
@@ -101,7 +103,16 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
   }, [fetchAfsData]);
 
   const handleSaveConfig = async () => {
-    if (!generalInfoForm || !responsibilitiesForm || !directorsReportForm || !accountingPoliciesForm || !sectionTogglesForm) return;
+    if (
+      !generalInfoForm ||
+      !responsibilitiesForm ||
+      !accountingOfficerReportForm ||
+      !directorsReportForm ||
+      !accountingPoliciesForm ||
+      !sectionTogglesForm
+    )
+      return;
+
     setIsSaving(true);
     try {
       const payload = {
@@ -110,6 +121,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         approvalDate: responsibilitiesForm.approvalDate,
         signatoryName: responsibilitiesForm.signatoryName,
         signatoryTitle: responsibilitiesForm.signatoryTitle,
+        accountingOfficerReport: accountingOfficerReportForm,
         incorporationText: directorsReportForm.incorporationText,
         natureOfBusinessReport: directorsReportForm.natureOfBusiness,
         reviewOfActivities: directorsReportForm.reviewOfActivities,
@@ -123,7 +135,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
 
       const res = await saveAnnualFinancialStatementsConfigAction({ clientId, config: payload });
       if (res.success) {
-        toast({ title: 'Settings Saved', description: 'Statutory AFS details & dynamic numbering updated successfully.' });
+        toast({ title: 'Settings Saved', description: 'Statutory AFS details saved successfully (Local).' });
         fetchAfsData();
       } else {
         toast({ title: 'Save Failed', description: res.error, variant: 'destructive' });
@@ -148,21 +160,21 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         [`Registration number: ${data.generalInfo.registrationNumber}`],
         [`Statement of Financial Position as at ${data.generalInfo.financialYearEndedDate}`],
         [],
-        ['Figures in Rand', 'Notes', '2026'],
+        ['Figures in Rand', 'Notes', '2026', '2025'],
         ['Assets'],
         ['Current Assets'],
-        ...data.statementOfFinancialPosition.currentAssets.items.map((i) => [i.name, i.noteNumber || '', i.currentAmount]),
-        ['Total Assets', '', data.statementOfFinancialPosition.totalAssets.current],
+        ...data.statementOfFinancialPosition.currentAssets.items.map((i) => [i.name, i.noteNumber || '', i.currentAmount, i.priorAmount || '']),
+        ['Total Assets', '', data.statementOfFinancialPosition.totalAssets.current, data.statementOfFinancialPosition.totalAssets.prior || ''],
         [],
         ['Equity and Liabilities'],
         ['Equity'],
-        ...data.statementOfFinancialPosition.equity.items.map((i) => [i.name, i.noteNumber || '', i.currentAmount]),
-        ['Total Equity', '', data.statementOfFinancialPosition.equity.total.current],
+        ...data.statementOfFinancialPosition.equity.items.map((i) => [i.name, i.noteNumber || '', i.currentAmount, i.priorAmount || '']),
+        ['Total Equity', '', data.statementOfFinancialPosition.equity.total.current, data.statementOfFinancialPosition.equity.total.prior || ''],
         [],
         ['Current Liabilities'],
-        ...data.statementOfFinancialPosition.currentLiabilities.items.map((i) => [i.name, i.noteNumber || '', i.currentAmount]),
-        ['Total Liabilities', '', data.statementOfFinancialPosition.totalLiabilities.current],
-        ['Total Equity and Liabilities', '', data.statementOfFinancialPosition.totalEquityAndLiabilities.current],
+        ...data.statementOfFinancialPosition.currentLiabilities.items.map((i) => [i.name, i.noteNumber || '', i.currentAmount, i.priorAmount || '']),
+        ['Total Liabilities', '', data.statementOfFinancialPosition.totalLiabilities.current, data.statementOfFinancialPosition.totalLiabilities.prior || ''],
+        ['Total Equity and Liabilities', '', data.statementOfFinancialPosition.totalEquityAndLiabilities.current, data.statementOfFinancialPosition.totalEquityAndLiabilities.prior || ''],
       ];
       const wsBs = XLSX.utils.aoa_to_sheet(bsRows);
       XLSX.utils.book_append_sheet(wb, wsBs, 'Balance Sheet');
@@ -173,14 +185,14 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         [`Registration number: ${data.generalInfo.registrationNumber}`],
         [`Statement of Profit or Loss and Other Comprehensive Income for the year ended ${data.generalInfo.financialYearEndedDate}`],
         [],
-        ['Figures in Rand', 'Notes', '2026'],
-        ['Other income', '', data.statementOfComprehensiveIncome.otherIncome.currentAmount],
-        ['Operating expenses', '5', data.statementOfComprehensiveIncome.operatingExpenses.currentAmount],
-        ['Operating loss', '', data.statementOfComprehensiveIncome.operatingProfitOrLoss.currentAmount],
-        ['Loss before income tax', '', data.statementOfComprehensiveIncome.profitOrLossBeforeTax.currentAmount],
-        ['Income tax', '7', '-'],
-        ['Loss for the year', '', data.statementOfComprehensiveIncome.profitOrLossForTheYear.currentAmount],
-        ['Total comprehensive loss for the year', '', data.statementOfComprehensiveIncome.totalComprehensiveLossOrIncome.currentAmount],
+        ['Figures in Rand', 'Notes', '2026', '2025'],
+        ['Other income', '', data.statementOfComprehensiveIncome.otherIncome.currentAmount, data.statementOfComprehensiveIncome.otherIncome.priorAmount || ''],
+        ['Operating expenses', '5', data.statementOfComprehensiveIncome.operatingExpenses.currentAmount, data.statementOfComprehensiveIncome.operatingExpenses.priorAmount || ''],
+        ['Operating loss', '', data.statementOfComprehensiveIncome.operatingProfitOrLoss.currentAmount, data.statementOfComprehensiveIncome.operatingProfitOrLoss.priorAmount || ''],
+        ['Loss before income tax', '', data.statementOfComprehensiveIncome.profitOrLossBeforeTax.currentAmount, data.statementOfComprehensiveIncome.profitOrLossBeforeTax.priorAmount || ''],
+        ['Income tax', '7', '-', '-'],
+        ['Loss for the year', '', data.statementOfComprehensiveIncome.profitOrLossForTheYear.currentAmount, data.statementOfComprehensiveIncome.profitOrLossForTheYear.priorAmount || ''],
+        ['Total comprehensive loss for the year', '', data.statementOfComprehensiveIncome.totalComprehensiveLossOrIncome.currentAmount, data.statementOfComprehensiveIncome.totalComprehensiveLossOrIncome.priorAmount || ''],
       ];
       const wsPnl = XLSX.utils.aoa_to_sheet(pnlRows);
       XLSX.utils.book_append_sheet(wb, wsPnl, 'Comprehensive Income');
@@ -190,15 +202,15 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         [data.generalInfo.companyName.toUpperCase()],
         ['Detailed Income Statement (Unaudited Supplementary Schedule)'],
         [],
-        ['Figures in Rand', '2026'],
+        ['Figures in Rand', '2026', '2025'],
         ['Other income'],
-        ...data.detailedIncomeStatement.otherIncomeItems.map((i) => [i.name, i.current]),
-        ['Total Other Income', data.detailedIncomeStatement.totalOtherIncome.current],
+        ...data.detailedIncomeStatement.otherIncomeItems.map((i) => [i.name, i.current, i.prior || '']),
+        ['Total Other Income', data.detailedIncomeStatement.totalOtherIncome.current, data.detailedIncomeStatement.totalOtherIncome.prior || ''],
         [],
         ['Operating expenses'],
-        ...data.detailedIncomeStatement.operatingExpenseItems.map((i) => [i.name, -i.current]),
-        ['Total Operating Expenses', -data.detailedIncomeStatement.totalOperatingExpenses.current],
-        ['Loss for the year', data.detailedIncomeStatement.lossOrProfitForTheYear.current],
+        ...data.detailedIncomeStatement.operatingExpenseItems.map((i) => [i.name, -i.current, i.prior ? -i.prior : '']),
+        ['Total Operating Expenses', -data.detailedIncomeStatement.totalOperatingExpenses.current, data.detailedIncomeStatement.totalOperatingExpenses.prior ? -data.detailedIncomeStatement.totalOperatingExpenses.prior : ''],
+        ['Loss for the year', data.detailedIncomeStatement.lossOrProfitForTheYear.current, data.detailedIncomeStatement.lossOrProfitForTheYear.prior || ''],
       ];
       const wsDet = XLSX.utils.aoa_to_sheet(detRows);
       XLSX.utils.book_append_sheet(wb, wsDet, 'Detailed Income Statement');
@@ -217,12 +229,21 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm font-medium text-muted-foreground">Compiling 16-Page Statutory Annual Financial Statements (IFRS for SMEs)...</p>
+        <p className="text-sm font-medium text-muted-foreground">Compiling Statutory Annual Financial Statements (IFRS for SMEs)...</p>
       </div>
     );
   }
 
-  if (!data || !generalInfoForm || !responsibilitiesForm || !directorsReportForm || !accountingPoliciesForm || !sectionTogglesForm) return null;
+  if (
+    !data ||
+    !generalInfoForm ||
+    !responsibilitiesForm ||
+    !accountingOfficerReportForm ||
+    !directorsReportForm ||
+    !accountingPoliciesForm ||
+    !sectionTogglesForm
+  )
+    return null;
 
   // Dynamic note numbering based on active switches
   const dynamicNotes = getDynamicNoteNumbers(sectionTogglesForm);
@@ -254,6 +275,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
     ...data,
     generalInfo: generalInfoForm,
     directorsResponsibilities: responsibilitiesForm,
+    accountingOfficerReport: accountingOfficerReportForm,
     directorsReport: {
       ...directorsReportForm,
       directors: generalInfoForm.directors,
@@ -313,35 +335,38 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="bg-slate-100 p-1 border flex-wrap h-auto gap-1">
           <TabsTrigger value="general_info" className="font-bold text-xs">
-            1. General Info & Assurance
+            1. General Info
           </TabsTrigger>
           <TabsTrigger value="responsibilities" className="font-bold text-xs">
-            2. Director's Responsibilities & Approval
+            2. Director's Responsibilities
+          </TabsTrigger>
+          <TabsTrigger value="accounting_officer_report" className="font-bold text-xs">
+            3. Accounting Officer Report
           </TabsTrigger>
           <TabsTrigger value="directors_report" className="font-bold text-xs">
-            3. Director's Report
+            4. Director's Report
           </TabsTrigger>
           <TabsTrigger value="accounting_policies" className="font-bold text-xs">
-            4. Accounting Policies
+            5. Accounting Policies
           </TabsTrigger>
           <TabsTrigger value="balance_sheet" className="font-bold text-xs">
-            5. Statement of Financial Position
+            6. Statement of Financial Position
           </TabsTrigger>
           <TabsTrigger value="income_statement" className="font-bold text-xs">
-            6. Comprehensive Income (P&L)
+            7. Comprehensive Income (P&L)
           </TabsTrigger>
           <TabsTrigger value="equity_cashflows" className="font-bold text-xs">
-            7. Equity & Cash Flows
+            8. Equity & Cash Flows
           </TabsTrigger>
           <TabsTrigger value="notes" className="font-bold text-xs">
-            8. Notes & Disclosures
+            9. Notes & Disclosures
           </TabsTrigger>
           <TabsTrigger value="detailed_income" className="font-bold text-xs">
-            9. Detailed Income Schedule
+            10. Detailed Income Schedule
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: GENERAL INFO & ASSURANCE */}
+        {/* TAB 1: GENERAL INFO */}
         <TabsContent value="general_info">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
@@ -665,7 +690,124 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 3: DIRECTOR'S REPORT */}
+        {/* TAB 3: REPORT OF THE ACCOUNTING OFFICER (NEW!) */}
+        <TabsContent value="accounting_officer_report">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Award className="h-4 w-4 text-blue-600" /> Report of the Accounting Officer / Compiler
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Review and customize the statutory ISRS 4410 compilation report (compact 1-page statutory disclosure).
+                </CardDescription>
+              </div>
+              <Button size="sm" onClick={handleSaveConfig} disabled={isSaving} className="gap-1.5 font-bold text-xs">
+                {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save Report
+              </Button>
+            </CardHeader>
+            <CardContent className="p-6 space-y-5 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="font-bold">Report Title</Label>
+                  <Input
+                    value={accountingOfficerReportForm.title}
+                    onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, title: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold">Addressee</Label>
+                  <Input
+                    value={accountingOfficerReportForm.addressee}
+                    onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, addressee: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold">Report on the Financial Statements Paragraph</Label>
+                <Textarea
+                  rows={4}
+                  value={accountingOfficerReportForm.reportText}
+                  onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, reportText: e.target.value })}
+                  className="text-xs bg-slate-50/50"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold">Basis of Compilation Paragraph</Label>
+                <Textarea
+                  rows={3}
+                  value={accountingOfficerReportForm.basisText}
+                  onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, basisText: e.target.value })}
+                  className="text-xs bg-slate-50/50"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold">Responsibilities of the Director Paragraph</Label>
+                <Textarea
+                  rows={3}
+                  value={accountingOfficerReportForm.directorResponsibilityText}
+                  onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, directorResponsibilityText: e.target.value })}
+                  className="text-xs bg-slate-50/50"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="font-bold">Accounting Officer's Responsibilities Paragraph</Label>
+                <Textarea
+                  rows={3}
+                  value={accountingOfficerReportForm.practitionerResponsibilityText}
+                  onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, practitionerResponsibilityText: e.target.value })}
+                  className="text-xs bg-slate-50/50"
+                />
+              </div>
+
+              <div className="pt-4 border-t grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="font-bold">Firm Name</Label>
+                  <Input
+                    value={accountingOfficerReportForm.firmName}
+                    onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, firmName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold">Lead Partner / Signatory</Label>
+                  <Input
+                    value={accountingOfficerReportForm.leadPartnerName}
+                    onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, leadPartnerName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold">Designation</Label>
+                  <Input
+                    value={accountingOfficerReportForm.leadPartnerTitle}
+                    onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, leadPartnerTitle: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <Label className="font-bold">Firm Address</Label>
+                  <Input
+                    value={accountingOfficerReportForm.firmAddress}
+                    onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, firmAddress: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold">Report Date</Label>
+                  <Input
+                    type="date"
+                    value={accountingOfficerReportForm.date?.includes('-') && accountingOfficerReportForm.date.length === 10 ? accountingOfficerReportForm.date : '2026-08-19'}
+                    onChange={(e) => setAccountingOfficerReportForm({ ...accountingOfficerReportForm, date: e.target.value })}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 4: DIRECTOR'S REPORT */}
         <TabsContent value="directors_report">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
@@ -891,7 +1033,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 4: ACCOUNTING POLICIES */}
+        {/* TAB 5: ACCOUNTING POLICIES */}
         <TabsContent value="accounting_policies">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
@@ -1027,7 +1169,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 5: STATEMENT OF FINANCIAL POSITION */}
+        {/* TAB 6: STATEMENT OF FINANCIAL POSITION */}
         <TabsContent value="balance_sheet">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b">
@@ -1041,70 +1183,79 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 <TableHeader className="bg-slate-50 font-bold">
                   <TableRow>
                     <TableHead>Figures in Rand</TableHead>
-                    <TableHead className="w-[100px] text-center">Notes</TableHead>
-                    <TableHead className="w-[160px] text-right">2026</TableHead>
+                    <TableHead className="w-[80px] text-center">Notes</TableHead>
+                    <TableHead className="w-[120px] text-right">2026</TableHead>
+                    <TableHead className="w-[120px] text-right">2025</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   <TableRow className="font-bold bg-slate-50/50">
-                    <TableCell colSpan={3}>Assets</TableCell>
+                    <TableCell colSpan={4}>Assets</TableCell>
                   </TableRow>
                   <TableRow className="font-semibold text-slate-700">
-                    <TableCell colSpan={3} className="pl-6">Current Assets</TableCell>
+                    <TableCell colSpan={4} className="pl-6">Current Assets</TableCell>
                   </TableRow>
                   {data.statementOfFinancialPosition.currentAssets.items.map((i, idx) => (
                     <TableRow key={idx}>
                       <TableCell className="pl-10">{i.name}</TableCell>
                       <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteCash || ''}</TableCell>
                       <TableCell className="text-right font-mono font-medium">{formatRand(i.currentAmount)}</TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">{formatRand(i.priorAmount)}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow className="font-bold bg-slate-100 border-t">
                     <TableCell className="pl-6">Total Assets</TableCell>
                     <TableCell className="text-center"></TableCell>
                     <TableCell className="text-right font-mono font-black text-sm">{formatRand(data.statementOfFinancialPosition.totalAssets.current)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatRand(data.statementOfFinancialPosition.totalAssets.prior)}</TableCell>
                   </TableRow>
 
                   <TableRow className="font-bold bg-slate-50/50 pt-4">
-                    <TableCell colSpan={3}>Equity and Liabilities</TableCell>
+                    <TableCell colSpan={4}>Equity and Liabilities</TableCell>
                   </TableRow>
                   <TableRow className="font-semibold text-slate-700">
-                    <TableCell colSpan={3} className="pl-6">Equity</TableCell>
+                    <TableCell colSpan={4} className="pl-6">Equity</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="pl-10">Share capital</TableCell>
                     <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteShareCapital || ''}</TableCell>
                     <TableCell className="text-right font-mono font-medium">{formatRand(data.statementOfFinancialPosition.equity.items[0]?.currentAmount || 100)}</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">{formatRand(data.statementOfFinancialPosition.equity.items[0]?.priorAmount || 100)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="pl-10">Accumulated loss</TableCell>
                     <TableCell className="text-center font-bold text-blue-600"></TableCell>
                     <TableCell className="text-right font-mono font-medium">{formatRand(data.statementOfFinancialPosition.equity.items[1]?.currentAmount || -510104)}</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">{formatRand(data.statementOfFinancialPosition.equity.items[1]?.priorAmount)}</TableCell>
                   </TableRow>
                   <TableRow className="font-bold text-slate-800">
                     <TableCell className="pl-6"></TableCell>
                     <TableCell className="text-center"></TableCell>
                     <TableCell className="text-right font-mono font-bold">{formatRand(data.statementOfFinancialPosition.equity.total.current)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatRand(data.statementOfFinancialPosition.equity.total.prior)}</TableCell>
                   </TableRow>
 
                   <TableRow className="font-semibold text-slate-700">
-                    <TableCell colSpan={3} className="pl-6">Current Liabilities</TableCell>
+                    <TableCell colSpan={4} className="pl-6">Current Liabilities</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell className="pl-10">Loans from shareholder</TableCell>
                     <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteShareholderLoans || ''}</TableCell>
                     <TableCell className="text-right font-mono font-medium">{formatRand(data.statementOfFinancialPosition.currentLiabilities.items[0]?.currentAmount || 619901)}</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">{formatRand(data.statementOfFinancialPosition.currentLiabilities.items[0]?.priorAmount)}</TableCell>
                   </TableRow>
                   <TableRow className="font-bold bg-slate-50 border-t">
                     <TableCell className="pl-6">Total Liabilities</TableCell>
                     <TableCell className="text-center"></TableCell>
                     <TableCell className="text-right font-mono font-bold">{formatRand(data.statementOfFinancialPosition.totalLiabilities.current)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatRand(data.statementOfFinancialPosition.totalLiabilities.prior)}</TableCell>
                   </TableRow>
 
                   <TableRow className="font-bold bg-slate-200 border-t-2 border-b-2 text-sm">
                     <TableCell className="pl-6">Total Equity and Liabilities</TableCell>
                     <TableCell className="text-center"></TableCell>
                     <TableCell className="text-right font-mono font-black">{formatRand(data.statementOfFinancialPosition.totalEquityAndLiabilities.current)}</TableCell>
+                    <TableCell className="text-right font-mono font-black text-muted-foreground">{formatRand(data.statementOfFinancialPosition.totalEquityAndLiabilities.prior)}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -1112,7 +1263,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 6: STATEMENT OF COMPREHENSIVE INCOME */}
+        {/* TAB 7: STATEMENT OF COMPREHENSIVE INCOME */}
         <TabsContent value="income_statement">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b">
@@ -1126,8 +1277,9 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 <TableHeader className="bg-slate-50 font-bold">
                   <TableRow>
                     <TableHead>Figures in Rand</TableHead>
-                    <TableHead className="w-[100px] text-center">Note(s)</TableHead>
-                    <TableHead className="w-[160px] text-right">2026</TableHead>
+                    <TableHead className="w-[80px] text-center">Note(s)</TableHead>
+                    <TableHead className="w-[120px] text-right">2026</TableHead>
+                    <TableHead className="w-[120px] text-right">2025</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1135,41 +1287,49 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                     <TableCell>Other income</TableCell>
                     <TableCell className="text-center"></TableCell>
                     <TableCell className="text-right font-mono">{formatRand(data.statementOfComprehensiveIncome.otherIncome.currentAmount)}</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">{formatRand(data.statementOfComprehensiveIncome.otherIncome.priorAmount)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Operating expenses</TableCell>
                     <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteOperatingExpenses || ''}</TableCell>
                     <TableCell className="text-right font-mono">{formatRand(data.statementOfComprehensiveIncome.operatingExpenses.currentAmount)}</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">{formatRand(data.statementOfComprehensiveIncome.operatingExpenses.priorAmount)}</TableCell>
                   </TableRow>
                   <TableRow className="font-bold bg-slate-50">
                     <TableCell>Operating loss</TableCell>
                     <TableCell className="text-center"></TableCell>
                     <TableCell className="text-right font-mono font-bold text-rose-700">{formatRand(data.statementOfComprehensiveIncome.operatingProfitOrLoss.currentAmount)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatRand(data.statementOfComprehensiveIncome.operatingProfitOrLoss.priorAmount)}</TableCell>
                   </TableRow>
                   <TableRow className="font-bold bg-slate-50">
                     <TableCell>Loss before income tax</TableCell>
                     <TableCell className="text-center"></TableCell>
                     <TableCell className="text-right font-mono font-bold text-rose-700">{formatRand(data.statementOfComprehensiveIncome.profitOrLossBeforeTax.currentAmount)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatRand(data.statementOfComprehensiveIncome.profitOrLossBeforeTax.priorAmount)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Income tax</TableCell>
                     <TableCell className="text-center font-bold text-blue-600">{dynamicNotes.noteTaxation || ''}</TableCell>
                     <TableCell className="text-right font-mono">-</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">-</TableCell>
                   </TableRow>
                   <TableRow className="font-bold bg-slate-100 text-sm">
                     <TableCell>Loss for the year</TableCell>
                     <TableCell className="text-center"></TableCell>
                     <TableCell className="text-right font-mono font-black text-rose-800">{formatRand(data.statementOfComprehensiveIncome.profitOrLossForTheYear.currentAmount)}</TableCell>
+                    <TableCell className="text-right font-mono font-black text-muted-foreground">{formatRand(data.statementOfComprehensiveIncome.profitOrLossForTheYear.priorAmount)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Other comprehensive loss</TableCell>
                     <TableCell className="text-center"></TableCell>
                     <TableCell className="text-right font-mono">-</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">-</TableCell>
                   </TableRow>
                   <TableRow className="font-bold bg-slate-200 border-t-2 border-b-2 text-sm">
                     <TableCell>Total comprehensive loss for the year</TableCell>
                     <TableCell className="text-center"></TableCell>
                     <TableCell className="text-right font-mono font-black text-rose-900">{formatRand(data.statementOfComprehensiveIncome.totalComprehensiveLossOrIncome.currentAmount)}</TableCell>
+                    <TableCell className="text-right font-mono font-black text-muted-foreground">{formatRand(data.statementOfComprehensiveIncome.totalComprehensiveLossOrIncome.priorAmount)}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -1177,7 +1337,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 7: EQUITY & CASH FLOWS */}
+        {/* TAB 8: EQUITY & CASH FLOWS */}
         <TabsContent value="equity_cashflows" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="shadow-sm">
@@ -1269,7 +1429,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </div>
         </TabsContent>
 
-        {/* TAB 8: STATUTORY NOTES & DISCLOSURES */}
+        {/* TAB 9: STATUTORY NOTES & DISCLOSURES */}
         <TabsContent value="notes" className="space-y-4">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
@@ -1489,7 +1649,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
           </Card>
         </TabsContent>
 
-        {/* TAB 9: DETAILED INCOME STATEMENT SCHEDULE */}
+        {/* TAB 10: DETAILED INCOME STATEMENT SCHEDULE */}
         <TabsContent value="detailed_income">
           <Card className="shadow-sm">
             <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
@@ -1518,41 +1678,47 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 <TableHeader className="bg-slate-50 font-bold">
                   <TableRow>
                     <TableHead>Account Description</TableHead>
-                    <TableHead className="w-[160px] text-right">2026 (ZAR)</TableHead>
+                    <TableHead className="w-[120px] text-right">2026 (ZAR)</TableHead>
+                    <TableHead className="w-[120px] text-right">2025 (ZAR)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   <TableRow className="font-bold bg-slate-50/50">
-                    <TableCell colSpan={2}>Other income</TableCell>
+                    <TableCell colSpan={3}>Other income</TableCell>
                   </TableRow>
                   {data.detailedIncomeStatement.otherIncomeItems.map((item, i) => (
                     <TableRow key={i}>
                       <TableCell className="pl-6">{item.name}</TableCell>
                       <TableCell className="text-right font-mono">{formatRand(item.current)}</TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">{formatRand(item.prior)}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow className="font-bold bg-slate-100">
                     <TableCell>Total Other Income</TableCell>
                     <TableCell className="text-right font-mono font-bold">{formatRand(data.detailedIncomeStatement.totalOtherIncome.current)}</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-muted-foreground">{formatRand(data.detailedIncomeStatement.totalOtherIncome.prior)}</TableCell>
                   </TableRow>
 
                   <TableRow className="font-bold bg-slate-50/50 pt-3">
-                    <TableCell colSpan={2}>Operating expenses</TableCell>
+                    <TableCell colSpan={3}>Operating expenses</TableCell>
                   </TableRow>
                   {data.detailedIncomeStatement.operatingExpenseItems.map((item, i) => (
                     <TableRow key={i}>
                       <TableCell className="pl-6">{item.name}</TableCell>
                       <TableCell className="text-right font-mono text-rose-700">({formatRand(item.current)})</TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">{item.prior ? `(${formatRand(item.prior)})` : '-'}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow className="font-bold bg-slate-100">
                     <TableCell>Total Operating Expenses</TableCell>
                     <TableCell className="text-right font-mono font-bold text-rose-800">({formatRand(data.detailedIncomeStatement.totalOperatingExpenses.current)})</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-muted-foreground">{data.detailedIncomeStatement.totalOperatingExpenses.prior ? `(${formatRand(data.detailedIncomeStatement.totalOperatingExpenses.prior)})` : '-'}</TableCell>
                   </TableRow>
 
                   <TableRow className="font-bold bg-rose-100 text-sm border-t-2 border-b-2">
                     <TableCell>Loss for the year</TableCell>
                     <TableCell className="text-right font-mono font-black text-rose-950">{formatRand(data.detailedIncomeStatement.lossOrProfitForTheYear.current)}</TableCell>
+                    <TableCell className="text-right font-mono font-black text-muted-foreground">{formatRand(data.detailedIncomeStatement.lossOrProfitForTheYear.prior)}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>

@@ -49,6 +49,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
+import { KEVIN_FREESE_PROFILE_IMAGE } from '@/lib/constants';
 import Script from 'next/script';
 import { useBlog } from '@/contexts/BlogContext';
 import { format } from 'date-fns';
@@ -146,10 +147,10 @@ export default function HomePageClient() {
 
               <div className="flex flex-col items-center gap-3">
                 <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
-                  <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300">
+                  <Button asChild size="lg" className="h-auto min-h-14 py-3.5 px-6 sm:px-8 text-base font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300 text-center">
                     <Link href="/products">Visit Our Online Store</Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="h-14 px-8 text-base font-bold shadow-xl border-white/10 hover:bg-white/5 transition-all duration-300">
+                  <Button asChild size="lg" variant="outline" className="h-auto min-h-14 py-3.5 px-6 sm:px-8 text-base font-bold shadow-xl border-white/10 hover:bg-white/5 transition-all duration-300 text-center">
                     <Link href="/contact">Book Free Consultation</Link>
                   </Button>
                 </div>
@@ -268,9 +269,12 @@ export default function HomePageClient() {
                   {/* Left Column: Avatar & Credentials */}
                   <div className="md:col-span-4 flex flex-col items-center text-center p-6 bg-white/[0.01] border border-white/[0.04] rounded-2xl">
                     <img
-                      src="/kevin-freese.jpg"
-                      alt="Kevin Freese"
-                      className="h-20 w-20 rounded-full object-cover border-4 border-white/10 shadow-xl shrink-0 mb-4"
+                      src={KEVIN_FREESE_PROFILE_IMAGE}
+                      alt="Kevin Freese - Managing Director & Founder"
+                      className="h-24 w-24 rounded-full object-cover border-4 border-white/20 shadow-xl shrink-0 mb-4"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/kevin-freese.jpg';
+                      }}
                     />
                     <h3 className="text-lg font-black text-foreground">Kevin Freese</h3>
                     <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director & Founder</p>
@@ -843,15 +847,15 @@ export default function HomePageClient() {
       </section>
 
       {/* FINAL CTA SECTION */}
-      <section className="py-24 bg-background border-t border-white/[0.06] relative overflow-hidden">
+      <section className="py-24 pb-36 md:pb-24 bg-background border-t border-white/[0.06] relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[600px] h-[600px] -top-40 left-1/4 animate-aurora-drift" />
         <div className="aurora-blob aurora-violet w-[400px] h-[400px] bottom-0 right-1/4 animate-aurora-drift" style={{ animationDelay: '-8s' }} />
         <div className="container relative z-10 mx-auto px-4 text-center">
-          <div className="max-w-5xl mx-auto p-12 rounded-[3rem] glass-card neon-border text-foreground relative overflow-hidden">
+          <div className="max-w-5xl mx-auto p-6 sm:p-12 rounded-[2rem] sm:rounded-[3rem] glass-card neon-border text-foreground relative overflow-hidden">
             <div className="absolute inset-0 bg-dot-grid opacity-30" />
             <div className="relative z-10 space-y-10">
-              <h2 className="text-4xl font-black md:text-5xl lg:text-6xl text-center text-gradient font-headline">Get Professional Accounting & Compliance Support</h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-medium leading-relaxed text-center">
+              <h2 className="text-3xl sm:text-4xl font-black md:text-5xl lg:text-6xl text-center text-gradient font-headline">Get Professional Accounting & Compliance Support</h2>
+              <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto font-medium leading-relaxed text-center">
                 Whether you need accounting services, tax compliance, company registration, payroll support, or CIPC assistance, My Accountant is ready to assist your business.
               </p>
               
@@ -873,14 +877,14 @@ export default function HomePageClient() {
                   </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-center gap-4 pt-8">
-                <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300">
+              <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-4 pt-8 max-w-2xl mx-auto">
+                <Button asChild size="lg" className="h-auto min-h-14 py-3.5 px-6 sm:px-10 text-base sm:text-lg font-bold shadow-xl bg-gradient hover:opacity-90 text-white neon-glow transition-all duration-300 text-center">
                   <Link href="/products">View Services</Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="h-14 px-10 text-lg font-bold border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-primary/30 text-foreground transition-all duration-300">
+                <Button asChild variant="outline" size="lg" className="h-auto min-h-14 py-3.5 px-4 sm:px-8 text-base sm:text-lg font-bold border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] hover:border-primary/30 text-foreground transition-all duration-300 text-center whitespace-normal leading-tight">
                   <Link href="/compliance">Request a Compliance Assessment</Link>
                 </Button>
-                <Button asChild variant="secondary" size="lg" className="h-14 px-10 text-lg font-bold bg-secondary hover:bg-secondary/80 text-foreground transition-all duration-300">
+                <Button asChild variant="secondary" size="lg" className="h-auto min-h-14 py-3.5 px-6 sm:px-10 text-base sm:text-lg font-bold bg-secondary hover:bg-secondary/80 text-foreground transition-all duration-300 text-center">
                   <Link href="/contact">Contact Us</Link>
                 </Button>
               </div>

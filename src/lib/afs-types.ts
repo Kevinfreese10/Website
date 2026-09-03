@@ -40,6 +40,22 @@ export interface AfsDirectorsResponsibilities {
   signatoryTitle: string;
 }
 
+export interface AfsAccountingOfficerReport {
+  title: string;
+  addressee: string;
+  reportText: string;
+  basisText: string;
+  directorResponsibilityText: string;
+  practitionerResponsibilityText: string;
+  conclusionText?: string;
+  firmName: string;
+  firmTitle: string;
+  leadPartnerName: string;
+  leadPartnerTitle: string;
+  firmAddress: string;
+  date: string;
+}
+
 export interface AfsDirectorsReportData {
   incorporationText: string;
   natureOfBusiness: string;
@@ -224,6 +240,7 @@ export interface AfsDetailedIncomeStatement {
 export interface AnnualFinancialStatementsData {
   generalInfo: AfsGeneralInfo;
   directorsResponsibilities: AfsDirectorsResponsibilities;
+  accountingOfficerReport: AfsAccountingOfficerReport;
   directorsReport: AfsDirectorsReportData;
   accountingPolicies: AfsAccountingPoliciesData;
   sectionToggles: AfsSectionToggles;

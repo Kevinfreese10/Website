@@ -6,6 +6,7 @@ import type {
   AfsGeneralInfo,
   AfsDirector,
   AfsDirectorsResponsibilities,
+  AfsAccountingOfficerReport,
   AfsDirectorsReportData,
   AfsAccountingPoliciesData,
   AfsSectionToggles,
@@ -301,6 +302,33 @@ The financial statements set out on pages 5 to 12, which have been prepared on t
       approvalDate: savedConfig?.approvalDate || '2026-08-19',
       signatoryName: savedConfig?.signatoryName || defaultDirectors[0]?.name || 'Lerato Khoza',
       signatoryTitle: savedConfig?.signatoryTitle || 'Director',
+    };
+
+    // Accounting Officer Report
+    const accountingOfficerReport: AfsAccountingOfficerReport = {
+      title: savedConfig?.accountingOfficerReport?.title || 'Report of the Accounting Officer',
+      addressee: savedConfig?.accountingOfficerReport?.addressee || `To the Shareholder of ${entityName}`,
+      reportText:
+        savedConfig?.accountingOfficerReport?.reportText ||
+        `We have compiled the financial statements of ${entityName} set out on pages 5 to 12, which comprise the statement of financial position as at ${fyeFormatted}, and the statement of profit or loss and other comprehensive income, the statement of changes in equity and the statement of cash flows for the year then ended, and notes to the financial statements, including a summary of material accounting policies. The financial statements have been compiled in accordance with the International Standard on Related Services (ISRS 4410) and the requirements of the Companies Act of South Africa.`,
+      basisText:
+        savedConfig?.accountingOfficerReport?.basisText ||
+        `We performed this compilation engagement in accordance with International Standard on Related Services 4410 (Revised), Compilation Engagements. We have applied our expertise in accounting and financial reporting to assist you in the preparation and presentation of these financial statements on the basis of International Financial Reporting Standard for Small and Medium-sized Entities and the requirements of the Companies Act of South Africa.`,
+      directorResponsibilityText:
+        savedConfig?.accountingOfficerReport?.directorResponsibilityText ||
+        `The director is responsible for the preparation and fair presentation of the financial statements in accordance with International Financial Reporting Standard for Small and Medium-sized Entities and the requirements of the Companies Act of South Africa, and for such internal control as the director determines is necessary to enable the preparation of financial statements that are free from material misstatement, whether due to fraud or error.`,
+      practitionerResponsibilityText:
+        savedConfig?.accountingOfficerReport?.practitionerResponsibilityText ||
+        `Since a compilation engagement is not an assurance engagement, we are not required to verify the accuracy or completeness of the information you provided to us to compile these financial statements. Accordingly, we do not express an audit opinion or a review conclusion on whether these financial statements are prepared in accordance with IFRS for SMEs.`,
+      conclusionText:
+        savedConfig?.accountingOfficerReport?.conclusionText ||
+        `We communicate with the directors regarding, among other matters, the planned scope and timing of our compilation procedures.`,
+      firmName: savedConfig?.accountingOfficerReport?.firmName || generalInfo.auditorOrPractitionerFirm,
+      firmTitle: savedConfig?.accountingOfficerReport?.firmTitle || generalInfo.auditorOrPractitionerTitle,
+      leadPartnerName: savedConfig?.accountingOfficerReport?.leadPartnerName || generalInfo.leadPartnerName || 'Kevin Freese',
+      leadPartnerTitle: savedConfig?.accountingOfficerReport?.leadPartnerTitle || generalInfo.leadPartnerTitle || 'Accounting Officer / Business Accountant in Practice (SA)',
+      firmAddress: savedConfig?.accountingOfficerReport?.firmAddress || generalInfo.auditorOrPractitionerAddress,
+      date: savedConfig?.accountingOfficerReport?.date || generalInfo.issuedDate,
     };
 
     // Directors' Report
@@ -620,6 +648,7 @@ Material prior-period errors are corrected retrospectively in the first annual f
     const data: AnnualFinancialStatementsData = {
       generalInfo,
       directorsResponsibilities,
+      accountingOfficerReport,
       directorsReport,
       accountingPolicies,
       sectionToggles: defaultSectionToggles,

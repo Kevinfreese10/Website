@@ -676,12 +676,12 @@ export default function AdminOrdersPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Manage Orders</h1>
                 <p className="text-sm text-muted-foreground">Monitor and update client orders across the practice.</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleReconcile} disabled={isReconciling}>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <Button variant="outline" onClick={handleReconcile} disabled={isReconciling} className="w-full sm:w-auto justify-center">
                 {isReconciling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                 {isReconciling ? 'Reconciling...' : 'Reconcile Payments'}
               </Button>
-              <Button asChild>
+              <Button asChild className="w-full sm:w-auto justify-center">
                 <Link href="/admin/orders/new">
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Create Custom Order

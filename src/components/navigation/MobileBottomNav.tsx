@@ -29,6 +29,13 @@ const STAFF_ITEMS: NavItem[] = [
   { label: 'Tasks', href: '/admin/tasks', icon: ClipboardCheck, match: (p) => p.startsWith('/admin/tasks') },
 ];
 
+const PARTNER_ITEMS: NavItem[] = [
+  { label: 'Home', href: '/partner/dashboard', icon: LayoutDashboard, match: (p) => p.startsWith('/partner/dashboard') },
+  { label: 'Orders', href: '/partner/orders', icon: ShieldCheck, match: (p) => p.startsWith('/partner/orders') },
+  { label: 'Clients', href: '/partner/clients', icon: Briefcase, match: (p) => p.startsWith('/partner/clients') },
+  { label: 'Tasks', href: '/partner/tasks', icon: ClipboardCheck, match: (p) => p.startsWith('/partner/tasks') },
+];
+
 const CLIENT_ITEMS: NavItem[] = [
   { label: 'Home', href: '/dashboard', icon: LayoutDashboard, match: (p) => p === '/dashboard' },
   { label: 'Orders', href: '/dashboard/orders', icon: ShieldCheck, match: (p) => p.startsWith('/dashboard/orders') },
@@ -40,12 +47,16 @@ const CLIENT_ITEMS: NavItem[] = [
  * Thumb-accessible bottom navigation for the logged-in portals on mobile.
  * Hidden from md upward; the last slot opens the command palette.
  */
-export function MobileBottomNav({ variant }: { variant: 'admin' | 'client' }) {
+export function MobileBottomNav({ variant }: { variant: 'admin' | 'partner' | 'client' }) {
   const pathname = usePathname();
   const { user } = useAuth();
   if (!user) return null;
 
-  const items = variant === 'admin' ? STAFF_ITEMS : CLIENT_ITEMS;
+  const items = variant === 'admin' 
+    ? STAFF_ITEMS 
+    : variant === 'partner' 
+    ? PARTNER_ITEMS 
+    : CLIENT_ITEMS;
 
   return (
     <nav

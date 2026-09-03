@@ -25,6 +25,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { extractStatementChunk } from '@/app/actions';
+import { matchesRuleKeyword } from '@/lib/bank-cleaner';
 import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx-js-style';
 import { Progress } from '@/components/ui/progress';
@@ -713,7 +714,7 @@ export default function AIStatementImportDialog({
 
         filteredTransactions.forEach(tx => {
             const isExpense = tx.amount < 0;
-            const match = isExpense ? allRules.find(r => r.keywords.some(kw => tx.description.toUpperCase().includes(kw.toUpperCase()))) : null;
+            const match = isExpense ? allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(tx.description, kw))) : null;
             
             const txData: any = {
                 clientId: client.id,
@@ -727,7 +728,7 @@ export default function AIStatementImportDialog({
             };
 
             if (isExpense && match) {
-                const keyword = match.keywords.find(kw => tx.description.toUpperCase().includes(kw.toUpperCase()));
+                const keyword = match.keywords.find(kw => matchesRuleKeyword(tx.description, kw));
                 txData.allocatedTo = { value: match.accountId, type: 'account' };
                 txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
                 txData.allocatedAt = serverTimestamp();

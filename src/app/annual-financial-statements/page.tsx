@@ -6,6 +6,7 @@ import { Metadata } from 'next';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import Script from 'next/script';
+import { KEVIN_FREESE_PROFILE_IMAGE } from '@/lib/constants';
 
 
 export const revalidate = 3600;
@@ -188,9 +189,12 @@ export default function AnnualFinancialStatementsPage() {
           </p>
           <div className="mt-6 flex items-center gap-4">
             <img
-              src="/kevin-freese.jpg"
-              alt="Kevin Freese"
-              className="h-12 w-12 rounded-full object-cover border-2 border-primary/20 shadow-sm shrink-0"
+              src={KEVIN_FREESE_PROFILE_IMAGE}
+              alt="Kevin Freese - Managing Director"
+              className="h-14 w-14 rounded-full object-cover border-2 border-primary/20 shadow-sm shrink-0"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/kevin-freese.jpg';
+              }}
             />
             <div>
               <h4 className="text-base font-black text-foreground leading-tight">Kevin Freese</h4>

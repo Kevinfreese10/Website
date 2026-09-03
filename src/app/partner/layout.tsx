@@ -1,19 +1,19 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { ProtectedRoute, useAuth } from '@/contexts/AuthContext';
-import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import DashboardNav from '@/components/dashboard/DashboardNav';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, usePathname } from 'next/navigation';
-import { getFirestore } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
 import { LapsedSubscriptionScreen } from '@/components/partner/LapsedSubscriptionScreen';
 import { PendingSetupScreen } from '@/components/partner/PendingSetupScreen';
 import { PartnerProvider } from '@/contexts/PartnerContext';
 import { WorkingAsBanner } from '@/components/partner/staff/WorkingAsBanner';
-
-const db = getFirestore(firebaseApp);
+import { AppTopBar } from '@/components/navigation/AppTopBar';
+import { CommandPalette } from '@/components/navigation/CommandPalette';
+import { NotificationCenter } from '@/components/navigation/NotificationCenter';
+import { MobileBottomNav } from '@/components/navigation/MobileBottomNav';
 
 export default function PartnerLayout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
@@ -45,17 +45,15 @@ export default function PartnerLayout({ children }: { children: ReactNode }) {
     <ProtectedRoute>
       <PartnerProvider>
         <SidebarProvider>
-          <div className="flex min-h-screen bg-background text-foreground">
+          <div className="flex min-h-screen bg-background w-full max-w-full overflow-x-hidden">
             {user && (
               <Sidebar collapsible="icon" className="border-r">
                 <DashboardNav user={user} />
               </Sidebar>
             )}
             <SidebarInset>
-                <div className="p-4 sm:p-6 lg:p-8">
-                    <div className="flex items-center gap-4 mb-6">
-                        <SidebarTrigger />
-                    </div>
+                <div className="p-4 pb-24 sm:p-6 lg:p-8 pt-0 sm:pt-0 lg:pt-0 md:pb-8 min-w-0 w-full max-w-full">
+                    <AppTopBar homeHref="/partner/dashboard" extra={<NotificationCenter />} />
 
                     {user?.role === 'partner_staff' && <WorkingAsBanner />}
 
@@ -72,6 +70,8 @@ export default function PartnerLayout({ children }: { children: ReactNode }) {
                     )}
                 </div>
             </SidebarInset>
+            <CommandPalette />
+            <MobileBottomNav variant="partner" />
           </div>
         </SidebarProvider>
       </PartnerProvider>

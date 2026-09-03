@@ -380,7 +380,7 @@ export default function PartnerOrdersPage() {
                         View and manage all orders you've created for your clients.
                     </CardDescription>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                       <div className="relative w-full sm:w-64">
                         <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
                         <Input 
@@ -392,7 +392,7 @@ export default function PartnerOrdersPage() {
                       </div>
                       <Dialog open={isCreateOrderOpen} onOpenChange={setIsCreateOrderOpen}>
                         <DialogTrigger asChild>
-                             <Button>
+                             <Button className="w-full sm:w-auto justify-center">
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Create New Order
                             </Button>
@@ -492,77 +492,145 @@ export default function PartnerOrdersPage() {
                         <Button variant="outline" size="sm" onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}>Clear Filters</Button>
                     </div>
                 ) : (
-                    <Table>
-                    <TableHeader>
-                        <TableRow>
-                        <TableHead>Order ID</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Fulfillment</TableHead>
-                        <TableHead className="text-right">Price</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                    <>
+                    {/* Mobile Card List (< sm) */}
+                    <div className="space-y-3 sm:hidden">
                         {filteredOrders.map((order) => (
-                        <TableRow key={order.id}>
-                            <TableCell className="font-medium">{order.id}</TableCell>
-                            <TableCell>{formatDate(order.date)}</TableCell>
-                            <TableCell>
-                                <div>
-                                    <p className="font-medium">{order.endCustomerName || order.customerName}</p>
-                                    <p className="text-xs text-muted-foreground">{order.endCustomerEmail || order.customerEmail}</p>
+                            <div key={order.id} className="p-4 rounded-lg border bg-card/60 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-mono font-bold text-sm">#{order.id}</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <Badge variant={getStatusVariant(order.status)}>
+                                            {(order.status as any) === 'Outsourced' ? 'Processing' : order.status}
+                                        </Badge>
+                                        {order.isOutsourced && (
+                                            <Badge variant="outsourced">Outsourced</Badge>
+                                        )}
+                                    </div>
                                 </div>
-                            </TableCell>
-                            <TableCell>
-                            <Badge variant={getStatusVariant(order.status)}>
-                                {(order.status as any) === 'Outsourced' ? 'Processing' : order.status}
-                            </Badge>
-                            </TableCell>
-                            <TableCell>
-                                {order.isOutsourced ? (
-                                    <Badge variant="outsourced">Outsourced</Badge>
-                                ) : (
-                                    <Badge variant="secondary">Internal</Badge>
-                                )}
-                            </TableCell>
-                            <TableCell className="text-right font-semibold">{formatPrice(order.clientTotal || order.total)}</TableCell>
-                            <TableCell className="text-right">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem asChild>
-                                    <Link href={`/partner/orders/${order.id}`}>View Details</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger disabled={order.isOutsourced}>Change Status</DropdownMenuSubTrigger>
-                                    <DropdownMenuSubContent>
-                                        {orderStatuses.map(status => (
-                                            <DropdownMenuItem
-                                                key={status}
-                                                onClick={() => handleUpdateStatus(order.id, status)}
-                                                disabled={order.status === status}
-                                            >
-                                                Mark as {status}
+                                <div className="space-y-1 text-xs">
+                                    <p className="font-medium text-foreground text-sm">{order.endCustomerName || order.customerName}</p>
+                                    <p className="text-muted-foreground">{order.endCustomerEmail || order.customerEmail}</p>
+                                </div>
+                                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                                    <span>{formatDate(order.date)}</span>
+                                    <span className="font-bold text-foreground text-sm">{formatPrice(order.clientTotal || order.total)}</span>
+                                </div>
+                                <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+                                    <Button variant="outline" size="sm" className="flex-1 justify-between" asChild>
+                                        <Link href={`/partner/orders/${order.id}`}>
+                                            <span>View Details</span>
+                                            <ArrowRight className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-9 w-9 min-h-[44px] min-w-[44px]" aria-label="Order actions">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                            <DropdownMenuItem asChild>
+                                                <Link href={`/partner/orders/${order.id}`}>View Details</Link>
                                             </DropdownMenuItem>
-                                        ))}
-                                    </DropdownMenuSubContent>
-                                </DropdownMenuSub>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                            </TableCell>
-                        </TableRow>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuSub>
+                                                <DropdownMenuSubTrigger disabled={order.isOutsourced}>Change Status</DropdownMenuSubTrigger>
+                                                <DropdownMenuSubContent>
+                                                    {orderStatuses.map(status => (
+                                                        <DropdownMenuItem
+                                                            key={status}
+                                                            onClick={() => handleUpdateStatus(order.id, status)}
+                                                            disabled={order.status === status}
+                                                        >
+                                                            Mark as {status}
+                                                        </DropdownMenuItem>
+                                                    ))}
+                                                </DropdownMenuSubContent>
+                                            </DropdownMenuSub>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </div>
                         ))}
-                    </TableBody>
-                    </Table>
+                    </div>
+
+                    {/* Desktop / Tablet Table (>= sm) */}
+                    <div className="hidden sm:block">
+                        <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Order ID</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Fulfillment</TableHead>
+                            <TableHead className="text-right">Price</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredOrders.map((order) => (
+                            <TableRow key={order.id}>
+                                <TableCell className="font-medium font-mono">#{order.id}</TableCell>
+                                <TableCell>{formatDate(order.date)}</TableCell>
+                                <TableCell>
+                                    <div>
+                                        <p className="font-medium">{order.endCustomerName || order.customerName}</p>
+                                        <p className="text-xs text-muted-foreground">{order.endCustomerEmail || order.customerEmail}</p>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                <Badge variant={getStatusVariant(order.status)}>
+                                    {(order.status as any) === 'Outsourced' ? 'Processing' : order.status}
+                                </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    {order.isOutsourced ? (
+                                        <Badge variant="outsourced">Outsourced</Badge>
+                                    ) : (
+                                        <Badge variant="secondary">Internal</Badge>
+                                    )}
+                                </TableCell>
+                                <TableCell className="text-right font-semibold">{formatPrice(order.clientTotal || order.total)}</TableCell>
+                                <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Open menu">
+                                        <span className="sr-only">Open menu</span>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuItem asChild>
+                                        <Link href={`/partner/orders/${order.id}`}>View Details</Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger disabled={order.isOutsourced}>Change Status</DropdownMenuSubTrigger>
+                                        <DropdownMenuSubContent>
+                                            {orderStatuses.map(status => (
+                                                <DropdownMenuItem
+                                                    key={status}
+                                                    onClick={() => handleUpdateStatus(order.id, status)}
+                                                    disabled={order.status === status}
+                                                >
+                                                    Mark as {status}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                            ))}
+                        </TableBody>
+                        </Table>
+                    </div>
+                    </>
                 )}
                 </CardContent>
             </Card>

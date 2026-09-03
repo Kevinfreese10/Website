@@ -155,6 +155,16 @@ const nextConfig: NextConfig = {
         destination: GLOBAL_OG_URL,
         permanent: true,
       },
+      {
+        source: '/kevin-freese.jpg',
+        destination: 'https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/assets%2Fkevin-freese.jpg?alt=media&token=302e6739686d626639646b66396d746c3131673134',
+        permanent: false,
+      },
+      {
+        source: '/images/kevin.jpeg',
+        destination: 'https://firebasestorage.googleapis.com/v0/b/studio-2604127518-57889.firebasestorage.app/o/assets%2Fkevin-desk.jpeg?alt=media&token=302e7761676c767178706e76716d746c3131696630',
+        permanent: false,
+      },
 
       // ===== SEO DEAD SLUG REDIRECTS (from 4xx crawl audit) =====
       // --- Tax Compliance cluster → /tax-compliance ---

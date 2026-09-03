@@ -202,46 +202,85 @@ export default function DashboardPage() {
                             <Button variant="outline" size="sm" onClick={() => { setSearchTerm(''); setStatusFilter('all'); }}>Clear Filter</Button>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Order ID</TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Total</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                        <>
+                            {/* Mobile Card View (< sm) */}
+                            <div className="space-y-3 sm:hidden">
                                 {filteredOrders.map(order => (
-                                    <TableRow key={order.id}>
-                                        <TableCell className="font-medium">{order.id}</TableCell>
-                                        <TableCell>{format(new Date(order.date), 'dd MMMM yyyy')}</TableCell>
-                                        <TableCell>
+                                    <div key={order.id} className="p-4 rounded-lg border bg-card/60 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-mono font-bold text-sm">#{order.id}</span>
                                             <Badge variant={getStatusVariant(order.status)}>
                                                 {(order.status as any) === 'Outsourced' ? 'Processing' : order.status}
                                             </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
-                                        <TableCell className="text-right">
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                            <span>{format(new Date(order.date), 'dd MMM yyyy')}</span>
+                                            <span className="font-semibold text-foreground text-sm">{formatPrice(order.total)}</span>
+                                        </div>
+                                        <div className="pt-2 border-t border-border/40 flex justify-end">
                                             {order.status === 'Pending Payment' ? (
-                                                <Button size="sm" asChild>
+                                                <Button size="sm" className="w-full" asChild>
                                                     <Link href={`/order-confirmation/${order.id}`}>
                                                         Pay Now
                                                     </Link>
                                                 </Button>
                                             ) : (
-                                                <Button variant="ghost" size="sm" asChild>
+                                                <Button variant="outline" size="sm" className="w-full justify-between" asChild>
                                                     <Link href={`/dashboard/orders/${order.id}`}>
-                                                        View <ArrowRight className="ml-2 h-4 w-4" />
+                                                        <span>View Details</span>
+                                                        <ArrowRight className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
                                             )}
-                                        </TableCell>
-                                    </TableRow>
+                                        </div>
+                                    </div>
                                 ))}
-                            </TableBody>
-                        </Table>
+                            </div>
+
+                            {/* Desktop/Tablet Table (>= sm) */}
+                            <div className="hidden sm:block">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Order ID</TableHead>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Total</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredOrders.map(order => (
+                                            <TableRow key={order.id}>
+                                                <TableCell className="font-medium font-mono">#{order.id}</TableCell>
+                                                <TableCell>{format(new Date(order.date), 'dd MMMM yyyy')}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={getStatusVariant(order.status)}>
+                                                        {(order.status as any) === 'Outsourced' ? 'Processing' : order.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right font-medium">{formatPrice(order.total)}</TableCell>
+                                                <TableCell className="text-right">
+                                                    {order.status === 'Pending Payment' ? (
+                                                        <Button size="sm" asChild>
+                                                            <Link href={`/order-confirmation/${order.id}`}>
+                                                                Pay Now
+                                                            </Link>
+                                                        </Button>
+                                                    ) : (
+                                                        <Button variant="ghost" size="sm" asChild>
+                                                            <Link href={`/dashboard/orders/${order.id}`}>
+                                                                View <ArrowRight className="ml-2 h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

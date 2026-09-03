@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { allVatTypes } from '@/lib/vat-types';
-import { BankCleaner } from '@/lib/bank-cleaner';
+import { BankCleaner, matchesRuleKeyword } from '@/lib/bank-cleaner';
 import { usePaginatedFirestore } from '@/hooks/use-paginated-firestore';
 import { Command, CommandEmpty, CommandInput, CommandList, CommandGroup, CommandSeparator, CommandItem } from "@/components/ui/command";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -374,7 +374,7 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                 const description = row.Description;
                 const isExpense = row.Amount < 0;
                 
-                const match = isExpense ? allRules.find(r => r.keywords.some(kw => description.toUpperCase().includes(kw.toUpperCase()))) : null;
+                const match = isExpense ? allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(description, kw))) : null;
 
                 const txData: any = {
                     clientId: client.uid!,
@@ -389,7 +389,7 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                 };
 
                 if (isExpense && match) {
-                    const keyword = match.keywords.find(kw => description.toUpperCase().includes(kw.toUpperCase()));
+                    const keyword = match.keywords.find(kw => matchesRuleKeyword(description, kw));
                     txData.allocatedTo = { value: match.accountId, type: match.accountType || 'account' };
                     txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
                     txData.allocatedAt = serverTimestamp();
@@ -740,7 +740,7 @@ function CreateManualTransactionDialog({ client, bankAccountId, open, onOpenChan
             }
             allRules.sort((a, b) => (a.priority || 99) - (b.priority || 99));
             
-            const match = isExpense ? allRules.find(r => r.keywords.some(kw => description.includes(kw.toUpperCase()))) : null;
+            const match = isExpense ? allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(description, kw))) : null;
 
             const txData: any = {
                 clientId: client.uid,
@@ -757,7 +757,7 @@ function CreateManualTransactionDialog({ client, bankAccountId, open, onOpenChan
             };
 
             if (isExpense && match) {
-                const keyword = match.keywords.find(kw => description.includes(kw.toUpperCase()));
+                const keyword = match.keywords.find(kw => matchesRuleKeyword(description, kw));
                 txData.allocatedTo = { value: match.accountId, type: 'account' };
                 txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
                 txData.allocatedAt = serverTimestamp();
@@ -880,7 +880,7 @@ function EditTransactionDialog({ client, transaction, open, onOpenChange }: {
             }
             allRules.sort((a, b) => (a.priority || 99) - (b.priority || 99));
             
-            const match = isExpense ? allRules.find(r => r.keywords.some(kw => description.includes(kw.toUpperCase()))) : null;
+            const match = isExpense ? allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(description, kw))) : null;
 
             const txRef = doc(db, 'aiAccountantClients', client.uid, 'transactions', transaction.id);
             const txData: any = {
@@ -894,7 +894,7 @@ function EditTransactionDialog({ client, transaction, open, onOpenChange }: {
             };
 
             if (isExpense && match) {
-                const keyword = match.keywords.find(kw => description.includes(kw.toUpperCase()));
+                const keyword = match.keywords.find(kw => matchesRuleKeyword(description, kw));
                 txData.status = 'reviewed';
                 txData.allocatedTo = { value: match.accountId, type: 'account' };
                 txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
@@ -2080,9 +2080,9 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                 const tx = d.data() as ImportedTransaction;
                 const txDesc = (tx.cleanDescription || tx.description || '').toUpperCase();
                 if (!txDesc) return;
-                const match = allRules.find(r => r.keywords.some(kw => txDesc.includes((kw || '').toUpperCase())));
+                const match = allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(txDesc, kw)));
                 if (match) {
-                    const keyword = match.keywords.find(kw => txDesc.includes((kw || '').toUpperCase()));
+                    const keyword = match.keywords.find(kw => matchesRuleKeyword(txDesc, kw));
                     matchedDocs.push({
                         ref: d.ref,
                         updates: {
@@ -2736,10 +2736,10 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
 
             const updatedGroups = groups.map(group => {
                 const description = group.transactions[0].description;
-                const match = allRules.find(r => r.keywords.some(kw => description.toUpperCase().includes(kw.toUpperCase())));
+                const match = allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(description, kw)));
                 
                 if (match) {
-                    const keyword = match.keywords.find(kw => description.toUpperCase().includes(kw.toUpperCase()));
+                    const keyword = match.keywords.find(kw => matchesRuleKeyword(description, kw));
                     const newSuggestion: SmartAllocationResult = {
                         accountId: match.accountId,
                         accountType: match.accountType || 'account',

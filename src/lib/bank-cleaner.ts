@@ -242,3 +242,24 @@ export class BankCleaner {
         return { score: finalScore, reason };
     }
 }
+
+/**
+ * High-precision word-boundary keyword matcher for bank transactions.
+ * Prevents substring collisions (e.g. "BUS" matching "BUSISIWE", "FEE" matching "CONSULTING FEES").
+ */
+export function matchesRuleKeyword(description: string, keyword: string): boolean {
+    if (!description || !keyword) return false;
+    const cleanDesc = description.toUpperCase().trim();
+    const cleanKw = keyword.toUpperCase().trim();
+    if (!cleanDesc || !cleanKw) return false;
+
+    // Special bank symbols (like '#SERVICE FEES' or '*9002') allow direct substring/prefix match
+    if (cleanKw.startsWith('#') || cleanKw.startsWith('*')) {
+        return cleanDesc.includes(cleanKw);
+    }
+
+    // Exact word boundary matching using non-alphanumeric delimiters
+    const escaped = cleanKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(^|[^A-Z0-9])${escaped}([^A-Z0-9]|$)`, 'i');
+    return regex.test(cleanDesc);
+}

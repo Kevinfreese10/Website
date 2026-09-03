@@ -18,7 +18,7 @@ import {
   Star,
   AlertTriangle,
 } from 'lucide-react';
-import { SITE_URL } from '@/lib/constants';
+import { SITE_URL, KEVIN_FREESE_PROFILE_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Outsourcing vs Hiring Staff: The Complete Guide for Accountants | My Accountant',
@@ -206,9 +206,12 @@ export default function OutsourcingVsHiringPage() {
               {/* Left: Kevin's credentials card */}
               <div className="md:col-span-4 flex flex-col items-center text-center p-6 bg-slate-100/60 border border-slate-200/60 rounded-2xl shadow-sm">
                 <img
-                  src="/kevin-freese.jpg"
+                  src={KEVIN_FREESE_PROFILE_IMAGE}
                   alt="Kevin Freese - Managing Director & Founder of My Accountant"
                   className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-md mb-4"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/kevin-freese.jpg';
+                  }}
                 />
                 <h3 className="text-lg font-black text-slate-900">Kevin Freese</h3>
                 <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director &amp; Founder</p>

@@ -182,10 +182,10 @@ export default function MonthlyAccountingPageClient() {
             </p>
           </div>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center relative z-20">
-            <Button asChild size="lg" className="h-14 px-10 text-lg font-bold shadow-xl bg-gradient text-white transition-all duration-300">
+            <Button asChild size="lg" className="h-auto min-h-14 py-3.5 px-6 sm:px-10 text-base sm:text-lg font-bold shadow-xl bg-gradient text-white transition-all duration-300 text-center">
               <Link href="/contact">Enquire Today</Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="h-14 px-10 text-lg font-bold border-primary transition-all duration-300">
+            <Button asChild variant="outline" size="lg" className="h-auto min-h-14 py-3.5 px-6 sm:px-10 text-base sm:text-lg font-bold border-primary transition-all duration-300 text-center">
               <Link href="/products">View All Packages</Link>
             </Button>
           </div>

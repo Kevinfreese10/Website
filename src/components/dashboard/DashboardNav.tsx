@@ -55,7 +55,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
   const { logout } = useAuth();
   const partnerCtx = useOptionalPartner();
   const limits = partnerCtx?.limits || { aiCompanies: 0, aiPayroll: 0, staffSeats: 0 };
-  const { state, toggleSidebar } = useSidebar();
+  const { state, toggleSidebar, isMobile, setOpenMobile } = useSidebar();
   const [isSettingsOpen, setIsSettingsOpen] = useState(
     pathname.startsWith('/admin/settings') || 
     pathname.startsWith('/admin/users') || 
@@ -233,7 +233,10 @@ export default function DashboardNav({ user }: { user: UserType }) {
                                 {item.subItems.map((subItem) => (
                                   <SidebarMenuSubItem key={subItem.label}>
                                     <SidebarMenuSubButton asChild isActive={pathname === subItem.href}>
-                                      <Link href={subItem.href}>
+                                      <Link 
+                                        href={subItem.href}
+                                        onClick={() => { if (isMobile) setOpenMobile(false); }}
+                                      >
                                         <span>{subItem.label}</span>
                                       </Link>
                                     </SidebarMenuSubButton>
@@ -248,7 +251,10 @@ export default function DashboardNav({ user }: { user: UserType }) {
                 return (
                     <SidebarMenuItem key={item.label}>
                     <SidebarMenuButton asChild isActive={pathname.startsWith(item.href)} tooltip={item.label}>
-                        <Link href={item.href}>
+                        <Link 
+                          href={item.href}
+                          onClick={() => { if (isMobile) setOpenMobile(false); }}
+                        >
                         <item.icon />
                         <span>{item.label}</span>
                         </Link>
@@ -273,7 +279,10 @@ export default function DashboardNav({ user }: { user: UserType }) {
                     {visibleSettingsNavItems.map((item) => (
                       <SidebarMenuSubItem key={item.label}>
                         <SidebarMenuSubButton asChild isActive={pathname === item.href}>
-                          <Link href={item.href}>
+                          <Link 
+                            href={item.href}
+                            onClick={() => { if (isMobile) setOpenMobile(false); }}
+                          >
                             <item.icon className="h-4 w-4 mr-2" />
                             <span>{item.label}</span>
                           </Link>

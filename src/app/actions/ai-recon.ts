@@ -4,7 +4,7 @@ import { getVerifiedAuthContext, verifyAiAccountantClientAccess, AuthContext } f
 import { getAdminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { ImportedTransaction, AllocationRule, SmartAllocationResult, User } from '@/lib/types';
-import { BankCleaner } from '@/lib/bank-cleaner';
+import { BankCleaner, matchesRuleKeyword } from '@/lib/bank-cleaner';
 
 /**
  * Verifies the caller's Firebase ID token and, unless they're an admin, that their practice
@@ -134,11 +134,11 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
             const result = BankCleaner.process(tx.description);
 
             const match = allRules.find(r => 
-                r && Array.isArray(r.keywords) && r.keywords.some(kw => typeof kw === 'string' && kw.trim() && result.cleanDescription.includes(kw.trim().toUpperCase()))
+                r && Array.isArray(r.keywords) && r.keywords.some(kw => typeof kw === 'string' && kw.trim() && (matchesRuleKeyword(result.cleanDescription, kw) || matchesRuleKeyword(tx.description, kw)))
             );
 
             if (match) {
-                const matchedKw = match.keywords.find(kw => typeof kw === 'string' && kw.trim() && result.cleanDescription.includes(kw.trim().toUpperCase()));
+                const matchedKw = match.keywords.find(kw => typeof kw === 'string' && kw.trim() && (matchesRuleKeyword(result.cleanDescription, kw) || matchesRuleKeyword(tx.description, kw)));
                 batch.update(d.ref, {
                     ...result,
                     status: 'ai_review',

@@ -54,14 +54,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <ProtectedRoute>
       <SidebarProvider>
-        <div className="flex min-h-screen bg-background">
+        <div className="flex min-h-screen bg-background w-full max-w-full overflow-x-hidden">
           {user && (
             <Sidebar collapsible="icon" className="border-r">
               <DashboardNav user={user} />
             </Sidebar>
           )}
           <SidebarInset>
-              <div className="p-4 pb-24 sm:p-6 lg:p-8 pt-0 sm:pt-0 lg:pt-0 md:pb-8">
+              <div className="p-4 pb-24 sm:p-6 lg:p-8 pt-0 sm:pt-0 lg:pt-0 md:pb-8 min-w-0 w-full max-w-full">
                 <AppTopBar homeHref="/admin/dashboard" showQuickCreate extra={<NotificationCenter />} />
                 {children}
               </div>
