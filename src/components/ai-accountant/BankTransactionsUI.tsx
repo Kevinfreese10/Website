@@ -344,9 +344,12 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
             }
         }
     };
+    const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+
     const handleImport = async () => {
         if (!client?.uid || !bankAccountId || filteredTransactions.length === 0) return;
         setIsUploading(true);
+        setUploadProgress({ done: 0, total: filteredTransactions.length });
         try {
             let allRules = [...(client.allocationRules || [])];
             if (!client.disableGlobalRules) {
@@ -357,19 +360,18 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
             }
             allRules.sort((a, b) => (a.priority || 99) - (b.priority || 99));
 
-            const batch = writeBatch(db);
+            // Build all transaction documents first (synchronously, fast)
+            const allTxDocs: { ref: any; data: any }[] = [];
             let matchCount = 0;
 
-            filteredTransactions.forEach((row) => {
+            for (const row of filteredTransactions) {
                 let parsedDate = parse(row.Date, 'dd/MM/yyyy', new Date());
                 
-                // If it parsed as a tiny year (e.g., 0026), it was likely a 2-digit year like 27/06/26
                 if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() < 100) {
                     parsedDate = parse(row.Date, 'dd/MM/yy', new Date());
                 }
-
                 if (isNaN(parsedDate.getTime())) parsedDate = new Date(row.Date);
-                if (isNaN(parsedDate.getTime())) return;
+                if (isNaN(parsedDate.getTime())) continue;
 
                 const description = row.Description;
                 const isExpense = row.Amount < 0;
@@ -403,13 +405,26 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                 }
 
                 const newRef = doc(collection(db, 'aiAccountantClients', client.uid!, 'transactions'));
-                batch.set(newRef, txData);
-            });
+                allTxDocs.push({ ref: newRef, data: txData });
+            }
 
-            await batch.commit();
+            // Commit in chunks of 450 (safely under Firestore's 500-write limit)
+            const CHUNK_SIZE = 450;
+            for (let i = 0; i < allTxDocs.length; i += CHUNK_SIZE) {
+                const chunk = allTxDocs.slice(i, i + CHUNK_SIZE);
+                const batch = writeBatch(db);
+                for (const item of chunk) {
+                    batch.set(item.ref, item.data);
+                }
+                await batch.commit();
+                setUploadProgress({ done: Math.min(i + CHUNK_SIZE, allTxDocs.length), total: allTxDocs.length });
+                // Yield to keep the UI responsive between chunks
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+
             toast({ 
                 title: "Import Successful", 
-                description: `${filteredTransactions.length} transactions imported. ${matchCount} expenses auto-allocated by rules.`
+                description: `${allTxDocs.length} transactions imported. ${matchCount} expenses auto-allocated by rules.`
             });
             onImportComplete();
             setIsOpen(false);
@@ -418,8 +433,10 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
             toast({ title: "Import Failed", description: "An unexpected error occurred. Please check your data format.", variant: "destructive"});
         } finally {
             setIsUploading(false);
+            setUploadProgress(null);
         }
     };
+
 
     return (
         <>
@@ -528,10 +545,28 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                             </div>
                         )}
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex-col gap-2">
+                        {uploadProgress && (
+                            <div className="w-full space-y-1">
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>Importing transactions...</span>
+                                    <span>{uploadProgress.done} / {uploadProgress.total}</span>
+                                </div>
+                                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                    <div
+                                        className="h-full bg-primary transition-all duration-300"
+                                        style={{ width: `${Math.round((uploadProgress.done / uploadProgress.total) * 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
                         <Button type="button" onClick={handleImport} disabled={isUploading || isParsing || filteredTransactions.length === 0 || !isValidBalance}>
                             {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Save {filteredTransactions.length} Transactions
+                            {isUploading
+                                ? uploadProgress
+                                    ? `Importing ${uploadProgress.done} / ${uploadProgress.total}...`
+                                    : 'Preparing...'
+                                : `Save ${filteredTransactions.length} Transactions`}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
