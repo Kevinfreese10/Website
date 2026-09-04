@@ -25,11 +25,11 @@ async function sendTelegram(text: string) {
   }
 }
 
-function scanMailbox(user: string, pass: string): Promise<{ user: string; unreadCount: number; newItems: string[] }> {
+function scanKevMailbox(): Promise<{ unreadCount: number; newItems: string[] }> {
   return new Promise((resolve) => {
     const imap = new Imap({
-      user,
-      password: pass,
+      user: 'kev@thinkestry.co.za',
+      password: '7In~K;EF}?7E_7p4',
       host: '169.239.218.67',
       port: 993,
       tls: true,
@@ -44,13 +44,13 @@ function scanMailbox(user: string, pass: string): Promise<{ user: string; unread
       imap.openBox('INBOX', false, (err) => {
         if (err) {
           imap.end();
-          return resolve({ user, unreadCount: 0, newItems: [`⚠️ Could not open mailbox: ${err.message}`] });
+          return resolve({ unreadCount: 0, newItems: [`⚠️ Could not open kev@thinkestry.co.za: ${err.message}`] });
         }
 
         imap.search(['UNSEEN'], (searchErr, uids) => {
           if (searchErr || !uids || uids.length === 0) {
             imap.end();
-            return resolve({ user, unreadCount: 0, newItems: [] });
+            return resolve({ unreadCount: 0, newItems: [] });
           }
 
           const f = imap.fetch(uids, { bodies: '' });
@@ -71,28 +71,48 @@ function scanMailbox(user: string, pass: string): Promise<{ user: string; unread
                 const fromAddr = (parsed.from?.value?.[0]?.address || '').toLowerCase();
                 const fromName = parsed.from?.value?.[0]?.name || fromAddr;
                 const subject = parsed.subject || '(No Subject)';
+                const bodyText = parsed.text || '';
 
-                // Filter automated noise
-                if (fromAddr.includes('payfast') || /payfast/i.test(subject)) {
-                  newItems.push(`• 💳 PayFast Payment Received: "${subject}"`);
-                } else if (fromAddr.includes('ncr.org.za')) {
-                  newItems.push(`• 🏛️ *NCR Regulator Update:* "${subject}" from \`${fromAddr}\``);
-                } else if (!fromAddr.includes('dribbble') && !fromAddr.includes('canva') && !fromAddr.includes('domains.co.za')) {
-                  newItems.push(`• ✉️ *${fromName}*: "${subject}" (\`${fromAddr}\`)`);
+                // 1. Handle Website Contact Form Submissions
+                if (subject.toLowerCase().includes('contact form submission') || bodyText.includes('Cell Number:')) {
+                  const nameMatch = bodyText.match(/Name:\s*([^\n\r]+)/i);
+                  const emailMatch = bodyText.match(/Email:\s*([^\n\r]+)/i);
+                  const cellMatch = bodyText.match(/Cell Number:\s*([^\n\r]+)/i);
+                  const msgMatch = bodyText.match(/Message:\s*([\s\S]+)/i);
+
+                  const clientName = nameMatch ? nameMatch[1].trim() : fromName;
+                  const clientEmail = emailMatch ? emailMatch[1].trim() : 'Unknown';
+                  const clientCell = cellMatch ? cellMatch[1].trim() : '';
+                  const clientMsg = msgMatch ? msgMatch[1].trim() : '';
+
+                  newItems.push(
+                    `🌟 *NEW WEBSITE LEAD: ${clientName}*\n` +
+                    `• *Email:* \`${clientEmail}\`\n` +
+                    `• *Phone:* \`${clientCell}\`\n` +
+                    `• *Inquiry:* "${clientMsg}"`
+                  );
+                }
+                // 2. Handle Regulator & Client Updates
+                else if (fromAddr.includes('ncr.org.za')) {
+                  newItems.push(`🏛️ *NCR Regulator Update:* "${subject}" from \`${fromAddr}\``);
+                } else if (fromAddr.includes('sars.gov.za') || subject.toLowerCase().includes('sars')) {
+                  newItems.push(`🏛️ *SARS Notice:* "${subject}" from \`${fromAddr}\``);
+                } else if (!fromAddr.includes('payfast') && !fromAddr.includes('dribbble') && !fromAddr.includes('canva') && !fromAddr.includes('domains.co.za')) {
+                  newItems.push(`✉️ *${fromName}*: "${subject}" (\`${fromAddr}\`)`);
                 }
               } catch (e) {}
             }
 
             imap.end();
-            resolve({ user, unreadCount: batch.length, newItems });
+            resolve({ unreadCount: batch.length, newItems });
           });
         });
       });
     });
 
     imap.once('error', (err) => {
-      console.error(`[IMAP Error for ${user}]`, err.message);
-      resolve({ user, unreadCount: 0, newItems: [`⚠️ IMAP Error: ${err.message}`] });
+      console.error('[IMAP Error for kev@thinkestry.co.za]', err.message);
+      resolve({ unreadCount: 0, newItems: [`⚠️ IMAP Error: ${err.message}`] });
     });
 
     imap.connect();
@@ -104,27 +124,19 @@ export async function GET(req: NextRequest) {
   const runTime = new Date().toLocaleTimeString('en-ZA', { timeZone: 'Africa/Johannesburg', hour: '2-digit', minute: '2-digit' });
 
   try {
-    console.log(`[Cloud Cron 24/7] Checking mailboxes at ${runTime} SAST...`);
+    console.log(`[Cloud Cron 24/7] Checking kev@thinkestry.co.za at ${runTime} SAST...`);
 
-    // Check both Kevin's personal mailbox and the practice info mailbox in parallel
-    const [kevScan, infoScan] = await Promise.all([
-      scanMailbox('kev@thinkestry.co.za', '7In~K;EF}?7E_7p4'),
-      scanMailbox('info@myacc.co.za', 'lv1gIJK5O50s6A!w')
-    ]);
+    // Strictly scan kev@thinkestry.co.za ONLY
+    const kevScan = await scanKevMailbox();
 
-    const totalNew = kevScan.unreadCount + infoScan.unreadCount;
-    const allItems = [...kevScan.newItems, ...infoScan.newItems];
-
-    if (totalNew > 0 && allItems.length > 0) {
-      const alertMsg = `📬 *CLOUD 24/7 EMAIL ALERT* (${runTime} SAST)\n\n` +
-        `Found *${totalNew} unread messages* in cloud scan:\n\n` +
-        allItems.join('\n') + `\n\n` +
-        `_This alert was generated in Google Cloud Run (24/7/365 active)._`;
+    if (kevScan.newItems.length > 0) {
+      const alertMsg = `📬 *CLOUD 24/7 EMAIL ALERT* (${runTime} SAST)\n*Mailbox:* \`kev@thinkestry.co.za\`\n\n` +
+        kevScan.newItems.join('\n\n') + `\n\n` +
+        `_Google Cloud Run (24/7/365 active)._`;
       
       await sendTelegram(alertMsg);
     }
 
-    // Also verify active orders in Firestore
     let activeOrdersCount = 0;
     try {
       const db = getAdminDb();
@@ -134,13 +146,14 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      mailbox: 'kev@thinkestry.co.za',
       cloudRuntime: 'Google Cloud App Hosting (24/7)',
       timestamp: new Date().toISOString(),
       durationMs: Date.now() - startedAt,
-      kevUnread: kevScan.unreadCount,
-      infoUnread: infoScan.unreadCount,
+      unreadFound: kevScan.unreadCount,
+      actionableCount: kevScan.newItems.length,
       activeOrdersChecked: activeOrdersCount,
-      notificationsSent: totalNew > 0
+      notificationsSent: kevScan.newItems.length > 0
     });
   } catch (error: any) {
     console.error('[Cloud Cron Error]', error);
