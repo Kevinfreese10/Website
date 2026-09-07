@@ -24,7 +24,6 @@ import { TableSkeleton } from '@/components/ui/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
 import { OrdersTable } from '@/components/admin/orders/OrdersTable';
 import { OrderQuickView } from '@/components/admin/orders/OrderQuickView';
-import { AwaitingClientResponseCard } from '@/components/admin/orders/AwaitingClientResponseCard';
 import { getOrdersAwaitingClientResponse } from '@/lib/order-communication';
 import { FilterChips } from '@/components/data-table/filter-chips';
 import { SavedViewsMenu } from '@/components/data-table/saved-views-menu';
@@ -248,10 +247,6 @@ export default function AdminOrdersPage() {
   const awaitingOrders = useMemo(() => {
     return getOrdersAwaitingClientResponse(orders, allStaff);
   }, [orders, allStaff]);
-
-  const handleOrderNoteUpdated = (orderId: string, updatedNote: OrderNote) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, notes: [...(o.notes || []), updatedNote] } : o));
-  };
 
   const statusCounts = useMemo(() => {
     return {
@@ -689,14 +684,6 @@ export default function AdminOrdersPage() {
               </Button>
             </div>
         </div>
-
-        {/* Priority Alert Card: Orders where Client Responded via Communication History */}
-        <AwaitingClientResponseCard 
-          awaitingOrders={awaitingOrders}
-          currentUser={user}
-          onOrderUpdated={handleOrderNoteUpdated}
-          onFilterTableToAwaiting={() => handleStatusFilterChange('awaiting_reply')}
-        />
 
         <Card className="border-2 shadow-sm">
             <CardHeader className="bg-muted/10 pb-6">

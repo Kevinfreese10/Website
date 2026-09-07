@@ -15,7 +15,7 @@ import { AiConfidenceBadge } from '@/components/ai/AiConfidenceBadge';
 import Papa from 'papaparse';
 import { ImportedTransaction, ChartOfAccount, User, VatType, AllocatedTransaction, AllocationRule, ClientCustomer, Invoice, SmartAllocationResult, Supplier } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getFirestore, doc, updateDoc, arrayUnion, getDoc, collection, getDocs, query, orderBy, where, writeBatch, onSnapshot, Timestamp, deleteField, addDoc, limit, serverTimestamp, deleteDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, updateDoc, arrayUnion, getDoc, collection, getDocs, query, orderBy, where, writeBatch, onSnapshot, Timestamp, deleteField, addDoc, limit, serverTimestamp, deleteDoc, setDoc, getCountFromServer } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -1911,6 +1911,15 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
     const [allocations, setAllocations] = useState<any>({});
     const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 250);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
+
     const [isCreateRuleOpen, setIsCreateOpen] = useState(false);
     const [isManualTxOpen, setIsManualTxOpen] = useState(false);
     const [isEditTxOpen, setIsEditTxOpen] = useState(false);
@@ -1963,7 +1972,15 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ImportedTransaction));
+            const txs = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return { 
+                    id: doc.id, 
+                    ...data,
+                    _time: data.date ? new Date(data.date).getTime() : 0,
+                    _absAmount: Math.abs(data.amount || 0)
+                } as any;
+            });
             setAllTransactions(txs);
             setIsLoading(false);
         }, (error) => {
@@ -1979,9 +1996,9 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
         // 1. Filter by Tab (Expense/Income)
         let filtered = allTransactions.filter(tx => tx.isExpense === (activeSubTab === 'expenses'));
 
-        // 2. Search Filter (CONTAINS)
-        if (searchTerm.trim()) {
-            const term = searchTerm.toUpperCase();
+        // 2. Search Filter (CONTAINS) - uses debouncedSearchTerm
+        if (debouncedSearchTerm.trim()) {
+            const term = debouncedSearchTerm.toUpperCase();
             filtered = filtered.filter(tx => 
                 tx.description.toUpperCase().includes(term) || 
                 tx.cleanDescription?.toUpperCase().includes(term) ||
@@ -1990,23 +2007,20 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
             );
         }
 
-        // 3. Sorting
-        filtered.sort((a, b) => {
-            let valA: any, valB: any;
+        // 3. Ultra-fast Sorting using precomputed primitives
+        filtered.sort((a: any, b: any) => {
+            let diff = 0;
             if (sortField === 'date') {
-                valA = new Date(a.date).getTime();
-                valB = new Date(b.date).getTime();
+                diff = (a._time || 0) - (b._time || 0);
             } else if (sortField === 'description') {
-                valA = a.description || '';
-                valB = b.description || '';
+                const valA = a.description || '';
+                const valB = b.description || '';
+                diff = valA.localeCompare(valB, undefined, { sensitivity: 'base' });
             } else {
-                valA = Math.abs(a.amount);
-                valB = Math.abs(b.amount);
+                diff = (a._absAmount || 0) - (b._absAmount || 0);
             }
 
-            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-            return 0;
+            return sortDirection === 'asc' ? diff : -diff;
         });
 
         // 4. Pagination
@@ -2019,12 +2033,12 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
             pagedTransactions: paged, 
             totalPages: total || 1 
         };
-    }, [allTransactions, activeSubTab, searchTerm, sortField, sortDirection, currentPage]);
+    }, [allTransactions, activeSubTab, debouncedSearchTerm, sortField, sortDirection, currentPage]);
 
     // Reset page when search or tab changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, activeSubTab]);
+    }, [debouncedSearchTerm, activeSubTab]);
 
     React.useImperativeHandle(ref, () => ({ refetch: () => {} }));
 
@@ -2623,11 +2637,10 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
             const txs = snap.docs.map(d => ({ id: d.id, ...d.data() } as ImportedTransaction));
             setWorkflowTransactions(txs);
             
-            // Build groups reactively
+            // Build groups reactively (fast key extraction without redundant regex reprocessing)
             const merchantGroups: { [key: string]: ImportedTransaction[] } = {};
             txs.forEach(tx => {
-                const processed = BankCleaner.process(tx.description || '');
-                const key = tx.merchantKey || tx.cleanDescription || processed.merchantKey || processed.cleanDescription || 'UNKNOWN';
+                const key = tx.merchantKey || tx.cleanDescription || (tx.description ? BankCleaner.clean(tx.description).clean : 'UNKNOWN');
                 if (!merchantGroups[key]) merchantGroups[key] = [];
                 merchantGroups[key].push(tx);
             });
@@ -3650,7 +3663,24 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
     const [activeSubTab, setActiveSubTab] = useState<'expenses' | 'income'>('expenses');
     const [selectedGlAccountId, setSelectedGlAccountId] = useState<string>("all");
     const [searchAmount, setSearchAmount] = useState("");
+    const [debouncedSearchAmount, setDebouncedSearchAmount] = useState("");
     const [searchDescription, setSearchDescription] = useState("");
+    const [debouncedSearchDescription, setDebouncedSearchDescription] = useState("");
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchDescription(searchDescription);
+        }, 250);
+        return () => clearTimeout(handler);
+    }, [searchDescription]);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchAmount(searchAmount);
+        }, 250);
+        return () => clearTimeout(handler);
+    }, [searchAmount]);
+
     const [usedAccountIds, setUsedAccountIds] = useState<Set<string>>(new Set());
     const [isMovingBack, setIsMovingBack] = useState<string | null>(null);
     const [isBulkMoving, setIsBulkMoving] = useState(false);
@@ -3693,16 +3723,19 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
         return [...base, ...globalRules];
     }, [client?.allocationRules, globalRules, client?.disableGlobalRules]);
 
+    // O(1) Fast lookup map for allocation names instead of linear array searches
+    const accountNameMap = useMemo(() => {
+        const map = new Map<string, string>();
+        client?.chartOfAccounts?.forEach(a => map.set(a.id, a.description));
+        customers?.forEach(c => map.set(c.id, c.name));
+        suppliers?.forEach(s => map.set(s.id, s.name));
+        return map;
+    }, [client?.chartOfAccounts, customers, suppliers]);
+
     const getAllocationName = useCallback((allocatedTo: any) => {
         if (!allocatedTo) return 'Unallocated';
-        if (allocatedTo.type === 'customer') {
-            return customers.find(c => c.id === allocatedTo.value)?.name || 'Selected Customer';
-        }
-        if (allocatedTo.type === 'supplier') {
-            return suppliers.find(s => s.id === allocatedTo.value)?.name || 'Selected Supplier';
-        }
-        return uniqueChartOfAccounts.find(a => a.id === allocatedTo.value)?.description || 'Selected Account';
-    }, [uniqueChartOfAccounts, customers, suppliers]);
+        return accountNameMap.get(allocatedTo.value) || 'Selected Account';
+    }, [accountNameMap]);
 
     useEffect(() => {
         if (!client?.uid || !bankAccountId) return;
@@ -3715,7 +3748,15 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
         );
         
         const unsubscribe = onSnapshot(q, (snap) => {
-            const txs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ImportedTransaction));
+            const txs = snap.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    _time: data.date ? new Date(data.date).getTime() : 0,
+                    _absAmount: Math.abs(data.amount || 0)
+                } as any;
+            });
             setAllTransactions(txs);
             
             const ids = new Set<string>();
@@ -3740,16 +3781,16 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
         }
 
         // 2. Filter by searchAmount (absolute value match)
-        if (searchAmount.trim()) {
-            const amount = parseFloat(searchAmount);
+        if (debouncedSearchAmount.trim()) {
+            const amount = parseFloat(debouncedSearchAmount);
             if (!isNaN(amount)) {
-                filtered = filtered.filter(tx => Math.abs(tx.amount) === Math.abs(amount));
+                filtered = filtered.filter((tx: any) => (tx._absAmount ?? Math.abs(tx.amount)) === Math.abs(amount));
             }
         }
 
         // 3. Filter by searchDescription (substring match case-insensitive description, cleanDescription, merchantKey, reference)
-        if (searchDescription.trim()) {
-            const term = searchDescription.toUpperCase();
+        if (debouncedSearchDescription.trim()) {
+            const term = debouncedSearchDescription.toUpperCase();
             filtered = filtered.filter(tx => 
                 (tx.description || '').toUpperCase().includes(term) || 
                 (tx.cleanDescription || '').toUpperCase().includes(term) ||
@@ -3758,44 +3799,36 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
             );
         }
 
-        // 4. Filter by Date Range (dateRange.from and dateRange.to)
+        // 4. Filter by Date Range (dateRange.from and dateRange.to) using fast integer timestamps
         if (dateRange?.from) {
             const fromTime = new Date(dateRange.from).getTime();
-            filtered = filtered.filter(tx => new Date(tx.date).getTime() >= fromTime);
+            filtered = filtered.filter((tx: any) => (tx._time ?? new Date(tx.date).getTime()) >= fromTime);
         }
         if (dateRange?.to) {
             const toDate = new Date(dateRange.to);
             toDate.setHours(23, 59, 59, 999);
             const toTime = toDate.getTime();
-            filtered = filtered.filter(tx => new Date(tx.date).getTime() <= toTime);
+            filtered = filtered.filter((tx: any) => (tx._time ?? new Date(tx.date).getTime()) <= toTime);
         }
 
-        // 5. Sorting
-        filtered.sort((a, b) => {
-            let valA: any, valB: any;
+        // 5. Ultra-fast Sorting using precomputed primitives and O(1) map
+        filtered.sort((a: any, b: any) => {
+            let diff = 0;
             if (sortField === 'date') {
-                valA = new Date(a.date).getTime();
-                valB = new Date(b.date).getTime();
+                diff = (a._time || 0) - (b._time || 0);
             } else if (sortField === 'description') {
-                valA = a.cleanDescription || a.description || '';
-                valB = b.cleanDescription || b.description || '';
+                const valA = a.cleanDescription || a.description || '';
+                const valB = b.cleanDescription || b.description || '';
+                diff = valA.localeCompare(valB, undefined, { sensitivity: 'base' });
             } else if (sortField === 'allocatedTo') {
-                valA = getAllocationName(a.allocatedTo);
-                valB = getAllocationName(b.allocatedTo);
+                const valA = accountNameMap.get(a.allocatedTo?.value || '') || 'Selected Account';
+                const valB = accountNameMap.get(b.allocatedTo?.value || '') || 'Selected Account';
+                diff = valA.localeCompare(valB, undefined, { sensitivity: 'base' });
             } else {
-                valA = Math.abs(a.amount);
-                valB = Math.abs(b.amount);
+                diff = (a._absAmount || 0) - (b._absAmount || 0);
             }
 
-            if (typeof valA === 'string' && typeof valB === 'string') {
-                return sortDirection === 'asc' 
-                    ? valA.localeCompare(valB, undefined, { sensitivity: 'base' })
-                    : valB.localeCompare(valA, undefined, { sensitivity: 'base' });
-            }
-
-            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-            return 0;
+            return sortDirection === 'asc' ? diff : -diff;
         });
 
         // 6. Pagination
@@ -3808,7 +3841,7 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
             pagedTransactions: paged,
             totalPages: total || 1
         };
-    }, [allTransactions, selectedGlAccountId, searchAmount, searchDescription, dateRange, sortField, sortDirection, currentPage, getAllocationName]);
+    }, [allTransactions, selectedGlAccountId, debouncedSearchAmount, debouncedSearchDescription, dateRange, sortField, sortDirection, currentPage, accountNameMap]);
 
     const transactions = pagedTransactions;
     const canGoPrev = currentPage > 1;
@@ -3824,11 +3857,11 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
     // Reset page and selection when filters or active subtab changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [activeSubTab, selectedGlAccountId, searchAmount, searchDescription, dateRange]);
+    }, [activeSubTab, selectedGlAccountId, debouncedSearchAmount, debouncedSearchDescription, dateRange]);
 
     useEffect(() => {
         setSelectedTransactions([]);
-    }, [activeSubTab, selectedGlAccountId, currentPage, searchAmount, searchDescription, dateRange]);
+    }, [activeSubTab, selectedGlAccountId, currentPage, debouncedSearchAmount, debouncedSearchDescription, dateRange]);
 
     const handleBulkReallocate = async (allocation: { value: string, type: 'account' | 'customer' | 'supplier' }, vatType: VatType) => {
         if (!client?.uid || selectedTransactions.length === 0) return;
@@ -4351,7 +4384,7 @@ export function BankTransactionsUI() {
     const accountIdFromUrl = useSearchParams().get('accountId');
     const [client, setClient] = useState<User | null>(null);
     const [accountId, setAccountId] = useState<string | null>(accountIdFromUrl);
-    const [allAccountTransactions, setAllAccountTransactions] = useState<any[]>([]);
+    const [unallocatedCount, setUnallocatedCount] = useState<number | null>(null);
     const [globalRules, setGlobalRules] = useState<AllocationRule[]>([]);
     const [activeTab, setActiveTab] = useState('new-transactions');
     const [customers, setCustomers] = useState<ClientCustomer[]>([]);
@@ -4394,6 +4427,18 @@ export function BankTransactionsUI() {
         setSuppliers(supSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
     }, [params.clientId]);
 
+    const fetchUnallocatedCount = useCallback(async () => {
+        if (!params.clientId || !accountId) return;
+        try {
+            const transRef = collection(db, 'aiAccountantClients', params.clientId as string, 'transactions');
+            const qUnallocated = query(transRef, where('bankAccountId', '==', accountId), where('status', 'in', ['new', 'ai_review', 'ai_processing']));
+            const snap = await getCountFromServer(qUnallocated);
+            setUnallocatedCount(snap.data().count);
+        } catch (e) {
+            console.error('Failed to fetch unallocated count:', e);
+        }
+    }, [params.clientId, accountId]);
+
     useEffect(() => { fetchClientData(); fetchGlobalRules(); fetchCustomers(); fetchSuppliers(); }, [fetchClientData, fetchGlobalRules, fetchCustomers, fetchSuppliers]);
 
     // Added Real-time Sync for Client Profile (ensures Isolated Mode is always fresh)
@@ -4408,19 +4453,8 @@ export function BankTransactionsUI() {
     }, [params.clientId]);
     
     useEffect(() => {
-        if (!params.clientId || !accountId) return;
-        return onSnapshot(query(collection(db, 'aiAccountantClients', params.clientId as string, 'transactions'), where('bankAccountId', '==', accountId)), (snap) => {
-            setAllAccountTransactions(snap.docs.map(d => ({id: d.id, ...d.data()})));
-        });
-    }, [params.clientId, accountId]);
-    
-    const stats = useMemo(() => {
-        const balance = allAccountTransactions.reduce((s, t) => s + t.amount, 0);
-        const unallocatedCount = allAccountTransactions.filter(t => 
-            ['new', 'ai_review', 'ai_processing'].includes(t.status)
-        ).length;
-        return { balance, unallocatedCount };
-    }, [allAccountTransactions]);
+        fetchUnallocatedCount();
+    }, [fetchUnallocatedCount]);
 
     const handleClearAccount = async () => {
         if (!params.clientId || !accountId) return;
@@ -4524,12 +4558,12 @@ export function BankTransactionsUI() {
                         filterAccounts={(acc) => acc.accountNumber.startsWith('8400-')}
                     />
                      <div className="flex gap-4 text-sm">
-                        <div><span className="text-muted-foreground">Balance: </span><span className="font-semibold">{formatPrice(stats.balance)}</span></div>
-                        <div><span className="text-muted-foreground">Unallocated: </span><span className="font-semibold">{stats.unallocatedCount}</span></div>
+                        <div><span className="text-muted-foreground">Balance: </span><span className="font-semibold">{formatPrice(selectedAccount?.bankBalance || 0)}</span></div>
+                        <div><span className="text-muted-foreground">Unallocated: </span><span className="font-semibold">{unallocatedCount !== null ? unallocatedCount : '...'}</span></div>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 mt-4 md:mt-0">
-                    <Button variant="outline" size="sm" onClick={() => fetchClientData()}>
+                    <Button variant="outline" size="sm" onClick={() => { fetchClientData(); fetchUnallocatedCount(); }}>
                         <RotateCcw className="mr-2 h-4 w-4" /> Refresh
                     </Button>
                     <DropdownMenu>
@@ -4555,7 +4589,7 @@ export function BankTransactionsUI() {
                         <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
                     </TabsList>
                     <TabsContent value="new-transactions" className="p-0">
-                        <NewTransactionsTab client={client} bankAccountId={accountId || ''} currentBalance={stats.balance} globalRules={globalRules} onAccountCreated={fetchClientData} setActiveTab={setActiveTab} customers={customers} suppliers={suppliers} />
+                        <NewTransactionsTab client={client} bankAccountId={accountId || ''} currentBalance={selectedAccount?.bankBalance || 0} globalRules={globalRules} onAccountCreated={() => { fetchClientData(); fetchUnallocatedCount(); }} setActiveTab={setActiveTab} customers={customers} suppliers={suppliers} />
                     </TabsContent>
                     <TabsContent value="ai-workflow" className="p-0">
                         <AIWorkflowTab client={client} bankAccountId={accountId || ''} onAccountCreated={fetchClientData} />

@@ -48,3 +48,5 @@ scratch/
 scratch/email_triage_audit*/
 scratch/*.tgz
 worker/portal-runner/.env
+AI_Accountant_*.csv
+AI_Accountant_*.xlsx

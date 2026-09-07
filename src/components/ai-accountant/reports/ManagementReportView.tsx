@@ -60,8 +60,8 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
   const { toast } = useToast();
 
   // Period presets
-  const [periodPreset, setPeriodPreset] = useState<string>('current_month');
-  const [comparativePreset, setComparativePreset] = useState<string>('prior_month');
+  const [periodPreset, setPeriodPreset] = useState<string>('financial_ytd');
+  const [comparativePreset, setComparativePreset] = useState<string>('prior_year');
 
   // Dates
   const now = useMemo(() => new Date(), []);
@@ -162,8 +162,6 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
 
       if (res.success && res.data) {
         setReportData(res.data);
-        // Trigger auto AI commentary
-        triggerAiAnalysis(res.data);
       } else {
         toast({ title: 'Error', description: res.error || 'Failed to load report data', variant: 'destructive' });
       }
@@ -524,14 +522,35 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
                   </CardDescription>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsEditingNotes(!isEditingNotes)}
-                className="text-white/80 hover:text-white hover:bg-white/10 text-xs font-bold"
-              >
-                {isEditingNotes ? 'Done Editing' : 'Add / Edit Director Notes'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => reportData && triggerAiAnalysis(reportData)}
+                  disabled={isAnalyzing || !reportData}
+                  className="bg-yellow-400/20 hover:bg-yellow-400/30 text-yellow-200 border-yellow-400/40 text-xs font-bold flex items-center gap-1.5"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5 text-yellow-300" />
+                      {analysis ? 'Re-generate Commentary' : 'Generate Commentary with Khai'}
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditingNotes(!isEditingNotes)}
+                  className="text-white/80 hover:text-white hover:bg-white/10 text-xs font-bold"
+                >
+                  {isEditingNotes ? 'Done Editing' : 'Add / Edit Director Notes'}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-6 space-y-5 text-xs text-white/90 leading-relaxed">
               {isAnalyzing ? (

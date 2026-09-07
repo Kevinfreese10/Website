@@ -471,3 +471,39 @@ body.home-light-theme .glass {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── TrustIndex Reviews Widget ── */
+#trustindex-widget-container {
+  width: 100% !important;
+  max-width: 1152px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  overflow: hidden !important;
+}
+
+#trustindex-widget-container .ti-widget,
+#trustindex-widget-container .ti-widget-container {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+#trustindex-widget-container .ti-reviews-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+#trustindex-widget-container .ti-reviews-container-wrapper {
+  max-width: 100% !important;
+}
+
+#trustindex-widget-container .ti-review-item {
+  box-sizing: border-box !important;
+}
+
+#trustindex-widget-container .ti-review-item > .ti-inner {
+  border-radius: 1rem !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05) !important;
+  height: 100% !important;
+}
+

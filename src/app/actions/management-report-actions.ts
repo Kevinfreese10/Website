@@ -84,9 +84,49 @@ export async function getManagementReportDataAction({
       cumulativePriorBalances.set(acc.id, 0);
     });
 
-    const supplierControlId = chartOfAccounts.find((a) => a.accountNumber === '7000-000')?.id || '7000-000';
-    const customerControlId = chartOfAccounts.find((a) => a.accountNumber === '8000-001')?.id || '8000-001';
-    const vatControlId = chartOfAccounts.find((a) => a.accountNumber === '7000-008')?.id || '7000-008';
+    const supplierControl = chartOfAccounts.find((a) => a.accountNumber === '7000-000' || a.id === '7000-000');
+    const customerControl = chartOfAccounts.find((a) => a.accountNumber === '8000-001' || a.id === '8000-001');
+    const vatControl = chartOfAccounts.find((a) => a.accountNumber === '7000-008' || a.id === '7000-008');
+
+    const supplierControlId = supplierControl?.id || '7000-000';
+    const customerControlId = customerControl?.id || '8000-001';
+    const vatControlId = vatControl?.id || '7000-008';
+
+    const processAllocation = (
+      accountId: string,
+      amt: number,
+      type?: string,
+      isCurrent?: boolean,
+      isPrior?: boolean,
+      isCumCurrent?: boolean,
+      isCumPrior?: boolean
+    ) => {
+      let targetId = accountId;
+      if (type === 'supplier') targetId = supplierControlId;
+      else if (type === 'customer') targetId = customerControlId;
+
+      let account = chartOfAccounts.find((a) => a.id === targetId || a.accountNumber === targetId);
+      if (!account) {
+        targetId = '9500-001';
+        account = chartOfAccounts.find((a) => a.id === targetId || a.accountNumber === targetId);
+      }
+      if (!account) return;
+
+      const effectiveId = account.id;
+
+      if (isCurrent) {
+        currentPeriodBalances.set(effectiveId, (currentPeriodBalances.get(effectiveId) || 0) + amt);
+      }
+      if (isPrior) {
+        priorPeriodBalances.set(effectiveId, (priorPeriodBalances.get(effectiveId) || 0) + amt);
+      }
+      if (isCumCurrent) {
+        cumulativeCurrentBalances.set(effectiveId, (cumulativeCurrentBalances.get(effectiveId) || 0) + amt);
+      }
+      if (isCumPrior) {
+        cumulativePriorBalances.set(effectiveId, (cumulativePriorBalances.get(effectiveId) || 0) + amt);
+      }
+    };
 
     allTxs.forEach((tx) => {
       const d = new Date(tx.date);
@@ -95,31 +135,58 @@ export async function getManagementReportDataAction({
       const isCumCurrent = d <= currentEnd;
       const isCumPrior = d <= priorEnd;
 
-      const processAllocation = (accId: string, amt: number, type?: string) => {
-        let effectiveId = accId;
-        if (type === 'supplier') effectiveId = supplierControlId;
-        else if (type === 'customer') effectiveId = customerControlId;
+      if (!isCurrent && !isPrior && !isCumCurrent && !isCumPrior) return;
 
-        if (isCurrent && currentPeriodBalances.has(effectiveId)) {
-          currentPeriodBalances.set(effectiveId, (currentPeriodBalances.get(effectiveId) || 0) + amt);
-        }
-        if (isPrior && priorPeriodBalances.has(effectiveId)) {
-          priorPeriodBalances.set(effectiveId, (priorPeriodBalances.get(effectiveId) || 0) + amt);
-        }
-        if (isCumCurrent && cumulativeCurrentBalances.has(effectiveId)) {
-          cumulativeCurrentBalances.set(effectiveId, (cumulativeCurrentBalances.get(effectiveId) || 0) + amt);
-        }
-        if (isCumPrior && cumulativePriorBalances.has(effectiveId)) {
-          cumulativePriorBalances.set(effectiveId, (cumulativePriorBalances.get(effectiveId) || 0) + amt);
-        }
+      const postEntry = (accId: string, amt: number, type?: string) => {
+        processAllocation(accId, amt, type, isCurrent, isPrior, isCumCurrent, isCumPrior);
       };
 
-      if (tx.allocations && Array.isArray(tx.allocations) && tx.allocations.length > 0) {
+      if (tx.bankAccountId === 'JOURNAL') {
+        if (tx.allocatedTo?.value) {
+          postEntry(tx.allocatedTo.value, tx.amount, tx.allocatedTo.type);
+        } else if (tx.allocations && Array.isArray(tx.allocations)) {
+          tx.allocations.forEach((alloc: any) => {
+            postEntry(alloc.accountId, alloc.amount, alloc.type);
+          });
+        }
+      } else if (tx.bankAccountId) {
+        // Bank transaction
+        const inclusiveAmount = tx.amount;
+        const isStandardVat = clientData.isVatRegistered && (
+          tx.vatType === 'standard_rated_purchases' ||
+          tx.vatType === 'standard_rated_sales' ||
+          tx.vatType === 'capital_goods_purchases'
+        );
+
+        let vatAmount = 0;
+        let exclusiveAmount = inclusiveAmount;
+        if (isStandardVat) {
+          vatAmount = (inclusiveAmount / 1.15) * 0.15;
+          exclusiveAmount = inclusiveAmount - vatAmount;
+        }
+
+        // 1. Bank leg (always inclusive)
+        postEntry(tx.bankAccountId, inclusiveAmount);
+
+        // 2. Contra leg
+        let contraAccountId = '9500-001';
+        let contraType = 'account';
+        if (((tx.status as string) === 'allocated' || tx.status === 'reviewed') && tx.allocatedTo) {
+          contraAccountId = tx.allocatedTo.value;
+          contraType = tx.allocatedTo.type || 'account';
+        }
+        postEntry(contraAccountId, -exclusiveAmount, contraType);
+
+        // 3. VAT leg
+        if (isStandardVat && vatControl) {
+          postEntry(vatControl.id, -vatAmount);
+        }
+      } else if (tx.allocations && Array.isArray(tx.allocations) && tx.allocations.length > 0) {
         tx.allocations.forEach((alloc: any) => {
-          processAllocation(alloc.accountId, alloc.amount, alloc.type);
+          postEntry(alloc.accountId, alloc.amount, alloc.type);
         });
       } else if (tx.accountId) {
-        processAllocation(tx.accountId, tx.amount, tx.type);
+        postEntry(tx.accountId, tx.amount, tx.type);
       }
     });
 
@@ -140,8 +207,42 @@ export async function getManagementReportDataAction({
       if (acc.section === 'Income Statement') {
         const cur = currentPeriodBalances.get(acc.id) || 0;
         const pri = priorPeriodBalances.get(acc.id) || 0;
+        const desc = (acc.description || '').toLowerCase();
+        const num = acc.accountNumber || '';
 
-        if (acc.category === 'Revenue' || acc.category === 'Sales' || acc.category === 'Other Income') {
+        const isRevenue =
+          acc.category === 'Revenue' ||
+          acc.category === 'Sales' ||
+          acc.category === 'Other Income' ||
+          acc.fsGroup === 'Revenue' ||
+          acc.fsGroup === 'Other Income' ||
+          num === '1000-000' ||
+          num === '1000-001' ||
+          num === '1000-002' ||
+          num === '1000-003' ||
+          num === '1000-004' ||
+          num === '1000-005' ||
+          num === '1000-006' ||
+          num === '1000-007' ||
+          num === '1000-008' ||
+          (num.startsWith('1000-') && acc.section === 'Income Statement') ||
+          desc.includes('sales') ||
+          desc.includes('turnover') ||
+          desc.includes('revenue') ||
+          desc === 'interest';
+
+        const isCostOfSales =
+          !isRevenue &&
+          (acc.category === 'Cost of Sales' ||
+            acc.category === 'Direct Costs' ||
+            acc.fsGroup === 'Cost of Sales' ||
+            num === '2000-000' ||
+            num === '2000-001' ||
+            num === '2000-002' ||
+            num === '2000-003' ||
+            num.startsWith('2000-'));
+
+        if (isRevenue) {
           // Revenue in credits (negative) => convert to positive
           const curVal = -cur;
           const priVal = -pri;
@@ -159,7 +260,7 @@ export async function getManagementReportDataAction({
               variancePct: parseFloat(varPct.toFixed(1)),
             });
           }
-        } else if (acc.category === 'Cost of Sales' || acc.category === 'Direct Costs') {
+        } else if (isCostOfSales) {
           currentCostOfSales += cur;
           priorCostOfSales += pri;
           if (cur !== 0 || pri !== 0) {
@@ -229,8 +330,54 @@ export async function getManagementReportDataAction({
       if (acc.section === 'Balance Sheet') {
         const cur = cumulativeCurrentBalances.get(acc.id) || 0;
         const pri = cumulativePriorBalances.get(acc.id) || 0;
+        const num = acc.accountNumber || '';
 
-        if (acc.category === 'Non-Current Assets' || acc.category === 'Fixed Assets') {
+        const isNca =
+          acc.category === 'Non-Current Assets' ||
+          acc.category === 'Fixed Assets' ||
+          num.startsWith('1000-000') ||
+          num.startsWith('1500-') ||
+          num.startsWith('1600-') ||
+          num.startsWith('1700-') ||
+          num.startsWith('1800-') ||
+          num.startsWith('1900-');
+
+        const isCa =
+          !isNca &&
+          (acc.category === 'Current Assets' ||
+            acc.category === 'Bank' ||
+            acc.category === 'Accounts Receivable' ||
+            num.startsWith('8'));
+
+        const isEq =
+          acc.category === 'Equity' ||
+          acc.category === 'Capital' ||
+          num.startsWith('9000-') ||
+          num.startsWith('9100-');
+
+        const isNcl =
+          acc.category === 'Non-Current Liabilities' ||
+          acc.category === 'Long Term Liabilities' ||
+          num.startsWith('7500-') ||
+          num.startsWith('7600-') ||
+          num.startsWith('7700-') ||
+          num.startsWith('7800-') ||
+          num.startsWith('7900-');
+
+        const isCl =
+          !isEq &&
+          !isNcl &&
+          (acc.category === 'Current Liabilities' ||
+            acc.category === 'Accounts Payable' ||
+            acc.category === 'Tax Liabilities' ||
+            num.startsWith('7000-') ||
+            num.startsWith('7100-') ||
+            num.startsWith('7200-') ||
+            num.startsWith('7300-') ||
+            num.startsWith('7400-') ||
+            num.startsWith('9500-'));
+
+        if (isNca) {
           nonCurrentAssetsTotalCur += cur;
           nonCurrentAssetsTotalPri += pri;
           if (cur !== 0 || pri !== 0) {
@@ -243,7 +390,7 @@ export async function getManagementReportDataAction({
               variancePct: pri !== 0 ? parseFloat(((cur - pri) / Math.abs(pri) * 100).toFixed(1)) : 0,
             });
           }
-        } else if (acc.category === 'Current Assets' || acc.category === 'Bank' || acc.category === 'Accounts Receivable') {
+        } else if (isCa) {
           currentAssetsTotalCur += cur;
           currentAssetsTotalPri += pri;
           if (cur !== 0 || pri !== 0) {
@@ -256,7 +403,7 @@ export async function getManagementReportDataAction({
               variancePct: pri !== 0 ? parseFloat(((cur - pri) / Math.abs(pri) * 100).toFixed(1)) : 0,
             });
           }
-        } else if (acc.category === 'Equity' || acc.category === 'Capital') {
+        } else if (isEq) {
           const curVal = -cur;
           const priVal = -pri;
           equityTotalCur += curVal;
@@ -271,7 +418,7 @@ export async function getManagementReportDataAction({
               variancePct: priVal !== 0 ? parseFloat(((curVal - priVal) / Math.abs(priVal) * 100).toFixed(1)) : 0,
             });
           }
-        } else if (acc.category === 'Non-Current Liabilities' || acc.category === 'Long Term Liabilities') {
+        } else if (isNcl) {
           const curVal = -cur;
           const priVal = -pri;
           nonCurrentLiabilitiesTotalCur += curVal;
@@ -286,7 +433,7 @@ export async function getManagementReportDataAction({
               variancePct: priVal !== 0 ? parseFloat(((curVal - priVal) / Math.abs(priVal) * 100).toFixed(1)) : 0,
             });
           }
-        } else if (acc.category === 'Current Liabilities' || acc.category === 'Accounts Payable' || acc.category === 'Tax Liabilities') {
+        } else if (isCl) {
           const curVal = -cur;
           const priVal = -pri;
           currentLiabilitiesTotalCur += curVal;
@@ -305,15 +452,26 @@ export async function getManagementReportDataAction({
       }
     });
 
-    // Add retained profit for the period into equity
-    equityTotalCur += currentNetProfit;
-    equityTotalPri += priorNetProfit;
+    // Add cumulative retained profit into equity to balance the Balance Sheet
+    let cumulativeNetProfitCur = 0;
+    let cumulativeNetProfitPri = 0;
+    chartOfAccounts.forEach((acc) => {
+      if (acc.section === 'Income Statement') {
+        const cur = cumulativeCurrentBalances.get(acc.id) || 0;
+        const pri = cumulativePriorBalances.get(acc.id) || 0;
+        cumulativeNetProfitCur -= cur;
+        cumulativeNetProfitPri -= pri;
+      }
+    });
+
+    equityTotalCur += cumulativeNetProfitCur;
+    equityTotalPri += cumulativeNetProfitPri;
     eqItems.push({
       name: 'Net Profit / (Loss) for the Period',
-      currentAmount: currentNetProfit,
-      priorAmount: priorNetProfit,
-      varianceAmount: currentNetProfit - priorNetProfit,
-      variancePct: priorNetProfit !== 0 ? parseFloat(((currentNetProfit - priorNetProfit) / Math.abs(priorNetProfit) * 100).toFixed(1)) : 0,
+      currentAmount: cumulativeNetProfitCur,
+      priorAmount: cumulativeNetProfitPri,
+      varianceAmount: cumulativeNetProfitCur - cumulativeNetProfitPri,
+      variancePct: cumulativeNetProfitPri !== 0 ? parseFloat(((cumulativeNetProfitCur - cumulativeNetProfitPri) / Math.abs(cumulativeNetProfitPri) * 100).toFixed(1)) : 0,
     });
 
     const totalAssetsCur = nonCurrentAssetsTotalCur + currentAssetsTotalCur;
@@ -325,7 +483,21 @@ export async function getManagementReportDataAction({
     let bankCashCur = 0;
     let bankCashPri = 0;
     chartOfAccounts.forEach((acc) => {
-      if (acc.accountNumber?.startsWith('8400-') || acc.category === 'Bank' || acc.description?.toLowerCase().includes('bank') || acc.description?.toLowerCase().includes('account')) {
+      const num = acc.accountNumber || '';
+      const desc = (acc.description || '').toLowerCase();
+      if (
+        num.startsWith('8400-') ||
+        acc.category === 'Bank' ||
+        (acc.section === 'Balance Sheet' &&
+          (desc.includes('investec') ||
+            desc.includes('fnb') ||
+            desc.includes('standard bank') ||
+            desc.includes('nedbank') ||
+            desc.includes('absa') ||
+            desc.includes('cheque') ||
+            desc.includes('current account') ||
+            desc.includes('petty cash')))
+      ) {
         bankCashCur += cumulativeCurrentBalances.get(acc.id) || 0;
         bankCashPri += cumulativePriorBalances.get(acc.id) || 0;
       }

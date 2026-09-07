@@ -28,9 +28,12 @@ export default function TrustindexWidget() {
   }, []);
 
   return (
-    <section className="container mx-auto px-4 py-8">
-      <div className="flex justify-center">
-        <div id="trustindex-widget-container" />
+    <section className="w-full max-w-7xl mx-auto px-4 py-8 overflow-hidden">
+      <div className="w-full flex justify-center">
+        <div
+          id="trustindex-widget-container"
+          className="w-full max-w-6xl mx-auto min-h-[220px] overflow-hidden"
+        />
       </div>
     </section>
   );

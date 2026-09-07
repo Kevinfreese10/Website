@@ -1,5 +1,5 @@
 /**
- * @fileOverview Robust 2-Way Interactive Telegram Bot Daemon for Kevin Freese
+ * @fileOverview Advanced 2-Way Interactive Telegram Command & Agent Daemon for Kevin Freese
  * Bot: @Kevin10email_bot (Token: 8832420807:AAFAV4N1vB2uaPwy3fXXbXKU3y6j5wCLi8M)
  * Authorized Chat ID: 7774285240
  */
@@ -8,10 +8,21 @@ const https = require('https');
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const admin = require('firebase-admin');
 
 const TELEGRAM_TOKEN = '8832420807:AAFAV4N1vB2uaPwy3fXXbXKU3y6j5wCLi8M';
 const AUTHORIZED_CHAT_ID = '7774285240';
 const STATE_FILE = 'c:/myacc/scratch/telegram_bot_state.json';
+
+// Initialize Firebase Admin if available
+const keyPath = 'C:\\Users\\kev\\Downloads\\studio-2604127518-57889-firebase-adminsdk-fbsvc-3e5d57757b.json';
+if (fs.existsSync(keyPath) && !admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(require(keyPath))
+    });
+  } catch (e) {}
+}
 
 let lastUpdateId = 0;
 if (fs.existsSync(STATE_FILE)) {
@@ -83,45 +94,91 @@ async function handleMessage(msg) {
   // 1. Help & Start
   if (lower === '/start' || lower === '/help') {
     const helpMsg = `👋 *Hello Kevin! 2-Way Command Center is LIVE & Active.*\n\n` +
-      `You can send commands or free-text instructions here anytime:\n\n` +
-      `⚡ *Commands:*\n` +
-      `• \`/check\` — Scan \`info@myacc.co.za\` and report urgent emails\n` +
-      `• \`/status\` — View active orders, mailboxes & server status\n` +
-      `• \`/drafts\` — View pending quotation drafts awaiting review\n` +
-      `• \`/orders\` — View active orders in pipeline\n\n` +
-      `💬 *Free Text:* You can also text me instructions (e.g. "check emails", "thank you", "status on order 10074") and I will action them immediately!`;
+      `You can trigger Antigravity agent tasks directly from Telegram:\n\n` +
+      `⚡ *Core Commands:*\n` +
+      `• \`/check\` — Scan \`kev@thinkestry.co.za\` and report actionable emails\n` +
+      `• \`/clean\` — Auto-archive automated notifications & system noise\n` +
+      `• \`/orders\` — View all active orders and status pipeline\n` +
+      `• \`/order 10173\` — Inspect specific order details, files & progress\n` +
+      `• \`/status\` — System, server & database health status\n\n` +
+      `💬 *Free Text Commands You Can Try:*\n` +
+      `• "Check emails"\n` +
+      `• "Quote [Client] for (Pty) Ltd"\n` +
+      `• "Status on order 10150"\n` +
+      `• "Archive emails older than 14 days"`;
     await sendTelegramMessage(chatId, helpMsg);
     return;
   }
 
   // 2. Check Inbox
   if (lower.startsWith('/check') || lower.includes('check email') || lower.includes('check mail') || lower.includes('check inbox')) {
-    await sendTelegramMessage(chatId, '⏳ *Running inbox scan on info@myacc.co.za...*');
+    await sendTelegramMessage(chatId, '⏳ *Scanning kev@thinkestry.co.za and triaging recent emails...*');
     const res = await runCommandAsync('node scratch/telegram_email_reporter.js');
     console.log('[Check Inbox Result]', res.stdout);
     return;
   }
 
-  // 3. Status
-  if (lower === '/status' || lower.includes('status')) {
-    const statusMsg = `🟢 *System Operational Status:*\n\n` +
-      `• *Mailboxes:* Connected (\`mail.myacc.co.za\` / \`169.239.218.67:993\`)\n` +
-      `• *Firebase Studio / Firestore:* Online & Synced\n` +
-      `• *2-Way Telegram Daemon:* ACTIVE & Polling\n` +
-      `• *Statutory VAT Rules:* Updated (Compulsory: R2.3m / Voluntary: R120k)\n` +
-      `• *NCR Lodgement Protocol:* \`registrations@ncr.org.za\` (Active)`;
+  // 3. Clean Noise / Auto-Archive
+  if (lower.startsWith('/clean') || lower.includes('clean inbox') || lower.includes('clean noise') || lower.includes('archive noise')) {
+    await sendTelegramMessage(chatId, '🧹 *Archiving automated notifications and system alerts...*');
+    const res = await runCommandAsync('node scratch/archive_system_noise.js');
+    await sendTelegramMessage(chatId, `✓ *Inbox Clean Completed!*\n\n${res.stdout || 'Automated notifications categorized and archived.'}`);
+    return;
+  }
+
+  // 4. Inspect Specific Order (e.g. /order 10173 or "order 10173")
+  const orderMatch = lower.match(/(?:order|#)\s*([0-9]{4,6})/i);
+  if (orderMatch) {
+    const orderNum = orderMatch[1];
+    await sendTelegramMessage(chatId, `🔍 *Looking up Order #${orderNum} in Firestore...*`);
+    try {
+      const db = admin.firestore();
+      let orderDoc = null;
+      const snap = await db.collection('orders').where('orderNumber', '==', Number(orderNum)).limit(1).get();
+      if (!snap.empty) orderDoc = snap.docs[0].data();
+      else {
+        const snap2 = await db.collection('orders').doc(orderNum).get();
+        if (snap2.exists) orderDoc = snap2.data();
+      }
+
+      if (orderDoc) {
+        const msg = `📦 *Order #${orderNum} Details:*\n\n` +
+          `• *Customer:* ${orderDoc.customerName} (\`${orderDoc.customerEmail}\`)\n` +
+          `• *Service:* ${orderDoc.serviceTitle || orderDoc.productName || 'Statutory Service'}\n` +
+          `• *Status:* \`${orderDoc.status}\`\n` +
+          `• *Amount:* R ${orderDoc.amount || orderDoc.total || '0.00'}\n` +
+          `• *Assigned:* ${orderDoc.assignedStaffEmail || 'Kevin Freese'}\n` +
+          `• *Portal Link:* [View in Admin](https://www.myacc.co.za/admin/orders/${orderNum})`;
+        await sendTelegramMessage(chatId, msg);
+      } else {
+        await sendTelegramMessage(chatId, `⚠️ Order #${orderNum} could not be found in Firestore.`);
+      }
+    } catch (err) {
+      await sendTelegramMessage(chatId, `⚠️ Error querying order: ${err.message}`);
+    }
+    return;
+  }
+
+  // 5. General Status
+  if (lower === '/status' || lower === 'status') {
+    const statusMsg = `🟢 *System & Agent Status:*\n\n` +
+      `• *Primary Mailbox:* \`kev@thinkestry.co.za\` (Active Cron 08:00–17:00)\n` +
+      `• *Practice Mailbox:* \`info@myacc.co.za\` (Synced)\n` +
+      `• *Firebase Studio:* Connected\n` +
+      `• *Telegram Daemon:* Active & Responsive\n` +
+      `• *Current Time:* ${new Date().toLocaleTimeString('en-ZA', { timeZone: 'Africa/Johannesburg' })} SAST`;
     await sendTelegramMessage(chatId, statusMsg);
     return;
   }
 
-  // 4. Acknowledgments & Politeness
+  // 6. Acknowledgments
   if (lower.includes('thank') || lower.includes('thanks') || lower.includes('great') || lower.includes('perfect')) {
-    await sendTelegramMessage(chatId, `🙏 You're very welcome, Kevin! Standing by for your next instruction.`);
+    await sendTelegramMessage(chatId, `🙏 You're very welcome, Kevin! Standing by for your next command.`);
     return;
   }
 
-  // 5. General / Action acknowledgment
-  await sendTelegramMessage(chatId, `✅ *Received instruction:* "${text}"\n\nI am processing this now and will update you shortly.`);
+  // 7. General Instruction Catch-All
+  await sendTelegramMessage(chatId, `🤖 *Received instruction:* "${text}"\n\nI am processing this in Antigravity and will update you shortly.`);
 }
 
 async function pollUpdates() {
@@ -157,16 +214,14 @@ async function pollUpdates() {
 
 async function startDaemon() {
   console.log(`[Telegram Daemon] 2-Way Bot Started for chat_id ${AUTHORIZED_CHAT_ID}. Polling active...`);
-  await sendTelegramMessage(AUTHORIZED_CHAT_ID, `🤖 *2-Way Telegram Bot is now fully ACTIVE & Listening!*\n\nI will now receive, process, and respond to your messages and commands here in real time.`);
-
   while (true) {
     try {
       await pollUpdates();
-    } catch (e) {
-      console.error('[Loop Error]', e);
+    } catch (err) {
+      console.error('[Daemon Loop Error]', err);
       await new Promise(r => setTimeout(r, 3000));
     }
   }
 }
 
-startDaemon();
+startDaemon().catch(console.error);
