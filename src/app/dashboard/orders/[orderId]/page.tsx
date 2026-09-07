@@ -765,72 +765,9 @@ export default function ClientOrderDetailsPage() {
                         )}
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {/* Fulfillment Progress Timeline */}
-                        {order.status !== 'Cancelled' && (
-                            <div className="p-4 bg-slate-50 rounded-xl border space-y-3">
-                                <div className="flex justify-between items-center text-sm font-semibold">
-                                    <span className="flex items-center gap-1.5 text-primary">
-                                        <Clock className="h-4 w-4" /> Fulfillment Status
-                                    </span>
-                                    <Badge variant={order.status === 'Completed' ? 'success' : 'default'} className="text-xs">
-                                        {order.fulfillmentStatus || (order.status === 'Completed' ? 'Completed' : 'Processing')}
-                                    </Badge>
-                                </div>
-                                <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-medium pt-1">
-                                    <div className={`p-2 rounded-lg border ${
-                                        order.fulfillmentStatus === 'Awaiting Documents' 
-                                            ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold' 
-                                            : 'bg-green-50 border-green-200 text-green-800'
-                                    }`}>
-                                        1. Documents
-                                    </div>
-                                    <div className={`p-2 rounded-lg border ${
-                                        order.fulfillmentStatus === 'Under Review' 
-                                            ? 'bg-blue-50 border-blue-300 text-blue-900 font-bold' 
-                                            : (order.fulfillmentStatus === 'In Execution' || order.fulfillmentStatus === 'Ready for Signoff' || order.status === 'Completed') 
-                                            ? 'bg-green-50 border-green-200 text-green-800' 
-                                            : 'bg-muted/40 border-muted text-muted-foreground'
-                                    }`}>
-                                        2. Compliance Review
-                                    </div>
-                                    <div className={`p-2 rounded-lg border ${
-                                        (order.fulfillmentStatus === 'In Execution' || order.fulfillmentStatus === 'Ready for Signoff') 
-                                            ? 'bg-blue-50 border-blue-300 text-blue-900 font-bold' 
-                                            : order.status === 'Completed' 
-                                            ? 'bg-green-50 border-green-200 text-green-800' 
-                                            : 'bg-muted/40 border-muted text-muted-foreground'
-                                    }`}>
-                                        3. Drafting & Filing
-                                    </div>
-                                    <div className={`p-2 rounded-lg border ${
-                                        order.status === 'Completed' 
-                                            ? 'bg-green-50 border-green-300 text-green-900 font-bold' 
-                                            : 'bg-muted/40 border-muted text-muted-foreground'
-                                    }`}>
-                                        4. Completed
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {requiredRequirements.length > 0 && (
-                            <div className="p-4 bg-muted/60 rounded-lg border space-y-2">
-                                <div className="flex justify-between items-center text-sm font-semibold">
-                                    <span>Document Collection Progress</span>
-                                    <span className="text-muted-foreground">{submittedCount} of {requiredRequirements.length} required items completed</span>
-                                </div>
-                                <div className="w-full bg-secondary h-2.5 rounded-full overflow-hidden">
-                                    <div 
-                                        className="bg-primary h-full transition-all duration-300 rounded-full" 
-                                        style={{ width: `${requiredRequirements.length > 0 ? Math.min(100, Math.round((submittedCount / requiredRequirements.length) * 100)) : 100}%` }} 
-                                    />
-                                </div>
-                            </div>
-                        )}
-
                         {orderedItemsWithServices.map((item, index) => (
-                            <div key={item.id} className="bg-muted/40 p-5 rounded-xl border border-border/60">
-                                <div className="flex justify-between items-center py-2 border-b border-border/40 pb-4 mb-4">
+                            <div key={item.id} className="space-y-6">
+                                <div className="flex justify-between items-center pb-4 border-b border-border/60">
                                     <div>
                                         <p className="font-bold text-foreground text-lg">{item.title}</p>
                                         <p className="text-xs text-muted-foreground font-medium">Quantity: {item.quantity || 1}</p>
@@ -838,8 +775,8 @@ export default function ClientOrderDetailsPage() {
                                     <p className="font-bold text-foreground text-lg">{formatPrice(item.price)}</p>
                                 </div>
                                 {item.combinedRequirements && item.combinedRequirements.length > 0 && (
-                                    <div className="mt-4 pl-4 ml-4 border-l-2 space-y-4">
-                                        <h4 className="font-medium text-md">Documents & Data Required:</h4>
+                                    <div className="space-y-4">
+                                        <h4 className="font-semibold text-sm text-foreground/90">Documents & Data Required:</h4>
                                         {item.combinedRequirements.map((info: any, infoIndex: number) => {
                                             const upload = order.documentUploads?.find(d => 
                                                 (info.id && d.requirementId === info.id) ||

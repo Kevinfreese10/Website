@@ -35,10 +35,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     pathname.startsWith('/dashboard/ai-payroll')
   );
 
+  const isAllowedStaffRoute = isStaff && pathname.startsWith('/dashboard/orders');
+
   const shouldRedirect = isAuthenticated && 
     user?.role !== 'client' && 
     user?.role !== 'ai_accountant' && 
-    !isAllowedPartnerRoute;
+    !isAllowedPartnerRoute &&
+    !isAllowedStaffRoute;
 
   useEffect(() => {
     if (shouldRedirect) {
