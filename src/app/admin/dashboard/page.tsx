@@ -809,7 +809,7 @@ export default function AdminDashboardPage() {
             {/* CENTRAL COMMAND HUB: Real-Time Operational Action Banners */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Metric 1: Community Moderation */}
-                <Card className="border-slate-100 bg-white shadow-sm hover:shadow-md transition-all">
+                <Card className="hover:shadow-md transition-all">
                     <CardContent className="p-4 flex items-center justify-between">
                         <div className="space-y-1">
                             <span className="text-[10px] font-extrabold uppercase text-amber-600 tracking-wider flex items-center gap-1">
@@ -825,7 +825,7 @@ export default function AdminDashboardPage() {
                 </Card>
 
                 {/* Metric 2: Unassigned Outsourced Orders */}
-                <Card className="border-slate-100 bg-white shadow-sm hover:shadow-md transition-all">
+                <Card className="hover:shadow-md transition-all">
                     <CardContent className="p-4 flex items-center justify-between">
                         <div className="space-y-1">
                             <span className="text-[10px] font-extrabold uppercase text-blue-600 tracking-wider flex items-center gap-1">
@@ -841,7 +841,7 @@ export default function AdminDashboardPage() {
                 </Card>
 
                 {/* Metric 3: Active Partner Practices */}
-                <Card className="border-slate-100 bg-white shadow-sm hover:shadow-md transition-all">
+                <Card className="hover:shadow-md transition-all">
                     <CardContent className="p-4 flex items-center justify-between">
                         <div className="space-y-1">
                             <span className="text-[10px] font-extrabold uppercase text-indigo-600 tracking-wider flex items-center gap-1">
@@ -857,7 +857,7 @@ export default function AdminDashboardPage() {
                 </Card>
 
                 {/* Metric 4: CV Candidates */}
-                <Card className="border-slate-100 bg-white shadow-sm hover:shadow-md transition-all">
+                <Card className="hover:shadow-md transition-all">
                     <CardContent className="p-4 flex items-center justify-between">
                         <div className="space-y-1">
                             <span className="text-[10px] font-extrabold uppercase text-emerald-600 tracking-wider flex items-center gap-1">

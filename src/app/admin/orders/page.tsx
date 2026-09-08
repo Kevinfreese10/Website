@@ -685,8 +685,8 @@ export default function AdminOrdersPage() {
             </div>
         </div>
 
-        <Card className="border-2 shadow-sm">
-            <CardHeader className="bg-muted/10 pb-6">
+        <Card>
+            <CardHeader className="pb-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="space-y-1">
                         <CardTitle>All Client Orders</CardTitle>
@@ -915,7 +915,7 @@ export default function AdminOrdersPage() {
                 }
             />
             </CardContent>
-            <CardFooter className="bg-muted/30 border-t py-3 justify-between items-center">
+            <CardFooter className="border-t border-primary/20 py-3 justify-between items-center bg-transparent">
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
                     Showing {filteredOrders.length} of {orders.length} orders
                 </p>

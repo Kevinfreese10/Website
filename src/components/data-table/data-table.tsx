@@ -166,7 +166,7 @@ export function DataTable<TData>({
   return (
     <div className={cn('space-y-3', className)}>
       {(toolbar || toolbarRight || hideableColumns.length > 0) && (
-        <div className="flex flex-wrap items-center gap-2 px-1">
+        <div className="flex flex-wrap items-center gap-2 px-6">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{toolbar}</div>
           <div className="flex items-center gap-1.5">
             {toolbarRight}
@@ -196,19 +196,19 @@ export function DataTable<TData>({
         </div>
       )}
 
-      {subheader && <div className="px-1">{subheader}</div>}
+      {subheader && <div className="px-6">{subheader}</div>}
 
       {isLoading ? (
-        <div className="p-4">
+        <div className="p-6">
           <TableSkeleton rows={8} columns={Math.min(allColumns.length, 8)} />
         </div>
       ) : data.length === 0 && empty ? (
-        empty
+        <div className="p-6">{empty}</div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-md border">
+          <div className="overflow-x-auto border-t border-primary/20">
             <Table>
-              <TableHeader className="bg-muted/40">
+              <TableHeader className="bg-primary/[0.04] border-b border-primary/20">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
@@ -226,7 +226,7 @@ export function DataTable<TData>({
                   <TableRow
                     key={row.id}
                     data-state={row.getIsSelected() && 'selected'}
-                    className={cn('transition-colors hover:bg-muted/30', onRowClick && 'cursor-pointer')}
+                    className={cn('transition-colors hover:bg-primary/[0.05] border-b border-primary/15', onRowClick && 'cursor-pointer')}
                     onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -239,7 +239,9 @@ export function DataTable<TData>({
               </TableBody>
             </Table>
           </div>
-          <DataTablePagination table={table} />
+          <div className="px-6">
+            <DataTablePagination table={table} />
+          </div>
         </>
       )}
     </div>
