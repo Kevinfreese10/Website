@@ -2,7 +2,7 @@
 
 import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
 import { getVerifiedAuthContext } from '@/lib/server-auth';
-import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
+import { resolvePartnerMirrorOrderId, stripInternalAiData } from '@/lib/service-utils';
 import { Order, DocumentUpload, AuditEntry } from '@/lib/types';
 import { runUploadChecks, findRequirement, collectExistingHashes } from '@/lib/verification/run-upload-checks';
 
@@ -146,7 +146,7 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
     if (mirrorId) {
       const origRef = db.collection('orders').doc(mirrorId);
       await origRef.update({
-        documentUploads: cleanFirestoreData(updatedUploads),
+        documentUploads: cleanFirestoreData(stripInternalAiData(updatedUploads)),
         auditLog: [...(order.auditLog || []), auditEntry],
         fulfillmentStatus: updatePayload.fulfillmentStatus || order.fulfillmentStatus,
         updatedAt: nowIso,
@@ -275,7 +275,7 @@ export async function removeClientDocumentFileAction(params: RemoveClientDocFile
     if (mirrorId) {
       const origRef = db.collection('orders').doc(mirrorId);
       await origRef.update({
-        documentUploads: cleanFirestoreData(updatedUploads),
+        documentUploads: cleanFirestoreData(stripInternalAiData(updatedUploads)),
         auditLog: [...(order.auditLog || []), auditEntry],
         updatedAt: nowIso,
       });
@@ -366,7 +366,7 @@ export async function syncClientQuestionnaireAction(params: SyncQuestionnairePar
     if (mirrorId) {
       const origRef = db.collection('orders').doc(mirrorId);
       await origRef.update({
-        documentUploads: cleanFirestoreData(updatedUploads),
+        documentUploads: cleanFirestoreData(stripInternalAiData(updatedUploads)),
         updatedAt: nowIso,
       });
     }

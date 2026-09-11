@@ -726,8 +726,11 @@ export default function AdminOrderDetailsPage() {
   
   const handleRejectionSubmit = async (values: z.infer<typeof rejectionFormSchema>) => {
     if (documentToReject) {
-        const identifier = documentToReject.type === 'file' ? documentToReject.fileUrl! : documentToReject.textValue!;
-        await handleDocumentStatusUpdate(identifier, 'rejected', values.reason);
+        const identifier = documentToReject.id || documentToReject.requirementId || documentToReject.requirementLabel || (documentToReject.type === 'file' ? documentToReject.fileUrl! : documentToReject.textValue!);
+        await handleDocumentStatusUpdate(identifier, 'rejected', values.reason, {
+          serviceId: documentToReject.serviceId,
+          requirementLabel: documentToReject.requirementLabel,
+        });
         setIsRejectionDialogOpen(false);
         setDocumentToReject(null);
     }

@@ -618,12 +618,8 @@ export default function ClientOrderDetailsPage() {
         const customReqs = (order.documentUploads || [])
             .filter(d => (d.serviceId === itemId || d.serviceId === serviceDetails?.id) && !standardReqs.some(p => p.label === d.requirementLabel))
             .map(d => ({
+                id: d.id,
                 label: d.requirementLabel,
-                // `requestCustomDocumentAtomic` stores type: 'file', but the requirement renderer
-                // switches on 'pdf' | 'excel' | 'image' | 'any' and falls through to a plain text
-                // input for anything else. That meant a staff member could request "Certified
-                // Proof of Address" and the client was shown a one-line text box with no way to
-                // attach the document at all. Map the storage type onto an upload-capable type.
                 type: d.type === 'text' ? 'text' : 'any',
                 helpText: '',
                 isRequired: true,
@@ -634,21 +630,53 @@ export default function ClientOrderDetailsPage() {
         return { id: itemId, price: item.price || item.unitPrice || 0, ...item, service: serviceDetails, combinedRequirements };
     });
 
-  const allRequirements = orderedItemsWithServices.flatMap(item => item.combinedRequirements || []);
+    // Capture any custom uploads that have a generic or unmatched serviceId (e.g. 'custom') so they are never lost
+    const unmatchedUploads = (order.documentUploads || []).filter(d => {
+      const isMatched = orderedItemsWithServices.some(item =>
+        item.combinedRequirements.some((req: any) =>
+          req.label === d.requirementLabel &&
+          (d.serviceId === item.id || d.serviceId === item.service?.id)
+        )
+      );
+      return !isMatched;
+    });
+
+    if (unmatchedUploads.length > 0 && orderedItemsWithServices.length > 0) {
+      const extraReqs = unmatchedUploads.map(d => ({
+        id: d.id,
+        label: d.requirementLabel,
+        type: d.type === 'text' ? 'text' : 'any',
+        helpText: 'Additional document requested by your consultant',
+        isRequired: true,
+      }));
+      orderedItemsWithServices[0].combinedRequirements.push(...extraReqs);
+    }
+
+  const allRequirements = orderedItemsWithServices.flatMap(item => 
+    (item.combinedRequirements || []).map((req: any) => ({
+      ...req,
+      serviceId: item.service?.id || item.id,
+    }))
+  );
   const requiredRequirements = allRequirements.filter(req => req.isRequired !== false);
 
-  const isRequirementComplete = (reqLabel: string) => {
+  const isRequirementComplete = (reqLabel: string, serviceId?: string) => {
     return order.documentUploads?.some(doc => {
-      if (doc.requirementLabel !== reqLabel || doc.status === 'rejected') return false;
+      const matchesLabel = doc.requirementLabel === reqLabel;
+      const matchesService = !serviceId || doc.serviceId === serviceId || doc.serviceId === 'custom';
+      if (!matchesLabel || !matchesService) return false;
+      if (doc.status === 'ignored' || doc.isIgnored) return true;
+      if (doc.status === 'rejected') return false;
+
       const hasFiles = Boolean((doc.files && doc.files.length > 0) || (doc.fileUrl && doc.fileUrl.length > 0));
       const hasExplanation = Boolean(doc.notAvailableReason && doc.notAvailableReason.trim().length > 0);
-      const hasText = Boolean(doc.textValue && doc.textValue.length > 0 && doc.textValue !== 'Applicable (Yes)');
+      const hasText = Boolean(doc.textValue && doc.textValue.trim().length > 0 && doc.textValue !== 'Applicable (Yes)');
       return hasFiles || hasExplanation || hasText;
     });
   };
 
-  const allSubmitted = requiredRequirements.every(req => isRequirementComplete(req.label));
-  const submittedCount = requiredRequirements.filter(req => isRequirementComplete(req.label)).length;
+  const allSubmitted = requiredRequirements.every(req => isRequirementComplete(req.label, req.serviceId));
+  const submittedCount = requiredRequirements.filter(req => isRequirementComplete(req.label, req.serviceId)).length;
   const hasRejectedUploads = order.documentUploads?.some(d => d.status === 'rejected');
   const isCurrentlyUnderReview = order.fulfillmentStatus === 'Under Review';
 

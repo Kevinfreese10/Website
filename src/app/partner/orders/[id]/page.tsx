@@ -431,7 +431,12 @@ export default function PartnerOrderDetailsPage() {
     }
   };
 
-  const handleDocumentStatusUpdate = async (identifier: string, status: 'approved' | 'rejected', reason?: string) => {
+  const handleDocumentStatusUpdate = async (
+    identifier: string, 
+    status: 'approved' | 'rejected', 
+    reason?: string,
+    options?: { serviceId?: string; requirementLabel?: string }
+  ) => {
     if (!order) return;
     try {
       const auth = getAuth(firebaseApp);
@@ -441,7 +446,7 @@ export default function PartnerOrderDetailsPage() {
         return;
       }
 
-      const res = await reviewOrderDocumentAtomic(order.id, identifier, status, idToken, reason);
+      const res = await reviewOrderDocumentAtomic(order.id, identifier, status, idToken, reason, options);
       if (res.success) {
         toast({ title: 'Document Status Updated', description: `The document has been ${status}.`});
         fetchOrder(true);
@@ -558,8 +563,11 @@ export default function PartnerOrderDetailsPage() {
   
   const handleRejectionSubmit = async (values: z.infer<typeof rejectionFormSchema>) => {
     if (documentToReject) {
-        const identifier = documentToReject.type === 'file' ? documentToReject.fileUrl! : documentToReject.textValue!;
-        await handleDocumentStatusUpdate(identifier, 'rejected', values.reason);
+        const identifier = documentToReject.id || documentToReject.requirementId || documentToReject.requirementLabel || (documentToReject.type === 'file' ? documentToReject.fileUrl! : documentToReject.textValue!);
+        await handleDocumentStatusUpdate(identifier, 'rejected', values.reason, {
+          serviceId: documentToReject.serviceId,
+          requirementLabel: documentToReject.requirementLabel,
+        });
         setIsRejectionDialogOpen(false);
         setDocumentToReject(null);
     }

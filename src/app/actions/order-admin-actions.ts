@@ -3,7 +3,7 @@
 import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
 import { AuditEntry, Order, DocumentUpload, OrderChecklistItem } from '@/lib/types';
 import { sendOrderStatusUpdateEmailAction } from './order-actions';
-import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
+import { resolvePartnerMirrorOrderId, stripInternalAiData } from '@/lib/service-utils';
 import { getVerifiedAuthContext, getAuthContext } from '@/lib/server-auth';
 
 export type StatusTransitionOptions = {
@@ -302,7 +302,11 @@ export async function reviewOrderDocumentAtomic(
     const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
     if (mirrorId) {
       const originalRef = db.collection('orders').doc(mirrorId);
-      batch.update(originalRef, updatePayload);
+      const partnerPayload = cleanFirestoreData({
+        ...updatePayload,
+        documentUploads: stripInternalAiData(cleanedUploads),
+      });
+      batch.update(originalRef, partnerPayload);
     }
 
     await batch.commit();
@@ -662,10 +666,33 @@ export async function requestCustomDocumentAtomic(
     const mirrorId = resolvePartnerMirrorOrderId({ ...orderData, id: orderId });
     if (mirrorId) {
       const origRef = db.collection('orders').doc(mirrorId);
-      batch.update(origRef, updatePayload);
+      const partnerPayload = cleanFirestoreData({
+        ...updatePayload,
+        documentUploads: stripInternalAiData(updatedUploads),
+      });
+      batch.update(origRef, partnerPayload);
     }
 
     await batch.commit();
+
+    // Notify client via email that an additional document is required
+    try {
+      const clientEmail = orderData.endCustomerEmail || orderData.customerEmail;
+      const clientName = orderData.endCustomerName || orderData.customerName || 'Valued Client';
+      if (clientEmail) {
+        const { sendDocumentReviewFeedback } = await import('@/app/actions/notifications');
+        await sendDocumentReviewFeedback({
+          orderId,
+          clientName,
+          clientEmail,
+          documentUploads: updatedUploads,
+          resellerId: orderData.resellerId,
+        });
+      }
+    } catch (emailErr) {
+      console.error('[requestCustomDocumentAtomic] Client email notification warning:', emailErr);
+    }
+
     return { success: true, message: `Requested: "${requirementLabel.trim()}"` };
   } catch (error: any) {
     console.error('Error requesting custom document:', error);
