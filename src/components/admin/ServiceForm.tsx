@@ -4,7 +4,6 @@ import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Service, PrerequisiteItem } from '@/lib/types';
-import { Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -16,8 +15,9 @@ import {
   Trash, Sparkles, Loader2, Plus, Info, Images, Paperclip, ShieldCheck, Upload, 
   ArrowUp, ArrowDown, HelpCircle, CheckCircle2, DollarSign, Package, 
   ClipboardList, Globe, Clock, Layers, Star, ExternalLink, Search, Copy, BookOpen,
-  FileText, FileSignature, Check, Eye, Building2, KeyRound
+  FileText, FileSignature, Check, Eye, Building2, KeyRound, Edit3
 } from 'lucide-react';
+import ClientPortalIntakePreview from './ClientPortalIntakePreview';
 import { generateServiceDetails } from '@/ai/flows/generate-service-details';
 import { generateBlogPostSeo } from '@/ai/flows/generate-blog-post-seo';
 import { useToast } from '@/hooks/use-toast';
@@ -125,7 +125,7 @@ const formSchema = z.object({
   informationToProvide: z.array(z.object({
     id: z.string().optional(),
     label: z.string().min(1, 'Label cannot be empty.'),
-    type: z.enum(['text', 'pdf', 'excel', 'image', 'any', 'coida_industry']).optional(),
+    type: z.enum(['text', 'pdf', 'excel', 'image', 'any', 'coida_industry', 'datetime']).optional(),
     helpText: z.string().optional(),
     isConditional: z.boolean().optional(),
     conditionalQuestion: z.string().optional(),
@@ -246,10 +246,16 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
     },
   });
 
+  const [testingReqIndex, setTestingReqIndex] = useState<number | null>(null);
+  const [intakeViewMode, setIntakeViewMode] = useState<'editor' | 'client'>('editor');
   const isPriceTbc = form.watch('isPriceTbc');
   const watchedPrice = form.watch('price') || 0;
   const watchedResellerPrice = form.watch('resellerPrice') || 0;
   const watchedTitle = form.watch('title') || '';
+  const watchedCategory = form.watch('category') || '';
+  const watchedDepartment = form.watch('department') || '';
+  const watchedTurnaroundTime = form.watch('turnaroundTime') || '';
+  const watchedRequirements = form.watch('informationToProvide') || [];
   const metaTitleLength = form.watch('metaTitle')?.length || 0;
   const metaDescriptionLength = form.watch('metaDescription')?.length || 0;
 
@@ -1152,311 +1158,300 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
             {/* TAB 4: CLIENT DOCUMENTS & INTAKE */}
             <TabsContent value="intake" className="space-y-4 m-0 focus-visible:outline-none">
               <div className="p-4 rounded-xl border bg-card space-y-4 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b">
-                  <div>
-                    <div className="flex items-center gap-2">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 pb-3 border-b">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <ClipboardList className="h-4 w-4 text-primary" />
                       <h3 className="text-sm font-bold text-foreground">Client Document Uploads & Required Data</h3>
+                      <div className="inline-flex rounded-lg bg-muted p-0.5 border">
+                        <button
+                          type="button"
+                          onClick={() => setIntakeViewMode('editor')}
+                          className={cn(
+                            "px-3 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5",
+                            intakeViewMode === 'editor' 
+                              ? "bg-background text-foreground shadow-xs font-bold" 
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Form Editor
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIntakeViewMode('client')}
+                          className={cn(
+                            "px-3 py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5",
+                            intakeViewMode === 'client' 
+                              ? "bg-blue-600 text-white shadow-xs font-bold" 
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Client Portal View
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Standardized intake documents the client must upload on their dashboard. The AI agent validates these during KYC.
+                    <p className="text-xs text-muted-foreground">
+                      {intakeViewMode === 'client' 
+                        ? 'Live simulation of the client portal document intake experience for this service.'
+                        : 'Standardized intake documents the client must upload on their dashboard. The AI agent validates these during KYC.'}
                     </p>
                   </div>
                   
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 text-xs font-bold border-indigo-500/40 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 gap-1.5 shadow-xs"
-                      onClick={() => appendInfo({ 
-                        id: `req_coida_${Date.now().toString(36)}`, 
-                        label: 'COIDA Classification of Industries', 
-                        type: 'coida_industry', 
-                        helpText: 'Select one or more applicable industry classifications from the official 23 COIDA classes (W.Cl.150T) for Compensation Fund assessment rates.', 
-                        isRequired: true 
-                      })}
-                    >
-                      <Building2 className="h-3.5 w-3.5" /> + COIDA Classification of Industries
-                    </Button>
+                  {intakeViewMode === 'editor' && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 text-xs font-bold border-indigo-500/40 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 gap-1.5 shadow-xs"
+                        onClick={() => appendInfo({ 
+                          id: `req_coida_${Date.now().toString(36)}`, 
+                          label: 'COIDA Classification of Industries', 
+                          type: 'coida_industry', 
+                          helpText: 'Select one or more applicable industry classifications from the official 23 COIDA classes (W.Cl.150T) for Compensation Fund assessment rates.', 
+                          isRequired: true 
+                        })}
+                      >
+                        <Building2 className="h-3.5 w-3.5" /> + COIDA Classification of Industries
+                      </Button>
 
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 text-xs font-bold border-amber-500/40 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 gap-1.5 shadow-xs"
-                      onClick={handleAddSarsEfilingPack}
-                    >
-                      <KeyRound className="h-3.5 w-3.5 text-amber-600" /> + SARS eFiling Login Pack
-                    </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 text-xs font-bold border-amber-500/40 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 gap-1.5 shadow-xs"
+                        onClick={handleAddSarsEfilingPack}
+                      >
+                        <KeyRound className="h-3.5 w-3.5 text-amber-600" /> + SARS eFiling Login Pack
+                      </Button>
 
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 text-xs font-bold border-primary/40 text-primary hover:bg-primary/5 gap-1.5 shadow-xs"
-                      onClick={() => setIsDocMultiOpen(true)}
-                    >
-                      <BookOpen className="h-3.5 w-3.5 text-primary" /> + Select Standard Documents (Multi)
-                    </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 text-xs font-bold border-primary/40 text-primary hover:bg-primary/5 gap-1.5 shadow-xs"
+                        onClick={() => setIsDocMultiOpen(true)}
+                      >
+                        <BookOpen className="h-3.5 w-3.5 text-primary" /> + Select Standard Documents (Multi)
+                      </Button>
 
-                    <Select onValueChange={handleCopyFrom}>
-                      <SelectTrigger className="w-[160px] h-8 text-xs">
-                        <Copy className="h-3 w-3 mr-1 text-muted-foreground" />
-                        <SelectValue placeholder="Copy from service..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allServices.filter(s => s.id !== service?.id).map(s => (
-                          <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Select onValueChange={handleCopyFrom}>
+                        <SelectTrigger className="w-[160px] h-8 text-xs">
+                          <Copy className="h-3 w-3 mr-1 text-muted-foreground" />
+                          <SelectValue placeholder="Copy from service..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allServices.filter(s => s.id !== service?.id).map(s => (
+                            <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
 
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      className="gap-1 text-xs font-semibold h-8"
-                      onClick={() => appendInfo({ id: `req_${Date.now().toString(36)}`, label: '', type: 'pdf', helpText: '', isRequired: true })}
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Custom Field
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {infoFields.map((field, index) => (
-                    <div key={field.id} className="p-3.5 rounded-lg border bg-muted/10 space-y-3">
-                      <div className="flex items-start gap-2">
-                        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary font-bold text-xs mt-1 shrink-0">
-                          {index + 1}
-                        </div>
-                        
-                        <FormField
-                          control={form.control}
-                          name={`informationToProvide.${index}.label`}
-                          render={({ field }) => (
-                            <FormItem className="flex-grow space-y-1">
-                              <FormLabel className="text-xs font-semibold">Requirement Name / Label *</FormLabel>
-                              <FormControl>
-                                <Input placeholder="e.g. Certified ID Copy / Passport" className="h-8 text-xs font-medium" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name={`informationToProvide.${index}.type`}
-                          render={({ field }) => (
-                            <FormItem className="w-64 shrink-0 space-y-1">
-                              <FormLabel className="text-xs font-semibold">Accepted Format</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value || 'pdf'}>
-                                <FormControl>
-                                  <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue placeholder="Format" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="pdf">File (PDF Document)</SelectItem>
-                                  <SelectItem value="image">File (Image/Photo)</SelectItem>
-                                  <SelectItem value="excel">File (Excel/CSV)</SelectItem>
-                                  <SelectItem value="any">File (Any format)</SelectItem>
-                                  <SelectItem value="text">Text / Number Input</SelectItem>
-                                  <SelectItem value="coida_industry">🏛️ COIDA Classification of Industries (Dropdown)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="flex items-center gap-0.5 mt-5 shrink-0">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground"
-                            disabled={index === 0}
-                            onClick={() => moveInfo(index, index - 1)}
-                            title="Move Up"
-                          >
-                            <ArrowUp className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground"
-                            disabled={index === infoFields.length - 1}
-                            onClick={() => moveInfo(index, index + 1)}
-                            title="Move Down"
-                          >
-                            <ArrowDown className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button aria-label="Delete" 
-                            type="button" 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            onClick={() => removeInfo(index)} 
-                            title="Delete"
-                          >
-                            <Trash className="h-3.5 w-3.5"/>
-                          </Button>
-                        </div>
-                      </div>
-
-                      {form.watch(`informationToProvide.${index}.type`) === 'coida_industry' && (
-                        <div className="p-2.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center gap-2 text-xs text-indigo-900 dark:text-indigo-200">
-                          <Building2 className="h-4 w-4 text-indigo-600 shrink-0" />
-                          <span>
-                            <strong>Interactive COIDA Dropdown:</strong> When the client completes this requirement on their order dashboard, they will be presented with a searchable multi-select dropdown covering all 23 official COIDA Industry Classes (W.Cl.150T).
-                          </span>
-                        </div>
-                      )}
-
-                      <FormField
-                        control={form.control}
-                        name={`informationToProvide.${index}.helpText`}
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <FormLabel className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <HelpCircle className="h-3 w-3" /> Client Instructions & Upload Guidelines (Optional)
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                className="h-7 text-xs bg-background"
-                                placeholder="e.g. Must not be older than 3 months. Color scan required."
-                                {...field}
-                                value={field.value || ''}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* AI order agent verification rules (plan §5.1) */}
-                      <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 p-2 space-y-2">
-                        <p className="text-[11px] font-semibold text-primary flex items-center gap-1"><Bot className="h-3 w-3" /> Agent verification rules</p>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          <FormField control={form.control} name={`informationToProvide.${index}.documentKind`} render={({ field }) => (
-                            <FormItem className="space-y-0.5">
-                              <FormLabel className="text-[11px] text-muted-foreground">Document kind</FormLabel>
-                              <Select value={field.value || ''} onValueChange={field.onChange}>
-                                <FormControl><SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                  {DOCUMENT_KIND_OPTIONS.map(k => <SelectItem key={k.value} value={k.value} className="text-xs">{k.label}</SelectItem>)}
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )} />
-                          <FormField control={form.control} name={`informationToProvide.${index}.inNameOf`} render={({ field }) => (
-                            <FormItem className="space-y-0.5">
-                              <FormLabel className="text-[11px] text-muted-foreground">Must be in the name of</FormLabel>
-                              <Select value={field.value || ''} onValueChange={field.onChange}>
-                                <FormControl><SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                  <SelectItem value="entity" className="text-xs">The company / entity</SelectItem>
-                                  <SelectItem value="director" className="text-xs">The director / individual</SelectItem>
-                                  <SelectItem value="either" className="text-xs">Either</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )} />
-                          <FormField control={form.control} name={`informationToProvide.${index}.maxAgeDays`} render={({ field }) => (
-                            <FormItem className="space-y-0.5">
-                              <FormLabel className="text-[11px] text-muted-foreground">Max age (days)</FormLabel>
-                              <FormControl><Input type="number" min={0} className="h-7 text-xs" placeholder="90" {...field} value={field.value ?? ''} /></FormControl>
-                            </FormItem>
-                          )} />
-                          <div className="flex flex-col gap-1.5 pt-4">
-                            <FormField control={form.control} name={`informationToProvide.${index}.mustBeCertified`} render={({ field }) => (
-                              <FormItem className="flex items-center gap-1.5 space-y-0">
-                                <FormControl><Switch checked={!!field.value} onCheckedChange={field.onChange} /></FormControl>
-                                <FormLabel className="!mt-0 text-[11px] cursor-pointer">Must be certified</FormLabel>
-                              </FormItem>
-                            )} />
-                            <FormField control={form.control} name={`informationToProvide.${index}.isSecret`} render={({ field }) => (
-                              <FormItem className="flex items-center gap-1.5 space-y-0">
-                                <FormControl><Switch checked={!!field.value} onCheckedChange={field.onChange} /></FormControl>
-                                <FormLabel className="!mt-0 text-[11px] cursor-pointer">Credential (store encrypted)</FormLabel>
-                              </FormItem>
-                            )} />
-                          </div>
-                        </div>
-                        <FormField control={form.control} name={`informationToProvide.${index}.alternativesText`} render={({ field }) => (
-                          <FormItem className="space-y-0.5">
-                            <FormLabel className="text-[11px] text-muted-foreground">Acceptable alternatives (comma separated)</FormLabel>
-                            <FormControl><Input className="h-7 text-xs" placeholder="Passport, Signed lease agreement" {...field} value={field.value || ''} /></FormControl>
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name={`informationToProvide.${index}.aiHint`} render={({ field }) => (
-                          <FormItem className="space-y-0.5">
-                            <FormLabel className="text-[11px] text-muted-foreground">What a valid one looks like (AI hint — the highest-value field here)</FormLabel>
-                            <FormControl><Textarea rows={2} className="text-xs bg-background" placeholder="e.g. Official bank confirmation letter from a registered SA bank, dated within 3 months, in the COMPANY's name. Accept a digital verification reference/QR in place of a stamp. Do NOT accept a transaction statement." {...field} value={field.value || ''} /></FormControl>
-                          </FormItem>
-                        )} />
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1 border-t border-border/40 text-xs">
-                        <div className="flex items-center gap-5">
-                          <FormField
-                            control={form.control}
-                            name={`informationToProvide.${index}.isRequired`}
-                            render={({ field }) => (
-                              <FormItem className="flex items-center gap-1.5 space-y-0">
-                                <FormControl>
-                                  <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
-                                </FormControl>
-                                <FormLabel className="!mt-0 text-xs font-medium cursor-pointer">Mandatory</FormLabel>
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name={`informationToProvide.${index}.isConditional`}
-                            render={({ field }) => (
-                              <FormItem className="flex items-center gap-1.5 space-y-0">
-                                <FormControl>
-                                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                </FormControl>
-                                <FormLabel className="!mt-0 text-xs font-medium cursor-pointer">Conditional Question</FormLabel>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        {form.watch(`informationToProvide.${index}.isConditional`) && (
-                          <FormField
-                            control={form.control}
-                            name={`informationToProvide.${index}.conditionalQuestion`}
-                            render={({ field }) => (
-                              <FormItem className="flex-grow max-w-sm ml-3 space-y-0">
-                                <FormControl>
-                                  <Input
-                                    className="h-7 text-xs"
-                                    placeholder="Question to prompt client (e.g. Are you registered for VAT?)"
-                                    {...field}
-                                    value={field.value || ''}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        )}
-                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-1 text-xs font-semibold h-8"
+                        onClick={() => appendInfo({ id: `req_${Date.now().toString(36)}`, label: '', type: 'pdf', helpText: '', isRequired: true })}
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Custom Field
+                      </Button>
                     </div>
-                  ))}
-
-                  {infoFields.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic py-3 text-center">
-                      No document requirements configured. Select "+ Standard Document..." above to add from library.
-                    </p>
                   )}
                 </div>
+
+                {intakeViewMode === 'client' ? (
+                  <ClientPortalIntakePreview
+                    serviceTitle={watchedTitle}
+                    serviceCategory={watchedCategory}
+                    department={watchedDepartment}
+                    price={watchedPrice}
+                    turnaroundTime={watchedTurnaroundTime}
+                    requirements={watchedRequirements as any}
+                    onSwitchToEditor={() => setIntakeViewMode('editor')}
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {infoFields.map((field, index) => (
+                      <div key={field.id} className="p-3.5 rounded-lg border bg-muted/10 space-y-3">
+                        <div className="flex items-start gap-2">
+                          <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary font-bold text-xs mt-1 shrink-0">
+                            {index + 1}
+                          </div>
+                          
+                          <FormField
+                            control={form.control}
+                            name={`informationToProvide.${index}.label`}
+                            render={({ field }) => (
+                              <FormItem className="flex-grow space-y-1">
+                                <FormLabel className="text-xs font-semibold">Requirement Name / Label *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g. Certified ID Copy / Passport" className="h-8 text-xs font-medium" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`informationToProvide.${index}.type`}
+                            render={({ field }) => (
+                              <FormItem className="w-64 shrink-0 space-y-1">
+                                <FormLabel className="text-xs font-semibold">Accepted Format</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || 'pdf'}>
+                                  <FormControl>
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue placeholder="Format" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="pdf">File (PDF Document)</SelectItem>
+                                    <SelectItem value="image">File (Image/Photo)</SelectItem>
+                                    <SelectItem value="excel">File (Excel/CSV)</SelectItem>
+                                    <SelectItem value="any">File (Any format)</SelectItem>
+                                    <SelectItem value="text">Text / Number Input</SelectItem>
+                                    <SelectItem value="datetime">🗓️ Date & Time Selector (Appointment / OTP Window)</SelectItem>
+                                    <SelectItem value="coida_industry">🏛️ COIDA Classification of Industries (Dropdown)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="flex items-center gap-1 mt-5 shrink-0">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground"
+                              disabled={index === 0}
+                              onClick={() => moveInfo(index, index - 1)}
+                              title="Move Up"
+                            >
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground"
+                              disabled={index === infoFields.length - 1}
+                              onClick={() => moveInfo(index, index + 1)}
+                              title="Move Down"
+                            >
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button aria-label="Delete" 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => removeInfo(index)} 
+                              title="Delete"
+                            >
+                              <Trash className="h-3.5 w-3.5"/>
+                            </Button>
+                          </div>
+                        </div>
+
+                        {form.watch(`informationToProvide.${index}.type`) === 'coida_industry' && (
+                          <div className="p-2.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex items-center gap-2 text-xs text-indigo-900 dark:text-indigo-200">
+                            <Building2 className="h-4 w-4 text-indigo-600 shrink-0" />
+                            <span>
+                              <strong>Interactive COIDA Dropdown:</strong> When the client completes this requirement on their order dashboard, they will be presented with a searchable multi-select dropdown covering all 23 official COIDA Industry Classes (W.Cl.150T).
+                            </span>
+                          </div>
+                        )}
+
+                        {form.watch(`informationToProvide.${index}.type`) === 'datetime' && (
+                          <div className="p-2.5 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center gap-2 text-xs text-amber-900 dark:text-amber-200">
+                            <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+                            <span>
+                              <strong>Interactive Date & Time Selector:</strong> When the client completes this requirement on their order dashboard, they will choose an appointment date, preferred time window, and confirm their contact number for live OTP/consultant coordination.
+                            </span>
+                          </div>
+                        )}
+
+                        <FormField
+                          control={form.control}
+                          name={`informationToProvide.${index}.helpText`}
+                          render={({ field }) => (
+                            <FormItem className="space-y-1">
+                              <FormLabel className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                <HelpCircle className="h-3 w-3" /> Client Instructions & Upload Guidelines (Optional)
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="h-7 text-xs bg-background"
+                                  placeholder="e.g. Must not be older than 3 months. Color scan required."
+                                  {...field}
+                                  value={field.value || ''}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex items-center justify-between pt-1 border-t border-border/40 text-xs">
+                          <div className="flex items-center gap-5">
+                            <FormField
+                              control={form.control}
+                              name={`informationToProvide.${index}.isRequired`}
+                              render={({ field }) => (
+                                <FormItem className="flex items-center gap-1.5 space-y-0">
+                                  <FormControl>
+                                    <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <FormLabel className="!mt-0 text-xs font-medium cursor-pointer">Mandatory</FormLabel>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name={`informationToProvide.${index}.isConditional`}
+                              render={({ field }) => (
+                                <FormItem className="flex items-center gap-1.5 space-y-0">
+                                  <FormControl>
+                                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <FormLabel className="!mt-0 text-xs font-medium cursor-pointer">Conditional Question</FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          {form.watch(`informationToProvide.${index}.isConditional`) && (
+                            <FormField
+                              control={form.control}
+                              name={`informationToProvide.${index}.conditionalQuestion`}
+                              render={({ field }) => (
+                                <FormItem className="flex-grow max-w-sm ml-3 space-y-0">
+                                  <FormControl>
+                                    <Input
+                                      className="h-7 text-xs"
+                                      placeholder="Question to prompt client (e.g. Are you registered for VAT?)"
+                                      {...field}
+                                      value={field.value || ''}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {infoFields.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic py-3 text-center">
+                        No document requirements configured. Select "+ Standard Document..." above to add from library.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </TabsContent>
 

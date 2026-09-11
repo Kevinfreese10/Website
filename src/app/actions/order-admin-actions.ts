@@ -113,23 +113,6 @@ export async function transitionOrderStatusAtomic(
           };
         }
       }
-
-      // 2. Check document uploads
-      const uploads = orderData.documentUploads || [];
-      const pendingUploads = uploads.filter(u => u.status === 'pending');
-      const rejectedUploads = uploads.filter(u => u.status === 'rejected');
-
-      if (pendingUploads.length > 0 || rejectedUploads.length > 0) {
-        const docIssues: string[] = [];
-        if (pendingUploads.length > 0) docIssues.push(`${pendingUploads.length} pending review`);
-        if (rejectedUploads.length > 0) docIssues.push(`${rejectedUploads.length} rejected/outstanding`);
-
-        return {
-          success: false,
-          error: `Cannot complete Order #${orderId}. Document issues: ${docIssues.join(', ')}. All documents must be approved before completion.`,
-          isBlockedByDocuments: true,
-        };
-      }
     }
 
     // Determine appropriate fulfillmentStatus
@@ -138,9 +121,8 @@ export async function transitionOrderStatusAtomic(
       targetFulfillmentStatus = 'Completed';
     } else if (newStatus === 'Cancelled') {
       targetFulfillmentStatus = 'Blocked';
-    } else if (newStatus === 'Processing' && (!targetFulfillmentStatus || targetFulfillmentStatus === 'Awaiting Documents')) {
-      const allDocsApproved = (orderData.documentUploads || []).length > 0 && (orderData.documentUploads || []).every(d => d.status === 'approved');
-      targetFulfillmentStatus = allDocsApproved ? 'In Execution' : 'Awaiting Documents';
+    } else if (newStatus === 'Processing') {
+      targetFulfillmentStatus = options?.fulfillmentStatus || 'In Execution';
     }
 
     const auditEntry: AuditEntry = {

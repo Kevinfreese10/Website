@@ -5,7 +5,7 @@ import { getVerifiedAuthContext } from '@/lib/server-auth';
 import { resolvePartnerMirrorOrderId } from '@/lib/service-utils';
 import { Order, DocumentUpload, AuditEntry } from '@/lib/types';
 import { runUploadChecks, findRequirement, collectExistingHashes } from '@/lib/verification/run-upload-checks';
-import { after } from 'next/server';
+
 
 export interface SubmitClientDocParams {
   idToken: string;
@@ -153,16 +153,7 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
       });
     }
 
-    // Run the verification cycle after the response is sent (Next 15+ `after`): the new file is
-    // checked and the client hears back in Communication History if anything is wrong.
-    after(async () => {
-      try {
-        const { runVerificationCycle } = await import('@/lib/agent/verification-cycle');
-        await runVerificationCycle(params.orderId, 'upload');
-      } catch (e) {
-        console.error('[submitClientDocumentUploadAction] verification cycle failed:', e);
-      }
-    });
+
 
     return {
       success: true,
@@ -392,15 +383,16 @@ export async function syncClientQuestionnaireAction(params: SyncQuestionnairePar
 }
 
 /**
- * Called when the client presses "Notify Consultant of All Submissions". Runs the full
- * verification cycle for the order and returns a short summary for the toast.
+ * Called when the client presses "Submit Intake & Notify Consultant". Updates order status
+ * to 'Under Review', logs an audit entry, and notifies the assigned staff/admin for review.
  */
 export async function notifyConsultantAndVerifyAction(params: { idToken: string; orderId: string }) {
   try {
     const authCtx = await getVerifiedAuthContext(params.idToken);
     if (!authCtx) return { success: false, error: 'Unauthorized' };
     const db = getAdminDb();
-    const snap = await db.collection('orders').doc(params.orderId).get();
+    const orderRef = db.collection('orders').doc(params.orderId);
+    const snap = await orderRef.get();
     if (!snap.exists) return { success: false, error: 'Order not found' };
     const order = snap.data() as Order;
     const isClient = authCtx.userId === order.userId || authCtx.userId === order.clientId ||
@@ -408,31 +400,43 @@ export async function notifyConsultantAndVerifyAction(params: { idToken: string;
       authCtx.user.email?.toLowerCase() === order.endCustomerEmail?.toLowerCase();
     if (!authCtx.isAdmin && !isClient) return { success: false, error: 'Forbidden' };
 
-    const { runVerificationCycle } = await import('@/lib/agent/verification-cycle');
-    const r = await runVerificationCycle(params.orderId, 'notify');
-    
-    // Ensure order is flagged as Under Review
-    await db.collection('orders').doc(params.orderId).update({
-      fulfillmentStatus: 'Under Review',
-      lastClientSubmissionAt: new Date().toISOString(),
-    });
-
-    const c = { 
-      approved: r.items.filter(i => i.outcome === 'approved').length, 
-      rejected: r.items.filter(i => i.outcome === 'rejected').length, 
-      missing: r.items.filter(i => i.outcome === 'missing').length, 
-      pending: r.items.filter(i => i.outcome === 'pending').length 
+    const nowIso = new Date().toISOString();
+    const auditEntry: AuditEntry = {
+      id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      timestamp: nowIso,
+      action: 'SUBMISSION_NOTIFIED',
+      performedBy: authCtx.userId,
+      performedByName: authCtx.user.name || authCtx.user.email || 'Client',
+      details: 'Client submitted document intake and notified consultant for review.',
     };
 
-    const message = r.state === 'complete'
-      ? 'All your documents have been verified and approved. Your consultant has received the full audit report.'
-      : r.state === 'awaiting_consultant'
-        ? `${c.approved} document(s) verified; ${c.pending} item(s) are with your consultant for review. Audit report sent.`
-        : `${c.approved} approved; ${c.rejected + c.missing} item(s) need your attention — see your order notes. Audit report sent to consultant.`;
+    const updatePayload: Record<string, any> = {
+      status: 'Under Review',
+      fulfillmentStatus: 'Under Review',
+      lastClientSubmissionAt: nowIso,
+      auditLog: [...(order.auditLog || []), auditEntry],
+      updatedAt: nowIso,
+    };
 
-    return { success: true, state: r.state, counts: c, message };
+    await orderRef.update(updatePayload);
+
+    // Sync partner mirror order if applicable
+    const mirrorId = resolvePartnerMirrorOrderId({ ...order, id: params.orderId });
+    if (mirrorId) {
+      const origRef = db.collection('orders').doc(mirrorId);
+      await origRef.update({
+        status: 'Under Review',
+        fulfillmentStatus: 'Under Review',
+        lastClientSubmissionAt: nowIso,
+        auditLog: [...(order.auditLog || []), auditEntry],
+        updatedAt: nowIso,
+      });
+    }
+
+    const message = "Your documents have been submitted and queued for your consultant's review.";
+    return { success: true, message };
   } catch (e: any) {
     console.error('[notifyConsultantAndVerifyAction]', e);
-    return { success: false, error: e.message || 'Verification failed' };
+    return { success: false, error: e.message || 'Notification failed' };
   }
 }

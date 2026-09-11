@@ -566,7 +566,7 @@ export default function ClientOrderDetailsPage() {
     }
 
     setIsSubmitting(true);
-    toast({ title: "Submitting to Consultant...", description: "Running automated document intake and notifying your consultant." });
+    toast({ title: "Submitting to Consultant...", description: "Notifying your consultant that your documents are ready for review." });
 
     const noteText = "Client has submitted their documents for review.";
     const newNote: OrderNote = {
@@ -580,7 +580,11 @@ export default function ClientOrderDetailsPage() {
 
     try {
       const orderRef = doc(db, 'orders', order.id);
-      await updateDoc(orderRef, { notes: arrayUnion(newNote) });
+      await updateDoc(orderRef, { 
+        status: 'Under Review',
+        fulfillmentStatus: 'Under Review',
+        notes: arrayUnion(newNote) 
+      });
       
       await notifyStaffOfDocumentUpload({
         orderId: order.id,
@@ -590,13 +594,12 @@ export default function ClientOrderDetailsPage() {
         assignedTo: order.assignedTo,
       });
 
-      // Run the automated document check and tell the client the outcome.
       try {
         const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
         const { notifyConsultantAndVerifyAction } = await import('@/app/actions/client-order-actions');
         const v = idToken ? await notifyConsultantAndVerifyAction({ idToken, orderId: order.id }) : null;
         toast({
-          title: v?.success && v.state === 'complete' ? 'All documents approved' : 'Documents checked',
+          title: 'Documents Submitted!',
           description: v?.success ? v.message : "Your documents have been submitted and queued for your consultant's review.",
         });
       } catch {
@@ -810,6 +813,15 @@ export default function ClientOrderDetailsPage() {
                                             const hasTextValue = Boolean(upload?.textValue && upload.textValue !== 'Applicable (Yes)' && upload.textValue !== 'N/A (No)');
                                             const isNotUploaded = !upload || (!hasFiles && !hasExplanation && !hasTextValue);
 
+                                            // Sister OTP check for datetime OTP coordination
+                                            const isOtpTimeReq = /best time.*sars otp/i.test(info.label) || (info.type === 'datetime' && /otp/i.test(info.label));
+                                            const sisterOtpUpload = isOtpTimeReq ? order.documentUploads?.find(u => 
+                                                u.serviceId === (item.service?.id || item.id) && /otp.*required/i.test(u.requirementLabel)
+                                            ) : null;
+                                            const sisterOtpInput = isOtpTimeReq ? Object.entries(textInputs).find(([k]) => /otp.*required/i.test(k))?.[1] : null;
+                                            const isSisterOtpNo = (sisterOtpInput && /no/i.test(sisterOtpInput)) || (sisterOtpUpload?.textValue && /no/i.test(sisterOtpUpload.textValue)) || upload?.textValue === 'N/A (No)' || conditionalAnswers[uploadKey] === false;
+                                            const isSisterOtpYes = (sisterOtpInput && /yes/i.test(sisterOtpInput)) || (sisterOtpUpload?.textValue && /yes/i.test(sisterOtpUpload.textValue)) || conditionalAnswers[uploadKey] === true;
+
                                             return (
                                             <div key={infoIndex} className={`space-y-3 p-3.5 rounded-lg border transition-all ${
                                                 isRejected 
@@ -1011,7 +1023,29 @@ export default function ClientOrderDetailsPage() {
                                                 {/* 4. Upload Input / Edit Controls */}
                                                 {(isNotUploaded || isEditing) && (
                                                     <div className="space-y-3 pt-1">
-                                                        {info.isConditional && !hasPassedConditional && (!upload || upload.textValue !== 'N/A (No)') ? (
+                                                        {isSisterOtpNo ? (
+                                                            <div className="p-3 bg-muted/30 border border-dashed rounded-lg text-xs flex items-center justify-between text-muted-foreground">
+                                                                <span className="flex items-center gap-1.5 font-medium">
+                                                                    <Check className="h-4 w-4 text-emerald-600" /> Skipped: SARS OTP is marked as Not Required (Direct Login).
+                                                                </span>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="xs"
+                                                                    className="h-7 text-xs text-primary font-semibold"
+                                                                    onClick={async () => {
+                                                                        const sisterReq = item.service?.informationToProvide?.find(r => /otp.*required/i.test(r.label));
+                                                                        if (sisterReq) {
+                                                                            handleTextChange(sisterReq.label, 'Yes (OTP / Mobile App Push Required)');
+                                                                            await handleTextSubmit(item.service?.id || item.id, sisterReq.label);
+                                                                        }
+                                                                        await handleConditionalAnswer(item.service?.id || item.id, info.label, true);
+                                                                    }}
+                                                                >
+                                                                    Change to Yes (OTP Required)
+                                                                </Button>
+                                                            </div>
+                                                        ) : info.isConditional && !hasPassedConditional && !isSisterOtpYes && (!upload || upload.textValue !== 'N/A (No)') ? (
                                                             <div className="flex flex-col gap-2 p-3 bg-muted/50 rounded-lg border">
                                                                 <p className="text-sm font-medium">{info.conditionalQuestion || info.label}</p>
                                                                 <div className="flex gap-2">
@@ -1131,6 +1165,122 @@ export default function ClientOrderDetailsPage() {
                                                                                         <Check className="h-3.5 w-3.5" /> Save COIDA Industries
                                                                                     </Button>
                                                                                 </div>
+                                                                            </div>
+                                                                        ) : info.type === 'datetime' ? (
+                                                                            <div className="space-y-3 p-3.5 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs">
+                                                                                <div className="flex items-center gap-1.5 font-bold text-amber-950 dark:text-amber-200">
+                                                                                    <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+                                                                                    <span>Preferred Contact Window for Live OTP Approval</span>
+                                                                                </div>
+                                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                                                                    <div className="space-y-1">
+                                                                                        <label className="text-[11px] font-semibold text-muted-foreground">Select Date</label>
+                                                                                        <Input 
+                                                                                            type="date"
+                                                                                            className="h-8 text-xs bg-background"
+                                                                                            min={new Date().toISOString().split('T')[0]}
+                                                                                            defaultValue={textInputs[info.label]?.split(' ')[0] || new Date().toISOString().split('T')[0]}
+                                                                                            onChange={(e) => {
+                                                                                                const currentVal = textInputs[info.label] || '';
+                                                                                                const slotPart = currentVal.includes('(') ? currentVal.substring(currentVal.indexOf('(')) : '(10:00 - 12:00)';
+                                                                                                handleTextChange(info.label, `${e.target.value} ${slotPart}`);
+                                                                                            }}
+                                                                                        />
+                                                                                    </div>
+                                                                                    <div className="space-y-1">
+                                                                                        <label className="text-[11px] font-semibold text-muted-foreground">Direct Phone Number (for WhatsApp/Call)</label>
+                                                                                        <Input 
+                                                                                            type="tel"
+                                                                                            placeholder="e.g. 082 123 4567"
+                                                                                            className="h-8 text-xs bg-background"
+                                                                                            defaultValue={order?.customerPhone || currentUser?.contactNumber || (currentUser as any)?.cellNumber || ''}
+                                                                                            onChange={(e) => {
+                                                                                                const currentVal = textInputs[info.label] || new Date().toISOString().split('T')[0];
+                                                                                                const dateSlotPart = currentVal.split('|')[0].trim();
+                                                                                                handleTextChange(info.label, `${dateSlotPart} | Phone: ${e.target.value}`);
+                                                                                            }}
+                                                                                        />
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div className="space-y-1 pt-1">
+                                                                                    <label className="text-[11px] font-semibold text-muted-foreground">Time Window Presets</label>
+                                                                                    <div className="flex flex-wrap gap-1.5">
+                                                                                        {['09:00 - 11:00 (Morning)', '11:00 - 13:00 (Mid-day)', '14:00 - 16:00 (Afternoon)', '16:00 - 18:00 (Late Afternoon)'].map((slot) => (
+                                                                                            <Button
+                                                                                                key={slot}
+                                                                                                type="button"
+                                                                                                variant="outline"
+                                                                                                size="xs"
+                                                                                                className="h-7 text-[11px] bg-background border-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50"
+                                                                                                onClick={() => {
+                                                                                                    const todayStr = new Date().toISOString().split('T')[0];
+                                                                                                    const phoneStr = (order?.customerPhone || currentUser?.contactNumber || (currentUser as any)?.cellNumber) ? ` | Phone: ${order?.customerPhone || currentUser?.contactNumber || (currentUser as any)?.cellNumber}` : '';
+                                                                                                    handleTextChange(info.label, `${todayStr} (${slot})${phoneStr}`);
+                                                                                                }}
+                                                                                            >
+                                                                                                {slot}
+                                                                                            </Button>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div className="flex items-center justify-between pt-1 border-t border-amber-200 dark:border-amber-800">
+                                                                                    <span className="text-[11px] text-muted-foreground">
+                                                                                        {textInputs[info.label] ? `Selected: ${textInputs[info.label]}` : 'Please pick a slot and click Save'}
+                                                                                    </span>
+                                                                                    <Button 
+                                                                                        size="sm" 
+                                                                                        className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5 shadow-2xs"
+                                                                                        disabled={!textInputs[info.label]}
+                                                                                        onClick={() => handleTextSubmit(item.service?.id || item.id, info.label)}
+                                                                                    >
+                                                                                        <Check className="h-3.5 w-3.5" /> Save Contact Window
+                                                                                    </Button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : /otp.*required/i.test(info.label) ? (
+                                                                            <div className="space-y-2.5 p-3 bg-muted/20 border rounded-lg">
+                                                                                <label className="text-[11px] font-semibold text-muted-foreground">Is an SMS OTP or Mobile App push confirmation required to log in?</label>
+                                                                                <div className="flex flex-wrap gap-2">
+                                                                                    <Button
+                                                                                        type="button"
+                                                                                        size="sm"
+                                                                                        variant={(textInputs[info.label] || upload?.textValue || '').toLowerCase().includes('yes') ? 'default' : 'outline'}
+                                                                                        onClick={async () => {
+                                                                                            handleTextChange(info.label, 'Yes (OTP / Mobile App Push Required)');
+                                                                                            await handleTextSubmit(item.service?.id || item.id, info.label);
+                                                                                            const timeReq = item.service?.informationToProvide?.find(r => /best time.*sars otp/i.test(r.label) || (r.type === 'datetime' && /otp/i.test(r.label)));
+                                                                                            if (timeReq) {
+                                                                                                await handleConditionalAnswer(item.service?.id || item.id, timeReq.label, true);
+                                                                                            }
+                                                                                        }}
+                                                                                        className="h-8 text-xs font-bold gap-1.5"
+                                                                                    >
+                                                                                        <CheckCircle2 className="h-3.5 w-3.5" /> Yes (OTP / App Push Required)
+                                                                                    </Button>
+                                                                                    <Button
+                                                                                        type="button"
+                                                                                        size="sm"
+                                                                                        variant={(textInputs[info.label] || upload?.textValue || '').toLowerCase().includes('no') ? 'default' : 'outline'}
+                                                                                        onClick={async () => {
+                                                                                            handleTextChange(info.label, 'No (Direct Login Without OTP)');
+                                                                                            await handleTextSubmit(item.service?.id || item.id, info.label);
+                                                                                            const timeReq = item.service?.informationToProvide?.find(r => /best time.*sars otp/i.test(r.label) || (r.type === 'datetime' && /otp/i.test(r.label)));
+                                                                                            if (timeReq) {
+                                                                                                await handleConditionalAnswer(item.service?.id || item.id, timeReq.label, false);
+                                                                                            }
+                                                                                        }}
+                                                                                        className="h-8 text-xs font-semibold gap-1.5"
+                                                                                    >
+                                                                                        No (Direct Login)
+                                                                                    </Button>
+                                                                                </div>
+                                                                                {(textInputs[info.label] || upload?.textValue) && (
+                                                                                    <p className="text-[11px] text-muted-foreground pt-0.5">
+                                                                                        Status: <strong className="text-foreground">{textInputs[info.label] || upload?.textValue}</strong>
+                                                                                    </p>
+                                                                                )}
                                                                             </div>
                                                                         ) : (
                                                                             <div className="space-y-2">

@@ -459,7 +459,7 @@ export default function AdminOrderDetailsPage() {
       setOverrideReason('');
       setPendingStatusChange(null);
     } else {
-      if (!isOverride && (res.isBlockedByPrerequisites || res.isBlockedByDocuments)) {
+      if (!isOverride && res.isBlockedByPrerequisites) {
         setPendingStatusChange(newStatus);
         setIsOverrideDialogOpen(true);
       }

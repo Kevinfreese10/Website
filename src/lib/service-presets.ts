@@ -17,7 +17,7 @@ export type PrerequisitePreset = {
 export type DocumentRequirementPreset = {
   id: string;
   label: string;
-  type: 'pdf' | 'excel' | 'image' | 'text' | 'any' | 'coida_industry';
+  type: 'pdf' | 'excel' | 'image' | 'text' | 'any' | 'coida_industry' | 'datetime';
   helpText: string;
   isRequired: boolean;
   isSecret?: boolean;
@@ -192,14 +192,22 @@ export const SARS_EFILING_LOGIN_PACK: DocumentRequirementPreset[] = [
     aiHint: 'SARS eFiling login password.',
   },
   {
+    id: 'doc_sars_efiling_otp_required',
+    label: 'SARS eFiling OTP Required? (Yes / No)',
+    type: 'text',
+    helpText: 'Specify Yes or No (does your eFiling login trigger an SMS OTP or SARS Mobile App push notification?).',
+    isRequired: true,
+    aiHint: 'Confirmation of whether SARS eFiling login requires multi-factor authentication (OTP/App push).',
+  },
+  {
     id: 'doc_sars_efiling_otp_time',
     label: 'Best Time to Contact for SARS OTP',
-    type: 'text',
-    helpText: 'Preferred time window (e.g. 10:00 - 12:00) and direct phone number so our team can coordinate live OTP approval.',
-    isRequired: true,
+    type: 'datetime',
+    helpText: 'Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.',
+    isRequired: false,
     isConditional: true,
-    conditionalQuestion: 'Does your SARS eFiling login require an OTP or Mobile App confirmation? (Yes / No)',
-    aiHint: 'Client preferred contact window and phone number for OTP coordination if OTP is required.',
+    conditionalQuestion: 'If OTP is required, when is the best time and number to contact you?',
+    aiHint: 'Client preferred date, time window, and contact number for live OTP coordination.',
   },
 ];
 
@@ -385,10 +393,12 @@ export const STANDARD_DOCUMENT_REQUIREMENT_GROUPS: PresetCategory<DocumentRequir
       {
         id: 'doc_sars_efiling_otp_time',
         label: 'Best Time to Contact for SARS OTP',
-        type: 'text',
-        helpText: 'Preferred time window (e.g. 10:00 - 12:00) and direct phone number to contact you for the OTP approval.',
+        type: 'datetime',
+        helpText: 'Select preferred date, time slot, and direct phone number so our team can coordinate live OTP approval.',
         isRequired: false,
-        aiHint: 'Client preferred contact window and phone number for OTP coordination during filing.',
+        isConditional: true,
+        conditionalQuestion: 'If OTP is required, when is the best time and number to contact you?',
+        aiHint: 'Client preferred date, time window, and contact number for live OTP coordination.',
       },
       {
         id: 'doc_irp5_certificates',

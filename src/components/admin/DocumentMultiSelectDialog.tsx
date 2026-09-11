@@ -129,6 +129,7 @@ export default function DocumentMultiSelectDialog({
       case 'excel': return 'bg-emerald-500/10 text-emerald-600 border-emerald-200';
       case 'image': return 'bg-purple-500/10 text-purple-600 border-purple-200';
       case 'text': return 'bg-blue-500/10 text-blue-600 border-blue-200';
+      case 'datetime': return 'bg-amber-500/10 text-amber-700 border-amber-200';
       case 'coida_industry': return 'bg-indigo-500/10 text-indigo-600 border-indigo-200';
       default: return 'bg-slate-500/10 text-slate-600 border-slate-200';
     }
