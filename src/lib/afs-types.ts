@@ -164,6 +164,7 @@ export interface AfsStatementOfComprehensiveIncome {
 }
 
 export interface AfsStatementOfChangesInEquity {
+  openingBalance?: { current: number; prior: number };
   shareCapital: { current: number; prior: number; change: number };
   accumulatedLoss: { current: number; prior: number; lossForTheYear: number };
   totalEquity: { current: number; prior: number };
@@ -171,10 +172,15 @@ export interface AfsStatementOfChangesInEquity {
 
 export interface AfsStatementOfCashFlows {
   cashUsedInOperations: { note: string; current: number; prior: number };
+  cashFlowsFromInvestingActivities?: {
+    items: AfsStatementLine[];
+    total: { current: number; prior: number };
+  };
   proceedsOnShareIssue: { note: string; current: number; prior: number };
   cashAdvancesReceivedOnLoansFromShareholders: { current: number; prior: number };
   netCashFromFinancingActivities: { current: number; prior: number };
   totalCashMovementForTheYear: { current: number; prior: number };
+  cashAtBeginningOfTheYear?: { current: number; prior: number };
   totalCashAtEndOfTheYear: { note: string; current: number; prior: number };
 }
 

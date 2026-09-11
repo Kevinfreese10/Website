@@ -85,6 +85,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
   };
 
   const dynamicNotes = getDynamicNoteNumbers(toggles);
+  const currentYear = new Date(generalInfo.financialYearEndedDateIso || generalInfo.financialYearEndedDate || '2026-03-31').getFullYear() || 2026;
+  const priorYear = currentYear - 1;
+  const isProfitable = (statementOfComprehensiveIncome.profitOrLossForTheYear?.currentAmount || 0) >= 0;
 
   const cleanTitleText = (title: string) => title.replace(/^\d+(\.\d+)*\.\s*/, '').trim();
 
@@ -422,7 +425,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
       startY: dY,
       margin: { left: leftMargin, right: rightMargin },
       theme: 'plain',
-      head: [['Class of shares', '2026 (R)', '2025 (R)', 'Number of shares']],
+      head: [['Class of shares', `${currentYear} (R)`, `${priorYear} (R)`, 'Number of shares']],
       body: unifiedShareCapitalRows,
       styles: { fontSize: 8.5, cellPadding: 2 },
       columnStyles: {
@@ -527,9 +530,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
       formatRand(statementOfFinancialPosition.equity.items[0]?.priorAmount || 100),
     ],
     [
-      'Accumulated loss',
+      statementOfFinancialPosition.equity.items[1]?.name || (isProfitable ? 'Retained earnings' : 'Accumulated loss'),
       '',
-      formatRand(statementOfFinancialPosition.equity.items[1]?.currentAmount || -510104),
+      formatRand(statementOfFinancialPosition.equity.items[1]?.currentAmount),
       formatRand(statementOfFinancialPosition.equity.items[1]?.priorAmount),
     ],
     {
@@ -543,9 +546,9 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     [{ content: 'Liabilities', styles: { fontStyle: 'bold' } }, '', '', ''],
     [{ content: 'Current Liabilities', styles: { fontStyle: 'bold' } }, '', '', ''],
     [
-      'Loans from shareholder',
+      statementOfFinancialPosition.currentLiabilities.items[0]?.name || 'Loans from shareholder',
       dynamicNotes.noteShareholderLoans ? `${dynamicNotes.noteShareholderLoans}` : '',
-      formatRand(statementOfFinancialPosition.currentLiabilities.items[0]?.currentAmount || 619901),
+      formatRand(statementOfFinancialPosition.currentLiabilities.items[0]?.currentAmount),
       formatRand(statementOfFinancialPosition.currentLiabilities.items[0]?.priorAmount),
     ],
     {
@@ -568,7 +571,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     startY: 46,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
-    head: [['Figures in Rand', 'Notes', '2026', '2025']],
+    head: [['Figures in Rand', 'Notes', `${currentYear}`, `${priorYear}`]],
     body: bsRows,
     styles: { fontSize: 8.5, cellPadding: 2 },
     columnStyles: {
@@ -606,14 +609,14 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
       formatRand(statementOfComprehensiveIncome.operatingExpenses.priorAmount),
     ],
     {
-      0: { content: 'Operating loss', styles: { fontStyle: 'bold' } },
+      0: { content: statementOfComprehensiveIncome.operatingProfitOrLoss.name || (isProfitable ? 'Operating profit' : 'Operating loss'), styles: { fontStyle: 'bold' } },
       1: '',
       2: { content: formatRand(statementOfComprehensiveIncome.operatingProfitOrLoss.currentAmount), styles: { fontStyle: 'bold' } },
       3: { content: formatRand(statementOfComprehensiveIncome.operatingProfitOrLoss.priorAmount), styles: { fontStyle: 'bold' } },
       isSubtotal: true,
     },
     {
-      0: { content: 'Loss before income tax', styles: { fontStyle: 'bold' } },
+      0: { content: statementOfComprehensiveIncome.profitOrLossBeforeTax.name || (isProfitable ? 'Profit before income tax' : 'Loss before income tax'), styles: { fontStyle: 'bold' } },
       1: '',
       2: { content: formatRand(statementOfComprehensiveIncome.profitOrLossBeforeTax.currentAmount), styles: { fontStyle: 'bold' } },
       3: { content: formatRand(statementOfComprehensiveIncome.profitOrLossBeforeTax.priorAmount), styles: { fontStyle: 'bold' } },
@@ -626,7 +629,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
       formatRand(statementOfComprehensiveIncome.taxation.priorAmount),
     ],
     {
-      0: { content: 'Loss for the year', styles: { fontStyle: 'bold' } },
+      0: { content: statementOfComprehensiveIncome.profitOrLossForTheYear.name || (isProfitable ? 'Profit for the year' : 'Loss for the year'), styles: { fontStyle: 'bold' } },
       1: '',
       2: { content: formatRand(statementOfComprehensiveIncome.profitOrLossForTheYear.currentAmount), styles: { fontStyle: 'bold' } },
       3: { content: formatRand(statementOfComprehensiveIncome.profitOrLossForTheYear.priorAmount), styles: { fontStyle: 'bold' } },
@@ -634,7 +637,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     },
     ['Other comprehensive loss', '', '-', '-'],
     {
-      0: { content: 'Total comprehensive loss for the year', styles: { fontStyle: 'bold' } },
+      0: { content: statementOfComprehensiveIncome.totalComprehensiveLossOrIncome.name || (isProfitable ? 'Total comprehensive income for the year' : 'Total comprehensive loss for the year'), styles: { fontStyle: 'bold' } },
       1: '',
       2: { content: formatRand(statementOfComprehensiveIncome.totalComprehensiveLossOrIncome.currentAmount), styles: { fontStyle: 'bold' } },
       3: { content: formatRand(statementOfComprehensiveIncome.totalComprehensiveLossOrIncome.priorAmount), styles: { fontStyle: 'bold' } },
@@ -646,7 +649,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     startY: 46,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
-    head: [['Figures in Rand', 'Note(s)', '2026', '2025']],
+    head: [['Figures in Rand', 'Note(s)', `${currentYear}`, `${priorYear}`]],
     body: pnlTableRows,
     styles: { fontSize: 8.5, cellPadding: 2.5 },
     columnStyles: {
@@ -666,10 +669,10 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
 
   const eqRows: any[] = [
     [
-      'Loss for the year',
+      isProfitable ? 'Profit for the year' : 'Loss for the year',
       '-',
       formatRand(statementOfChangesInEquity.accumulatedLoss.lossForTheYear),
-      formatRand(statementOfChangesInEquity.accumulatedLoss.lossForTheYear),
+      formatRand(statementOfChangesInEquity.accumulatedLoss.prior),
     ],
     ['Other comprehensive income', '-', '-', '-'],
     {
@@ -705,7 +708,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     startY: 46,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
-    head: [['Figures in Rand', 'Share capital', 'Accumulated loss', 'Total equity']],
+    head: [['Figures in Rand', 'Share capital', isProfitable ? 'Retained earnings' : 'Accumulated loss', 'Total equity']],
     body: eqRows,
     styles: { fontSize: 8.5, cellPadding: 2.5 },
     columnStyles: {
@@ -780,7 +783,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
     startY: 46,
     margin: { left: leftMargin, right: rightMargin },
     theme: 'plain',
-    head: [['Figures in Rand', 'Notes', '2026', '2025']],
+    head: [['Figures in Rand', 'Notes', `${currentYear}`, `${priorYear}`]],
     body: cfRows,
     styles: { fontSize: 8.5, cellPadding: 2.5 },
     columnStyles: {
@@ -890,7 +893,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
       startY: nY,
       margin: { left: leftMargin, right: rightMargin },
       theme: 'plain',
-      head: [['Class of shares', '2026 (R)', '2025 (R)', 'Number of shares']],
+      head: [['Class of shares', `${currentYear} (R)`, `${priorYear} (R)`, 'Number of shares']],
       body: scRows,
       styles: { fontSize: 8.5, cellPadding: 2 },
       columnStyles: {
@@ -1147,7 +1150,7 @@ export function generateAfsPdf(data: AnnualFinancialStatementsData): jsPDF {
       startY: 46,
       margin: { left: leftMargin, right: rightMargin },
       theme: 'plain',
-      head: [['Figures in Rand', '2026', '2025']],
+      head: [['Figures in Rand', `${currentYear}`, `${priorYear}`]],
       body: detRows,
       styles: { fontSize: 8.5, cellPadding: 1.5 },
       columnStyles: {

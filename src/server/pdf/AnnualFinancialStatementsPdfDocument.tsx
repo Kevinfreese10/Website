@@ -2,9 +2,9 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 import { AnnualFinancialStatementsData } from '@/lib/afs-types';
 
-const formatRand = (amount: number, blankIfZero = false) => {
-  if (amount === 0) {
-    if (blankIfZero) return '-';
+const formatRand = (amount?: number, blankIfZero = false) => {
+  if (amount === undefined || amount === 0 || isNaN(amount)) {
+    if (blankIfZero) return '';
     return '-';
   }
   const isNegative = amount < 0;
@@ -250,7 +250,24 @@ interface AfsPdfProps {
 }
 
 export const AnnualFinancialStatementsPdfDocument: React.FC<AfsPdfProps> = ({ data }) => {
-  const { generalInfo, directorsReport, statementOfFinancialPosition, statementOfComprehensiveIncome, statementOfChangesInEquity, statementOfCashFlows, notes, detailedIncomeStatement } = data;
+  const {
+    generalInfo,
+    directorsResponsibilities,
+    accountingOfficerReport,
+    directorsReport,
+    accountingPolicies,
+    sectionToggles,
+    statementOfFinancialPosition,
+    statementOfComprehensiveIncome,
+    statementOfChangesInEquity,
+    statementOfCashFlows,
+    notes,
+    detailedIncomeStatement,
+  } = data;
+
+  const currentYear = new Date(generalInfo.financialYearEndedDateIso || generalInfo.financialYearEndedDate || '2026-03-31').getFullYear() || 2026;
+  const priorYear = currentYear - 1;
+  const isProfitable = (statementOfComprehensiveIncome.profitOrLossForTheYear?.currentAmount || 0) >= 0;
 
   return (
     <Document title={`Financial Statements - ${generalInfo.companyName} - ${generalInfo.financialYearEndedDate}`}>
@@ -632,7 +649,7 @@ export const AnnualFinancialStatementsPdfDocument: React.FC<AfsPdfProps> = ({ da
           <View style={styles.statementHeaderRow}>
             <Text style={styles.statementColDesc}>Figures in Rand</Text>
             <Text style={styles.statementColNote}>Notes</Text>
-            <Text style={styles.statementColYear}>2025</Text>
+            <Text style={styles.statementColYear}>{currentYear}</Text>
           </View>
 
           {/* ASSETS */}
@@ -703,7 +720,7 @@ export const AnnualFinancialStatementsPdfDocument: React.FC<AfsPdfProps> = ({ da
           <View style={styles.statementHeaderRow}>
             <Text style={styles.statementColDesc}>Figures in Rand</Text>
             <Text style={styles.statementColNote}>Note(s)</Text>
-            <Text style={styles.statementColYear}>2025</Text>
+            <Text style={styles.statementColYear}>{currentYear}</Text>
           </View>
 
           <View style={styles.lineRow}>
@@ -831,7 +848,7 @@ export const AnnualFinancialStatementsPdfDocument: React.FC<AfsPdfProps> = ({ da
           <View style={styles.statementHeaderRow}>
             <Text style={styles.statementColDesc}>Figures in Rand</Text>
             <Text style={styles.statementColNote}>Notes</Text>
-            <Text style={styles.statementColYear}>2025</Text>
+            <Text style={styles.statementColYear}>{currentYear}</Text>
           </View>
 
           <Text style={styles.sectionTitleRow}>Cash flows from operating activities</Text>
@@ -960,7 +977,7 @@ export const AnnualFinancialStatementsPdfDocument: React.FC<AfsPdfProps> = ({ da
         <Text style={styles.noteHeader}>4. Loans from shareholders</Text>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
           <Text style={{ fontSize: 8.5 }}>{notes.note4LoansFromShareholders.loans[0]?.name || generalInfo.holdingCompany}</Text>
-          <Text style={{ fontSize: 8.5 }}>({formatRand(notes.note4LoansFromShareholders.total.current)})</Text>
+          <Text style={{ fontSize: 8.5 }}>{formatRand(notes.note4LoansFromShareholders.total.current)}</Text>
         </View>
         <Text style={[styles.noteText, { marginTop: 4 }]}>
           {notes.note4LoansFromShareholders.loans[0]?.terms ||
@@ -1080,7 +1097,7 @@ export const AnnualFinancialStatementsPdfDocument: React.FC<AfsPdfProps> = ({ da
           <View style={styles.statementHeaderRow}>
             <Text style={styles.statementColDesc}>Figures in Rand</Text>
             <Text style={styles.statementColNote}>Notes</Text>
-            <Text style={styles.statementColYear}>2025</Text>
+            <Text style={styles.statementColYear}>{currentYear}</Text>
           </View>
 
           <Text style={styles.sectionTitleRow}>Other income</Text>

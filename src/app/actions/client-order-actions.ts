@@ -384,21 +384,36 @@ export async function syncClientQuestionnaireAction(params: SyncQuestionnairePar
 
 /**
  * Called when the client presses "Submit Intake & Notify Consultant". Updates order status
- * to 'Under Review', logs an audit entry, and notifies the assigned staff/admin for review.
+ * to 'Under Review', logs an audit entry, appends a note, and notifies the assigned staff/admin for review.
  */
 export async function notifyConsultantAndVerifyAction(params: { idToken: string; orderId: string }) {
   try {
     const authCtx = await getVerifiedAuthContext(params.idToken);
-    if (!authCtx) return { success: false, error: 'Unauthorized' };
+    if (!authCtx) return { success: false, error: 'Unauthorized: Authentication required.' };
     const db = getAdminDb();
-    const orderRef = db.collection('orders').doc(params.orderId);
-    const snap = await orderRef.get();
-    if (!snap.exists) return { success: false, error: 'Order not found' };
+    let orderRef = db.collection('orders').doc(params.orderId);
+    let snap = await orderRef.get();
+    if (!snap.exists) {
+      const numQuery = await db.collection('orders').where('orderNumber', '==', isNaN(Number(params.orderId)) ? params.orderId : Number(params.orderId)).limit(1).get();
+      if (!numQuery.empty) {
+        orderRef = numQuery.docs[0].ref;
+        snap = numQuery.docs[0];
+      } else {
+        return { success: false, error: 'Order not found' };
+      }
+    }
     const order = snap.data() as Order;
-    const isClient = authCtx.userId === order.userId || authCtx.userId === order.clientId ||
-      authCtx.user.email?.toLowerCase() === order.customerEmail?.toLowerCase() ||
-      authCtx.user.email?.toLowerCase() === order.endCustomerEmail?.toLowerCase();
-    if (!authCtx.isAdmin && !isClient) return { success: false, error: 'Forbidden' };
+    const isClient = authCtx.userId === order.userId || 
+                     authCtx.userId === order.clientId ||
+                     authCtx.userId === order.resellerId ||
+                     authCtx.userId === order.partnerId ||
+                     (order.resellerId && authCtx.user.partnerId === order.resellerId) ||
+                     (order.partnerId && authCtx.user.partnerId === order.partnerId) ||
+                     authCtx.user.email?.toLowerCase() === order.customerEmail?.toLowerCase() ||
+                     authCtx.user.email?.toLowerCase() === order.endCustomerEmail?.toLowerCase() ||
+                     authCtx.isAdmin ||
+                     authCtx.isStaff;
+    if (!isClient) return { success: false, error: 'Forbidden: You do not have permission to update this order.' };
 
     const nowIso = new Date().toISOString();
     const auditEntry: AuditEntry = {
@@ -410,10 +425,21 @@ export async function notifyConsultantAndVerifyAction(params: { idToken: string;
       details: 'Client submitted document intake and notified consultant for review.',
     };
 
+    const newNote = {
+      text: "Client has submitted their documents for review.",
+      authorId: authCtx.userId,
+      date: new Date().toISOString(),
+      type: 'note',
+      subject: null,
+      attachments: null,
+    };
+
+    const currentNotes = Array.isArray(order.notes) ? order.notes : [];
     const updatePayload: Record<string, any> = {
       status: 'Under Review',
       fulfillmentStatus: 'Under Review',
       lastClientSubmissionAt: nowIso,
+      notes: [...currentNotes, newNote],
       auditLog: [...(order.auditLog || []), auditEntry],
       updatedAt: nowIso,
     };
@@ -424,19 +450,37 @@ export async function notifyConsultantAndVerifyAction(params: { idToken: string;
     const mirrorId = resolvePartnerMirrorOrderId({ ...order, id: params.orderId });
     if (mirrorId) {
       const origRef = db.collection('orders').doc(mirrorId);
-      await origRef.update({
-        status: 'Under Review',
-        fulfillmentStatus: 'Under Review',
-        lastClientSubmissionAt: nowIso,
-        auditLog: [...(order.auditLog || []), auditEntry],
-        updatedAt: nowIso,
+      const origSnap = await origRef.get();
+      if (origSnap.exists) {
+        const origData = origSnap.data() as Order;
+        const origNotes = Array.isArray(origData.notes) ? origData.notes : [];
+        await origRef.update({
+          status: 'Under Review',
+          fulfillmentStatus: 'Under Review',
+          lastClientSubmissionAt: nowIso,
+          notes: [...origNotes, newNote],
+          auditLog: [...(origData.auditLog || []), auditEntry],
+          updatedAt: nowIso,
+        });
+      }
+    }
+
+    // Notify staff asynchronously without blocking or failing the action
+    try {
+      const { notifyStaffOfClientNote } = await import('@/app/actions/notifications');
+      await notifyStaffOfClientNote({
+        orderId: snap.id,
+        senderName: authCtx.user.name || authCtx.user.email || 'Client',
+        noteText: 'Client has submitted their documents for review.',
       });
+    } catch (mailErr) {
+      console.error('[notifyConsultantAndVerifyAction] Email notification warning:', mailErr);
     }
 
     const message = "Your documents have been submitted and queued for your consultant's review.";
     return { success: true, message };
   } catch (e: any) {
-    console.error('[notifyConsultantAndVerifyAction]', e);
+    console.error('[notifyConsultantAndVerifyAction] Error:', e);
     return { success: false, error: e.message || 'Notification failed' };
   }
 }

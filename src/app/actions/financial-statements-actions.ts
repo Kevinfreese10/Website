@@ -57,11 +57,12 @@ export async function getAnnualFinancialStatementsDataAction({
     } else if (clientData.yearEnd) {
       const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
       const mIdx = months.findIndex((m) => m.toLowerCase() === clientData.yearEnd.toLowerCase());
-      const targetMonth = mIdx >= 0 ? mIdx : 2; // default March (idx 2)
-      const yr = now.getMonth() <= targetMonth ? now.getFullYear() : now.getFullYear();
+      const targetMonth = mIdx >= 0 ? mIdx : 1; // default Feb (idx 1)
+      const currentCalendarMonth = now.getMonth();
+      const yr = currentCalendarMonth > targetMonth ? now.getFullYear() : now.getFullYear() - 1;
       currentFye = new Date(yr, targetMonth + 1, 0);
     } else {
-      currentFye = new Date(2026, 2, 31); // 31 March 2026 default
+      currentFye = new Date(now.getFullYear(), 2, 0); // Last day of Feb current year default
     }
 
     const currentYearStart = new Date(currentFye.getFullYear() - 1, currentFye.getMonth(), currentFye.getDate() + 1);
@@ -163,6 +164,7 @@ export async function getAnnualFinancialStatementsDataAction({
     });
 
     detailedExpensesList.sort((a, b) => a.name.localeCompare(b.name));
+    detailedOtherIncomeList.sort((a, b) => a.name.localeCompare(b.name));
 
     const curGrossProfit = curRevenue - curCos;
     const priGrossProfit = priRevenue - priCos;
@@ -176,10 +178,20 @@ export async function getAnnualFinancialStatementsDataAction({
     // 2. Balance Sheet Components
     let bankCur = 0;
     let bankPri = 0;
+    let receivablesCur = 0;
+    let receivablesPri = 0;
+    let inventoryCur = 0;
+    let inventoryPri = 0;
     let shareCapitalCur = 100;
     let shareCapitalPri = 100;
     let shareholderLoanCur = 0;
     let shareholderLoanPri = 0;
+    let payablesCur = 0;
+    let payablesPri = 0;
+    let vatPayableCur = 0;
+    let vatPayablePri = 0;
+    let otherLiabilitiesCur = 0;
+    let otherLiabilitiesPri = 0;
     let nonCurrentAssetsCur = 0;
     let nonCurrentAssetsPri = 0;
 
@@ -188,29 +200,45 @@ export async function getAnnualFinancialStatementsDataAction({
         const cur = curBalances.get(acc.id) || 0;
         const pri = priBalances.get(acc.id) || 0;
 
-        if (acc.fsGroup === 'Cash and cash equivalents' || acc.accountNumber === '8000-004' || acc.category === 'Bank') {
+        if (acc.fsGroup === 'Cash and cash equivalents' || acc.category === 'Bank' || acc.accountNumber === '8000-004') {
           bankCur += cur;
           bankPri += pri;
+        } else if (acc.fsGroup === 'Trade and other receivables' || acc.category === 'Accounts Receivable' || acc.accountNumber === '8000-001') {
+          receivablesCur += cur;
+          receivablesPri += pri;
+        } else if (acc.fsGroup === 'Inventories' || acc.category === 'Inventory') {
+          inventoryCur += cur;
+          inventoryPri += pri;
+        } else if (acc.fsGroup === 'Property, plant and equipment' || acc.category === 'Non-Current Assets' || acc.category === 'Fixed Assets') {
+          nonCurrentAssetsCur += cur;
+          nonCurrentAssetsPri += pri;
         } else if (acc.fsGroup === 'Share capital' || acc.accountNumber === '9000-000') {
           const c = -cur;
           const p = -pri;
           if (c > 0) shareCapitalCur = c;
           if (p > 0) shareCapitalPri = p;
-        } else if (acc.fsGroup === 'Loans from shareholders' || acc.accountNumber === '9000-001') {
+        } else if (acc.fsGroup === 'Loans from shareholders' || acc.category === 'Shareholder Loans' || acc.accountNumber === '9000-001') {
           shareholderLoanCur += -cur;
           shareholderLoanPri += -pri;
-        } else if (acc.fsGroup === 'Property, plant and equipment' || acc.category === 'Non-Current Assets') {
-          nonCurrentAssetsCur += cur;
-          nonCurrentAssetsPri += pri;
+        } else if (acc.fsGroup === 'Trade and other payables' || acc.category === 'Accounts Payable' || acc.accountNumber === '7000-000') {
+          payablesCur += -cur;
+          payablesPri += -pri;
+        } else if (acc.fsGroup === 'VAT control' || acc.category === 'VAT' || acc.accountNumber === '8500-000' || acc.accountNumber === '8500-001') {
+          vatPayableCur += -cur;
+          vatPayablePri += -pri;
+        } else if (acc.category === 'Current Liabilities' || acc.section === 'Current Liabilities') {
+          otherLiabilitiesCur += -cur;
+          otherLiabilitiesPri += -pri;
         }
       }
     });
 
-    const totalCashCur = bankCur > 0 ? bankCur : 109897;
+    const totalCashCur = bankCur;
     const totalCashPri = bankPri;
 
-    const accumulatedLossCur = curLossOrProfitForTheYear < 0 ? curLossOrProfitForTheYear : -curLossOrProfitForTheYear;
-    const totalEquityCur = shareCapitalCur + accumulatedLossCur;
+    const accumulatedProfitOrLossCur = curLossOrProfitForTheYear;
+    const totalEquityCur = shareCapitalCur + accumulatedProfitOrLossCur;
+    const isProfitable = curLossOrProfitForTheYear >= 0;
 
     // Default directors setup
     const defaultDirectors: AfsDirector[] = savedConfig?.directors || [
@@ -224,7 +252,7 @@ export async function getAnnualFinancialStatementsDataAction({
       },
     ];
 
-    const entityName = clientData.companyName || clientData.name || 'Ngelosiyokukhanya (Pty) Ltd';
+    const entityName = clientData.companyName || clientData.name || 'Company Name';
     const regNumber = clientData.registrationNumber || clientData.companyRegistrationNumber || '2023/123456/07';
 
     // Section Toggles
@@ -261,14 +289,14 @@ export async function getAnnualFinancialStatementsDataAction({
     // General Information
     const generalInfo: AfsGeneralInfo = {
       companyName: entityName,
-      tradingName: clientData.tradingName,
+      tradingName: clientData.tradingName || '',
       registrationNumber: regNumber,
-      taxNumber: clientData.taxNumber || '9012345678',
-      vatNumber: clientData.vatNumber,
+      taxNumber: clientData.taxNumber || clientData.incomeTaxNumber || '',
+      vatNumber: clientData.vatNumber || '',
       financialYearEndedDate: fyeFormatted,
       financialYearEndedDateIso: fyeIso,
       countryOfIncorporation: savedConfig?.countryOfIncorporation || 'South Africa',
-      natureOfBusiness: savedConfig?.natureOfBusiness || 'Property investment',
+      natureOfBusiness: savedConfig?.natureOfBusiness || 'Property investment and services',
       registeredOffice: savedConfig?.registeredOffice || 'Office 102, 1st Floor, Block B, 150 Rivonia Road, Sandton, Johannesburg, 2196',
       businessAddress: savedConfig?.businessAddress || 'Office 102, 1st Floor, Block B, 150 Rivonia Road, Sandton, Johannesburg, 2196',
       holdingCompany: savedConfig?.holdingCompany || '',
@@ -280,7 +308,7 @@ export async function getAnnualFinancialStatementsDataAction({
       leadPartnerTitle: savedConfig?.leadPartnerTitle || 'Accounting Officer / Business Accountant in Practice (SA)',
       preparerName: savedConfig?.preparerName || 'Kevin Freese',
       preparerDesignation: savedConfig?.preparerDesignation || 'Accounting Officer BAP(SA)',
-      issuedDate: savedConfig?.issuedDate || '2026-08-19',
+      issuedDate: savedConfig?.issuedDate || fyeIso,
       directors: defaultDirectors,
     };
 
@@ -293,14 +321,14 @@ The director acknowledges that she is ultimately responsible for the system of i
 
 The director is of the opinion, based on the information and explanations given by management, that the system of internal control provides reasonable assurance that the financial records may be relied on for the preparation of the financial statements. However, any system of internal financial control can provide only reasonable, and not absolute, assurance against material misstatement or loss.
 
-The director has reviewed the company’s cash flow forecast for the year to 31 March 2027 and, in the light of this review and the current financial position, she is satisfied that the company has or has access to adequate resources to continue in operational existence for the foreseeable future.
+The director has reviewed the company’s cash flow forecast for the year to ${currentFye.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })} and, in the light of this review and the current financial position, she is satisfied that the company has or has access to adequate resources to continue in operational existence for the foreseeable future.
 
-The financial statements set out on pages 5 to 12, which have been prepared on the going concern basis, were approved by the director on 19 August 2026 and were signed on its behalf by:`;
+The financial statements, which have been prepared on the going concern basis, were approved by the director on ${fyeFormatted} and were signed on its behalf by:`;
 
     const directorsResponsibilities: AfsDirectorsResponsibilities = {
       responsibilitiesText: savedConfig?.responsibilitiesText || defaultResponsibilitiesText,
-      approvalDate: savedConfig?.approvalDate || '2026-08-19',
-      signatoryName: savedConfig?.signatoryName || defaultDirectors[0]?.name || 'Lerato Khoza',
+      approvalDate: savedConfig?.approvalDate || fyeIso,
+      signatoryName: savedConfig?.signatoryName || defaultDirectors[0]?.name || 'Director',
       signatoryTitle: savedConfig?.signatoryTitle || 'Director',
     };
 
@@ -310,7 +338,7 @@ The financial statements set out on pages 5 to 12, which have been prepared on t
       addressee: savedConfig?.accountingOfficerReport?.addressee || `To the Shareholder of ${entityName}`,
       reportText:
         savedConfig?.accountingOfficerReport?.reportText ||
-        `We have compiled the financial statements of ${entityName} set out on pages 5 to 12, which comprise the statement of financial position as at ${fyeFormatted}, and the statement of profit or loss and other comprehensive income, the statement of changes in equity and the statement of cash flows for the year then ended, and notes to the financial statements, including a summary of material accounting policies. The financial statements have been compiled in accordance with the International Standard on Related Services (ISRS 4410) and the requirements of the Companies Act of South Africa.`,
+        `We have compiled the financial statements of ${entityName}, which comprise the statement of financial position as at ${fyeFormatted}, and the statement of profit or loss and other comprehensive income, the statement of changes in equity and the statement of cash flows for the year then ended, and notes to the financial statements, including a summary of material accounting policies. The financial statements have been compiled in accordance with the International Standard on Related Services (ISRS 4410) and the requirements of the Companies Act of South Africa.`,
       basisText:
         savedConfig?.accountingOfficerReport?.basisText ||
         `We performed this compilation engagement in accordance with International Standard on Related Services 4410 (Revised), Compilation Engagements. We have applied our expertise in accounting and financial reporting to assist you in the preparation and presentation of these financial statements on the basis of International Financial Reporting Standard for Small and Medium-sized Entities and the requirements of the Companies Act of South Africa.`,
@@ -319,322 +347,112 @@ The financial statements set out on pages 5 to 12, which have been prepared on t
         `The director is responsible for the preparation and fair presentation of the financial statements in accordance with International Financial Reporting Standard for Small and Medium-sized Entities and the requirements of the Companies Act of South Africa, and for such internal control as the director determines is necessary to enable the preparation of financial statements that are free from material misstatement, whether due to fraud or error.`,
       practitionerResponsibilityText:
         savedConfig?.accountingOfficerReport?.practitionerResponsibilityText ||
-        `Since a compilation engagement is not an assurance engagement, we are not required to verify the accuracy or completeness of the information you provided to us to compile these financial statements. Accordingly, we do not express an audit opinion or a review conclusion on whether these financial statements are prepared in accordance with IFRS for SMEs.`,
+        `Since a compilation engagement is not an assurance engagement, we are not required to verify the accuracy or completeness of the information you provided to us to compile these financial statements. Accordingly, we do not express an audit opinion or a review conclusion on whether these financial statements are prepared in accordance with the International Financial Reporting Standard for Small and Medium-sized Entities.`,
       conclusionText:
         savedConfig?.accountingOfficerReport?.conclusionText ||
-        `We communicate with the directors regarding, among other matters, the planned scope and timing of our compilation procedures.`,
-      firmName: savedConfig?.accountingOfficerReport?.firmName || generalInfo.auditorOrPractitionerFirm,
-      firmTitle: savedConfig?.accountingOfficerReport?.firmTitle || generalInfo.auditorOrPractitionerTitle,
-      leadPartnerName: savedConfig?.accountingOfficerReport?.leadPartnerName || generalInfo.leadPartnerName || 'Kevin Freese',
-      leadPartnerTitle: savedConfig?.accountingOfficerReport?.leadPartnerTitle || generalInfo.leadPartnerTitle || 'Accounting Officer / Business Accountant in Practice (SA)',
-      firmAddress: savedConfig?.accountingOfficerReport?.firmAddress || generalInfo.auditorOrPractitionerAddress,
-      date: savedConfig?.accountingOfficerReport?.date || generalInfo.issuedDate,
+        `We have compiled the financial statements from the accounting records and from information and explanations supplied to us by the director.`,
+      firmName: savedConfig?.accountingOfficerReport?.firmName || 'My Accountant',
+      firmTitle: savedConfig?.accountingOfficerReport?.firmTitle || 'Accounting Officer / BAP(SA)',
+      leadPartnerName: savedConfig?.accountingOfficerReport?.leadPartnerName || 'Kevin Freese',
+      leadPartnerTitle: savedConfig?.accountingOfficerReport?.leadPartnerTitle || 'Accounting Officer / BAP(SA)',
+      firmAddress:
+        savedConfig?.accountingOfficerReport?.firmAddress ||
+        'Office 102, 1st Floor, Block B, 150 Rivonia Road, Sandton, Johannesburg, 2196',
+      date: savedConfig?.accountingOfficerReport?.date || fyeIso,
     };
 
-    // Directors' Report
+    // Directors' Report Data
     const directorsReport: AfsDirectorsReportData = {
       incorporationText:
-        savedConfig?.incorporationText ||
-        'The company was incorporated on 16 January 2023 and obtained its certificate to commence business on the same day.',
+        savedConfig?.directorsReport?.incorporationText ||
+        `The company was incorporated in South Africa on ${defaultDirectors[0]?.appointmentDate || '16 January 2023'}.`,
       natureOfBusiness:
-        savedConfig?.natureOfBusinessReport ||
-        `${entityName} was incorporated in South Africa with interests in the property investment industry. The company operates in South Africa.\nThere have been no material changes to the nature of the company's business from the prior year.`,
+        savedConfig?.directorsReport?.natureOfBusiness ||
+        `${entityName} operates in South Africa, specialising in ${generalInfo.natureOfBusiness}.`,
       reviewOfActivities:
-        savedConfig?.reviewOfActivities ||
-        'The financial statements have been prepared in accordance with International Financial Reporting Standard for Small and Medium-sized Entities and the requirements of the Companies Act of South Africa. The accounting policies have been applied consistently compared to the prior year.\nFull details of the financial position, results of operations and cash flows of the company are set out in these financial statements.',
+        savedConfig?.directorsReport?.reviewOfActivities ||
+        `The results of the company and the state of its affairs are set out in the financial statements. The ${isProfitable ? 'profit' : 'loss'} for the year was R ${Math.abs(curLossOrProfitForTheYear).toLocaleString('en-ZA')}.`,
       shareCapitalDetails:
-        savedConfig?.shareCapitalDetails ||
-        'Authorised: 100 Ordinary shares at no par value. Issued: 100 Ordinary shares (R 100). There have been no changes to the authorised or issued share capital during the year under review.',
+        savedConfig?.directorsReport?.shareCapitalDetails ||
+        `There have been no changes to the authorised or issued share capital during the year under review. 100 Ordinary shares of no par value are in issue.`,
       directors: defaultDirectors,
       eventsAfterReportingPeriod:
-        savedConfig?.eventsAfterReportingPeriod ||
-        'The director is not aware of any material event which occurred after the reporting date and up to the date of this report.',
+        savedConfig?.directorsReport?.eventsAfterReportingPeriod ||
+        `The director is not aware of any material event which occurred after the reporting date and up to the date of this report that would require adjustment to or disclosure in these financial statements.`,
       goingConcernText:
-        savedConfig?.goingConcernText ||
-        'The financial statements have been prepared on the basis of accounting policies applicable to a going concern. This basis presumes that funds will be available to finance future operations and that the realisation of assets and settlement of liabilities, contingent obligations and commitments will occur in the ordinary course of business.',
+        savedConfig?.directorsReport?.goingConcernText ||
+        `The financial statements have been prepared on the basis of accounting policies applicable to a going concern. This basis presumes that funds will be available to finance future operations and that the realisation of assets and settlement of liabilities, contingent obligations and commitments will occur in the ordinary course of business.`,
       auditorOrPractitionerContinuance:
-        savedConfig?.auditorOrPractitionerContinuance ||
-        'My Accountant will continue in office as accounting officers for the company for the next financial year.',
+        savedConfig?.directorsReport?.auditorOrPractitionerContinuance ||
+        `My Accountant will continue in office as accounting officer in accordance with the Companies Act of South Africa.`,
     };
 
-    // Standard 23 IFRS for SMEs Accounting Policies
+    // Accounting Policies List
     const defaultPoliciesList: AfsAccountingPolicyItem[] = [
       {
-        id: 'policy_1',
-        title: '1. Basis of preparation',
-        content: `The annual financial statements have been prepared in accordance with the International Financial Reporting Standard for Small and Medium-sized Entities (IFRS for SMEs) issued by the International Accounting Standards Board.
-
-The annual financial statements have been prepared on the historical cost basis, except where otherwise stated in the accounting policies, and incorporate the principal accounting policies set out below. They are presented in South African Rand, which is the entity's functional and presentation currency.
-
-The accounting policies have been applied consistently with those of the previous reporting period, unless otherwise stated.`,
+        id: 'basis_of_prep',
+        title: '1.1 Basis of preparation and summary of significant accounting policies',
+        content: `The financial statements have been prepared on a going concern basis in accordance with the International Financial Reporting Standard for Small and Medium-sized Entities (IFRS for SMEs) and the Companies Act of South Africa. The financial statements have been prepared on the historical cost basis, and incorporate the principal accounting policies set out below. They are presented in South African Rands (ZAR).`,
         enabled: true,
       },
       {
-        id: 'policy_2',
-        title: '2. Going concern',
-        content: `The annual financial statements have been prepared on the going concern basis.
-
-Management has assessed the entity's ability to continue as a going concern and has no intention to liquidate the entity or cease trading, nor is management aware of any material uncertainties related to events or conditions that may cast significant doubt upon the entity's ability to continue as a going concern.
-
-Where material uncertainties exist, appropriate disclosure is made in the annual financial statements.`,
+        id: 'judgements',
+        title: '1.2 Significant judgements and sources of estimation uncertainty',
+        content: `In preparing the financial statements, management is required to make judgements, estimates and assumptions that affect the amounts represented in the financial statements and related disclosures. The estimates and associated assumptions are based on historical experience and other factors that are considered to be relevant. Actual results in the future could differ from these estimates.`,
         enabled: true,
       },
       {
-        id: 'policy_3',
-        title: '3. Significant judgements and estimates',
-        content: `The preparation of annual financial statements in conformity with IFRS for SMEs requires management to make judgements, estimates and assumptions that affect the application of accounting policies and the reported amounts of assets, liabilities, income and expenses.
-
-Estimates and underlying assumptions are reviewed on an ongoing basis and are based on historical experience and other factors considered reasonable under the circumstances.
-
-Revisions to accounting estimates are recognised prospectively in the period in which the estimates are revised and in any future periods affected.`,
+        id: 'financial_instruments',
+        title: '1.3 Financial instruments',
+        content: `Financial instruments are recognised when the company becomes a party to the contractual provisions of the instrument. Financial assets and liabilities are initially measured at transaction price. Trade and other receivables and cash and cash equivalents are subsequently measured at amortised cost less any impairment. Trade and other payables and shareholder loans are subsequently measured at amortised cost.`,
         enabled: true,
       },
       {
-        id: 'policy_4',
-        title: '4. Property, plant and equipment',
-        content: `Property, plant and equipment are initially measured at cost.
-
-Cost includes expenditure directly attributable to the acquisition or construction of an asset and bringing the asset to the location and condition necessary for it to operate in the manner intended by management.
-
-Subsequent to initial recognition, property, plant and equipment are measured at cost less accumulated depreciation and accumulated impairment losses.
-
-Depreciation is recognised on a systematic basis over the estimated useful lives of the assets to their estimated residual values. Where significant components of an asset have different useful lives or patterns of consumption, those components are depreciated separately.
-
-Depreciation commences when an asset is available for use. The residual values, useful lives and depreciation methods are reviewed when indicators exist that they may have changed significantly.
-
-An item of property, plant and equipment is derecognised on disposal or when no future economic benefits are expected from its use or disposal. Any resulting gain or loss is recognised in profit or loss.`,
+        id: 'ppe',
+        title: '1.4 Property, plant and equipment',
+        content: `Property, plant and equipment are tangible items that are held for use in the production or supply of goods or services, for rental to others, or for administrative purposes, and are expected to be used during more than one period. Property, plant and equipment is stated at cost less accumulated depreciation and accumulated impairment losses. Cost includes expenditure that is directly attributable to the acquisition of the items. Depreciation is provided using the straight-line method to write down the cost over the estimated useful lives of the assets.`,
         enabled: true,
       },
       {
-        id: 'policy_5',
-        title: '5. Intangible assets',
-        content: `Intangible assets acquired separately are initially measured at cost.
-
-Subsequently, intangible assets are measured at cost less accumulated amortisation and accumulated impairment losses.
-
-Intangible assets are considered to have finite useful lives and are amortised systematically over their estimated useful lives.
-
-The amortisation period and amortisation method are reviewed when indicators exist that they may have changed significantly since the previous reporting date.
-
-Expenditure on internally generated research and development activities is recognised as an expense when incurred unless it forms part of the cost of another asset that meets the recognition requirements of IFRS for SMEs.`,
-        enabled: false,
-      },
-      {
-        id: 'policy_6',
-        title: '6. Impairment of assets',
-        content: `At each reporting date, the entity assesses whether there is any indication that an asset may be impaired.
-
-Where an indication of impairment exists, the entity estimates the recoverable amount of the asset.
-
-An impairment loss is recognised in profit or loss when the carrying amount of an asset exceeds its recoverable amount.
-
-Where an impairment loss subsequently reverses, the carrying amount of the asset is increased to its revised recoverable amount, subject to the limitations prescribed by IFRS for SMEs.`,
+        id: 'tax',
+        title: '1.5 Tax',
+        content: `Current tax assets and liabilities are measured at the amount expected to be recovered from or paid to the taxation authorities, using the tax rates and laws that have been enacted or substantively enacted by the reporting date. Deferred tax is recognised on temporary differences between the carrying amounts of assets and liabilities in the financial statements and the corresponding tax bases used in the computation of taxable profit.`,
         enabled: true,
       },
       {
-        id: 'policy_7',
-        title: '7. Financial instruments',
-        content: `Financial instruments are recognised when the entity becomes a party to the contractual provisions of the instrument.
-
-Basic financial instruments are initially measured at the transaction price, including transaction costs, except where the arrangement constitutes a financing transaction.
-
-Where an arrangement constitutes a financing transaction, the financial asset or financial liability is initially measured at the present value of future payments discounted at an appropriate market rate of interest for a similar instrument.
-
-Basic debt instruments are subsequently measured at amortised cost using the effective interest method, where applicable.
-
-At each reporting date, financial assets measured at cost or amortised cost are assessed for objective evidence of impairment. Impairment losses are recognised immediately in profit or loss.
-
-Financial assets are derecognised when the contractual rights to the cash flows expire or when substantially all the risks and rewards of ownership have been transferred.
-
-Financial liabilities are derecognised when the contractual obligation is discharged, cancelled or expires.`,
+        id: 'share_capital',
+        title: '1.6 Share capital and equity',
+        content: `An equity instrument is any contract that evidences a residual interest in the assets of an entity after deducting all of its liabilities. Ordinary shares are classified as equity. Incremental costs directly attributable to the issue of new shares are shown in equity as a deduction, net of tax, from the proceeds.`,
         enabled: true,
       },
       {
-        id: 'policy_8',
-        title: '8. Trade and other receivables',
-        content: `Trade and other receivables are initially measured at the transaction price unless the arrangement constitutes a financing transaction.
-
-They are subsequently measured at amortised cost using the effective interest method, where applicable, less any impairment losses.
-
-At each reporting date, trade and other receivables are assessed for objective evidence of impairment. Where objective evidence of impairment exists, the impairment loss is recognised immediately in profit or loss.`,
+        id: 'revenue',
+        title: '1.7 Revenue',
+        content: `Revenue is recognised to the extent that it is probable that the economic benefits will flow to the company and the revenue can be reliably measured. Revenue is measured at the fair value of the consideration received or receivable, net of value added tax, rebates and trade discounts.`,
         enabled: true,
       },
       {
-        id: 'policy_9',
-        title: '9. Cash and cash equivalents',
-        content: `Cash and cash equivalents comprise cash on hand, demand deposits and short-term highly liquid investments that are readily convertible into known amounts of cash and are subject to an insignificant risk of changes in value.
-
-Bank overdrafts that are repayable on demand and form an integral part of the entity's cash management are included as a component of cash and cash equivalents for purposes of the statement of cash flows.`,
+        id: 'borrowing_costs',
+        title: '1.8 Borrowing costs',
+        content: `All borrowing costs are recognised in profit or loss in the period in which they are incurred.`,
         enabled: true,
       },
       {
-        id: 'policy_10',
-        title: '10. Share capital and equity',
-        content: `An equity instrument is a contract that evidences a residual interest in the assets of the entity after deducting all of its liabilities.
-
-Ordinary shares are classified as equity.
-
-Equity instruments issued by the entity are recognised at the proceeds received, net of directly attributable transaction costs.
-
-Distributions to owners are recognised directly in equity. Dividends are recognised as liabilities when the entity has an obligation to distribute the dividend to its shareholders.`,
+        id: 'provisions',
+        title: '1.9 Provisions and contingencies',
+        content: `Provisions are recognised when the company has an obligation at the reporting date as a result of a past event; it is probable that the company will be required to transfer economic benefits in settlement; and the amount of the obligation can be estimated reliably.`,
         enabled: true,
       },
       {
-        id: 'policy_11',
-        title: '11. Trade and other payables',
-        content: `Trade and other payables are initially measured at the transaction price unless the arrangement constitutes a financing transaction.
-
-Where the arrangement constitutes a financing transaction, the liability is initially measured at the present value of future payments discounted at an appropriate market rate of interest.
-
-Trade and other payables are subsequently measured at amortised cost using the effective interest method, where applicable.`,
+        id: 'events_after_reporting_period',
+        title: '1.10 Events after the reporting period',
+        content: `Events after the reporting period are those events, favourable and unfavourable, that occur between the end of the reporting period and the date when the financial statements are authorised for issue. Adjusting events require adjustment to the financial statements, while non-adjusting events are disclosed when material.`,
         enabled: true,
       },
       {
-        id: 'policy_12',
-        title: '12. Loans from/to shareholders and directors',
-        content: `Loans to and from shareholders and directors are recognised when the entity becomes party to the contractual provisions of the instrument.
-
-Loans are initially measured at the transaction price unless the arrangement constitutes a financing transaction.
-
-Where the arrangement constitutes a financing transaction, the loan is initially measured at the present value of future payments discounted at an appropriate market rate of interest for a similar debt instrument.
-
-Loans are subsequently measured at amortised cost using the effective interest method, less impairment in the case of financial assets.
-
-The current or non-current classification is determined according to the contractual terms of the loan and the requirements of IFRS for SMEs.`,
-        enabled: true,
-      },
-      {
-        id: 'policy_13',
-        title: '13. Provisions',
-        content: `Provisions are recognised when the entity has an obligation at the reporting date as a result of a past event, it is probable that the entity will be required to transfer economic benefits in settlement, and the amount of the obligation can be estimated reliably.
-
-Provisions are measured at the best estimate of the amount required to settle the obligation at the reporting date.
-
-Where the effect of the time value of money is material, provisions are measured at the present value of the amount expected to be required to settle the obligation.
-
-Provisions are reviewed at each reporting date and adjusted to reflect the current best estimate.`,
-        enabled: false,
-      },
-      {
-        id: 'policy_14',
-        title: '14. Revenue recognition',
-        content: `Revenue is measured at the fair value of the consideration received or receivable, taking into account trade discounts, prompt settlement discounts and volume rebates allowed by the entity.
-
-Revenue excludes amounts collected on behalf of third parties, including value-added tax.
-
-Revenue from the sale of goods is recognised when the significant risks and rewards of ownership have transferred to the buyer, the entity retains neither continuing managerial involvement nor effective control over the goods, the amount of revenue and associated costs can be measured reliably, and it is probable that economic benefits will flow to the entity.
-
-Revenue from the rendering of services is recognised by reference to the stage of completion of the transaction at the reporting date when the outcome can be estimated reliably.
-
-Where the outcome of a service transaction cannot be estimated reliably, revenue is recognised only to the extent of expenses recognised that are recoverable.`,
-        enabled: true,
-      },
-      {
-        id: 'policy_15',
-        title: '15. Finance income and finance costs',
-        content: `Finance income comprises interest income earned on funds invested and other financial assets.
-
-Interest income is recognised using the effective interest method.
-
-Finance costs comprise interest expense on borrowings and other costs incurred in connection with the borrowing of funds.
-
-Borrowing costs are recognised as an expense in profit or loss in the period in which they are incurred.`,
-        enabled: true,
-      },
-      {
-        id: 'policy_16',
-        title: '16. Income tax',
-        content: `Income tax expense comprises current tax and deferred tax.
-
-Current tax is recognised for the amount of income tax payable or recoverable in respect of the taxable profit or loss for the current and prior periods.
-
-Current tax assets and liabilities are measured at the amount expected to be recovered from or paid to the taxation authorities using tax rates and tax laws that have been enacted or substantively enacted by the reporting date.
-
-Tax expense is recognised in the same component of total comprehensive income or equity as the transaction or event that resulted in the tax expense.`,
-        enabled: true,
-      },
-      {
-        id: 'policy_17',
-        title: '17. Deferred tax',
-        content: `Deferred tax is recognised in respect of temporary differences between the carrying amounts of assets and liabilities in the annual financial statements and their corresponding tax bases.
-
-Deferred tax is also recognised in respect of the carry-forward of unused tax losses and unused tax credits, subject to the recognition requirements of IFRS for SMEs.
-
-Deferred tax assets are recognised to the extent required by IFRS for SMEs and are reviewed at each reporting date.
-
-Deferred tax assets and liabilities are measured using tax rates and tax laws that have been enacted or substantively enacted by the reporting date and that are expected to apply when the related deferred tax asset is realised or liability is settled.`,
-        enabled: true,
-      },
-      {
-        id: 'policy_18',
-        title: '18. Value-added tax',
-        content: `Revenue, expenses and assets are recognised net of value-added tax (VAT), except where VAT incurred on the purchase of assets or services is not recoverable from the taxation authority, in which case VAT is recognised as part of the cost of the asset or as part of the expense.
-
-Receivables and payables are stated inclusive of VAT where applicable.
-
-The net amount of VAT recoverable from, or payable to, the taxation authority is included as part of receivables or payables in the statement of financial position.`,
-        enabled: true,
-      },
-      {
-        id: 'policy_19',
-        title: '19. Employee benefits',
-        content: `Employee benefits are recognised as an expense when employees have rendered the service giving rise to the entitlement.
-
-Short-term employee benefits include salaries, wages, paid annual leave, paid sick leave, bonuses and other benefits expected to be settled within the applicable short-term period.
-
-A liability is recognised for employee benefits where the entity has a present legal or constructive obligation as a result of services rendered by employees and the obligation can be measured reliably.
-
-Contributions to defined contribution plans are recognised as an expense when employees have rendered services entitling them to the contributions.`,
-        enabled: true,
-      },
-      {
-        id: 'policy_20',
-        title: '20. Leases',
-        content: `Leases are classified as finance leases where substantially all the risks and rewards incidental to ownership of an asset are transferred to the lessee. All other leases are classified as operating leases.
-
-At the commencement of a finance lease, the entity recognises the leased asset and corresponding liability at the fair value of the leased property or, if lower, the present value of the minimum lease payments.
-
-Lease payments are apportioned between the finance charge and reduction of the outstanding liability using the effective interest method.
-
-Payments made under operating leases are recognised as an expense on a straight-line basis over the lease term unless another systematic basis is more representative of the pattern of benefit.`,
-        enabled: true,
-      },
-      {
-        id: 'policy_21',
-        title: '21. Foreign currencies',
-        content: `The entity's functional and presentation currency is the South African Rand.
-
-Foreign currency transactions are initially recorded in the functional currency using the spot exchange rate at the date of the transaction.
-
-At each reporting date, monetary items denominated in foreign currencies are translated using the closing exchange rate.
-
-Non-monetary items measured at historical cost in a foreign currency are translated using the exchange rate at the date of the transaction.
-
-Exchange differences arising on the settlement or translation of monetary items are recognised in profit or loss, except where IFRS for SMEs requires otherwise.`,
-        enabled: true,
-      },
-      {
-        id: 'policy_22',
-        title: '22. Events after the reporting period',
-        content: `Events occurring after the reporting period that provide additional evidence of conditions that existed at the reporting date are treated as adjusting events, and the amounts recognised in the annual financial statements are adjusted accordingly.
-
-Events occurring after the reporting period that are indicative of conditions that arose after the reporting date are treated as non-adjusting events.
-
-Material non-adjusting events are disclosed in the notes to the annual financial statements together with an estimate of their financial effect, where such an estimate can be made reliably.`,
-        enabled: true,
-      },
-      {
-        id: 'policy_23',
-        title: '23. Accounting policies, estimates and errors',
-        content: `Accounting policies are the specific principles, bases, conventions, rules and practices applied by the entity in preparing and presenting its annual financial statements.
-
-Where IFRS for SMEs specifically addresses a transaction, event or condition, the entity applies the requirements of the Standard. Where the Standard does not specifically address a transaction, event or condition, management uses judgement in developing and applying an accounting policy that results in information that is relevant and reliable.
-
-Changes in accounting policies are applied retrospectively when required by IFRS for SMEs or when the change results in reliable and more relevant information, except where retrospective application is impracticable or specific transitional provisions apply.
-
-Changes in accounting estimates resulting from new information or developments are recognised prospectively in profit or loss in the period of the change and, where applicable, future periods.
-
-Material prior-period errors are corrected retrospectively in the first annual financial statements authorised for issue after their discovery by restating comparative amounts for prior periods presented, except to the extent that retrospective restatement is impracticable.`,
+        id: 'changes_in_accounting_policies',
+        title: '1.11 Changes in accounting policies, estimates and errors',
+        content: `Changes in accounting policies are applied retrospectively when required by IFRS for SMEs or when the change results in reliable and more relevant information. Changes in accounting estimates are recognised prospectively in profit or loss in the period of the change and future periods. Material prior-period errors are corrected retrospectively.`,
         enabled: true,
       },
     ];
@@ -643,7 +461,48 @@ Material prior-period errors are corrected retrospectively in the first annual f
       policies: savedConfig?.accountingPolicies?.policies || defaultPoliciesList,
     };
 
-    const effectiveShareholderLoan = shareholderLoanCur > 0 ? shareholderLoanCur : 619901;
+    const effectiveShareholderLoan = shareholderLoanCur;
+
+    // Current Assets items
+    const currentAssetItems = [
+      { name: 'Cash and cash equivalents', noteNumber: 2, currentAmount: totalCashCur, priorAmount: totalCashPri },
+    ];
+    if (receivablesCur !== 0 || receivablesPri !== 0) {
+      currentAssetItems.push({ name: 'Trade and other receivables', noteNumber: '' as any, currentAmount: receivablesCur, priorAmount: receivablesPri });
+    }
+    if (inventoryCur !== 0 || inventoryPri !== 0) {
+      currentAssetItems.push({ name: 'Inventories', noteNumber: '' as any, currentAmount: inventoryCur, priorAmount: inventoryPri });
+    }
+    if (vatPayableCur < 0 || vatPayablePri < 0) {
+      currentAssetItems.push({ name: 'VAT receivable', noteNumber: '' as any, currentAmount: Math.max(0, -vatPayableCur), priorAmount: Math.max(0, -vatPayablePri) });
+    }
+
+    const totalCurrentAssetsCur = currentAssetItems.reduce((s, i) => s + i.currentAmount, 0);
+    const totalCurrentAssetsPri = currentAssetItems.reduce((s, i) => s + (i.priorAmount || 0), 0);
+
+    // Current Liabilities items
+    const currentLiabilityItems: any[] = [];
+    if (effectiveShareholderLoan !== 0 || shareholderLoanPri !== 0) {
+      currentLiabilityItems.push({ name: 'Loans from shareholder', noteNumber: 4, currentAmount: effectiveShareholderLoan, priorAmount: shareholderLoanPri });
+    }
+    if (payablesCur !== 0 || payablesPri !== 0) {
+      currentLiabilityItems.push({ name: 'Trade and other payables', noteNumber: '' as any, currentAmount: Math.max(0, payablesCur), priorAmount: Math.max(0, payablesPri) });
+    }
+    if (vatPayableCur > 0 || vatPayablePri > 0) {
+      currentLiabilityItems.push({ name: 'VAT payable', noteNumber: '' as any, currentAmount: Math.max(0, vatPayableCur), priorAmount: Math.max(0, vatPayablePri) });
+    }
+    if (otherLiabilitiesCur !== 0 || otherLiabilitiesPri !== 0) {
+      currentLiabilityItems.push({ name: 'Other current liabilities', noteNumber: '' as any, currentAmount: Math.max(0, otherLiabilitiesCur), priorAmount: Math.max(0, otherLiabilitiesPri) });
+    }
+
+    const totalCurrentLiabilitiesCur = currentLiabilityItems.reduce((s, i) => s + i.currentAmount, 0);
+    const totalCurrentLiabilitiesPri = currentLiabilityItems.reduce((s, i) => s + (i.priorAmount || 0), 0);
+
+    const totalAssetsCalculated = totalCurrentAssetsCur + nonCurrentAssetsCur;
+    const totalAssetsPriCalculated = totalCurrentAssetsPri + nonCurrentAssetsPri;
+
+    const totalLiabilitiesCalculated = totalCurrentLiabilitiesCur;
+    const totalLiabilitiesPriCalculated = totalCurrentLiabilitiesPri;
 
     const data: AnnualFinancialStatementsData = {
       generalInfo,
@@ -654,165 +513,151 @@ Material prior-period errors are corrected retrospectively in the first annual f
       sectionToggles: defaultSectionToggles,
       statementOfFinancialPosition: {
         nonCurrentAssets: {
-          items: nonCurrentAssetsCur > 0 ? [{ name: 'Property, plant and equipment', currentAmount: nonCurrentAssetsCur, priorAmount: 0 }] : [],
+          items: nonCurrentAssetsCur > 0 ? [{ name: 'Property, plant and equipment', currentAmount: nonCurrentAssetsCur, priorAmount: nonCurrentAssetsPri }] : [],
           total: { current: nonCurrentAssetsCur, prior: nonCurrentAssetsPri },
         },
         currentAssets: {
-          items: [
-            { name: 'Cash and cash equivalents', noteNumber: 2, currentAmount: totalCashCur, priorAmount: totalCashPri },
-          ],
-          total: { current: totalCashCur, prior: totalCashPri },
+          items: currentAssetItems,
+          total: { current: totalCurrentAssetsCur, prior: totalCurrentAssetsPri },
         },
-        totalAssets: { current: totalCashCur + nonCurrentAssetsCur, prior: totalCashPri + nonCurrentAssetsPri },
+        totalAssets: { current: totalAssetsCalculated, prior: totalAssetsPriCalculated },
         equity: {
           items: [
             { name: 'Share capital', noteNumber: 3, currentAmount: shareCapitalCur, priorAmount: shareCapitalPri },
-            { name: 'Accumulated loss', currentAmount: accumulatedLossCur, priorAmount: 0 },
+            { name: isProfitable ? 'Retained earnings' : 'Accumulated loss', currentAmount: accumulatedProfitOrLossCur, priorAmount: priLossOrProfitForTheYear },
           ],
-          total: { current: totalEquityCur, prior: shareCapitalPri },
+          total: { current: totalEquityCur, prior: shareCapitalPri + priLossOrProfitForTheYear },
         },
         nonCurrentLiabilities: {
           items: [],
           total: { current: 0, prior: 0 },
         },
         currentLiabilities: {
-          items: [
-            { name: 'Loans from shareholder', noteNumber: 4, currentAmount: effectiveShareholderLoan, priorAmount: 0 },
-          ],
-          total: { current: effectiveShareholderLoan, prior: 0 },
+          items: currentLiabilityItems,
+          total: { current: totalCurrentLiabilitiesCur, prior: totalCurrentLiabilitiesPri },
         },
-        totalLiabilities: { current: effectiveShareholderLoan, prior: 0 },
+        totalLiabilities: { current: totalLiabilitiesCalculated, prior: totalLiabilitiesPriCalculated },
         totalEquityAndLiabilities: {
-          current: totalEquityCur + effectiveShareholderLoan,
-          prior: shareCapitalPri,
+          current: totalEquityCur + totalLiabilitiesCalculated,
+          prior: shareCapitalPri + priLossOrProfitForTheYear + totalLiabilitiesPriCalculated,
         },
       },
       statementOfComprehensiveIncome: {
         revenue: { name: 'Revenue', currentAmount: curRevenue, priorAmount: priRevenue },
         costOfSales: { name: 'Cost of sales', currentAmount: curCos, priorAmount: priCos },
         grossProfit: { name: 'Gross profit', currentAmount: curGrossProfit, priorAmount: priGrossProfit },
-        otherIncome: { name: 'Other income', currentAmount: curOtherIncome > 0 ? curOtherIncome : 254, priorAmount: 0 },
+        otherIncome: { name: 'Other income', currentAmount: curOtherIncome, priorAmount: priOtherIncome },
         operatingExpenses: {
           name: 'Operating expenses',
           noteNumber: 5,
-          currentAmount: curOpex > 0 ? -curOpex : -510358,
-          priorAmount: 0,
+          currentAmount: -curOpex,
+          priorAmount: -priOpex,
         },
         operatingProfitOrLoss: {
-          name: 'Operating loss',
-          currentAmount: curOperatingProfitOrLoss < 0 ? curOperatingProfitOrLoss : -510104,
-          priorAmount: 0,
+          name: isProfitable ? 'Operating profit' : 'Operating loss',
+          currentAmount: curOperatingProfitOrLoss,
+          priorAmount: priOperatingProfitOrLoss,
         },
         financeCosts: { name: 'Finance costs', currentAmount: 0, priorAmount: 0 },
         profitOrLossBeforeTax: {
-          name: 'Loss before income tax',
-          currentAmount: curOperatingProfitOrLoss < 0 ? curOperatingProfitOrLoss : -510104,
-          priorAmount: 0,
+          name: isProfitable ? 'Profit before income tax' : 'Loss before income tax',
+          currentAmount: curOperatingProfitOrLoss,
+          priorAmount: priOperatingProfitOrLoss,
         },
         taxation: { name: 'Income tax', noteNumber: 7, currentAmount: 0, priorAmount: 0 },
         profitOrLossForTheYear: {
-          name: 'Loss for the year',
-          currentAmount: curOperatingProfitOrLoss < 0 ? curOperatingProfitOrLoss : -510104,
-          priorAmount: 0,
+          name: isProfitable ? 'Profit for the year' : 'Loss for the year',
+          currentAmount: curLossOrProfitForTheYear,
+          priorAmount: priLossOrProfitForTheYear,
         },
-        otherComprehensiveIncome: { name: 'Other comprehensive loss', currentAmount: 0, priorAmount: 0 },
+        otherComprehensiveIncome: { name: 'Other comprehensive income', currentAmount: 0, priorAmount: 0 },
         totalComprehensiveLossOrIncome: {
-          name: 'Total comprehensive loss for the year',
-          currentAmount: curOperatingProfitOrLoss < 0 ? curOperatingProfitOrLoss : -510104,
-          priorAmount: 0,
+          name: isProfitable ? 'Total comprehensive income for the year' : 'Total comprehensive loss for the year',
+          currentAmount: curLossOrProfitForTheYear,
+          priorAmount: priLossOrProfitForTheYear,
         },
       },
       statementOfChangesInEquity: {
-        shareCapital: { current: shareCapitalCur, prior: shareCapitalPri, change: shareCapitalCur },
-        accumulatedLoss: { current: accumulatedLossCur, prior: 0, lossForTheYear: accumulatedLossCur },
-        totalEquity: { current: totalEquityCur, prior: shareCapitalPri },
+        openingBalance: { current: 0, prior: 0 },
+        shareCapital: { current: shareCapitalCur, prior: shareCapitalPri, change: shareCapitalCur - shareCapitalPri },
+        accumulatedLoss: { current: accumulatedProfitOrLossCur, prior: priLossOrProfitForTheYear, lossForTheYear: curLossOrProfitForTheYear },
+        totalEquity: { current: totalEquityCur, prior: shareCapitalPri + priLossOrProfitForTheYear },
       },
       statementOfCashFlows: {
-        cashUsedInOperations: { note: '6', current: accumulatedLossCur, prior: 0 },
-        proceedsOnShareIssue: { note: '3', current: shareCapitalCur, prior: 0 },
-        cashAdvancesReceivedOnLoansFromShareholders: { current: effectiveShareholderLoan, prior: 0 },
-        netCashFromFinancingActivities: { current: shareCapitalCur + effectiveShareholderLoan, prior: 0 },
-        totalCashMovementForTheYear: { current: totalCashCur, prior: 0 },
-        totalCashAtEndOfTheYear: { note: '2', current: totalCashCur, prior: 0 },
+        cashUsedInOperations: { note: '6', current: curLossOrProfitForTheYear, prior: priLossOrProfitForTheYear },
+        cashFlowsFromInvestingActivities: {
+          items: nonCurrentAssetsCur > 0 ? [{ name: 'Purchase of property, plant and equipment', currentAmount: -nonCurrentAssetsCur, priorAmount: 0 }] : [],
+          total: { current: -nonCurrentAssetsCur, prior: 0 },
+        },
+        proceedsOnShareIssue: { note: '3', current: shareCapitalCur - shareCapitalPri, prior: shareCapitalPri },
+        cashAdvancesReceivedOnLoansFromShareholders: { current: effectiveShareholderLoan, prior: shareholderLoanPri },
+        netCashFromFinancingActivities: { current: (shareCapitalCur - shareCapitalPri) + effectiveShareholderLoan, prior: shareCapitalPri + shareholderLoanPri },
+        totalCashMovementForTheYear: { current: totalCashCur - totalCashPri, prior: totalCashPri },
+        cashAtBeginningOfTheYear: { current: totalCashPri, prior: 0 },
+        totalCashAtEndOfTheYear: { note: '2', current: totalCashCur, prior: totalCashPri },
       },
       notes: {
         note2CashAndCashEquivalents: {
-          items: [{ name: 'Bank balances', current: totalCashCur, prior: 0 }],
-          total: { current: totalCashCur, prior: 0 },
+          items: [{ name: 'Bank balances', current: totalCashCur, prior: totalCashPri }],
+          total: { current: totalCashCur, prior: totalCashPri },
         },
         note3ShareCapital: {
-          authorisedShares: '100 Ordinary shares at no par value',
-          issuedShares: '100 Ordinary shares at no par value',
-          issuedAmount: { current: shareCapitalCur, prior: 0 },
+          authorisedShares: '100 Ordinary shares of no par value',
+          issuedShares: '100 Ordinary shares of no par value',
+          issuedAmount: { current: shareCapitalCur, prior: shareCapitalPri },
           issuedShareCount: 100,
         },
         note4LoansFromShareholders: {
-          loans: [
+          loans: effectiveShareholderLoan !== 0 || shareholderLoanPri !== 0 ? [
             {
               name: generalInfo.holdingCompany || 'Shareholder Loan Account',
               current: effectiveShareholderLoan,
-              prior: 0,
-              terms: 'The loan is unsecured and bears no interest. There are no fixed repayment terms of the loan. The loan has been subordinated in favour of other creditors until the assets of the company, fairly valued, exceed its liabilities.',
+              prior: shareholderLoanPri,
+              terms: 'The loan is unsecured, bears no interest, and has no fixed repayment terms. The loan is subordinated in favour of other creditors until the assets of the company exceed its liabilities.',
               isSubordinated: true,
             },
-          ],
-          total: { current: effectiveShareholderLoan, prior: 0 },
+          ] : [],
+          total: { current: effectiveShareholderLoan, prior: shareholderLoanPri },
         },
         note5OperatingExpenses: {
-          remunerationOtherThanEmployees: detailedExpensesList.length > 0 ? detailedExpensesList.slice(0, 8) : [
-            { name: 'Legal Fees', current: 410308, prior: 0 },
-            { name: 'License and membership fees', current: 35348, prior: 0 },
-            { name: 'Exam Fees', current: 31435, prior: 0 },
-            { name: 'Auditor / Accounting Officer fees', current: 9200, prior: 0 },
-            { name: 'Graphic design fees', current: 6501, prior: 0 },
-            { name: 'Annual CIPC Fees', current: 6080, prior: 0 },
-          ],
-          totalOperatingExpensesNote: { current: curOpex > 0 ? curOpex : 498872, prior: 0 },
+          remunerationOtherThanEmployees: detailedExpensesList,
+          totalOperatingExpensesNote: { current: curOpex, prior: priOpex },
         },
         note6CashUsedInOperations: {
-          netLossBeforeTax: { current: accumulatedLossCur, prior: 0 },
-          total: { current: accumulatedLossCur, prior: 0 },
+          netLossBeforeTax: { current: curLossOrProfitForTheYear, prior: priLossOrProfitForTheYear },
+          total: { current: curLossOrProfitForTheYear, prior: priLossOrProfitForTheYear },
         },
         note7Taxation: {
-          accountingLoss: { current: accumulatedLossCur, prior: 0 },
-          taxAtApplicableRate27: { current: Math.round(accumulatedLossCur * 0.27), prior: 0 },
-          lossCarriedForward: { current: Math.round(Math.abs(accumulatedLossCur) * 0.27), prior: 0 },
+          accountingLoss: { current: curLossOrProfitForTheYear, prior: priLossOrProfitForTheYear },
+          taxAtApplicableRate27: { current: Math.round((curLossOrProfitForTheYear > 0 ? curLossOrProfitForTheYear : 0) * 0.27), prior: 0 },
+          lossCarriedForward: { current: Math.round((curLossOrProfitForTheYear < 0 ? Math.abs(curLossOrProfitForTheYear) : 0) * 0.27), prior: 0 },
           taxExpenseTotal: { current: 0, prior: 0 },
-          taxNoteText: `No provision has been made for ${currentFye.getFullYear()} tax as the company has no taxable income.`,
+          taxNoteText: curLossOrProfitForTheYear <= 0
+            ? `No provision has been made for ${currentFye.getFullYear()} tax as the company has an estimated tax loss.`
+            : `Provision for income tax has been estimated at standard corporate rates for ${currentFye.getFullYear()}.`,
         },
         note8RelatedParties: {
           holdingCompany: generalInfo.holdingCompany,
           directors: defaultDirectors.map((d) => d.name),
-          relatedPartyBalances: [
-            { name: generalInfo.holdingCompany || 'Holding Company / Shareholder', current: effectiveShareholderLoan, prior: 0 },
-          ],
+          relatedPartyBalances: effectiveShareholderLoan !== 0 ? [
+            { name: generalInfo.holdingCompany || 'Shareholder Loan Account', current: effectiveShareholderLoan, prior: shareholderLoanPri },
+          ] : [],
         },
         note9GoingConcern: {
-          accumulatedLoss: Math.abs(accumulatedLossCur),
-          liabilitiesExceedAssetsBy: Math.abs(totalEquityCur),
+          accumulatedLoss: Math.abs(accumulatedProfitOrLossCur),
+          liabilitiesExceedAssetsBy: Math.max(0, -totalEquityCur),
           subordinationNoteText: `The financial statements have been prepared on the basis of accounting policies applicable to a going concern. This basis presumes that funds will be available to finance future operations and that the realisation of assets and settlement of liabilities, contingent obligations and commitments will occur in the ordinary course of business.`,
         },
         note10EventsAfterReportingPeriod: {
-          statementText: `The director is not aware of any material event which occurred after the reporting date and up to the date of this report.`,
+          statementText: `The director is not aware of any material event which occurred after the reporting date and up to the date of this report that would require adjustment to or disclosure in these financial statements.`,
         },
       },
       detailedIncomeStatement: {
-        otherIncomeItems: detailedOtherIncomeList.length > 0 ? detailedOtherIncomeList : [{ name: 'Profit on exchange differences', current: 254, prior: 0 }],
-        totalOtherIncome: { current: curOtherIncome > 0 ? curOtherIncome : 254, prior: 0 },
-        operatingExpenseItems: detailedExpensesList.length > 0 ? detailedExpensesList : [
-          { name: 'Bank charges', current: 2674, prior: 0 },
-          { name: 'Exam Fees', current: 31435, prior: 0 },
-          { name: 'Entertainment', current: 4692, prior: 0 },
-          { name: 'License Fees', current: 35348, prior: 0 },
-          { name: 'Design Fees', current: 6501, prior: 0 },
-          { name: 'LinkedIn Fees', current: 2610, prior: 0 },
-          { name: 'Annual CIPC', current: 6080, prior: 0 },
-          { name: 'Accounting Officer Fees', current: 9200, prior: 0 },
-          { name: 'Legal expenses', current: 410308, prior: 0 },
-          { name: 'Printing and stationery', current: 1510, prior: 0 },
-        ],
-        totalOperatingExpenses: { current: curOpex > 0 ? curOpex : 510358, prior: 0 },
-        lossOrProfitForTheYear: { current: curLossOrProfitForTheYear < 0 ? curLossOrProfitForTheYear : -510104, prior: 0 },
+        otherIncomeItems: detailedOtherIncomeList,
+        totalOtherIncome: { current: curOtherIncome, prior: priOtherIncome },
+        operatingExpenseItems: detailedExpensesList,
+        totalOperatingExpenses: { current: curOpex, prior: priOpex },
+        lossOrProfitForTheYear: { current: curLossOrProfitForTheYear, prior: priLossOrProfitForTheYear },
       },
     };
 

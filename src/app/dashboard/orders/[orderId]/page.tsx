@@ -553,62 +553,37 @@ export default function ClientOrderDetailsPage() {
 
   const handleNotifyConsultant = async () => {
     if (!currentUser || !order) return;
-    
-    let assignedStaffName = 'Admin';
-    let assignedStaffEmail = 'info@myacc.co.za';
-
-    if (order.assignedTo && order.assignedTo.length > 0) {
-      const assignedStaff = allStaff.find(s => s.id === order.assignedTo![0]);
-      if (assignedStaff && assignedStaff.email) {
-        assignedStaffName = assignedStaff.name || 'Consultant';
-        assignedStaffEmail = assignedStaff.email;
-      }
-    }
 
     setIsSubmitting(true);
     toast({ title: "Submitting to Consultant...", description: "Notifying your consultant that your documents are ready for review." });
 
-    const noteText = "Client has submitted their documents for review.";
-    const newNote: OrderNote = {
-      text: noteText,
-      authorId: currentUser.uid,
-      date: Timestamp.now(),
-      type: 'note',
-      subject: null,
-      attachments: null,
-    };
-
     try {
-      const orderRef = doc(db, 'orders', order.id);
-      await updateDoc(orderRef, { 
-        status: 'Under Review',
-        fulfillmentStatus: 'Under Review',
-        notes: arrayUnion(newNote) 
-      });
-      
-      await notifyStaffOfDocumentUpload({
-        orderId: order.id,
-        clientName: currentUser.name || 'Client',
-        clientEmail: currentUser.email || '',
-        resellerId: order.resellerId,
-        assignedTo: order.assignedTo,
-      });
+      const auth = getAuth(firebaseApp);
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({ title: 'Authentication Error', description: 'Please log in again to submit documents.', variant: 'destructive' });
+        return;
+      }
 
-      try {
-        const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
-        const { notifyConsultantAndVerifyAction } = await import('@/app/actions/client-order-actions');
-        const v = idToken ? await notifyConsultantAndVerifyAction({ idToken, orderId: order.id }) : null;
+      const { notifyConsultantAndVerifyAction } = await import('@/app/actions/client-order-actions');
+      const res = await notifyConsultantAndVerifyAction({ idToken, orderId: order.id });
+      
+      if (res.success) {
         toast({
           title: 'Documents Submitted!',
-          description: v?.success ? v.message : "Your documents have been submitted and queued for your consultant's review.",
+          description: res.message || "Your documents have been submitted and queued for your consultant's review.",
         });
-      } catch {
-        toast({ title: 'Documents Submitted!', description: "Your documents have been submitted and queued for your consultant's review." });
+        await fetchOrderAndServices(true);
+      } else {
+        toast({
+          title: 'Submission Failed',
+          description: res.error || 'Could not notify the consultant.',
+          variant: 'destructive',
+        });
       }
-      fetchOrderAndServices(true);
-    } catch(error) {
+    } catch(error: any) {
       console.error("Error submitting documents:", error);
-      toast({ title: "Submission Failed", description: "Could not notify the consultant.", variant: "destructive" });
+      toast({ title: "Submission Failed", description: error?.message || "Could not notify the consultant.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -697,7 +672,7 @@ export default function ClientOrderDetailsPage() {
                                 <CheckCircle className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
                                 <div>
                                     <p className="font-semibold text-green-900">All information submitted & under review!</p>
-                                    <p className="text-sm">Your consultant has received the AI audit report. If you've updated any files or information, you can notify them again.</p>
+                                    <p className="text-sm">Your documents have been submitted to your consultant. If you've updated any files or notes, you can notify them again.</p>
                                 </div>
                             </div>
                             <Button 
@@ -708,7 +683,7 @@ export default function ClientOrderDetailsPage() {
                                 className="border-green-600 text-green-800 hover:bg-green-100 shrink-0 gap-1.5"
                             >
                                 {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                                {isSubmitting ? 'Running AI Audit...' : 'Re-Run AI Audit & Notify'}
+                                {isSubmitting ? 'Submitting...' : 'Re-Notify Consultant'}
                             </Button>
                         </div>
                     ) : (
@@ -717,7 +692,7 @@ export default function ClientOrderDetailsPage() {
                                 <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                                 <div>
                                     <p className="font-semibold text-amber-900">{hasRejectedUploads ? 'Revision Ready: Submit for Re-Review' : 'All Required Information Completed!'}</p>
-                                    <p className="text-sm">{hasRejectedUploads ? 'You have updated the requested documents. Please notify your consultant to re-review.' : 'All required items have been saved. Click below to run the automated AI audit and notify your consultant.'}</p>
+                                    <p className="text-sm">{hasRejectedUploads ? 'You have updated the requested documents. Please notify your consultant to re-review.' : 'All required items have been saved. Click below to submit and notify your consultant.'}</p>
                                 </div>
                             </div>
                             <Button 
@@ -727,7 +702,7 @@ export default function ClientOrderDetailsPage() {
                                 className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 gap-1.5 font-bold shadow-sm"
                             >
                                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                {isSubmitting ? 'Running AI Audit...' : 'Notify Consultant of All Submissions'}
+                                {isSubmitting ? 'Submitting...' : 'Notify Consultant of All Submissions'}
                             </Button>
                         </div>
                     )
@@ -1380,12 +1355,12 @@ export default function ClientOrderDetailsPage() {
                                     <Send className="h-4 w-4" />
                                 )}
                                 {isSubmitting 
-                                    ? "Running AI Audit & Submitting..." 
+                                    ? "Submitting Documents..." 
                                     : !allSubmitted
                                     ? `Complete All Requirements (${submittedCount}/${requiredRequirements.length})`
                                     : isCurrentlyUnderReview 
-                                    ? "Re-Run AI Audit & Notify Consultant" 
-                                    : "Notify Consultant of All Submissions"}
+                                    ? "Re-Notify Consultant for Review" 
+                                    : "Submit Intake & Notify Consultant"}
                             </Button>
                         </CardFooter>
                     )}

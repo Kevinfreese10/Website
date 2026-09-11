@@ -154,13 +154,17 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
     try {
       const wb = XLSX.utils.book_new();
 
+      const currentYear = new Date(data.generalInfo.financialYearEndedDateIso || data.generalInfo.financialYearEndedDate || '2026-03-31').getFullYear() || 2026;
+      const priorYear = currentYear - 1;
+      const isProfitable = (data.statementOfComprehensiveIncome.profitOrLossForTheYear?.currentAmount || 0) >= 0;
+
       // 1. Balance Sheet Sheet
       const bsRows = [
         [data.generalInfo.companyName.toUpperCase()],
         [`Registration number: ${data.generalInfo.registrationNumber}`],
         [`Statement of Financial Position as at ${data.generalInfo.financialYearEndedDate}`],
         [],
-        ['Figures in Rand', 'Notes', '2026', '2025'],
+        ['Figures in Rand', 'Notes', `${currentYear}`, `${priorYear}`],
         ['Assets'],
         ['Current Assets'],
         ...data.statementOfFinancialPosition.currentAssets.items.map((i) => [i.name, i.noteNumber || '', i.currentAmount, i.priorAmount || '']),
@@ -185,7 +189,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         [`Registration number: ${data.generalInfo.registrationNumber}`],
         [`Statement of Profit or Loss and Other Comprehensive Income for the year ended ${data.generalInfo.financialYearEndedDate}`],
         [],
-        ['Figures in Rand', 'Notes', '2026', '2025'],
+        ['Figures in Rand', 'Notes', `${currentYear}`, `${priorYear}`],
         ['Other income', '', data.statementOfComprehensiveIncome.otherIncome.currentAmount, data.statementOfComprehensiveIncome.otherIncome.priorAmount || ''],
         ['Operating expenses', '5', data.statementOfComprehensiveIncome.operatingExpenses.currentAmount, data.statementOfComprehensiveIncome.operatingExpenses.priorAmount || ''],
         ['Operating loss', '', data.statementOfComprehensiveIncome.operatingProfitOrLoss.currentAmount, data.statementOfComprehensiveIncome.operatingProfitOrLoss.priorAmount || ''],
@@ -202,7 +206,7 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
         [data.generalInfo.companyName.toUpperCase()],
         ['Detailed Income Statement (Unaudited Supplementary Schedule)'],
         [],
-        ['Figures in Rand', '2026', '2025'],
+        ['Figures in Rand', `${currentYear}`, `${priorYear}`],
         ['Other income'],
         ...data.detailedIncomeStatement.otherIncomeItems.map((i) => [i.name, i.current, i.prior || '']),
         ['Total Other Income', data.detailedIncomeStatement.totalOtherIncome.current, data.detailedIncomeStatement.totalOtherIncome.prior || ''],
@@ -299,9 +303,20 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                 Companies Act Compliant
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {generalInfoForm.companyName} • Registration: {generalInfoForm.registrationNumber} • Year ended {generalInfoForm.financialYearEndedDate}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs text-muted-foreground">
+                {generalInfoForm.companyName} • Registration: {generalInfoForm.registrationNumber} • Year ended {generalInfoForm.financialYearEndedDate}
+              </p>
+              {Math.abs((data?.statementOfFinancialPosition.totalAssets.current || 0) - (data?.statementOfFinancialPosition.totalEquityAndLiabilities.current || 0)) < 1 ? (
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[10px] font-bold">
+                  ✓ Balance Sheet Balanced
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-[10px] font-bold">
+                  Diff: R {Math.abs((data?.statementOfFinancialPosition.totalAssets.current || 0) - (data?.statementOfFinancialPosition.totalEquityAndLiabilities.current || 0)).toLocaleString('en-ZA')}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
@@ -402,6 +417,41 @@ export default function AnnualFinancialStatementsView({ clientId }: AnnualFinanc
                   <Input
                     value={generalInfoForm.natureOfBusiness}
                     onChange={(e) => setGeneralInfoForm({ ...generalInfoForm, natureOfBusiness: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold">Financial Year End Date</Label>
+                  <Input
+                    type="date"
+                    value={generalInfoForm.financialYearEndedDateIso || ''}
+                    onChange={(e) => {
+                      const iso = e.target.value;
+                      const dateObj = new Date(iso);
+                      const formatted = !isNaN(dateObj.getTime())
+                        ? dateObj.toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
+                        : generalInfoForm.financialYearEndedDate;
+                      setGeneralInfoForm({
+                        ...generalInfoForm,
+                        financialYearEndedDateIso: iso,
+                        financialYearEndedDate: formatted,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold">Tax Number</Label>
+                  <Input
+                    value={generalInfoForm.taxNumber || ''}
+                    placeholder="e.g. 9012345678"
+                    onChange={(e) => setGeneralInfoForm({ ...generalInfoForm, taxNumber: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-bold">VAT Number (Optional)</Label>
+                  <Input
+                    value={generalInfoForm.vatNumber || ''}
+                    placeholder="e.g. 4012345678"
+                    onChange={(e) => setGeneralInfoForm({ ...generalInfoForm, vatNumber: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1.5">
