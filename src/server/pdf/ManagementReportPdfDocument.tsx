@@ -132,33 +132,26 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 2,
   },
-  commentaryBox: {
-    backgroundColor: '#F0F9FF',
+  notesBox: {
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: '#E2E8F0',
     borderLeftWidth: 3,
     borderLeftColor: '#2563EB',
     padding: 8,
     borderRadius: 4,
-    marginBottom: 10,
+    marginTop: 8,
   },
-  commentaryHeading: {
+  notesHeading: {
     fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
     color: '#0F2744',
     marginBottom: 3,
   },
-  commentaryText: {
+  notesText: {
     fontSize: 7.5,
     lineHeight: 1.4,
     color: '#334155',
-    marginBottom: 5,
-  },
-  recommendationItem: {
-    fontSize: 7.5,
-    color: '#334155',
-    lineHeight: 1.3,
-    marginBottom: 2.5,
   },
   table: {
     width: '100%',
@@ -258,7 +251,6 @@ interface ManagementReportPdfDocumentProps {
 
 export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentProps> = ({
   data,
-  analysis,
   customNotes,
 }) => {
   const { client, period, kpis, profitAndLoss, balanceSheet, workingCapital, taxAndVat, cashFlow } = data;
@@ -331,67 +323,103 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
             <Text style={styles.kpiSub}>Ratio: {kpis.workingCapital.ratio.toFixed(2)}x</Text>
           </View>
           <View style={[styles.kpiCard, { borderLeftColor: '#6366F1' }]}>
-            <Text style={styles.kpiLabel}>Health Score</Text>
+            <Text style={styles.kpiLabel}>Current Ratio</Text>
             <Text style={[styles.kpiValue, { color: '#2563EB' }]}>
-              {analysis?.healthScore ? `${analysis.healthScore} / 100` : 'Active'}
+              {kpis.workingCapital.ratio.toFixed(2)}x
             </Text>
-            <Text style={styles.kpiSub}>AI Financial Index</Text>
+            <Text style={styles.kpiSub}>Liquidity Health</Text>
           </View>
         </View>
 
-        {/* Executive Commentary */}
-        <Text style={styles.sectionTitle}>Executive Commentary & Insights</Text>
-        <View style={styles.commentaryBox}>
-          <Text style={styles.commentaryHeading}>Khai AI CA(SA) Financial Analysis:</Text>
-          <Text style={styles.commentaryText}>
-            {analysis?.executiveSummary ||
-              `During the period ${period.label} (${currentDates}), ${client.companyName} achieved total revenue of ${formatZar(
-                kpis.revenue.current
-              )} with a gross profit margin of ${kpis.grossProfit.marginCurrentPct.toFixed(1)}% and net operating profit before tax of ${formatZar(
-                kpis.netProfit.current
-              )}. Working capital closed at ${formatZar(kpis.workingCapital.current)} with cash & bank reserves of ${formatZar(
-                kpis.cashBalance.current
-              )}.`}
-          </Text>
+        {/* Executive Highlights Summary */}
+        <Text style={styles.sectionTitle}>Financial Performance Highlights & Executive Summary</Text>
+        <View style={styles.table}>
+          <View style={styles.tableHeaderRow}>
+            <View style={styles.colDesc}>
+              <Text style={styles.tableHeaderCell}>Key Financial Indicator</Text>
+            </View>
+            <View style={styles.colCur}>
+              <Text style={styles.tableHeaderCell}>Current Period</Text>
+              <Text style={styles.tableHeaderCellSub}>{currentDates}</Text>
+            </View>
+            <View style={styles.colPri}>
+              <Text style={styles.tableHeaderCell}>Prior Period</Text>
+              <Text style={styles.tableHeaderCellSub}>{priorDates}</Text>
+            </View>
+            <View style={styles.colVar}>
+              <Text style={styles.tableHeaderCell}>Movement (R)</Text>
+            </View>
+          </View>
 
-          {analysis?.revenueAndMarginInsights ? (
-            <>
-              <Text style={styles.commentaryHeading}>Revenue & Margin Dynamics:</Text>
-              <Text style={styles.commentaryText}>{analysis.revenueAndMarginInsights}</Text>
-            </>
-          ) : null}
+          <View style={styles.tableRow}>
+            <Text style={[styles.cellTextBold, styles.colDesc]}>Total Revenue / Turnover</Text>
+            <Text style={[styles.cellText, styles.colCur]}>{formatZar(kpis.revenue.current)}</Text>
+            <Text style={[styles.cellText, styles.colPri]}>{formatZar(kpis.revenue.prior)}</Text>
+            <Text style={[kpis.revenue.changePct >= 0 ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
+              {formatZar(kpis.revenue.current - kpis.revenue.prior)}
+            </Text>
+          </View>
 
-          {analysis?.cashFlowAndLiquidity ? (
-            <>
-              <Text style={styles.commentaryHeading}>Cash Flow & Liquidity Health:</Text>
-              <Text style={styles.commentaryText}>{analysis.cashFlowAndLiquidity}</Text>
-            </>
-          ) : null}
+          <View style={[styles.tableRow, styles.tableRowEven]}>
+            <Text style={[styles.cellTextBold, styles.colDesc]}>Gross Profit</Text>
+            <Text style={[styles.cellText, styles.colCur]}>{formatZar(kpis.grossProfit.current)}</Text>
+            <Text style={[styles.cellText, styles.colPri]}>{formatZar(kpis.grossProfit.prior)}</Text>
+            <Text style={[kpis.grossProfit.changePct >= 0 ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
+              {formatZar(kpis.grossProfit.current - kpis.grossProfit.prior)}
+            </Text>
+          </View>
 
-          {analysis?.keyRecommendations && analysis.keyRecommendations.length > 0 ? (
-            <>
-              <Text style={styles.commentaryHeading}>Strategic Director Recommendations:</Text>
-              {analysis.keyRecommendations.map((rec, i) => (
-                <Text key={i} style={styles.recommendationItem}>
-                  • {rec}
-                </Text>
-              ))}
-            </>
-          ) : null}
+          <View style={styles.tableRow}>
+            <Text style={[styles.cellTextBold, styles.colDesc]}>Total Operating Expenses (OPEX)</Text>
+            <Text style={[styles.cellText, styles.colCur]}>{formatZar(kpis.opex.current)}</Text>
+            <Text style={[styles.cellText, styles.colPri]}>{formatZar(kpis.opex.prior)}</Text>
+            <Text style={[kpis.opex.changePct <= 0 ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
+              {formatZar(kpis.opex.current - kpis.opex.prior)}
+            </Text>
+          </View>
 
-          {customNotes ? (
-            <>
-              <Text style={[styles.commentaryHeading, { marginTop: 4 }]}>Director / Accountant Notes:</Text>
-              <Text style={styles.commentaryText}>{customNotes}</Text>
-            </>
-          ) : null}
+          <View style={[styles.tableRow, styles.tableRowEven]}>
+            <Text style={[styles.cellTextBold, styles.colDesc]}>Net Operating Profit / (Loss) Pre-Tax</Text>
+            <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(kpis.netProfit.current)}</Text>
+            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(kpis.netProfit.prior)}</Text>
+            <Text style={[kpis.netProfit.current >= kpis.netProfit.prior ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
+              {formatZar(kpis.netProfit.current - kpis.netProfit.prior)}
+            </Text>
+          </View>
+
+          <View style={styles.tableRow}>
+            <Text style={[styles.cellTextBold, styles.colDesc]}>Cash & Bank Balance</Text>
+            <Text style={[styles.cellText, styles.colCur]}>{formatZar(kpis.cashBalance.current)}</Text>
+            <Text style={[styles.cellText, styles.colPri]}>{formatZar(kpis.cashBalance.prior)}</Text>
+            <Text style={[kpis.cashBalance.netChange >= 0 ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
+              {formatZar(kpis.cashBalance.netChange)}
+            </Text>
+          </View>
+
+          <View style={[styles.tableTotalRow, { backgroundColor: '#F1F5F9' }]}>
+            <Text style={[styles.cellTextBold, styles.colDesc]}>Net Working Capital Position</Text>
+            <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(kpis.workingCapital.current)}</Text>
+            <Text style={[styles.cellTextBold, styles.colPri]}>
+              {formatZar(balanceSheet.currentAssets.priorTotal - balanceSheet.currentLiabilities.priorTotal)}
+            </Text>
+            <Text style={[styles.cellTextBold, styles.colVar]}>
+              Ratio: {kpis.workingCapital.ratio.toFixed(2)}x
+            </Text>
+          </View>
         </View>
+
+        {customNotes ? (
+          <View style={styles.notesBox}>
+            <Text style={styles.notesHeading}>Director / Management Notes:</Text>
+            <Text style={styles.notesText}>{customNotes}</Text>
+          </View>
+        ) : null}
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>Prepared by My Accountant (Pty) Ltd • AI Accountant</Text>
+          <Text>Prepared by My Accountant (Pty) Ltd • Executive Management Report</Text>
           <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
-          <Text>Confidential Executive Report</Text>
+          <Text>Confidential Board Document</Text>
         </View>
       </Page>
 
@@ -532,9 +560,9 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>Prepared by My Accountant (Pty) Ltd • AI Accountant</Text>
+          <Text>Prepared by My Accountant (Pty) Ltd • Executive Management Report</Text>
           <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
-          <Text>Confidential Executive Report</Text>
+          <Text>Confidential Board Document</Text>
         </View>
       </Page>
 
@@ -613,8 +641,8 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
           <View style={[styles.tableTotalRow, { backgroundColor: '#E0F2FE' }]}>
             <Text style={[styles.cellTextBold, styles.colDesc, { color: '#0369A1' }]}>TOTAL ASSETS</Text>
             <Text style={[styles.cellTextBold, styles.colCur, { color: '#0369A1' }]}>{formatZar(balanceSheet.totalAssets.current)}</Text>
-            <Text style={[styles.cellTextBold, styles.colPri, { color: '#0369A1' }]}>{formatZar(balanceSheet.totalAssets.prior)}</Text>
-            <Text style={[styles.cellTextBold, styles.colVar, { color: '#0369A1' }]}>
+            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.totalAssets.prior)}</Text>
+            <Text style={[styles.cellTextBold, styles.colVar]}>
               {formatZar(balanceSheet.totalAssets.current - balanceSheet.totalAssets.prior)}
             </Text>
           </View>
@@ -683,9 +711,9 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>Prepared by My Accountant (Pty) Ltd • AI Accountant</Text>
+          <Text>Prepared by My Accountant (Pty) Ltd • Executive Management Report</Text>
           <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
-          <Text>Confidential Executive Report</Text>
+          <Text>Confidential Board Document</Text>
         </View>
       </Page>
 
@@ -777,9 +805,9 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>Prepared by My Accountant (Pty) Ltd • AI Accountant</Text>
+          <Text>Prepared by My Accountant (Pty) Ltd • Executive Management Report</Text>
           <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
-          <Text>Confidential Executive Report</Text>
+          <Text>Confidential Board Document</Text>
         </View>
       </Page>
     </Document>

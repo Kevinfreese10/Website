@@ -216,11 +216,11 @@ export function generateManagementReportPdf({
       subPositive: data.kpis.workingCapital.current >= 0,
     },
     {
-      title: 'HEALTH INDEX',
-      val: analysis?.healthScore ? `${analysis.healthScore} / 100` : 'Active',
-      sub: 'AI Financial Score',
+      title: 'CURRENT RATIO',
+      val: `${data.kpis.workingCapital.ratio.toFixed(2)}x`,
+      sub: 'Liquidity Health',
       color: [99, 102, 241], // Indigo
-      subPositive: true,
+      subPositive: data.kpis.workingCapital.ratio >= 1.0,
     },
   ];
 
@@ -262,82 +262,133 @@ export function generateManagementReportPdf({
     doc.text(k.sub, x + 4.5, y + 18);
   });
 
-  let execY = kpiY + 4 + 2 * (kpiCardHeight + 3) + 4;
+  let execY = kpiY + 4 + 2 * (kpiCardHeight + 3) + 6;
 
-  // AI Executive Financial Commentary Card
-  doc.setFillColor(240, 249, 255); // Light sky tint
-  doc.setDrawColor(186, 230, 253);
-  doc.setLineWidth(0.4);
-  const commBoxHeight = 110;
-  doc.roundedRect(leftMargin, execY, contentWidth, commBoxHeight, 2, 2, 'FD');
-
-  // Blue left highlight bar
-  doc.setFillColor(37, 99, 235);
-  doc.roundedRect(leftMargin, execY, 3, commBoxHeight, 1, 1, 'F');
-
+  // Executive Financial Highlights Table
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(10.5);
   doc.setTextColor(15, 39, 68);
-  doc.text('Khai AI CA(SA) Executive Commentary & Insights', leftMargin + 6, execY + 7);
+  doc.text('Financial Performance Highlights & Executive Summary', leftMargin, execY);
 
-  let commContentY = execY + 13;
+  const summaryHighlightsRows: any[] = [
+    [
+      'Total Revenue / Turnover',
+      formatRand(data.kpis.revenue.current),
+      formatRand(data.kpis.revenue.prior),
+      formatRand(data.kpis.revenue.current - data.kpis.revenue.prior),
+      formatPct(data.kpis.revenue.changePct),
+    ],
+    [
+      'Gross Profit',
+      formatRand(data.kpis.grossProfit.current),
+      formatRand(data.kpis.grossProfit.prior),
+      formatRand(data.kpis.grossProfit.current - data.kpis.grossProfit.prior),
+      formatPct(data.kpis.grossProfit.changePct),
+    ],
+    [
+      'Gross Profit Margin %',
+      `${data.kpis.grossProfit.marginCurrentPct.toFixed(1)}%`,
+      `${data.kpis.grossProfit.marginPriorPct.toFixed(1)}%`,
+      `${(data.kpis.grossProfit.marginCurrentPct - data.kpis.grossProfit.marginPriorPct).toFixed(1)}%`,
+      '-',
+    ],
+    [
+      'Total Operating Expenses (OPEX)',
+      formatRand(data.kpis.opex.current),
+      formatRand(data.kpis.opex.prior),
+      formatRand(data.kpis.opex.current - data.kpis.opex.prior),
+      formatPct(data.kpis.opex.changePct),
+    ],
+    [
+      'Net Operating Profit / (Loss) Pre-Tax',
+      formatRand(data.kpis.netProfit.current),
+      formatRand(data.kpis.netProfit.prior),
+      formatRand(data.kpis.netProfit.current - data.kpis.netProfit.prior),
+      formatPct(data.kpis.netProfit.changePct),
+    ],
+    [
+      'Net Profit Margin %',
+      `${data.kpis.netProfit.marginCurrentPct.toFixed(1)}%`,
+      `${data.kpis.netProfit.marginPriorPct.toFixed(1)}%`,
+      `${(data.kpis.netProfit.marginCurrentPct - data.kpis.netProfit.marginPriorPct).toFixed(1)}%`,
+      '-',
+    ],
+    [
+      'Cash & Bank Balance',
+      formatRand(data.kpis.cashBalance.current),
+      formatRand(data.kpis.cashBalance.prior),
+      formatRand(data.kpis.cashBalance.netChange),
+      '-',
+    ],
+    [
+      'Net Working Capital (Current Assets - Current Liab.)',
+      formatRand(data.kpis.workingCapital.current),
+      formatRand(data.balanceSheet.currentAssets.priorTotal - data.balanceSheet.currentLiabilities.priorTotal),
+      formatRand(data.kpis.workingCapital.current - (data.balanceSheet.currentAssets.priorTotal - data.balanceSheet.currentLiabilities.priorTotal)),
+      '-',
+    ],
+    [
+      'Trade Receivables DSO / Trade Payables DPO',
+      `${data.kpis.debtors.dso} Days DSO`,
+      `${data.kpis.creditors.dpo} Days DPO`,
+      `Working Cap Ratio: ${data.kpis.workingCapital.ratio.toFixed(2)}x`,
+      '-',
+    ],
+  ];
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(30, 41, 59);
+  autoTable(doc, {
+    startY: execY + 3,
+    margin: { left: leftMargin, right: rightMargin },
+    theme: 'grid',
+    head: [
+      [
+        'Key Financial Indicator',
+        `Current Period\n(${currentPeriodDates})`,
+        `Prior Period\n(${priorPeriodDates})`,
+        'Movement (R / Pts)',
+        'Movement %',
+      ],
+    ],
+    body: summaryHighlightsRows,
+    styles: { fontSize: 7.5, cellPadding: 2.2, textColor: [30, 41, 59] },
+    headStyles: {
+      fillColor: [15, 39, 68],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 7.5,
+      halign: 'center',
+    },
+    columnStyles: {
+      0: { cellWidth: 70, halign: 'left' },
+      1: { cellWidth: 28, halign: 'right' },
+      2: { cellWidth: 28, halign: 'right' },
+      3: { cellWidth: 26, halign: 'right' },
+      4: { cellWidth: 26, halign: 'right' },
+    },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+  });
 
-  const execSummaryText = analysis?.executiveSummary ||
-    `During the period ${data.period.label} (${currentPeriodDates}), ${data.client.companyName} achieved total revenue of ${formatRand(
-      data.kpis.revenue.current
-    )} with a gross profit margin of ${data.kpis.grossProfit.marginCurrentPct.toFixed(1)}% and net operating profit before tax of ${formatRand(
-      data.kpis.netProfit.current
-    )}. Working capital closed at ${formatRand(data.kpis.workingCapital.current)} with cash & bank reserves standing at ${formatRand(
-      data.kpis.cashBalance.current
-    )}.`;
+  const notesY = (doc as any).lastAutoTable?.finalY + 6;
 
-  const splitSummary = doc.splitTextToSize(execSummaryText, contentWidth - 12);
-  doc.text(splitSummary, leftMargin + 6, commContentY);
-  commContentY += splitSummary.length * 3.5 + 4;
+  if (customNotes && notesY < pageHeight - 35) {
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    const boxH = Math.min(30, pageHeight - notesY - 18);
+    doc.roundedRect(leftMargin, notesY, contentWidth, boxH, 1.5, 1.5, 'FD');
 
-  if (analysis?.revenueAndMarginInsights) {
+    doc.setFillColor(37, 99, 235);
+    doc.roundedRect(leftMargin, notesY, 2.5, boxH, 1, 1, 'F');
+
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
+    doc.setFontSize(8.5);
     doc.setTextColor(15, 39, 68);
-    doc.text('Revenue & Margin Dynamics:', leftMargin + 6, commContentY);
-    commContentY += 3.5;
+    doc.text('Director / Management Notes:', leftMargin + 5, notesY + 5.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(51, 65, 85);
-    const splitRev = doc.splitTextToSize(analysis.revenueAndMarginInsights, contentWidth - 12);
-    doc.text(splitRev, leftMargin + 6, commContentY);
-    commContentY += splitRev.length * 3.5 + 4;
-  }
-
-  if (analysis?.cashFlowAndLiquidity && commContentY < execY + commBoxHeight - 20) {
-    doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
-    doc.setTextColor(15, 39, 68);
-    doc.text('Liquidity & Cash Runway:', leftMargin + 6, commContentY);
-    commContentY += 3.5;
-
-    doc.setFont('helvetica', 'normal');
     doc.setTextColor(51, 65, 85);
-    const splitCash = doc.splitTextToSize(analysis.cashFlowAndLiquidity, contentWidth - 12);
-    doc.text(splitCash, leftMargin + 6, commContentY);
-    commContentY += splitCash.length * 3.5 + 4;
-  }
-
-  if (customNotes && commContentY < execY + commBoxHeight - 15) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(15, 39, 68);
-    doc.text('Director / Partner Notes:', leftMargin + 6, commContentY);
-    commContentY += 3.5;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(51, 65, 85);
-    const splitNotes = doc.splitTextToSize(customNotes, contentWidth - 12);
-    doc.text(splitNotes, leftMargin + 6, commContentY);
+    const splitNotes = doc.splitTextToSize(customNotes, contentWidth - 10);
+    doc.text(splitNotes, leftMargin + 5, notesY + 11);
   }
 
   drawPageFooter(1, 4);
@@ -656,7 +707,7 @@ export function generateManagementReportPdf({
   doc.setTextColor(15, 39, 68);
   doc.text('3. Working Capital & Trade Ageing Analysis', leftMargin, nextY);
 
-  const ageingRows = data.workingCapital.ageingBuckets.map((b) => [
+  const ageingRows: any[] = data.workingCapital.ageingBuckets.map((b) => [
     b.label,
     formatRand(b.debtorsAmount),
     formatRand(b.creditorsAmount),
@@ -685,36 +736,6 @@ export function generateManagementReportPdf({
       3: { cellWidth: 44, halign: 'right' },
     },
   });
-
-  // 4. Strategic Director Action Items
-  const recY = (doc as any).lastAutoTable?.finalY + 8;
-  if (analysis?.keyRecommendations && analysis.keyRecommendations.length > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(15, 39, 68);
-    doc.text('4. Strategic Director Action Items & Recommendations', leftMargin, recY);
-
-    const recTableRows = analysis.keyRecommendations.map((rec, idx) => [
-      `${idx + 1}. ${rec}`,
-      'Director Review',
-      'HIGH PRIORITY',
-    ]);
-
-    autoTable(doc, {
-      startY: recY + 3,
-      margin: { left: leftMargin, right: rightMargin },
-      theme: 'grid',
-      head: [['Recommendation / Action Plan', 'Classification', 'Priority']],
-      body: recTableRows,
-      styles: { fontSize: 7.5, cellPadding: 2.2 },
-      headStyles: { fillColor: [15, 39, 68], textColor: [255, 255, 255], fontStyle: 'bold' },
-      columnStyles: {
-        0: { cellWidth: 120 },
-        1: { cellWidth: 32 },
-        2: { cellWidth: 26, halign: 'center', fontStyle: 'bold', textColor: [185, 28, 28] },
-      },
-    });
-  }
 
   drawPageFooter(4, 4);
 
