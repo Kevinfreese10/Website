@@ -397,6 +397,20 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
             Refresh
           </Button>
         </div>
+
+        {/* Active Period Date Badges */}
+        <div className="flex flex-wrap items-center gap-2.5 pt-1 text-xs">
+          <div className="flex items-center gap-1.5 bg-blue-50 text-blue-900 border border-blue-200 px-3 py-1 rounded-md">
+            <span className="font-bold">Current Period:</span>
+            <span>{reportData?.period.label || computedDates.periodLabel}</span>
+            <span className="text-blue-700 font-medium">({format(new Date(computedDates.startDateStr), 'dd MMM yyyy')} – {format(new Date(computedDates.endDateStr), 'dd MMM yyyy')})</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1 rounded-md">
+            <span className="font-bold">Comparative Prior:</span>
+            <span>{reportData?.period.comparativeLabel || computedDates.comparativePeriodLabel}</span>
+            <span className="text-slate-600 font-medium">({format(new Date(computedDates.comparativeStartDateStr), 'dd MMM yyyy')} – {format(new Date(computedDates.comparativeEndDateStr), 'dd MMM yyyy')})</span>
+          </div>
+        </div>
       </div>
 
       {reportData && (

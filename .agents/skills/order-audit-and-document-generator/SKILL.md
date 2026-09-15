@@ -102,29 +102,51 @@ This skill guides the end-to-end audit, document verification, statutory PDF gen
   Practice Number: PR-0098553 • CIBA Member in Good Standing
   ```
 
-#### B. NCR Credit Provider Registration Pack
-* **Form NCR 2 (7 Pages)**:
-  - Populate from official AcroForm template: `public/templates/NCR_Form_2_Fillable.pdf`.
-  - Fill all applicant details, trading name, registration number, commencement date, FYE, tax number, physical/postal address, telephone, email, sole director/management profile, premises details, and disqualification questions (all NO, SAPS consent YES).
-* **NCR Fee Annexure (Confirmation of Payment of Fees)**:
-  - Populate from official AcroForm template: `public/templates/NCR_Annexure_Confirmation_of_Fees_Fillable.pdf`.
-  - Reflect standard fee breakdown: R550.00 Application Fee + R1,250.00 Initial Registration Fee = **R 1,800.00 Total**.
-* **Special Power of Attorney**:
-  - Generate on My Accountant letterhead appointing Kevin Freese (CIBA #3561) to represent the entity before the National Credit Regulator.
-  - Include director signature line and Kevin's statutory acceptance card.
-* **Sole Director / Board Written Resolution**:
-  - Authorising credit provider registration under Section 40 of NCA and authorising director to execute Form 2.
+#### B. NCR Credit Provider 6-Document Statutory Pack
+* **Single-Page PDF Layout Budgeting Invariant**:
+  - 1-page statutory instruments (Accounting Officer Consent Letters, Special Power of Attorney, Director Resolutions, Fee Annexures) MUST fit on **exactly 1 page** without overflowing signatures to page 2.
+  - **CSS Page Budget Guidelines**:
+    ```css
+    @page { size: A4 portrait; margin: 12mm 15mm 12mm 15mm; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9.5pt; line-height: 1.45; color: #2D3748; }
+    .header-table { padding-bottom: 6px; margin-bottom: 12px; }
+    .meta-box { padding: 8px 12px; margin-bottom: 12px; font-size: 9pt; }
+    .sign-col { padding: 10px 12px; margin-top: 14px; }
+    ```
+  - **Verification**: Programmatically verify `pdfDoc.getPageCount() === 1` before finalizing.
+* **Complete 6-Document Statutory Application Pack**:
+  1. **01. Form NCR 2 Application (7/8 Pages)**: Populate official AcroForm template (`NCR_Form_2_Fillable.pdf`) with applicant name, trading name, CIPC registration number, commencement date, FYE, tax number, addresses, contact details, sole director profile, products (unsecured credit & credit facilities), English & IsiZulu languages, BBBEE commitments, overindebtedness commitments, new registrant financials (R 0.00), 1 premise, and disqualification questions (all NO, SAPS consent YES).
+  2. **02. Accounting Officer Consent & Appointment Letter (1 Page)**: Generate on My Accountant letterhead confirming independent appointment (CIBA CBAP SA #3561 / PR-0098553) compliant with Regulations 67 & 68 of NCA.
+  3. **03. Special Power of Attorney (1 Page)**: Mandating Kevin Freese / My Accountant (Pty) Ltd before the NCR.
+  4. **04. Sole Director Written Resolution (1 Page)**: Formal board resolution authorizing NCR registration and agent mandate.
+  5. **05. NCR Confirmation of Fees Annexure (1 Page)**: Breakdown (R550 App Fee + R1,250 Branch Fee = R1,800 Total) confirming payment.
+  6. **06. Share Certificate #01 (1 Page Landscape)**: Certifying 100 ordinary shares held by sole director.
+* **Local Output Directory**: Save copies to `C:\Users\kev\Downloads\Order_<ID>_<Entity>_Statutory_Pack\` and `c:/myacc/scratch/order_<ID>_pack`.
 
-#### C. COIDA Nature of Business Change Pack
+#### C. Executive Review Email Routing ("Email the pack to me")
+When Kevin requests a review email or "Email the pack to me":
+* **To**: `kev@thinkestry.co.za`
+* **CC**: `info@myacc.co.za`
+* **From**: `"Kevin Freese | My Accountant" <info@myacc.co.za>`
+* **Attachments**: All 6 drafted statutory PDFs.
+
+#### D. NCR Signed Conditions Lodgement Protocol (Section 48(6))
+When an NCR application is approved subject to proposed conditions:
+* **Required Attachments**: Initialled Proposed Conditions Notice + Signed Annexure A (Consent) + Signed Annexure B (Staff Count).
+* **To**: `registrations@ncr.org.za` and assigned officer (e.g. `Tneshehe@ncr.org.za`).
+* **CC**: Client email address & `info@myacc.co.za`.
+* **State Transition**: Set order status to `Waiting on External` and post dispatch note + Message ID to Order Communication History.
+
+#### E. COIDA Nature of Business Change Pack
 * **Official Form CF-1B (3 Pages)**: Use `public/templates/CF-1B Form Application for Change of Nature of Business_ORIGINAL_BACKUP.pdf`.
 * **Special Power of Attorney**: Appointing Kevin Freese (CIBA #3561, ID: `8606205046085`) before the Compensation Commissioner.
 
-#### D. B-BBEE Sworn Affidavit (EME - General)
+#### F. B-BBEE Sworn Affidavit (EME - General)
 * Use official dtic template `public/templates/Affidavit-EME-Gen.pdf`.
 * Embed trimmed signature asset `public/templates/Signature_Kevin_New.png`.
 * Position signature compactly above `Commissioner of Oaths:` header with Commissioner stamp box below.
 
-#### E. Company Voluntary Liquidation Application & CM100 Pack
+#### G. Company Voluntary Liquidation Application & CM100 Pack
 * **Master Templates**:
   - Application Pack (Core): `public/templates/LIQUIDATION_APPLICATION_MASTER.docx` (based on `ARP FAMILY ENTERPRISE (PTY) LTD - LIQUIDATION APPLICATION.docx`).
   - Statement of Affairs: `public/templates/CM100_CALLENDRA_HOLDINGS_22_Pages.pdf` (22-page official Master AcroForm).
