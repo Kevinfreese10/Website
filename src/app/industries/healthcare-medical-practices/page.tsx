@@ -42,7 +42,7 @@ export default function HealthcareIndustryPage() {
     <div className="space-y-16 pb-16">
       <section className="bg-slate-50 text-slate-900 py-20 lg:py-32 border-b border-slate-200/50">
         <div className="container mx-auto px-4 text-center">
-            <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-8">
+            <div className="h-16 w-16 rounded-xl bg-primary/20 flex items-center justify-center mx-auto mb-8">
                 <HeartPulse className="h-8 w-8 text-primary" />
             </div>
             <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl max-w-4xl mx-auto text-hero-gradient pb-2">

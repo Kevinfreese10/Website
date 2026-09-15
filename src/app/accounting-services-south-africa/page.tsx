@@ -89,7 +89,7 @@ export default function AccountingServicesSouthAfricaPage() {
         <div className="absolute inset-0 bg-dot-grid" />
 
         <div className="container mx-auto px-4 text-center max-w-4xl space-y-6 relative z-10">
-          <div className="h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
+          <div className="h-16 w-16 rounded-xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
             <LineChart className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">

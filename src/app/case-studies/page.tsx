@@ -63,7 +63,7 @@ export default function CaseStudiesPage() {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {caseStudies.map((study, index) => (
-          <div key={index} className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col">
+          <div key={index} className="bg-white rounded-xl p-8 border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col">
             <div className="flex text-amber-400 mb-4">
               <Star className="fill-current w-5 h-5" />
               <Star className="fill-current w-5 h-5" />

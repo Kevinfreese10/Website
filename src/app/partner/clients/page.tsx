@@ -746,7 +746,7 @@ export default function PartnerClientsPage() {
       </div>
 
       {/* Main CRM Workspace Container */}
-      <Card className="border shadow-md rounded-2xl bg-white overflow-hidden">
+      <Card className="border shadow-md rounded-xl bg-white overflow-hidden">
         {/* Table Filters & Control Header */}
         <div className="p-6 border-b bg-slate-50/50 flex flex-col lg:flex-row justify-between lg:items-center gap-4">
           <div className="relative flex-1 max-w-md">

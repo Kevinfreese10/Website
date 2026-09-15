@@ -95,7 +95,7 @@ export default function AnnualFinancialStatementsPage() {
 
       {/* Key AFS Statistics */}
       <section className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-10 bg-slate-50 rounded-3xl border border-slate-100 p-8 shadow-sm text-center max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-10 bg-slate-50 rounded-xl border border-slate-100 p-8 shadow-sm text-center max-w-4xl mx-auto">
           <div className="space-y-2">
             <p className="text-4xl md:text-5xl font-black text-primary">1,500+</p>
             <p className="text-sm font-bold text-foreground/80">AFS Compiled</p>
@@ -144,7 +144,7 @@ export default function AnnualFinancialStatementsPage() {
             <p className="text-sm text-muted-foreground font-semibold">Determine the statutory reporting standard required for your entity based on its Public Interest Score (PIS).</p>
           </div>
           
-          <div className="overflow-x-auto rounded-2xl border shadow-sm">
+          <div className="overflow-x-auto rounded-xl border shadow-sm">
             <table className="w-full border-collapse bg-white text-left text-sm text-foreground/80">
               <thead className="bg-slate-50 text-foreground">
                 <tr className="border-b">
@@ -182,7 +182,7 @@ export default function AnnualFinancialStatementsPage() {
 
       {/* Expert AFS Quote */}
       <section className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto p-8 border-l-4 border-primary bg-primary/5 rounded-r-2xl text-left">
+        <div className="max-w-3xl mx-auto p-8 border-l-4 border-primary bg-primary/5 rounded-r-xl text-left">
           <span className="text-5xl text-primary/30 font-serif leading-none block -mt-4 -ml-2">“</span>
           <p className="text-lg font-medium text-foreground/90 italic leading-relaxed">
             "Accurate annual financial statements are more than just a CIPC or SARS compliance requirement. They are the ultimate health check for your business, and the first document that banks, lenders, and investors demand. A clean, professionally compiled set of financials is the key to unlocking corporate finance in South Africa."
@@ -230,7 +230,7 @@ export default function AnnualFinancialStatementsPage() {
       </section>
 
       <section className="container mx-auto px-4 text-center">
-        <div className="max-w-3xl mx-auto p-12 rounded-3xl glass-card border shadow-sm">
+        <div className="max-w-3xl mx-auto p-12 rounded-xl glass-card border shadow-sm">
             <h2 className="text-3xl font-bold">Close Your Year with Peace of Mind</h2>
             <p className="text-lg text-muted-foreground mt-4 leading-relaxed">
                 Whether you need financials for a bank loan application, CIPC compliance, or shareholder review, we deliver accurate statements you can rely on.

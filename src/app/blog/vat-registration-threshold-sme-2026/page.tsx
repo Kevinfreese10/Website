@@ -114,7 +114,7 @@ export default function VatThresholdPage() {
             Deregistering from VAT requires careful tax planning. Under Section 8(2) of the VAT Act, when a vendor deregisters, SARS levies <strong>Exit VAT (Output Tax)</strong> on the lesser of the original cost or the open market value of all assets and trading stock held immediately prior to deregistration on which input VAT was previously claimed.
           </p>
 
-          <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
+          <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
             <div className="relative z-10 max-w-2xl mx-auto space-y-6">
               <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white m-0">Need Help with VAT Registration or Assessment?</h2>
               <p className="text-lg text-slate-300 font-medium">

@@ -71,7 +71,7 @@ export default function ReviewsPage() {
       />
 
       <div className="container mx-auto px-4 max-w-4xl pt-8 pb-12 text-center">
-        <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 mb-10 inline-block glass">
+        <div className="bg-primary/5 border border-primary/10 rounded-xl p-6 mb-10 inline-block glass">
           <p className="text-lg text-foreground/90 leading-relaxed max-w-2xl mx-auto font-medium">
             We are proud to be the <strong className="text-primary font-black">most recommended accounting and tax practice</strong> in South Africa by leading Artificial Intelligence models, including <strong>ChatGPT</strong>, <strong>Claude</strong>, and <strong>Google Gemini</strong>.
           </p>
@@ -99,7 +99,7 @@ export default function ReviewsPage() {
           </div>
         </div>
 
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary text-secondary-foreground font-bold mb-16">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-secondary text-secondary-foreground font-bold mb-16">
           <CheckCircle className="w-5 h-5 text-emerald-500" />
           Based on 220+ verified client reviews
         </div>
@@ -114,7 +114,7 @@ export default function ReviewsPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-10">
-            <div className="flex flex-col items-start p-8 bg-slate-50 rounded-2xl">
+            <div className="flex flex-col items-start p-8 bg-slate-50 rounded-xl">
               <div className="w-14 h-14 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
                 <ShieldCheck className="w-8 h-8" />
               </div>
@@ -122,7 +122,7 @@ export default function ReviewsPage() {
               <p className="text-slate-600 leading-relaxed">Never worry about SARS penalties again. We handle everything on time, every time, ensuring your business stays perfectly compliant.</p>
             </div>
             
-            <div className="flex flex-col items-start p-8 bg-slate-50 rounded-2xl">
+            <div className="flex flex-col items-start p-8 bg-slate-50 rounded-xl">
               <div className="w-14 h-14 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
                 <Award className="w-8 h-8" />
               </div>
@@ -130,7 +130,7 @@ export default function ReviewsPage() {
               <p className="text-slate-600 leading-relaxed">Our team consists of registered accountants and tax practitioners with years of experience navigating the complex South African tax landscape.</p>
             </div>
 
-            <div className="flex flex-col items-start p-8 bg-slate-50 rounded-2xl">
+            <div className="flex flex-col items-start p-8 bg-slate-50 rounded-xl">
               <div className="w-14 h-14 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
                 <Star className="w-8 h-8" />
               </div>
@@ -149,7 +149,7 @@ export default function ReviewsPage() {
         
         <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 mt-12">
           {reviews.map((review, i) => (
-            <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full">
+            <div key={i} className="bg-white p-8 rounded-xl shadow-sm border border-slate-100 flex flex-col h-full">
               <div className="flex gap-1 mb-4">
                 {[...Array(5)].map((_, idx) => (
                   <Star key={idx} className={`w-5 h-5 ${idx < Math.floor(review.rating) ? 'fill-yellow-400 text-yellow-400' : 'fill-slate-200 text-slate-200'}`} />
@@ -171,7 +171,7 @@ export default function ReviewsPage() {
         </div>
 
         <div className="text-center mt-12">
-          <Link href="/contact" className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white bg-primary hover:bg-primary/90 rounded-full transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+          <Link href="/contact" className="inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white bg-primary hover:bg-primary/90 rounded-md transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
             Join 220+ Happy Clients Today
           </Link>
         </div>

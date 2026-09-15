@@ -75,7 +75,7 @@ export default function ManagementAccountsPage() {
       </section>
 
       <section className="container mx-auto px-4 text-center py-12">
-        <div className="max-w-3xl mx-auto p-12 rounded-3xl glass-card border shadow-sm">
+        <div className="max-w-3xl mx-auto p-12 rounded-xl glass-card border shadow-sm">
             <h2 className="text-3xl font-bold">Get a Clear Financial View</h2>
             <p className="text-lg text-muted-foreground mt-4 leading-relaxed">
                 Our team provides monthly or quarterly management packs that help you identify growth opportunities and eliminate waste before it affects your bottom line.

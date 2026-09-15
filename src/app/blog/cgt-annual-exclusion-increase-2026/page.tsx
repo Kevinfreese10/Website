@@ -70,7 +70,7 @@ export default function CGTExclusionPage() {
             Investors should strategically time their asset disposals across multiple tax years to fully utilize their annual exclusions. Selling a portion of a highly appreciated asset over two consecutive tax years, instead of a lump sum, can effectively double your tax-free gain allowance.
           </p>
 
-          <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
+          <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
             <div className="relative z-10 max-w-2xl mx-auto space-y-6">
               <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white m-0">Need Investment Tax Structuring?</h2>
               <p className="text-lg text-slate-300 font-medium">

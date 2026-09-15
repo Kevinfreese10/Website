@@ -235,7 +235,7 @@ export default function ProductsPageClient({
       
       <div className="container mx-auto px-4 pb-12 flex-grow">
 
-      <section className="py-12 bg-secondary/30 border-white/[0.06] mb-12 rounded-3xl glass-card">
+      <section className="py-12 bg-secondary/30 border-white/[0.06] mb-12 rounded-xl glass-card">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl font-black md:text-4xl uppercase tracking-tighter text-foreground font-headline">How Our Online Accounting Process Works</h2>
@@ -277,7 +277,7 @@ export default function ProductsPageClient({
               }
             ].map((step, idx) => (
               <div key={idx} className="relative text-center space-y-6 group">
-                <div className={cn("h-20 w-20 rounded-3xl border flex items-center justify-center mx-auto mb-6 shadow-sm transition-all duration-300 group-hover:scale-105", step.bg)}>
+                <div className={cn("h-20 w-20 rounded-xl border flex items-center justify-center mx-auto mb-6 shadow-sm transition-all duration-300 group-hover:scale-105", step.bg)}>
                   <step.icon className="h-10 w-10" />
                 </div>
                 <div className="space-y-2">
@@ -305,7 +305,7 @@ export default function ProductsPageClient({
               placeholder="E.g. 'I need to submit a provisional return' or 'Register a company'..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setActiveCategory('all'); }}
-              className="block w-full pl-11 pr-10 py-3 border border-input rounded-2xl bg-background placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm font-medium text-foreground shadow-sm transition-all"
+              className="block w-full pl-11 pr-10 py-3 border border-input rounded-xl bg-background placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm font-medium text-foreground shadow-sm transition-all"
             />
             {searchQuery && (
               <button
@@ -383,7 +383,7 @@ export default function ProductsPageClient({
                         {/* Featured / Popular badge */}
                         {service.isFeatured && (
                           <div className="absolute top-3 right-3">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider border border-amber-500/20">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider border border-amber-500/20">
                               <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" /> Popular
                             </span>
                           </div>
@@ -397,7 +397,7 @@ export default function ProductsPageClient({
                               {service.category}
                             </Badge>
                             {(service.title.toLowerCase().includes('foreign') || service.title.toLowerCase().includes('external')) && (
-                              <Badge variant="outline" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-full px-2 py-0.5 flex items-center bg-slate-50 text-slate-600 border-slate-200">
+                              <Badge variant="outline" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-slate-50 text-slate-600 border-slate-200">
                                 <Globe className="h-2.5 w-2.5 mr-1 text-slate-400" />
                                 Foreign Entity
                               </Badge>
@@ -511,7 +511,7 @@ export default function ProductsPageClient({
         )}
 
         {/* SPECIALIST & QUOTE-BASED SERVICES */}
-        <section className="mt-16 bg-card/40 border border-border/40 rounded-3xl p-8 glass-card">
+        <section className="mt-16 bg-card/40 border border-border/40 rounded-xl p-8 glass-card">
           <div className="text-center mb-10 space-y-3">
             <h2 className="text-2xl font-black md:text-3xl tracking-tighter text-foreground font-headline">Specialist & Complex Cases</h2>
             <p className="text-muted-foreground">Expert negotiation and compliance services available on a bespoke, quote-based model.</p>
@@ -523,7 +523,7 @@ export default function ProductsPageClient({
               { title: "Remission of Fines", desc: "Apply for penalty waivers", href: "/remission-of-fines" },
               { title: "Liquidations", desc: "Corporate liquidation services", href: "/liquidations" }
             ].map((s, i) => (
-              <div key={i} className="rounded-2xl border border-border/40 p-6 flex flex-col items-center text-center space-y-4 hover:border-primary/30 transition-colors bg-background">
+              <div key={i} className="rounded-xl border border-border/40 p-6 flex flex-col items-center text-center space-y-4 hover:border-primary/30 transition-colors bg-background">
                 <h3 className="font-bold text-foreground text-lg">{s.title}</h3>
                 <p className="text-sm text-muted-foreground flex-grow">{s.desc}</p>
                 <Button asChild variant="outline" className="w-full font-bold">

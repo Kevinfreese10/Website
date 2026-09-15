@@ -284,7 +284,7 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
                       <div
                         onClick={() => hasPrecedingQuestion && handleOpenCommentDialog(message, idx)}
                         className={cn(
-                          "rounded-2xl p-3.5 text-xs font-medium leading-relaxed shadow-sm transition-all duration-200 relative group",
+                          "rounded-xl p-3.5 text-xs font-medium leading-relaxed shadow-sm transition-all duration-200 relative group",
                           message.role === 'user'
                             ? "bg-violet-600 text-white rounded-tr-none"
                             : "bg-white text-slate-800 border border-slate-200/80 rounded-tl-none",
@@ -401,7 +401,7 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
                 <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center border border-slate-200 shrink-0 shadow-sm">
                   <Bot className="h-4.5 w-4.5 text-violet-600" />
                 </div>
-                <div role="status" aria-live="polite" aria-busy="true" className="p-3.5 rounded-2xl rounded-tl-none bg-white border border-slate-200/80 shadow-sm flex items-center justify-center"><Loader2 className="h-4 w-4 animate-spin text-violet-600" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
+                <div role="status" aria-live="polite" aria-busy="true" className="p-3.5 rounded-xl rounded-tl-none bg-white border border-slate-200/80 shadow-sm flex items-center justify-center"><Loader2 className="h-4 w-4 animate-spin text-violet-600" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
               </div>
             )}
             <div ref={messagesEndRef} />

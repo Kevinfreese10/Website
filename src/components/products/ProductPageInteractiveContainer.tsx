@@ -91,11 +91,11 @@ export default function ProductPageInteractiveContainer({
       <div className="md:col-span-1">
         <div className="sticky top-24 space-y-4">
           {/* Service summary recap */}
-          <div className="relative overflow-hidden rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/90 via-indigo-50/40 to-white p-5 shadow-sm space-y-3">
+          <div className="relative overflow-hidden rounded-xl border border-blue-200/80 bg-gradient-to-br from-blue-50/90 via-indigo-50/40 to-white p-5 shadow-sm space-y-3">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500" />
 
             <div className="flex items-center justify-between gap-2">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-100/80 text-blue-800 border border-blue-200/80">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-blue-100/80 text-blue-800 border border-blue-200/80">
                 {service.category}
               </span>
             </div>

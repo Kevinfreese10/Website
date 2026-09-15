@@ -64,7 +64,7 @@ export default function TurnoverTaxCalculatorPage() {
         
         {/* Header */}
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
             <Calculator className="w-3.5 h-3.5" />
             Micro-Business Tax Tool
           </div>
@@ -78,7 +78,7 @@ export default function TurnoverTaxCalculatorPage() {
 
         {/* Main Card */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border border-slate-200/80 shadow-sm bg-white rounded-2xl">
+          <Card className="border border-slate-200/80 shadow-sm bg-white rounded-xl">
             <CardHeader className="border-b border-slate-100 bg-slate-50/50">
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Calculator className="w-4 h-4 text-blue-600" />
@@ -119,7 +119,7 @@ export default function TurnoverTaxCalculatorPage() {
           </Card>
 
           {/* Results Card */}
-          <Card className="border border-slate-200/80 shadow-sm bg-white rounded-2xl flex flex-col justify-between">
+          <Card className="border border-slate-200/80 shadow-sm bg-white rounded-xl flex flex-col justify-between">
             <CardHeader className="border-b border-slate-100 bg-slate-50/50">
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-600" />
@@ -145,7 +145,7 @@ export default function TurnoverTaxCalculatorPage() {
                 </div>
               ) : (
                 <>
-                  <div className="text-center p-6 rounded-2xl bg-slate-900 text-white space-y-2">
+                  <div className="text-center p-6 rounded-xl bg-slate-900 text-white space-y-2">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Estimated Annual Turnover Tax</span>
                     <div className="text-4xl font-extrabold text-emerald-400">{formatCurrency(tax)}</div>
                     <div className="text-xs text-slate-300 font-medium">
@@ -184,7 +184,7 @@ export default function TurnoverTaxCalculatorPage() {
         </div>
 
         {/* Additional Info Section */}
-        <Card className="border border-slate-200/80 shadow-sm bg-white rounded-2xl">
+        <Card className="border border-slate-200/80 shadow-sm bg-white rounded-xl">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50">
             <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-blue-600" />

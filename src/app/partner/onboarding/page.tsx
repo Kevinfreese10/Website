@@ -335,7 +335,7 @@ export default function PartnerOnboardingPage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto py-6">
       {isPlatformSuccess && (
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 p-6 rounded-2xl shadow-lg animate-in fade-in zoom-in-95">
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 p-6 rounded-xl shadow-lg animate-in fade-in zoom-in-95">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-emerald-600 text-white rounded-xl shadow-md shrink-0">
@@ -410,7 +410,7 @@ export default function PartnerOnboardingPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="p-6 border-2 border-primary/25 bg-primary/5 rounded-xl flex flex-col justify-between space-y-4">
                       <div className="space-y-2">
-                        <div className="inline-block bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">Recommended</div>
+                        <div className="inline-block bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md">Recommended</div>
                         <h4 className="font-bold text-lg text-slate-900">Done-For-You Setup</h4>
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           Let our Chartered Accountants handle the heavy lifting. We will write custom copy, design your theme branding, map markup rates, and guide you in a 1-on-1 walk-through.
@@ -427,7 +427,7 @@ export default function PartnerOnboardingPage() {
 
                     <div className="p-6 border rounded-xl flex flex-col justify-between space-y-4">
                       <div className="space-y-2">
-                        <div className="inline-block bg-muted text-muted-foreground text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">Standard</div>
+                        <div className="inline-block bg-muted text-muted-foreground text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md">Standard</div>
                         <h4 className="font-bold text-lg text-slate-900">Self-Service Setup</h4>
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           Complete our wizard steps yourself. Set your bank details, adjust colors, and input pricing markups manually using the dashboard.

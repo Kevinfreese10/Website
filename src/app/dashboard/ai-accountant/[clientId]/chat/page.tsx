@@ -317,7 +317,7 @@ export default function ClientAllocationChatPage() {
                     <CardContent className="flex-grow overflow-hidden relative p-0 bg-white">
                         {!chatStarted ? (
                             <div className="flex flex-col items-center justify-center h-full text-center p-8 space-y-4">
-                                <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                                <div className="h-20 w-20 rounded-md bg-primary/10 flex items-center justify-center">
                                     <Bot className="h-10 w-10 text-primary" />
                                 </div>
                                 <div>
@@ -333,7 +333,7 @@ export default function ClientAllocationChatPage() {
                                     {messages.map((m, i) => (
                                         <div key={i} className={cn("flex w-full", m.role === 'user' ? "justify-end" : "justify-start")}>
                                             <div className={cn(
-                                                "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
+                                                "max-w-[80%] rounded-xl px-4 py-3 shadow-sm",
                                                 m.role === 'user' 
                                                     ? "bg-primary text-primary-foreground rounded-br-none" 
                                                     : "bg-muted border rounded-bl-none text-slate-950"
@@ -355,7 +355,7 @@ export default function ClientAllocationChatPage() {
                                     ))}
                                     {isLoading && (
                                         <div className="flex justify-start">
-                                            <div className="bg-muted px-4 py-3 rounded-2xl rounded-bl-none border flex items-center gap-2">
+                                            <div className="bg-muted px-4 py-3 rounded-xl rounded-bl-none border flex items-center gap-2">
                                                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                                                 <span className="text-xs font-bold text-slate-950 italic">Khai is thinking...</span>
                                             </div>

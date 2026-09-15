@@ -3562,7 +3562,7 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                                                 {sourceLabel || (group.suggestion.confidence < 20 ? "No Match Found" : `${group.suggestion.confidence}% Match Confidence`)}
                                             </Badge>
                                         ) : (
-                                            <Badge variant="secondary" className="text-[10px] font-bold py-1 px-3 rounded-full">
+                                            <Badge variant="secondary" className="text-[10px] font-bold py-1 px-3 rounded-md">
                                                 No Match Found
                                             </Badge>
                                         )}

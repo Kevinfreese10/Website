@@ -39,10 +39,10 @@ export default async function CommunityPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Premium Gradient Header */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-8 md:p-10 shadow-2xl">
+      <div className="relative rounded-xl overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-8 md:p-10 shadow-2xl">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
         <div className="relative z-10 space-y-3">
-          <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium px-3 py-1 rounded-full text-xs">
+          <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium px-3 py-1 rounded-md text-xs">
             Community Space
           </Badge>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-200">
@@ -59,7 +59,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
         {/* Left Column: Filters and Feed (8 cols) */}
         <div className="lg:col-span-8 space-y-6">
           {/* Search & Filter Bar */}
-          <div className="bg-card/75 border border-border backdrop-blur-md rounded-2xl p-4 shadow-md space-y-4">
+          <div className="bg-card/75 border border-border backdrop-blur-md rounded-xl p-4 shadow-md space-y-4">
             <form method="GET" className="flex flex-col sm:flex-row gap-3">
               {/* Maintain current filters in form */}
               {tag && <input type="hidden" name="tag" value={tag} />}
@@ -158,7 +158,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
           {/* Questions Feed */}
           <div className="space-y-4">
             {questions.length === 0 ? (
-              <Card className="border-border bg-card/60 backdrop-blur-md rounded-2xl p-10 text-center shadow-md">
+              <Card className="border-border bg-card/60 backdrop-blur-md rounded-xl p-10 text-center shadow-md">
                 <CardContent className="space-y-4 p-0">
                   <div className="w-16 h-16 bg-muted/65 text-muted-foreground rounded-full flex items-center justify-center mx-auto">
                     <MessageSquare className="h-8 w-8" />
@@ -178,7 +178,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
               questions.map((q: CommunityQuestion) => (
                 <Card
                   key={q.id}
-                  className={`group border-border hover:border-border/90 bg-card/75 hover:bg-card backdrop-blur-md rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden ${
+                  className={`group border-border hover:border-border/90 bg-card/75 hover:bg-card backdrop-blur-md rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden ${
                     q.isSolved ? 'border-l-4 border-l-emerald-500' : ''
                   }`}
                 >
@@ -231,7 +231,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
                       {/* Stats badges */}
                       <div className="flex items-center gap-3 text-muted-foreground">
                         {q.isSolved && (
-                          <span className="flex items-center gap-1 text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                          <span className="flex items-center gap-1 text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
                             <CheckCircle2 className="h-3.5 w-3.5 fill-emerald-500 text-emerald-500" />
                             <span>Solved</span>
                           </span>
@@ -263,7 +263,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
         {/* Right Column: Widgets (4 cols) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Ask Question Widget wrapper */}
-          <div className="bg-card/75 border border-border backdrop-blur-md rounded-2xl p-5 shadow-md text-center space-y-4">
+          <div className="bg-card/75 border border-border backdrop-blur-md rounded-xl p-5 shadow-md text-center space-y-4">
             <h3 className="font-bold text-base">Have a question?</h3>
             <p className="text-xs text-muted-foreground leading-normal">
               Ask other professionals in the partner community. Share details and tag topics to get fast replies.
@@ -275,7 +275,7 @@ export default async function CommunityPage({ searchParams }: PageProps) {
           <LeaderboardWidget users={leaderboard} />
 
           {/* Rep points system info */}
-          <Card className="border-border bg-card/65 backdrop-blur-md rounded-2xl shadow-md p-5">
+          <Card className="border-border bg-card/65 backdrop-blur-md rounded-xl shadow-md p-5">
             <h4 className="text-sm font-bold flex items-center gap-1.5 text-primary mb-2">
               <span className="w-1.5 h-4 bg-primary rounded-full inline-block" />
               Reputation System

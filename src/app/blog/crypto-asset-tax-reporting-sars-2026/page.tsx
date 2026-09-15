@@ -75,7 +75,7 @@ export default function CryptoTaxPage() {
             You are required to declare all crypto-related income in your annual tax return. Failing to disclose crypto gains is a criminal offense and can result in severe penalties. SARS is actively employing advanced data mining techniques and collaborating with local exchanges to track taxpayer activity.
           </p>
 
-          <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
+          <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
             <div className="relative z-10 max-w-2xl mx-auto space-y-6">
               <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white m-0">Confused by Crypto Taxes?</h2>
               <p className="text-lg text-slate-300 font-medium">

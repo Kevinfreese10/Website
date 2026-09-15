@@ -338,7 +338,7 @@ export default function SarsCompromisePageClient() {
                     We help clients legally reduce tax exposure, negotiate sustainable repayment terms, and restore compliance with SARS.
                 </p>
               </div>
-              <div className="bg-slate-50 border border-slate-200/80 text-foreground/90 p-8 rounded-3xl shadow-xl space-y-6">
+              <div className="bg-slate-50 border border-slate-200/80 text-foreground/90 p-8 rounded-xl shadow-xl space-y-6">
                   <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
                     <LifeBuoy className="h-6 w-6" /> Why Seek Help?
                   </h3>
@@ -383,7 +383,7 @@ export default function SarsCompromisePageClient() {
                       <p className="text-muted-foreground leading-relaxed">
                         The compromise process is typically considered where taxpayers cannot reasonably settle their full tax debt due to financial hardship or exceptional circumstances.
                       </p>
-                      <div className="p-6 bg-white rounded-2xl border border-dashed border-primary/30 text-center">
+                      <div className="p-6 bg-white rounded-xl border border-dashed border-primary/30 text-center">
                           <p className="text-xs font-black uppercase tracking-widest text-primary mb-2">Legal Framework</p>
                           <p className="text-sm font-bold text-foreground">Sections 200 - 204 of the Tax Administration Act</p>
                       </div>
@@ -700,7 +700,7 @@ export default function SarsCompromisePageClient() {
                     <h2 className="text-3xl font-bold text-foreground">SARS Debt Management Services</h2>
                     <p className="text-muted-foreground leading-relaxed">A structured and proactive approach to resolving liabilities and preventing enforcement.</p>
                   </div>
-                  <div className="bg-destructive/5 p-6 rounded-2xl border border-destructive/20">
+                  <div className="bg-destructive/5 p-6 rounded-xl border border-destructive/20">
                       <h3 className="text-sm font-black uppercase tracking-widest text-destructive mb-4">Risks of Ignoring Debt</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {risksOfIgnoring.map(risk => (
@@ -819,7 +819,7 @@ export default function SarsCompromisePageClient() {
                   </div>
                   <div className="space-y-6">
                       <h2 className="text-3xl font-bold text-foreground">Businesses & Individuals We Assist</h2>
-                      <div className="bg-white p-8 rounded-3xl border-2 border-dashed border-slate-200">
+                      <div className="bg-white p-8 rounded-xl border-2 border-dashed border-slate-200">
                         <div className="grid grid-cols-1 gap-3">
                             {assistedEntities.map(item => (
                                 <div key={item} className="flex items-center gap-3 text-sm font-bold text-muted-foreground">
@@ -837,7 +837,7 @@ export default function SarsCompromisePageClient() {
       <section className="container mx-auto px-4 max-w-6xl py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-8">
-                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
                   <div className="space-y-4 text-center lg:text-left">
                     <h2 className="text-3xl font-bold text-foreground">SARS Debt Assistance Across South Africa</h2>
                     <p className="text-lg text-muted-foreground leading-relaxed">
@@ -853,7 +853,7 @@ export default function SarsCompromisePageClient() {
                     </p>
                   </div>
               </div>
-              <div className="relative h-[400px] rounded-3xl overflow-hidden shadow-xl border-8 border-slate-50">
+              <div className="relative h-[400px] rounded-xl overflow-hidden shadow-xl border-8 border-slate-50">
                   <iframe
                       title="Office Location Map"
                       src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
@@ -889,7 +889,7 @@ export default function SarsCompromisePageClient() {
 
       {/* FINAL CTA */}
       <section className="container mx-auto px-4 text-center">
-        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-50 border border-slate-200/60 text-foreground shadow-xl relative overflow-hidden">
+        <div className="max-w-4xl mx-auto p-12 rounded-xl bg-slate-50 border border-slate-200/60 text-foreground shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-8">
                 <h2 className="text-4xl font-black text-foreground">Speak to a SARS Debt Specialist</h2>
                 <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">

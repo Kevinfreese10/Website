@@ -104,7 +104,7 @@ export default function CommunityCarouselWidget() {
                         </div>
                       </div>
                       {q.isSolved && (
-                        <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full flex items-center gap-1">
+                        <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md flex items-center gap-1">
                           <CheckCircle2 className="h-3.5 w-3.5" /> Solved
                         </span>
                       )}

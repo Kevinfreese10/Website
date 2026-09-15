@@ -73,7 +73,7 @@ function PriceOnRequestForm({ service }: { service: Service }) {
 
   if (isSent) {
     return (
-      <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-center space-y-3 animate-in fade-in">
+      <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center space-y-3 animate-in fade-in">
         <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto" />
         <h3 className="font-extrabold text-green-800 text-base">Enquiry Received!</h3>
         <p className="text-sm text-green-700">We&apos;ll get back to you with a personalised quote within 1 business day.</p>
@@ -82,7 +82,7 @@ function PriceOnRequestForm({ service }: { service: Service }) {
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border bg-slate-50 p-5">
+    <div className="space-y-4 rounded-xl border bg-slate-50 p-5">
       <div className="flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">Request a Quote</h3>

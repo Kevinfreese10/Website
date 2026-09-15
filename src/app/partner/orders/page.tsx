@@ -477,7 +477,7 @@ export default function PartnerOrdersPage() {
                     <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
                 ) : orders.length === 0 ? (
                     <div className="py-16 text-center space-y-3 max-w-md mx-auto">
-                        <div className="p-3 bg-primary/10 text-primary w-fit rounded-full mx-auto">
+                        <div className="p-3 bg-primary/10 text-primary w-fit rounded-md mx-auto">
                             <ShoppingBag className="h-6 w-6" />
                         </div>
                         <h3 className="font-bold text-lg text-foreground">No Client Orders Yet</h3>

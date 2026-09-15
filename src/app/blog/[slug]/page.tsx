@@ -300,14 +300,14 @@ export default async function BlogPostPage({ params }: Props) {
             src={post.imageUrl}
             alt={post.title}
             fill
-            className="rounded-2xl object-cover shadow-2xl border border-slate-200"
+            className="rounded-xl object-cover shadow-2xl border border-slate-200"
             data-ai-hint={post.imageHint}
             priority
           />
         </div>
 
         <div
-          className="prose prose-lg md:prose-xl max-w-none prose-headings:font-headline prose-headings:font-black prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4 prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-primary prose-a:font-semibold hover:prose-a:text-primary/80 prose-li:text-slate-700 prose-li:marker:text-primary prose-ul:space-y-2 prose-ol:space-y-2 prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-slate-50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:font-medium prose-blockquote:text-slate-900 prose-img:rounded-2xl prose-img:shadow-lg"
+          className="prose prose-lg md:prose-xl max-w-none prose-headings:font-headline prose-headings:font-black prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6 prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4 prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-primary prose-a:font-semibold hover:prose-a:text-primary/80 prose-li:text-slate-700 prose-li:marker:text-primary prose-ul:space-y-2 prose-ol:space-y-2 prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-slate-50 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:font-medium prose-blockquote:text-slate-900 prose-img:rounded-xl prose-img:shadow-lg"
           dangerouslySetInnerHTML={{ 
             __html: (post.content || '')
               .replace(/<h1(\s|>)/gi, '<h2$1')
@@ -317,7 +317,7 @@ export default async function BlogPostPage({ params }: Props) {
         />
 
         {/* PROMINENT CTA BLOCK TO REDIRECT TRAFFIC */}
-        <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
+        <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
           <div className="relative z-10 max-w-2xl mx-auto space-y-6">
             <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white font-headline">Need Expert Help?</h2>
@@ -337,7 +337,7 @@ export default async function BlogPostPage({ params }: Props) {
 
         {/* FAQ SECTION (Strictly aligned with Google Search Engine requirements) */}
         {postFaqs && postFaqs.length > 0 && (
-          <section className="mt-16 bg-slate-50 rounded-2xl p-8 border shadow-sm max-w-3xl mx-auto">
+          <section className="mt-16 bg-slate-50 rounded-xl p-8 border shadow-sm max-w-3xl mx-auto">
             <div className="space-y-6">
               <div className="text-center space-y-2">
                 <h2 className="text-3xl font-black tracking-tight text-slate-900">Frequently Asked Questions</h2>
@@ -372,7 +372,7 @@ export default async function BlogPostPage({ params }: Props) {
                         <CardHeader className="pb-3 relative">
                             {service.isFeatured && (
                               <div className="absolute top-3 right-3">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider border border-amber-500/20">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider border border-amber-500/20">
                                   <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" /> Popular
                                 </span>
                               </div>
@@ -380,7 +380,7 @@ export default async function BlogPostPage({ params }: Props) {
 
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
-                                <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-full px-2 py-0.5 flex items-center">
+                                <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center">
                                   {service.category}
                                 </Badge>
                               </div>

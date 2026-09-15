@@ -39,7 +39,7 @@ export default function OutsourcedPayrollFeesCalculator() {
   ];
 
   return (
-    <Card className="border border-border bg-card shadow-lg max-w-4xl mx-auto rounded-3xl overflow-hidden">
+    <Card className="border border-border bg-card shadow-lg max-w-4xl mx-auto rounded-xl overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-12">
         {/* Left Side: Controls */}
         <div className="md:col-span-7 p-6 md:p-8 space-y-8 flex flex-col justify-center">
@@ -67,7 +67,7 @@ export default function OutsourcedPayrollFeesCalculator() {
             </div>
           </div>
 
-          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
             <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider mb-2">Pricing Structure</h4>
             <ul className="text-xs text-muted-foreground space-y-1 leading-relaxed">
               <li>• <span className="font-bold text-slate-700">1 to 10 Employees:</span> Flat R6,400 / month</li>

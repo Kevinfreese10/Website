@@ -48,7 +48,7 @@ export default function PageHero({
 
       <div className="container relative z-10 mx-auto px-4 max-w-4xl">
         {badgeText && (
-          <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full glass neon-border text-xs font-semibold text-primary uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-md glass neon-border text-xs font-semibold text-primary uppercase tracking-widest">
             {badgeIcon || <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />}
             {badgeText}
           </div>

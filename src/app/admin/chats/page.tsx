@@ -415,7 +415,7 @@ export default function AdminChatsPage() {
         
         {/* Master List Section */}
         <div className="lg:col-span-4 xl:col-span-4 flex flex-col h-[750px]">
-          <Card className="flex flex-col h-full border border-slate-200/80 shadow-md bg-white rounded-2xl overflow-hidden">
+          <Card className="flex flex-col h-full border border-slate-200/80 shadow-md bg-white rounded-xl overflow-hidden">
             <CardHeader className="p-4 pb-2 shrink-0 space-y-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-bold text-slate-800">Session Explorer</CardTitle>
@@ -541,7 +541,7 @@ export default function AdminChatsPage() {
         {/* Chat Transcript Panel */}
         <div className="lg:col-span-8 xl:col-span-8 flex flex-col h-[750px]">
           {activeChat ? (
-            <Card className="flex flex-col h-full shadow-md border border-slate-200/80 bg-white rounded-2xl overflow-hidden">
+            <Card className="flex flex-col h-full shadow-md border border-slate-200/80 bg-white rounded-xl overflow-hidden">
               
               {/* Header */}
               <CardHeader className="bg-slate-50/80 border-b border-slate-200/80 p-4 flex flex-row items-center justify-between space-y-0 shrink-0">
@@ -553,7 +553,7 @@ export default function AdminChatsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <CardTitle className="text-base font-extrabold text-slate-800">{activeChat.userName}</CardTitle>
                       
-                      <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-0.5 rounded-full text-[9px] font-bold select-none text-slate-600">
+                      <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-0.5 rounded-md text-[9px] font-bold select-none text-slate-600">
                         <span className={cn("h-1.5 w-1.5 rounded-full", isUserActive(activeChat) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')} />
                         {isUserActive(activeChat) ? 'Active' : 'Offline'}
                       </div>
@@ -671,7 +671,7 @@ export default function AdminChatsPage() {
                     if (isSystem) {
                       return (
                         <div key={index} className="flex justify-center my-4 animate-in fade-in duration-200">
-                          <div className="bg-indigo-50/60 text-indigo-700 border border-indigo-100/50 text-[10px] font-bold px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                          <div className="bg-indigo-50/60 text-indigo-700 border border-indigo-100/50 text-[10px] font-bold px-4 py-1.5 rounded-md flex items-center gap-1.5 shadow-sm">
                             <Mail className="h-3.5 w-3.5 text-indigo-500 animate-pulse" />
                             <span>{msg.content}</span>
                           </div>
@@ -702,7 +702,7 @@ export default function AdminChatsPage() {
                         <div className="flex flex-col space-y-1 max-w-[75%]">
                           <div
                             className={cn(
-                              "rounded-2xl p-3.5 text-xs leading-relaxed shadow-sm font-medium",
+                              "rounded-xl p-3.5 text-xs leading-relaxed shadow-sm font-medium",
                               msg.role === 'user'
                                 ? 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-tr-none shadow-indigo-100/60 shadow-md'
                                 : msg.role === 'agent'
@@ -829,7 +829,7 @@ export default function AdminChatsPage() {
               )}
             </Card>
           ) : (
-            <Card className="flex flex-col h-full items-center justify-center border border-slate-200/80 shadow-md bg-white rounded-2xl p-6 text-center select-none">
+            <Card className="flex flex-col h-full items-center justify-center border border-slate-200/80 shadow-md bg-white rounded-xl p-6 text-center select-none">
               <div className="h-16 w-16 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4 shadow-sm animate-pulse">
                 <MessageSquare className="h-8 w-8" />
               </div>

@@ -71,7 +71,7 @@ export default function JobsBoardPage() {
     <div className="bg-slate-50/60 min-h-screen py-8">
       <main className="container mx-auto px-4 max-w-6xl space-y-8">
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-slate-200/80 shadow-xs">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900">Partner Jobs & Talent Board</h1>
             <p className="text-sm text-slate-600 mt-1 font-medium">Explore open career opportunities and certified network talent.</p>

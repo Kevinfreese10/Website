@@ -343,7 +343,7 @@ export default function AdminTasksPage() {
             </Button>
           </div>
 
-          <Card className="border shadow-md rounded-2xl bg-white overflow-hidden">
+          <Card className="border shadow-md rounded-xl bg-white overflow-hidden">
             <CardHeader className="bg-slate-50/50 p-6 border-b">
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>

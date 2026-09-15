@@ -42,7 +42,7 @@ export default function LeaderboardWidget({ users }: LeaderboardWidgetProps) {
   };
 
   return (
-    <Card className="w-full border-border bg-card/65 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden">
+    <Card className="w-full border-border bg-card/65 backdrop-blur-md rounded-xl shadow-xl overflow-hidden">
       <CardHeader className="pb-3 bg-gradient-to-b from-muted/50 to-transparent">
         <CardTitle className="text-lg font-bold flex items-center gap-2">
           <Trophy className="h-5 w-5 text-amber-500 animate-bounce" />

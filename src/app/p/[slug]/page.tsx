@@ -293,7 +293,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
               }
             ].map((step, idx) => (
               <div key={idx} className="relative text-center space-y-6 group">
-                <div className={cn("h-20 w-20 rounded-3xl border flex items-center justify-center mx-auto mb-6 shadow-sm transition-all duration-300 group-hover:scale-105", step.bg)}>
+                <div className={cn("h-20 w-20 rounded-xl border flex items-center justify-center mx-auto mb-6 shadow-sm transition-all duration-300 group-hover:scale-105", step.bg)}>
                   <step.icon className="h-10 w-10" />
                 </div>
                 <div className="space-y-2">
@@ -478,7 +478,7 @@ export default async function PartnerLandingPage({ params }: { params: Promise<{
 
                 {/* Growth Card (Most Popular) */}
                 <Card className="flex flex-col glass-card border-2 partner-border shadow-lg relative hover:shadow-2xl hover:scale-[1.03] transition-all duration-300">
-                  <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-background border border-border partner-text font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-full shadow-md select-none">
+                  <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-background border border-border partner-text font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-md shadow-md select-none">
                     Most Popular
                   </div>
                   <div className="p-6 border-b partner-bg/5 rounded-t-xl partner-card">

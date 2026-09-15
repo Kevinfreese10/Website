@@ -130,7 +130,7 @@ export default function ThreadDetailPage() {
       </div>
 
       {/* Main Question Thread Card */}
-      <Card className={`border-border bg-card/75 backdrop-blur-md rounded-2xl shadow-md overflow-hidden ${
+      <Card className={`border-border bg-card/75 backdrop-blur-md rounded-xl shadow-md overflow-hidden ${
         question.isSolved ? 'border-l-4 border-l-emerald-500' : ''
       }`}>
         <CardContent className="p-6 md:p-8 space-y-5">
@@ -185,7 +185,7 @@ export default function ThreadDetailPage() {
             
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {question.isSolved && (
-                <span className="flex items-center gap-1 text-emerald-500 font-bold bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                <span className="flex items-center gap-1 text-emerald-500 font-bold bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-md">
                   <CheckCircle2 className="h-4 w-4 fill-emerald-500 text-emerald-500" />
                   <span>Solved</span>
                 </span>
@@ -207,7 +207,7 @@ export default function ThreadDetailPage() {
         </h3>
 
         {answers.length === 0 ? (
-          <div className="bg-card/50 border border-border/60 backdrop-blur-md rounded-2xl p-8 text-center text-sm text-muted-foreground">
+          <div className="bg-card/50 border border-border/60 backdrop-blur-md rounded-xl p-8 text-center text-sm text-muted-foreground">
             No answers posted yet. Share your thoughts below!
           </div>
         ) : (
@@ -218,7 +218,7 @@ export default function ThreadDetailPage() {
               return (
                 <Card
                   key={answer.id}
-                  className={`border-border bg-card/70 backdrop-blur-md rounded-2xl shadow-sm transition-all duration-300 overflow-hidden ${
+                  className={`border-border bg-card/70 backdrop-blur-md rounded-xl shadow-sm transition-all duration-300 overflow-hidden ${
                     isAccepted ? 'border-2 border-emerald-500/40 bg-emerald-500/[0.03]' : ''
                   }`}
                 >
@@ -284,7 +284,7 @@ export default function ThreadDetailPage() {
       </div>
 
       {/* Answer Submission Input */}
-      <Card className="border-border bg-card/75 backdrop-blur-md rounded-2xl shadow-md p-6 mt-6">
+      <Card className="border-border bg-card/75 backdrop-blur-md rounded-xl shadow-md p-6 mt-6">
         {question.isSolved ? (
           <div className="text-center py-4 text-muted-foreground text-sm flex items-center justify-center gap-2">
             <Lock className="h-4 w-4" />

@@ -28,7 +28,7 @@ export default function CartPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-black tracking-tight text-slate-900">Your Cart</h1>
             {itemCount > 0 && (
-              <Badge className="bg-primary text-white font-extrabold text-xs px-2 py-0.5 rounded-full">
+              <Badge className="bg-primary text-white font-extrabold text-xs px-2 py-0.5 rounded-md">
                 {itemCount} item{itemCount !== 1 ? 's' : ''}
               </Badge>
             )}
@@ -45,7 +45,7 @@ export default function CartPage() {
               {cartItems.map(item => (
                 <div
                   key={item.service.id}
-                  className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group"
+                  className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group"
                 >
                   {/* Details */}
                   <div className="flex-grow min-w-0">
@@ -92,7 +92,7 @@ export default function CartPage() {
 
             {/* Order Summary */}
             <div className="lg:col-span-1 sticky top-24">
-              <Card className="border-slate-200 shadow-md rounded-2xl overflow-hidden">
+              <Card className="border-slate-200 shadow-md rounded-xl overflow-hidden">
                 <CardHeader className="bg-slate-50 border-b pb-4">
                   <CardTitle className="text-base font-extrabold text-slate-900">Order Summary</CardTitle>
                 </CardHeader>
@@ -130,7 +130,7 @@ export default function CartPage() {
           </div>
         ) : (
           <div className="text-center py-24 space-y-6 animate-in fade-in">
-            <div className="h-20 w-20 rounded-3xl bg-slate-100 flex items-center justify-center mx-auto border border-slate-200 shadow-inner">
+            <div className="h-20 w-20 rounded-xl bg-slate-100 flex items-center justify-center mx-auto border border-slate-200 shadow-inner">
               <ShoppingCart className="h-10 w-10 text-slate-400" />
             </div>
             <div className="space-y-2">

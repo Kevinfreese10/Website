@@ -91,7 +91,7 @@ export default function FreelancerHubPage() {
       </section>
 
       <section className="container mx-auto px-4 max-w-4xl pt-8">
-          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-8 md:p-12 text-center">
               <h3 className="text-2xl font-bold text-slate-900 mb-4">Need personalized advice?</h3>
               <p className="text-lg text-slate-700 mb-8 max-w-xl mx-auto">
                   Our accountants specialize in helping independent professionals structure their taxes efficiently and remain 100% compliant with SARS.

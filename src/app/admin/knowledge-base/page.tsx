@@ -297,7 +297,7 @@ function KnowledgeBaseForm({ item, onSubmit, onCancel }: { item: Partial<KBItem>
                                                 <HelpCircle className="mr-1 h-3 w-3 animate-pulse" /> Clarifications Needed
                                             </Badge>
                                         )}
-                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">
+                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-violet-100 text-violet-800">
                                             {analysisResult.comprehensionScore}%
                                         </span>
                                     </div>

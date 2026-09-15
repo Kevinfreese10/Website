@@ -57,7 +57,7 @@ export default function JobsBoardCarouselWidget() {
         </div>
 
         {jobs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center border rounded-2xl bg-white shadow-sm">
+          <div className="flex flex-col items-center justify-center py-12 text-center border rounded-xl bg-white shadow-sm">
             <Briefcase className="h-12 w-12 text-slate-300 mb-4" />
             <h3 className="text-xl font-bold text-slate-700">No jobs posted yet</h3>
             <p className="text-slate-500 mt-2 max-w-sm">Be the first to post a job on the Partner Jobs Board!</p>

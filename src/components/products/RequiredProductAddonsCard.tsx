@@ -124,7 +124,7 @@ export default function RequiredProductAddonsCard({
   };
 
   return (
-    <Card className="border-2 border-blue-200 bg-blue-50/40 shadow-sm rounded-2xl overflow-hidden my-6">
+    <Card className="border-2 border-blue-200 bg-blue-50/40 shadow-sm rounded-xl overflow-hidden my-6">
       <CardHeader className="bg-blue-100/60 pb-3 border-b border-blue-200/60">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-bold text-blue-950 flex items-center gap-2">

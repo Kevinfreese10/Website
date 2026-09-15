@@ -165,7 +165,7 @@ export function DocumentPreviewDrawer({
 
           {error && !blobUrl && !useGoogleDocsFallback && (
             <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-              <div className="rounded-full bg-destructive/10 p-3 text-destructive">
+              <div className="rounded-md bg-destructive/10 p-3 text-destructive">
                 <FileText className="h-8 w-8" />
               </div>
               <div className="space-y-1">

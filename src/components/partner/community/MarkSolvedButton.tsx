@@ -58,7 +58,7 @@ export default function MarkSolvedButton({ questionId, answerId }: MarkSolvedBut
       size="sm"
       disabled={isPending}
       onClick={handleMarkSolved}
-      className="rounded-full text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 flex items-center gap-1.5 transition-all"
+      className="rounded-md text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 flex items-center gap-1.5 transition-all"
     >
       {isPending ? (
         <>

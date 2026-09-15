@@ -55,7 +55,7 @@ export default function PayrollCostCalculatorPage() {
       {/* Hero Header */}
       <section className="bg-slate-50 text-slate-900 py-16 border-b border-slate-200/50">
         <div className="container mx-auto px-4 text-center max-w-3xl space-y-4">
-          <div className="h-14 w-14 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-4">
+          <div className="h-14 w-14 rounded-xl bg-primary/15 flex items-center justify-center mx-auto mb-4">
             <Calculator className="h-7 w-7 text-primary" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl font-headline text-hero-gradient pb-2">
@@ -104,7 +104,7 @@ export default function PayrollCostCalculatorPage() {
 
                 <Separator />
 
-                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-2">
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-2">
                   <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">Payroll Fee Structure</h4>
                   <ul className="text-xs text-muted-foreground space-y-1.5 leading-relaxed">
                     <li>• <span className="font-semibold text-slate-700">1 to 10 Employees:</span> Flat R6,400 / month</li>
@@ -119,7 +119,7 @@ export default function PayrollCostCalculatorPage() {
 
           {/* Right Column: Pricing & Deliverables */}
           <div className="lg:col-span-5 space-y-6">
-            <Card className="border border-border bg-card shadow-sm overflow-hidden rounded-3xl">
+            <Card className="border border-border bg-card shadow-sm overflow-hidden rounded-xl">
               <div className="bg-slate-900 text-white p-6 space-y-6 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.05),transparent_50%)] pointer-events-none" />
                 

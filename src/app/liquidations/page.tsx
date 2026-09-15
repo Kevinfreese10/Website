@@ -189,7 +189,7 @@ export default function LiquidationsPage() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                 {whyChooseUs.map((benefit) => (
-                    <div key={benefit.title} className="flex flex-col items-center text-center gap-4 p-6 bg-slate-50 rounded-2xl border border-slate-100 shadow-sm">
+                    <div key={benefit.title} className="flex flex-col items-center text-center gap-4 p-6 bg-slate-50 rounded-xl border border-slate-100 shadow-sm">
                         <div className="bg-primary/10 rounded-full h-16 w-16 flex items-center justify-center">
                             <benefit.icon className="h-8 w-8 text-primary" />
                         </div>

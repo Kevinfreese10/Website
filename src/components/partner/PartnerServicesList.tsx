@@ -170,7 +170,7 @@ export default function PartnerServicesList({ categories, services, mostPopularI
                                 {/* Most Popular Badge */}
                                 {isPopular && (
                                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                                    <span className="partner-btn px-4 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shadow-md whitespace-nowrap">
+                                    <span className="partner-btn px-4 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md shadow-md whitespace-nowrap">
                                       ⭐ Most Popular
                                     </span>
                                   </div>

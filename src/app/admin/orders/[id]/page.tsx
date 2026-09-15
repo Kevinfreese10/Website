@@ -1018,7 +1018,7 @@ export default function AdminOrderDetailsPage() {
                                                 <span className="text-[11px] font-black uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
                                                     <UserIcon className="h-3.5 w-3.5" /> Orders From This Client
                                                 </span>
-                                                <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                                                <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-md">
                                                     {sameClientCandidates.length} Found
                                                 </span>
                                             </div>

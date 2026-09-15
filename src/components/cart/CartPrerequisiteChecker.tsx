@@ -122,7 +122,7 @@ export default function CartPrerequisiteChecker() {
   };
 
   return (
-    <Card className="border-2 border-amber-300 bg-amber-50/70 shadow-sm rounded-2xl overflow-hidden mb-6">
+    <Card className="border-2 border-amber-300 bg-amber-50/70 shadow-sm rounded-xl overflow-hidden mb-6">
       <CardHeader className="bg-amber-100/70 py-3 px-4 border-b border-amber-200">
         <CardTitle className="text-sm font-bold text-amber-950 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />

@@ -20,7 +20,7 @@ export function AiThinking({
       <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-violet-200 bg-violet-50">
         <Sparkles className="h-4 w-4 text-violet-600 animate-glow-pulse" />
       </span>
-      <span className="flex items-center gap-1.5 rounded-2xl rounded-bl-none border bg-muted px-3.5 py-2.5">
+      <span className="flex items-center gap-1.5 rounded-xl rounded-bl-none border bg-muted px-3.5 py-2.5">
         <span className="flex gap-1" aria-hidden="true">
           {[0, 1, 2].map((i) => (
             <span

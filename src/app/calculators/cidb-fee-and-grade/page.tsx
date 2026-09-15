@@ -90,7 +90,7 @@ export default function CidbFeeAndGradeCalculatorPage() {
       {/* Hero Header */}
       <section className="bg-slate-50 text-slate-900 py-16 border-b border-slate-200/50">
         <div className="container mx-auto px-4 text-center max-w-3xl space-y-4">
-          <div className="h-14 w-14 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-4">
+          <div className="h-14 w-14 rounded-xl bg-primary/15 flex items-center justify-center mx-auto mb-4">
             <HardHat className="h-7 w-7 text-primary" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight md:text-4xl text-hero-gradient pb-2">

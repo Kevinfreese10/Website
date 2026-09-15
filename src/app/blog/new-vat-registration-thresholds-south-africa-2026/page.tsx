@@ -70,7 +70,7 @@ export default function NewVatThresholds2026Page() {
           </p>
 
           <div className="my-10 overflow-x-auto not-prose">
-            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-lg bg-white">
+            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-lg bg-white">
               <div className="bg-slate-900 text-white px-6 py-4">
                 <h3 className="text-lg font-bold">Summary: VAT Registration Threshold Changes</h3>
               </div>
@@ -92,7 +92,7 @@ export default function NewVatThresholds2026Page() {
                       R1,000,000
                     </td>
                     <td className="p-4 sm:p-5">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
                         R2,300,000
                       </span>
                     </td>
@@ -108,7 +108,7 @@ export default function NewVatThresholds2026Page() {
                       R50,000
                     </td>
                     <td className="p-4 sm:p-5">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-black bg-blue-100 text-blue-800 border border-blue-300">
+                      <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-black bg-blue-100 text-blue-800 border border-blue-300">
                         R120,000
                       </span>
                     </td>
@@ -195,9 +195,9 @@ export default function NewVatThresholds2026Page() {
             <li><strong>Commercial Invoices & Proof of Turnover:</strong> Issued sales invoices and matching bank statement credits demonstrating taxable supplies exceeding R120,000 (for voluntary registration) or exceeding R2.3M / signed contract (for compulsory).</li>
           </ol>
 
-          <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden not-prose">
+          <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden not-prose">
             <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">
                 <ShieldCheck className="h-4 w-4 text-blue-400" /> Fast Online Service
               </span>
               <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white m-0">

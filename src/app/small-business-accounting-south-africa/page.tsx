@@ -68,7 +68,7 @@ export default function SmallBusinessAccountingPage() {
         <div className="absolute inset-0 bg-dot-grid" />
 
         <div className="container mx-auto px-4 text-center max-w-4xl space-y-6 relative z-10">
-          <div className="h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
+          <div className="h-16 w-16 rounded-xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
             <Store className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
@@ -118,7 +118,7 @@ export default function SmallBusinessAccountingPage() {
 
       {/* CTA Box */}
       <section className="container mx-auto px-4 max-w-4xl">
-        <div className="bg-primary text-white p-8 lg:p-12 rounded-3xl text-center space-y-6 shadow-xl">
+        <div className="bg-primary text-white p-8 lg:p-12 rounded-xl text-center space-y-6 shadow-xl">
           <PiggyBank className="h-12 w-12 text-white/80 mx-auto" />
           <h3 className="text-3xl font-bold">Stop Overpaying for Accounting</h3>
           <p className="text-white/80 max-w-xl mx-auto text-base">

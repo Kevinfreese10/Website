@@ -185,7 +185,7 @@ export default function ClientServiceCheckoutForm({ service }: { service: Servic
   return (
     <div className="space-y-4">
       {/* Order Configuration Box */}
-      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between text-xs font-black uppercase text-slate-400 tracking-wider pb-1 border-b">
           <span>Configure Your Order</span>
           <span>Select Items</span>

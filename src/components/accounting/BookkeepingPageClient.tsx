@@ -213,7 +213,7 @@ export default function BookkeepingPageClient() {
 
       {/* CTA SECTION */}
       <section className="container mx-auto px-4 text-center max-w-3xl py-12">
-        <div className="bg-primary/5 border border-primary/10 rounded-3xl p-8 md:p-12 space-y-6">
+        <div className="bg-primary/5 border border-primary/10 rounded-xl p-8 md:p-12 space-y-6">
           <h2 className="text-3xl font-black tracking-tight text-foreground md:text-4xl">Ready to Clean Up Your Accounts?</h2>
           <p className="text-muted-foreground font-medium leading-relaxed max-w-xl mx-auto">
             Request a call from our onboarding team. We will review your transaction volumes and suggest a perfect custom plan to suit your budget.

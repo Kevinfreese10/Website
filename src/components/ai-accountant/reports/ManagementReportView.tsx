@@ -520,7 +520,7 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
           </div>
 
           {/* Khai AI Commentary & Director Notes */}
-          <Card className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl border-none overflow-hidden rounded-2xl">
+          <Card className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl border-none overflow-hidden rounded-xl">
             <CardHeader className="pb-3 border-b border-white/10 flex flex-row items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-md">

@@ -303,7 +303,7 @@ export default function BecomeAPartnerPageClient() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                 {/* Plan 1: Free Partner */}
-                <div className="relative bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden flex flex-col justify-between">
+                <div className="relative bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden flex flex-col justify-between">
                     <div>
                         <CardHeader className="bg-slate-50 border-b border-slate-100 p-8 text-center">
                             <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Free Partner Tier</CardTitle>
@@ -341,10 +341,10 @@ export default function BecomeAPartnerPageClient() {
                 </div>
 
                 {/* Plan 2: White-Label Practice Storefront */}
-                <div className="relative p-[2px] rounded-2xl bg-gradient-to-r from-primary via-blue-500 to-violet-600 shadow-2xl hover:shadow-primary/20 transition-all duration-300 group">
-                    <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary to-violet-600 opacity-25 blur transition duration-1000 group-hover:opacity-40 group-hover:duration-200" />
+                <div className="relative p-[2px] rounded-xl bg-gradient-to-r from-primary via-blue-500 to-violet-600 shadow-2xl hover:shadow-primary/20 transition-all duration-300 group">
+                    <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-primary to-violet-600 opacity-25 blur transition duration-1000 group-hover:opacity-40 group-hover:duration-200" />
                     
-                    <div className="relative bg-white rounded-[14px] overflow-hidden flex flex-col justify-between h-full">
+                    <div className="relative bg-white rounded-xl overflow-hidden flex flex-col justify-between h-full">
                         <div className="absolute top-0 right-0 bg-primary text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-bl-lg z-20">
                             Recommended
                         </div>
@@ -401,11 +401,11 @@ export default function BecomeAPartnerPageClient() {
                 <h2 className="text-4xl font-black leading-tight text-foreground">Our philosophy has always been simple</h2>
             </div>
             
-            <div className="bg-gradient-to-br from-white via-slate-50/40 to-blue-50/20 border border-slate-200/80 shadow-2xl rounded-3xl overflow-hidden p-6 md:p-10 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-white via-slate-50/40 to-blue-50/20 border border-slate-200/80 shadow-2xl rounded-xl overflow-hidden p-6 md:p-10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 h-40 w-40 bg-primary/5 rounded-full filter blur-3xl pointer-events-none" />
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
                     {/* Left Column: Avatar & Credentials */}
-                    <div className="md:col-span-5 flex flex-col items-center text-center p-6 bg-slate-100/50 border border-slate-200/60 rounded-2xl shadow-sm">
+                    <div className="md:col-span-5 flex flex-col items-center text-center p-6 bg-slate-100/50 border border-slate-200/60 rounded-xl shadow-sm">
                         <img
                             src={KEVIN_FREESE_PROFILE_IMAGE}
                             alt="Kevin Freese - Managing Director & Founder"
@@ -417,7 +417,7 @@ export default function BecomeAPartnerPageClient() {
                         <h4 className="text-lg font-black text-slate-900">Kevin Freese</h4>
                         <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director & Founder</p>
                         
-                        <div className="mt-2.5 px-3 py-1 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-700 rounded-full font-bold text-[10px] uppercase tracking-wider border border-amber-500/20">
+                        <div className="mt-2.5 px-3 py-1 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-700 rounded-md font-bold text-[10px] uppercase tracking-wider border border-amber-500/20">
                             20+ Years Experience
                         </div>
 
@@ -458,13 +458,13 @@ export default function BecomeAPartnerPageClient() {
                         </div>
 
                         <div className="flex flex-wrap gap-3 pt-2">
-                            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 rounded-full font-bold text-xs border border-emerald-100 shadow-sm">
+                            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 rounded-md font-bold text-xs border border-emerald-100 shadow-sm">
                                 <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" /> You stay in control
                             </div>
-                            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 rounded-full font-bold text-xs border border-emerald-100 shadow-sm">
+                            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 rounded-md font-bold text-xs border border-emerald-100 shadow-sm">
                                 <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" /> You keep the client
                             </div>
-                            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 rounded-full font-bold text-xs border border-emerald-100 shadow-sm">
+                            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 rounded-md font-bold text-xs border border-emerald-100 shadow-sm">
                                 <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" /> You protect your brand
                             </div>
                         </div>
@@ -519,7 +519,7 @@ export default function BecomeAPartnerPageClient() {
                 <p className="text-muted-foreground mt-4 max-w-2xl mx-auto text-lg">A powerful back-office engine for your accounting firm, designed for maximum results.</p>
             </div>
             
-            <div className="max-w-5xl mx-auto border rounded-2xl overflow-hidden shadow-xl">
+            <div className="max-w-5xl mx-auto border rounded-xl overflow-hidden shadow-xl">
                 <div className="grid grid-cols-1 md:grid-cols-2 bg-slate-100 border-b border-slate-200 text-foreground/90 font-black uppercase tracking-widest text-[10px]">
                     <div className="p-4 border-r border-slate-200 hidden md:block">The Platform Feature</div>
                     <div className="p-4 hidden md:block">The Business Benefit</div>

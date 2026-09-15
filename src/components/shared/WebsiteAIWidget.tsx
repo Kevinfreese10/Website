@@ -354,7 +354,7 @@ export default function WebsiteAIWidget() {
             )}
             <div 
               className={cn(
-                "max-w-[85%] rounded-2xl p-3.5 text-sm font-medium leading-relaxed shadow-sm",
+                "max-w-[85%] rounded-xl p-3.5 text-sm font-medium leading-relaxed shadow-sm",
                 message.role === 'user' 
                   ? "bg-gradient text-white rounded-br-none" 
                   : message.role === 'agent'
@@ -519,7 +519,7 @@ export default function WebsiteAIWidget() {
               <div className="h-8 w-8 rounded-full bg-white/[0.04] flex items-center justify-center border border-white/10 shrink-0 shadow-sm">
                  <Bot className="h-4.5 w-4.5 text-primary" />
               </div>
-              <div className="p-3.5 rounded-2xl rounded-bl-none bg-white/[0.04] border border-white/10 shadow-sm flex items-center justify-center">
+              <div className="p-3.5 rounded-xl rounded-bl-none bg-white/[0.04] border border-white/10 shadow-sm flex items-center justify-center">
                  <div className="flex items-center gap-1 py-1 px-1">
                    <span className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
                    <span className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
@@ -601,7 +601,7 @@ export default function WebsiteAIWidget() {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-lg animate-in zoom-in-95 duration-200"
             >
-              <Card className="flex flex-col h-[80vh] max-h-[700px] shadow-2xl bg-card border rounded-2xl overflow-hidden neon-glow">
+              <Card className="flex flex-col h-[80vh] max-h-[700px] shadow-2xl bg-card border rounded-xl overflow-hidden neon-glow">
                 {cardInner}
               </Card>
             </div>
@@ -611,7 +611,7 @@ export default function WebsiteAIWidget() {
             "fixed left-4 right-4 z-50 sm:left-auto sm:w-full sm:max-w-md animate-in fade-in slide-in-from-bottom-5 duration-300 transition-all duration-300",
             pathname === '/' ? "bottom-36 md:bottom-20" : "bottom-20"
           )}>
-            <Card className="flex flex-col h-[60vh] max-h-[calc(100vh-11rem)] sm:h-[600px] sm:max-h-[700px] shadow-2xl bg-card border rounded-2xl overflow-hidden neon-glow">
+            <Card className="flex flex-col h-[60vh] max-h-[calc(100vh-11rem)] sm:h-[600px] sm:max-h-[700px] shadow-2xl bg-card border rounded-xl overflow-hidden neon-glow">
               {cardInner}
             </Card>
           </div>

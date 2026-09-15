@@ -188,7 +188,7 @@ export default function SarsDisputesPageClient() {
                     ))}
                 </div>
               </div>
-              <div className="bg-slate-50 p-8 rounded-3xl border-2 border-dashed border-slate-200 space-y-4">
+              <div className="bg-slate-50 p-8 rounded-xl border-2 border-dashed border-slate-200 space-y-4">
                   <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
                     <Gavel className="h-6 w-6" /> What is a SARS Dispute?
                   </h3>
@@ -331,7 +331,7 @@ export default function SarsDisputesPageClient() {
                     ))}
                 </div>
               </div>
-              <div className="bg-slate-50 border border-slate-200/60 text-foreground p-8 rounded-3xl shadow-lg">
+              <div className="bg-slate-50 border border-slate-200/60 text-foreground p-8 rounded-xl shadow-lg">
                   <h3 className="text-xl font-bold mb-4 text-primary">Penalty & Interest Remissions</h3>
                   <p className="text-sm text-slate-600 mb-6 leading-relaxed">SARS imposes administrative and understatement penalties (up to 200%). We request remission based on "Reasonable Grounds" or exceptional circumstances.</p>
                   <Button asChild className="w-full font-bold">
@@ -361,7 +361,7 @@ export default function SarsDisputesPageClient() {
                   </div>
                   <div className="space-y-6">
                       <h2 className="text-3xl font-bold text-foreground">Industries We Assist</h2>
-                      <div className="bg-white p-8 rounded-3xl border-2 border-dashed border-slate-200">
+                      <div className="bg-white p-8 rounded-xl border-2 border-dashed border-slate-200">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {industries.map(item => (
                                 <div key={item} className="flex items-center gap-3 text-sm font-bold text-muted-foreground">
@@ -379,7 +379,7 @@ export default function SarsDisputesPageClient() {
       <section className="container mx-auto px-4 max-w-6xl py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-8">
-                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
                   <div className="space-y-4 text-center lg:text-left">
                     <h2 className="text-3xl font-bold text-foreground">SARS Dispute Resolution Across South Africa</h2>
                     <p className="text-lg text-muted-foreground leading-relaxed">
@@ -392,7 +392,7 @@ export default function SarsDisputesPageClient() {
                     </div>
                   </div>
               </div>
-              <div className="relative h-[400px] rounded-3xl overflow-hidden shadow-xl border-8 border-slate-50">
+              <div className="relative h-[400px] rounded-xl overflow-hidden shadow-xl border-8 border-slate-50">
                   <iframe
                       title="Office Location Map"
                       src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
@@ -428,7 +428,7 @@ export default function SarsDisputesPageClient() {
 
       {/* FINAL CTA */}
       <section className="container mx-auto px-4 text-center">
-        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] bg-slate-50 border border-slate-200/60 text-foreground shadow-xl relative overflow-hidden">
+        <div className="max-w-4xl mx-auto p-12 rounded-xl bg-slate-50 border border-slate-200/60 text-foreground shadow-xl relative overflow-hidden">
             <div className="relative z-10 space-y-8">
                 <h2 className="text-4xl font-black text-foreground">Speak to a SARS Dispute Specialist</h2>
                 <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">

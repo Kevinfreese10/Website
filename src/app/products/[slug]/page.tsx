@@ -264,7 +264,7 @@ export default async function ProductDetailPage({ params }: Props) {
         <div className="absolute inset-0 bg-dot-grid" />
 
         <div className="container relative z-10 mx-auto px-4 max-w-3xl">
-          <div className="inline-flex items-center gap-2 mb-4 sm:mb-5 px-3.5 py-1.5 rounded-full glass neon-border text-[11px] sm:text-xs font-extrabold text-primary uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 mb-4 sm:mb-5 px-3.5 py-1.5 rounded-md glass neon-border text-[11px] sm:text-xs font-extrabold text-primary uppercase tracking-widest">
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             {service.category}
           </div>
@@ -291,7 +291,7 @@ export default async function ProductDetailPage({ params }: Props) {
               <Clock className="h-4 w-4 text-primary shrink-0" />
               {service.turnaroundTime}
             </span>
-            <span className="inline-flex items-center gap-2 px-4 sm:px-5 py-1.5 sm:py-2 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-lg sm:text-xl font-black neon-border">
+            <span className="inline-flex items-center gap-2 px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl bg-primary/10 border border-primary/20 text-primary text-lg sm:text-xl font-black neon-border">
               {service.isPriceTbc ? 'Price on Request' : formatPrice(service.price)}
             </span>
           </div>
@@ -303,7 +303,7 @@ export default async function ProductDetailPage({ params }: Props) {
       </div>
 
       <div className="container mx-auto px-4 pb-8 sm:pb-12 flex-grow">
-        <section className="bg-secondary/30 border-white/[0.06] mb-8 sm:mb-12 rounded-3xl glass-card px-3 sm:px-8">
+        <section className="bg-secondary/30 border-white/[0.06] mb-8 sm:mb-12 rounded-xl glass-card px-3 sm:px-8">
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="how-it-works" className="border-none">
               <AccordionTrigger className="hover:no-underline py-6 sm:py-8">
@@ -349,7 +349,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 }
               ].map((step, idx) => (
                 <div key={idx} className="relative text-center space-y-4 sm:space-y-6 group">
-                  <div className={cn("h-16 w-16 sm:h-20 sm:w-20 rounded-3xl border flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-sm transition-all duration-300 group-hover:scale-105", step.bg)}>
+                  <div className={cn("h-16 w-16 sm:h-20 sm:w-20 rounded-xl border flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-sm transition-all duration-300 group-hover:scale-105", step.bg)}>
                     <step.icon className="h-8 w-8 sm:h-10 sm:w-10" />
                   </div>
                   <div className="space-y-1 sm:space-y-2">
@@ -376,7 +376,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
         {/* DYNAMIC FAQ ACCORDION SECTION (Strictly aligned with Google Search Engine requirements) */}
         {serviceFaqs && serviceFaqs.length > 0 && (
-          <div className="mt-8 sm:mt-16 bg-card/40 rounded-2xl p-4 sm:p-8 border border-border/40 shadow-sm max-w-4xl mx-auto">
+          <div className="mt-8 sm:mt-16 bg-card/40 rounded-xl p-4 sm:p-8 border border-border/40 shadow-sm max-w-4xl mx-auto">
             <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
               <div className="text-center space-y-2">
                 <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">Frequently Asked Questions</h2>

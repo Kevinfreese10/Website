@@ -282,7 +282,7 @@ export default function SarsRefundPageClient() {
       <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <Card className="max-w-lg w-full text-center glass-card neon-glow border border-white/10">
           <CardContent className="p-10 space-y-6">
-            <div className="mx-auto w-20 h-20 rounded-full bg-gradient flex items-center justify-center">
+            <div className="mx-auto w-20 h-20 rounded-md bg-gradient flex items-center justify-center">
               <CheckCircle2 className="h-10 w-10 text-white" />
             </div>
             <h2 className="text-3xl font-black text-foreground">Assessment Request Received!</h2>
@@ -422,7 +422,7 @@ export default function SarsRefundPageClient() {
                 )}
                 <Card className="glass-card border border-white/10 hover:border-white/20 transition-all duration-300 h-full group-hover:neon-glow">
                   <CardContent className="p-8 text-center space-y-4">
-                    <div className={`mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg`}>
+                    <div className={`mx-auto w-16 h-16 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg`}>
                       <step.icon className="h-8 w-8 text-white" />
                     </div>
                     <div className="text-xs font-mono text-muted-foreground tracking-widest uppercase">Step {step.step}</div>

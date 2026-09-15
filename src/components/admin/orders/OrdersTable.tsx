@@ -417,7 +417,7 @@ export function OrdersTable({
         {canAssign && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-full" disabled={bulkBusy}>
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-md" disabled={bulkBusy}>
                 <UserCheck className="h-3.5 w-3.5" /> Assign
               </Button>
             </DropdownMenuTrigger>
@@ -434,7 +434,7 @@ export function OrdersTable({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" disabled={bulkBusy}>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-md" disabled={bulkBusy}>
               <Tags className="h-3.5 w-3.5" /> Set status
             </Button>
           </DropdownMenuTrigger>

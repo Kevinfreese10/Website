@@ -199,12 +199,12 @@ export default function OutsourcingVsHiringPage() {
       {/* Kevin's Founder Note */}
       <section className="py-20 px-4 bg-white">
         <div className="container mx-auto max-w-5xl">
-          <div className="bg-gradient-to-br from-white via-slate-50/40 to-blue-50/20 border border-slate-200/80 shadow-xl rounded-3xl overflow-hidden p-6 md:p-10 relative">
+          <div className="bg-gradient-to-br from-white via-slate-50/40 to-blue-50/20 border border-slate-200/80 shadow-xl rounded-xl overflow-hidden p-6 md:p-10 relative">
             <div className="absolute top-0 right-0 h-40 w-40 bg-primary/5 rounded-full filter blur-3xl pointer-events-none" />
             <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
 
               {/* Left: Kevin's credentials card */}
-              <div className="md:col-span-4 flex flex-col items-center text-center p-6 bg-slate-100/60 border border-slate-200/60 rounded-2xl shadow-sm">
+              <div className="md:col-span-4 flex flex-col items-center text-center p-6 bg-slate-100/60 border border-slate-200/60 rounded-xl shadow-sm">
                 <img
                   src={KEVIN_FREESE_PROFILE_IMAGE}
                   alt="Kevin Freese - Managing Director & Founder of My Accountant"
@@ -212,7 +212,7 @@ export default function OutsourcingVsHiringPage() {
                 />
                 <h3 className="text-lg font-black text-slate-900">Kevin Freese</h3>
                 <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director &amp; Founder</p>
-                <div className="mt-2.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-full font-bold text-[10px] uppercase tracking-wider border border-amber-200">
+                <div className="mt-2.5 px-3 py-1 bg-amber-50 text-amber-700 rounded-md font-bold text-[10px] uppercase tracking-wider border border-amber-200">
                   20+ Years Experience
                 </div>
                 <div className="mt-5 w-full border-t border-slate-200 pt-4 space-y-3 text-xs text-left">
@@ -230,9 +230,9 @@ export default function OutsourcingVsHiringPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center mt-4">
-                  <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-full">CIBA Registered</span>
-                  <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-full">SAIT Registered</span>
-                  <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-full">SARS Approved</span>
+                  <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">CIBA Registered</span>
+                  <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">SAIT Registered</span>
+                  <span className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-md">SARS Approved</span>
                 </div>
               </div>
 
@@ -276,7 +276,7 @@ export default function OutsourcingVsHiringPage() {
 
           <div className="grid md:grid-cols-2 gap-8">
             {/* Hiring */}
-            <div className="rounded-2xl border border-slate-200 overflow-hidden">
+            <div className="rounded-xl border border-slate-200 overflow-hidden">
               <div className="bg-slate-100 px-8 py-6 flex items-center gap-3">
                 <Building2 className="w-6 h-6 text-slate-500" />
                 <h3 className="text-xl font-black text-slate-900">Hiring More Staff</h3>
@@ -308,11 +308,11 @@ export default function OutsourcingVsHiringPage() {
             </div>
 
             {/* Outsourcing */}
-            <div className="rounded-2xl border-2 border-primary overflow-hidden shadow-xl">
+            <div className="rounded-xl border-2 border-primary overflow-hidden shadow-xl">
               <div className="bg-primary px-8 py-6 flex items-center gap-3">
                 <TrendingUp className="w-6 h-6 text-white" />
                 <h3 className="text-xl font-black text-white">Outsourcing to My Accountant</h3>
-                <span className="ml-auto bg-white text-primary text-xs font-black px-3 py-1 rounded-full">Recommended</span>
+                <span className="ml-auto bg-white text-primary text-xs font-black px-3 py-1 rounded-md">Recommended</span>
               </div>
               <div className="p-8 space-y-8">
                 <div>
@@ -357,7 +357,7 @@ export default function OutsourcingVsHiringPage() {
             <p className="text-lg text-slate-500 max-w-2xl mx-auto">Most practice owners dramatically underestimate what a single staff member actually costs. Here's the full picture.</p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="grid grid-cols-3 bg-slate-900 text-white text-sm font-bold px-6 py-4">
               <span>Cost Item</span>
               <span className="text-center">Hiring Staff</span>
@@ -389,7 +389,7 @@ export default function OutsourcingVsHiringPage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((f, i) => (
-              <div key={i} className="p-8 bg-slate-50 rounded-2xl hover:bg-primary/5 transition-colors group">
+              <div key={i} className="p-8 bg-slate-50 rounded-xl hover:bg-primary/5 transition-colors group">
                 <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-5 group-hover:bg-primary group-hover:text-white transition-colors">
                   <f.icon className="w-6 h-6" />
                 </div>
@@ -427,13 +427,13 @@ export default function OutsourcingVsHiringPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/become-a-partner"
-              className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-primary text-white font-black text-lg rounded-full hover:bg-primary/90 transition-all shadow-xl"
+              className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-primary text-white font-black text-lg rounded-md hover:bg-primary/90 transition-all shadow-xl"
             >
               Join the Partner Programme <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
               href="/partner-signup"
-              className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-white/10 text-white font-bold text-lg rounded-full hover:bg-white/20 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-10 py-5 bg-white/10 text-white font-bold text-lg rounded-md hover:bg-white/20 transition-all"
             >
               Sign Up Free
             </Link>

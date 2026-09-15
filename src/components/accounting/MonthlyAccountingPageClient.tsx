@@ -169,7 +169,7 @@ export default function MonthlyAccountingPageClient() {
         <div className="absolute inset-0 bg-dot-grid" />
 
         <div className="container relative z-10 mx-auto px-4">
-          <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full glass neon-border text-xs font-semibold text-primary uppercase tracking-widest mx-auto">
+          <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-md glass neon-border text-xs font-semibold text-primary uppercase tracking-widest mx-auto">
             <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
             Monthly Accounting Services South Africa
           </div>
@@ -310,7 +310,7 @@ export default function MonthlyAccountingPageClient() {
                     ))}
                 </div>
               </div>
-              <div className="glass-card p-8 rounded-3xl border border-dashed border-border">
+              <div className="glass-card p-8 rounded-xl border border-dashed border-border">
                   <h3 className="text-xl font-bold mb-4 text-foreground">Industries We Assist</h3>
                   <div className="grid grid-cols-1 gap-2">
                       {industries.map(industry => (
@@ -388,7 +388,7 @@ export default function MonthlyAccountingPageClient() {
 
             {/* Growth Card (Most Popular) */}
             <Card className="flex flex-col glass-card border-2 border-primary shadow-lg relative hover:shadow-2xl hover:scale-[1.03] transition-all duration-300">
-              <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-primary text-white font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-full shadow-md select-none">
+              <div className="absolute top-0 right-1/2 translate-x-1/2 -translate-y-1/2 bg-primary text-white font-black text-[10px] uppercase tracking-wider px-4 py-1.5 rounded-md shadow-md select-none">
                 Most Popular
               </div>
               <div className="p-6 border-b bg-primary/5 rounded-t-xl">
@@ -479,7 +479,7 @@ export default function MonthlyAccountingPageClient() {
           </div>
 
           {/* Full Comparison Table Section (Responsive wrapper) */}
-          <div className="glass-card rounded-3xl border shadow-sm p-4 md:p-8 max-w-6xl mx-auto">
+          <div className="glass-card rounded-xl border shadow-sm p-4 md:p-8 max-w-6xl mx-auto">
             <h3 className="text-xl font-bold mb-6 text-foreground">Detailed Feature Comparison</h3>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-sm">
@@ -512,7 +512,7 @@ export default function MonthlyAccountingPageClient() {
           </div>
 
           {/* Why Businesses Choose My Accountant checklist section */}
-          <div className="mt-24 max-w-4xl mx-auto glass-card border rounded-3xl p-8 md:p-12 shadow-sm">
+          <div className="mt-24 max-w-4xl mx-auto glass-card border rounded-xl p-8 md:p-12 shadow-sm">
             <h3 className="text-2xl font-black text-foreground mb-8 text-center md:text-left">
               Why Businesses Choose My Accountant
             </h3>
@@ -535,7 +535,7 @@ export default function MonthlyAccountingPageClient() {
           </div>
 
           {/* CTA Section */}
-          <div className="mt-20 text-center max-w-4xl mx-auto p-10 md:p-16 rounded-[3rem] glass-card text-foreground border relative overflow-hidden shadow-lg">
+          <div className="mt-20 text-center max-w-4xl mx-auto p-10 md:p-16 rounded-xl glass-card text-foreground border relative overflow-hidden shadow-lg">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(37,99,235,0.05),transparent_50%)]" />
             <h3 className="text-2xl md:text-4xl font-extrabold tracking-tight relative z-10 text-foreground">
               Ready to simplify your accounting?
@@ -583,7 +583,7 @@ export default function MonthlyAccountingPageClient() {
       <section className="container mx-auto px-4 max-w-6xl py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-6">
-                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-6 w-6" /></div>
                 <h2 className="text-3xl font-bold text-foreground">Accounting & Financial Services Across South Africa</h2>
                 <p className="text-lg text-muted-foreground leading-relaxed">
                     My Accountant provides online monthly accounting services, financial management services, and outsourced CFO services to businesses throughout South Africa.
@@ -599,7 +599,7 @@ export default function MonthlyAccountingPageClient() {
                     Our online systems allow businesses nationwide to access reliable accounting, payroll, tax, and financial management support without needing to visit a physical office.
                 </p>
               </div>
-              <div className="relative h-[400px] rounded-3xl overflow-hidden shadow-xl border border-border bg-card">
+              <div className="relative h-[400px] rounded-xl overflow-hidden shadow-xl border border-border bg-card">
                   <iframe
                       title="Office Location Map"
                       src="https://www.google.com/maps?q=Stonemill+Office+Park+Johannesburg&output=embed"
@@ -635,7 +635,7 @@ export default function MonthlyAccountingPageClient() {
 
       {/* FINAL CTA */}
       <section className="container mx-auto px-4 text-center">
-        <div className="max-w-4xl mx-auto p-12 rounded-[3rem] glass-card border-2 border-dashed border-border">
+        <div className="max-w-4xl mx-auto p-12 rounded-xl glass-card border-2 border-dashed border-border">
             <h2 className="text-3xl font-bold text-foreground">Partner With a Professional Financial Team</h2>
             <p className="text-lg text-muted-foreground mt-4 max-w-2xl mx-auto leading-relaxed">
                 Whether your business requires monthly bookkeeping, financial management support, payroll administration, or executive-level CFO services, My Accountant provides scalable financial solutions designed to support your business growth.

@@ -575,7 +575,7 @@ export default function SocialMarketingPage() {
 
                 <div className="lg:col-span-8 h-[calc(100vh-12rem)] min-h-[600px] flex flex-col">
                     {!generatedAds ? (
-                        <div className="flex-grow border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center p-12 bg-muted/5">
+                        <div className="flex-grow border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-center p-12 bg-muted/5">
                             <Sparkles className="h-16 w-16 text-primary opacity-10 mb-4" />
                             <h3 className="text-xl font-bold text-slate-900">Campaign Content Creator</h3>
                             <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-2">
@@ -629,7 +629,7 @@ export default function SocialMarketingPage() {
                             )}
 
                             {user?.facebookSettings?.pageId && (
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-4 border-2 rounded-2xl border-slate-100 gap-3">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 p-4 border-2 rounded-xl border-slate-100 gap-3">
                                     <div>
                                         <p className="text-xs font-bold text-slate-800">Bulk Social Publisher</p>
                                         <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">Publish all {generatedAds.ads.length} ad variants with a single click.</p>

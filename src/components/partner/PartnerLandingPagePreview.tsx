@@ -197,7 +197,7 @@ export default function PartnerLandingPagePreview({
           .preview-viewport button, 
           .preview-viewport .rounded-xl, 
           .preview-viewport .rounded-lg, 
-          .preview-viewport .rounded-2xl {
+          .preview-viewport .rounded-xl {
             border-radius: ${radiusValue} !important;
           }
 

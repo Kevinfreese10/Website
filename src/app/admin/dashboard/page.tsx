@@ -1127,7 +1127,7 @@ export default function AdminDashboardPage() {
 
             {/* Kanban Board View */}
             {viewMode === 'board' ? (
-                <div className="space-y-6 bg-slate-50/70 p-6 rounded-3xl border border-slate-100 shadow-inner animate-in fade-in duration-300">
+                <div className="space-y-6 bg-slate-50/70 p-6 rounded-xl border border-slate-100 shadow-inner animate-in fade-in duration-300">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div 
                             className="flex items-center gap-2 cursor-pointer group select-none" 
@@ -1194,7 +1194,7 @@ export default function AdminDashboardPage() {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 animate-in fade-in slide-in-from-top-4 duration-300">
                         {/* COLUMN 1: To-Do */}
                         <div 
-                            className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                            className="bg-slate-100/85 border border-slate-200/50 rounded-xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => handleDrop(e, 'To-Do')}
                         >
@@ -1211,7 +1211,7 @@ export default function AdminDashboardPage() {
 
                         {/* COLUMN 2: In Progress */}
                         <div 
-                            className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                            className="bg-slate-100/85 border border-slate-200/50 rounded-xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => handleDrop(e, 'In Progress')}
                         >
@@ -1228,7 +1228,7 @@ export default function AdminDashboardPage() {
 
                         {/* COLUMN 3: Review */}
                         <div 
-                            className="bg-slate-100/85 border border-slate-200/50 rounded-2xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                            className="bg-slate-100/85 border border-slate-200/50 rounded-xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => handleDrop(e, 'Review')}
                         >
@@ -1245,7 +1245,7 @@ export default function AdminDashboardPage() {
 
                         {/* COLUMN 4: Done */}
                         <div 
-                            className="bg-emerald-50/50 border border-emerald-100/50 rounded-2xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                            className="bg-emerald-50/50 border border-emerald-100/50 rounded-xl p-4 flex flex-col h-[720px] shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={(e) => handleDrop(e, 'Done')}
                         >
@@ -1290,7 +1290,7 @@ export default function AdminDashboardPage() {
                     {isTaskBoardOpen && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-top-4 duration-300">
                             {/* My Upcoming Tasks */}
-                            <Card className="border rounded-2xl shadow-sm bg-white overflow-hidden">
+                            <Card className="border rounded-xl shadow-sm bg-white overflow-hidden">
                                 <CardHeader className="bg-slate-50/40 border-b pb-4">
                                     <CardTitle className="text-md flex items-center gap-2 text-slate-900 font-extrabold">
                                         <ClipboardList className="h-5 w-5 text-primary" />
@@ -1345,7 +1345,7 @@ export default function AdminDashboardPage() {
                     </Card>
 
                     {/* Practice Compliance Roadmap List */}
-                    <Card className="border rounded-2xl shadow-sm bg-white overflow-hidden">
+                    <Card className="border rounded-xl shadow-sm bg-white overflow-hidden">
                         <CardHeader className="bg-slate-50/40 border-b pb-4">
                             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                 <div>

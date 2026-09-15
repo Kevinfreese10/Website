@@ -132,7 +132,7 @@ export default function HomePageClient() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Center Column: Text Content */}
             <div className="lg:col-span-12 flex flex-col items-center text-center max-w-4xl mx-auto">
-              <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full glass neon-border text-xs font-semibold text-primary uppercase tracking-widest">
+              <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-md glass neon-border text-xs font-semibold text-primary uppercase tracking-widest">
                 <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
                 AI-Powered Accounting Platform
               </div>
@@ -235,7 +235,7 @@ export default function HomePageClient() {
               </p>
 
               {/* Key Statistics Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-10 my-8 glass-card rounded-3xl p-8 text-center">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-10 my-8 glass-card rounded-xl p-8 text-center">
                 <div className="space-y-2">
                   <p className="text-4xl md:text-5xl font-black text-blue-600 animate-glow-pulse">10,000+</p>
                   <p className="text-sm font-bold text-foreground/80">Company Registrations</p>
@@ -263,11 +263,11 @@ export default function HomePageClient() {
               </p>
 
               {/* Expert Quotation Section */}
-              <div className="max-w-5xl mx-auto my-12 glass-card rounded-3xl border border-white/[0.06] overflow-hidden p-6 md:p-10 text-left relative group">
+              <div className="max-w-5xl mx-auto my-12 glass-card rounded-xl border border-white/[0.06] overflow-hidden p-6 md:p-10 text-left relative group">
                 <div className="absolute top-0 right-0 h-40 w-40 bg-primary/5 rounded-full filter blur-3xl pointer-events-none" />
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
                   {/* Left Column: Avatar & Credentials */}
-                  <div className="md:col-span-4 flex flex-col items-center text-center p-6 bg-white/[0.01] border border-white/[0.04] rounded-2xl">
+                  <div className="md:col-span-4 flex flex-col items-center text-center p-6 bg-white/[0.01] border border-white/[0.04] rounded-xl">
                     <img
                       src={KEVIN_FREESE_PROFILE_IMAGE}
                       alt="Kevin Freese - Managing Director & Founder"
@@ -337,7 +337,7 @@ export default function HomePageClient() {
           </div>
 
           <div className="text-center mb-16 space-y-4">
-            <Badge variant="outline" className="px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary border-primary/20 bg-primary/5 rounded-full neon-border">
+            <Badge variant="outline" className="px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary border-primary/20 bg-primary/5 rounded-md neon-border">
               Best Sellers
             </Badge>
             <h2 className="text-3xl font-black text-foreground md:text-5xl tracking-tight font-headline">
@@ -351,11 +351,11 @@ export default function HomePageClient() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             {/* NCR Registration Card */}
             <Card
-              className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25 rounded-2xl"
+              className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25 rounded-xl"
             >
               <CardHeader className="pb-3 relative">
                 <div className="flex items-center justify-between mb-2">
-                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-full px-2 py-0.5 flex items-center bg-purple-500/5 text-purple-600 border border-purple-500/10">
+                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-purple-500/5 text-purple-600 border border-purple-500/10">
                     <span className="h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse bg-purple-500" />
                     CIPC & Compliance
                   </Badge>
@@ -441,11 +441,11 @@ export default function HomePageClient() {
 
             {/* Accountant's Letter Card */}
             <Card
-              className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25 rounded-2xl"
+              className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25 rounded-xl"
             >
               <CardHeader className="pb-3 relative">
                 <div className="flex items-center justify-between mb-2">
-                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-full px-2 py-0.5 flex items-center bg-slate-500/5 text-slate-600 border border-slate-500/10">
+                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-slate-500/5 text-slate-600 border border-slate-500/10">
                     <span className="h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse bg-slate-500" />
                     Accounting Services
                   </Badge>
@@ -531,11 +531,11 @@ export default function HomePageClient() {
 
             {/* Tax Clearance Pin Card */}
             <Card
-              className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25 rounded-2xl"
+              className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25 rounded-xl"
             >
               <CardHeader className="pb-3 relative">
                 <div className="flex items-center justify-between mb-2">
-                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-full px-2 py-0.5 flex items-center bg-green-500/5 text-green-600 border border-green-500/10">
+                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-green-500/5 text-green-600 border border-green-500/10">
                     <span className="h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse bg-green-500" />
                     SARS Services
                   </Badge>
@@ -851,7 +851,7 @@ export default function HomePageClient() {
         <div className="aurora-blob aurora-cyan w-[600px] h-[600px] -top-40 left-1/4 animate-aurora-drift" />
         <div className="aurora-blob aurora-violet w-[400px] h-[400px] bottom-0 right-1/4 animate-aurora-drift" style={{ animationDelay: '-8s' }} />
         <div className="container relative z-10 mx-auto px-4 text-center">
-          <div className="max-w-5xl mx-auto p-6 sm:p-12 rounded-[2rem] sm:rounded-[3rem] glass-card neon-border text-foreground relative overflow-hidden">
+          <div className="max-w-5xl mx-auto p-6 sm:p-12 rounded-xl sm:rounded-xl glass-card neon-border text-foreground relative overflow-hidden">
             <div className="absolute inset-0 bg-dot-grid opacity-30" />
             <div className="relative z-10 space-y-10">
               <h2 className="text-3xl sm:text-4xl font-black md:text-5xl lg:text-6xl text-center text-gradient font-headline">Get Professional Accounting & Compliance Support</h2>

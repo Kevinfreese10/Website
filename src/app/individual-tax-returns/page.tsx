@@ -132,8 +132,8 @@ export default function IndividualTaxReturnsPage() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-card p-6 rounded-2xl border shadow-sm flex flex-col items-center text-center">
-             <div className="bg-primary/10 p-3 rounded-full mb-4">
+          <div className="bg-card p-6 rounded-xl border shadow-sm flex flex-col items-center text-center">
+             <div className="bg-primary/10 p-3 rounded-md mb-4">
                <ShieldCheck className="h-6 w-6 text-primary" />
              </div>
              <h3 className="font-semibold text-xl mb-2">100% SARS Compliant</h3>
@@ -142,8 +142,8 @@ export default function IndividualTaxReturnsPage() {
              </p>
           </div>
           
-          <div className="bg-card p-6 rounded-2xl border shadow-sm flex flex-col items-center text-center">
-             <div className="bg-primary/10 p-3 rounded-full mb-4">
+          <div className="bg-card p-6 rounded-xl border shadow-sm flex flex-col items-center text-center">
+             <div className="bg-primary/10 p-3 rounded-md mb-4">
                <Target className="h-6 w-6 text-primary" />
              </div>
              <h3 className="font-semibold text-xl mb-2">Maximum Refunds</h3>
@@ -152,8 +152,8 @@ export default function IndividualTaxReturnsPage() {
              </p>
           </div>
 
-          <div className="bg-card p-6 rounded-2xl border shadow-sm flex flex-col items-center text-center">
-             <div className="bg-primary/10 p-3 rounded-full mb-4">
+          <div className="bg-card p-6 rounded-xl border shadow-sm flex flex-col items-center text-center">
+             <div className="bg-primary/10 p-3 rounded-md mb-4">
                <FileText className="h-6 w-6 text-primary" />
              </div>
              <h3 className="font-semibold text-xl mb-2">Audit Protection</h3>
@@ -174,7 +174,7 @@ export default function IndividualTaxReturnsPage() {
 
           <div className="grid gap-6">
             {faqs.map((faq, index) => (
-              <div key={index} className="bg-card p-6 rounded-2xl border shadow-sm">
+              <div key={index} className="bg-card p-6 rounded-xl border shadow-sm">
                 <h3 className="font-bold text-lg mb-3 flex items-start gap-3">
                   <span className="text-primary font-black">Q.</span>
                   {faq.q}
@@ -191,7 +191,7 @@ export default function IndividualTaxReturnsPage() {
       
       {/* Bottom CTA */}
       <section className="container mx-auto px-4 max-w-4xl pt-10 text-center">
-        <div className="bg-primary text-primary-foreground rounded-3xl p-10 md:p-16 relative overflow-hidden">
+        <div className="bg-primary text-primary-foreground rounded-xl p-10 md:p-16 relative overflow-hidden">
           <div className="absolute inset-0 bg-white/10 opacity-20 pattern-diagonal-lines" />
           <div className="relative z-10 space-y-6">
             <h2 className="text-3xl md:text-4xl font-bold">Ready to submit your tax return?</h2>

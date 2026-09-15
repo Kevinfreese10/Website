@@ -221,7 +221,7 @@ export default async function PartnerLandingLayout({
         }
 
         /* Border Radius controls mapping */
-        .partner-card, .partner-btn, button, input, select, textarea, .rounded-xl, .rounded-lg, .rounded-2xl {
+        .partner-card, .partner-btn, button, input, select, textarea, .rounded-xl, .rounded-lg, .rounded-xl {
           border-radius: var(--partner-radius) !important;
         }
 

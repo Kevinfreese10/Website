@@ -165,7 +165,7 @@ export default function CommunicationHistory({ clientId, currentUser }: Communic
 
               return (
                 <div key={note.id} className={`flex items-start gap-3 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`p-3 rounded-2xl max-w-[85%] border shadow-sm ${
+                  <div className={`p-3 rounded-xl max-w-[85%] border shadow-sm ${
                     isMe 
                       ? 'bg-primary text-primary-foreground rounded-tr-none ml-auto' 
                       : 'bg-muted/60 text-foreground rounded-tl-none mr-auto'

@@ -294,7 +294,7 @@ export default function CompliancePageClient() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-24">
                     {whyChooseUs.map((item) => (
-                        <div key={item.title} className="text-center p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div key={item.title} className="text-center p-6 bg-slate-50 rounded-xl border border-slate-100">
                             <div className="flex justify-center mb-4">
                                 <div className="bg-primary/10 rounded-full h-16 w-16 flex items-center justify-center">
                                     <item.icon className="h-8 w-8 text-primary" />

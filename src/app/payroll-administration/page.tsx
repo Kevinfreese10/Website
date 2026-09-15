@@ -75,7 +75,7 @@ export default function PayrollAdministrationPage() {
       </section>
 
       <section className="container mx-auto px-4 text-center py-12">
-        <div className="max-w-3xl mx-auto p-12 rounded-3xl glass-card border shadow-sm">
+        <div className="max-w-3xl mx-auto p-12 rounded-xl glass-card border shadow-sm">
             <h2 className="text-3xl font-bold">Scale Your Business, Not Your Admin</h2>
             <p className="text-lg text-muted-foreground mt-4 leading-relaxed text-center">
                 Whether you have 1 or 100 employees, our payroll engine scales with you. We ensure your team is paid correctly while you focus on leading them.

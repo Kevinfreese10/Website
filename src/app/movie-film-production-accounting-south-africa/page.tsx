@@ -87,7 +87,7 @@ export default function MovieFilmProductionAccountingSouthAfricaPage() {
          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
          
          <div className="container mx-auto px-4 text-center max-w-4xl space-y-6 relative z-10">
-           <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6">
+           <div className="h-16 w-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-6">
              <Film className="h-8 w-8 text-primary" />
            </div>
            <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
@@ -172,7 +172,7 @@ export default function MovieFilmProductionAccountingSouthAfricaPage() {
 
        {/* Call To Action */}
        <section className="container mx-auto px-4 max-w-4xl">
-         <div className="bg-slate-900 text-white p-8 lg:p-12 rounded-3xl text-center space-y-6 shadow-xl relative overflow-hidden">
+         <div className="bg-slate-900 text-white p-8 lg:p-12 rounded-xl text-center space-y-6 shadow-xl relative overflow-hidden">
            <h3 className="text-3xl font-bold">Simplify Your Production Accounting</h3>
            <p className="text-slate-300 max-w-xl mx-auto text-sm leading-relaxed">
              Concentrate on your creative vision while our registered SARS tax practitioners handle wraps, payroll administration, compliance files, and tax rebates.

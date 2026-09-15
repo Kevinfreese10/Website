@@ -58,7 +58,7 @@ export default function BlogPageClient({ initialBlogPosts }: { initialBlogPosts?
             
             {/* FEATURED POST */}
             {featuredPost && (
-              <div className="group relative bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-500 flex flex-col lg:flex-row min-h-[400px]">
+              <div className="group relative bg-white rounded-xl overflow-hidden border border-slate-200 shadow-xl hover:shadow-2xl transition-all duration-500 flex flex-col lg:flex-row min-h-[400px]">
                 <div className="relative w-full lg:w-3/5 h-64 lg:h-auto overflow-hidden">
                   <Image
                     src={featuredPost.imageUrl}
@@ -101,7 +101,7 @@ export default function BlogPageClient({ initialBlogPosts }: { initialBlogPosts?
                 {standardPosts.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {standardPosts.map(post => (
-                  <Card key={post.id} className="group relative flex flex-col overflow-hidden bg-white border border-slate-200 shadow-md hover:shadow-xl transition-all duration-500 hover:-translate-y-1 rounded-2xl">
+                  <Card key={post.id} className="group relative flex flex-col overflow-hidden bg-white border border-slate-200 shadow-md hover:shadow-xl transition-all duration-500 hover:-translate-y-1 rounded-xl">
                       <div className="relative h-56 w-full overflow-hidden">
                           <Image
                             src={post.imageUrl}

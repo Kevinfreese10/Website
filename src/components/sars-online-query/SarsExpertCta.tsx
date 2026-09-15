@@ -18,7 +18,7 @@ export default function SarsExpertCta({
       <CardContent className="p-8 md:p-12 text-center md:text-left">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="space-y-4 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 text-primary font-bold text-xs uppercase tracking-widest">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-primary/20 text-primary font-bold text-xs uppercase tracking-widest">
               <UserCheck className="h-4 w-4" /> Registered SARS Tax Practitioners
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold text-foreground tracking-tight">

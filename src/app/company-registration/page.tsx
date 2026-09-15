@@ -69,7 +69,7 @@ export default function CompanyRegistrationPage() {
         <div className="absolute inset-0 bg-dot-grid" />
 
         <div className="container mx-auto px-4 text-center max-w-4xl space-y-6 relative z-10">
-          <div className="h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
+          <div className="h-16 w-16 rounded-xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
             <Building2 className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
@@ -122,7 +122,7 @@ export default function CompanyRegistrationPage() {
 
       {/* CTA Box */}
       <section className="container mx-auto px-4 max-w-4xl">
-        <div className="bg-primary text-white p-8 lg:p-12 rounded-3xl text-center space-y-6 shadow-xl">
+        <div className="bg-primary text-white p-8 lg:p-12 rounded-xl text-center space-y-6 shadow-xl">
           <h3 className="text-3xl font-bold">Ready to Register Your Company?</h3>
           <p className="text-white/80 max-w-xl mx-auto text-base">
             Get your Pty Ltd registered with CIPC in as little as 3 business days. Our team handles the paperwork, tax registrations, and compliance setup so you can start trading sooner.

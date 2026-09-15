@@ -265,7 +265,7 @@ export default function PartnerPricingCalculator({
                       <span className="flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5" /> {service.turnaroundTime}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold uppercase text-[9px]">
+                      <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold uppercase text-[9px]">
                         {isMonthly ? 'Retainer' : 'Once-off'}
                       </span>
                     </div>

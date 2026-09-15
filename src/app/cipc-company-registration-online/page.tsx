@@ -87,7 +87,7 @@ export default function CipcCompanyRegistrationOnlinePage() {
         <div className="absolute inset-0 bg-dot-grid" />
 
         <div className="container mx-auto px-4 text-center max-w-4xl space-y-6">
-          <div className="h-16 w-16 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
+          <div className="h-16 w-16 rounded-xl bg-primary/15 flex items-center justify-center mx-auto mb-6">
             <Building className="h-8 w-8 text-primary" />
           </div>
           <h1 id="page-title" className="text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
@@ -145,7 +145,7 @@ export default function CipcCompanyRegistrationOnlinePage() {
           </Card>
         </div>
 
-        <div className="bg-slate-50 border rounded-2xl p-8 lg:p-12">
+        <div className="bg-slate-50 border rounded-xl p-8 lg:p-12">
           <h3 className="text-2xl font-bold text-foreground mb-6 text-center">What is Included in Your Registration</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {benefits.map((benefit, i) => (

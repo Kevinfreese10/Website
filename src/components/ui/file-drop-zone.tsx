@@ -85,7 +85,7 @@ export function FileDropZone({
       {children}
       {dragging && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/5 backdrop-blur-[1px] animate-fade-in">
-          <div className="flex items-center gap-2 rounded-full bg-background px-4 py-2 text-sm font-medium text-primary shadow-raised">
+          <div className="flex items-center gap-2 rounded-md bg-background px-4 py-2 text-sm font-medium text-primary shadow-raised">
             <UploadCloud className="h-4 w-4" /> Drop files to attach
           </div>
         </div>

@@ -55,7 +55,7 @@ export default function TaxReturnWizard() {
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto border-0 shadow-2xl bg-white/80 backdrop-blur-sm overflow-hidden transition-all duration-500 rounded-3xl ring-1 ring-primary/10">
+    <Card className="w-full max-w-3xl mx-auto border-0 shadow-2xl bg-white/80 backdrop-blur-sm overflow-hidden transition-all duration-500 rounded-xl ring-1 ring-primary/10">
       
       {/* Progress Bar (Hidden on start and result) */}
       {(step === 'auto-assess' || step === 'business' || step === 'allowances') && (
@@ -64,7 +64,7 @@ export default function TaxReturnWizard() {
 
       {step === 'start' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
-          <div className="absolute top-6 right-6 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+          <div className="absolute top-6 right-6 bg-primary/10 text-primary px-3 py-1 rounded-md text-xs font-bold flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" /> Takes 30 seconds
           </div>
           <CardHeader className="text-center pb-4 pt-16">
@@ -92,12 +92,12 @@ export default function TaxReturnWizard() {
                <Button variant="ghost" size="sm" onClick={() => setStep('start')} className="w-fit text-muted-foreground hover:bg-slate-100 rounded-full">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-               <div className="text-xs font-bold text-slate-400 flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-full">
+               <div className="text-xs font-bold text-slate-400 flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-md">
                 <Clock className="w-3.5 h-3.5" /> 30 sec left
               </div>
             </div>
             <div className="flex items-center gap-4 mb-6">
-              <div className="bg-primary/10 p-4 rounded-2xl">
+              <div className="bg-primary/10 p-4 rounded-xl">
                 <Inbox className="h-8 w-8 text-primary" />
               </div>
               <span className="text-sm font-bold tracking-widest text-primary uppercase">Question 1 of 3</span>
@@ -108,7 +108,7 @@ export default function TaxReturnWizard() {
           </CardHeader>
           <CardContent className="pt-6 pb-12 px-6 sm:px-10 space-y-4">
             <button 
-              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
+              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
               onClick={() => handleAutoAssessAnswer(true)}
             >
               <div className="flex items-center gap-4">
@@ -120,7 +120,7 @@ export default function TaxReturnWizard() {
               <ArrowRight className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors shrink-0" />
             </button>
             <button 
-              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
+              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
               onClick={() => handleAutoAssessAnswer(false)}
             >
               <div className="flex items-center gap-4">
@@ -142,12 +142,12 @@ export default function TaxReturnWizard() {
                <Button variant="ghost" size="sm" onClick={() => setStep('auto-assess')} className="w-fit text-muted-foreground hover:bg-slate-100 rounded-full">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-               <div className="text-xs font-bold text-slate-400 flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-full">
+               <div className="text-xs font-bold text-slate-400 flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-md">
                 <Clock className="w-3.5 h-3.5" /> 20 sec left
               </div>
             </div>
             <div className="flex items-center gap-4 mb-6">
-              <div className="bg-primary/10 p-4 rounded-2xl">
+              <div className="bg-primary/10 p-4 rounded-xl">
                 <Briefcase className="h-8 w-8 text-primary" />
               </div>
               <span className="text-sm font-bold tracking-widest text-primary uppercase">Question 2 of 3</span>
@@ -158,7 +158,7 @@ export default function TaxReturnWizard() {
           </CardHeader>
           <CardContent className="pt-6 pb-12 px-6 sm:px-10 space-y-4">
             <button 
-              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
+              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
               onClick={() => handleBusinessAnswer(true)}
             >
               <div className="flex items-center gap-4">
@@ -170,7 +170,7 @@ export default function TaxReturnWizard() {
               <ArrowRight className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors shrink-0" />
             </button>
             <button 
-              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
+              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
               onClick={() => handleBusinessAnswer(false)}
             >
               <div className="flex items-center gap-4">
@@ -192,12 +192,12 @@ export default function TaxReturnWizard() {
               <Button variant="ghost" size="sm" onClick={() => setStep('business')} className="w-fit text-muted-foreground hover:bg-slate-100 rounded-full">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <div className="text-xs font-bold text-slate-400 flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-full">
+              <div className="text-xs font-bold text-slate-400 flex items-center gap-1 bg-slate-100 px-3 py-1 rounded-md">
                 <Clock className="w-3.5 h-3.5" /> 10 sec left
               </div>
             </div>
             <div className="flex items-center gap-4 mb-6">
-              <div className="bg-primary/10 p-4 rounded-2xl">
+              <div className="bg-primary/10 p-4 rounded-xl">
                 <Car className="h-8 w-8 text-primary" />
               </div>
               <span className="text-sm font-bold tracking-widest text-primary uppercase">Question 3 of 3</span>
@@ -208,7 +208,7 @@ export default function TaxReturnWizard() {
           </CardHeader>
           <CardContent className="pt-6 pb-12 px-6 sm:px-10 space-y-4">
             <button 
-              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
+              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
               onClick={() => handleAllowancesAnswer(true)}
             >
                <div className="flex items-center gap-4">
@@ -220,7 +220,7 @@ export default function TaxReturnWizard() {
               <ArrowRight className="h-5 w-5 text-slate-300 group-hover:text-primary transition-colors shrink-0" />
             </button>
             <button 
-              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
+              className="w-full flex items-center justify-between p-5 sm:p-6 text-left border-2 border-slate-100 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group shadow-sm hover:shadow-md"
               onClick={() => handleAllowancesAnswer(false)}
             >
                <div className="flex items-center gap-4">
@@ -238,9 +238,9 @@ export default function TaxReturnWizard() {
       {step === 'result' && result && (
         <div className="animate-in zoom-in-95 duration-500">
           <CardHeader className="text-center pt-16 pb-6">
-            <div className="mx-auto bg-green-500 shadow-xl shadow-green-500/30 text-white w-24 h-24 rounded-full flex items-center justify-center mb-8 relative">
+            <div className="mx-auto bg-green-500 shadow-xl shadow-green-500/30 text-white w-24 h-24 rounded-md flex items-center justify-center mb-8 relative">
               <CheckCircle2 className="h-12 w-12" />
-              <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-sm">
+              <div className="absolute -bottom-2 -right-2 bg-white rounded-md p-1 shadow-sm">
                  <Shield className="w-6 h-6 text-primary" fill="currentColor" />
               </div>
             </div>
@@ -261,7 +261,7 @@ export default function TaxReturnWizard() {
             </p>
             
             {/* High Conversion Trust Block */}
-            <div className="bg-slate-50 border rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm font-medium text-slate-600">
+            <div className="bg-slate-50 border rounded-xl p-4 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm font-medium text-slate-600">
                <div className="flex items-center gap-2">
                  <div className="bg-green-100 text-green-600 p-1.5 rounded-md"><CheckCircle2 className="w-4 h-4" /></div>
                  No Hidden Fees

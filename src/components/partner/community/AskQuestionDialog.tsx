@@ -109,7 +109,7 @@ export default function AskQuestionDialog() {
           <span>Ask a Question</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] border border-border bg-card/95 backdrop-blur-md text-foreground rounded-2xl shadow-2xl p-6">
+      <DialogContent className="sm:max-w-[600px] border border-border bg-card/95 backdrop-blur-md text-foreground rounded-xl shadow-2xl p-6">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center gap-2 tracking-tight">
             <Sparkles className="h-5 w-5 text-indigo-500 animate-pulse" />

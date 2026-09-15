@@ -75,7 +75,7 @@ export default function SarsTurnoverTaxRegistrationPage() {
 
         {/* Overview & Tax Rates Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card className="border border-slate-200/80 shadow-sm bg-white rounded-2xl">
+          <Card className="border border-slate-200/80 shadow-sm bg-white rounded-xl">
             <CardHeader className="border-b border-slate-100 bg-slate-50/50">
               <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
                 <Percent className="w-5 h-5 text-blue-600" />
@@ -94,7 +94,7 @@ export default function SarsTurnoverTaxRegistrationPage() {
             </CardContent>
           </Card>
 
-          <Card className="border border-slate-200/80 shadow-sm bg-white rounded-2xl">
+          <Card className="border border-slate-200/80 shadow-sm bg-white rounded-xl">
             <CardHeader className="border-b border-slate-100 bg-slate-50/50">
               <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
                 <Calculator className="w-5 h-5 text-blue-600" />
@@ -146,7 +146,7 @@ export default function SarsTurnoverTaxRegistrationPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {diySteps.map((step, idx) => (
-              <Card key={idx} className="border border-slate-200/80 shadow-sm bg-white rounded-2xl hover:border-blue-300 transition-all">
+              <Card key={idx} className="border border-slate-200/80 shadow-sm bg-white rounded-xl hover:border-blue-300 transition-all">
                 <CardContent className="p-6 space-y-3">
                   <span className="text-xs font-black uppercase text-blue-600 tracking-wider">{step.step}</span>
                   <h3 className="font-bold text-slate-900 text-base">{step.title}</h3>
@@ -165,7 +165,7 @@ export default function SarsTurnoverTaxRegistrationPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {faqs.map((faq, idx) => (
-              <Card key={idx} className="border border-slate-200/80 shadow-sm bg-white rounded-2xl">
+              <Card key={idx} className="border border-slate-200/80 shadow-sm bg-white rounded-xl">
                 <CardContent className="p-6 space-y-2">
                   <h3 className="font-bold text-slate-900 text-base">{faq.question}</h3>
                   <p className="text-slate-600 text-sm leading-relaxed">{faq.answer}</p>
