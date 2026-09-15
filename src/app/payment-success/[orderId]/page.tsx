@@ -47,7 +47,7 @@ export default function PaymentSuccessPage() {
     }, [clearCart]);
 
     const orderUrl = useMemo(() => {
-        if (!currentUser) return '/login';
+        if (!currentUser) return `/dashboard/orders/${orderId}`;
         if (currentUser.role === 'admin' || currentUser.role === 'staff') return `/admin/orders/${orderId}`;
         if (currentUser.role === 'partner' || currentUser.role === 'partner_staff' || currentUser.role === 'partner_admin') return `/partner/orders/${orderId}`;
         return `/dashboard/orders/${orderId}`;

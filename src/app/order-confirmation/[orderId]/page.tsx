@@ -206,7 +206,7 @@ export default function OrderConfirmationPage() {
                         </div>
                     </section>
                     
-                    <section className="text-center">
+                    <section className="text-center space-y-6">
                         {showEft ? (
                             <div className="space-y-6">
                                 {reseller?.bankingDetails?.bankName ? (
@@ -250,26 +250,28 @@ export default function OrderConfirmationPage() {
                                     </Alert>
                                 )}
                                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                                    <Button asChild variant="outline">
-                                        <Link href="/dashboard/orders">Go to Dashboard</Link>
+                                    <Button asChild size="lg" className="font-bold gap-2">
+                                        <Link href={`/dashboard/orders/${order.id}`}>
+                                            Next Step: Upload Documents <ArrowRight className="h-4 w-4" />
+                                        </Link>
                                     </Button>
                                     {reseller?.landingPage?.slug ? (
-                                        <Button asChild className="gap-2">
+                                        <Button asChild variant="outline" className="gap-2">
                                             <Link href={`/p/${reseller.landingPage.slug}`}>
                                                 Return to Practice Page <ExternalLink className="h-4 w-4" />
                                             </Link>
                                         </Button>
                                     ) : (
-                                        <Button asChild className="gap-2">
+                                        <Button asChild variant="outline" className="gap-2">
                                             <Link href="/products">
-                                                Browse More Services <ArrowRight className="h-4 w-4" />
+                                                Browse More Services
                                             </Link>
                                         </Button>
                                     )}
                                 </div>
                             </div>
                         ) : (
-                            <>
+                            <div className="flex flex-col items-center gap-3">
                                 {isAuthenticated ? (
                                     <Button onClick={() => handlePayNow(order)} className="w-full max-w-sm h-12 text-lg font-bold">
                                         Pay Now with PayFast
@@ -279,7 +281,12 @@ export default function OrderConfirmationPage() {
                                         <LogIn className="mr-2 h-5 w-5" /> Login to Pay
                                     </Button>
                                 )}
-                            </>
+                                <Button asChild variant="outline" className="w-full max-w-sm h-11 font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/5">
+                                    <Link href={`/dashboard/orders/${order.id}`}>
+                                        Next Step: Upload Required Documents <ArrowRight className="h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            </div>
                         )}
                     </section>
                 </CardContent>

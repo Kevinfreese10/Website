@@ -135,6 +135,10 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
       updatedAt: nowIso,
     };
 
+    if (!order.userId && isClient && authCtx.userId) {
+      updatePayload.userId = authCtx.userId;
+    }
+
     if (order.fulfillmentStatus === 'Awaiting Documents' || !order.fulfillmentStatus) {
       updatePayload.fulfillmentStatus = 'Under Review';
     }
@@ -357,10 +361,15 @@ export async function syncClientQuestionnaireAction(params: SyncQuestionnairePar
       updatedUploads.push(newUpload);
     }
 
-    await orderRef.update({
+    const updateData: any = {
       documentUploads: cleanFirestoreData(updatedUploads),
       updatedAt: nowIso,
-    });
+    };
+    if (!order.userId && isClient && authCtx.userId) {
+      updateData.userId = authCtx.userId;
+    }
+
+    await orderRef.update(updateData);
 
     const mirrorId = resolvePartnerMirrorOrderId({ ...order, id: params.orderId });
     if (mirrorId) {

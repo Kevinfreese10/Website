@@ -32,6 +32,7 @@ import {
   removeClientDocumentFileAction, 
   syncClientQuestionnaireAction 
 } from '@/app/actions/client-order-actions';
+import { getOrderDetailsAction } from '@/app/actions/order-actions';
 import { getAuth } from 'firebase/auth';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
 import { db, firebaseApp } from '@/lib/firebase';
@@ -164,20 +165,38 @@ export default function ClientOrderDetailsPage() {
       if (!id) return;
       if (!silent) setIsLoading(true);
       try {
-        const orderRef = doc(db, 'orders', id);
-        const orderSnap = await getDoc(orderRef);
+        let orderLoaded: Order | null = null;
+        try {
+          const orderRef = doc(db, 'orders', id);
+          const orderSnap = await getDoc(orderRef);
+          if (orderSnap.exists()) {
+            orderLoaded = { id: orderSnap.id, ...orderSnap.data() } as Order;
+          }
+        } catch (clientErr) {
+          console.warn("Client getDoc failed, falling back to server action:", clientErr);
+        }
 
-        if (orderSnap.exists()) {
-          const orderData = { id: orderSnap.id, ...orderSnap.data() } as Order;
-          setOrder(orderData);
+        if (!orderLoaded) {
+          const res = await getOrderDetailsAction(id);
+          if (res.success && res.order) {
+            orderLoaded = res.order as Order;
+          }
+        }
+
+        if (orderLoaded) {
+          setOrder(orderLoaded);
         } else if (!silent) {
           setOrder(null);
         }
 
         if (!silent) {
-          const servicesSnap = await getDocs(collection(db, 'services'));
-          const servicesList = servicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
-          setAllServices(servicesList);
+          try {
+            const servicesSnap = await getDocs(collection(db, 'services'));
+            const servicesList = servicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
+            setAllServices(servicesList);
+          } catch (servErr) {
+            console.warn("Could not fetch services list from client SDK:", servErr);
+          }
 
           if (currentUser?.role === 'admin' || currentUser?.role === 'staff') {
             try {
