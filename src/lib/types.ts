@@ -829,6 +829,8 @@ export type User = {
   entityType?: 'Company' | 'Trust' | 'Individual';
   status?: 'Active' | 'Inactive' | 'Archived' | 'Pending Setup Payment' | 'Deactivated';
   disabled?: boolean;
+  isPinned?: boolean;
+  pinnedAt?: any;
   onboardingStep?: number;
   partnerId?: string; 
   companyName?: string;

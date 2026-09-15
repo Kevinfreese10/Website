@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, Search, Building, Archive, PlusCircle, MoreHorizontal, Edit, Trash2, Copy, Sliders, BookOpen, Calculator, Settings, ArrowRightLeft, Percent, Plus, UserPlus } from 'lucide-react';
+import { Loader2, ArrowRight, Search, Building, Archive, PlusCircle, MoreHorizontal, Edit, Trash2, Copy, Sliders, BookOpen, Calculator, Settings, ArrowRightLeft, Percent, Plus, UserPlus, Pin, PinOff } from 'lucide-react';
 import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, Timestamp, limit, getDoc, getDocs, where, arrayUnion, arrayRemove, updateDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User, AllocationRule } from '@/lib/types';
@@ -466,14 +466,45 @@ export default function AIAccountantClientsPage() {
         }
     };
 
+    const handleTogglePin = async (client: User, e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        try {
+            const clientRef = doc(db, 'aiAccountantClients', client.id);
+            const nextPinned = !client.isPinned;
+            await updateDoc(clientRef, {
+                isPinned: nextPinned,
+                pinnedAt: nextPinned ? serverTimestamp() : null,
+            });
+            toast({
+                title: nextPinned ? '📌 Company Pinned' : 'Company Unpinned',
+                description: `${client.companyName || client.name} has been ${nextPinned ? 'pinned to the top for easy access' : 'unpinned'}.`,
+            });
+        } catch (error) {
+            console.error("Error toggling pin:", error);
+            toast({ title: 'Update Failed', description: 'Could not update pin status.', variant: 'destructive' });
+        }
+    };
+
     const filteredClients = clients.filter(c => 
         c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
         c.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const activeClients = filteredClients.filter(c => c.status !== 'Archived');
-    const archivedClients = filteredClients.filter(c => c.status === 'Archived');
+    const sortedClients = [...filteredClients].sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        const nameA = (a.companyName || a.name || '').toLowerCase();
+        const nameB = (b.companyName || b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+
+    const activeClients = sortedClients.filter(c => c.status !== 'Archived');
+    const archivedClients = sortedClients.filter(c => c.status === 'Archived');
+    const pinnedClients = activeClients.filter(c => c.isPinned);
 
     const renderClientTable = (clientList: User[], emptyMessage: string) => {
         if (clientList.length === 0) {
@@ -489,16 +520,49 @@ export default function AIAccountantClientsPage() {
             <Table>
                 <TableHeader className="bg-muted/10">
                     <TableRow>
+                        <TableHead className="w-10 text-center"></TableHead>
                         <TableHead className="font-bold">Client / Company</TableHead>
                         <TableHead className="text-right font-bold">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {clientList.map(client => (
-                        <TableRow key={client.id} className="hover:bg-muted/5 transition-colors">
+                        <TableRow 
+                            key={client.id} 
+                            className={cn(
+                                "transition-colors",
+                                client.isPinned 
+                                    ? "bg-blue-50/30 hover:bg-blue-50/60 border-l-4 border-l-blue-600" 
+                                    : "hover:bg-muted/5"
+                            )}
+                        >
+                            <TableCell className="text-center py-2 px-1">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => handleTogglePin(client, e)}
+                                    title={client.isPinned ? "Unpin company" : "Pin to top for easy access"}
+                                    className={cn(
+                                        "h-8 w-8 transition-colors",
+                                        client.isPinned 
+                                            ? "text-blue-600 hover:text-blue-800 hover:bg-blue-100/60" 
+                                            : "text-slate-300 hover:text-slate-600 hover:bg-slate-100"
+                                    )}
+                                >
+                                    <Pin className={cn("h-4 w-4", client.isPinned && "fill-blue-600")} />
+                                    <span className="sr-only">{client.isPinned ? "Unpin" : "Pin"}</span>
+                                </Button>
+                            </TableCell>
                             <TableCell className="font-bold text-slate-900">
                                 <div className="flex flex-col">
-                                    <span>{client.companyName || client.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span>{client.companyName || client.name}</span>
+                                        {client.isPinned && (
+                                            <Badge variant="outline" className="bg-blue-100/80 text-blue-700 border-blue-300 text-[9px] font-bold px-1.5 py-0 flex items-center gap-1">
+                                                <Pin className="h-2.5 w-2.5 fill-current" /> PINNED
+                                            </Badge>
+                                        )}
+                                    </div>
                                     {client.companyName && client.name !== client.companyName && (
                                         <span className="text-[10px] text-muted-foreground font-medium">{client.name}</span>
                                     )}
@@ -519,6 +583,18 @@ export default function AIAccountantClientsPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Manage</DropdownMenuLabel>
+                                            <DropdownMenuItem onClick={() => handleTogglePin(client)}>
+                                                {client.isPinned ? (
+                                                    <>
+                                                        <PinOff className="mr-2 h-4 w-4 text-slate-500" /> Unpin from Top
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Pin className="mr-2 h-4 w-4 text-blue-600" /> Pin to Top
+                                                    </>
+                                                )}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
                                             <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsFormOpen(true); }}>
                                                 <Edit className="mr-2 h-4 w-4" /> Edit Profile
                                             </DropdownMenuItem>
@@ -683,7 +759,52 @@ export default function AIAccountantClientsPage() {
                 {isLoading ? (
                     <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-20"><Loader2 className="animate-spin text-primary h-8 w-8" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
                 ) : (
-                    <div className="space-y-8">
+                    <div className="space-y-6">
+                        {pinnedClients.length > 0 && !searchTerm && (
+                            <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-slate-50 border border-blue-200/80 rounded-xl p-4 shadow-sm space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="h-7 w-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                                            <Pin className="h-4 w-4 fill-current" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900">Pinned Companies</h3>
+                                            <p className="text-[11px] text-blue-700/80">Quick access to your prioritized client accounts</p>
+                                        </div>
+                                    </div>
+                                    <Badge variant="outline" className="bg-white/90 text-blue-800 border-blue-300 font-bold text-[10px] px-2 py-0.5 shadow-2xs">
+                                        {pinnedClients.length} {pinnedClients.length === 1 ? 'Company' : 'Companies'} Pinned
+                                    </Badge>
+                                </div>
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                    {pinnedClients.map(client => (
+                                        <div
+                                            key={`pinned-chip-${client.id}`}
+                                            className="group flex items-center gap-2 bg-white hover:bg-blue-50/80 border border-blue-200/80 hover:border-blue-400 rounded-lg py-1.5 px-3 shadow-2xs transition-all"
+                                        >
+                                            <Link
+                                                href={`/admin/ai-accountant/${client.id}/dashboard`}
+                                                className="flex items-center gap-2 text-xs font-bold text-slate-800 hover:text-blue-700"
+                                            >
+                                                <Building className="h-3.5 w-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
+                                                <span className="truncate max-w-[200px] sm:max-w-[280px]">{client.companyName || client.name}</span>
+                                                <ArrowRight className="h-3 w-3 text-muted-foreground group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleTogglePin(client, e)}
+                                                title="Unpin company"
+                                                className="text-slate-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors ml-1"
+                                            >
+                                                <PinOff className="h-3.5 w-3.5" />
+                                                <span className="sr-only">Unpin</span>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <Card className="border-2 shadow-sm">
                             <CardHeader className="bg-primary/5 pb-4 border-b border-primary/10">
                                 <div className="flex justify-between items-center">
