@@ -32,7 +32,6 @@ import { Service } from '@/lib/types';
 import { useEffect, useState, useMemo } from 'react';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Badge } from '@/components/ui/badge';
-import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { cn, formatPrice } from '@/lib/utils';
 
@@ -103,7 +102,6 @@ export default function ProductsPageClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [mounted, setMounted] = useState(false);
-  const { addToCart } = useCart();
   const { wishlist, addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
   useEffect(() => {
@@ -508,35 +506,17 @@ export default function ProductsPageClient({
                       />
                     </CardContent>
 
-                    {/* Footer buttons */}
-                    <CardFooter className="pt-2 pb-5 px-5 flex gap-2.5">
-                        {/* Order Now */}
-                        {!service.isPriceTbc && (
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="flex-[3] font-bold h-10 text-xs rounded-xl shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
-                            onClick={() => addToCart(service)}
-                          >
-                            <ShoppingCart className="h-3.5 w-3.5" />
-                            Order Now
-                          </Button>
-                        )}
-                        {/* View Details */}
+                    {/* Footer button */}
+                    <CardFooter className="pt-2 pb-5 px-5">
                         <Button
                           asChild
                           size="sm"
-                          variant={service.isPriceTbc ? "default" : "outline"}
-                          className={cn(
-                            "font-bold h-10 text-xs rounded-xl transition-all duration-300",
-                            service.isPriceTbc
-                              ? "flex-1 shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white"
-                              : "flex-[2] border-blue-200/90 hover:border-blue-300 hover:bg-blue-100/50 bg-transparent text-slate-700"
-                          )}
+                          variant="default"
+                          className="w-full font-bold h-10 text-xs rounded-xl shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
                         >
-                          <Link href={`/products/${service.slug}`} className="group/btn flex items-center justify-center gap-1">
-                            {service.isPriceTbc ? "Get a Quote" : "Details"}
-                            <ArrowRight className="h-3 w-3 group-hover/btn:translate-x-0.5 transition-transform" />
+                          <Link href={`/products/${service.slug}`} className="group/btn flex items-center justify-center gap-1.5">
+                            {service.isPriceTbc ? "Get a Quote" : "View Service & Prerequisites"}
+                            <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                           </Link>
                         </Button>
                     </CardFooter>

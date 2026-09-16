@@ -413,27 +413,16 @@ export default function HomePageClient() {
                 </div>
               </CardContent>
 
-              <CardFooter className="pt-0 pb-4 px-6 flex gap-2">
+              <CardFooter className="pt-0 pb-4 px-6">
                 <Button
                   asChild
                   size="sm"
                   variant="default"
-                  className="flex-1 font-bold h-10 text-xs rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
+                  className="w-full font-bold h-10 text-xs rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
                 >
-                  <Link href="/products/ncr-registration">
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    Order Now
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className="flex-none px-4 border-blue-200/90 hover:border-blue-300 hover:bg-blue-100/50 bg-transparent text-slate-700 font-bold h-10 text-xs rounded-xl transition-all duration-300"
-                >
-                  <Link href="/products/ncr-registration" className="group/btn flex items-center justify-center gap-1">
-                    Details
-                    <ArrowRight className="h-3 w-3 group-hover/btn:translate-x-0.5 transition-transform" />
+                  <Link href="/products/ncr-registration" className="group/btn flex items-center justify-center gap-1.5">
+                    View Service & Prerequisites
+                    <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                   </Link>
                 </Button>
               </CardFooter>
@@ -503,27 +492,16 @@ export default function HomePageClient() {
                 </div>
               </CardContent>
 
-              <CardFooter className="pt-0 pb-4 px-6 flex gap-2">
+              <CardFooter className="pt-0 pb-4 px-6">
                 <Button
                   asChild
                   size="sm"
                   variant="default"
-                  className="flex-1 font-bold h-10 text-xs rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
+                  className="w-full font-bold h-10 text-xs rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
                 >
-                  <Link href="/products/accountants-letter">
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    Order Now
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className="flex-none px-4 border-blue-200/90 hover:border-blue-300 hover:bg-blue-100/50 bg-transparent text-slate-700 font-bold h-10 text-xs rounded-xl transition-all duration-300"
-                >
-                  <Link href="/products/accountants-letter" className="group/btn flex items-center justify-center gap-1">
-                    Details
-                    <ArrowRight className="h-3 w-3 group-hover/btn:translate-x-0.5 transition-transform" />
+                  <Link href="/products/accountants-letter" className="group/btn flex items-center justify-center gap-1.5">
+                    View Service & Prerequisites
+                    <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                   </Link>
                 </Button>
               </CardFooter>
@@ -593,27 +571,16 @@ export default function HomePageClient() {
                 </div>
               </CardContent>
 
-              <CardFooter className="pt-0 pb-4 px-6 flex gap-2">
+              <CardFooter className="pt-0 pb-4 px-6">
                 <Button
                   asChild
                   size="sm"
                   variant="default"
-                  className="flex-1 font-bold h-10 text-xs rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
+                  className="w-full font-bold h-10 text-xs rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
                 >
-                  <Link href="/products/tax-clearance-pin">
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    Order Now
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className="flex-none px-4 border-blue-200/90 hover:border-blue-300 hover:bg-blue-100/50 bg-transparent text-slate-700 font-bold h-10 text-xs rounded-xl transition-all duration-300"
-                >
-                  <Link href="/products/tax-clearance-pin" className="group/btn flex items-center justify-center gap-1">
-                    Details
-                    <ArrowRight className="h-3 w-3 group-hover/btn:translate-x-0.5 transition-transform" />
+                  <Link href="/products/tax-clearance-pin" className="group/btn flex items-center justify-center gap-1.5">
+                    View Service & Prerequisites
+                    <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                   </Link>
                 </Button>
               </CardFooter>

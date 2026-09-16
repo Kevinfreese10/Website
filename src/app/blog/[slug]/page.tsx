@@ -448,8 +448,8 @@ export default async function BlogPostPage({ params }: Props) {
                               className="flex-1 font-bold h-10 text-xs rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
                             >
                               <Link href={`/products/${service.slug}`} className="group/btn flex items-center justify-center gap-1">
-                                {service.isPriceTbc ? "Get a Quote" : "Details"}
-                                <ArrowRight className="h-3 w-3 group-hover/btn:translate-x-0.5 transition-transform" />
+                                {service.isPriceTbc ? "Get a Quote" : "View Service & Prerequisites"}
+                                <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                               </Link>
                             </Button>
                         </CardFooter>
