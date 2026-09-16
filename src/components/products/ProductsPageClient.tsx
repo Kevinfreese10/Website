@@ -44,11 +44,11 @@ type Category = {
 };
 
 const getCategoryStyle = (category: string) => {
-  if (category.includes('SARS')) return { badge: 'bg-white text-emerald-700 border-emerald-200/80 shadow-2xs', dot: 'bg-emerald-500' };
-  if (category.includes('CIPC') || category.includes('Compliance')) return { badge: 'bg-white text-purple-700 border-purple-200/80 shadow-2xs', dot: 'bg-purple-500' };
-  if (category.includes('Payroll') || category.includes('UIF') || category.includes('COIDA')) return { badge: 'bg-white text-amber-700 border-amber-200/80 shadow-2xs', dot: 'bg-amber-500' };
-  if (category.includes('Entity') || category.includes('Company')) return { badge: 'bg-white text-blue-700 border-blue-200/80 shadow-2xs', dot: 'bg-blue-600' };
-  return { badge: 'bg-white text-slate-700 border-slate-200/80 shadow-2xs', dot: 'bg-slate-500' };
+  if (category.includes('SARS')) return { badge: 'bg-white text-emerald-700 border-emerald-200/80 shadow-2xs', dot: 'bg-emerald-500', accent: 'border-t-emerald-500' };
+  if (category.includes('CIPC') || category.includes('Compliance')) return { badge: 'bg-white text-purple-700 border-purple-200/80 shadow-2xs', dot: 'bg-purple-500', accent: 'border-t-purple-500' };
+  if (category.includes('Payroll') || category.includes('UIF') || category.includes('COIDA')) return { badge: 'bg-white text-amber-700 border-amber-200/80 shadow-2xs', dot: 'bg-amber-500', accent: 'border-t-amber-500' };
+  if (category.includes('Entity') || category.includes('Company')) return { badge: 'bg-white text-blue-700 border-blue-200/80 shadow-2xs', dot: 'bg-blue-600', accent: 'border-t-blue-600' };
+  return { badge: 'bg-white text-slate-700 border-slate-200/80 shadow-2xs', dot: 'bg-slate-500', accent: 'border-t-slate-400' };
 };
 
 export default function ProductsPageClient({ 
@@ -374,25 +374,27 @@ export default function ProductsPageClient({
                     <Card
                     key={service.id}
                     className={cn(
-                      "flex flex-col overflow-hidden transition-all duration-500 border border-blue-200/90 bg-[#f4f8ff] group",
-                      "shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/40",
+                      "flex flex-col overflow-hidden transition-all duration-500 border border-blue-200/90 bg-[#f4f8ff] group border-t-4",
+                      getCategoryStyle(service.category).accent,
+                      "shadow-[0_4px_20px_rgb(0,0,0,0.04)] hover:shadow-[0_16px_40px_-4px_rgba(0,0,0,0.10)] hover:-translate-y-1.5 hover:border-primary/40",
                       service.isFeatured && "ring-2 ring-primary/20 border-primary/30 neon-glow"
                     )}
                     >
-                    <CardHeader className="pb-3 relative">
+                    {/* Card header: badge row + title + stars + price/turnaround */}
+                    <CardHeader className="pb-0 pt-5 px-5 relative">
                         {/* Featured / Popular badge */}
                         {service.isFeatured && (
                           <div className="absolute top-3 right-3">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 text-[10px] font-extrabold uppercase tracking-wider border border-amber-500/20">
-                              <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" /> Popular
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 text-[10px] font-extrabold uppercase tracking-wider border border-amber-500/20">
+                              <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" /> Popular
                             </span>
                           </div>
                         )}
 
-                        {/* Category chip with accent dot & Wishlist action */}
-                        <div className="flex items-center justify-between mb-2">
+                        {/* Category chip & Wishlist */}
+                        <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className={cn("w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-full px-2 py-0.5 flex items-center", getCategoryStyle(service.category).badge)}>
+                            <Badge variant="secondary" className={cn("w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-full px-2.5 py-0.5 flex items-center border", getCategoryStyle(service.category).badge)}>
                               <span className={cn("h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse", getCategoryStyle(service.category).dot)} />
                               {service.category}
                             </Badge>
@@ -403,27 +405,29 @@ export default function ProductsPageClient({
                               </Badge>
                             )}
                           </div>
-                          
-                          <button 
+
+                          <button
                             suppressHydrationWarning
                             onClick={(e) => {
                               e.preventDefault();
                               isInWishlist(service.id) ? removeFromWishlist(service.id) : addToWishlist(service);
                             }}
-                            className="p-1.5 hover:bg-slate-100 rounded-full transition-colors group/heart"
+                            className="p-1.5 hover:bg-blue-100/60 rounded-full transition-colors group/heart"
                             aria-label="Save for later"
                           >
                             <Heart className={cn("h-4 w-4 transition-all duration-300", mounted && isInWishlist(service.id) ? "fill-rose-500 text-rose-500" : "text-slate-400 group-hover/heart:text-rose-400")} />
                           </button>
                         </div>
 
-                        <CardTitle className="leading-snug text-slate-800 text-[16px] font-black group-hover:text-primary transition-colors duration-300 pr-14">
+                        {/* Title */}
+                        <CardTitle className="leading-snug text-slate-800 text-[16px] font-black group-hover:text-primary transition-colors duration-300 pr-2 mb-1.5">
                           <Link href={`/products/${service.slug}`} className="hover:underline line-clamp-2">
                             {service.title}
                           </Link>
                         </CardTitle>
 
-                        <div className="flex items-center gap-1.5 mt-1.5">
+                        {/* Stars */}
+                        <div className="flex items-center gap-1.5 mb-3">
                           <div className="flex items-center text-amber-400">
                             <Star className="h-3 w-3 fill-amber-400" />
                             <Star className="h-3 w-3 fill-amber-400" />
@@ -436,29 +440,34 @@ export default function ProductsPageClient({
                           </span>
                         </div>
 
-                        <div className="mt-3 flex items-start justify-between gap-2">
+                        {/* Price + Turnaround — separated by a subtle divider */}
+                        <div className="flex items-center justify-between py-3 border-t border-blue-100/80">
                           <div>
                             {service.isPriceTbc ? (
-                              <span className="text-xl font-black text-slate-900 leading-none block">Price on Request</span>
+                              <span className="text-lg font-black text-slate-800 leading-none">Price on Request</span>
                             ) : (
-                              <span className="text-xl font-black text-slate-900 leading-none block">
+                              <span className="text-2xl font-black text-slate-900 leading-none tracking-tight">
                                 {formatPrice(service.price)}
                               </span>
                             )}
-                          </div>  
+                          </div>
                           {/* Turnaround Time */}
-                          <div className="flex items-center text-slate-500 gap-1.5">
-                            <CalendarDays className="h-3.5 w-3.5 text-blue-600" />
-                            <span className="text-xs font-semibold text-slate-500">{service.turnaroundTime}</span>
+                          <div className="flex items-center gap-1.5 bg-blue-50/80 border border-blue-100 rounded-lg px-2.5 py-1.5">
+                            <CalendarDays className="h-3 w-3 text-blue-600 flex-none" />
+                            <span className="text-[10px] font-bold text-blue-700">{service.turnaroundTime}</span>
                           </div>
                         </div>
                     </CardHeader>
 
-                    <CardContent className="flex-grow pt-0 pb-3">
+                    {/* What's Included */}
+                    <CardContent className="flex-grow pt-0 pb-3 px-5">
                         {service.whatsIncluded && service.whatsIncluded.length > 0 ? (
-                          <div className="mt-1">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">What's Included</p>
-                            <ul className="text-xs text-slate-600 leading-relaxed space-y-1.5">
+                          <div className="mt-3">
+                            <div className="flex items-center gap-2 mb-2.5">
+                              <div className="h-3 w-0.5 rounded-full bg-blue-400" />
+                              <p className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">What's Included</p>
+                            </div>
+                            <ul className="text-xs text-slate-600 leading-relaxed space-y-2">
                               {service.whatsIncluded.slice(0, 3).map((item, idx) => (
                                 <li key={idx} className="flex items-start">
                                   <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
@@ -468,17 +477,18 @@ export default function ProductsPageClient({
                             </ul>
                           </div>
                         ) : (
-                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mt-1">{service.description}</p>
+                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mt-3">{service.description}</p>
                         )}
                     </CardContent>
 
-                    <CardFooter className="pt-0 pb-4 flex gap-2">
-                        {/* Order Now (Add to Cart) */}
+                    {/* Footer buttons */}
+                    <CardFooter className="pt-2 pb-5 px-5 flex gap-2.5">
+                        {/* Order Now */}
                         {!service.isPriceTbc && (
                           <Button
                             size="sm"
                             variant="default"
-                            className="flex-1 font-bold h-10 text-xs rounded-xl shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
+                            className="flex-[3] font-bold h-10 text-xs rounded-xl shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5"
                             onClick={() => addToCart(service)}
                           >
                             <ShoppingCart className="h-3.5 w-3.5" />
@@ -493,8 +503,8 @@ export default function ProductsPageClient({
                           className={cn(
                             "font-bold h-10 text-xs rounded-xl transition-all duration-300",
                             service.isPriceTbc
-                              ? "flex-1 shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white" 
-                              : "flex-none px-4 border-blue-200/90 hover:border-blue-300 hover:bg-blue-100/50 bg-transparent text-slate-700"
+                              ? "flex-1 shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white"
+                              : "flex-[2] border-blue-200/90 hover:border-blue-300 hover:bg-blue-100/50 bg-transparent text-slate-700"
                           )}
                         >
                           <Link href={`/products/${service.slug}`} className="group/btn flex items-center justify-center gap-1">
