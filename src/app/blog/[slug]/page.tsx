@@ -380,7 +380,7 @@ export default async function BlogPostPage({ params }: Props) {
 
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
-                                <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center">
+                                <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-white text-blue-700 border border-blue-200/80 shadow-2xs">
                                   {service.category}
                                 </Badge>
                               </div>
@@ -416,7 +416,7 @@ export default async function BlogPostPage({ params }: Props) {
                                 )}
                               </div>  
                               <div className="flex items-center text-slate-500 gap-1.5">
-                                <Clock className="h-3.5 w-3.5 text-emerald-500" />
+                                <Clock className="h-3.5 w-3.5 text-blue-600" />
                                 <span className="text-xs font-semibold text-slate-500">{service.turnaroundTime}</span>
                               </div>
                             </div>
@@ -429,7 +429,7 @@ export default async function BlogPostPage({ params }: Props) {
                                 <ul className="text-xs text-slate-600 leading-relaxed space-y-1.5">
                                   {service.whatsIncluded.slice(0, 3).map((item, idx) => (
                                     <li key={idx} className="flex items-start">
-                                      <span className="h-1.5 w-1.5 mr-2 mt-1.5 bg-green-500 flex-none rounded-full" />
+                                      <span className="h-1.5 w-1.5 mr-2 mt-1.5 bg-emerald-600 flex-none rounded-full" />
                                       <span className="line-clamp-1">{item}</span>
                                     </li>
                                   ))}

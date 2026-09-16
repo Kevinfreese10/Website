@@ -355,7 +355,7 @@ export default function HomePageClient() {
             >
               <CardHeader className="pb-3 relative">
                 <div className="flex items-center justify-between mb-2">
-                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-purple-500/5 text-purple-600 border border-purple-500/10">
+                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-white text-purple-700 border border-purple-200/80 shadow-2xs">
                     <span className="h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse bg-purple-500" />
                     CIPC & Compliance
                   </Badge>
@@ -387,7 +387,7 @@ export default function HomePageClient() {
                     </span>
                   </div>
                   <div className="flex items-center text-slate-500 gap-1.5">
-                    <CalendarDays className="h-3.5 w-3.5 text-emerald-500" />
+                    <CalendarDays className="h-3.5 w-3.5 text-blue-600" />
                     <span className="text-xs font-semibold text-slate-500">15-20 days</span>
                   </div>
                 </div>
@@ -398,15 +398,15 @@ export default function HomePageClient() {
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">What's Included</p>
                   <ul className="text-xs text-slate-600 leading-relaxed space-y-1.5">
                     <li className="flex items-start">
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-green-500 flex-none" />
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
                       <span className="line-clamp-1">Full CIPC & SARS vetting</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-green-500 flex-none" />
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
                       <span className="line-clamp-1">Drafting of NCR application forms</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-green-500 flex-none" />
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
                       <span className="line-clamp-1">Submission & liaison with officers</span>
                     </li>
                   </ul>
@@ -429,7 +429,7 @@ export default function HomePageClient() {
                   asChild
                   size="sm"
                   variant="outline"
-                  className="flex-none px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-bold h-10 text-xs rounded-xl transition-all duration-300"
+                  className="flex-none px-4 border-blue-200/90 hover:border-blue-300 hover:bg-blue-100/50 bg-transparent text-slate-700 font-bold h-10 text-xs rounded-xl transition-all duration-300"
                 >
                   <Link href="/products/ncr-registration" className="group/btn flex items-center justify-center gap-1">
                     Details
@@ -445,8 +445,8 @@ export default function HomePageClient() {
             >
               <CardHeader className="pb-3 relative">
                 <div className="flex items-center justify-between mb-2">
-                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-slate-500/5 text-slate-600 border border-slate-500/10">
-                    <span className="h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse bg-slate-500" />
+                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-white text-blue-700 border border-blue-200/80 shadow-2xs">
+                    <span className="h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse bg-blue-600" />
                     Accounting Services
                   </Badge>
                 </div>
@@ -477,7 +477,7 @@ export default function HomePageClient() {
                     </span>
                   </div>
                   <div className="flex items-center text-slate-500 gap-1.5">
-                    <CalendarDays className="h-3.5 w-3.5 text-emerald-500" />
+                    <CalendarDays className="h-3.5 w-3.5 text-blue-600" />
                     <span className="text-xs font-semibold text-slate-500">1-2 days</span>
                   </div>
                 </div>
@@ -488,15 +488,15 @@ export default function HomePageClient() {
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">What's Included</p>
                   <ul className="text-xs text-slate-600 leading-relaxed space-y-1.5">
                     <li className="flex items-start">
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-green-500 flex-none" />
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
                       <span className="line-clamp-1">Verified assets & liabilities</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-green-500 flex-none" />
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
                       <span className="line-clamp-1">CIBA/SAIT official letterhead</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-green-500 flex-none" />
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
                       <span className="line-clamp-1">Accepted by all SA banks & SARS</span>
                     </li>
                   </ul>
@@ -519,7 +519,7 @@ export default function HomePageClient() {
                   asChild
                   size="sm"
                   variant="outline"
-                  className="flex-none px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-bold h-10 text-xs rounded-xl transition-all duration-300"
+                  className="flex-none px-4 border-blue-200/90 hover:border-blue-300 hover:bg-blue-100/50 bg-transparent text-slate-700 font-bold h-10 text-xs rounded-xl transition-all duration-300"
                 >
                   <Link href="/products/accountants-letter" className="group/btn flex items-center justify-center gap-1">
                     Details
@@ -535,8 +535,8 @@ export default function HomePageClient() {
             >
               <CardHeader className="pb-3 relative">
                 <div className="flex items-center justify-between mb-2">
-                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-green-500/5 text-green-600 border border-green-500/10">
-                    <span className="h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse bg-green-500" />
+                  <Badge variant="secondary" className="w-fit text-[9px] uppercase tracking-wider font-extrabold rounded-md px-2 py-0.5 flex items-center bg-white text-emerald-700 border border-emerald-200/80 shadow-2xs">
+                    <span className="h-1.5 w-1.5 rounded-full mr-1.5 animate-pulse bg-emerald-500" />
                     SARS Services
                   </Badge>
                 </div>
@@ -567,7 +567,7 @@ export default function HomePageClient() {
                     </span>
                   </div>
                   <div className="flex items-center text-slate-500 gap-1.5">
-                    <CalendarDays className="h-3.5 w-3.5 text-emerald-500" />
+                    <CalendarDays className="h-3.5 w-3.5 text-blue-600" />
                     <span className="text-xs font-semibold text-slate-500">1-2 days</span>
                   </div>
                 </div>
@@ -578,15 +578,15 @@ export default function HomePageClient() {
                   <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">What's Included</p>
                   <ul className="text-xs text-slate-600 leading-relaxed space-y-1.5">
                     <li className="flex items-start">
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-green-500 flex-none" />
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
                       <span className="line-clamp-1">Verified SARS compliance status</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-green-500 flex-none" />
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
                       <span className="line-clamp-1">Tender-ready compliant PIN</span>
                     </li>
                     <li className="flex items-start">
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-green-500 flex-none" />
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
                       <span className="line-clamp-1">Active verification link</span>
                     </li>
                   </ul>
@@ -609,7 +609,7 @@ export default function HomePageClient() {
                   asChild
                   size="sm"
                   variant="outline"
-                  className="flex-none px-4 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-bold h-10 text-xs rounded-xl transition-all duration-300"
+                  className="flex-none px-4 border-blue-200/90 hover:border-blue-300 hover:bg-blue-100/50 bg-transparent text-slate-700 font-bold h-10 text-xs rounded-xl transition-all duration-300"
                 >
                   <Link href="/products/tax-clearance-pin" className="group/btn flex items-center justify-center gap-1">
                     Details
