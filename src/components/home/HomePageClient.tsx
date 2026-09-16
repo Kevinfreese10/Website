@@ -351,7 +351,7 @@ export default function HomePageClient() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             {/* NCR Registration Card */}
             <Card
-              className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25 rounded-xl"
+              className="flex flex-col overflow-hidden transition-all duration-500 border border-blue-200/90 bg-[#f4f8ff] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/40 rounded-xl"
             >
               <CardHeader className="pb-3 relative">
                 <div className="flex items-center justify-between mb-2">
@@ -441,7 +441,7 @@ export default function HomePageClient() {
 
             {/* Accountant's Letter Card */}
             <Card
-              className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25 rounded-xl"
+              className="flex flex-col overflow-hidden transition-all duration-500 border border-blue-200/90 bg-[#f4f8ff] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/40 rounded-xl"
             >
               <CardHeader className="pb-3 relative">
                 <div className="flex items-center justify-between mb-2">
@@ -531,7 +531,7 @@ export default function HomePageClient() {
 
             {/* Tax Clearance Pin Card */}
             <Card
-              className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25 rounded-xl"
+              className="flex flex-col overflow-hidden transition-all duration-500 border border-blue-200/90 bg-[#f4f8ff] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/40 rounded-xl"
             >
               <CardHeader className="pb-3 relative">
                 <div className="flex items-center justify-between mb-2">
@@ -645,7 +645,7 @@ export default function HomePageClient() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   {/* Accounting Pillar */}
-                  <Card className="glass-card border-t-4 border-t-blue-500 border-x-white/[0.06] border-b-white/[0.06] hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-all duration-300 group">
+                  <Card className="border-t-4 border-t-blue-500 border border-blue-200/90 bg-[#f4f8ff] hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-all duration-300 group">
                       <CardHeader className="pb-3">
                           <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 mb-3 group-hover:scale-110 transition-transform duration-300">
                               <Calculator className="h-5 w-5" />
@@ -684,7 +684,7 @@ export default function HomePageClient() {
                   </Card>
 
                   {/* Tax Pillar */}
-                  <Card className="glass-card border-t-4 border-t-emerald-500 border-x-white/[0.06] border-b-white/[0.06] hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] transition-all duration-300 group">
+                  <Card className="border-t-4 border-t-emerald-500 border border-blue-200/90 bg-[#f4f8ff] hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)] transition-all duration-300 group">
                       <CardHeader className="pb-3">
                           <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-3 group-hover:scale-110 transition-transform duration-300">
                               <Landmark className="h-5 w-5" />
@@ -729,7 +729,7 @@ export default function HomePageClient() {
                   </Card>
 
                   {/* Payroll Pillar */}
-                  <Card className="glass-card border-t-4 border-t-amber-500 border-x-white/[0.06] border-b-white/[0.06] hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] transition-all duration-300 group">
+                  <Card className="border-t-4 border-t-amber-500 border border-blue-200/90 bg-[#f4f8ff] hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)] transition-all duration-300 group">
                       <CardHeader className="pb-3">
                           <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 mb-3 group-hover:scale-110 transition-transform duration-300">
                               <Users className="h-5 w-5" />
@@ -768,7 +768,7 @@ export default function HomePageClient() {
                   </Card>
 
                   {/* CIPC Pillar */}
-                  <Card className="glass-card border-t-4 border-t-purple-500 border-x-white/[0.06] border-b-white/[0.06] hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] transition-all duration-300 group">
+                  <Card className="border-t-4 border-t-purple-500 border border-blue-200/90 bg-[#f4f8ff] hover:border-purple-500/50 hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] transition-all duration-300 group">
                       <CardHeader className="pb-3">
                           <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500 mb-3 group-hover:scale-110 transition-transform duration-300">
                               <Building className="h-5 w-5" />

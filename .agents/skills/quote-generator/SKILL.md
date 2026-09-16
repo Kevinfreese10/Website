@@ -137,3 +137,8 @@ Always verify live pricing from the website catalog (`https://www.myacc.co.za`):
 - **PAYE Registration:** **R 750.00** &bull; `https://www.myacc.co.za/products/paye-registration`
 - **UIF Registration:** **R 1,200.00** &bull; `https://www.myacc.co.za/products/uif-registration`
 - **COIDA Registration:** **R 1,400.00** &bull; `https://www.myacc.co.za/products/coida-registration`
+- **CIDB 3-Year Renewal:** **R 1,800.00** &bull; `https://www.myacc.co.za/products/cidb-3-year-renewal`
+- **CIDB Upgrades (Grades 2–9):** **R 1,800.00** &bull; `https://www.myacc.co.za/products/cidb-upgrades-grades-2-9`
+- **CIDB Annual Renewal:** **R 650.00** &bull; `https://www.myacc.co.za/products/cidb-annual-renewal`
+- **CIDB Grade 1 Registration:** **R 1,150.00** &bull; `https://www.myacc.co.za/products/cidb-registration`
+

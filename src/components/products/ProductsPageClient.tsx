@@ -374,9 +374,9 @@ export default function ProductsPageClient({
                     <Card
                     key={service.id}
                     className={cn(
-                      "flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group",
-                      "shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25",
-                      service.isFeatured && "ring-2 ring-primary/20 border-primary/15 neon-glow"
+                      "flex flex-col overflow-hidden transition-all duration-500 border border-blue-200/90 bg-[#f4f8ff] group",
+                      "shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/40",
+                      service.isFeatured && "ring-2 ring-primary/20 border-primary/30 neon-glow"
                     )}
                     >
                     <CardHeader className="pb-3 relative">

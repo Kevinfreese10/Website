@@ -367,7 +367,7 @@ export default async function BlogPostPage({ params }: Props) {
                   {relatedServices.map(service => (
                       <Card
                         key={service.id}
-                        className="flex flex-col overflow-hidden transition-all duration-500 glass-card border border-black/[0.03] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/25"
+                        className="flex flex-col overflow-hidden transition-all duration-500 border border-blue-200/90 bg-[#f4f8ff] group shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1.5 hover:border-primary/40"
                       >
                         <CardHeader className="pb-3 relative">
                             {service.isFeatured && (

@@ -106,10 +106,9 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
   .glass-card {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #f4f8ff;
+    border: 1px solid #bfdbfe;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
   }
   .glass-nav {
     background: rgba(10, 15, 28, 0.75);
@@ -216,7 +215,8 @@
 .home-light-theme {
   --background: 0 0% 100%;             /* Pure white background */
   --foreground: 240 10% 3.9%;          /* Off-black text */
-  --card: 240 5% 96.5%;                /* Extremely light gray cards */
+  --card: 218 100% 98%;                /* Soft ice-blue cards #f4f8ff */
+  --card-border: 214 95% 88%;          /* Crisp light-blue border #bfdbfe */
   --card-foreground: 240 10% 3.9%;
   --popover: 0 0% 100%;
   --popover-foreground: 240 10% 3.9%;
@@ -230,8 +230,8 @@
   --accent-foreground: 240 5.9% 10%;
   --destructive: 0 72% 45%;           /* AA-compliant for form error text (was 3.76:1) */
   --destructive-foreground: 0 0% 98%;
-  --border: 240 6% 76%;               /* Meets WCAG 1.4.11 3:1 for UI boundaries (was 1.27:1) */
-  --input: 240 6% 76%;
+  --border: 214 95% 88%;               /* Crisp light-blue border #bfdbfe */
+  --input: 214 95% 88%;
   --ring: 221.2 83.2% 53.3%;
 }
 
@@ -353,16 +353,16 @@ body.home-light-theme .border-white\/10 {
 
 /* Keep card layouts clean */
 body.home-light-theme .glass-card {
-  background: hsl(var(--card)) !important;
+  background: #f4f8ff !important;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #bfdbfe !important;
 }
 body.home-light-theme .glass {
-  background: hsl(var(--card)) !important;
+  background: #f4f8ff !important;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid #bfdbfe !important;
 }
 /* ════════════════════════════════════════════════════════════════════
    PREMIUM UI FOUNDATION (Phase 0)
