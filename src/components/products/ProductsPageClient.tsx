@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { 
   CalendarDays, 
   Loader2, 
-  CheckCircle2, 
+  CheckCircle2,
   ArrowRight, 
   ShoppingCart, 
   FileUp, 
@@ -22,7 +22,9 @@ import {
   ShoppingBag,
   Sparkles,
   Globe,
-  Heart
+  Heart,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { collection, getFirestore, orderBy, query, onSnapshot, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -42,6 +44,42 @@ type Category = {
     description: string; 
     order: number; 
 };
+
+function ProductDescription({ text }: { text: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  if (!text) return null;
+
+  const isLong = text.length > 110;
+
+  return (
+    <div className="mt-3">
+      <p className={cn("text-xs text-slate-600 leading-relaxed transition-all", !isExpanded && "line-clamp-3")}>
+        {text}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsExpanded(!isExpanded);
+          }}
+          className="mt-2 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1 focus:outline-none transition-colors"
+        >
+          {isExpanded ? (
+            <>
+              View less <ChevronUp className="h-3 w-3" />
+            </>
+          ) : (
+            <>
+              View more <ChevronDown className="h-3 w-3" />
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
 
 const getCategoryStyle = (category: string) => {
   if (category.includes('SARS')) return { badge: 'bg-white text-emerald-700 border-emerald-200/80 shadow-2xs', dot: 'bg-emerald-500' };
@@ -458,26 +496,11 @@ export default function ProductsPageClient({
                         </div>
                     </CardHeader>
 
-                    {/* What's Included */}
+                    {/* Product Description */}
                     <CardContent className="flex-grow pt-0 pb-3 px-5">
-                        {service.whatsIncluded && service.whatsIncluded.length > 0 ? (
-                          <div className="mt-3">
-                            <div className="flex items-center gap-2 mb-2.5">
-                              <div className="h-3 w-0.5 rounded-full bg-blue-400" />
-                              <p className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600">What's Included</p>
-                            </div>
-                            <ul className="text-xs text-slate-600 leading-relaxed space-y-2">
-                              {service.whatsIncluded.slice(0, 3).map((item, idx) => (
-                                <li key={idx} className="flex items-start">
-                                  <CheckCircle2 className="h-3.5 w-3.5 mr-2 mt-0.5 text-emerald-600 flex-none" />
-                                  <span className="line-clamp-1">{item}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mt-3">{service.description}</p>
-                        )}
+                      <ProductDescription 
+                        text={service.description || (service.whatsIncluded && service.whatsIncluded.length > 0 ? service.whatsIncluded.join('. ') : '')} 
+                      />
                     </CardContent>
 
                     {/* Footer buttons */}
