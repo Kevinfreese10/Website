@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Loader2, Copy, Info, AlertTriangle, Download, RefreshCw, Calculator, ArrowUp, ArrowUpDown, CheckCircle2, XCircle, ShieldOff, FileSpreadsheet, Building2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Loader2, Copy, Info, AlertTriangle, Download, RefreshCw, Calculator, ArrowUp, ArrowUpDown, CheckCircle2, XCircle, ShieldOff, FileSpreadsheet, Building2, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -647,7 +647,13 @@ export default function AdminServicesPage() {
                 return (
                 <TableRow key={service.id}>
                    <TableCell>
-                      <Image src={service.imageUrl} alt={service.title} width={40} height={40} className="rounded-md object-cover" />
+                      {service.imageUrl ? (
+                        <Image src={service.imageUrl} alt={service.title} width={40} height={40} className="rounded-md object-cover w-10 h-10" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-md bg-muted/60 flex items-center justify-center text-muted-foreground border border-border/50">
+                          <ImageIcon className="h-4 w-4 opacity-50" />
+                        </div>
+                      )}
                   </TableCell>
                   <TableCell className="font-medium">
                     <div className="flex flex-col gap-1">
