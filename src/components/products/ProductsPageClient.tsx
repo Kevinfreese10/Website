@@ -59,6 +59,7 @@ function ProductDescription({ text }: { text: string }) {
       {isLong && (
         <button
           type="button"
+          suppressHydrationWarning
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -339,6 +340,7 @@ export default function ProductsPageClient({
               <Search className="h-5 w-5 text-muted-foreground/60" />
             </div>
             <input
+              suppressHydrationWarning
               type="text"
               placeholder="E.g. 'I need to submit a provisional return' or 'Register a company'..."
               value={searchQuery}
@@ -347,6 +349,7 @@ export default function ProductsPageClient({
             />
             {searchQuery && (
               <button
+                suppressHydrationWarning
                 onClick={() => setSearchQuery("")}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground/60 hover:text-foreground transition-colors"
               >
@@ -360,6 +363,7 @@ export default function ProductsPageClient({
         {!searchQuery && (
           <div className="flex flex-wrap gap-2 justify-center animate-in fade-in duration-300">
             <button
+              suppressHydrationWarning
               onClick={() => scrollToSection('all')}
               className={cn(
                 "px-4 py-1.5 rounded-full text-sm font-bold border transition-all duration-200",
@@ -372,6 +376,7 @@ export default function ProductsPageClient({
             </button>
             {categories.map(cat => (
               <button
+                suppressHydrationWarning
                 key={cat.id}
                 onClick={() => scrollToSection(cat.name)}
                 className={cn(
@@ -395,7 +400,7 @@ export default function ProductsPageClient({
             categorizedServices.length === 0 ? (
                 <div className="text-center py-16 space-y-4">
                     <p className="text-muted-foreground font-medium text-lg">No services found matching &ldquo;{searchQuery}&rdquo;</p>
-                    <Button variant="outline" size="sm" onClick={() => setSearchQuery("")} className="rounded-xl font-semibold border-white/10 hover:border-primary/30">
+                    <Button variant="outline" size="sm" suppressHydrationWarning onClick={() => setSearchQuery("")} className="rounded-xl font-semibold border-white/10 hover:border-primary/30">
                         Clear Search
                     </Button>
                 </div>
