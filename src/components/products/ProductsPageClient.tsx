@@ -44,11 +44,11 @@ type Category = {
 };
 
 const getCategoryStyle = (category: string) => {
-  if (category.includes('SARS')) return { badge: 'bg-white text-emerald-700 border-emerald-200/80 shadow-2xs', dot: 'bg-emerald-500', accent: 'border-t-emerald-500' };
-  if (category.includes('CIPC') || category.includes('Compliance')) return { badge: 'bg-white text-purple-700 border-purple-200/80 shadow-2xs', dot: 'bg-purple-500', accent: 'border-t-purple-500' };
-  if (category.includes('Payroll') || category.includes('UIF') || category.includes('COIDA')) return { badge: 'bg-white text-amber-700 border-amber-200/80 shadow-2xs', dot: 'bg-amber-500', accent: 'border-t-amber-500' };
-  if (category.includes('Entity') || category.includes('Company')) return { badge: 'bg-white text-blue-700 border-blue-200/80 shadow-2xs', dot: 'bg-blue-600', accent: 'border-t-blue-600' };
-  return { badge: 'bg-white text-slate-700 border-slate-200/80 shadow-2xs', dot: 'bg-slate-500', accent: 'border-t-slate-400' };
+  if (category.includes('SARS')) return { badge: 'bg-white text-emerald-700 border-emerald-200/80 shadow-2xs', dot: 'bg-emerald-500' };
+  if (category.includes('CIPC') || category.includes('Compliance')) return { badge: 'bg-white text-purple-700 border-purple-200/80 shadow-2xs', dot: 'bg-purple-500' };
+  if (category.includes('Payroll') || category.includes('UIF') || category.includes('COIDA')) return { badge: 'bg-white text-amber-700 border-amber-200/80 shadow-2xs', dot: 'bg-amber-500' };
+  if (category.includes('Entity') || category.includes('Company')) return { badge: 'bg-white text-blue-700 border-blue-200/80 shadow-2xs', dot: 'bg-blue-600' };
+  return { badge: 'bg-white text-slate-700 border-slate-200/80 shadow-2xs', dot: 'bg-slate-500' };
 };
 
 export default function ProductsPageClient({ 
@@ -374,8 +374,7 @@ export default function ProductsPageClient({
                     <Card
                     key={service.id}
                     className={cn(
-                      "flex flex-col overflow-hidden transition-all duration-500 border border-blue-200/90 bg-[#f4f8ff] group border-t-4",
-                      getCategoryStyle(service.category).accent,
+                      "flex flex-col overflow-hidden transition-all duration-500 border border-blue-200/90 bg-[#f4f8ff] group",
                       "shadow-[0_4px_20px_rgb(0,0,0,0.04)] hover:shadow-[0_16px_40px_-4px_rgba(0,0,0,0.10)] hover:-translate-y-1.5 hover:border-primary/40",
                       service.isFeatured && "ring-2 ring-primary/20 border-primary/30 neon-glow"
                     )}
