@@ -494,9 +494,9 @@ export default function ProductsPageClient({
                             )}
                           </div>
                           {/* Turnaround Time */}
-                          <div className="flex items-center gap-1.5 bg-blue-50/80 border border-blue-100 rounded-lg px-2.5 py-1.5">
-                            <CalendarDays className="h-3 w-3 text-blue-600 flex-none" />
-                            <span className="text-[10px] font-bold text-blue-700">{service.turnaroundTime}</span>
+                          <div className="flex items-center gap-1.5 bg-emerald-50/80 border border-emerald-200/80 rounded-lg px-2.5 py-1.5">
+                            <CalendarDays className="h-3 w-3 text-emerald-600 flex-none" />
+                            <span className="text-[10px] font-bold text-emerald-700">{service.turnaroundTime}</span>
                           </div>
                         </div>
                     </CardHeader>

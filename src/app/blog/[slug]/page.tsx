@@ -415,9 +415,9 @@ export default async function BlogPostPage({ params }: Props) {
                                   </span>
                                 )}
                               </div>  
-                              <div className="flex items-center text-slate-500 gap-1.5">
-                                <Clock className="h-3.5 w-3.5 text-blue-600" />
-                                <span className="text-xs font-semibold text-slate-500">{service.turnaroundTime}</span>
+                              <div className="flex items-center gap-1.5 bg-emerald-50/80 border border-emerald-200/80 rounded-lg px-2.5 py-1.5">
+                                <Clock className="h-3.5 w-3.5 text-emerald-600 flex-none" />
+                                <span className="text-[11px] font-bold text-emerald-700">{service.turnaroundTime}</span>
                               </div>
                             </div>
                         </CardHeader>
