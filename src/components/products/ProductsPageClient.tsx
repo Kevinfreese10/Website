@@ -22,9 +22,7 @@ import {
   ShoppingBag,
   Sparkles,
   Globe,
-  Heart,
-  ChevronDown,
-  ChevronUp
+  Heart
 } from 'lucide-react';
 import { collection, getFirestore, orderBy, query, onSnapshot, Timestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -43,43 +41,6 @@ type Category = {
     description: string; 
     order: number; 
 };
-
-function ProductDescription({ text }: { text: string }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  if (!text) return null;
-
-  const isLong = text.length > 110;
-
-  return (
-    <div className="mt-3">
-      <p className={cn("text-xs text-slate-600 leading-relaxed transition-all", !isExpanded && "line-clamp-3")}>
-        {text}
-      </p>
-      {isLong && (
-        <button
-          type="button"
-          suppressHydrationWarning
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsExpanded(!isExpanded);
-          }}
-          className="mt-2 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1 focus:outline-none transition-colors"
-        >
-          {isExpanded ? (
-            <>
-              View less <ChevronUp className="h-3 w-3" />
-            </>
-          ) : (
-            <>
-              View more <ChevronDown className="h-3 w-3" />
-            </>
-          )}
-        </button>
-      )}
-    </div>
-  );
-}
 
 const getCategoryStyle = (category: string) => {
   if (category.includes('SARS')) return { badge: 'bg-white text-emerald-700 border-emerald-200/80 shadow-2xs', dot: 'bg-emerald-500' };
@@ -501,9 +462,9 @@ export default function ProductsPageClient({
 
                     {/* Product Description */}
                     <CardContent className="flex-grow pt-0 pb-3 px-5">
-                      <ProductDescription 
-                        text={service.description || (service.whatsIncluded && service.whatsIncluded.length > 0 ? service.whatsIncluded.join('. ') : '')} 
-                      />
+                      <p className="mt-3 text-xs text-slate-600 leading-relaxed line-clamp-3">
+                        {service.description || (service.whatsIncluded && service.whatsIncluded.length > 0 ? service.whatsIncluded.join('. ') : '')}
+                      </p>
                     </CardContent>
 
                     {/* Footer button */}
