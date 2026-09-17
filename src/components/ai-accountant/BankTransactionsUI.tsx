@@ -31,7 +31,7 @@ import { BankCleaner, matchesRuleKeyword } from '@/lib/bank-cleaner';
 import { usePaginatedFirestore } from '@/hooks/use-paginated-firestore';
 import { Command, CommandEmpty, CommandInput, CommandList, CommandGroup, CommandSeparator, CommandItem } from "@/components/ui/command";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format, parse } from 'date-fns';
+import { format, parse, addDays } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
@@ -224,9 +224,78 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
     const [isUploading, setIsUploading] = useState(false);
     const { toast } = useToast();
 
+    const [lastImportDate, setLastImportDate] = useState<Date | null>(null);
     const [actualBalance, setActualBalance] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+
+    // Fetch latest import date when dialog opens or bank account changes
+    useEffect(() => {
+        if (!isOpen || !client?.uid || !bankAccountId) return;
+        let isMounted = true;
+
+        const fetchLastImportInfo = async () => {
+            try {
+                // 1. Check client's chartOfAccounts for this bank account
+                const currentAcc = (client.chartOfAccounts || []).find(a => a.id === bankAccountId);
+                let latestFromCOA: Date | null = null;
+                if (currentAcc?.lastImportDate) {
+                    const p = new Date(currentAcc.lastImportDate);
+                    if (!isNaN(p.getTime())) latestFromCOA = p;
+                }
+
+                // 2. Query transactions for this bank account
+                const transRef = collection(db, 'aiAccountantClients', client.uid, 'transactions');
+                let latestFromTx: Date | null = null;
+
+                try {
+                    const q = query(
+                        transRef,
+                        where('bankAccountId', '==', bankAccountId),
+                        orderBy('date', 'desc'),
+                        limit(1)
+                    );
+                    const snap = await getDocs(q);
+                    if (!snap.empty) {
+                        const d = snap.docs[0].data()?.date;
+                        if (d) {
+                            const p = new Date(d);
+                            if (!isNaN(p.getTime())) latestFromTx = p;
+                        }
+                    }
+                } catch (queryErr) {
+                    // Fallback query without orderBy in case composite index is not provisioned
+                    const qFallback = query(transRef, where('bankAccountId', '==', bankAccountId));
+                    const snapFallback = await getDocs(qFallback);
+                    let maxTime = 0;
+                    snapFallback.docs.forEach(doc => {
+                        const d = doc.data()?.date;
+                        if (d) {
+                            const t = new Date(d).getTime();
+                            if (t > maxTime) maxTime = t;
+                        }
+                    });
+                    if (maxTime > 0) latestFromTx = new Date(maxTime);
+                }
+
+                let latest: Date | null = null;
+                if (latestFromCOA && latestFromTx) {
+                    latest = latestFromCOA.getTime() > latestFromTx.getTime() ? latestFromCOA : latestFromTx;
+                } else {
+                    latest = latestFromCOA || latestFromTx;
+                }
+
+                if (isMounted) {
+                    setLastImportDate(latest);
+                }
+            } catch (err) {
+                console.error('Error fetching last import date:', err);
+            }
+        };
+
+        fetchLastImportInfo();
+        return () => { isMounted = false; };
+    }, [isOpen, client?.uid, bankAccountId, client?.chartOfAccounts]);
 
     const filteredTransactions = useMemo(() => {
         if (!parsedTransactions.length) return [];
@@ -238,6 +307,23 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
             return true;
         });
     }, [parsedTransactions, startDate, endDate]);
+
+    const fileMinDate = useMemo(() => {
+        const validDates = parsedTransactions.map(tx => tx.parsedDate?.getTime()).filter(Boolean) as number[];
+        return validDates.length > 0 ? new Date(Math.min(...validDates)) : null;
+    }, [parsedTransactions]);
+
+    const excludedPriorCount = useMemo(() => {
+        if (!startDate || !parsedTransactions.length) return 0;
+        const start = new Date(startDate);
+        return parsedTransactions.filter(tx => tx.parsedDate && tx.parsedDate < start).length;
+    }, [startDate, parsedTransactions]);
+
+    const isDateGap = useMemo(() => {
+        if (!lastImportDate || !fileMinDate) return false;
+        const dayAfter = addDays(lastImportDate, 1);
+        return fileMinDate.getTime() > dayAfter.getTime();
+    }, [lastImportDate, fileMinDate]);
 
     const importTotal = useMemo(() => {
         return filteredTransactions.reduce((sum, tx) => sum + tx.Amount, 0);
@@ -276,7 +362,15 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                 }
             });
         }
-        return transactions;
+
+        let closingBalance: number | null = null;
+        const balMatch = text.match(/<LEDGERBAL>[\s\S]*?<BALAMT>([\-\d.]+)/i) || text.match(/<AVAILBAL>[\s\S]*?<BALAMT>([\-\d.]+)/i);
+        if (balMatch) {
+            const b = parseFloat(balMatch[1]);
+            if (!isNaN(b)) closingBalance = b;
+        }
+
+        return { transactions, closingBalance };
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,14 +384,24 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const text = event.target?.result as string;
-                    const transactions = parseOFX(text);
+                    const { transactions, closingBalance } = parseOFX(text);
                     setParsedTransactions(transactions);
+
+                    if (closingBalance !== null) {
+                        setActualBalance(closingBalance.toFixed(2));
+                    }
                     
                     if (transactions.length > 0) {
                         const dates = transactions.map(tx => tx.parsedDate.getTime());
                         const minDate = new Date(Math.min(...dates));
                         const maxDate = new Date(Math.max(...dates));
-                        setStartDate(format(minDate, 'yyyy-MM-dd'));
+
+                        if (lastImportDate) {
+                            const dayAfter = addDays(lastImportDate, 1);
+                            setStartDate(format(dayAfter, 'yyyy-MM-dd'));
+                        } else {
+                            setStartDate(format(minDate, 'yyyy-MM-dd'));
+                        }
                         setEndDate(format(maxDate, 'yyyy-MM-dd'));
                     }
                     setIsParsing(false);
@@ -309,6 +413,8 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                     skipEmptyLines: true,
                     complete: (results) => {
                         const data = results.data as any[];
+                        let extractedClosingBal: number | null = null;
+
                         const transactions = data.map(row => {
                             const normalizedRow: any = {};
                             Object.keys(row).forEach(k => normalizedRow[k.toLowerCase().trim()] = row[k]);
@@ -319,13 +425,35 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                             }
                             if (isNaN(parsedDate.getTime())) parsedDate = new Date(normalizedRow.date || '');
 
+                            const rawBal = normalizedRow.balance ?? normalizedRow['bank balance'] ?? normalizedRow['closing balance'] ?? normalizedRow['running balance'];
+                            let rowBalance: number | null = null;
+                            if (rawBal !== undefined && rawBal !== '') {
+                                const parsedBal = parseFloat(String(rawBal).replace(/[^\d.-]/g, ''));
+                                if (!isNaN(parsedBal)) rowBalance = parsedBal;
+                            }
+
                             return {
                                 Date: normalizedRow.date || '',
                                 parsedDate: isNaN(parsedDate.getTime()) ? null : parsedDate,
                                 Description: (normalizedRow.description || normalizedRow.desc || '').toUpperCase(),
-                                Amount: parseFloat(String(normalizedRow.amount || '').replace(/[^\d.-]/g, ''))
+                                Amount: parseFloat(String(normalizedRow.amount || '').replace(/[^\d.-]/g, '')),
+                                rowBalance
                             };
                         }).filter(tx => tx.Date && tx.Description && !isNaN(tx.Amount));
+
+                        // Find chronological closing balance from last transaction row
+                        const withDates = [...transactions].filter(t => t.parsedDate && !isNaN(t.parsedDate.getTime()));
+                        withDates.sort((a, b) => a.parsedDate!.getTime() - b.parsedDate!.getTime());
+                        for (let i = withDates.length - 1; i >= 0; i--) {
+                            if (withDates[i].rowBalance !== null && withDates[i].rowBalance !== undefined) {
+                                extractedClosingBal = withDates[i].rowBalance;
+                                break;
+                            }
+                        }
+
+                        if (extractedClosingBal !== null) {
+                            setActualBalance(extractedClosingBal.toFixed(2));
+                        }
                         
                         setParsedTransactions(transactions);
                         
@@ -334,7 +462,13 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                             if (validDates.length > 0) {
                                 const minDate = new Date(Math.min(...validDates));
                                 const maxDate = new Date(Math.max(...validDates));
-                                setStartDate(format(minDate, 'yyyy-MM-dd'));
+
+                                if (lastImportDate) {
+                                    const dayAfter = addDays(lastImportDate, 1);
+                                    setStartDate(format(dayAfter, 'yyyy-MM-dd'));
+                                } else {
+                                    setStartDate(format(minDate, 'yyyy-MM-dd'));
+                                }
                                 setEndDate(format(maxDate, 'yyyy-MM-dd'));
                             }
                         }
@@ -422,9 +556,31 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
 
+            // Update client's chartOfAccounts with new bankBalance and lastImportDate
+            const finalBankBalance = parseFloat(actualBalance);
+            if (!isNaN(finalBankBalance)) {
+                try {
+                    const clientRef = doc(db, 'aiAccountantClients', client.uid!);
+                    const currentCOA = client.chartOfAccounts || [];
+                    const updatedAccounts = currentCOA.map(acc => {
+                        if (acc.id === bankAccountId) {
+                            return {
+                                ...acc,
+                                bankBalance: finalBankBalance,
+                                lastImportDate: endDate || format(new Date(), 'yyyy-MM-dd')
+                            };
+                        }
+                        return acc;
+                    });
+                    await updateDoc(clientRef, { chartOfAccounts: updatedAccounts });
+                } catch (coaErr) {
+                    console.error("Error updating bank account balance in chartOfAccounts:", coaErr);
+                }
+            }
+
             toast({ 
                 title: "Import Successful", 
-                description: `${allTxDocs.length} transactions imported. ${matchCount} expenses auto-allocated by rules.`
+                description: `${allTxDocs.length} transactions imported. ${matchCount} expenses auto-allocated by rules. Bank Balance updated to ${formatPrice(finalBankBalance)}.`
             });
             onImportComplete();
             setIsOpen(false);
@@ -494,9 +650,40 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                         
                         {parsedTransactions.length > 0 && (
                             <div className="bg-muted/50 p-4 rounded-lg border space-y-4 animate-in fade-in slide-in-from-top-2">
+                                {lastImportDate && (
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground bg-primary/5 p-2.5 rounded border border-primary/20">
+                                        <span className="flex items-center gap-1.5 font-medium">
+                                            <Clock className="h-3.5 w-3.5 text-primary" />
+                                            Last Recorded Statement Date:
+                                        </span>
+                                        <span className="font-semibold text-foreground">
+                                            {format(lastImportDate, 'dd/MM/yyyy')}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {isDateGap && (
+                                    <Alert variant="destructive" className="py-2.5">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle className="text-xs font-semibold">Statement Date Gap Detected</AlertTitle>
+                                        <AlertDescription className="text-xs mt-0.5">
+                                            This file starts on {fileMinDate ? format(fileMinDate, 'dd/MM/yyyy') : 'N/A'}, which is after the expected next day ({format(addDays(lastImportDate!, 1), 'dd/MM/yyyy')}). Please verify no intervening statements are missing.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+
+                                {excludedPriorCount > 0 && (
+                                    <div className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-300 p-2.5 rounded border border-amber-200 dark:border-amber-800">
+                                        <Info className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                                        <span>
+                                            <strong>{excludedPriorCount}</strong> earlier transaction(s) dated on or before {lastImportDate ? format(lastImportDate, 'dd/MM/yyyy') : ''} were automatically excluded from the date range to prevent duplicates.
+                                        </span>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-1">
-                                        <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+                                        <label className="text-xs font-medium text-muted-foreground">Start Date (Day After Last Import)</label>
                                         <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-8" />
                                     </div>
                                     <div className="space-y-1">
@@ -528,8 +715,11 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                                     </div>
                                 </div>
                                 <div className="space-y-2 pt-2 border-t">
-                                    <label className="text-sm font-semibold">Verify Actual Bank Balance</label>
-                                    <p className="text-xs text-muted-foreground mb-2">Enter the closing balance from your bank statement for this period. It must match the potential balance above to proceed.</p>
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-semibold">Verify Actual Bank Balance</label>
+                                        <span className="text-[11px] text-muted-foreground font-medium">Auto-syncs to Bank Accounts Overview</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mb-2">Enter the closing balance from your bank statement. It must match the potential balance above to proceed.</p>
                                     <Input 
                                         type="number" 
                                         step="0.01" 
@@ -540,6 +730,12 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                                     />
                                     {actualBalance && !isValidBalance && (
                                         <p className="text-xs text-destructive flex items-center mt-1"><AlertTriangle className="h-3 w-3 mr-1" /> Balances do not match.</p>
+                                    )}
+                                    {isValidBalance && (
+                                        <p className="text-xs text-green-600 flex items-center mt-1">
+                                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                            Balance verified. Bank Balance in Bank Accounts Overview will automatically update to {formatPrice(parseFloat(actualBalance))}.
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -2358,7 +2554,12 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                     </Tabs>
                     <div className="p-4 flex justify-between items-center gap-2 flex-wrap">
                         <div className="flex gap-2 flex-wrap">
-                            <ImportDialog client={client} bankAccountId={bankAccountId} currentBalance={currentBalance} onImportComplete={() => {}} />
+                            <ImportDialog 
+                                client={client} 
+                                bankAccountId={bankAccountId} 
+                                currentBalance={currentBalance} 
+                                onImportComplete={() => { onAccountCreated(); }} 
+                            />
                             
                             <Button variant="outline" onClick={() => setIsManualTxOpen(true)}>
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add Transaction

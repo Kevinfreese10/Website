@@ -1147,6 +1147,7 @@ export type ChartOfAccount = {
   fsGroup?: string;
   fsNote?: string;
   bankBalance?: number;
+  lastImportDate?: string;
 };
 
 export type VatType = 

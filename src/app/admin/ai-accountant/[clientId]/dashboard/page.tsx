@@ -243,9 +243,14 @@ export default function AIAccountantClientDashboardPage() {
             const unallocatedTransactions = accountTransactions.filter(tx => tx.status === 'new');
             const balance = accountTransactions.reduce((sum, tx) => sum + tx.amount, 0);
             
-            const lastImportDate = accountTransactions.length > 0
+            const txMaxDate = accountTransactions.length > 0
                 ? new Date(Math.max(...accountTransactions.map(tx => new Date(tx.date).getTime())))
                 : null;
+            const coaDate = account.lastImportDate ? new Date(account.lastImportDate) : null;
+            const latestDate = (txMaxDate && coaDate)
+                ? (coaDate.getTime() > txMaxDate.getTime() ? coaDate : txMaxDate)
+                : (coaDate || txMaxDate);
+            const lastImportDate = latestDate ? latestDate.toISOString() : undefined;
 
             return {
                 ...account,
@@ -363,7 +368,7 @@ export default function AIAccountantClientDashboardPage() {
                                                 {acc.unallocatedCount}
                                             </div>
                                         </TableCell>
-                                        <TableCell>{acc.lastImportDate ? format(acc.lastImportDate, 'dd MMMM yyyy') : 'N/A'}</TableCell>
+                                        <TableCell>{acc.lastImportDate ? format(new Date(acc.lastImportDate), 'dd MMMM yyyy') : 'N/A'}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button 
