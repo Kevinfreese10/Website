@@ -195,8 +195,21 @@ export default function AdminOrderDetailsPage() {
           setAllServices(fetchedServices);
         }
 
-        const docRef = doc(db, 'orders', id);
-        const docSnap = await getDoc(docRef);
+        let docRef = doc(db, 'orders', id);
+        let docSnap = await getDoc(docRef);
+        
+        // Graceful fallback for trailing letters or typos (e.g. 10072f -> 10072)
+        if (!docSnap.exists() && id && id.length > 1 && /[a-zA-Z]$/.test(id)) {
+          const fallbackId = id.replace(/[a-zA-Z]+$/, '');
+          if (fallbackId) {
+            const fallbackRef = doc(db, 'orders', fallbackId);
+            const fallbackSnap = await getDoc(fallbackRef);
+            if (fallbackSnap.exists()) {
+              docRef = fallbackRef;
+              docSnap = fallbackSnap;
+            }
+          }
+        }
         
         if (docSnap.exists()) {
           const data = docSnap.data();

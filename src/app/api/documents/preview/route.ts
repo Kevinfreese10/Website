@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth } from '@/lib/firebase-admin';
+import { getAdminAuth, getAdminStorage } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 
@@ -75,6 +75,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Fetch Document Server-Side
+    let fileBuffer: Buffer;
+    let upstreamContentType: string | null = null;
+
     const upstreamRes = await fetch(targetUrl, {
       headers: {
         'Accept': '*/*',
@@ -82,21 +85,59 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    if (!upstreamRes.ok) {
-      return NextResponse.json(
-        { error: `Upstream storage returned status ${upstreamRes.status}` },
-        { status: upstreamRes.status }
-      );
+    if (upstreamRes.ok) {
+      const arrayBuffer = await upstreamRes.arrayBuffer();
+      fileBuffer = Buffer.from(arrayBuffer);
+      upstreamContentType = upstreamRes.headers.get('content-type');
+    } else {
+      // Fallback: If upstream fetch was rejected (e.g. 403 from Firebase Storage due to missing download token),
+      // and target is in our Firebase Storage bucket, fetch directly via Admin SDK
+      const defaultBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'studio-2604127518-57889.firebasestorage.app';
+      if (
+        parsedUrl.hostname === 'firebasestorage.googleapis.com' &&
+        parsedUrl.pathname.includes('/o/')
+      ) {
+        try {
+          const match = parsedUrl.pathname.match(/\/v0\/b\/([^/]+)\/o\/(.+)/);
+          const bucketName = match ? match[1] : defaultBucket;
+          const rawPath = match ? match[2] : parsedUrl.pathname.split('/o/')[1];
+          const decodedPath = decodeURIComponent(rawPath.split('?')[0]);
+
+          const bucket = getAdminStorage().bucket(bucketName);
+          const file = bucket.file(decodedPath);
+          const [exists] = await file.exists();
+          if (exists) {
+            const [downloadedBuffer] = await file.download();
+            const [metadata] = await file.getMetadata();
+            fileBuffer = downloadedBuffer;
+            upstreamContentType = metadata.contentType || null;
+          } else {
+            return NextResponse.json(
+              { error: `Upstream storage returned status ${upstreamRes.status} and file not found via Admin SDK: ${decodedPath}` },
+              { status: upstreamRes.status }
+            );
+          }
+        } catch (adminErr) {
+          console.error('[DocumentPreviewProxy] Admin SDK fallback error:', adminErr);
+          return NextResponse.json(
+            { error: `Upstream storage returned status ${upstreamRes.status}` },
+            { status: upstreamRes.status }
+          );
+        }
+      } else {
+        return NextResponse.json(
+          { error: `Upstream storage returned status ${upstreamRes.status}` },
+          { status: upstreamRes.status }
+        );
+      }
     }
 
-    const arrayBuffer = await upstreamRes.arrayBuffer();
-    const upstreamContentType = upstreamRes.headers.get('content-type');
     const mimeType = getMimeType(customName || parsedUrl.pathname, upstreamContentType);
 
     const safeFileName = (customName || 'document.pdf').replace(/["\r\n]/g, '_');
 
     // 4. Stream response with forced INLINE disposition (renders inside iframe without downloading or blocking)
-    return new NextResponse(Buffer.from(arrayBuffer), {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': mimeType,
