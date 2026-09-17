@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { User } from '@/lib/types';
 import { sendNewPayrollNoteNotification } from '@/app/actions/payroll-portal';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
+import { FormattedNoteText } from '@/components/orders/FormattedNoteText';
 
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
@@ -188,11 +189,14 @@ export default function CommunicationHistory({ clientId, currentUser }: Communic
                       </div>
                     )}
 
-                    <p className={`text-xs whitespace-pre-wrap leading-relaxed ${
-                      isMe ? 'text-primary-foreground' : 'text-foreground/90'
-                    }`}>
-                      {note.text}
-                    </p>
+                    <FormattedNoteText 
+                      text={note.text}
+                      as="p"
+                      className={`text-xs whitespace-pre-wrap leading-relaxed ${
+                        isMe ? 'text-primary-foreground' : 'text-foreground/90'
+                      }`}
+                      linkClassName={isMe ? 'underline font-medium text-white hover:opacity-90 break-all' : 'text-primary underline hover:opacity-85 font-medium break-all'}
+                    />
 
                     {note.attachments && note.attachments.length > 0 && (
                       <div className="mt-2.5 pt-2 border-t border-white/10 space-y-1.5">

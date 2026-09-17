@@ -45,6 +45,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { notifyOfNewNote, notifyAllocatedUserOfInternalNote, sendDocumentReviewFeedback, sendOutstandingDocumentsReminder } from '@/app/actions';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
+import { FormattedNoteText } from '@/components/orders/FormattedNoteText';
 import { db, firebaseApp } from '@/lib/firebase';
 import { getStatusVariant } from '@/lib/order-status';
 
@@ -1436,10 +1437,10 @@ export default function PartnerOrderDetailsPage() {
                                                             <Mail className="h-4 w-4 text-muted-foreground" />
                                                             <p className="text-sm font-semibold">{note.subject}</p>
                                                         </div>
-                                                        <p className="text-sm italic text-muted-foreground">"{note.text}"</p>
+                                                        <FormattedNoteText text={note.text} as="p" className="text-sm italic text-muted-foreground whitespace-pre-wrap" prefix='"' suffix='"' />
                                                     </div>
                                                 ) : (
-                                                    <p className="text-sm whitespace-pre-wrap">{note.text || ''}</p>
+                                                    <FormattedNoteText text={note.text} as="p" className="text-sm whitespace-pre-wrap" />
                                                 )}
                                                  {note.attachments && note.attachments.length > 0 && (
                                                     <div className="mt-2 space-y-1">

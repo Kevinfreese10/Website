@@ -55,6 +55,7 @@ import { customAlphabet } from 'nanoid';
 import { cn, formatDate, isStaffActive, isEligibleOrderStaff } from '@/lib/utils';
 import OrderPrerequisiteRequirementsCard from '@/components/orders/OrderPrerequisiteRequirementsCard';
 import { NoteAttachmentsPreview } from '@/components/orders/NoteAttachmentsPreview';
+import { FormattedNoteText } from '@/components/orders/FormattedNoteText';
 import { db, firebaseApp } from '@/lib/firebase';
 import { getStatusVariant } from '@/lib/order-status';
 
@@ -897,7 +898,7 @@ export default function AdminOrderDetailsPage() {
           }
           text += `Please log in to the portal and upload these items at your earliest convenience.\n\n`;
       } else if (type === 'review') {
-          text += `We hope you were happy with our service for order #${orderId}. If you have a moment, we would greatly appreciate it if you could leave us a review on Google at the link below:\n\n<a href="https://g.page/r/CVIOzn2bYoiaEAE/review" target="_blank" style="color: blue;">https://g.page/r/CVIOzn2bYoiaEAE/review</a>\n\n`;
+          text += `We hope you were happy with our service for order #${orderId}. If you have a moment, we would greatly appreciate it if you could leave us a review on Google at the link below:\n\nhttps://g.page/r/CVIOzn2bYoiaEAE/review\n\n`;
       }
       
       text += 'Kind regards,\nThe My Accountant Team';
@@ -1773,7 +1774,17 @@ export default function AdminOrderDetailsPage() {
                                                         </div>
                                                         <p className="text-xs text-muted-foreground">{safeFormatDate(note.date, 'dd/MM/yyyy, HH:mm')}</p>
                                                     </div>
-                                                    {isEmail ? ( <div><div className="flex items-center gap-2 mb-1"><Mail className="h-4 w-4 text-muted-foreground" /><p className="text-sm font-semibold">{note.subject}</p></div><p className="text-sm italic text-muted-foreground">"{note.text}"</p></div> ) : ( <p className="text-sm whitespace-pre-wrap">{note.text}</p> )}
+                                                    {isEmail ? ( 
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                                                <p className="text-sm font-semibold">{note.subject}</p>
+                                                            </div>
+                                                            <FormattedNoteText text={note.text} as="p" className="text-sm italic text-muted-foreground whitespace-pre-wrap" prefix='"' suffix='"' />
+                                                        </div> 
+                                                    ) : ( 
+                                                        <FormattedNoteText text={note.text} as="p" className="text-sm whitespace-pre-wrap" /> 
+                                                    )}
                                                      {note.attachments && note.attachments.length > 0 && ( <div className="mt-2 space-y-1">{note.attachments.map((att, i) => ( <button key={i} type="button" onClick={() => setPreviewDoc({ name: att.name, url: att.url })} className="text-sm text-primary hover:underline flex items-center gap-1 text-left"><Paperclip className="h-4 w-4"/>{att.name}</button> ))}</div> )}
                                                 </div>
                                             </div>

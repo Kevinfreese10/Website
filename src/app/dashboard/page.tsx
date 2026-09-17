@@ -16,6 +16,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getClientOrdersAction } from '@/app/actions/order-actions';
+import { FormattedNoteText } from '@/components/orders/FormattedNoteText';
 
 const db = getFirestore(firebaseApp);
 
@@ -236,9 +237,13 @@ export default function DashboardPage() {
                                                 </p>
                                             </div>
                                             <div className="bg-muted/50 p-3 rounded-lg border border-muted">
-                                                <p className="text-sm text-foreground/90 leading-relaxed italic">
-                                                    "{note.text}"
-                                                </p>
+                                                <FormattedNoteText 
+                                                    text={note.text}
+                                                    as="p"
+                                                    className="text-sm text-foreground/90 leading-relaxed italic whitespace-pre-wrap"
+                                                    prefix='"'
+                                                    suffix='"'
+                                                />
                                             </div>
                                             <div className="flex justify-end pt-1">
                                                 <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground hover:text-foreground" onClick={() => archiveNotification(noteId)}>

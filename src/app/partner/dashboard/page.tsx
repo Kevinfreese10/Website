@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePartner } from '@/contexts/PartnerContext';
 import { useBlog } from '@/contexts/BlogContext';
+import { FormattedNoteText } from '@/components/orders/FormattedNoteText';
 import { 
   Loader2, 
   ArrowRight, 
@@ -658,9 +659,13 @@ export default function PartnerDashboardPage() {
                                                         {formatDistanceToNow(date, { addSuffix: true })}
                                                     </p>
                                                 </div>
-                                                <p className="mt-2 text-sm text-foreground/80 italic leading-relaxed">
-                                                    "{note.text}"
-                                                </p>
+                                                <FormattedNoteText 
+                                                    text={note.text}
+                                                    as="p"
+                                                    className="mt-2 text-sm text-foreground/80 italic leading-relaxed whitespace-pre-wrap"
+                                                    prefix='"'
+                                                    suffix='"'
+                                                />
                                                 <div className="flex justify-end mt-2">
                                                     <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={() => archiveNotification(noteId)}>
                                                         <Archive className="mr-2 h-3 w-3"/> Archive
