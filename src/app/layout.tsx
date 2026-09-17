@@ -65,13 +65,11 @@ export default function RootLayout({
     <html lang="en-ZA" suppressHydrationWarning>
       <body className={cn("antialiased", bodyFont.variable, headlineFont.variable)} suppressHydrationWarning>
         <ExternalScripts />
-        <Script
-          id="organization-schema"
+        <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
-        <Script
-          id="website-schema"
+        <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />

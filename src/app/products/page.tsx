@@ -4,8 +4,8 @@ import { Metadata } from 'next';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Service } from '@/lib/types';
-import Script from 'next/script';
 import { toPlainObject } from '@/lib/serialize-firestore';
+import { generateCatalogOffersSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 900;
 
@@ -38,25 +38,13 @@ export default async function ProductsPage() {
   }));
   const categories = toPlainObject(rawCategories);
 
-  const itemListSchema = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": "My Accountant Services",
-    "description": "Comprehensive accounting, tax, CIPC, and payroll compliance services for South African businesses and individuals.",
-    "url": "https://www.myacc.co.za/products",
-    "itemListElement": services.map((service, index) => ({
-      "@type": "ListItem",
-      "position": index + 1,
-      "url": `https://www.myacc.co.za/products/${service.slug}`
-    }))
-  };
+  const catalogSchema = generateCatalogOffersSchema(services);
 
   return (
     <>
-      <Script
-        id="products-list-schema"
+      <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(catalogSchema) }}
       />
       <ProductsPageClient 
           initialServices={services} 

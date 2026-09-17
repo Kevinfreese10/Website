@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Script from 'next/script';
-import { MapPin, Mail, Phone } from 'lucide-react';
+import { MapPin, Mail, Phone, Clock } from 'lucide-react';
 
 const Footer = () => {
   const buildId = process.env.NEXT_PUBLIC_BUILD_TIMESTAMP;
@@ -19,17 +19,32 @@ const Footer = () => {
                           Ground Floor, Waterstone Building<br />
                           Stonemill Office Park<br />
                           300 Acacia Road<br />
-                          Darrenwood, Johannesburg<br />
-                          2195
+                          Darrenwood, Johannesburg, 2195<br />
+                          <a
+                            href="https://www.google.com/maps?q=My+Accountant,+Stonemill+Office+Park,+300+Acacia+Road,+Darrenwood,+Johannesburg"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline inline-block mt-0.5"
+                          >
+                            View on Google Maps & Reviews &rarr;
+                          </a>
                         </span>
                     </div>
                     <div className="flex items-center gap-3">
                         <Mail className="h-4 w-4" />
                         <a href="mailto:info@myacc.co.za" className="hover:text-primary">info@myacc.co.za</a>
                     </div>
-                     <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                         <Phone className="h-4 w-4" />
                         <a href="tel:0101091625" className="hover:text-primary">010 109 1625</a>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <Clock className="h-4 w-4 mt-1 flex-shrink-0 text-primary" />
+                        <div className="text-xs space-y-0.5">
+                          <p className="font-semibold text-foreground/90">Mon – Fri: 08:00 – 17:00 SAST</p>
+                          <p className="text-muted-foreground">Sat – Sun: Closed</p>
+                          <p className="text-primary font-medium">Response within 24 business hours</p>
+                        </div>
                     </div>
                 </div>
             </div>

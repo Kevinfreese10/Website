@@ -1,6 +1,7 @@
 import ContactPageClient from '@/components/contact/ContactPageClient';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import { Metadata } from 'next';
+import { generateContactPageSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
@@ -13,5 +14,15 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function ContactPage() {
-  return <ContactPageClient />;
+  const contactSchema = generateContactPageSchema();
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(contactSchema) }}
+      />
+      <ContactPageClient />
+    </>
+  );
 }

@@ -34,7 +34,8 @@ import {
   Check,
   Lock,
   Star,
-  CalendarDays
+  CalendarDays,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -216,6 +217,16 @@ export default function HomePageClient() {
 
       <div id="reviews" className="scroll-m-20">
         <TrustIndexWidget />
+        <div className="text-center -mt-4 mb-4">
+          <a
+            href="https://www.google.com/maps?q=My+Accountant,+Stonemill+Office+Park,+300+Acacia+Road,+Darrenwood,+Johannesburg"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary transition-colors"
+          >
+            Verified Google Reviews • View our Google Business Profile & Ratings on Google Maps <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
       </div>
 
       {/* TRUST & AUTHORITY SECTION */}
@@ -259,7 +270,7 @@ export default function HomePageClient() {
               </div>
 
               <p>
-                My Accountant is backed by strong client satisfaction and has earned over 200+ 5-star Google reviews from businesses across South Africa. <Link href="#reviews" className="text-primary hover:underline font-bold">View our Google Reviews & Client Feedback</Link> to see what our clients have to say about our accounting, tax, payroll, SARS, and compliance services.
+                My Accountant is backed by strong client satisfaction and has earned over 200+ 5-star Google reviews from businesses across South Africa. <Link href="#reviews" className="text-primary hover:underline font-bold">View our client feedback</Link> or verify our reviews directly on <a href="https://www.google.com/maps?q=My+Accountant,+Stonemill+Office+Park,+300+Acacia+Road,+Darrenwood,+Johannesburg" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold inline-flex items-center gap-1">Google Maps <ExternalLink className="h-3 w-3 inline" /></a>.
               </p>
 
               {/* Expert Quotation Section */}

@@ -11,9 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useState, useRef } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, Phone, MapPin, Clock, ExternalLink, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 const contactFormSchema = z.object({
   name: z.string().min(2, 'Name is required.'),
@@ -103,12 +102,97 @@ export default function ContactPageClient() {
         </div>
       </section>
 
-      <div className="container mx-auto max-w-2xl px-4 py-8 bg-white">
-        <Card className="border-2 bg-slate-50 shadow-lg">
-          <CardHeader>
-            <CardTitle>Send us a Message</CardTitle>
-            <CardDescription>Have a question? We'll get back to you within 24 business hours.</CardDescription>
-          </CardHeader>
+      <div className="container mx-auto max-w-6xl px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Direct Contact & Business Hours Card */}
+          <div className="lg:col-span-5 space-y-6">
+            <Card className="border-2 bg-slate-50/80 shadow-md">
+              <CardHeader>
+                <CardTitle className="text-2xl font-black text-slate-900">Direct Contact & Hours</CardTitle>
+                <CardDescription>We operate online nationwide across South Africa.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5 text-sm">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-blue-100 text-blue-700 shrink-0">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">Business Hours</h4>
+                    <p className="text-slate-600 font-medium">Monday – Friday: 08:00 – 17:00 SAST</p>
+                    <p className="text-slate-500 text-xs mt-0.5">Weekends & Public Holidays: Closed</p>
+                    <p className="text-blue-700 font-semibold text-xs mt-1 bg-blue-50 px-2 py-0.5 rounded inline-block">
+                      Guaranteed response within 24 business hours
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700 shrink-0">
+                    <Phone className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">Telephone</h4>
+                    <a href="tel:0101091625" className="text-slate-700 font-semibold hover:text-primary transition-colors">
+                      010 109 1625
+                    </a>
+                    <p className="text-slate-500 text-xs mt-0.5">Direct line to our Johannesburg practice</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-purple-100 text-purple-700 shrink-0">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">Email Inquiries</h4>
+                    <a href="mailto:info@myacc.co.za" className="text-slate-700 font-semibold hover:text-primary transition-colors">
+                      info@myacc.co.za
+                    </a>
+                    <p className="text-slate-500 text-xs mt-0.5">For general inquiries, quotes & document submissions</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-amber-100 text-amber-700 shrink-0">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">Head Office Location</h4>
+                    <p className="text-slate-600 leading-relaxed text-xs">
+                      Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195
+                    </p>
+                    <a
+                      href="https://www.google.com/maps?q=My+Accountant,+Stonemill+Office+Park,+300+Acacia+Road,+Darrenwood,+Johannesburg"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary font-bold hover:underline inline-flex items-center gap-1 mt-1.5"
+                    >
+                      View on Google Maps & Reviews <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200">
+                  <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-1.5 text-xs text-slate-600">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" /> Professional Practice Credentials
+                    </div>
+                    <p>• CIBA: Chartered Business Accountant (CIBA201509-5372)</p>
+                    <p>• SAIT: General Tax Practitioner (SAIT 47011519)</p>
+                    <p>• SARS Registered Tax Practitioner (PR-0098553)</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Contact Form */}
+          <div className="lg:col-span-7">
+            <Card className="border-2 bg-slate-50 shadow-lg">
+              <CardHeader>
+                <CardTitle>Send us a Message</CardTitle>
+                <CardDescription>Have a question? We'll get back to you within 24 business hours.</CardDescription>
+              </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -176,6 +260,8 @@ export default function ContactPageClient() {
             </Form>
           </CardContent>
         </Card>
+      </div>
+        </div>
       </div>
     </div>
   );

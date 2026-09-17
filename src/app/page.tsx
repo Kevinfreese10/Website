@@ -30,8 +30,7 @@ const homeFaqSchema = {
 export default function Home() {
   return (
     <>
-      <Script
-        id="homepage-faq-schema"
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqSchema) }}
       />

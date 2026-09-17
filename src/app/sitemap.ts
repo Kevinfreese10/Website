@@ -174,11 +174,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const blogPostsSnapshot = await db.collection("blogPosts").orderBy("date", "desc").get();
     const blogPosts = blogPostsSnapshot.docs.map(doc => serializeDbData(doc.data()) as BlogPost);
     
+    const retiredSlugs = new Set([
+      'my-accoutant-sa-best-accountants-your-financial-partner',
+      'my-accountant-the-best-accountants-in-cape-town',
+      'find-the-best-accountant-near-me-my-accountant-guide',
+      'my-accountant-your-best-accountant-in-randburg',
+      'why-my-accountant-is-the-best-in-sa-your-financial-partner',
+      'my-accountant-midrands-top-choice-for-financial-excellence',
+      'my-accountant-the-best-accountant-in-johannesburg',
+      'find-the-best-accountant-in-roodepoort-my-accountant',
+      'my-accountant-the-best-accountant-in-sandton',
+      'my-accountant-best-accountants-in-durban-explored',
+      'my-accountant-sas-best-accounting--tax-firm-guide'
+    ]);
+
     blogPostRoutes = blogPosts
       .filter((post) => {
-        // Exclude typo / redirect slugs from sitemap so crawlers only index authoritative URLs
         const slug = post.slug || '';
-        return !slug.includes('my-accoutant-sa-best-accountants');
+        return !retiredSlugs.has(slug) && !slug.includes('my-accoutant-sa-best-accountants');
       })
       .map((post) => {
         let lastModifiedDate;

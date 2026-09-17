@@ -159,23 +159,40 @@ export function generateOrganizationSchema() {
   const baseUrl = SITE_URL;
   return {
     "@context": "https://schema.org",
-    "@type": ["Organization", "AccountingService"],
+    "@type": ["Organization", "AccountingService", "ProfessionalService"],
     "name": "My Accountant",
     "url": baseUrl,
-    "priceRange": "$$",
-    "telephone": "+27-10-109-1625",
+    "priceRange": "R100–R7500",
+    "telephone": "+27101091625",
     "email": "info@myacc.co.za",
     "logo": `${baseUrl}/logo.png`,
+    "image": `${baseUrl}/logo.png`,
+    "areaServed": "ZA",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood",
-      "addressLocality": "Johannesburg",
+      "streetAddress": "Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road",
+      "addressLocality": "Darrenwood, Johannesburg",
       "postalCode": "2195",
       "addressCountry": "ZA"
     },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "opens": "08:00",
+        "closes": "17:00"
+      }
+    ],
     "sameAs": [
       "https://www.facebook.com/myaccountantza",
-      "https://www.linkedin.com/company/myaccountantza"
+      "https://www.linkedin.com/company/myaccountantza",
+      "https://www.google.com/maps?q=My+Accountant,+Stonemill+Office+Park,+300+Acacia+Road,+Darrenwood,+Johannesburg"
     ],
     "aggregateRating": {
       "@type": "AggregateRating",
@@ -253,3 +270,69 @@ export function generateWebSiteSchema() {
     }
   };
 }
+
+/**
+ * ContactPage schema with office hours, telephone, email, and location.
+ */
+export function generateContactPageSchema() {
+  const baseUrl = SITE_URL;
+  return {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "name": "Contact My Accountant",
+    "url": `${baseUrl}/contact`,
+    "description": "Contact our certified team of South African accountants and tax practitioners. Available Monday to Friday, 8am to 5pm SAST.",
+    "mainEntity": generateOrganizationSchema()
+  };
+}
+
+/**
+ * Catalog ItemList schema with embedded Service & Offer markup for every catalog offering.
+ */
+export function generateCatalogOffersSchema(services: Service[]) {
+  const baseUrl = SITE_URL;
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "My Accountant Services & Products",
+    "description": "Comprehensive accounting, tax, CIPC, and payroll compliance services for South African businesses and individuals with transparent fixed pricing.",
+    "url": `${baseUrl}/products`,
+    "numberOfItems": services.length,
+    "itemListElement": services.map((service, index) => {
+      const isTbc = service.isPriceTbc || !service.price || service.price <= 0;
+      const numericPrice = isTbc ? (service.price && service.price > 0 ? service.price : 950) : service.price;
+      const serviceUrl = `${baseUrl}/products/${service.slug}`;
+
+      return {
+        "@type": "ListItem",
+        "position": index + 1,
+        "item": {
+          "@type": "Service",
+          "name": service.title,
+          "description": service.description || `Professional ${service.title} service for South African businesses.`,
+          "url": serviceUrl,
+          "provider": {
+            "@type": "ProfessionalService",
+            "name": "My Accountant",
+            "url": baseUrl,
+            "telephone": "+27101091625"
+          },
+          "areaServed": "ZA",
+          "serviceType": service.category,
+          "offers": {
+            "@type": "Offer",
+            "url": serviceUrl,
+            "price": parseFloat(numericPrice.toFixed(2)),
+            "priceCurrency": service.currency || "ZAR",
+            "availability": "https://schema.org/InStock",
+            "seller": {
+              "@type": "Organization",
+              "name": "My Accountant"
+            }
+          }
+        }
+      };
+    })
+  };
+}
+

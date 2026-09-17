@@ -68,7 +68,7 @@ export default function AccountantVsBookkeeperGuide() {
           <p className="text-blue-800 mb-4">
             We offer comprehensive bookkeeping and accounting packages tailored to your business needs, ensuring you are always compliant and financially informed.
           </p>
-          <Link href="/services/accounting" className="inline-block bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition">
+          <Link href="/products" className="inline-block bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition">
             Explore Our Accounting Services
           </Link>
         </div>
