@@ -114,3 +114,15 @@ export function isEligibleOrderStaff(user?: { role?: string; isActive?: boolean;
   return ORDER_FULFILLMENT_ROLES.includes(user.role as any);
 }
 
+/**
+ * Detects Next.js Server Action mismatch errors that occur when a user's browser
+ * session spans across a new production deployment (outdated action ID hash).
+ */
+export function isServerActionMismatchError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error || '');
+  return (
+    msg.includes('failed-to-find-server-action') ||
+    msg.includes('was not found on the server') ||
+    msg.includes('Failed to find Server Action')
+  );
+}

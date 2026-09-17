@@ -17,7 +17,7 @@ import {
   MessageSquareQuote, Clock, Calendar, ShoppingBag, CreditCard, User as UserIcon, Phone, Check
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { formatDate } from '@/lib/utils';
+import { formatDate, isServerActionMismatchError } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
@@ -352,6 +352,14 @@ export default function ClientOrderDetailsPage() {
       fetchOrderAndServices(true);
     } catch (error: any) {
       console.error("Upload error:", error);
+      if (isServerActionMismatchError(error)) {
+        toast({
+          title: 'Portal Updated',
+          description: 'A new version of the portal is available. Reloading page so you have the latest updates...',
+        });
+        setTimeout(() => window.location.reload(), 1200);
+        return;
+      }
       toast({ title: 'Upload Failed', description: error.message || 'Could not upload selected file(s).', variant: 'destructive'});
     } finally {
       setUploadingFiles(prev => {
@@ -390,6 +398,14 @@ export default function ClientOrderDetailsPage() {
       fetchOrderAndServices(true);
     } catch (err: any) {
       console.error('Error removing file:', err);
+      if (isServerActionMismatchError(err)) {
+        toast({
+          title: 'Portal Updated',
+          description: 'Reloading page to sync with latest update...',
+        });
+        setTimeout(() => window.location.reload(), 1200);
+        return;
+      }
       toast({ title: 'Failed to remove file', description: err.message, variant: 'destructive' });
     }
   };
@@ -429,6 +445,14 @@ export default function ClientOrderDetailsPage() {
       }
     } catch (err: any) {
       console.error('Error saving explanation:', err);
+      if (isServerActionMismatchError(err)) {
+        toast({
+          title: 'Portal Updated',
+          description: 'Reloading page to sync with latest update...',
+        });
+        setTimeout(() => window.location.reload(), 1200);
+        return;
+      }
       toast({ title: 'Failed to save note', description: err?.message, variant: 'destructive' });
     }
   };
@@ -497,6 +521,14 @@ export default function ClientOrderDetailsPage() {
           }
       } catch (error: any) {
           console.error("Error submitting text:", error);
+          if (isServerActionMismatchError(error)) {
+            toast({
+              title: 'Portal Updated',
+              description: 'Reloading page to sync with latest update...',
+            });
+            setTimeout(() => window.location.reload(), 1200);
+            return;
+          }
           toast({ title: "Submission Failed", description: error?.message || "Could not save the information.", variant: "destructive" });
       }
   };
