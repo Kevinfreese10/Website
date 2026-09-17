@@ -25,11 +25,11 @@ async function sendTelegram(text: string) {
   }
 }
 
-function scanKevMailbox(): Promise<{ unreadCount: number; newItems: string[] }> {
+function scanInfoMailbox(): Promise<{ unreadCount: number; newItems: string[] }> {
   return new Promise((resolve) => {
     const imap = new Imap({
-      user: 'kev@thinkestry.co.za',
-      password: '7In~K;EF}?7E_7p4',
+      user: 'info@myacc.co.za',
+      password: process.env.SMTP_PASS || 'lv1gIJK5O50s6A!w',
       host: '169.239.218.67',
       port: 993,
       tls: true,
@@ -44,7 +44,7 @@ function scanKevMailbox(): Promise<{ unreadCount: number; newItems: string[] }> 
       imap.openBox('INBOX', false, (err) => {
         if (err) {
           imap.end();
-          return resolve({ unreadCount: 0, newItems: [`⚠️ Could not open kev@thinkestry.co.za: ${err.message}`] });
+          return resolve({ unreadCount: 0, newItems: [`⚠️ Could not open info@myacc.co.za: ${err.message}`] });
         }
 
         imap.search(['UNSEEN'], (searchErr, uids) => {
@@ -111,7 +111,7 @@ function scanKevMailbox(): Promise<{ unreadCount: number; newItems: string[] }> 
     });
 
     imap.once('error', (err) => {
-      console.error('[IMAP Error for kev@thinkestry.co.za]', err.message);
+      console.error('[IMAP Error for info@myacc.co.za]', err.message);
       resolve({ unreadCount: 0, newItems: [`⚠️ IMAP Error: ${err.message}`] });
     });
 
@@ -124,14 +124,14 @@ export async function GET(req: NextRequest) {
   const runTime = new Date().toLocaleTimeString('en-ZA', { timeZone: 'Africa/Johannesburg', hour: '2-digit', minute: '2-digit' });
 
   try {
-    console.log(`[Cloud Cron 24/7] Checking kev@thinkestry.co.za at ${runTime} SAST...`);
+    console.log(`[Cloud Cron 24/7] Checking info@myacc.co.za at ${runTime} SAST...`);
 
-    // Strictly scan kev@thinkestry.co.za ONLY
-    const kevScan = await scanKevMailbox();
+    // Strictly scan info@myacc.co.za ONLY
+    const infoScan = await scanInfoMailbox();
 
-    if (kevScan.newItems.length > 0) {
-      const alertMsg = `📬 *CLOUD 24/7 EMAIL ALERT* (${runTime} SAST)\n*Mailbox:* \`kev@thinkestry.co.za\`\n\n` +
-        kevScan.newItems.join('\n\n') + `\n\n` +
+    if (infoScan.newItems.length > 0) {
+      const alertMsg = `📬 *CLOUD 24/7 EMAIL ALERT* (${runTime} SAST)\n*Mailbox:* \`info@myacc.co.za\`\n\n` +
+        infoScan.newItems.join('\n\n') + `\n\n` +
         `_Google Cloud Run (24/7/365 active)._`;
       
       await sendTelegram(alertMsg);
@@ -146,14 +146,14 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      mailbox: 'kev@thinkestry.co.za',
+      mailbox: 'info@myacc.co.za',
       cloudRuntime: 'Google Cloud App Hosting (24/7)',
       timestamp: new Date().toISOString(),
       durationMs: Date.now() - startedAt,
-      unreadFound: kevScan.unreadCount,
-      actionableCount: kevScan.newItems.length,
+      unreadFound: infoScan.unreadCount,
+      actionableCount: infoScan.newItems.length,
       activeOrdersChecked: activeOrdersCount,
-      notificationsSent: kevScan.newItems.length > 0
+      notificationsSent: infoScan.newItems.length > 0
     });
   } catch (error: any) {
     console.error('[Cloud Cron Error]', error);

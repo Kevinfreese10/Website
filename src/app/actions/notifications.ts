@@ -27,8 +27,10 @@ export async function notifyStaffOfDocumentUpload({ orderId, clientName, assigne
         })
     );
 
+    const targetEmail = assignedStaffEmail.toLowerCase().trim() === 'kev@thinkestry.co.za' ? 'info@myacc.co.za' : assignedStaffEmail;
+
     await sendEmail({
-        to: assignedStaffEmail,
+        to: targetEmail,
         subject: `Documents Uploaded for Order #${orderId}`,
         html: emailHtml,
     });
@@ -139,6 +141,21 @@ export async function notifyStaffOfClientNote({
         }
         const order = orderDoc.data() as Order;
 
+        // Avoid sending duplicate "documents for review" email if staff was already notified of a client note within 5 minutes
+        if (noteText.includes('submitted their documents for review')) {
+            const notes = order.notes || [];
+            const recentClientNote = notes
+                .filter((n: any) => n.text && !n.text.includes('submitted their documents for review') && !n.isInternal)
+                .slice(-1)[0];
+            if (recentClientNote) {
+                const noteDate = recentClientNote.date?.toDate ? recentClientNote.date.toDate() : new Date(recentClientNote.date);
+                if (!isNaN(noteDate.getTime()) && (Date.now() - noteDate.getTime() < 5 * 60 * 1000)) {
+                    console.log(`[notifyStaffOfClientNote] Suppressing duplicate 'documents for review' email for order #${orderId} - client note was recently posted.`);
+                    return;
+                }
+            }
+        }
+
         let recipientEmail = 'info@myacc.co.za';
         let recipientName = 'Support Team';
 
@@ -148,7 +165,9 @@ export async function notifyStaffOfClientNote({
             if (staffSnap.exists) {
                 const assignedStaffMember = staffSnap.data() as User;
                 if (assignedStaffMember && assignedStaffMember.email) {
-                    recipientEmail = assignedStaffMember.email;
+                    recipientEmail = assignedStaffMember.email.toLowerCase().trim() === 'kev@thinkestry.co.za'
+                        ? 'info@myacc.co.za'
+                        : assignedStaffMember.email;
                     recipientName = assignedStaffMember.name || 'Staff Member';
                 }
             }
@@ -440,8 +459,10 @@ export async function notifyStaffOfTaskAssignment({
             })
         );
         
+        const targetEmail = staffData.email.toLowerCase().trim() === 'kev@thinkestry.co.za' ? 'info@myacc.co.za' : staffData.email;
+
         await sendEmail({
-            to: staffData.email,
+            to: targetEmail,
             subject: `New Task Assigned: ${taskTitle}`,
             html: emailHtml,
         });
