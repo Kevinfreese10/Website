@@ -17,6 +17,7 @@ import { usePartner } from '@/contexts/PartnerContext';
 import ClientForm from '@/components/admin/ClientForm';
 import { chartOfAccounts as initialChartOfAccounts } from '@/lib/chart-of-accounts';
 import { allocationRules as initialAllocationRules } from '@/lib/allocation-rules';
+import { alignRulesToChartOfAccounts } from '@/lib/chart-of-accounts-mapper';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import { getNextOrderId } from '@/lib/sequence';
@@ -282,6 +283,11 @@ export default function AIAccountantClientsPage() {
                 console.error("Failed to load partner custom AI settings", e);
             }
 
+            const isBlank = Boolean(data.isBlankProfile);
+            const clientCoA = isBlank ? [] : partnerChartOfAccounts;
+            const rawRules = data.allocationRules || partnerAllocationRules || [];
+            const clientRules = isBlank ? [] : alignRulesToChartOfAccounts(rawRules, clientCoA);
+
             const newClientData: Partial<User> = {
                 ...clientFormData,
                 yearEnd: data.yearEnd || null,
@@ -289,8 +295,8 @@ export default function AIAccountantClientsPage() {
                 source: 'AI Accountant',
                 clientSource: 'ai_accountant',
                 hasNumeraProfile: true,
-                chartOfAccounts: partnerChartOfAccounts,
-                allocationRules: partnerAllocationRules,
+                chartOfAccounts: clientCoA,
+                allocationRules: clientRules,
             };
 
             if (!data.isVatRegistered) {

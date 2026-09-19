@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { chartOfAccounts as initialChartOfAccounts } from '@/lib/chart-of-accounts';
 import { allocationRules as initialAllocationRules } from '@/lib/allocation-rules';
+import { alignRulesToChartOfAccounts } from '@/lib/chart-of-accounts-mapper';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -433,6 +434,10 @@ export default function AIAccountantClientsPage() {
             } else {
                 // Create
                 const newDocRef = doc(collection(db, 'aiAccountantClients'));
+                const isBlank = Boolean(data.isBlankProfile);
+                const clientCoA = isBlank ? [] : (data.chartOfAccounts || initialChartOfAccounts);
+                const clientRules = isBlank ? [] : alignRulesToChartOfAccounts(data.allocationRules || [], clientCoA);
+
                 const newClientData = {
                     ...data,
                     id: newDocRef.id,
@@ -441,8 +446,8 @@ export default function AIAccountantClientsPage() {
                     source: 'AI Accountant' as const,
                     clientSource: 'admin',
                     hasNumeraProfile: true,
-                    chartOfAccounts: initialChartOfAccounts,
-                    allocationRules: initialAllocationRules,
+                    chartOfAccounts: clientCoA,
+                    allocationRules: clientRules,
                     createdAt: serverTimestamp(),
                 };
                 await setDoc(newDocRef, newClientData);

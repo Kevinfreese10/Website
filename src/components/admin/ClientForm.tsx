@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { allVatTypes } from '@/lib/vat-types';
 import { chartOfAccounts as masterChartOfAccounts } from '@/lib/chart-of-accounts';
+import { alignRuleAccountId, alignRulesToChartOfAccounts } from '@/lib/chart-of-accounts-mapper';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -179,11 +180,15 @@ export default function ClientForm({
                     const snapshot = await getDocs(q);
                     const rules = snapshot.docs.map(doc => {
                         const data = doc.data() as AllocationRule;
+                        const alignedAccountId = alignRuleAccountId(data.accountId, masterChartOfAccounts, {
+                            description: data.description,
+                            category: (data as any).category
+                        });
                         return {
                             id: doc.id,
                             description: data.description || '',
                             keywords: data.keywords.join(', '),
-                            accountId: data.accountId,
+                            accountId: alignedAccountId,
                             vatType: data.vatType,
                         };
                     });
@@ -220,6 +225,7 @@ export default function ClientForm({
             const processedRules = shouldImport ? (initialRules || []).map(r => ({
                 ...r,
                 keywords: r.keywords.split(',').map(k => k.trim().toUpperCase()).filter(Boolean),
+                accountId: alignRuleAccountId(r.accountId, masterChartOfAccounts, { description: r.description }),
                 type: 'hard' as const,
                 scope: 'client' as const,
                 priority: 99

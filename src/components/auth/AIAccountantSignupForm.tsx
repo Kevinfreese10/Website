@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import { Loader2, ArrowLeft, CheckCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { chartOfAccounts as initialChartOfAccounts } from '@/lib/chart-of-accounts';
+import { alignRulesToChartOfAccounts } from '@/lib/chart-of-accounts-mapper';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
@@ -120,7 +121,7 @@ export default function AIAccountantSignupForm() {
             clientSource: 'ai_accountant',
             hasNumeraProfile: true,
             chartOfAccounts: initialChartOfAccounts,
-            allocationRules: globalRules,
+            allocationRules: alignRulesToChartOfAccounts(globalRules, initialChartOfAccounts),
             createdAt: serverTimestamp(),
             subscription: {
                 ...values,

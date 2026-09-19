@@ -40,6 +40,7 @@ export async function syncMasterAllocationRulesAction({ idToken }: { idToken: st
         categoryLabel: rule.categoryLabel,
         defaultAccountCode: rule.defaultAccountCode,
         defaultAccountName: rule.defaultAccountName,
+        legacyAccountCode: rule.legacyAccountCode || null,
         accountId: rule.defaultAccountCode,
         accountType: 'account',
         vatType: rule.vatType,

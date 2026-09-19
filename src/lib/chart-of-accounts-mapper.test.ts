@@ -57,4 +57,36 @@ describe('Chart of Accounts Semantic Mapper', () => {
     expect(res?.accountNumber).toBe('6700');
     expect(res?.accountName).toBe('Client Entertainment');
   });
+
+  it('aligns legacy 4-digit codes to standard 7-digit Chart of Accounts', async () => {
+    const { chartOfAccounts: masterCoA } = await import('./chart-of-accounts');
+    const { alignRuleAccountId, alignRulesToChartOfAccounts } = await import('./chart-of-accounts-mapper');
+
+    // Single account alignment
+    expect(alignRuleAccountId('4500', masterCoA)).toBe('3000-051'); // Telephone & Internet
+    expect(alignRuleAccountId('3200', masterCoA)).toBe('3000-004'); // Bank Charges
+    expect(alignRuleAccountId('3800', masterCoA)).toBe('3000-033'); // Fuel
+    expect(alignRuleAccountId('2150', masterCoA)).toBe('7000-008'); // VAT Control
+    expect(alignRuleAccountId('8500-000', masterCoA)).toBe('7000-008'); // VAT Control
+
+    // Batch alignment
+    const unalignedRules = [
+      { id: 'r1', description: 'Vodacom Cell', accountId: '4500' },
+      { id: 'r2', description: 'FNB Fees', accountId: '3200' },
+      { id: 'r3', description: 'Already Valid', accountId: '3000-000' },
+    ];
+    const aligned = alignRulesToChartOfAccounts(unalignedRules, masterCoA);
+    expect(aligned[0].accountId).toBe('3000-051');
+    expect(aligned[1].accountId).toBe('3000-004');
+    expect(aligned[2].accountId).toBe('3000-000');
+  });
+
+  it('guarantees 100% of MASTER_ALLOCATION_RULES align to master Chart of Accounts', async () => {
+    const { chartOfAccounts: masterCoA } = await import('./chart-of-accounts');
+    const masterAccountIds = new Set(masterCoA.map(a => a.id));
+
+    MASTER_ALLOCATION_RULES.forEach(rule => {
+      expect(masterAccountIds.has(rule.defaultAccountCode)).toBe(true);
+    });
+  });
 });
