@@ -10,7 +10,6 @@ import { Metadata, ResolvingMetadata } from 'next';
 import ServiceCheckoutForm from '@/components/checkout/ServiceCheckoutForm';
 import PrerequisitesList from '@/components/products/PrerequisitesList';
 import ProductPageInteractiveContainer from '@/components/products/ProductPageInteractiveContainer';
-import Script from 'next/script';
 import { generateStructuredData } from '@/lib/schema/productSchema';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';

@@ -1,7 +1,6 @@
 import HomePageClient from '@/components/home/HomePageClient';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import { Metadata } from 'next';
-import Script from 'next/script';
 
 export const revalidate = 3600;
 

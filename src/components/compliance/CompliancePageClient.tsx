@@ -225,7 +225,7 @@ export default function CompliancePageClient() {
 
             <div className="container relative z-10 mx-auto px-4">
                 <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
-                    Free <span className="text-gradient">#Compliance</span> Check
+                    Free <span className="text-gradient">Compliance</span> Check
                 </h1>
                 <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto">
                     Ensure your business is compliant with CIPC and SARS. Enter your details for a free assessment and get 5% off your next service.

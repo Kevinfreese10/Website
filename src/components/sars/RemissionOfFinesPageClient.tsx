@@ -85,7 +85,7 @@ export default function RemissionOfFinesPageClient() {
 
         <div className="container relative z-10 mx-auto px-4">
           <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-hero-gradient pb-2">
-            Remission of <span className="text-gradient">#Fines</span> & Penalties
+            Remission of <span className="text-gradient">Fines</span> & Penalties
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto text-center">
             Get your tax penalties waived. SARS penalties can be aggressive, but they are not always final. If you have been hit with penalties, you have the right to request a remission.

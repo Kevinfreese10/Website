@@ -10,7 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Clock, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
-import Script from 'next/script';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import ShareWidget from '@/components/blog/ShareWidget';
 

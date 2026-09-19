@@ -6,16 +6,46 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Building2, ArrowRight, FileCheck, RotateCcw, Users, Landmark } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Company Registration & Secretarial Services | My Accountant',
-        description: 'Register your company with CIPC online. My Accountant offers fast private company registration, reinstatement, beneficial ownership filing & secretarial services in South Africa.',
+        title: 'CIPC Company Registration & Secretarial Services South Africa',
+        description: 'Register your Pty Ltd company with CIPC online. Fast private company registration, company reinstatement, beneficial ownership filing & CIPC secretarial compliance in South Africa.',
     };
     return getStaticPageMetadata('company-registration', defaults);
 }
+
+const companyRegistrationFaqs = [
+  {
+    q: "How long does CIPC company registration take in South Africa?",
+    a: "A standard CIPC company registration typically takes between 3 to 7 business days once all required documents are submitted. Name reservations are usually processed within 1 to 2 business days. With My Accountant handling the process, we ensure your documentation is correct from the start, avoiding common delays caused by incomplete or incorrect applications.",
+  },
+  {
+    q: "What documents are needed to register a company with CIPC?",
+    a: "To register a private company (Pty Ltd) with CIPC, you'll need certified copies of ID documents for all directors, proof of residential address for each director, a completed CoR 14.1 form, and a Memorandum of Incorporation (MOI). If you're reserving a company name, a CoR 9.1 form is also required. Our team prepares all documentation on your behalf to ensure a smooth registration.",
+  },
+  {
+    q: "How much does it cost to register a company in South Africa?",
+    a: "CIPC charges a name reservation fee of R75 and a company registration fee of R175 for online submissions. However, professional service fees for preparing documentation, filing, and post-registration setup (such as tax registrations and banking letters) are additional. My Accountant offers transparent, all-inclusive packages so you know exactly what you're paying upfront — with no hidden costs.",
+  },
+];
+
+const companyRegistrationSchema = generateServicePillarSchema({
+  title: 'CIPC Company Registration & Company Secretarial Services',
+  description: 'Online private company (Pty Ltd) registration with CIPC, name reservation, MOI, tax numbers, and statutory secretarial maintenance.',
+  slug: '/company-registration',
+  serviceType: 'ProfessionalService',
+  priceRange: 'From R950',
+  breadcrumbs: [
+    { name: 'Home', url: '/' },
+    { name: 'Company Secretarial', url: '/products#company-secretarial' },
+    { name: 'Company Registration', url: '/company-registration' }
+  ],
+  faqs: companyRegistrationFaqs
+});
 
 export default function CompanyRegistrationPage() {
   const services = [
@@ -45,23 +75,14 @@ export default function CompanyRegistrationPage() {
     },
   ];
 
-  const faqs = [
-    {
-      q: "How long does CIPC company registration take in South Africa?",
-      a: "A standard CIPC company registration typically takes between 3 to 7 business days once all required documents are submitted. Name reservations are usually processed within 1 to 2 business days. With My Accountant handling the process, we ensure your documentation is correct from the start, avoiding common delays caused by incomplete or incorrect applications.",
-    },
-    {
-      q: "What documents are needed to register a company with CIPC?",
-      a: "To register a private company (Pty Ltd) with CIPC, you'll need certified copies of ID documents for all directors, proof of residential address for each director, a completed CoR 14.1 form, and a Memorandum of Incorporation (MOI). If you're reserving a company name, a CoR 9.1 form is also required. Our team prepares all documentation on your behalf to ensure a smooth registration.",
-    },
-    {
-      q: "How much does it cost to register a company in South Africa?",
-      a: "CIPC charges a name reservation fee of R75 and a company registration fee of R175 for online submissions. However, professional service fees for preparing documentation, filing, and post-registration setup (such as tax registrations and banking letters) are additional. My Accountant offers transparent, all-inclusive packages so you know exactly what you're paying upfront — with no hidden costs.",
-    },
-  ];
+  const faqs = companyRegistrationFaqs;
 
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(companyRegistrationSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />

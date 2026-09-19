@@ -18,7 +18,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import Script from 'next/script';
+import { SITE_URL } from '@/lib/constants';
 
 export const revalidate = 3600;
 
@@ -210,10 +210,10 @@ export default async function CityAccountantPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": ["AccountingService", "LocalBusiness"],
     "name": `My Accountant ${cityData.name}`,
-    "url": `https://www.myacc.co.za/accountant-${cityData.id}`,
-    "telephone": "+27-10-109-1625",
+    "url": `${SITE_URL}/accountant/${cityData.id}`,
+    "telephone": "+27101091625",
     "email": "info@myacc.co.za",
-    "image": "https://www.myacc.co.za/logo.png",
+    "image": `${SITE_URL}/logo.png`,
     "areaServed": {
       "@type": "City",
       "name": cityData.name
@@ -226,7 +226,7 @@ export default async function CityAccountantPage({ params }: Props) {
     "provider": {
       "@type": "Organization",
       "name": "My Accountant",
-      "url": "https://www.myacc.co.za"
+      "url": SITE_URL
     },
     "hasOfferCatalog": {
       "@type": "OfferCatalog",
@@ -359,13 +359,11 @@ export default async function CityAccountantPage({ params }: Props) {
 
   return (
     <>
-      <Script
-        id={`local-business-schema-${cityData.id}`}
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
       />
-      <Script
-        id={`faq-schema-${cityData.id}`}
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />

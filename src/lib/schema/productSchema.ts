@@ -159,7 +159,7 @@ export function generateOrganizationSchema() {
   const baseUrl = SITE_URL;
   return {
     "@context": "https://schema.org",
-    "@type": ["Organization", "AccountingService", "ProfessionalService"],
+    "@type": ["Organization", "AccountingService", "TaxConsultant", "FinancialService", "ProfessionalService"],
     "name": "My Accountant",
     "url": baseUrl,
     "priceRange": "R100–R7500",
@@ -239,13 +239,18 @@ export function generateOrganizationSchema() {
       ]
     },
     "knowsAbout": [
-      "Taxation in South Africa",
-      "SARS Disputes and Objections",
-      "SARS Section 200 Compromise of Debt",
-      "CIPC Company Registrations and Compliance",
-      "Monthly SME Bookkeeping and Payroll",
-      "Annual Financial Statement Preparation",
-      "VAT and PAYE Submissions"
+      "SME Accounting and Bookkeeping (IFRS for SMEs)",
+      "Annual Financial Statements (AFS) Preparation and Review",
+      "SARS Tax Dispute Resolution, Section 104 Objections and Appeals",
+      "SARS Section 200 Compromise of Debt and Tax Restructuring",
+      "SARS Remission of Penalties and Interest (RFR)",
+      "VAT Registration and VAT201 Return Submissions",
+      "Outsourced Payroll Administration, EMP201, and EMP501 Reconciliations",
+      "UIF Compliance, Declarations, and COIDA Letter of Good Standing",
+      "CIPC Company Secretarial Services, Annual Returns, and Reinstatements",
+      "CIPC Mandatory Beneficial Ownership (BO) Register Compliance",
+      "Director Amendments (CoR39), Registered Office Changes (CoR21.1), and Share Registers",
+      "Provisional Tax (IRP6) and Corporate Income Tax (ITR14) Compliance"
     ]
   };
 }
@@ -335,4 +340,79 @@ export function generateCatalogOffersSchema(services: Service[]) {
     })
   };
 }
+
+export interface PillarSchemaConfig {
+  title: string;
+  description: string;
+  slug: string;
+  serviceType: string;
+  faqs?: { q: string; a: string }[];
+  priceRange?: string;
+  breadcrumbs?: { name: string; url: string }[];
+}
+
+/**
+ * Generates an interconnected Schema.org @graph for major commercial service pillar pages.
+ * Includes Service, FAQPage, BreadcrumbList, and links to Organization.
+ */
+export function generateServicePillarSchema(config: PillarSchemaConfig) {
+  const baseUrl = SITE_URL;
+  const pageUrl = `${baseUrl}/${config.slug.replace(/^\//, '')}`;
+
+  const graph: any[] = [
+    {
+      "@type": "Service",
+      "@id": `${pageUrl}#service`,
+      "name": config.title,
+      "description": config.description,
+      "url": pageUrl,
+      "serviceType": config.serviceType,
+      "provider": {
+        "@type": "ProfessionalService",
+        "name": "My Accountant",
+        "url": baseUrl,
+        "telephone": "+27101091625"
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": "South Africa"
+      },
+      ...(config.priceRange ? { "priceRange": config.priceRange } : {})
+    }
+  ];
+
+  if (config.breadcrumbs && config.breadcrumbs.length > 0) {
+    graph.push({
+      "@type": "BreadcrumbList",
+      "@id": `${pageUrl}#breadcrumb`,
+      "itemListElement": config.breadcrumbs.map((item, idx) => ({
+        "@type": "ListItem",
+        "position": idx + 1,
+        "name": item.name,
+        "item": item.url.startsWith('http') ? item.url : `${baseUrl}${item.url}`
+      }))
+    });
+  }
+
+  if (config.faqs && config.faqs.length > 0) {
+    graph.push({
+      "@type": "FAQPage",
+      "@id": `${pageUrl}#faq`,
+      "mainEntity": config.faqs.map(faq => ({
+        "@type": "Question",
+        "name": faq.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": faq.a
+        }
+      }))
+    });
+  }
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": graph
+  };
+}
+
 

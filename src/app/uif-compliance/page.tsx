@@ -37,7 +37,7 @@ export default function UifCompliancePage() {
 
         <div className="container relative z-10 mx-auto px-4">
           <h1 className="mb-6 text-4xl font-black tracking-tight md:text-5xl lg:text-6xl text-center text-hero-gradient pb-2">
-            <span className="text-gradient">UIF & SDL #Compliance</span>
+            <span className="text-gradient">UIF & SDL Compliance</span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground max-w-3xl mx-auto">
             Protect your employees and your business. We manage the administration of Unemployment Insurance and Skills Development Levies for South African employers.

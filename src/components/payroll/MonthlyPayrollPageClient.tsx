@@ -60,7 +60,7 @@ export default function MonthlyPayrollPageClient() {
 
         <div className="container relative z-10 mx-auto px-4">
           <h1 className="mb-6 text-4xl font-black tracking-tight md:text-6xl lg:text-7xl text-hero-gradient pb-2">
-            Monthly <span className="text-gradient">#Payroll</span> Services
+            Monthly <span className="text-gradient">Payroll</span> Services
           </h1>
           <div className="mx-auto mb-10 max-w-4xl text-lg font-medium text-muted-foreground md:text-xl leading-relaxed">
             <p>

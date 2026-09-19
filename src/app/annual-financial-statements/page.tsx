@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { getStaticPageMetadata } from '@/lib/seo-utils';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
-import Script from 'next/script';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 import { KEVIN_FREESE_PROFILE_IMAGE } from '@/lib/constants';
 
 
@@ -20,6 +20,39 @@ export async function generateMetadata(): Promise<Metadata> {
     return getStaticPageMetadata('annual-financial-statements', defaults);
 }
 
+const afsFaqs = [
+  {
+    q: "What are Annual Financial Statements (AFS)?",
+    a: "Annual Financial Statements are a formal record of a business's financial activities over a 12-month period, prepared in accordance with IFRS or IFRS for SMEs. They include a Balance Sheet, Income Statement, Cash Flow Statement, and notes to the financial statements."
+  },
+  {
+    q: "Is it compulsory to prepare Annual Financial Statements in South Africa?",
+    a: "Yes. Under Section 30 of the South African Companies Act, all registered companies must prepare Annual Financial Statements within 6 months after the end of their financial year."
+  },
+  {
+    q: "What is a Public Interest Score (PIS) and why does it matter?",
+    a: "The Public Interest Score determines whether your company requires its financial statements to be audited, independently reviewed, or simply compiled. It is calculated annually based on turnover, number of employees, third-party liabilities, and number of shareholders."
+  },
+  {
+    q: "How long does it take to prepare Annual Financial Statements?",
+    a: "Our typical turnaround time for preparing standard, IFRS-compliant Annual Financial Statements is 7 to 10 working days, provided all financial records and bank statements are complete."
+  }
+];
+
+const afsSchema = generateServicePillarSchema({
+  title: 'Annual Financial Statements (AFS) Preparation & Review',
+  description: 'Compilation, preparation, and independent review of IFRS-compliant Annual Financial Statements for South African companies and trusts.',
+  slug: '/annual-financial-statements',
+  serviceType: 'AccountingService',
+  priceRange: 'From R2,850',
+  breadcrumbs: [
+    { name: 'Home', url: '/' },
+    { name: 'Accounting Services', url: '/products#accounting' },
+    { name: 'Annual Financial Statements', url: '/annual-financial-statements' }
+  ],
+  faqs: afsFaqs
+});
+
 export default function AnnualFinancialStatementsPage() {
   const steps = [
     { title: 'IFRS Compliance', description: 'Ensure your financials adhere to the latest reporting standards.', icon: ShieldCheck },
@@ -28,44 +61,11 @@ export default function AnnualFinancialStatementsPage() {
     { title: 'Stakeholder Confidence', description: 'Present professional financials to banks, investors, and CIPC.', icon: PieChart },
   ];
 
-  const afsFaqs = [
-    {
-      q: "What are Annual Financial Statements (AFS)?",
-      a: "Annual Financial Statements are a formal record of a business's financial activities over a 12-month period, prepared in accordance with IFRS or IFRS for SMEs. They include a Balance Sheet, Income Statement, Cash Flow Statement, and notes to the financial statements."
-    },
-    {
-      q: "Is it compulsory to prepare Annual Financial Statements in South Africa?",
-      a: "Yes. Under Section 30 of the South African Companies Act, all registered companies must prepare Annual Financial Statements within 6 months after the end of their financial year."
-    },
-    {
-      q: "What is a Public Interest Score (PIS) and why does it matter?",
-      a: "The Public Interest Score determines whether your company requires its financial statements to be audited, independently reviewed, or simply compiled. It is calculated annually based on turnover, number of employees, third-party liabilities, and number of shareholders."
-    },
-    {
-      q: "How long does it take to prepare Annual Financial Statements?",
-      a: "Our typical turnaround time for preparing standard, IFRS-compliant Annual Financial Statements is 7 to 10 working days, provided all financial records and bank statements are complete."
-    }
-  ];
-
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": afsFaqs.map(item => ({
-      "@type": "Question",
-      "name": item.q,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": item.a
-      }
-    }))
-  };
-
   return (
     <div className="space-y-16 pb-16 bg-background relative overflow-hidden">
-      <Script
-        id="afs-faq-schema"
+      <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(afsSchema) }}
       />
 
       <section className="relative w-full overflow-hidden pt-16 lg:pt-24 pb-20 text-center bg-background">

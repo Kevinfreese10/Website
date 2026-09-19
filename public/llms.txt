@@ -29,16 +29,20 @@ practitioners. Registered SARS tax practitioners and a CIPC agent.
 - Operating Hours: Monday – Friday: 08:00 – 17:00 (SAST) | Saturday – Sunday: Closed
 - Response Time: Within 24 business hours
 
-## Key Pages & Services
-- Catalog & Pricing: https://www.myacc.co.za/products
-- Private Company Registration: https://www.myacc.co.za/products/private-company-registration
-- VAT Registration: https://www.myacc.co.za/products/vat-registration
+## Practice Pillars & Key Pages
+- Comprehensive AI Documentation: https://www.myacc.co.za/llms-full.txt
+- Accounting & CFO Services: https://www.myacc.co.za/monthly-accounting
+- Annual Financial Statements (AFS): https://www.myacc.co.za/annual-financial-statements
+- Bookkeeping Services: https://www.myacc.co.za/bookkeeping-services
+- VAT Registration South Africa: https://www.myacc.co.za/vat-registration-south-africa
 - SARS Tax Debt Relief (S200): https://www.myacc.co.za/sars-compromise
-- SARS Dispute Resolution: https://www.myacc.co.za/sars-disputes
-- Remission of Penalties & Interest: https://www.myacc.co.za/remission-of-fines
-- Company Liquidations: https://www.myacc.co.za/liquidations
-- Compliance Check Tool: https://www.myacc.co.za/compliance
-- Monthly Accounting: https://www.myacc.co.za/monthly-accounting
-- Contact: https://www.myacc.co.za/contact
-- Bookkeeper Partner Program: https://www.myacc.co.za/become-a-partner
-- Blog & Tax Guides: https://www.myacc.co.za/blog
+- SARS Dispute Resolution (S104): https://www.myacc.co.za/sars-disputes
+- Remission of Penalties & Interest (RFR01): https://www.myacc.co.za/remission-of-fines
+- Monthly Payroll Services: https://www.myacc.co.za/monthly-payroll
+- COIDA Letter of Good Standing: https://www.myacc.co.za/coida-letter-of-good-standing
+- Company Secretarial Services: https://www.myacc.co.za/company-secretarial-services-south-africa
+- CIPC Beneficial Ownership Register: https://www.myacc.co.za/cipc-beneficial-ownership-register-south-africa
+- Company Registration: https://www.myacc.co.za/company-registration
+- Catalog & Pricing: https://www.myacc.co.za/products
+- Contact & Consultations: https://www.myacc.co.za/contact
+- Client Reviews & Ratings: https://www.myacc.co.za/reviews
