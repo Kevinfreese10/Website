@@ -680,8 +680,8 @@ export default function AIAccountantClientsPage() {
                                     Create Client
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-2xl">
-                                <DialogHeader>
+                            <DialogContent className="sm:max-w-2xl max-h-[88vh] h-[88vh] flex flex-col p-0 sm:p-0 gap-0 overflow-hidden">
+                                <DialogHeader className="px-6 py-5 border-b shrink-0 text-left bg-background">
                                     <DialogTitle>{selectedClient ? 'Edit Client Profile' : 'Setup New Client Profile'}</DialogTitle>
                                     <DialogDescription>
                                         Configure the base profile, tax settings, and banking details for this AI Accountant client.

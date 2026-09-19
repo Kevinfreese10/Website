@@ -82,10 +82,11 @@ export default function CompanyDetailsPage() {
             </CardHeader>
             <CardContent>
                 <ClientForm 
-                    client={client}
+                    client={client} 
                     onSubmit={handleFormSubmit}
                     onCancel={() => {}} 
                     isAIClient={true}
+                    inDialog={false}
                 />
             </CardContent>
         </Card>

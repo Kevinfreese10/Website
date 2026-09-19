@@ -214,8 +214,8 @@ export default function AIPayrollClientsPage() {
                                 Create Client
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-2xl">
-                            <DialogHeader>
+                        <DialogContent className="sm:max-w-2xl max-h-[88vh] h-[88vh] flex flex-col p-0 sm:p-0 gap-0 overflow-hidden">
+                            <DialogHeader className="px-6 py-5 border-b shrink-0 text-left bg-background">
                                 <DialogTitle>{selectedClient ? 'Edit Client Profile' : 'Setup New Payroll Client'}</DialogTitle>
                                 <DialogDescription>
                                     Configure the company details, registration numbers, and payroll processing cycle.

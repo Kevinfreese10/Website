@@ -88,12 +88,14 @@ export default function ClientForm({
     onCancel, 
     isAIClient = false,
     isPayrollClient = false,
+    inDialog = true,
 }: { 
     client: Partial<User> | null, 
     onSubmit: (data: any) => void, 
     onCancel: () => void, 
     isAIClient?: boolean,
     isPayrollClient?: boolean,
+    inDialog?: boolean,
 }) {
     const { toast } = useToast();
     const [isLoadingRules, setIsLoadingRules] = useState(false);
@@ -236,8 +238,12 @@ export default function ClientForm({
     
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8 max-h-[75vh] overflow-y-auto p-1 pr-4">
-                <section className="space-y-4">
+            <form 
+                onSubmit={form.handleSubmit(handleSubmit)} 
+                className={inDialog ? "flex flex-col flex-1 min-h-0 overflow-hidden" : "space-y-6"}
+            >
+                <div className={inDialog ? "flex-1 overflow-y-auto px-6 py-5 space-y-6" : "space-y-6"}>
+                    <section className="space-y-4">
                     <div className="flex items-center gap-2 text-primary font-bold uppercase text-xs tracking-widest">
                         <Building className="h-4 w-4" /> Company Information
                     </div>
@@ -651,7 +657,9 @@ export default function ClientForm({
                     </section>
                 )}
                 
-                <div className="flex items-center justify-end gap-3 pt-4 pb-4 px-4 sticky bottom-0 bg-background/95 backdrop-blur-md border-t z-30 shadow-md rounded-b-xl mt-6 pr-20 sm:pr-24 md:pr-4">
+                </div>
+                
+                <div className={inDialog ? "flex items-center justify-end gap-3 px-6 py-4 border-t bg-muted/40 shrink-0" : "flex items-center justify-end gap-3 pt-4 border-t"}>
                     <Button type="button" variant="outline" onClick={onCancel} className="px-5">Cancel</Button>
                     <Button type="submit" disabled={isSaving} className="px-6 font-semibold shadow-sm">
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -660,5 +668,5 @@ export default function ClientForm({
                 </div>
             </form>
         </Form>
-    )
+    );
 }
