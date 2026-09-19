@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchesRuleKeyword } from './bank-cleaner';
+import { matchesRuleKeyword, matchRuleGuideDetails } from './bank-cleaner';
 
 describe('matchesRuleKeyword (Word-Boundary Rule Matcher)', () => {
     it('should match standalone keywords correctly', () => {
@@ -41,4 +41,53 @@ describe('matchesRuleKeyword (Word-Boundary Rule Matcher)', () => {
         expect(matchesRuleKeyword('APPLE.COM/BILL 011-234-5678', 'APPLE.COM/BILL')).toBe(true);
         expect(matchesRuleKeyword('SARSEFLNG 9876543210 PROV', 'SARSEFLNG')).toBe(true);
     });
+
+    describe('Guide-Based Matching (Token Overlap & Stop-Word Filtering)', () => {
+        it('matches when bank description is a subset of rule keyword (e.g. HAND TOOLS matching HAND TOOLS SUPPLY)', () => {
+            // User example: Bank description says "HAND TOOLS", Rule says "HAND TOOLS SUPPLY"
+            expect(matchesRuleKeyword('HAND TOOLS', 'HAND TOOLS SUPPLY')).toBe(true);
+            expect(matchesRuleKeyword('HAND TOOLS', 'HAND TOOLS SUPPLIES')).toBe(true);
+            expect(matchesRuleKeyword('HAND TOOLS', 'HAND TOOLS SERVICES')).toBe(true);
+            expect(matchesRuleKeyword('HAND TOOLS', 'HAND TOOLS TRADING PTY LTD')).toBe(true);
+        });
+
+        it('matches when rule keyword is a subset of bank description (forward guide match)', () => {
+            expect(matchesRuleKeyword('HAND TOOLS SUPPLY DURBAN', 'HAND TOOLS')).toBe(true);
+            expect(matchesRuleKeyword('PURCHASE HAND TOOLS CAPE TOWN', 'HAND TOOLS')).toBe(true);
+            expect(matchesRuleKeyword('POS PURCHASE HAND TOOLS DURBAN', 'HAND TOOLS SUPPLY')).toBe(true);
+            expect(matchesRuleKeyword('HAND TOOLS ENTERPRISES 1234', 'HAND TOOLS')).toBe(true);
+        });
+
+        it('matches bidirectional corporate variations with stop words stripped', () => {
+            expect(matchesRuleKeyword('BUILDERS WAREHOUSE STRUBENSVALLEY', 'BUILDERS WAREHOUSE')).toBe(true);
+            expect(matchesRuleKeyword('BUILDERS WAREHOUSE', 'BUILDERS WAREHOUSE PTY LTD')).toBe(true);
+            expect(matchesRuleKeyword('FASTENERS & FIXINGS CC', 'FASTENERS & FIXINGS')).toBe(true);
+            expect(matchesRuleKeyword('FASTENERS AND FIXINGS', 'FASTENERS FIXINGS SUPPLY')).toBe(true);
+        });
+
+        it('does NOT falsely match purely generic stop-words across unrelated entities', () => {
+            // Both have "SERVICES" or "SUPPLY", but core business names differ
+            expect(matchesRuleKeyword('LEGAL CONSULTING SERVICES', 'PLUMBING SERVICES')).toBe(false);
+            expect(matchesRuleKeyword('ABC SUPPLY STORE', 'XYZ SUPPLY')).toBe(false);
+            expect(matchesRuleKeyword('BLUE SHIRT CLOTHING', 'BLUE CAR AUTOMOTIVE')).toBe(false);
+        });
+
+        it('returns rich details with confidence via matchRuleGuideDetails', () => {
+            const exactRes = matchRuleGuideDetails('PURCHASE FROM SHELL SERVICE STATION', 'SHELL');
+            expect(exactRes.matched).toBe(true);
+            expect(exactRes.matchType).toBe('exact');
+            expect(exactRes.confidence).toBe(100);
+
+            const guideRes = matchRuleGuideDetails('HAND TOOLS', 'HAND TOOLS SUPPLY');
+            expect(guideRes.matched).toBe(true);
+            expect(guideRes.matchType).toBe('guide');
+            expect(guideRes.confidence).toBeGreaterThanOrEqual(90);
+
+            const noMatchRes = matchRuleGuideDetails('ABC BAKERY', 'DEF LOGISTICS');
+            expect(noMatchRes.matched).toBe(false);
+            expect(noMatchRes.matchType).toBe('none');
+            expect(noMatchRes.confidence).toBe(0);
+        });
+    });
 });
+

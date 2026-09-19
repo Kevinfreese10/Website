@@ -12,6 +12,7 @@ type EmailPayload = {
     bcc?: string | string[];
     subject: string;
     html: string;
+    text?: string;
     from?: string;
     resellerId?: string;
     attachments?: { filename: string; path?: string; content?: Buffer; contentType?: string }[];
@@ -48,6 +49,7 @@ export async function sendEmail({
     bcc, 
     subject, 
     html, 
+    text,
     from, 
     resellerId, 
     attachments, 
@@ -209,6 +211,7 @@ export async function sendEmail({
       cc: Array.isArray(cc) ? cc.join(', ') : cc,
       bcc: finalBcc.length > 0 ? finalBcc.join(', ') : undefined,
       subject: subject,
+      text: text || undefined,
       html: html,
       attachments: attachments,
       replyTo: finalReplyTo,

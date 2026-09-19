@@ -244,22 +244,124 @@ export class BankCleaner {
 }
 
 /**
- * High-precision word-boundary keyword matcher for bank transactions.
- * Prevents substring collisions (e.g. "BUS" matching "BUSISIWE", "FEE" matching "CONSULTING FEES").
+ * Common South African corporate, transaction, and retail stop-words.
+ * Stripped during guide-based matching so core business names are compared accurately.
  */
-export function matchesRuleKeyword(description: string, keyword: string): boolean {
-    if (!description || !keyword) return false;
+export const CORPORATE_STOP_WORDS = new Set([
+    'PTY', 'LTD', 'CC', 'SUPPLY', 'SUPPLIES', 'SERVICES', 'SERVICE',
+    'TRADING', 'TRADERS', 'ENTERPRISES', 'ENTERPRISE', 'HOLDINGS', 'HOLDING',
+    'GROUP', 'CORP', 'CORPORATION', 'CO', 'COMPANY',
+    'STORE', 'STORES', 'SHOP', 'SHOPS', 'SUPERMARKET', 'MARKET',
+    'DEP', 'DEPOSIT', 'PMT', 'PAYMENT', 'PAYMENTS', 'EFT', 'POS', 'CARD',
+    'PURCHASE', 'PURCHASES', 'TRANS', 'TRANSFER', 'TRANSFERS', 'DEBIT', 'CREDIT',
+    'DIRECT', 'DIR', 'FEE', 'FEES', 'CHARGE', 'CHARGES', 'BRANCH',
+    'AND', '&', 'THE', 'FOR', 'OF', 'TO', 'IN', 'ON', 'AT', 'BY', 'WITH', 'SA'
+]);
+
+function extractRuleTokens(str: string): string[] {
+    if (!str) return [];
+    return str
+        .toUpperCase()
+        .replace(/[^A-Z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(t => t.length > 0);
+}
+
+function extractCoreRuleTokens(tokens: string[]): string[] {
+    return tokens.filter(t => t.length >= 2 && !CORPORATE_STOP_WORDS.has(t));
+}
+
+export interface RuleGuideMatchResult {
+    matched: boolean;
+    confidence: number;
+    matchType: 'exact' | 'guide' | 'none';
+    matchedKeyword: string;
+}
+
+/**
+ * Evaluates whether a bank description matches a rule keyword, returning rich match details.
+ * Supports exact word-boundary matching (100% confidence) and guide-based token overlap (85-95% confidence).
+ */
+export function matchRuleGuideDetails(description: string, keyword: string): RuleGuideMatchResult {
+    if (!description || !keyword) {
+        return { matched: false, confidence: 0, matchType: 'none', matchedKeyword: '' };
+    }
     const cleanDesc = description.toUpperCase().trim();
     const cleanKw = keyword.toUpperCase().trim();
-    if (!cleanDesc || !cleanKw) return false;
+    if (!cleanDesc || !cleanKw) {
+        return { matched: false, confidence: 0, matchType: 'none', matchedKeyword: '' };
+    }
 
     // Special bank symbols (like '#SERVICE FEES' or '*9002') allow direct substring/prefix match
     if (cleanKw.startsWith('#') || cleanKw.startsWith('*')) {
-        return cleanDesc.includes(cleanKw);
+        if (cleanDesc.includes(cleanKw)) {
+            return { matched: true, confidence: 100, matchType: 'exact', matchedKeyword: keyword };
+        }
     }
 
-    // Exact word boundary matching using non-alphanumeric delimiters
+    // Phase 1: Exact word boundary matching using non-alphanumeric delimiters
     const escaped = cleanKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`(^|[^A-Z0-9])${escaped}([^A-Z0-9]|$)`, 'i');
-    return regex.test(cleanDesc);
+    if (regex.test(cleanDesc)) {
+        return { matched: true, confidence: 100, matchType: 'exact', matchedKeyword: keyword };
+    }
+
+    // Phase 2: Guide-based token overlap & stop-word filtering
+    const descTokens = extractRuleTokens(cleanDesc);
+    const kwTokens = extractRuleTokens(cleanKw);
+
+    const descCore = extractCoreRuleTokens(descTokens);
+    const kwCore = extractCoreRuleTokens(kwTokens);
+
+    // If either side has no core tokens after filtering stop words, do not fuzzy match
+    if (descCore.length === 0 || kwCore.length === 0) {
+        return { matched: false, confidence: 0, matchType: 'none', matchedKeyword: '' };
+    }
+
+    const descCoreSet = new Set(descCore);
+    const kwCoreSet = new Set(kwCore);
+
+    // Count intersecting core tokens
+    let intersectionCount = 0;
+    for (const token of kwCoreSet) {
+        if (descCoreSet.has(token)) {
+            intersectionCount++;
+        }
+    }
+
+    if (intersectionCount === 0) {
+        return { matched: false, confidence: 0, matchType: 'none', matchedKeyword: '' };
+    }
+
+    // Case A: All core tokens of the rule keyword appear in the description
+    // e.g. Rule = "HAND TOOLS", Description = "HAND TOOLS SUPPLY DURBAN"
+    if (intersectionCount === kwCoreSet.size && (kwCoreSet.size >= 2 || [...kwCoreSet][0].length >= 4)) {
+        return { matched: true, confidence: 95, matchType: 'guide', matchedKeyword: keyword };
+    }
+
+    // Case B: All core tokens of the description appear in the rule keyword
+    // e.g. Description = "HAND TOOLS", Rule = "HAND TOOLS SUPPLY"
+    if (intersectionCount === descCoreSet.size && (descCoreSet.size >= 2 || [...descCoreSet][0].length >= 4)) {
+        return { matched: true, confidence: 90, matchType: 'guide', matchedKeyword: keyword };
+    }
+
+    // Case C: High token overlap (>= 75% overlap on the smaller core set, with at least 2 matching tokens)
+    const minCoreSize = Math.min(descCoreSet.size, kwCoreSet.size);
+    const overlapRatio = intersectionCount / minCoreSize;
+    if (intersectionCount >= 2 && overlapRatio >= 0.75) {
+        const confidence = Math.round(75 + overlapRatio * 15);
+        return { matched: true, confidence, matchType: 'guide', matchedKeyword: keyword };
+    }
+
+    return { matched: false, confidence: 0, matchType: 'none', matchedKeyword: '' };
 }
+
+/**
+ * High-precision word-boundary and guide-based keyword matcher for bank transactions.
+ * Matches exact keywords as well as guide-based token overlaps (e.g. "HAND TOOLS" matching "HAND TOOLS SUPPLY"),
+ * while preventing false substring collisions (e.g. "BUS" matching "BUSISIWE").
+ */
+export function matchesRuleKeyword(description: string, keyword: string): boolean {
+    return matchRuleGuideDetails(description, keyword).matched;
+}
+

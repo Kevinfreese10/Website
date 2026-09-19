@@ -14,6 +14,22 @@ export function getAdminApp() {
     return getApps()[0];
   }
 
+  // Ensure environment variables are loaded if not already in process.env
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT && !process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    const envPaths = [
+      'C:/Users/kev/.gemini/antigravity/scratch/.env',
+      'c:/myacc/.env.local',
+      'c:/myacc/.env'
+    ];
+    for (const p of envPaths) {
+      if (fs.existsSync(p)) {
+        try {
+          require('dotenv').config({ path: p });
+        } catch (_) {}
+      }
+    }
+  }
+
   // 1. Prefer FIREBASE_SERVICE_ACCOUNT env var (JSON string)
   //    Set this in Firebase App Hosting secrets for production.
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;

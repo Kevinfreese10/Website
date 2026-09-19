@@ -1062,6 +1062,7 @@ export type SmartAllocationResult = {
   ruleId?: string;
   matchedKeyword?: string;
   suggestedKeyword?: string;
+  matchType?: 'exact' | 'guide' | string;
   reasoning?: string;
 };
 

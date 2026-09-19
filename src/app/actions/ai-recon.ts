@@ -4,7 +4,7 @@ import { getVerifiedAuthContext, verifyAiAccountantClientAccess, AuthContext } f
 import { getAdminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { ImportedTransaction, AllocationRule, SmartAllocationResult, User } from '@/lib/types';
-import { BankCleaner, matchesRuleKeyword } from '@/lib/bank-cleaner';
+import { BankCleaner, matchesRuleKeyword, matchRuleGuideDetails } from '@/lib/bank-cleaner';
 
 /**
  * Verifies the caller's Firebase ID token and, unless they're an admin, that their practice
@@ -139,6 +139,9 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
 
             if (match) {
                 const matchedKw = match.keywords.find(kw => typeof kw === 'string' && kw.trim() && (matchesRuleKeyword(result.cleanDescription, kw) || matchesRuleKeyword(tx.description, kw)));
+                const guideDetails = matchedKw ? (matchRuleGuideDetails(result.cleanDescription, matchedKw).matched ? matchRuleGuideDetails(result.cleanDescription, matchedKw) : matchRuleGuideDetails(tx.description, matchedKw)) : null;
+                const isGuide = guideDetails?.matchType === 'guide';
+                
                 batch.update(d.ref, {
                     ...result,
                     status: 'ai_review',
@@ -146,10 +149,11 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
                         accountId: match.accountId,
                         accountType: match.accountType || 'account',
                         vatType: match.vatType,
-                        confidence: 100,
-                        summary: `Match found for rule keyword.`,
+                        confidence: isGuide ? (guideDetails?.confidence || 90) : 100,
+                        summary: isGuide ? `Guide match found for rule keyword "${matchedKw}".` : `Match found for rule keyword.`,
                         ruleId: match.id,
-                        matchedKeyword: matchedKw
+                        matchedKeyword: matchedKw,
+                        matchType: isGuide ? 'guide' : 'exact'
                     },
                     allocationSource: 'rule'
                 });
