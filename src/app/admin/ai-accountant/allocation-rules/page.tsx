@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { AllocationRule } from '@/lib/types';
 import { chartOfAccounts as defaultChartOfAccounts } from '@/lib/chart-of-accounts';
 import { allVatTypes } from '@/lib/vat-types';
 import { useToast } from '@/hooks/use-toast';
+import { syncMasterAllocationRulesAction } from '@/app/actions/allocation-rules-actions';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -18,15 +20,41 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BookOpen, Plus, Search, Edit, Trash2, Loader2, Sparkles, ArrowLeft, Tag } from 'lucide-react';
+import { BookOpen, Plus, Search, Edit, Trash2, Loader2, Sparkles, ArrowLeft, Tag, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const db = getFirestore(firebaseApp);
+
+export const CATEGORY_OPTIONS = [
+  { key: 'all', label: 'All Categories' },
+  { key: 'telecoms_internet', label: 'Telecoms & Internet' },
+  { key: 'fuel_motor_expenses', label: 'Fuel & Motor' },
+  { key: 'bank_charges', label: 'Bank Charges' },
+  { key: 'software_subscriptions', label: 'Software & IT' },
+  { key: 'utilities_municipal', label: 'Utilities & Rates' },
+  { key: 'hardware_maintenance', label: 'Hardware & Tools' },
+  { key: 'courier_freight', label: 'Courier & Freight' },
+  { key: 'office_stationery', label: 'Office & Consumables' },
+  { key: 'entertainment_meals', label: 'Meals & Dining' },
+  { key: 'travel_transport', label: 'Travel & Tolls' },
+  { key: 'advertising_marketing', label: 'Marketing & HR' },
+  { key: 'insurance', label: 'Insurance & Tracking' },
+  { key: 'security_cleaning', label: 'Security & Hygiene' },
+  { key: 'legal_statutory', label: 'Statutory & Compliance' },
+  { key: 'sars_statutory', label: 'SARS Tax & Levies' },
+];
+
+const ITEMS_PER_PAGE = 30;
 
 export default function GlobalAllocationRulesPage() {
   const { toast } = useToast();
   const [rules, setRules] = useState<AllocationRule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Sync state
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Dialog states
   const [isRuleFormOpen, setIsRuleFormOpen] = useState(false);
@@ -34,6 +62,7 @@ export default function GlobalAllocationRulesPage() {
   const [ruleDescription, setRuleDescription] = useState('');
   const [ruleKeywords, setRuleKeywords] = useState('');
   const [ruleAccountId, setRuleAccountId] = useState('');
+  const [ruleCategory, setRuleCategory] = useState('telecoms_internet');
   const [ruleVatType, setRuleVatType] = useState('no_vat');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -69,16 +98,32 @@ export default function GlobalAllocationRulesPage() {
     return () => unsubscribe();
   }, [toast]);
 
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory]);
+
   const filteredRules = useMemo(() => {
-    if (!searchTerm.trim()) return rules;
+    let result = rules;
+    if (selectedCategory !== 'all') {
+      result = result.filter((r) => (r as any).category === selectedCategory);
+    }
+    if (!searchTerm.trim()) return result;
     const term = searchTerm.toLowerCase();
-    return rules.filter((r) => {
+    return result.filter((r) => {
       const descMatch = (r.description || '').toLowerCase().includes(term);
       const keywordsMatch = (r.keywords || []).some((k) => k.toLowerCase().includes(term));
       const accMatch = (r.accountId || '').toLowerCase().includes(term);
-      return descMatch || keywordsMatch || accMatch;
+      const catMatch = ((r as any).categoryLabel || (r as any).category || '').toLowerCase().includes(term);
+      return descMatch || keywordsMatch || accMatch || catMatch;
     });
-  }, [rules, searchTerm]);
+  }, [rules, selectedCategory, searchTerm]);
+
+  const totalPages = Math.ceil(filteredRules.length / ITEMS_PER_PAGE) || 1;
+  const paginatedRules = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredRules.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredRules, currentPage]);
 
   const handleOpenForm = (rule: AllocationRule | null = null) => {
     setSelectedRule(rule);
@@ -86,14 +131,38 @@ export default function GlobalAllocationRulesPage() {
       setRuleDescription(rule.description || '');
       setRuleKeywords(rule.keywords ? rule.keywords.join(', ') : '');
       setRuleAccountId(rule.accountId || defaultChartOfAccounts[0]?.id || '');
+      setRuleCategory((rule as any).category || 'telecoms_internet');
       setRuleVatType(rule.vatType || 'no_vat');
     } else {
       setRuleDescription('');
       setRuleKeywords('');
       setRuleAccountId(defaultChartOfAccounts[0]?.id || '');
-      setRuleVatType('no_vat');
+      setRuleCategory('telecoms_internet');
+      setRuleVatType('standard');
     }
     setIsRuleFormOpen(true);
+  };
+
+  const handleSyncMasterRules = async () => {
+    setIsSyncing(true);
+    try {
+      const token = await getAuth(firebaseApp).currentUser?.getIdToken();
+      if (!token) throw new Error('Not authenticated');
+      const res = await syncMasterAllocationRulesAction({ idToken: token });
+      toast({
+        title: 'Master Rules Synced!',
+        description: `Successfully synced ${res.count} South African allocation rules with SARS VAT defaults.`,
+      });
+    } catch (err: any) {
+      console.error('Error syncing rules:', err);
+      toast({
+        title: 'Sync Failed',
+        description: err?.message || 'Failed to sync master rules.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleSaveRule = async (e: React.FormEvent) => {
@@ -123,13 +192,18 @@ export default function GlobalAllocationRulesPage() {
         )
       );
 
+      const categoryObj = CATEGORY_OPTIONS.find((c) => c.key === ruleCategory);
+
       const ruleData = {
         description: ruleDescription.trim(),
         keywords: keywordsArray,
         accountId: ruleAccountId,
         vatType: ruleVatType,
+        category: ruleCategory,
+        categoryLabel: categoryObj?.label || 'General',
         type: 'hard',
         scope: 'global',
+        updatedAt: new Date().toISOString(),
       };
 
       if (selectedRule?.id) {
@@ -200,9 +274,48 @@ export default function GlobalAllocationRulesPage() {
           </p>
         </div>
 
-        <Button onClick={() => handleOpenForm(null)} className="font-bold">
-          <Plus className="h-4 w-4 mr-2" /> Add Global Rule
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={handleSyncMasterRules}
+            disabled={isSyncing}
+            className="font-medium"
+          >
+            {isSyncing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2 text-primary" />
+            )}
+            Sync 170+ SA Rules
+          </Button>
+
+          <Button onClick={() => handleOpenForm(null)} className="font-bold">
+            <Plus className="h-4 w-4 mr-2" /> Add Global Rule
+          </Button>
+        </div>
+      </div>
+
+      {/* Category Pills */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+        {CATEGORY_OPTIONS.map((cat) => {
+          const count = cat.key === 'all'
+            ? rules.length
+            : rules.filter((r) => (r as any).category === cat.key).length;
+          return (
+            <Button
+              key={cat.key}
+              variant={selectedCategory === cat.key ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 text-xs whitespace-nowrap rounded-full px-3 shrink-0"
+              onClick={() => setSelectedCategory(cat.key)}
+            >
+              {cat.label}
+              <span className={`ml-1.5 text-[10px] ${selectedCategory === cat.key ? 'opacity-90' : 'opacity-60'}`}>
+                ({count})
+              </span>
+            </Button>
+          );
+        })}
       </div>
 
       {/* Filter and Table */}
@@ -211,7 +324,9 @@ export default function GlobalAllocationRulesPage() {
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
               <CardTitle className="text-lg">Rules Database</CardTitle>
-              <CardDescription>Rules applied automatically during bank transaction matching.</CardDescription>
+              <CardDescription>
+                Showing {filteredRules.length} rules matching current criteria.
+              </CardDescription>
             </div>
             <div className="relative w-72">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -237,58 +352,96 @@ export default function GlobalAllocationRulesPage() {
               <p className="text-xs">Create your first rule or adjust your search filter.</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[30%]">Rule Description</TableHead>
-                  <TableHead className="w-[35%]">Matching Keywords</TableHead>
-                  <TableHead className="w-[20%]">Mapped Account</TableHead>
-                  <TableHead className="w-[15%] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRules.map((rule) => (
-                  <TableRow key={rule.id}>
-                    <TableCell className="font-semibold text-sm">
-                      {rule.description || 'Unnamed Rule'}
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(rule.keywords || []).map((kw, i) => (
-                          <Badge
-                            key={i}
-                            variant="outline"
-                            className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20 font-mono text-[11px]"
-                          >
-                            <Tag className="mr-1 h-3 w-3" />
-                            {kw}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="text-xs font-medium">
-                      <div>{getAccountLabel(rule.accountId)}</div>
-                      <span className="text-[10px] text-muted-foreground">
-                        VAT: {getVatLabel(rule.vatType || 'no_vat')}
-                      </span>
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleOpenForm(rule)}>
-                          <Edit className="h-4 w-4 text-muted-foreground hover:text-primary" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setRuleToDelete(rule)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[30%]">Rule & Category</TableHead>
+                    <TableHead className="w-[35%]">Matching Keywords</TableHead>
+                    <TableHead className="w-[20%]">Mapped Account & VAT</TableHead>
+                    <TableHead className="w-[15%] text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedRules.map((rule) => (
+                    <TableRow key={rule.id}>
+                      <TableCell className="font-semibold text-sm">
+                        <div className="space-y-1">
+                          <div>{rule.description || 'Unnamed Rule'}</div>
+                          {((rule as any).categoryLabel || (rule as any).category) && (
+                            <Badge variant="secondary" className="text-[10px] font-normal py-0 px-1.5">
+                              {(rule as any).categoryLabel || (rule as any).category}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(rule.keywords || []).map((kw, i) => (
+                            <Badge
+                              key={i}
+                              variant="outline"
+                              className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20 font-mono text-[11px]"
+                            >
+                              <Tag className="mr-1 h-3 w-3" />
+                              {kw}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="text-xs font-medium">
+                        <div>{getAccountLabel(rule.accountId)}</div>
+                        <span className="text-[10px] text-muted-foreground">
+                          VAT: {getVatLabel(rule.vatType || 'no_vat')}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleOpenForm(rule)}>
+                            <Edit className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setRuleToDelete(rule)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t">
+                  <span className="text-xs text-muted-foreground">
+                    Page {currentPage} of {totalPages} ({filteredRules.length} total rules)
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="h-8 px-2"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="h-8 px-2"
+                    >
+                      Next <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -299,7 +452,7 @@ export default function GlobalAllocationRulesPage() {
           <DialogHeader>
             <DialogTitle>{selectedRule ? 'Edit Global Rule' : 'Create Global Rule'}</DialogTitle>
             <DialogDescription>
-              Define matching keywords and target account allocation for all clients.
+              Define matching keywords, semantic category, and target account allocation.
             </DialogDescription>
           </DialogHeader>
 
@@ -329,13 +482,34 @@ export default function GlobalAllocationRulesPage() {
                 required
               />
               <p className="text-[11px] text-muted-foreground">
-                Keywords will be automatically converted to uppercase. Any transaction description matching one of these keywords will trigger this rule.
+                Guide-matching ensures variations (e.g. &quot;HAND TOOLS&quot; matches &quot;HAND TOOLS SUPPLY&quot;) are handled smoothly.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="rule-category" className="text-xs font-bold uppercase">
+                Semantic Category
+              </Label>
+              <Select value={ruleCategory} onValueChange={setRuleCategory}>
+                <SelectTrigger id="rule-category" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {CATEGORY_OPTIONS.filter((c) => c.key !== 'all').map((cat) => (
+                    <SelectItem key={cat.key} value={cat.key}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Enables automatic semantic mapping to client-specific Charts of Accounts.
               </p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="rule-account" className="text-xs font-bold uppercase">
-                Mapped GL Account
+                Default Baseline GL Account
               </Label>
               <Select value={ruleAccountId} onValueChange={setRuleAccountId}>
                 <SelectTrigger id="rule-account" className="w-full">
@@ -354,7 +528,7 @@ export default function GlobalAllocationRulesPage() {
 
             <div className="space-y-2">
               <Label htmlFor="rule-vat" className="text-xs font-bold uppercase">
-                Default VAT Treatment
+                Default VAT Treatment (SARS Compliant)
               </Label>
               <Select value={ruleVatType} onValueChange={setRuleVatType}>
                 <SelectTrigger id="rule-vat" className="w-full">
@@ -389,7 +563,7 @@ export default function GlobalAllocationRulesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Global Allocation Rule?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the rule <strong>"{ruleToDelete?.description}"</strong>? This will stop matching transactions against these keywords across all clients.
+              Are you sure you want to delete the rule <strong>&quot;{ruleToDelete?.description}&quot;</strong>? This will stop matching transactions against these keywords across all clients.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { extractStatementChunk } from '@/app/actions';
 import { matchesRuleKeyword } from '@/lib/bank-cleaner';
+import { resolveAccountForCategory } from '@/lib/chart-of-accounts-mapper';
 import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx-js-style';
 import { Progress } from '@/components/ui/progress';
@@ -732,7 +733,16 @@ export default function AIBulkStatementImportDialog({
 
           if (isExpense && match) {
             const keyword = match.keywords.find(kw => matchesRuleKeyword(tx.description, kw));
-            txData.allocatedTo = { value: match.accountId, type: 'account' };
+            let targetAccountId = match.accountId;
+            let targetAccountType = match.accountType || 'account';
+            if (client.chartOfAccounts && client.chartOfAccounts.length > 0) {
+              const resolved = resolveAccountForCategory(client.chartOfAccounts, match);
+              if (resolved) {
+                targetAccountId = resolved.accountNumber;
+                targetAccountType = resolved.accountType;
+              }
+            }
+            txData.allocatedTo = { value: targetAccountId, type: targetAccountType };
             txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
             txData.allocatedAt = serverTimestamp();
             txData.allocationSource = 'rule';

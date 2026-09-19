@@ -28,6 +28,8 @@ import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { allVatTypes } from '@/lib/vat-types';
 import { BankCleaner, matchesRuleKeyword } from '@/lib/bank-cleaner';
+import { resolveAccountForCategory } from '@/lib/chart-of-accounts-mapper';
+import { createRuleFromAllocationAction } from '@/app/actions/allocation-rules-actions';
 import { usePaginatedFirestore } from '@/hooks/use-paginated-firestore';
 import { Command, CommandEmpty, CommandInput, CommandList, CommandGroup, CommandSeparator, CommandItem } from "@/components/ui/command";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -526,7 +528,16 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
 
                 if (isExpense && match) {
                     const keyword = match.keywords.find(kw => matchesRuleKeyword(description, kw));
-                    txData.allocatedTo = { value: match.accountId, type: match.accountType || 'account' };
+                    let targetAccountId = match.accountId;
+                    let targetAccountType = match.accountType || 'account';
+                    if (client.chartOfAccounts && client.chartOfAccounts.length > 0) {
+                        const resolved = resolveAccountForCategory(client.chartOfAccounts, match);
+                        if (resolved) {
+                            targetAccountId = resolved.accountNumber;
+                            targetAccountType = resolved.accountType;
+                        }
+                    }
+                    txData.allocatedTo = { value: targetAccountId, type: targetAccountType };
                     txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
                     txData.allocatedAt = serverTimestamp();
                     txData.allocationSource = 'rule';
@@ -989,7 +1000,16 @@ function CreateManualTransactionDialog({ client, bankAccountId, open, onOpenChan
 
             if (isExpense && match) {
                 const keyword = match.keywords.find(kw => matchesRuleKeyword(description, kw));
-                txData.allocatedTo = { value: match.accountId, type: 'account' };
+                let targetAccountId = match.accountId;
+                let targetAccountType = match.accountType || 'account';
+                if (client.chartOfAccounts && client.chartOfAccounts.length > 0) {
+                    const resolved = resolveAccountForCategory(client.chartOfAccounts, match);
+                    if (resolved) {
+                        targetAccountId = resolved.accountNumber;
+                        targetAccountType = resolved.accountType;
+                    }
+                }
+                txData.allocatedTo = { value: targetAccountId, type: targetAccountType };
                 txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
                 txData.allocatedAt = serverTimestamp();
                 txData.allocationSource = 'rule';
@@ -1126,8 +1146,17 @@ function EditTransactionDialog({ client, transaction, open, onOpenChange }: {
 
             if (isExpense && match) {
                 const keyword = match.keywords.find(kw => matchesRuleKeyword(description, kw));
+                let targetAccountId = match.accountId;
+                let targetAccountType = match.accountType || 'account';
+                if (client.chartOfAccounts && client.chartOfAccounts.length > 0) {
+                    const resolved = resolveAccountForCategory(client.chartOfAccounts, match);
+                    if (resolved) {
+                        targetAccountId = resolved.accountNumber;
+                        targetAccountType = resolved.accountType;
+                    }
+                }
                 txData.status = 'reviewed';
-                txData.allocatedTo = { value: match.accountId, type: 'account' };
+                txData.allocatedTo = { value: targetAccountId, type: targetAccountType };
                 txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
                 txData.allocatedAt = serverTimestamp();
                 txData.allocationSource = 'rule';
@@ -2328,11 +2357,20 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
                 const match = allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(txDesc, kw)));
                 if (match) {
                     const keyword = match.keywords.find(kw => matchesRuleKeyword(txDesc, kw));
+                    let targetAccountId = match.accountId;
+                    let targetAccountType = match.accountType || 'account';
+                    if (client.chartOfAccounts && client.chartOfAccounts.length > 0) {
+                        const resolved = resolveAccountForCategory(client.chartOfAccounts, match);
+                        if (resolved) {
+                            targetAccountId = resolved.accountNumber;
+                            targetAccountType = resolved.accountType;
+                        }
+                    }
                     matchedDocs.push({
                         ref: d.ref,
                         updates: {
                             status: 'reviewed',
-                            allocatedTo: { value: match.accountId, type: match.accountType || 'account' },
+                            allocatedTo: { value: targetAccountId, type: targetAccountType },
                             vatType: client.isVatRegistered ? match.vatType : 'no_vat',
                             allocatedAt: serverTimestamp(),
                             allocationSource: 'rule',
@@ -2989,9 +3027,18 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                 
                 if (match) {
                     const keyword = match.keywords.find(kw => matchesRuleKeyword(description, kw));
+                    let targetAccountId = match.accountId;
+                    let targetAccountType = match.accountType || 'account';
+                    if (client.chartOfAccounts && client.chartOfAccounts.length > 0) {
+                        const resolved = resolveAccountForCategory(client.chartOfAccounts, match);
+                        if (resolved) {
+                            targetAccountId = resolved.accountNumber;
+                            targetAccountType = resolved.accountType;
+                        }
+                    }
                     const newSuggestion: SmartAllocationResult = {
-                        accountId: match.accountId,
-                        accountType: match.accountType || 'account',
+                        accountId: targetAccountId,
+                        accountType: targetAccountType,
                         vatType: client.isVatRegistered ? match.vatType : 'no_vat',
                         confidence: 100,
                         summary: `Matched latest existing allocation rule for ${keyword}.`,
@@ -3893,6 +3940,65 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
     const [isSplitDialogOpen, setIsSplitDialogOpen] = useState(false);
     const [unsplitConfirmTx, setUnsplitConfirmTx] = useState<ImportedTransaction | null>(null);
     const [isCreateGeneralAccountOpen, setIsCreateGeneralAccountOpen] = useState(false);
+    const [rulePromptTx, setRulePromptTx] = useState<{
+        tx: ImportedTransaction;
+        allocatedAccountId: string;
+        allocatedAccountType?: string;
+        vatType?: string;
+        derivedKeyword: string;
+    } | null>(null);
+    const [rulePromptKeyword, setRulePromptKeyword] = useState('');
+    const [rulePromptIsGlobal, setRulePromptIsGlobal] = useState(false);
+    const [isCreatingRuleFromTx, setIsCreatingRuleFromTx] = useState(false);
+
+    const handleOpenCreateRulePrompt = (tx: ImportedTransaction, currentAlloc?: any) => {
+        const cleaned = BankCleaner.process(tx.description);
+        let kw = (cleaned.cleanDescription || cleaned.merchantKey || tx.description).toUpperCase().trim();
+        kw = kw.replace(/\s+\d{2,}[\/-]\d{2,}.*$/, '').trim();
+        const alloc = currentAlloc || tx.allocatedTo;
+        if (!alloc?.value) {
+            toast({ title: "Allocate first", description: "Please select an account before creating an allocation rule.", variant: "destructive" });
+            return;
+        }
+        setRulePromptTx({
+            tx,
+            allocatedAccountId: alloc.value,
+            allocatedAccountType: alloc.type || 'account',
+            vatType: tx.vatType || 'standard_rated_purchases',
+            derivedKeyword: kw
+        });
+        setRulePromptKeyword(kw);
+        setRulePromptIsGlobal(false);
+    };
+
+    const handleConfirmCreateRule = async () => {
+        if (!rulePromptTx || !client?.uid) return;
+        setIsCreatingRuleFromTx(true);
+        try {
+            const token = await getIdToken();
+            const res = await createRuleFromAllocationAction({
+                idToken: token,
+                clientId: client.uid,
+                transactionDescription: rulePromptTx.tx.description,
+                accountId: rulePromptTx.allocatedAccountId,
+                accountType: rulePromptTx.allocatedAccountType,
+                vatType: rulePromptTx.vatType,
+                customKeyword: rulePromptKeyword.trim().toUpperCase(),
+                isGlobal: rulePromptIsGlobal
+            });
+            toast({
+                title: "Allocation Rule Created!",
+                description: `Rule created for "${res.derivedKeyword}". Future transactions will be auto-allocated to ${accountNameMap.get(rulePromptTx.allocatedAccountId) || rulePromptTx.allocatedAccountId}.`
+            });
+            setRulePromptTx(null);
+            onAccountCreated();
+            refetch();
+        } catch (e: any) {
+            toast({ title: "Failed to create rule", description: e?.message || "Unknown error", variant: "destructive" });
+        } finally {
+            setIsCreatingRuleFromTx(false);
+        }
+    };
 
     const [allTransactions, setAllTransactions] = useState<ImportedTransaction[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -4239,6 +4345,69 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                 open={isCreateGeneralAccountOpen} 
                 onOpenChange={setIsCreateGeneralAccountOpen} 
             />
+            {/* 1-Click Auto-Rule Creation Dialog */}
+            <Dialog open={!!rulePromptTx} onOpenChange={(open) => !open && setRulePromptTx(null)}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-primary" />
+                            Create Allocation Rule
+                        </DialogTitle>
+                        <DialogDescription>
+                            Automatically allocate future transactions matching this keyword.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold">Rule Keyword</Label>
+                            <Input
+                                value={rulePromptKeyword}
+                                onChange={(e) => setRulePromptKeyword(e.target.value.toUpperCase())}
+                                placeholder="e.g. MAKRO, SHELL, VODACOM"
+                                className="font-mono uppercase font-bold"
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                                Guide-matching allows variations (e.g. &quot;HAND TOOLS&quot; matches &quot;HAND TOOLS SUPPLY&quot;).
+                            </p>
+                        </div>
+                        <div className="rounded-md border p-3 bg-muted/40 space-y-1.5 text-xs">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Allocated Account:</span>
+                                <span className="font-semibold">{accountNameMap.get(rulePromptTx?.allocatedAccountId || '') || rulePromptTx?.allocatedAccountId}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">VAT Treatment:</span>
+                                <span className="font-semibold">{rulePromptTx?.vatType || 'no_vat'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Original Transaction:</span>
+                                <span className="font-mono text-[10px] truncate max-w-[200px]">{rulePromptTx?.tx.description}</span>
+                            </div>
+                        </div>
+                        {(user?.role === 'admin' || (user as any)?.isAdmin === true) && (
+                            <div className="flex items-center space-x-2 pt-1">
+                                <Checkbox
+                                    id="isGlobalRule"
+                                    checked={rulePromptIsGlobal}
+                                    onCheckedChange={(checked) => setRulePromptIsGlobal(!!checked)}
+                                />
+                                <Label htmlFor="isGlobalRule" className="text-xs cursor-pointer">
+                                    Global Master Rule (Applies across all AI Accountant clients)
+                                </Label>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setRulePromptTx(null)} disabled={isCreatingRuleFromTx}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleConfirmCreateRule} disabled={isCreatingRuleFromTx || !rulePromptKeyword.trim()} className="font-bold">
+                            {isCreatingRuleFromTx ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <PlusCircle className="h-4 w-4 mr-1.5" />}
+                            Create Rule
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             {unsplitConfirmTx && (
                 <AlertDialog open={!!unsplitConfirmTx} onOpenChange={(open) => !open && setUnsplitConfirmTx(null)}>
                     <AlertDialogContent>
@@ -4475,7 +4644,26 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                                         ) : tx.allocationSource === 'global_db' ? (
                                             <Badge variant="outline" className="text-[10px] gap-1 border-green-500/30 text-green-600"><RotateCcw className="h-3 w-3"/> Smart DB</Badge>
                                         ) : (
-                                            <Badge variant="secondary" className="text-[10px] opacity-50">Manual</Badge>
+                                            <div className="flex items-center gap-1">
+                                                <Badge variant="secondary" className="text-[10px] opacity-70">Manual</Badge>
+                                                {currentAlloc?.value && (
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="icon" 
+                                                                    className="h-5 w-5 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                                                    onClick={() => handleOpenCreateRulePrompt(tx, currentAlloc)}
+                                                                >
+                                                                    <PlusCircle className="h-3 w-3 text-primary" />
+                                                                </Button>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>Create allocation rule for future transactions</TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                )}
+                                            </div>
                                         )}
                                     </TableCell>
                                     {client?.isVatRegistered && (
@@ -4514,6 +4702,12 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                                                     <Button aria-label="More actions" variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4"/></Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    {currentAlloc?.value && (
+                                                        <DropdownMenuItem onClick={() => handleOpenCreateRulePrompt(tx, currentAlloc)}>
+                                                            <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                                                            Create Allocation Rule
+                                                        </DropdownMenuItem>
+                                                    )}
                                                     <DropdownMenuItem onClick={() => {
                                                         if (tx.isSplitChild && tx.splitFrom) {
                                                             setUnsplitConfirmTx(tx);

@@ -5,6 +5,7 @@ import { getAdminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { ImportedTransaction, AllocationRule, SmartAllocationResult, User } from '@/lib/types';
 import { BankCleaner, matchesRuleKeyword, matchRuleGuideDetails } from '@/lib/bank-cleaner';
+import { resolveAccountForCategory } from '@/lib/chart-of-accounts-mapper';
 
 /**
  * Verifies the caller's Firebase ID token and, unless they're an admin, that their practice
@@ -142,12 +143,22 @@ export async function runAiAccountantAnalysis({ clientId, bankAccountId, initiat
                 const guideDetails = matchedKw ? (matchRuleGuideDetails(result.cleanDescription, matchedKw).matched ? matchRuleGuideDetails(result.cleanDescription, matchedKw) : matchRuleGuideDetails(tx.description, matchedKw)) : null;
                 const isGuide = guideDetails?.matchType === 'guide';
                 
+                let targetAccountId = match.accountId;
+                let targetAccountType = match.accountType || 'account';
+                if (clientData.chartOfAccounts && clientData.chartOfAccounts.length > 0) {
+                    const resolved = resolveAccountForCategory(clientData.chartOfAccounts, match);
+                    if (resolved) {
+                        targetAccountId = resolved.accountNumber;
+                        targetAccountType = resolved.accountType;
+                    }
+                }
+
                 batch.update(d.ref, {
                     ...result,
                     status: 'ai_review',
                     smartAllocationResult: {
-                        accountId: match.accountId,
-                        accountType: match.accountType || 'account',
+                        accountId: targetAccountId,
+                        accountType: targetAccountType,
                         vatType: match.vatType,
                         confidence: isGuide ? (guideDetails?.confidence || 90) : 100,
                         summary: isGuide ? `Guide match found for rule keyword "${matchedKw}".` : `Match found for rule keyword.`,
