@@ -10,22 +10,18 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Loader2, Plus, Trash, RefreshCw, Clock, Search, CheckCircle2, Mail } from 'lucide-react';
-import { getFirestore, collection, doc, setDoc, Timestamp, query, orderBy, getDocs, where, serverTimestamp, or } from 'firebase/firestore';
+import { getFirestore, collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
-import { Order, Service, User } from '@/lib/types';
+import { Service } from '@/lib/types';
 import { Separator } from '../ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '../ui/checkbox';
-import { getNextOrderId } from '@/lib/sequence';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminCreateUserAction, sendOrderConfirmationEmailAction } from '@/app/actions';
+import { createAdminCustomOrderAction, lookupClientByEmailAction } from '@/app/actions';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { customAlphabet } from 'nanoid';
 
 const db = getFirestore(firebaseApp);
-const auth = getAuth(firebaseApp);
-const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 10);
 
 const lineItemSchema = z.object({
   isCustom: z.boolean().default(false),
@@ -84,63 +80,40 @@ export default function CreateOrderForm() {
 
   useEffect(() => {
     const lookupUser = async () => {
-        const rawEmail = watchedEmail?.trim();
-        if (!rawEmail || !rawEmail.includes('@') || rawEmail.length < 5) {
-            setLinkedUser(null);
-            return;
+      const rawEmail = watchedEmail?.trim();
+      if (!rawEmail || !rawEmail.includes('@') || rawEmail.length < 5) {
+        setLinkedUser(null);
+        return;
+      }
+
+      setIsCheckingUser(true);
+      try {
+        const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
+        const res = await lookupClientByEmailAction(rawEmail, idToken);
+
+        if (res.success && res.user) {
+          setLinkedUser({
+            name: res.user.name,
+            id: res.user.id,
+          });
+
+          const nameParts = res.user.name.split(' ');
+          form.setValue('customerFirstName', nameParts[0] || '');
+          form.setValue('customerLastName', nameParts.slice(1).join(' ') || '');
+          form.setValue('customerPhone', res.user.phone || '');
+          form.trigger();
+        } else {
+          setLinkedUser(null);
         }
-        
-        setIsCheckingUser(true);
-        try {
-            const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
-            let found = false;
-
-            for (const colName of collectionsToTry) {
-                // Perform case-insensitive search using OR for exact and lowercase versions
-                const q = query(
-                    collection(db, colName), 
-                    or(
-                        where("email", "==", rawEmail),
-                        where("email", "==", rawEmail.toLowerCase())
-                    )
-                );
-                try {
-                    const snap = await getDocs(q);
-                    
-                    if (!snap.empty) {
-                        const userData = snap.docs[0].data();
-                        const fullName = userData.name || userData.companyName || 'Existing Client';
-                        
-                        setLinkedUser({ 
-                            name: fullName, 
-                            id: snap.docs[0].id 
-                        });
-
-                        // Auto-populate fields
-                        const nameParts = fullName.split(' ');
-                        form.setValue('customerFirstName', nameParts[0] || '');
-                        form.setValue('customerLastName', nameParts.slice(1).join(' ') || '');
-                        form.setValue('customerPhone', userData.contactNumber || userData.cellNumber || userData.phone || '');
-                        form.trigger();
-                        found = true;
-                        break;
-                    }
-                } catch (err) {
-                    console.warn(`Skipping ${colName} due to permission or other error`, err);
-                }
-            }
-
-            if (!found) {
-                setLinkedUser(null);
-            }
-        } catch (e) {
-            console.error("User lookup failed:", e);
-        } finally {
-            setIsCheckingUser(false);
-        }
+      } catch (e) {
+        console.error('User lookup failed:', e);
+        setLinkedUser(null);
+      } finally {
+        setIsCheckingUser(false);
+      }
     };
 
-    const timer = setTimeout(lookupUser, 600);
+    const timer = setTimeout(lookupUser, 500);
     return () => clearTimeout(timer);
   }, [watchedEmail, form]);
 
@@ -199,128 +172,56 @@ export default function CreateOrderForm() {
   };
 
   async function onSubmit(values: CreateOrderFormValues) {
-    if (!currentUser) return;
-    
+    if (!currentUser) {
+      toast({
+        title: 'Authentication Required',
+        description: 'You must be logged in to create an order.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
-    toast({ title: 'Processing Order...', description: 'Checking user profile and creating order.' });
+    toast({ title: 'Processing Order...', description: 'Creating order and setting up client profile...' });
 
     try {
-        let finalUserId = linkedUser?.id || null;
-        const email = values.customerEmail.toLowerCase().trim();
+      const idToken = await getAuth(firebaseApp).currentUser?.getIdToken();
 
-        // Final verification check in case debounce didn't catch it
-        if (!finalUserId) {
-            const collectionsToTry = ['users', 'aiAccountantClients', 'adminClients', 'partnerClients'];
-            for (const colName of collectionsToTry) {
-                const q = query(collection(db, colName), or(where("email", "==", email), where("email", "==", values.customerEmail.trim())));
-                try {
-                    const snap = await getDocs(q);
-                    if (!snap.empty) {
-                        finalUserId = snap.docs[0].id;
-                        break;
-                    }
-                } catch (err) {
-                    console.warn(`Skipping ${colName} due to permission or other error`, err);
-                }
-            }
-        }
+      const res = await createAdminCustomOrderAction({
+        idToken,
+        customerFirstName: values.customerFirstName,
+        customerLastName: values.customerLastName,
+        customerEmail: values.customerEmail,
+        customerPhone: values.customerPhone,
+        items: values.items,
+        total: total,
+        linkedUserId: linkedUser?.id || null,
+      });
 
-        let isNewUser = false;
-        let generatedPassword = null;
-        if (!finalUserId) {
-            generatedPassword = nanoid();
-            isNewUser = true;
-            
-            const createRes = await adminCreateUserAction({
-                idToken: await getAuth(firebaseApp).currentUser?.getIdToken(),
-                email: email,
-                password: generatedPassword,
-                name: `${values.customerFirstName} ${values.customerLastName}`,
-                role: 'client',
-                source: 'Staff Order',
-                contactNumber: values.customerPhone,
-            });
-
-            if (!createRes.success) {
-                if (createRes.error === 'auth/email-already-in-use') {
-                    toast({
-                        title: 'User Profile Mismatch',
-                        description: 'A user with this email already exists but could not be linked. Please search and select them first.',
-                        variant: 'destructive',
-                    });
-                    setIsLoading(false);
-                    return;
-                }
-                toast({
-                    title: 'Failed to create user',
-                    description: createRes.message || 'There was a problem preparing the user profile.',
-                    variant: 'destructive',
-                });
-                setIsLoading(false);
-                return;
-            }
-            finalUserId = createRes.uid || null;
-        }
-
-        const orderId = await getNextOrderId();
-        const firstService = allServices.find(s => s.id === values.items[0]?.serviceId);
-        const department = firstService?.department;
-        const customerFullName = `${values.customerFirstName} ${values.customerLastName}`;
-
-        const orderData: Order = {
-            id: orderId,
-            userId: finalUserId,
-            customerName: customerFullName,
-            customerEmail: email,
-            customerPhone: values.customerPhone,
-            items: values.items.map(item => ({ 
-                id: item.serviceId || item.description.toLowerCase().replace(/\s/g, '-'),
-                title: item.description, 
-                price: item.price,
-                quantity: item.quantity
-            })),
-            total: total,
-            discountCode: null,
-            discountAmount: null,
-            paymentMethod: 'EFT',
-            status: 'Pending Payment',
-            date: Timestamp.now(),
-            department: department || null,
-            assignedTo: null,
-            source: 'Staff',
-            originalOrderId: null,
-        };
-
-        await setDoc(doc(db, 'orders', orderId), orderData);
-        
-        try {
-            await sendOrderConfirmationEmailAction({
-                orderData: JSON.parse(JSON.stringify(orderData)),
-                isNewUser,
-                generatedPassword,
-                showPaymentButton: true,
-            });
-            toast({ title: 'Order Created', description: `Client notified. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}` });
-        } catch (emailError) {
-            console.error("Non-blocking order email send error:", emailError);
-            toast({
-                title: 'Order Created (Email Failed)',
-                description: `Order successfully saved, but confirmation email failed. ${isNewUser ? 'New profile created.' : 'Existing profile linked.'}`,
-                variant: 'default'
-            });
-        }
-
-        router.push('/admin/orders');
-
-    } catch (error: any) {
-        console.error("Error creating order: ", error);
+      if (!res.success) {
         toast({
-            title: 'Operation Failed',
-            description: error.message || 'There was a problem processing your request.',
-            variant: 'destructive',
+          title: 'Order Creation Failed',
+          description: res.error || 'There was a problem processing your request.',
+          variant: 'destructive',
         });
+        return;
+      }
+
+      toast({
+        title: 'Order Created Successfully',
+        description: `Order #${res.orderId} created. ${res.isNewUser ? 'New user profile created and client notified.' : 'Linked to existing client profile.'}`,
+      });
+
+      router.push('/admin/orders');
+    } catch (error: any) {
+      console.error('Error creating order:', error);
+      toast({
+        title: 'Operation Failed',
+        description: error.message || 'There was an unexpected error creating the order.',
+        variant: 'destructive',
+      });
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   }
 

@@ -17,9 +17,7 @@ import { Order, Service, OrderNote, User } from '@/lib/types';
 import { Separator } from '../ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
-import { sendEmail } from '@/lib/email';
-import { render } from '@react-email/components';
-import OrderConfirmationEmail from '../emails/OrderConfirmationEmail';
+import { sendOrderConfirmationEmailAction } from '@/app/actions';
 import { getNextOrderId } from '@/lib/sequence';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -208,12 +206,14 @@ export default function CreateOrderForm() {
 
       await setDoc(doc(db, 'orders', orderId), orderData);
       
-      const emailHtml = render(<OrderConfirmationEmail order={orderData} />);
-      await sendEmail({
-        to: email,
-        subject: confirmationEmailSubject,
-        html: emailHtml,
-      });
+      try {
+        await sendOrderConfirmationEmailAction({
+          orderData: JSON.parse(JSON.stringify(orderData)),
+          showPaymentButton: true,
+        });
+      } catch (e) {
+        console.error('Failed to send reseller order confirmation email:', e);
+      }
 
       toast({
         title: 'Order Created Successfully',

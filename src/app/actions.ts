@@ -8,6 +8,7 @@ import * as aiRecon from './actions/ai-recon';
 import * as payrollCore from './actions/payroll-core';
 import * as adminUsers from './actions/admin-users';
 import * as checkoutCore from './actions/checkout-core';
+import * as orderAdminActions from './actions/order-admin-actions';
 
 // --- LEADS ---
 export async function saveDemoLead(data: any) {
@@ -219,3 +220,13 @@ export async function suggestTransactionAllocationWeb(input: any) {
   const { suggestTransactionAllocationWeb: flow } = await import('@/ai/flows/suggest-transaction-allocation-web');
   return flow(input);
 }
+
+// --- ADMIN ORDERS ---
+export async function createAdminCustomOrderAction(params: any) {
+  return orderAdminActions.createAdminCustomOrderAction(params);
+}
+
+export async function lookupClientByEmailAction(email: string, idToken?: string) {
+  return orderAdminActions.lookupClientByEmailAction(email, idToken);
+}
+

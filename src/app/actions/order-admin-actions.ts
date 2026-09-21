@@ -1,10 +1,14 @@
 'use server';
 
-import { getAdminDb, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
-import { AuditEntry, Order, DocumentUpload, OrderChecklistItem } from '@/lib/types';
+import { getAdminDb, getAdminAuth, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
+import { AuditEntry, Order, DocumentUpload, OrderChecklistItem, OrderServiceSnapshot } from '@/lib/types';
 import { sendOrderStatusUpdateEmailAction } from './order-actions';
+import { sendOrderConfirmationEmailAction } from './notifications';
 import { resolvePartnerMirrorOrderId, stripInternalAiData } from '@/lib/service-utils';
 import { getVerifiedAuthContext, getAuthContext } from '@/lib/server-auth';
+import { getServiceChecklist, normalizeRequirementsWithIds, isPlaybookApproved, pickStepConfig } from '@/lib/services';
+import { getNextOrderId } from '@/lib/sequence';
 
 export type StatusTransitionOptions = {
   details?: string;
@@ -973,3 +977,319 @@ export async function unlinkOrderDependencyAtomic(
     return { success: false, error: error.message };
   }
 }
+
+export type CreateAdminCustomOrderInput = {
+  idToken?: string;
+  customerFirstName: string;
+  customerLastName: string;
+  customerEmail: string;
+  customerPhone: string;
+  items: Array<{
+    isCustom?: boolean;
+    serviceId?: string;
+    description: string;
+    quantity: number;
+    price: number;
+    discountType?: 'fixed' | 'percentage';
+    discountValue?: number;
+  }>;
+  total: number;
+  linkedUserId?: string | null;
+  notes?: string;
+  department?: Order['department'];
+};
+
+/**
+ * Atomically generates a custom order from the Admin portal.
+ * Handles client account resolution/creation via Admin SDK, sequence ID generation,
+ * service snapshots + SOP checklist initialization, and non-blocking confirmation email.
+ */
+export async function createAdminCustomOrderAction(input: CreateAdminCustomOrderInput) {
+  try {
+    const authCtx = await getVerifiedAuthContext(input.idToken);
+    if (!authCtx) {
+      return { success: false, error: 'Unauthorized: A valid authentication token is required.' };
+    }
+    const isStaffOrAdmin =
+      authCtx.isAdmin ||
+      authCtx.user.role === 'admin' ||
+      authCtx.user.role === 'staff' ||
+      authCtx.user.role === 'cap_staff' ||
+      authCtx.user.role === 'cap_supervisor';
+
+    if (!isStaffOrAdmin) {
+      return { success: false, error: 'Forbidden: Admin or staff privileges are required to create custom orders.' };
+    }
+
+    if (!input.customerEmail || !input.customerEmail.includes('@')) {
+      return { success: false, error: 'A valid customer email is required.' };
+    }
+
+    if (!input.items || input.items.length === 0) {
+      return { success: false, error: 'At least one order item is required.' };
+    }
+
+    const adminDb = getAdminDb();
+    const adminAuth = getAdminAuth();
+    const cleanEmail = input.customerEmail.toLowerCase().trim();
+    const customerFullName = `${input.customerFirstName.trim()} ${input.customerLastName.trim()}`.trim();
+
+    // 1. Resolve or create user profile
+    let finalUserId = input.linkedUserId || null;
+    let isNewUser = false;
+    let generatedPassword: string | null = null;
+
+    if (finalUserId) {
+      const existingUserDoc = await adminDb.collection('users').doc(finalUserId).get();
+      if (!existingUserDoc.exists) {
+        finalUserId = null;
+      }
+    }
+
+    if (!finalUserId) {
+      // Lookup existing user in Firestore by email
+      const userSnap = await adminDb.collection('users').where('email', '==', cleanEmail).limit(1).get();
+      if (!userSnap.empty) {
+        finalUserId = userSnap.docs[0].id;
+      } else {
+        // Check Firebase Auth in case user exists in Auth but not users collection
+        try {
+          const authUser = await adminAuth.getUserByEmail(cleanEmail);
+          finalUserId = authUser.uid;
+        } catch (e: any) {
+          if (e.code !== 'auth/user-not-found') {
+            console.warn('[createAdminCustomOrderAction] Auth lookup notice:', e);
+          }
+        }
+      }
+    }
+
+    if (!finalUserId) {
+      // Create new client user
+      isNewUser = true;
+      const { customAlphabet } = await import('nanoid');
+      const nanoid = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 10);
+      generatedPassword = nanoid();
+
+      const userRecord = await adminAuth.createUser({
+        email: cleanEmail,
+        password: generatedPassword,
+        displayName: customerFullName,
+      });
+      finalUserId = userRecord.uid;
+
+      await adminDb.collection('users').doc(finalUserId).set({
+        id: finalUserId,
+        uid: finalUserId,
+        name: customerFullName,
+        email: cleanEmail,
+        contactNumber: input.customerPhone.trim(),
+        role: 'client',
+        source: 'Staff Order',
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    // 2. Sequential Order ID
+    const orderId = await getNextOrderId();
+
+    // 3. Service Snapshots & Checklist items
+    const serviceSnapshots: OrderServiceSnapshot[] = [];
+    const initialChecklist: OrderChecklistItem[] = [];
+    let detectedDepartment: Order['department'] = null;
+
+    for (const item of input.items) {
+      if (item.serviceId) {
+        const serviceDoc = await adminDb.collection('services').doc(item.serviceId).get();
+        if (serviceDoc.exists) {
+          const serviceData = serviceDoc.data()!;
+          if (!detectedDepartment && serviceData.department) {
+            detectedDepartment = serviceData.department;
+          }
+
+          const normalizedReqs = normalizeRequirementsWithIds(serviceData.informationToProvide || []);
+          const serviceChecklist = getServiceChecklist(serviceData);
+          const playbookApproved = isPlaybookApproved(serviceData);
+
+          serviceSnapshots.push({
+            serviceId: item.serviceId,
+            title: serviceData.title || item.description,
+            department: serviceData.department || 'Administration',
+            requirements: normalizedReqs,
+            checklist: serviceChecklist,
+            playbookApproved,
+            ...(serviceData.playbookVersion ? { playbookVersion: serviceData.playbookVersion } : {}),
+            ...(serviceData.playbookEntity ? { playbookEntity: serviceData.playbookEntity } : {}),
+          });
+
+          serviceChecklist.forEach((step, idx) => {
+            const stepConfig = pickStepConfig(step);
+            initialChecklist.push({
+              id: `chk_${item.serviceId}_${step.id || idx}`,
+              serviceId: item.serviceId!,
+              serviceTitle: serviceData.title || item.description,
+              title: step.title,
+              description: step.description || '',
+              type: step.type || 'manual',
+              status: 'pending',
+              ...(step.aiInstructions ? { aiInstructions: step.aiInstructions } : {}),
+              ...(step.templateIds && step.templateIds.length ? { templateIds: step.templateIds } : {}),
+              ...(stepConfig ? { stepConfig } : {}),
+            });
+          });
+        }
+      }
+    }
+
+    const orderData: Order = {
+      id: orderId,
+      userId: finalUserId,
+      customerName: customerFullName,
+      customerEmail: cleanEmail,
+      customerPhone: input.customerPhone.trim(),
+      items: input.items.map((item) => ({
+        id: item.serviceId || item.description.toLowerCase().replace(/\s+/g, '-'),
+        title: item.description,
+        price: item.price,
+        quantity: item.quantity,
+        ...(item.discountType ? { discountType: item.discountType } : {}),
+        ...(item.discountValue !== undefined ? { discountValue: item.discountValue } : {}),
+      })),
+      total: input.total,
+      discountCode: null,
+      discountAmount: null,
+      paymentMethod: 'EFT',
+      status: 'Pending Payment',
+      fulfillmentStatus: 'Awaiting Documents',
+      date: new Date(),
+      department: input.department || detectedDepartment || 'Administration',
+      assignedTo: null,
+      source: 'Staff',
+      originalOrderId: null,
+      serviceSnapshots: serviceSnapshots.length > 0 ? serviceSnapshots : undefined,
+      checklist: initialChecklist.length > 0 ? initialChecklist : undefined,
+      notes: input.notes
+        ? [
+            {
+              text: input.notes,
+              date: new Date(),
+              authorId: authCtx.userId,
+              type: 'note',
+              subject: null,
+              attachments: null,
+            },
+          ]
+        : [],
+    };
+
+    // 4. Save to Firestore atomically via adminDb
+    await adminDb.collection('orders').doc(orderId).set(cleanFirestoreData(orderData));
+
+    // 5. Send order confirmation email asynchronously (non-blocking)
+    try {
+      await sendOrderConfirmationEmailAction({
+        orderData: JSON.parse(JSON.stringify(orderData)),
+        isNewUser,
+        generatedPassword: generatedPassword || undefined,
+        showPaymentButton: true,
+      });
+    } catch (emailError) {
+      console.error('[createAdminCustomOrderAction] Non-blocking order email send error:', emailError);
+    }
+
+    return {
+      success: true,
+      orderId,
+      userId: finalUserId,
+      isNewUser,
+    };
+  } catch (error: any) {
+    console.error('[createAdminCustomOrderAction] Failed to create custom order:', error);
+    return {
+      success: false,
+      error: error.message || 'There was a problem creating the order.',
+    };
+  }
+}
+
+/**
+ * Searches for an existing client across users, adminClients, and partnerClients by email.
+ * Executed securely on the server via Admin SDK, avoiding client-side permission issues.
+ */
+export async function lookupClientByEmailAction(email: string, idToken?: string) {
+  try {
+    const authCtx = await getVerifiedAuthContext(idToken);
+    if (!authCtx) {
+      return { success: false, error: 'Unauthorized' };
+    }
+    const isStaffOrAdmin =
+      authCtx.isAdmin ||
+      authCtx.user.role === 'admin' ||
+      authCtx.user.role === 'staff' ||
+      authCtx.user.role === 'cap_staff' ||
+      authCtx.user.role === 'cap_supervisor';
+
+    if (!isStaffOrAdmin) {
+      return { success: false, error: 'Forbidden' };
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: true, user: null };
+    }
+
+    const adminDb = getAdminDb();
+
+    // 1. Check users
+    const userSnap = await adminDb.collection('users').where('email', '==', cleanEmail).limit(1).get();
+    if (!userSnap.empty) {
+      const u = userSnap.docs[0].data();
+      return {
+        success: true,
+        user: {
+          id: userSnap.docs[0].id,
+          name: u.name || u.displayName || 'Existing Client',
+          phone: u.contactNumber || u.cellNumber || u.phone || '',
+          email: cleanEmail,
+        },
+      };
+    }
+
+    // 2. Check adminClients
+    const adminClientsSnap = await adminDb.collection('adminClients').where('email', '==', cleanEmail).limit(1).get();
+    if (!adminClientsSnap.empty) {
+      const c = adminClientsSnap.docs[0].data();
+      return {
+        success: true,
+        user: {
+          id: adminClientsSnap.docs[0].id,
+          name: c.name || c.companyName || 'Existing Client',
+          phone: c.contactNumber || c.cellNumber || c.phone || '',
+          email: cleanEmail,
+        },
+      };
+    }
+
+    // 3. Check partnerClients
+    const partnerClientsSnap = await adminDb.collection('partnerClients').where('email', '==', cleanEmail).limit(1).get();
+    if (!partnerClientsSnap.empty) {
+      const pc = partnerClientsSnap.docs[0].data();
+      return {
+        success: true,
+        user: {
+          id: partnerClientsSnap.docs[0].id,
+          name: pc.name || pc.companyName || 'Existing Client',
+          phone: pc.contactNumber || pc.cellNumber || pc.phone || '',
+          email: cleanEmail,
+        },
+      };
+    }
+
+    return { success: true, user: null };
+  } catch (err: any) {
+    console.error('[lookupClientByEmailAction] Error looking up client by email:', err);
+    return { success: false, error: err.message };
+  }
+}
+
