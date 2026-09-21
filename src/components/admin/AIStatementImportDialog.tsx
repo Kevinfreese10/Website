@@ -20,7 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { format, parseISO } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeFirestoreData } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -675,15 +675,22 @@ export default function AIStatementImportDialog({
 
         const batch = writeBatch(db);
 
-        // Update Client's ChartOfAccount metadata in Firestore if requested
-        if (linkAccountMetadata && linkableMetadata) {
-            const clientRef = doc(db, 'aiAccountantClients', client.id);
+        // Update Client's ChartOfAccount metadata and bankBalance in Firestore
+        const clientRef = doc(db, 'aiAccountantClients', client.id);
+        const shouldUpdateBankBalance = editedClosingBalance !== null && !isNaN(editedClosingBalance);
+        if ((linkAccountMetadata && linkableMetadata) || shouldUpdateBankBalance) {
             const updatedChart = client.chartOfAccounts?.map(acc => {
                 if (acc.id === watchBankAccountId) {
                     return {
                         ...acc,
-                        bankName: linkableMetadata.bankName,
-                        bankAccountNumber: linkableMetadata.accountNumber
+                        ...(linkAccountMetadata && linkableMetadata ? {
+                            bankName: linkableMetadata.bankName,
+                            bankAccountNumber: linkableMetadata.accountNumber
+                        } : {}),
+                        ...(shouldUpdateBankBalance ? {
+                            bankBalance: editedClosingBalance,
+                            lastImportDate: filterEndDate || combinedStatementMeta?.endDate || format(new Date(), 'yyyy-MM-dd')
+                        } : {})
                     };
                 }
                 return acc;
@@ -696,7 +703,7 @@ export default function AIStatementImportDialog({
             const openBalRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
             const openBalDate = filterStartDate || combinedStatementMeta.startDate;
             
-            batch.set(openBalRef, {
+            batch.set(openBalRef, sanitizeFirestoreData({
                 clientId: client.id,
                 date: new Date(openBalDate).toISOString(),
                 reference: `OPEN-BAL-${Date.now()}`,
@@ -709,7 +716,7 @@ export default function AIStatementImportDialog({
                 vatType: 'no_vat',
                 allocatedAt: serverTimestamp(),
                 allocationSource: 'manual'
-            });
+            }));
         }
 
         filteredTransactions.forEach(tx => {
@@ -751,7 +758,7 @@ export default function AIStatementImportDialog({
             }
 
             const newRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
-            batch.set(newRef, txData);
+            batch.set(newRef, sanitizeFirestoreData(txData));
         });
 
         await batch.commit();

@@ -23,8 +23,13 @@ A client must be able to scan any email in **approximately 30 seconds** and imme
 
 | Inquiry Type | Criteria | Action Protocol |
 |---|---|---|
-| **Standard Service Inquiry** | Matches 100% of website catalog items (e.g. Company Reg, VAT Reg, Tax Clearance, Monthly Retainers, Annual Returns) | **Full Autonomy:** Automatically generate the 30-Second Executive HTML email and dispatch directly to the client from `info@myacc.co.za`. |
-| **Custom / Complex Scope** | Multi-entity restructures, foreign corporate holding advisory, Section 200 compromises, or custom pricing | **Review Protocol:** Auto-draft the proposal into IMAP Drafts and email the preview to `info@myacc.co.za` for one-click approval before sending. |
+| **Standard Fixed Catalog Service** | Matches 100% of fixed one-off website catalog items (e.g. Company Reg, VAT Reg, Tax Clearance, CIDB renewals, ITR14) | **Full Autonomy:** Automatically generate the 30-Second Executive HTML email and dispatch directly to the client. |
+| **Accounting / Payroll Retainer** | Monthly accounting retainers, monthly bookkeeping, or payroll packages | **Strict Review Protocol (Requires Kevin's Input):** NEVER send automated pricing or proposals to the client. Retainers require Kevin's direct evaluation first. Auto-reply with an executive consultation acknowledgment and forward the inquiry to `kev@thinkestry.co.za` for scoping. |
+| **SARS Tax Debt Compromise** | Tax debt compromise, debt relief, or tax settlement inquiries | **Free Assessment Protocol:** Prompt the client for (1) the approximate total debt value, and (2) SARS eFiling login credentials to conduct a free assessment. Alert `kev@thinkestry.co.za`. |
+| **Custom / Complex Advisory Scope** | Multi-entity restructures, foreign corporate holding advisory, Section 200 compromises, or custom pricing | **Review Protocol:** Auto-draft the proposal into IMAP Drafts and email the preview to `kev@thinkestry.co.za` for one-click approval before sending. |
+
+> [!CRITICAL]
+> **Email Dispatch CC Invariant**: NEVER CC `info@myacc.co.za` on any outgoing emails. Adding `info@myacc.co.za` to CC generates loopback emails in the inbox and risks circular triggering of the inbox agent.
 
 ---
 

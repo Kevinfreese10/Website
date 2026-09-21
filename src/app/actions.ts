@@ -114,6 +114,10 @@ export async function applyRegroups(params: any) {
   return aiRecon.applyRegroups(params);
 }
 
+export async function autoConsolidateSmartMatchQueue(params: any) {
+  return aiRecon.autoConsolidateSmartMatchQueue(params);
+}
+
 export async function proposeAiRegroups(params: any) {
   return aiRecon.proposeAiRegroups(params);
 }

@@ -66,7 +66,7 @@ export async function createRuleFromAllocationAction({
   transactionDescription,
   accountId,
   accountType = 'account',
-  vatType = 'standard',
+  vatType = 'standard_rated_purchases',
   customKeyword,
   isGlobal = false,
 }: {
@@ -99,13 +99,21 @@ export async function createRuleFromAllocationAction({
     throw new Error('Could not derive a valid keyword from transaction description.');
   }
 
+  const canonicalVat = (
+    vatType === 'standard' || vatType === 'standard_vat' ? 'standard_rated_purchases' :
+    vatType === 'zero_rated' ? 'zero_rated_purchases' :
+    vatType === 'exempt' ? 'exempt_purchases' :
+    vatType === 'vat_disallowed' ? 'no_vat' :
+    vatType
+  ) || 'standard_rated_purchases';
+
   const ruleId = `rule_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const newRule: AllocationRule = {
     id: ruleId,
     keywords: [keyword],
     accountId,
     accountType,
-    vatType,
+    vatType: canonicalVat,
     description: `Auto-created rule for ${keyword}`,
     priority: 10,
     scope: isGlobal ? 'global' : 'client',

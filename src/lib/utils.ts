@@ -126,3 +126,43 @@ export function isServerActionMismatchError(error: unknown): boolean {
     msg.includes('Failed to find Server Action')
   );
 }
+
+/**
+ * Deeply strips `undefined` properties from an object or array to prevent
+ * Firestore WriteBatch.set() / setDoc() "Unsupported field value: undefined" errors.
+ * Preserves Date, Firestore Timestamp, and Firestore FieldValues (serverTimestamp, deleteField, etc).
+ */
+export function sanitizeFirestoreData<T>(data: T): T {
+  if (data === null || data === undefined) return data;
+  if (typeof data !== 'object') return data;
+  if (data instanceof Date) return data;
+  
+  // Preserve Firestore Timestamp or FieldValue objects
+  if (
+    typeof (data as any)?.toDate === 'function' ||
+    typeof (data as any)?.toMillis === 'function' ||
+    (data as any)?._methodName !== undefined ||
+    (data as any)?._delegate !== undefined ||
+    data?.constructor?.name === 'FieldValue' ||
+    data?.constructor?.name === 'Timestamp'
+  ) {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data
+      .map(item => sanitizeFirestoreData(item))
+      .filter(item => item !== undefined) as any;
+  }
+
+  const cleaned: any = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      const sanitized = sanitizeFirestoreData(value);
+      if (sanitized !== undefined) {
+        cleaned[key] = sanitized;
+      }
+    }
+  }
+  return cleaned;
+}

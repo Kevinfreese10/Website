@@ -216,8 +216,20 @@ export default function AIAccountantClientDashboardPage() {
     }, [clientId]);
     
     useEffect(() => {
-        fetchDashboardData();
-    }, [fetchDashboardData]);
+        if (!clientId) return;
+        setIsLoading(true);
+        const clientRef = doc(db, 'aiAccountantClients', clientId);
+        const unsubscribe = onSnapshot(clientRef, (clientSnap) => {
+            if (clientSnap.exists()) {
+                setClient({ id: clientSnap.id, ...clientSnap.data() } as User);
+            }
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error subscribing to client data:", error);
+            setIsLoading(false);
+        });
+        return () => unsubscribe();
+    }, [clientId]);
 
     useEffect(() => {
         if (!clientId) return;

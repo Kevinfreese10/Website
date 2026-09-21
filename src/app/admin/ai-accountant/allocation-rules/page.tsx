@@ -138,7 +138,7 @@ export default function GlobalAllocationRulesPage() {
       setRuleKeywords('');
       setRuleAccountId(defaultChartOfAccounts[0]?.id || '');
       setRuleCategory('telecoms_internet');
-      setRuleVatType('standard');
+      setRuleVatType('standard_rated_purchases');
     }
     setIsRuleFormOpen(true);
   };

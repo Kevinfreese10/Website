@@ -1085,6 +1085,9 @@ export type ImportedTransaction = {
   merchantKey?: string;
   cleanDescription?: string;
   rawDescription?: string;
+  paymentChannel?: PaymentChannel;
+  branchLocation?: string;
+  structuralClues?: StructuralClues;
   clientComment?: string;
   clientExplanation?: string;
   allocatedAt?: any;
@@ -1255,5 +1258,44 @@ export interface MasterTask {
   repliedAt?: string;
   createdAt?: any;
   updatedAt?: any;
+}
+
+// ============================================================================
+// Bank Transaction Cleaning & Reconciliation Types (Milestone 2)
+// ============================================================================
+
+export type PaymentChannel =
+  | 'DEBIT_ORDER'
+  | 'POS'
+  | 'CARD'
+  | 'EFT'
+  | 'RTC'
+  | 'ATM'
+  | 'FEE'
+  | 'UNKNOWN';
+
+export interface StructuralClues {
+  vatNumber?: string;
+  phoneNumber?: string;
+  branchLocator?: string;
+  prn?: string;
+  rawLocation?: string;
+}
+
+export interface CleanResult {
+  clean: string;
+  channel: PaymentChannel;
+  branchLocation?: string;
+  structuralClues?: StructuralClues;
+}
+
+export interface ProcessedTransaction {
+  rawDescription: string;
+  cleanDescription: string;
+  paymentChannel: PaymentChannel;
+  merchantKey: string;
+  branchLocation?: string;
+  structuralClues: StructuralClues;
+  cleaningVersion?: string;
 }
 

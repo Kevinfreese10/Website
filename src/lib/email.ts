@@ -1,10 +1,30 @@
 'use server';
 
 import nodemailer from 'nodemailer';
+import dns from 'dns';
 import { getAdminDb } from './firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { User } from './types';
 import { reportError } from '@/lib/observability';
+
+async function resolveHostWithFallback(hostname: string): Promise<string> {
+  try {
+    const res = await dns.promises.lookup(hostname);
+    if (res && res.address) return res.address;
+  } catch {
+    // OS DNS failed
+  }
+  try {
+    const resolver = new dns.promises.Resolver();
+    resolver.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+    const addresses = await resolver.resolve4(hostname);
+    if (addresses && addresses.length > 0) return addresses[0];
+  } catch {
+    // Resolver failed
+  }
+  if (hostname === 'mail.myacc.co.za') return '169.239.218.67';
+  return hostname;
+}
 
 type EmailPayload = {
     to: string | string[];
@@ -111,11 +131,11 @@ export async function sendEmail({
     console.error('sendEmail: SMTP_PASS resolved to an empty value.');
     throw new Error('Email is not configured on the server (SMTP_PASS is empty).');
   }
-
   const defaultPort = Number(smtpOverride?.port || liveSmtpPort || 465);
+  const resolvedHost = await resolveHostWithFallback(cleanHost);
   let transportConfig: any = {
     pool: false,
-    host: cleanHost,
+    host: resolvedHost,
     port: defaultPort,
     secure: defaultPort === 465,
     auth: {

@@ -51,6 +51,6 @@ export const merchantSeeds: MerchantSeed[] = [
     { canonicalName: 'E-HOMEAFFAIRS', pattern: /\bE-HOMEAFFAIRS\b/i, categoryHint: 'GOV' },
 
     // BANKING / FEES
-    { canonicalName: 'BANK FEES', pattern: /\b(FEE|CHARGES|SERVICE\s*FEE|MONTHLY\s*FEE|ACCOUNT\s*FEE|ADMIN\s*FEE|TRANSACTION\s*FEE)\b/i, categoryHint: 'FEES' },
+    { canonicalName: 'BANK FEES', pattern: /\b(BANK\s*(?:SERVICE\s*)?CHARGES?|BANK\s*(?:SERVICE\s*)?FEES?|BANK\s*COSTS?|MONTHLY\s+(?:ACCOUNT\s*|SERVICE\s*)FEES?|TRANSACTION\s*FEES?|CASH\s*DEPOSIT\s*FEES?|CASH\s*HANDLING\s*(?:FEES?|CHARGES?)|STATEMENT\s*FEES?|INTERNET\s*PAYMENT\s*FEES?|INT\s*PYMT\s*FEES?|(?:EFT|PAYSHAP)\s*FEES?)\b/i, categoryHint: 'FEES' },
     { canonicalName: 'CASH WITHDRAWAL', pattern: /\b(CASH\s*WITHDRAWAL|ATM|AUTOBANK|SASWITCH)\b/i, categoryHint: 'CASH' },
 ];

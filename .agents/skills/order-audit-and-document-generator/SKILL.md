@@ -63,7 +63,7 @@ This skill guides the end-to-end audit, document verification, statutory PDF gen
 ## Strict Email Routing Guardrail
 
 > [!IMPORTANT]
-> **Internal Review Emails**: Review emails and sign-off drafts must be routed **strictly to `info@myacc.co.za`**.
+> **Internal Review Emails**: Review emails and sign-off drafts must be routed **strictly to `kev@thinkestry.co.za`** (CC `info@myacc.co.za`).
 > **NEVER include or CC `freesekevin@gmail.com`**.
 >
 > **Client Outbound Emails**: Dispatched from `info@myacc.co.za` (via `mail.myacc.co.za:465`) with responsive HTML layout and clean plain-text fallback, CCing `info@myacc.co.za`.
@@ -82,6 +82,26 @@ This skill guides the end-to-end audit, document verification, statutory PDF gen
   - **Accountant's Income Letter**: Certified ID, 6-month bank statements (PDF), proof of contract/invoice earnings, addressee details.
 - **Handling Incomplete Documents**: Move order status to `Waiting on Customer` and post a clear itemized list of required documents to `order.notes`.
 - **False-Positive Handling**: If automated vision flags valid contractor invoices (e.g., "Expected payslip but found invoice"), override to approved if justified by contractor/self-employed status.
+
+### Step 2.5: Accountant's Letter Discovery Questionnaire Protocol (MANDATORY)
+* **Pre-Draft Discovery Rule**: Never draft or certify an Accountant's Letter based solely on the raw documents uploaded without first asking targeted discovery questions via Communication History. This ensures the letter captures the client's complete earnings picture and meets the recipient's specific criteria.
+* **Standard Discovery Probe Dimensions**:
+  1. **Addressee & Exact Purpose**: Full legal name of institution (bank, landlord, embassy, vehicle financer), branch/department, contact person, and application reference number.
+  2. **Required Calculation Period**: Explicitly confirm whether the institution requires 3 months, 6 months, or 12 months average.
+  3. **Company-Paid Living Expenses & Subsidies**: Ask if the company directly pays personal living expenses on the applicant's behalf (e.g., vehicle lease, fuel, mobile contracts, medical aid, residential rent, or security) to reflect total effective monthly realization.
+  4. **Secondary / Undocumented Earnings**: Inquire whether there are secondary trading accounts, director loan repayments, or dividend payouts not reflected in the primary account statements.
+  5. **Specific Institution Clauses / Templates**: Ask if the institution has provided a mandatory template or specific wording clauses required for acceptance.
+* **Pre-Approval Gate**: The drafted questionnaire note MUST be presented to Kevin for review and explicit approval before posting to Firestore (`order.notes`).
+* **Post-Questionnaire State**: Once Kevin approves and the note is posted, immediately transition order status to **`Waiting on Customer`**.
+* **Evidentiary Standard**: When the client replies, cross-reference all stated figures against bank debits, contracts, or invoices. Never certify unverified numbers without documentary backing.
+
+### Step 2.6: Forensic Anti-Fraud & Conduit Audit Checklist
+Before drafting any Accountant's Letter, perform the following forensic tests on bank statements and source documents:
+1. **Balance Retention & Conduit Test**: Does the account maintain an ongoing operational/working balance, or does it operate as an immediate pass-through conduit where deposits are promptly swept out to linked or third-party accounts (e.g. mobile app transfers to secondary names)? If funds are immediately dissipated, request 6 months of statements for the receiving account to verify retention and living expense settlement.
+2. **Spike & Outlier Normalization Test**: Does any single month contain > 50% of the entire period's total credits? If yes, inspect contract terms to determine if it is a non-recurring advance/buyout vs regular recurring royalties. Never mask revenue volatility with an unadjusted arithmetic mean.
+3. **Operational & Living Expense Reality Test**: Are normal personal subsistence debits present (rent, utilities, vehicle, mobile, medical aid)? If absent, query the source of personal upkeep in the Discovery Questionnaire before attesting to affordability.
+4. **Counterparty & Name Matching**: Cross-examine sender names on inward SWIFTs/transfers against contracts and company registries. Verify that the legal individual on the ID card matches the contractual licensor/director or formal alias.
+5. **SARS Tax Number & Compliance**: Check whether the applicant is registered for Income Tax or Provisional Tax, especially for large foreign revenue streams.
 
 ---
 
@@ -175,19 +195,40 @@ When an NCR application is approved subject to proposed conditions:
   3. **Categorized Remuneration Structure**:
      - **Part A: Net Personal Drawings / Direct Remuneration**: Regular cash drawings taken by the Director.
      - **Part B: Direct Company-Paid Living & Operating Subsidies**: Specific expenses paid directly by the company on behalf of the Director (e.g. Fuel, Mobile Contract, Life Insurance, Security).
-     - **Part C: Total Effective Monthly Realized Benefits**: Accurately totaled monthly cashflow benefit.
-  4. **Professional Solvency & Going-Concern Declaration**:
-     - Formal confirmation of company solvency, liquidity, and sustained cashflow capacity.
+   #### H. Tax Representative Appointment Protocol
+* **No Document Preparation Invariant**:
+  - We do **NOT** prepare any documents for the "Tax Representative Appointment" service.
+  - The client uploads are audited for completeness: CIPC CoR14.3, Director IDs, Public Officer Personal Income Tax Number, Contact Details, and SARS eFiling credentials (Username & Password).
+* **Fulfillment Email Dispatch**:
+  - Once all required information and client uploads are present, immediately compile the dossier and dispatch via email:
+    - **To**: `sinto4plus@gmail.com`
+    - **From**: `info@myacc.co.za`
+    - **CC**: `info@myacc.co.za`, `kev@thinkestry.co.za`
+    - **Subject**: `Tax Representative Appointment — Order #<ID> (<Entity Name>)`
+    - **Attachments**: The client's submitted files (CoR14.3, Director ID copies).
+  - Client portal communication note acknowledges receipt and advises that the appointment request has been submitted for processing.
 
 ---
 
-### Step 4: Storage Upload & Client Communication History (CRITICAL INVARIANT)
+### Step 4: Storage Upload & Client Communication History (CRITICAL INVARIANTS)
 
-* **Strict Communication History Rule**:
-  - **NEVER** email draft documents, review requests, or queries directly to clients' email addresses.
-  - **ALWAYS** post exclusively to the Order's Communication History (`order.notes` in Firestore) with public download links.
-  - Keeps 100% of client dialogue and document history centralized in the portal dashboard.
-* **Storage Upload Path**: `orders/{orderId}/notes/{timestamp}_{filename}.pdf` (public read permissions).
+* **Mandatory User Approval Gate (STRICT)**:
+  - **NEVER** upload documents to Cloud Storage, post notes to Firestore (`order.notes`), or dispatch emails to clients until Kevin has reviewed and explicitly approved them.
+  - **Email Pre-Approval Rule**: Even if the agent or agent team is 100% sure of the audit results and reconciliations, ALWAYS email Kevin at `kev@thinkestry.co.za` (CC `info@myacc.co.za`) with the executive audit pack, attached draft PDF, and proposed note text before committing any updates to the portal.
+  - Wait for Kevin's confirmation or instructions before committing changes to the database.
+
+* **Client Communication Formatting Rules**:
+  - Keep client messages concise, actionable, and readable in under 30 seconds. Avoid overwhelming the client with lengthy audit dumps or internal verification jargon.
+  - **NEVER** use markdown bold asterisks (`**`) in client communication notes. Keep the text clean and plain.
+  - **NEVER** show raw Firebase Storage URLs (`https://firebasestorage.googleapis.com/...`) in the note `text`. The text must refer solely to the attached document (e.g., "Please review the draft document attached below").
+  - **NEVER** include a `Download Links:` or `**Download Links:**` header. Attachments are automatically rendered with download buttons in the portal UI via the `attachments` array.
+  - **Strict Communication History Rule**: Never email draft documents or review requests directly to clients; always post exclusively to the Order's Communication History (`order.notes` in Firestore) with attachments to keep 100% of client dialogue centralized in the portal dashboard.
+* **Storage Upload Path & Download Token Invariant**:
+  - Path: `orders/{orderId}/notes/{timestamp}_{filename}.pdf`.
+  - When uploading via Firebase Admin SDK, ALWAYS attach a unique UUID download token in metadata (`firebaseStorageDownloadTokens: crypto.randomUUID()`) AND call `file.makePublic()`.
+  - Format the attachment URL with the token:
+    `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${token}`
+  - Perform an HTTP GET pre-flight check to verify `res.status === 200` before committing to Firestore.
 * **Firestore Data Structure**:
   - Notes and deliverables must be appended directly to `order.notes` using `FieldValue.arrayUnion()`.
 
@@ -202,7 +243,7 @@ When an NCR application is approved subject to proposed conditions:
       type: "note",
       subject: "...",
       isInternal: false,
-      attachments: [{ name: "Document.pdf", url: "https://storage.googleapis.com/..." }]
+      attachments: [{ name: "Document.pdf", url: "https://firebasestorage.googleapis.com/..." }]
     };
     ```
 
@@ -238,3 +279,28 @@ To run this skill continuously or reactively in Antigravity:
      });
    ```
 2. **Cron Scheduler (`/schedule`)**: Run recurring audits every 30 minutes to check orders awaiting customer response and draft polite follow-ups after 48 hours.
+
+---
+
+## 🛠️ CLI Execution Commands
+
+### 1. Inspect Order Details & Uploads
+```bash
+npx tsx .agents/skills/order-audit-and-document-generator/scripts/audit_order.ts fetch --order-id <ID>
+```
+
+### 2. Autonomous Audit & Statutory Pack Compilation (Dry-Run Preview)
+```bash
+npx tsx .agents/skills/order-audit-and-document-generator/scripts/audit_order.ts audit --order-id <ID> --dry-run
+# Or using the pipeline script directly:
+npx tsx src/lib/agent/order-audit-pipeline.ts --order-id <ID> --dry-run
+```
+
+### 3. Explicit Executive Sign-Off & Deliverables Commitment (After Kevin's Review)
+```bash
+npx tsx .agents/skills/order-audit-and-document-generator/scripts/audit_order.ts approve --order-id <ID>
+# Or using flag:
+npx tsx .agents/skills/order-audit-and-document-generator/scripts/audit_order.ts --order-id <ID> --approve-and-post
+# Or via pipeline runner:
+npx tsx src/lib/agent/order-audit-pipeline.ts --order-id <ID> --approve-and-post
+```

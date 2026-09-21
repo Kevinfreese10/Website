@@ -6,6 +6,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { ImportedTransaction, AllocationRule, SmartAllocationResult, User } from '@/lib/types';
 import { BankCleaner, matchesRuleKeyword, matchRuleGuideDetails } from '@/lib/bank-cleaner';
 import { resolveAccountForCategory } from '@/lib/chart-of-accounts-mapper';
+import { proposeRegroupsPure, consolidateMerchantGroupsIterative } from '@/lib/regroup-engine';
 
 /**
  * Verifies the caller's Firebase ID token and, unless they're an admin, that their practice
@@ -377,72 +378,42 @@ export async function proposeRegroups({ clientId, bankAccountId, idToken }: { cl
         .get();
 
     const txs = snap.docs.map(d => ({ ...d.data(), id: d.id } as ImportedTransaction));
-    const groups: Record<string, string[]> = {};
+    const groupsMap = new Map<string, { key: string; count: number; transactions: ImportedTransaction[] }>();
+    
     txs.forEach(t => {
-        if (!groups[t.merchantKey!]) groups[t.merchantKey!] = [];
-        groups[t.merchantKey!].push(t.id);
+        const k = t.merchantKey || 'UNKNOWN';
+        if (!groupsMap.has(k)) {
+            groupsMap.set(k, { key: k, count: 0, transactions: [] });
+        }
+        const g = groupsMap.get(k)!;
+        g.count++;
+        g.transactions.push(t);
     });
 
-    const keys = Object.keys(groups);
-    const weights: Record<string, number> = {};
-    keys.forEach(k => {
-        weights[k] = groups[k].length;
-    });
+    const pureProposals = proposeRegroupsPure(Array.from(groupsMap.values()));
 
-    class UnionFind {
-        parent: Record<string, string>;
-        constructor(keys: string[]) {
-            this.parent = {};
-            keys.forEach(k => {
-                this.parent[k] = k;
-            });
-        }
-        find(i: string): string {
-            if (this.parent[i] === i) return i;
-            this.parent[i] = this.find(this.parent[i]); // Path compression
-            return this.parent[i];
-        }
-        union(i: string, j: string, weights: Record<string, number>) {
-            const rootI = this.find(i);
-            const rootJ = this.find(j);
-            if (rootI !== rootJ) {
-                const weightI = weights[rootI] || 0;
-                const weightJ = weights[rootJ] || 0;
-                if (weightI >= weightJ) {
-                    this.parent[rootJ] = rootI;
-                } else {
-                    this.parent[rootI] = rootJ;
-                }
-            }
-        }
-    }
-
-    const dsu = new UnionFind(keys);
-    for (let i = 0; i < keys.length; i++) {
-        for (let j = i + 1; j < keys.length; j++) {
-            const sim = BankCleaner.getSimilarity(keys[i], keys[j]);
-            if (sim.score > 0.85) {
-                dsu.union(keys[i], keys[j], weights);
-            }
-        }
-    }
-
-    const proposals = [];
-    for (const key of keys) {
-        const root = dsu.find(key);
-        if (root !== key) {
-            const sim = BankCleaner.getSimilarity(key, root);
+    // Flatten pure proposals into individual source -> targetKey proposals for UI and caller compatibility
+    const proposals: any[] = [];
+    for (const prop of pureProposals) {
+        for (const src of prop.sources) {
+            const srcGroup = groupsMap.get(src);
+            const targetGroup = groupsMap.get(prop.targetKey);
             proposals.push({
-                fromKey: key,
-                toKey: root,
-                fromImpact: groups[key].length,
-                toImpact: groups[root].length,
-                score: Math.round(sim.score * 100),
-                confidence: 'High',
-                reason: sim.reason,
-                fromTxIds: groups[key],
-                fromExamples: [txs.find(t => t.merchantKey === key)?.description],
-                toExamples: [txs.find(t => t.merchantKey === root)?.description]
+                fromKey: src,
+                toKey: prop.targetKey,
+                targetKey: prop.targetKey,
+                sources: [src],
+                fromImpact: srcGroup?.count || 0,
+                toImpact: targetGroup?.count || 0,
+                totalCount: (srcGroup?.count || 0) + (targetGroup?.count || 0),
+                score: Math.round(prop.similarity * 100),
+                confidence: prop.isSafe ? 'High' : 'Medium',
+                reason: prop.reason,
+                similarity: prop.similarity,
+                isSafe: prop.isSafe,
+                fromTxIds: (srcGroup?.transactions || []).map(t => t.id),
+                fromExamples: [srcGroup?.transactions?.[0]?.description || src],
+                toExamples: [targetGroup?.transactions?.[0]?.description || prop.targetKey]
             });
         }
     }
@@ -454,16 +425,122 @@ export async function applyRegroups({ clientId, merges, userId, idToken }: { cli
     await requireAiAccountantAccess(idToken, clientId);
 
     const adminDb = getAdminDb();
-    const batch = adminDb.batch();
+    const updates: { docRef: FirebaseFirestore.DocumentReference; toKey: string }[] = [];
+
     merges.forEach(m => {
-        if (m.fromTxIds && Array.isArray(m.fromTxIds)) {
+        const toKey = m.toKey || m.targetKey;
+        if (m.fromTxIds && Array.isArray(m.fromTxIds) && toKey) {
             m.fromTxIds.forEach((id: string) => {
                 const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
-                batch.update(ref, { merchantKey: m.toKey });
+                updates.push({ docRef: ref, toKey });
             });
         }
     });
-    await batch.commit();
+
+    // Firestore has a hard limit of 500 operations per batch.
+    // Chunk updates into batches of 450 documents to remain safely below the limit.
+    const CHUNK_SIZE = 450;
+    for (let i = 0; i < updates.length; i += CHUNK_SIZE) {
+        const chunk = updates.slice(i, i + CHUNK_SIZE);
+        const batch = adminDb.batch();
+        chunk.forEach(u => {
+            batch.update(u.docRef, { merchantKey: u.toKey });
+        });
+        await batch.commit();
+    }
+}
+
+export async function autoConsolidateSmartMatchQueue({ clientId, bankAccountId, idToken }: {
+    clientId: string;
+    bankAccountId: string;
+    idToken: string;
+}): Promise<{
+    totalMergesApplied: number;
+    originalGroupCount: number;
+    finalGroupCount: number;
+    passesExecuted: number;
+    updatedCount: number;
+}> {
+    await requireAiAccountantAccess(idToken, clientId);
+
+    const adminDb = getAdminDb();
+    const snap = await adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions')
+        .where('bankAccountId', '==', bankAccountId)
+        .where('status', 'in', ['ai_review', 'ai_processing', 'new'])
+        .get();
+
+    if (snap.empty) {
+        return { totalMergesApplied: 0, originalGroupCount: 0, finalGroupCount: 0, passesExecuted: 0, updatedCount: 0 };
+    }
+
+    const txs: (ImportedTransaction & { id: string })[] = [];
+    snap.docs.forEach(d => {
+        const data = d.data() as ImportedTransaction;
+        if (data.status === 'ai_review' || data.status === 'ai_processing' || data.isExpense === true || (data.amount < 0 && data.isExpense !== false)) {
+            txs.push({ ...data, id: d.id });
+        }
+    });
+
+    if (txs.length === 0) {
+        return { totalMergesApplied: 0, originalGroupCount: 0, finalGroupCount: 0, passesExecuted: 0, updatedCount: 0 };
+    }
+
+    // Group by existing merchantKey (or compute from description)
+    const groupMap = new Map<string, { key: string; count: number; transactions: any[] }>();
+    txs.forEach(t => {
+        const key = t.merchantKey || BankCleaner.process(t.description || '').merchantKey || 'UNKNOWN';
+        if (!groupMap.has(key)) {
+            groupMap.set(key, { key, count: 0, transactions: [] });
+        }
+        const g = groupMap.get(key)!;
+        g.count++;
+        g.transactions.push(t);
+    });
+
+    const initialGroups = Array.from(groupMap.values());
+    const originalGroupCount = initialGroups.length;
+
+    // Run iterative consolidation until convergence
+    const result = consolidateMerchantGroupsIterative(initialGroups, 5);
+
+    if (result.totalMergesApplied === 0) {
+        return {
+            totalMergesApplied: 0,
+            originalGroupCount,
+            finalGroupCount: originalGroupCount,
+            passesExecuted: result.passesExecuted,
+            updatedCount: 0
+        };
+    }
+
+    // Persist all updated merchantKeys to Firestore
+    const updates: { docRef: FirebaseFirestore.DocumentReference; toKey: string }[] = [];
+    result.merges.forEach(m => {
+        if (m.fromTxIds && Array.isArray(m.fromTxIds) && m.toKey) {
+            m.fromTxIds.forEach((id: string) => {
+                const ref = adminDb.collection('aiAccountantClients').doc(clientId).collection('transactions').doc(id);
+                updates.push({ docRef: ref, toKey: m.toKey });
+            });
+        }
+    });
+
+    const CHUNK_SIZE = 450;
+    for (let i = 0; i < updates.length; i += CHUNK_SIZE) {
+        const chunk = updates.slice(i, i + CHUNK_SIZE);
+        const batch = adminDb.batch();
+        chunk.forEach(u => {
+            batch.update(u.docRef, { merchantKey: u.toKey });
+        });
+        await batch.commit();
+    }
+
+    return {
+        totalMergesApplied: result.totalMergesApplied,
+        originalGroupCount,
+        finalGroupCount: result.consolidatedGroups.length,
+        passesExecuted: result.passesExecuted,
+        updatedCount: updates.length
+    };
 }
 
 export async function proposeAiRegroups({ clientId, bankAccountId, selectedMerchantKeys, idToken }: {

@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeFirestoreData } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -772,6 +772,35 @@ export default function AIBulkStatementImportDialog({
         });
       });
 
+      // Update chartOfAccounts with closing balances for all processed accounts
+      let updatedChart = [...(client.chartOfAccounts || [])];
+      let coaChanged = false;
+      Object.entries(accountStates).forEach(([accountId, state]) => {
+        if (state.closingBalance !== undefined && !isNaN(state.closingBalance)) {
+          const lastDate = state.filterEndDate || format(new Date(), 'yyyy-MM-dd');
+          updatedChart = updatedChart.map(acc => {
+            if (acc.id === accountId) {
+              coaChanged = true;
+              return {
+                ...acc,
+                bankBalance: state.closingBalance,
+                lastImportDate: lastDate
+              };
+            }
+            return acc;
+          });
+        }
+      });
+
+      if (coaChanged) {
+        const clientRef = doc(db, 'aiAccountantClients', client.id);
+        writeOperations.push({
+          ref: clientRef,
+          type: 'update',
+          data: { chartOfAccounts: updatedChart }
+        });
+      }
+
       if (writeOperations.length === 0) {
         toast({ title: 'No Transactions', description: 'There are no transactions to import.' });
         setIsImporting(false);
@@ -786,9 +815,9 @@ export default function AIBulkStatementImportDialog({
       for (let i = 0; i < writeOperations.length; i++) {
         const op = writeOperations[i];
         if (op.type === 'set') {
-          batch.set(op.ref, op.data);
+          batch.set(op.ref, sanitizeFirestoreData(op.data));
         } else {
-          batch.update(op.ref, op.data);
+          batch.update(op.ref, sanitizeFirestoreData(op.data));
         }
         count++;
 

@@ -2,20 +2,23 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
+const scratchEnv = 'C:/Users/kev/.gemini/antigravity/scratch/.env';
+if (fs.existsSync(scratchEnv)) {
+  dotenv.config({ path: scratchEnv, override: true });
+}
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 import { getAdminDb } from '../../../../src/lib/firebase-admin';
 import { Order } from '../../../../src/lib/types';
-import * as generators from '../../../../src/lib/pdf/template-generators';
+import { runOrderAuditPipeline, resolveOrderDoc, approveAndPostOrderPack } from '../../../../src/lib/agent/order-audit-pipeline';
+import { getTemplate } from '../../../../src/lib/documents/registry';
+import { buildOrderDocumentContext } from '../../../../src/lib/documents/context';
 
 async function getOrder(orderId: string): Promise<Order> {
   const db = getAdminDb();
-  const doc = await db.collection('orders').doc(orderId).get();
-  if (!doc.exists) {
-    throw new Error(`Order #${orderId} not found in Firestore.`);
-  }
-  return { id: doc.id, ...doc.data() } as Order;
+  const { doc, data } = await resolveOrderDoc(db, orderId);
+  return { id: doc.id, ...data } as Order;
 }
 
 async function fetchCmd(orderId: string) {
@@ -59,58 +62,33 @@ async function fetchCmd(orderId: string) {
   }
 }
 
-async function generateCmd(orderId: string, docType: string) {
-  const order = await getOrder(orderId);
-  const outDir = path.resolve(process.cwd(), `scratch/order_${orderId}_audit`);
-  if (!fs.existsSync(outDir)) {
-    fs.mkdirSync(outDir, { recursive: true });
-  }
-
-  const results: { name: string; path: string; size: number }[] = [];
-
-  const genMap: Record<string, Function> = {
-    'accounting-officer-letter': generators.generateAccountingOfficerConsentDraft,
-    'ncr-form-2': generators.generateNcrForm2Draft,
-    'ncr-director-resolution': generators.generateNcrDirectorResolutionDraft,
-    'ncr-annexure-fees': generators.generateNcrAnnexureFeesDraft,
-    'share-certificate': generators.generateShareCertificateDraft,
-    'tp-poa': generators.generatePowerOfAttorneyResolutionDraft,
-    'engagement-letter': generators.generateEngagementLetterDraft,
-    'sars-public-officer-resolution': generators.generateSarsPublicOfficerResolutionDraft,
-    'accountants-letter': generators.generateAccountantsLetterDraft,
-    'coida-cf1b': generators.generateCoidaCf1bApplicationDraft,
-  };
-
-  const docsToGenerate = docType === 'all' ? Object.keys(genMap) : [docType];
-
-  for (const key of docsToGenerate) {
-    const fn = genMap[key];
-    if (!fn) {
-      console.warn(`Unknown document generator: ${key}`);
-      continue;
-    }
-
-    try {
-      const draft = await fn(order);
-      const filePath = path.join(outDir, draft.fileName);
-      fs.writeFileSync(filePath, draft.buffer);
-      results.push({
-        name: draft.fileName,
-        path: filePath,
-        size: draft.buffer.length,
-      });
-      console.log(`Generated: ${draft.fileName} (${draft.buffer.length} bytes)`);
-    } catch (err: any) {
-      console.error(`Failed to generate ${key}:`, err.message);
-    }
-  }
-
+async function auditCmd(orderId: string, dryRun: boolean = true) {
+  console.log(`Executing full audit and statutory document generation pipeline for Order #${orderId}...`);
+  const result = await runOrderAuditPipeline({ orderId, dryRun });
   console.log('\n====================================================');
-  console.log(`GENERATION COMPLETE — ${results.length} DOCUMENT(S) READY FOR KEVIN'S REVIEW`);
-  console.log('Output directory:', outDir);
+  console.log(`AUDIT FINISHED: #${result.orderNumber} (${result.entityName})`);
   console.log('====================================================');
-  results.forEach(r => console.log(`- ${r.name} (${r.size} bytes)`));
-  console.log('\nCheckpoint: Please review these documents before running deliver_order.ts.');
+  console.log(`Service: ${result.serviceTitle}`);
+  console.log(`Audit Passed: ${result.auditPassed}`);
+  console.log(`Documents Generated: ${result.documentsGenerated.length}`);
+  result.documentsGenerated.forEach(d => {
+    console.log(`- ${d.fileName} (${d.pageCount} page(s), Single-Page Compliant: ${d.isSinglePageBudgetCompliant})`);
+  });
+  console.log('\nProposed Client Communication Note:');
+  console.log(result.proposedClientCommunication);
+  console.log(`\nReview Email Status: ${result.reviewEmailSent ? 'Sent to Kevin' : 'Prepared (dry-run)'}`);
+}
+
+async function approveCmd(orderId: string) {
+  console.log(`Executing explicit sign-off and portal commit for Order #${orderId}...`);
+  const res = await approveAndPostOrderPack(orderId, 'Kevin Freese');
+  console.log('\n====================================================');
+  console.log(`ORDER SIGN-OFF COMMITTED: #${orderId}`);
+  console.log('====================================================');
+  console.log(`Success: ${res.success}`);
+  console.log(`Portal Note ID: ${res.noteId}`);
+  console.log(`Attachments Uploaded: ${res.attachmentsCount}`);
+  console.log(`Status Updated: ${res.statusUpdated ? 'Advanced to Waiting on Customer' : 'Maintained current'}`);
 }
 
 async function main() {
@@ -120,16 +98,19 @@ async function main() {
   const orderId = orderIdIdx !== -1 ? args[orderIdIdx + 1] : undefined;
 
   if (!orderId) {
-    console.error('Usage: npx tsx scripts/audit_order.ts <fetch|generate> --order-id <ID> [--doc <id|all>]');
+    console.error('Usage: npx tsx scripts/audit_order.ts <fetch|audit|generate|approve> --order-id <ID> [--dry-run|--live|--approve-and-post]');
     process.exit(1);
   }
 
-  if (command === 'fetch' || command === 'status') {
+  const dryRun = !args.includes('--live');
+  const approveAndPost = command === 'approve' || args.includes('--approve-and-post');
+
+  if (approveAndPost) {
+    await approveCmd(orderId);
+  } else if (command === 'fetch' || command === 'status') {
     await fetchCmd(orderId);
-  } else if (command === 'generate') {
-    const docIdx = args.indexOf('--doc');
-    const docType = docIdx !== -1 ? args[docIdx + 1] : 'accounting-officer-letter';
-    await generateCmd(orderId, docType);
+  } else if (command === 'audit' || command === 'generate' || command === 'run' || command?.startsWith('--')) {
+    await auditCmd(orderId, dryRun);
   } else {
     console.error(`Unknown command: ${command}`);
     process.exit(1);

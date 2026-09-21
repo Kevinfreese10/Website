@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FileUp, Loader2, PlusCircle, Search, Settings, Trash2, Edit, ArrowRightLeft, BookOpen, Sparkles, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, CheckCheck, ChevronsUpDown, MoreHorizontal, RotateCcw, AlertTriangle, Download, BrainCircuit, Play, CheckCircle2, Clock, Undo2, RotateCw, History, Info, X, ArrowRight, MessageSquareQuote, Send, AlertCircle, StopCircle, GripVertical, Layers, FileSpreadsheet, Save, MessageSquare, RefreshCw, Calendar as CalendarIcon, Users, Zap, Unlink, Split } from 'lucide-react';
+import { FileUp, Loader2, PlusCircle, Search, Settings, Trash2, Edit, Pencil, ArrowRightLeft, BookOpen, Sparkles, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, CheckCheck, ChevronsUpDown, MoreHorizontal, RotateCcw, AlertTriangle, Download, BrainCircuit, Play, CheckCircle2, Clock, Undo2, RotateCw, History, Info, X, ArrowRight, MessageSquareQuote, Send, AlertCircle, StopCircle, GripVertical, Layers, FileSpreadsheet, Save, MessageSquare, RefreshCw, Calendar as CalendarIcon, Users, Zap, Unlink, Split, Percent, Repeat, Coins, CreditCard, Building2, ShieldAlert, FileText, ArrowLeftRight, Globe } from 'lucide-react';
 import { AiConfidenceBadge } from '@/components/ai/AiConfidenceBadge';
 import Papa from 'papaparse';
 import { ImportedTransaction, ChartOfAccount, User, VatType, AllocatedTransaction, AllocationRule, ClientCustomer, Invoice, SmartAllocationResult, Supplier } from '@/lib/types';
@@ -23,12 +23,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { cn, sanitizeFirestoreData } from '@/lib/utils';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
 import { allVatTypes } from '@/lib/vat-types';
 import { BankCleaner, matchesRuleKeyword } from '@/lib/bank-cleaner';
 import { resolveAccountForCategory } from '@/lib/chart-of-accounts-mapper';
+import { triageTransaction, buildConsistencyMap, TriageContext } from '@/lib/initial-allocation-engine';
+import { proposeRegroupsPure, RegroupProposal } from '@/lib/regroup-engine';
+import { MASTER_ALLOCATION_RULES } from '@/lib/master-allocation-rules';
+import { analyzeMerchantGroupDetective, ClueBadge, ClueType, DetectiveInputTransaction, DetectiveContext, WebGroundingResult, DetectiveAnalysisResult } from '@/lib/detective-engine';
 import { createRuleFromAllocationAction } from '@/app/actions/allocation-rules-actions';
 import { usePaginatedFirestore } from '@/hooks/use-paginated-firestore';
 import { Command, CommandEmpty, CommandInput, CommandList, CommandGroup, CommandSeparator, CommandItem } from "@/components/ui/command";
@@ -41,7 +45,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { runAiAccountantAnalysis, prepareAiAccountantAnalysis, moveTransactionToNew, researchMerchantWithAi, updateGlobalMerchantDb, resetAiAccountantAnalysis, proposeRegroups, applyRegroups, proposeAiRegroups, analyzeClientCommentAndSuggest, bulkMoveTransactionsToNew, matchTransactionsToSuppliers, matchTransactionsToHistory, reanalyzeAndRegroupTransactions, suggestTransactionAllocationWeb } from '@/app/actions';
+import { runAiAccountantAnalysis, prepareAiAccountantAnalysis, autoConsolidateSmartMatchQueue, moveTransactionToNew, researchMerchantWithAi, updateGlobalMerchantDb, resetAiAccountantAnalysis, proposeRegroups, applyRegroups, proposeAiRegroups, analyzeClientCommentAndSuggest, bulkMoveTransactionsToNew, matchTransactionsToSuppliers, matchTransactionsToHistory, reanalyzeAndRegroupTransactions, suggestTransactionAllocationWeb } from '@/app/actions';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -487,15 +491,49 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
         setIsUploading(true);
         setUploadProgress({ done: 0, total: filteredTransactions.length });
         try {
-            let allRules = [...(client.allocationRules || [])];
+            const clientRules = [...(client.allocationRules || [])];
+            let masterRules = client.disableGlobalRules ? [] : [...MASTER_ALLOCATION_RULES];
             if (!client.disableGlobalRules) {
-                const rulesQuery = collection(db, "allocationRules");
-                const rulesSnap = await getDocs(rulesQuery);
-                const globalRules = rulesSnap.docs.map(d => ({ ...d.data(), id: d.id } as AllocationRule));
-                allRules = [...allRules, ...globalRules];
+                try {
+                    const rulesQuery = collection(db, "allocationRules");
+                    const rulesSnap = await getDocs(rulesQuery);
+                    const globalRules = rulesSnap.docs.map(d => ({ ...d.data(), id: d.id } as any));
+                    const existingIds = new Set(masterRules.map(r => r.id));
+                    for (const gr of globalRules) {
+                        if (!existingIds.has(gr.id)) {
+                            masterRules.push(gr);
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Could not fetch additional firestore allocation rules", e);
+                }
             }
-            allRules.sort((a, b) => (a.priority || 99) - (b.priority || 99));
 
+            // Fetch historical reviewed/allocated transactions for past history memory consistency lookup
+            let historicalTransactions: ImportedTransaction[] = [];
+            try {
+                const txQuery = query(
+                    collection(db, 'aiAccountantClients', client.uid!, 'transactions'),
+                    where('status', 'in', ['reviewed', 'allocated'])
+                );
+                const txSnap = await getDocs(txQuery);
+                historicalTransactions = txSnap.docs.map(d => ({ id: d.id, ...d.data() } as ImportedTransaction));
+            } catch (e) {
+                console.warn("Could not fetch historical transactions for triage history memory", e);
+            }
+            const historyConsistencyMap = buildConsistencyMap(historicalTransactions);
+
+            const triageCtx: TriageContext = {
+                clientRules,
+                masterRules,
+                disableGlobalRules: client.disableGlobalRules ?? false,
+                chartOfAccounts: client.chartOfAccounts || [],
+                historicalTransactions,
+                historyConsistencyMap,
+                isVatRegistered: client.isVatRegistered ?? true,
+            };
+
+            const targetClientId = client.id || client.uid!;
             // Build all transaction documents first (synchronously, fast)
             const allTxDocs: { ref: any; data: any }[] = [];
             let matchCount = 0;
@@ -509,48 +547,60 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                 if (isNaN(parsedDate.getTime())) parsedDate = new Date(row.Date);
                 if (isNaN(parsedDate.getTime())) continue;
 
-                const description = row.Description;
+                const description = row.Description || '';
                 const isExpense = row.Amount < 0;
-                
-                const match = isExpense ? allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(description, kw))) : null;
+
+                const triage = triageTransaction(
+                    {
+                        description,
+                        amount: row.Amount,
+                        isExpense,
+                        date: parsedDate.toISOString(),
+                    },
+                    triageCtx
+                );
 
                 const txData: any = {
-                    clientId: client.uid!,
+                    clientId: targetClientId,
                     date: parsedDate.toISOString(),
                     reference: `CSV-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
                     description: description,
                     amount: row.Amount,
                     isExpense: isExpense,
                     bankAccountId: bankAccountId,
-                    status: (isExpense && match) ? 'reviewed' : 'new',
+                    status: triage.status,
                     createdAt: serverTimestamp()
                 };
 
-                if (isExpense && match) {
-                    const keyword = match.keywords.find(kw => matchesRuleKeyword(description, kw));
-                    let targetAccountId = match.accountId;
-                    let targetAccountType = match.accountType || 'account';
-                    if (client.chartOfAccounts && client.chartOfAccounts.length > 0) {
-                        const resolved = resolveAccountForCategory(client.chartOfAccounts, match);
-                        if (resolved) {
-                            targetAccountId = resolved.accountNumber;
-                            targetAccountType = resolved.accountType;
-                        }
-                    }
-                    txData.allocatedTo = { value: targetAccountId, type: targetAccountType };
-                    txData.vatType = client.isVatRegistered ? match.vatType : 'no_vat';
+                if (triage.rawDescription || description) txData.rawDescription = triage.rawDescription || description;
+                if (triage.cleanDescription) txData.cleanDescription = triage.cleanDescription;
+                if (triage.merchantKey) txData.merchantKey = triage.merchantKey;
+                if (triage.paymentChannel) txData.paymentChannel = triage.paymentChannel;
+                if (triage.branchLocation) txData.branchLocation = triage.branchLocation;
+                if (triage.structuralClues && Object.keys(triage.structuralClues).length > 0) txData.structuralClues = triage.structuralClues;
+
+                if (triage.isAllocated && triage.accountId) {
+                    txData.accountId = triage.accountId;
+                    txData.allocatedTo = {
+                        value: triage.accountId,
+                        type: triage.accountType || 'account'
+                    };
+                    txData.vatType = triage.vatType || (client.isVatRegistered ? 'standard_rated_purchases' : 'no_vat');
                     txData.allocatedAt = serverTimestamp();
-                    txData.allocationSource = 'rule';
+                    txData.allocationSource = triage.source === 'history' ? 'history' : 'rule';
                     
-                    if (match.id) txData.matchedRuleId = match.id;
-                    if (match.description) txData.matchedRuleDescription = match.description;
-                    if (keyword) txData.matchedKeyword = keyword;
+                    if (triage.matchedRuleId) txData.matchedRuleId = triage.matchedRuleId;
+                    if (triage.matchedRuleDescription) txData.matchedRuleDescription = triage.matchedRuleDescription;
+                    if (triage.matchedKeyword) txData.matchedKeyword = triage.matchedKeyword;
                     
                     matchCount++;
                 }
 
-                const newRef = doc(collection(db, 'aiAccountantClients', client.uid!, 'transactions'));
-                allTxDocs.push({ ref: newRef, data: txData });
+                // Deeply strip any undefined values to strictly ensure WriteBatch compatibility
+                const cleanTxData = sanitizeFirestoreData(txData);
+
+                const newRef = doc(collection(db, 'aiAccountantClients', targetClientId, 'transactions'));
+                allTxDocs.push({ ref: newRef, data: cleanTxData });
             }
 
             // Commit in chunks of 450 (safely under Firestore's 500-write limit)
@@ -559,7 +609,7 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
                 const chunk = allTxDocs.slice(i, i + CHUNK_SIZE);
                 const batch = writeBatch(db);
                 for (const item of chunk) {
-                    batch.set(item.ref, item.data);
+                    batch.set(item.ref, sanitizeFirestoreData(item.data));
                 }
                 await batch.commit();
                 setUploadProgress({ done: Math.min(i + CHUNK_SIZE, allTxDocs.length), total: allTxDocs.length });
@@ -571,19 +621,22 @@ function ImportDialog({ client, bankAccountId, currentBalance, onImportComplete 
             const finalBankBalance = parseFloat(actualBalance);
             if (!isNaN(finalBankBalance)) {
                 try {
-                    const clientRef = doc(db, 'aiAccountantClients', client.uid!);
-                    const currentCOA = client.chartOfAccounts || [];
-                    const updatedAccounts = currentCOA.map(acc => {
-                        if (acc.id === bankAccountId) {
-                            return {
-                                ...acc,
-                                bankBalance: finalBankBalance,
-                                lastImportDate: endDate || format(new Date(), 'yyyy-MM-dd')
-                            };
-                        }
-                        return acc;
-                    });
-                    await updateDoc(clientRef, { chartOfAccounts: updatedAccounts });
+                    const targetClientId = client.id || client.uid;
+                    if (targetClientId) {
+                        const clientRef = doc(db, 'aiAccountantClients', targetClientId);
+                        const currentCOA = client.chartOfAccounts || [];
+                        const updatedAccounts = currentCOA.map(acc => {
+                            if (acc.id === bankAccountId) {
+                                return {
+                                    ...acc,
+                                    bankBalance: finalBankBalance,
+                                    lastImportDate: endDate || format(new Date(), 'yyyy-MM-dd')
+                                };
+                            }
+                            return acc;
+                        });
+                        await updateDoc(clientRef, { chartOfAccounts: updatedAccounts });
+                    }
                 } catch (coaErr) {
                     console.error("Error updating bank account balance in chartOfAccounts:", coaErr);
                 }
@@ -1426,7 +1479,7 @@ function SplitTransactionDialog({
                 };
                 
                 const newDocRef = doc(txCollection);
-                batch.set(newDocRef, subTxData);
+                batch.set(newDocRef, sanitizeFirestoreData(subTxData));
             });
             
             await batch.commit();
@@ -1572,6 +1625,52 @@ function SplitTransactionDialog({
 
 // #endregion
 
+function renderClueIcon(type: ClueType) {
+    switch (type) {
+        case 'timing':
+            return <Clock className="h-3 w-3 shrink-0" />;
+        case 'amount':
+            return <Percent className="h-3 w-3 shrink-0" />;
+        case 'prefix':
+            return <Layers className="h-3 w-3 shrink-0" />;
+        case 'reference':
+            return <ShieldAlert className="h-3 w-3 shrink-0" />;
+        case 'cross_ref':
+            return <History className="h-3 w-3 shrink-0" />;
+        case 'sweep':
+            return <ArrowLeftRight className="h-3 w-3 shrink-0" />;
+        case 'structure':
+            return <CheckCheck className="h-3 w-3 shrink-0" />;
+        case 'web':
+            return <Globe className="h-3 w-3 shrink-0" />;
+        default:
+            return <Sparkles className="h-3 w-3 shrink-0" />;
+    }
+}
+
+function getClueBadgeStyle(type: ClueType) {
+    switch (type) {
+        case 'timing':
+            return 'bg-blue-50 text-blue-700 border-blue-200';
+        case 'amount':
+            return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        case 'prefix':
+            return 'bg-purple-50 text-purple-700 border-purple-200';
+        case 'reference':
+            return 'bg-red-50 text-red-700 border-red-200';
+        case 'cross_ref':
+            return 'bg-teal-50 text-teal-700 border-teal-200';
+        case 'sweep':
+            return 'bg-orange-50 text-orange-700 border-orange-200';
+        case 'structure':
+            return 'bg-sky-50 text-sky-700 border-sky-200';
+        case 'web':
+            return 'bg-green-50 text-green-700 border-green-200';
+        default:
+            return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+}
+
 interface SmartMatchResult {
     groupId: string;
     groupKey: string;
@@ -1587,6 +1686,10 @@ interface SmartMatchResult {
     confidence: number;
     suggestedKeyword: string;
     existingRule?: AllocationRule;
+    badges: ClueBadge[];
+    ruleScoping: 'client' | 'global_practice';
+    isAutoAllocatable: boolean;
+    status: 'reviewed' | 'ai_review';
 }
 
 interface SmartMatchQueueModalProps {
@@ -1607,23 +1710,273 @@ function SmartMatchQueueModal({
     onRulesSaved
 }: SmartMatchQueueModalProps) {
     const { toast } = useToast();
-    const [phase, setPhase] = useState<'idle' | 'running' | 'results' | 'saving'>('idle');
+    const [phase, setPhase] = useState<'idle' | 'review_merges' | 'running' | 'results' | 'saving'>('idle');
     const [progress, setProgress] = useState<{ processed: number; total: number }>({ processed: 0, total: 0 });
     const [results, setResults] = useState<SmartMatchResult[]>([]);
     const [selectedForRules, setSelectedForRules] = useState<Set<string>>(new Set());
     const [ruleEdits, setRuleEdits] = useState<Map<string, string>>(new Map());
     const [accountEdits, setAccountEdits] = useState<Map<string, string>>(new Map());
+    const [ruleScopes, setRuleScopes] = useState<Map<string, 'client' | 'global_practice'>>(new Map());
+    const [safeProposals, setSafeProposals] = useState<RegroupProposal[]>([]);
+    const [isApplyingModalMerges, setIsApplyingModalMerges] = useState(false);
+    const [currentDistinctGroups, setCurrentDistinctGroups] = useState<any[]>([]);
+    const [currentGroupMap, setCurrentGroupMap] = useState<Map<string, any>>(new Map());
     const isAbortedRef = React.useRef(false);
+    const isMatchingRef = React.useRef(false);
+    const sessionKeyRef = React.useRef<string | null>(null);
+    const selectedTransactionsRef = React.useRef(selectedTransactions);
+    const clientRef = React.useRef(client);
+    const globalRulesRef = React.useRef(globalRules);
+
+    useEffect(() => {
+        selectedTransactionsRef.current = selectedTransactions;
+    }, [selectedTransactions]);
+
+    useEffect(() => {
+        clientRef.current = client;
+    }, [client]);
+
+    useEffect(() => {
+        globalRulesRef.current = globalRules;
+    }, [globalRules]);
 
     const txIdsKey = useMemo(() => (selectedTransactions || []).map(t => t.id).join(','), [selectedTransactions]);
 
+    const handleScopeChange = (groupId: string, scope: 'client' | 'global_practice') => {
+        setRuleScopes(prev => {
+            const next = new Map(prev);
+            next.set(groupId, scope);
+            return next;
+        });
+    };
+
+    const runSmartMatch = useCallback(async (groupsToRun: any[]) => {
+        const currentClient = clientRef.current;
+        const currentGlobalRules = globalRulesRef.current || [];
+        const currentTxs = selectedTransactionsRef.current || [];
+
+        const coaJson = JSON.stringify(
+            (currentClient?.chartOfAccounts || []).map((a: ChartOfAccount) => ({
+                id: a.id,
+                accountNumber: a.accountNumber || a.code || a.id,
+                description: a.description || a.name || ''
+            }))
+        );
+
+        const allRules = [...(currentClient?.allocationRules || []), ...currentGlobalRules];
+        const matchedResults: SmartMatchResult[] = [];
+        const initialSelected = new Set<string>();
+        const initialEdits = new Map<string, string>();
+        const initialScopes = new Map<string, 'client' | 'global_practice'>();
+
+        // Build detective context once for the batch
+        const allDetectiveTxs: DetectiveInputTransaction[] = currentTxs.map(t => ({
+            id: t.id,
+            description: t.description,
+            amount: Number(t.amount) || 0,
+            date: t.date,
+            isExpense: t.isExpense,
+            bankAccountId: t.bankAccountId,
+            paymentChannel: t.paymentChannel,
+            merchantKey: t.merchantKey,
+            structuralClues: t.structuralClues
+        }));
+
+        const detectiveContext: DetectiveContext = {
+            allBatchTransactions: allDetectiveTxs,
+            clientRules: currentClient?.allocationRules || [],
+            globalRules: currentClient?.disableGlobalRules ? [] : (globalRules || []),
+            masterRules: currentClient?.disableGlobalRules ? [] : MASTER_ALLOCATION_RULES,
+            chartOfAccounts: currentClient?.chartOfAccounts || [],
+            isVatRegistered: currentClient?.isVatRegistered
+        };
+
+        // Phase 1: Instant Tier 1 Detective Evaluation (purely local heuristics, rules, SARS, Sweeps, Brands)
+        interface WorkItem {
+            group: any;
+            groupTxs: DetectiveInputTransaction[];
+            tier1Res: DetectiveAnalysisResult;
+            matchingRule?: AllocationRule;
+            needsWeb: boolean;
+        }
+
+        const workItems: WorkItem[] = groupsToRun.map(group => {
+            const groupTxs: DetectiveInputTransaction[] = (group.transactions || []).map((t: any) => ({
+                id: t.id,
+                description: t.description,
+                amount: Number(t.amount) || 0,
+                date: t.date,
+                isExpense: t.isExpense,
+                bankAccountId: t.bankAccountId,
+                paymentChannel: t.paymentChannel,
+                merchantKey: t.merchantKey,
+                structuralClues: t.structuralClues
+            }));
+
+            const tier1Res = analyzeMerchantGroupDetective(group.groupKey, groupTxs, detectiveContext);
+            
+            // Check if an existing rule actually matches this merchant's keywords or description
+            const matchingRule = allRules.find(r => 
+                (r.keywords || []).some(kw => matchesRuleKeyword(group.groupKey, kw) || matchesRuleKeyword(group.description, kw))
+            );
+
+            // Needs Web Grounding if no existing rule matches and Tier 1 has low confidence or no suggested account
+            const needsWeb = !matchingRule && (!tier1Res.isAutoAllocatable || !tier1Res.suggestedAccountId);
+
+            return {
+                group,
+                groupTxs,
+                tier1Res,
+                matchingRule,
+                needsWeb
+            };
+        });
+
+        const webCandidates = workItems.filter(w => w.needsWeb);
+        let completedCount = workItems.length - webCandidates.length;
+        setProgress({ processed: completedCount, total: workItems.length });
+
+        // Phase 2: Bounded Concurrent Web Research with Strict 7-Second Timeout (only for unknown groups)
+        const webResultsMap = new Map<string, WebGroundingResult | undefined>();
+        const CONCURRENCY = 3;
+
+        for (let b = 0; b < webCandidates.length; b += CONCURRENCY) {
+            if (isAbortedRef.current) break;
+            const chunk = webCandidates.slice(b, b + CONCURRENCY);
+
+            await Promise.all(chunk.map(async (item) => {
+                if (isAbortedRef.current) return;
+                try {
+                    const timeoutPromise = new Promise<undefined>((resolve) => 
+                        setTimeout(() => resolve(undefined), 7000)
+                    );
+                    const callPromise = suggestTransactionAllocationWeb({
+                        description: item.group.description,
+                        chartOfAccounts: coaJson,
+                        isVatRegistered: currentClient?.isVatRegistered,
+                        apiKey: currentClient?.geminiApiKey,
+                        paymentChannel: item.groupTxs[0]?.paymentChannel,
+                        amount: item.groupTxs[0]?.amount
+                    }).then(output => {
+                        if (output && output.confidence > 0) {
+                            return {
+                                merchantName: output.merchantName,
+                                merchantCategory: output.merchantCategory,
+                                suggestedAccountId: output.accountId,
+                                suggestedVatType: output.vatType,
+                                confidence: output.confidence,
+                                suggestedKeyword: output.suggestedKeyword,
+                                rationale: output.rationale,
+                                cipcRegistered: output.cipcRegistered,
+                                vatVendorStatus: output.vatVendorStatus
+                            } as WebGroundingResult;
+                        }
+                        return undefined;
+                    }).catch(err => {
+                        console.warn(`Web grounding skipped/failed for ${item.group.groupKey}:`, err);
+                        return undefined;
+                    });
+
+                    const webResult = await Promise.race([callPromise, timeoutPromise]);
+                    if (webResult) {
+                        webResultsMap.set(item.group.groupId, webResult);
+                    }
+                } catch (e) {
+                    // Ignore error, fallback cleanly to Tier 1
+                } finally {
+                    completedCount++;
+                    if (!isAbortedRef.current) {
+                        setProgress({ processed: Math.min(completedCount, workItems.length), total: workItems.length });
+                    }
+                }
+            }));
+        }
+
+        // Phase 3: Synthesize Final Results
+        for (const item of workItems) {
+            const webResult = webResultsMap.get(item.group.groupId);
+            const finalDetectiveRes = webResult 
+                ? analyzeMerchantGroupDetective(item.group.groupKey, item.groupTxs, detectiveContext, webResult)
+                : item.tier1Res;
+
+            const acc = (currentClient?.chartOfAccounts || []).find((a: ChartOfAccount) => a.id === finalDetectiveRes.suggestedAccountId || a.accountNumber === finalDetectiveRes.suggestedAccountId);
+            const accountLabel = acc ? `${acc.accountNumber || acc.id} - ${acc.description}` : (finalDetectiveRes.suggestedAccountLabel || finalDetectiveRes.suggestedAccountId || '');
+            
+            // Only associate an existingRule if a rule's keywords actually matched this merchant
+            const existingRule = item.matchingRule || (finalDetectiveRes.suggestedAccountId ? allRules.find(r => 
+                r.accountId === finalDetectiveRes.suggestedAccountId && 
+                (r.keywords || []).some(kw => matchesRuleKeyword(item.group.groupKey, kw) || matchesRuleKeyword(item.group.description, kw))
+            ) : undefined);
+
+            const res: SmartMatchResult = {
+                groupId: item.group.groupId,
+                groupKey: item.group.groupKey,
+                description: item.group.description,
+                transactionCount: item.group.transactions.length,
+                totalAmount: item.group.totalAmount,
+                transactionIds: item.group.transactions.map((t: any) => t.id),
+                merchantName: webResult?.merchantName || finalDetectiveRes.cleanDescription || item.group.groupKey,
+                merchantCategory: webResult?.merchantCategory || 'General',
+                suggestedAccountId: finalDetectiveRes.suggestedAccountId || '',
+                suggestedAccountLabel: accountLabel,
+                vatType: finalDetectiveRes.suggestedVatType,
+                confidence: finalDetectiveRes.compositeConfidence,
+                suggestedKeyword: (webResult?.suggestedKeyword || item.group.groupKey).toUpperCase(),
+                existingRule,
+                badges: finalDetectiveRes.badges,
+                ruleScoping: finalDetectiveRes.ruleScoping,
+                isAutoAllocatable: finalDetectiveRes.isAutoAllocatable && Boolean(finalDetectiveRes.suggestedAccountId),
+                status: finalDetectiveRes.status
+            };
+
+            matchedResults.push(res);
+            if (res.isAutoAllocatable) {
+                initialSelected.add(item.group.groupId);
+            }
+            initialEdits.set(item.group.groupId, res.suggestedKeyword);
+            initialScopes.set(item.group.groupId, finalDetectiveRes.ruleScoping);
+        }
+
+        if (!isAbortedRef.current) {
+            setResults(matchedResults);
+            setSelectedForRules(initialSelected);
+            setRuleEdits(initialEdits);
+            setRuleScopes(initialScopes);
+            setPhase('results');
+        }
+    }, []);
+
+    const startMatching = useCallback((groupsToRun: any[]) => {
+        isAbortedRef.current = false;
+        setPhase('running');
+        setProgress({ processed: 0, total: groupsToRun.length });
+        setResults([]);
+        setSelectedForRules(new Set());
+        setRuleEdits(new Map());
+        setAccountEdits(new Map());
+        setRuleScopes(new Map());
+        runSmartMatch(groupsToRun);
+    }, [runSmartMatch]);
+
     useEffect(() => {
         if (!open) {
+            isAbortedRef.current = true;
+            isMatchingRef.current = false;
+            sessionKeyRef.current = null;
             setPhase('idle');
             return;
         }
 
-        if (!selectedTransactions || selectedTransactions.length === 0) {
+        const currentSession = txIdsKey;
+        if (sessionKeyRef.current === currentSession && isMatchingRef.current) {
+            return;
+        }
+        sessionKeyRef.current = currentSession;
+        isMatchingRef.current = true;
+        isAbortedRef.current = false;
+
+        const txs = selectedTransactionsRef.current;
+        if (!txs || txs.length === 0) {
             setPhase('idle');
             return;
         }
@@ -1637,7 +1990,7 @@ function SmartMatchQueueModal({
             totalAmount: number;
         }>();
 
-        for (const tx of selectedTransactions) {
+        for (const tx of txs) {
             const processed = BankCleaner.process(tx.description || '');
             const rawKey = (tx.merchantKey || tx.cleanDescription || processed.merchantKey || processed.cleanDescription || tx.description || '').trim();
             const normalizedKey = rawKey.toUpperCase() || 'UNKNOWN';
@@ -1658,89 +2011,108 @@ function SmartMatchQueueModal({
         }
 
         const distinctGroups = Array.from(groupMap.values());
+        setCurrentGroupMap(groupMap);
+        setCurrentDistinctGroups(distinctGroups);
 
-        isAbortedRef.current = false;
-        setPhase('running');
-        setProgress({ processed: 0, total: distinctGroups.length });
-        setResults([]);
-        setSelectedForRules(new Set());
-        setRuleEdits(new Map());
-        setAccountEdits(new Map());
+        // Pre-flight check for safe regroup proposals
+        const initialGroupsForRegroup = distinctGroups.map(g => ({
+            key: g.groupKey,
+            count: g.transactions.length,
+            transactions: g.transactions
+        }));
 
-        const runSmartMatch = async () => {
-            const coaJson = JSON.stringify(
-                (client?.chartOfAccounts || []).map((a: ChartOfAccount) => ({
-                    id: a.id,
-                    accountNumber: a.accountNumber || a.code || a.id,
-                    description: a.description || a.name || ''
-                }))
-            );
+        const proposals = proposeRegroupsPure(initialGroupsForRegroup);
+        const detectedSafe = proposals.filter(p => p.isSafe);
 
-            const allRules = [...(client?.allocationRules || []), ...globalRules];
-            const matchedResults: SmartMatchResult[] = [];
-            const initialSelected = new Set<string>();
-            const initialEdits = new Map<string, string>();
+        if (detectedSafe.length > 0) {
+            setSafeProposals(detectedSafe);
+            setPhase('review_merges');
+        } else {
+            setSafeProposals([]);
+            startMatching(distinctGroups);
+        }
+    }, [open, txIdsKey, startMatching]);
 
-            for (let i = 0; i < distinctGroups.length; i++) {
-                if (isAbortedRef.current) break;
+    const handleMergeAllSafeInModal = async () => {
+        setIsApplyingModalMerges(true);
+        try {
+            const updatedGroupMap = new Map(currentGroupMap);
+            const mergesToPersist: { fromKey: string; toKey: string; fromTxIds: string[] }[] = [];
 
-                const group = distinctGroups[i];
-                try {
-                    const output = await suggestTransactionAllocationWeb({
-                        description: group.description,
-                        chartOfAccounts: coaJson,
-                        isVatRegistered: client?.isVatRegistered,
-                        apiKey: client?.geminiApiKey,
-                    });
-
-                    if (output && output.confidence >= 90) {
-                        const acc = client?.chartOfAccounts?.find((a: ChartOfAccount) => a.id === output.accountId);
-                        const accountLabel = acc ? `${acc.accountNumber || acc.id} - ${acc.description}` : output.accountId;
-                        const existingRule = allRules.find(r => r.accountId === output.accountId);
-
-                        const res: SmartMatchResult = {
-                            groupId: group.groupId,
-                            groupKey: group.groupKey,
-                            description: group.description,
-                            transactionCount: group.transactions.length,
-                            totalAmount: group.totalAmount,
-                            transactionIds: group.transactions.map(t => t.id),
-                            merchantName: output.merchantName || group.groupKey,
-                            merchantCategory: output.merchantCategory || 'General',
-                            suggestedAccountId: output.accountId,
-                            suggestedAccountLabel: accountLabel,
-                            vatType: (output.vatType as VatType) || 'no_vat',
-                            confidence: output.confidence,
-                            suggestedKeyword: (output.suggestedKeyword || group.groupKey).toUpperCase(),
-                            existingRule,
+            for (const prop of safeProposals) {
+                let targetG = updatedGroupMap.get(prop.targetKey);
+                if (!targetG) {
+                    const firstSrc = updatedGroupMap.get(prop.sources[0]);
+                    if (firstSrc) {
+                        targetG = {
+                            groupId: `grp_${updatedGroupMap.size + 1}_${prop.targetKey.substring(0, 12).replace(/[^A-Z0-9]/g, '_')}`,
+                            groupKey: prop.targetKey,
+                            description: firstSrc.description,
+                            transactions: [],
+                            totalAmount: 0
                         };
-
-                        matchedResults.push(res);
-                        initialSelected.add(group.groupId);
-                        initialEdits.set(group.groupId, res.suggestedKeyword);
+                        updatedGroupMap.set(prop.targetKey, targetG);
                     }
-                } catch (err) {
-                    console.error(`Error in Smart Match analysis for group ${group.groupKey}:`, err);
                 }
 
-                if (!isAbortedRef.current) {
-                    setProgress({ processed: i + 1, total: distinctGroups.length });
+                if (targetG) {
+                    for (const srcKey of prop.sources) {
+                        const srcG = updatedGroupMap.get(srcKey);
+                        if (srcG && srcKey !== prop.targetKey) {
+                            targetG.transactions.push(...srcG.transactions);
+                            targetG.totalAmount += srcG.totalAmount;
+                            mergesToPersist.push({
+                                fromKey: srcKey,
+                                toKey: prop.targetKey,
+                                fromTxIds: srcG.transactions.map((t: any) => t.id)
+                            });
+                            updatedGroupMap.delete(srcKey);
+                        }
+                    }
                 }
             }
 
-            if (!isAbortedRef.current) {
-                setResults(matchedResults);
-                setSelectedForRules(initialSelected);
-                setRuleEdits(initialEdits);
-                setPhase('results');
+            if (client?.uid && mergesToPersist.length > 0) {
+                try {
+                    const idToken = await getIdToken();
+                    await applyRegroups({
+                        clientId: client.uid,
+                        merges: mergesToPersist,
+                        userId: client.uid,
+                        idToken
+                    });
+                } catch (persistErr) {
+                    console.warn("Could not persist regroups to DB, proceeding in-memory:", persistErr);
+                }
             }
-        };
 
-        runSmartMatch();
-    }, [open, txIdsKey]);
+            toast({
+                title: "Safe Regroups Applied",
+                description: `Consolidated ${safeProposals.length} merchant group variant(s) before AI research.`
+            });
+
+            const collapsedGroups = Array.from(updatedGroupMap.values());
+            setCurrentDistinctGroups(collapsedGroups);
+            setCurrentGroupMap(updatedGroupMap);
+            setSafeProposals([]);
+            startMatching(collapsedGroups);
+        } catch (err) {
+            console.error("Error applying safe merges in modal:", err);
+            toast({ title: "Failed to merge groups", variant: "destructive" });
+        } finally {
+            setIsApplyingModalMerges(false);
+        }
+    };
+
+    const handleSkipSafeMerges = () => {
+        setSafeProposals([]);
+        startMatching(currentDistinctGroups);
+    };
 
     const handleCancel = () => {
         isAbortedRef.current = true;
+        isMatchingRef.current = false;
+        sessionKeyRef.current = null;
         setPhase('idle');
         onOpenChange(false);
     };
@@ -1799,80 +2171,118 @@ function SmartMatchQueueModal({
 
             let createdCount = 0;
             let updatedCount = 0;
-            const totalTxsCovered = selectedResults.reduce((sum, r) => sum + r.transactionCount, 0);
+            const allTxUpdates: Array<{ txId: string; accountId: string; vatType: VatType; ruleId: string }> = [];
 
             for (const result of selectedResults) {
                 const keyword = (ruleEdits.get(result.groupId) || result.suggestedKeyword).trim().toUpperCase();
                 const accountId = accountEdits.get(result.groupId) || result.suggestedAccountId;
+                const scope = ruleScopes.get(result.groupId) || result.ruleScoping;
                 
                 if (!keyword || !accountId) continue;
 
-                // 1. Update/create Client Level Rule
-                const existingRuleIndex = currentClientRules.findIndex(r => r.accountId === accountId);
+                let assignedRuleId = `rule_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-                if (existingRuleIndex !== -1) {
-                    const existingRule = currentClientRules[existingRuleIndex];
-                    const existingKeywords = existingRule.keywords || [];
-                    if (!existingKeywords.includes(keyword)) {
-                        currentClientRules[existingRuleIndex] = {
-                            ...existingRule,
-                            keywords: Array.from(new Set([...existingKeywords, keyword]))
-                        };
+                if (scope === 'global_practice') {
+                    // Update/create Global Practice Level Rule in 'allocationRules' collection
+                    const existingGlobal = globalRulesDocs.find(r => r.accountId === accountId);
+                    if (existingGlobal) {
+                        const existingGlobalKeywords = existingGlobal.keywords || [];
+                        if (!existingGlobalKeywords.includes(keyword)) {
+                            const updatedGlobalKeywords = Array.from(new Set([...existingGlobalKeywords, keyword]));
+                            await updateDoc(doc(db, 'allocationRules', existingGlobal.docId), {
+                                keywords: updatedGlobalKeywords
+                            });
+                            existingGlobal.keywords = updatedGlobalKeywords;
+                        }
+                        assignedRuleId = existingGlobal.docId || existingGlobal.id || assignedRuleId;
                         updatedCount++;
+                    } else {
+                        const newGlobalDocRef = doc(collection(db, 'allocationRules'));
+                        assignedRuleId = newGlobalDocRef.id;
+                        const newGlobalRule = {
+                            description: result.merchantName ? `${result.merchantName}` : `Rule for ${keyword}`,
+                            keywords: [keyword],
+                            accountId: accountId,
+                            vatType: result.vatType || 'no_vat',
+                            scope: 'global',
+                            priority: 99,
+                            createdAt: serverTimestamp()
+                        };
+                        await setDoc(newGlobalDocRef, newGlobalRule);
+                        globalRulesDocs.push({ ...newGlobalRule, id: newGlobalDocRef.id, docId: newGlobalDocRef.id });
+                        createdCount++;
                     }
                 } else {
-                    const newRule: AllocationRule = {
-                        id: `rule_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-                        description: `Auto-rule for ${keyword}`,
-                        keywords: [keyword],
-                        accountId: accountId,
-                        vatType: result.vatType || 'no_vat',
-                        type: 'hard',
-                        scope: 'client',
-                        priority: 99
-                    };
-                    currentClientRules.push(newRule);
-                    createdCount++;
+                    // Update/create Client Level Rule
+                    const existingRuleIndex = currentClientRules.findIndex(r => r.accountId === accountId);
+                    if (existingRuleIndex !== -1) {
+                        const existingRule = currentClientRules[existingRuleIndex];
+                        const existingKeywords = existingRule.keywords || [];
+                        if (!existingKeywords.includes(keyword)) {
+                            currentClientRules[existingRuleIndex] = {
+                                ...existingRule,
+                                keywords: Array.from(new Set([...existingKeywords, keyword]))
+                            };
+                            updatedCount++;
+                        }
+                        assignedRuleId = existingRule.id || assignedRuleId;
+                    } else {
+                        const newRule: AllocationRule = {
+                            id: assignedRuleId,
+                            description: `Auto-rule for ${keyword}`,
+                            keywords: [keyword],
+                            accountId: accountId,
+                            vatType: result.vatType || 'no_vat',
+                            type: 'hard',
+                            scope: 'client',
+                            priority: 99
+                        };
+                        currentClientRules.push(newRule);
+                        createdCount++;
+                    }
                 }
 
-                // 2. Update/create Global Practice Level Rule in 'allocationRules' collection
-                const existingGlobal = globalRulesDocs.find(r => r.accountId === accountId);
-                if (existingGlobal) {
-                    const existingGlobalKeywords = existingGlobal.keywords || [];
-                    if (!existingGlobalKeywords.includes(keyword)) {
-                        const updatedGlobalKeywords = Array.from(new Set([...existingGlobalKeywords, keyword]));
-                        await updateDoc(doc(db, 'allocationRules', existingGlobal.docId), {
-                            keywords: updatedGlobalKeywords
-                        });
-                        existingGlobal.keywords = updatedGlobalKeywords;
-                    }
-                } else {
-                    const newGlobalDocRef = doc(collection(db, 'allocationRules'));
-                    const newGlobalRule = {
-                        description: result.merchantName ? `${result.merchantName}` : `Rule for ${keyword}`,
-                        keywords: [keyword],
-                        accountId: accountId,
+                for (const txId of result.transactionIds) {
+                    allTxUpdates.push({
+                        txId,
+                        accountId,
                         vatType: result.vatType || 'no_vat',
-                        scope: 'global',
-                        priority: 99,
-                        createdAt: serverTimestamp()
-                    };
-                    await setDoc(newGlobalDocRef, newGlobalRule);
-                    globalRulesDocs.push({ ...newGlobalRule, id: newGlobalDocRef.id, docId: newGlobalDocRef.id });
+                        ruleId: assignedRuleId
+                    });
                 }
             }
 
+            // Commit client rules update
             await updateDoc(clientDocRef, { allocationRules: currentClientRules });
 
+            // Commit transaction document allocations in Firestore in batches of 450
+            const BATCH_SIZE = 450;
+            for (let b = 0; b < allTxUpdates.length; b += BATCH_SIZE) {
+                const chunk = allTxUpdates.slice(b, b + BATCH_SIZE);
+                const batch = writeBatch(db);
+                for (const item of chunk) {
+                    const txRef = doc(db, 'aiAccountantClients', client.uid, 'transactions', item.txId);
+                    batch.update(txRef, {
+                        status: 'reviewed',
+                        allocatedTo: { value: item.accountId, type: 'account' },
+                        vatType: client.isVatRegistered ? item.vatType : 'no_vat',
+                        allocationSource: 'rule',
+                        matchedRuleId: item.ruleId,
+                        allocatedAt: new Date().toISOString()
+                    });
+                }
+                await batch.commit();
+            }
+
             toast({
-                title: 'Rules Created & Global Rules Updated',
-                description: `${selectedResults.length} merchant group(s) processed covering ${totalTxsCovered} transaction(s). ${createdCount} new rule(s) created, ${updatedCount} updated.`
+                title: 'Rules Created & Transactions Allocated',
+                description: `${selectedResults.length} merchant group(s) processed. ${createdCount} new rule(s), ${updatedCount} updated, ${allTxUpdates.length} transaction(s) committed to reviewed.`
             });
 
             onRulesSaved();
             onOpenChange(false);
         } catch (err) {
-            console.error("Error saving rules:", err);
+            console.error("Error saving rules and allocating transactions:", err);
             toast({
                 title: 'Error Saving Rules',
                 description: 'Could not save the allocation rules to Firestore.',
@@ -1884,18 +2294,69 @@ function SmartMatchQueueModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+            <DialogContent className="max-w-6xl lg:max-w-7xl w-[95vw] max-h-[92vh] flex flex-col p-0 overflow-hidden shadow-2xl">
                 <DialogHeader className="p-6 pb-4 border-b">
                     <DialogTitle className="flex items-center gap-2 text-xl font-bold">
                         <Sparkles className="h-5 w-5 text-emerald-500" />
                         AI Smart Match Queue
                     </DialogTitle>
                     <DialogDescription>
-                        Analyses selected transactions by merchant group using AI web search grounding to identify merchants (≥ 90% confidence) and create automated allocation rules.
+                        Analyses selected transactions by merchant group using the 9-Clue Detective Allocation Engine and AI web search grounding (≥ 80% confidence) to auto-allocate transactions and create scoped allocation rules.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="p-6 flex-1 overflow-y-auto min-h-[320px]">
+                    {phase === 'review_merges' && (
+                        <div className="space-y-4">
+                            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex items-start justify-between gap-4">
+                                <div className="flex items-start gap-3">
+                                    <Layers className="h-6 w-6 text-emerald-600 shrink-0 mt-0.5" />
+                                    <div>
+                                        <h3 className="font-bold text-sm text-emerald-950">
+                                            {safeProposals.length} Safe Merchant Regroup(s) Detected
+                                        </h3>
+                                        <p className="text-xs text-emerald-800 mt-1">
+                                            Found branch numbers, store locators, or typo variants that belong to canonical brands. Merging them now consolidates your merchant groups and saves AI web research requests.
+                                        </p>
+                                    </div>
+                                </div>
+                                <Button
+                                    onClick={handleMergeAllSafeInModal}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shrink-0 shadow-sm"
+                                    disabled={isApplyingModalMerges}
+                                >
+                                    {isApplyingModalMerges ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4 fill-white" />}
+                                    Merge All Safe Proposals ({safeProposals.length})
+                                </Button>
+                            </div>
+
+                            <ScrollArea className="max-h-[50vh] pr-2">
+                                <div className="space-y-3">
+                                    {safeProposals.map((prop, idx) => (
+                                         <div key={idx} className="p-3 rounded-lg border bg-white shadow-sm flex items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3 flex-1">
+                                                <div className="flex-1">
+                                                    <Badge variant="outline" className="text-[9px] uppercase tracking-wider mb-1 text-destructive">Merge From ({prop.sources.length})</Badge>
+                                                    <p className="font-semibold text-xs text-destructive truncate">{prop.sources.join(', ')}</p>
+                                                    <p className="text-[10px] text-muted-foreground">{prop.totalCount} transaction(s)</p>
+                                                </div>
+                                                <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                                                <div className="flex-1">
+                                                    <Badge variant="default" className="text-[9px] uppercase tracking-wider mb-1 bg-emerald-600">Canonical Root</Badge>
+                                                    <p className="font-semibold text-xs text-emerald-900 truncate">{prop.targetKey}</p>
+                                                    <p className="text-[10px] text-muted-foreground">{prop.reason}</p>
+                                                </div>
+                                            </div>
+                                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px]">
+                                                {Math.round(prop.similarity * 100)}% Match
+                                            </Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+                    )}
+
                     {phase === 'running' && (
                         <div className="flex flex-col items-center justify-center py-12 space-y-6 text-center">
                             <div className="relative">
@@ -1905,13 +2366,13 @@ function SmartMatchQueueModal({
                             <div className="space-y-2 max-w-sm">
                                 <h3 className="font-semibold text-lg">Analyzing Merchant Groups...</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Searching web databases once per unique merchant to match GL accounts.
+                                    Instant 9-Clue Detective Engine matching with grounded AI research for unknown merchants.
                                 </p>
                             </div>
                             <div className="w-full max-w-md space-y-2">
                                 <Progress value={progress.total > 0 ? (progress.processed / progress.total) * 100 : 0} className="h-2" />
                                 <p className="text-xs text-muted-foreground font-mono">
-                                    Analysing group {progress.processed} of {progress.total} ({selectedTransactions.length} total transactions)...
+                                    Processed {progress.processed} of {progress.total} groups ({selectedTransactions.length} total transactions)...
                                 </p>
                             </div>
                         </div>
@@ -1930,15 +2391,15 @@ function SmartMatchQueueModal({
                             {results.length === 0 ? (
                                 <div className="text-center py-12 space-y-3">
                                     <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
-                                    <h3 className="font-semibold text-base">No High-Confidence Matches Found</h3>
+                                    <h3 className="font-semibold text-base">No Matches Found</h3>
                                     <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                                        None of the analyzed merchant groups reached the 90%+ confidence threshold for automated rule creation.
+                                        None of the analyzed transactions could be processed.
                                     </p>
                                 </div>
                             ) : (
                                 <>
                                     <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/40 p-3 rounded-lg border gap-4 flex-wrap">
-                                        <span>Found <strong className="text-foreground">{results.length}</strong> high-confidence (≥ 90%) merchant group match(es) covering <strong className="text-foreground">{results.reduce((sum, r) => sum + r.transactionCount, 0)}</strong> of {selectedTransactions.length} selected transaction(s).</span>
+                                        <span>Found <strong className="text-foreground">{results.filter(r => r.isAutoAllocatable).length}</strong> high-confidence (≥ 80%) merchant group match(es) covering <strong className="text-foreground">{results.filter(r => r.isAutoAllocatable).reduce((sum, r) => sum + r.transactionCount, 0)}</strong> of {selectedTransactions.length} selected transaction(s).</span>
                                         <div className="flex items-center gap-4 flex-wrap">
                                             <span className="font-semibold text-emerald-600">{selectedForRules.size} group(s) selected</span>
                                             {selectedForRules.size > 0 && (
@@ -1972,38 +2433,38 @@ function SmartMatchQueueModal({
                                         </div>
                                     </div>
 
-                                    <div className="border rounded-lg overflow-hidden">
-                                        <Table>
+                                    <div className="border rounded-lg overflow-x-auto shadow-sm bg-card">
+                                        <Table className="w-full">
                                             <TableHeader className="bg-muted/50">
                                                 <TableRow>
-                                                    <TableHead className="w-12">
+                                                    <TableHead className="w-10 px-2 text-center">
                                                         <Checkbox 
                                                             checked={results.length > 0 && selectedForRules.size === results.length} 
                                                             onCheckedChange={(c) => handleToggleSelectAll(!!c)} 
                                                         />
                                                     </TableHead>
-                                                    <TableHead>Merchant Group</TableHead>
-                                                    <TableHead>Identified Merchant & Category</TableHead>
-                                                    <TableHead>Suggested GL Account</TableHead>
-                                                    <TableHead className="w-[90px] text-center">Confidence</TableHead>
-                                                    <TableHead className="w-[180px]">Rule Keyword</TableHead>
+                                                    <TableHead className="w-[230px]">Merchant Group & Clues</TableHead>
+                                                    <TableHead className="w-[150px]">Identified Merchant</TableHead>
+                                                    <TableHead className="w-[280px]">Suggested GL Account</TableHead>
+                                                    <TableHead className="w-[115px]">Rule Scope</TableHead>
+                                                    <TableHead className="w-[95px] text-center">Confidence</TableHead>
+                                                    <TableHead className="w-[145px]">Rule Keyword</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {results.map(r => {
                                                     const isChecked = selectedForRules.has(r.groupId);
                                                     const currentKeyword = ruleEdits.get(r.groupId) ?? r.suggestedKeyword;
-                                                    const is100 = r.confidence === 100;
 
                                                     return (
                                                         <TableRow key={r.groupId} className={cn(isChecked && "bg-emerald-500/5")}>
-                                                            <TableCell>
+                                                            <TableCell className="px-2 text-center">
                                                                 <Checkbox 
                                                                     checked={isChecked} 
                                                                     onCheckedChange={(checked) => handleToggleSelectRow(r.groupId, !!checked)} 
                                                                 />
                                                             </TableCell>
-                                                            <TableCell className="max-w-[220px]">
+                                                            <TableCell className="w-[230px] max-w-[230px]">
                                                                 <div className="font-semibold text-xs text-foreground truncate" title={r.groupKey}>
                                                                     {r.groupKey}
                                                                 </div>
@@ -2015,63 +2476,97 @@ function SmartMatchQueueModal({
                                                                 <div className="text-[10px] text-muted-foreground font-mono truncate mt-0.5" title={r.description}>
                                                                     {r.description}
                                                                 </div>
+                                                                {r.badges && r.badges.length > 0 && (
+                                                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                                                        {r.badges.map((b, bIdx) => (
+                                                                            <span
+                                                                                key={bIdx}
+                                                                                title={`${b.detail} (+${b.confidenceContribution}%)`}
+                                                                                className={cn(
+                                                                                    "inline-flex items-center gap-1 text-[9px] px-1 py-0.5 rounded border font-medium",
+                                                                                    getClueBadgeStyle(b.type)
+                                                                                )}
+                                                                            >
+                                                                                {renderClueIcon(b.type)}
+                                                                                <span>{b.label}</span>
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </TableCell>
-                                                            <TableCell>
-                                                                <div className="font-semibold text-xs text-foreground">
+                                                            <TableCell className="w-[150px] max-w-[150px]">
+                                                                <div className="font-semibold text-xs text-foreground truncate" title={r.merchantName}>
                                                                     {r.merchantName}
                                                                 </div>
-                                                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 mt-0.5 font-normal">
+                                                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 mt-0.5 font-normal truncate max-w-full block w-fit" title={r.merchantCategory}>
                                                                     {r.merchantCategory}
                                                                 </Badge>
                                                             </TableCell>
-                                                            <TableCell>
+                                                            <TableCell className="w-[280px] max-w-[280px]">
+                                                                <div className="space-y-1">
+                                                                    <Select
+                                                                        value={(accountEdits.get(r.groupId) || r.suggestedAccountId) || undefined}
+                                                                        onValueChange={(val) => handleAccountEdit(r.groupId, val)}
+                                                                    >
+                                                                        <SelectTrigger className="h-9 text-xs font-medium w-full bg-background border border-input shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors px-2.5 whitespace-nowrap overflow-hidden">
+                                                                            <SelectValue className="truncate block text-left" placeholder="Select account..." />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {(client?.chartOfAccounts || []).map((acc: ChartOfAccount) => (
+                                                                                <SelectItem key={acc.id} value={acc.id} className="text-xs">
+                                                                                    {acc.accountNumber || acc.id} - {acc.description}
+                                                                                </SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    {r.existingRule && (
+                                                                        <div className="text-[10px] text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded px-2 py-0.5 flex items-center gap-1.5 font-medium leading-tight mt-1" title={`Rule: ${r.existingRule.description || r.existingRule.keywords.join(', ')}`}>
+                                                                            <Zap className="h-3 w-3 fill-emerald-500 text-emerald-500 shrink-0 inline" />
+                                                                            <span className="truncate">Rule: {r.existingRule.description || r.existingRule.keywords.join(', ')}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell className="w-[115px]">
                                                                 <Select
-                                                                    value={accountEdits.get(r.groupId) || r.suggestedAccountId}
-                                                                    onValueChange={(val) => handleAccountEdit(r.groupId, val)}
+                                                                    value={ruleScopes.get(r.groupId) || r.ruleScoping}
+                                                                    onValueChange={(val) => handleScopeChange(r.groupId, val as 'client' | 'global_practice')}
                                                                 >
-                                                                    <SelectTrigger className="h-8 text-xs font-medium w-full max-w-[250px] border-transparent hover:border-input bg-transparent hover:bg-muted/50 transition-colors">
-                                                                        <SelectValue placeholder="Select account" />
+                                                                    <SelectTrigger className="h-8 text-xs font-semibold w-full bg-background border border-input shadow-sm px-2">
+                                                                        <SelectValue />
                                                                     </SelectTrigger>
                                                                     <SelectContent>
-                                                                        {(client?.chartOfAccounts || []).map((acc: ChartOfAccount) => (
-                                                                            <SelectItem key={acc.id} value={acc.id} className="text-xs">
-                                                                                {acc.accountNumber || acc.id} - {acc.description}
-                                                                            </SelectItem>
-                                                                        ))}
+                                                                        <SelectItem value="client" className="text-xs">
+                                                                            Client
+                                                                        </SelectItem>
+                                                                        <SelectItem value="global_practice" className="text-xs">
+                                                                            Practice
+                                                                        </SelectItem>
                                                                     </SelectContent>
                                                                 </Select>
-                                                                {(() => {
-                                                                    const currentAccountId = accountEdits.get(r.groupId) || r.suggestedAccountId;
-                                                                    const allRules = [...(client?.allocationRules || []), ...(globalRules || [])];
-                                                                    const matchingRule = allRules.find(rule => rule.accountId === currentAccountId);
-                                                                    if (matchingRule) {
-                                                                        return (
-                                                                            <div className="text-[10px] text-emerald-600 flex items-center gap-1 font-medium mt-0.5 ml-2">
-                                                                                <Zap className="h-3 w-3 fill-emerald-500 text-emerald-500 inline shrink-0" />
-                                                                                <span>Adds to existing rule: {matchingRule.description || matchingRule.keywords.join(', ')}</span>
-                                                                            </div>
-                                                                        );
-                                                                    }
-                                                                    return null;
-                                                                })()}
                                                             </TableCell>
-                                                            <TableCell className="text-center">
+                                                            <TableCell className="w-[95px] text-center">
                                                                 <Badge 
                                                                     className={cn(
                                                                         "font-bold text-[10px]",
-                                                                        is100 
+                                                                        r.confidence >= 80 
                                                                             ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                                                                             : "bg-amber-100 text-amber-800 border-amber-300"
                                                                     )}
                                                                 >
                                                                     {r.confidence}%
                                                                 </Badge>
+                                                                {!r.isAutoAllocatable && (
+                                                                    <div className="text-[9px] text-amber-700 font-semibold mt-0.5 leading-tight">
+                                                                        Review Needed (&lt;80%)
+                                                                    </div>
+                                                                )}
                                                             </TableCell>
-                                                            <TableCell>
+                                                            <TableCell className="w-[145px]">
                                                                 <Input 
                                                                     value={currentKeyword}
                                                                     onChange={(e) => handleKeywordEdit(r.groupId, e.target.value.toUpperCase())}
-                                                                    className="h-8 text-xs uppercase font-mono border-primary/30 focus:border-primary"
+                                                                    className="h-8 text-xs uppercase font-mono bg-background border-input focus:border-primary shadow-sm px-2"
                                                                     placeholder="KEYWORD"
                                                                 />
                                                             </TableCell>
@@ -2094,8 +2589,32 @@ function SmartMatchQueueModal({
                                 Cancel Analysis
                             </Button>
                         )}
+                        {phase === 'review_merges' && (
+                            <Button variant="ghost" size="sm" onClick={handleCancel}>
+                                Cancel
+                            </Button>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
+                        {phase === 'review_merges' && (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleSkipSafeMerges}
+                                    disabled={isApplyingModalMerges}
+                                >
+                                    Skip & Run AI Match ({currentDistinctGroups.length} groups)
+                                </Button>
+                                <Button
+                                    onClick={handleMergeAllSafeInModal}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                                    disabled={isApplyingModalMerges}
+                                >
+                                    {isApplyingModalMerges ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4 fill-white" />}
+                                    Merge All Safe Proposals ({safeProposals.length})
+                                </Button>
+                            </>
+                        )}
                         {phase === 'results' && results.length > 0 && (
                             <Button 
                                 onClick={handleSaveRules} 
@@ -2106,9 +2625,11 @@ function SmartMatchQueueModal({
                                 Create Rules for Selected ({selectedForRules.size} groups)
                             </Button>
                         )}
-                        <Button variant="outline" onClick={() => onOpenChange(false)} disabled={phase === 'saving'}>
-                            {phase === 'results' ? 'Close' : 'Cancel'}
-                        </Button>
+                        {phase !== 'review_merges' && (
+                            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={phase === 'saving'}>
+                                {phase === 'results' ? 'Close' : 'Cancel'}
+                            </Button>
+                        )}
                     </div>
                 </DialogFooter>
             </DialogContent>
@@ -2451,6 +2972,24 @@ const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>(({ cli
             if (lockRes.count > 0) {
                 setActiveTab('ai-workflow');
                 await runAiAccountantAnalysis({ idToken: await getIdToken(), clientId: client.uid, bankAccountId, initiatorEmail: user.email });
+                
+                // Automatically iteratively consolidate merchant groups until convergence
+                try {
+                    const consolRes = await autoConsolidateSmartMatchQueue({
+                        idToken: await getIdToken(),
+                        clientId: client.uid,
+                        bankAccountId
+                    });
+                    if (consolRes.totalMergesApplied > 0) {
+                        toast({
+                            title: "Merchant Groups Consolidated",
+                            description: `Consolidated ${consolRes.originalGroupCount} groups into ${consolRes.finalGroupCount} canonical groups across ${consolRes.passesExecuted} passes.`
+                        });
+                    }
+                } catch (cErr) {
+                    console.error("Auto-consolidation error after smart match:", cErr);
+                }
+
                 setIsSubmittingToWorkflow(false);
             } else { 
                 toast({ title: "No new expenses found to process." }); 
@@ -2926,12 +3465,65 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
         return () => unsubscribe();
     }, [client?.uid, bankAccountId]);
 
+    const hasAutoConsolidatedRef = React.useRef(false);
+    useEffect(() => {
+        if (groups.length >= 2 && !hasAutoConsolidatedRef.current && !isRegrouping && client?.uid && bankAccountId) {
+            hasAutoConsolidatedRef.current = true;
+            getIdToken().then(token => {
+                return autoConsolidateSmartMatchQueue({
+                    idToken: token,
+                    clientId: client.uid,
+                    bankAccountId
+                });
+            }).then(res => {
+                if (res && res.totalMergesApplied > 0) {
+                    toast({
+                        title: "Auto-Consolidated Merchant Groups",
+                        description: `Consolidated ${res.originalGroupCount} groups into ${res.finalGroupCount} canonical groups across ${res.passesExecuted} passes.`
+                    });
+                }
+            }).catch(err => {
+                console.warn("Auto-consolidation on mount skipped:", err);
+            });
+        }
+    }, [groups.length, client?.uid, bankAccountId, isRegrouping]);
+
     const progressStats = useMemo(() => {
         const total = workflowTransactions.length;
         const processed = workflowTransactions.filter(tx => tx.status === 'ai_review').length;
         const percentage = total > 0 ? (processed / total) * 100 : 0;
         return { total, processed, percentage };
     }, [workflowTransactions]);
+
+    const handleAutoConsolidate = async () => {
+        if (!client?.uid || !bankAccountId) return;
+        setIsRegrouping(true);
+        toast({ title: "Consolidating Groups", description: "Running iterative consolidation to convergence..." });
+        try {
+            const token = await getIdToken();
+            const res = await autoConsolidateSmartMatchQueue({
+                idToken: token,
+                clientId: client.uid,
+                bankAccountId
+            });
+            if (res.totalMergesApplied > 0) {
+                toast({
+                    title: "Merchant Groups Consolidated",
+                    description: `Consolidated ${res.originalGroupCount} groups into ${res.finalGroupCount} canonical groups across ${res.passesExecuted} passes (${res.updatedCount} transactions unified).`
+                });
+            } else {
+                toast({
+                    title: "Groups Fully Consolidated",
+                    description: "All merchant groups are already at maximum consolidation."
+                });
+            }
+        } catch (e: any) {
+            console.error("Auto-consolidation error:", e);
+            toast({ title: "Consolidation Failed", description: e?.message || "Error consolidating groups.", variant: "destructive" });
+        } finally {
+            setIsRegrouping(false);
+        }
+    };
 
     const handleCombinedRegroup = async () => {
         if (!client?.uid || !bankAccountId) return;
@@ -2998,6 +3590,23 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
             setIsMergeDialogOpen(false);
         } catch (e) {
             toast({ title: "Failed to apply merges", variant: "destructive" });
+        } finally {
+            setIsApplyingMerges(false);
+        }
+    };
+
+    const handleApplySafeRegroups = async () => {
+        if (!client?.uid || !user?.id) return;
+        const safeMerges = proposedMerges.filter(p => p.isSafe);
+        if (safeMerges.length === 0) return;
+        setIsApplyingMerges(true);
+        try {
+            const mergesToApply = safeMerges.map(p => ({ fromKey: p.fromKey, toKey: p.toKey, fromTxIds: p.fromTxIds }));
+            await applyRegroups({ idToken: await getIdToken(), clientId: client.uid, merges: mergesToApply, userId: user.id });
+            toast({ title: "Safe Regroups Applied", description: `Successfully merged ${mergesToApply.length} safe merchant groups.` });
+            setIsMergeDialogOpen(false);
+        } catch (e) {
+            toast({ title: "Failed to apply safe merges", variant: "destructive" });
         } finally {
             setIsApplyingMerges(false);
         }
@@ -3492,12 +4101,27 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                             )}
                         </div>
                     </ScrollArea>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsMergeDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleApplyRegroups} disabled={selectedMerges.length === 0 || isApplyingMerges}>
-                            {isApplyingMerges && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                            Apply {selectedMerges.length} Merges
-                        </Button>
+                    <DialogFooter className="flex items-center justify-between sm:justify-between w-full">
+                        <div>
+                            {proposedMerges.filter(p => p.isSafe).length > 0 && (
+                                <Button
+                                    variant="outline"
+                                    className="bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 font-bold"
+                                    onClick={handleApplySafeRegroups}
+                                    disabled={isApplyingMerges}
+                                >
+                                    <Zap className="mr-2 h-4 w-4 text-emerald-600 fill-emerald-600" />
+                                    Merge All Safe ({proposedMerges.filter(p => p.isSafe).length})
+                                </Button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button variant="ghost" onClick={() => setIsMergeDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handleApplyRegroups} disabled={selectedMerges.length === 0 || isApplyingMerges}>
+                                {isApplyingMerges && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                Apply {selectedMerges.length} Merges
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -3633,9 +4257,13 @@ const AIWorkflowTab = ({ client, bankAccountId, onAccountCreated }: {
                     <Button variant="outline" onClick={handleDownloadExcel} disabled={groups.length === 0}>
                         <FileSpreadsheet className="mr-2 h-4 w-4" /> Download Excel
                     </Button>
-                    <Button variant="outline" onClick={handleCombinedRegroup} disabled={isRegrouping || isAiRegrouping || groups.length < 2} className="border-primary/30 text-primary hover:bg-primary/5">
-                        {isRegrouping || isAiRegrouping ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4" />}
-                        Smart Regroup & Match
+                    <Button variant="secondary" onClick={handleAutoConsolidate} disabled={isRegrouping || groups.length < 2} className="border-2 border-primary/20 font-bold">
+                        {isRegrouping ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4 text-emerald-600 fill-emerald-600" />}
+                        Consolidate Groups (Convergence)
+                    </Button>
+                    <Button variant="outline" onClick={handleCombinedRegroup} disabled={isRegrouping || isAiRegrouping || groups.length < 2} className="border-primary/30 text-primary hover:bg-primary/5 text-xs" title="Review proposed merges">
+                        <Layers className="mr-1.5 h-3.5 w-3.5" />
+                        Review Proposals
                     </Button>
                     <Button 
                         variant="outline" 
@@ -4246,7 +4874,7 @@ const ReviewedTab = ({ client, bankAccountId, customers, suppliers, globalRules,
                 ...(parentData.merchantKey ? { merchantKey: parentData.merchantKey } : {})
             };
             
-            batch.set(parentDocRef, restoredTx);
+            batch.set(parentDocRef, sanitizeFirestoreData(restoredTx));
             
             await batch.commit();
             
@@ -4787,6 +5415,9 @@ export function BankTransactionsUI() {
     const [isEditAccountOpen, setIsEditAccountOpen] = useState(false);
     const [isCreateAccountOpen, setIsCreateAccountOpen] = useState(false);
     const [isClearAccountAlertOpen, setIsClearAccountAlertOpen] = useState(false);
+    const [calculatedBalance, setCalculatedBalance] = useState<number>(0);
+    const [isUpdateBankBalanceOpen, setIsUpdateBankBalanceOpen] = useState(false);
+    const [isUpdatingBankBalance, setIsUpdatingBankBalance] = useState(false);
     const { toast } = useToast();
 
     const fetchClientData = useCallback(async () => {
@@ -4799,7 +5430,7 @@ export function BankTransactionsUI() {
                 const uniqueAccounts = Array.from(new Map(data.chartOfAccounts.map(a => [a.accountNumber, a])).values());
                 data.chartOfAccounts = uniqueAccounts;
             }
-            setClient(data);
+            setClient({ ...data, id: clientSnap.id, uid: clientSnap.id });
             const bankAccounts = data.chartOfAccounts?.filter(acc => acc.accountNumber.startsWith('8400-'));
             if(!accountId && bankAccounts?.[0]) setAccountId(bankAccounts[0].id);
         }
@@ -4842,7 +5473,11 @@ export function BankTransactionsUI() {
         return onSnapshot(doc(db, 'aiAccountantClients', params.clientId as string), (snap) => {
             if (snap.exists()) {
                 const data = snap.data() as User;
-                setClient(prev => prev ? { ...prev, ...data } : data);
+                if (data.chartOfAccounts) {
+                    const uniqueAccounts = Array.from(new Map(data.chartOfAccounts.map(a => [a.accountNumber, a])).values());
+                    data.chartOfAccounts = uniqueAccounts;
+                }
+                setClient(prev => prev ? { ...prev, ...data, id: snap.id, uid: snap.id } : { ...data, id: snap.id, uid: snap.id });
             }
         });
     }, [params.clientId]);
@@ -4850,6 +5485,29 @@ export function BankTransactionsUI() {
     useEffect(() => {
         fetchUnallocatedCount();
     }, [fetchUnallocatedCount]);
+
+    // Real-time listener to compute true calculated balance for this bank account
+    useEffect(() => {
+        if (!params.clientId || !accountId) {
+            setCalculatedBalance(0);
+            return;
+        }
+        const transRef = collection(db, 'aiAccountantClients', params.clientId as string, 'transactions');
+        const q = query(transRef, where('bankAccountId', '==', accountId));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            let total = 0;
+            snapshot.docs.forEach(doc => {
+                const amt = doc.data().amount;
+                if (typeof amt === 'number' && !isNaN(amt)) {
+                    total += amt;
+                }
+            });
+            setCalculatedBalance(total);
+        }, (err) => {
+            console.error("Error computing calculated balance:", err);
+        });
+        return () => unsubscribe();
+    }, [params.clientId, accountId]);
 
     const handleClearAccount = async () => {
         if (!params.clientId || !accountId) return;
@@ -4890,12 +5548,33 @@ export function BankTransactionsUI() {
         if (!client || !accountId) return;
         try {
             const updatedCOA = (client.chartOfAccounts || []).map(acc => acc.id === accountId ? { ...acc, description: newName } : acc);
-            await updateDoc(doc(db, 'aiAccountantClients', client.uid), { chartOfAccounts: updatedCOA });
+            const targetClientId = client.id || client.uid || (params.clientId as string);
+            await updateDoc(doc(db, 'aiAccountantClients', targetClientId), { chartOfAccounts: updatedCOA });
             toast({ title: "Account Updated" });
             fetchClientData();
             setIsEditAccountOpen(false);
         } catch (e) {
             toast({ title: "Error", variant: "destructive" });
+        }
+    };
+
+    const handleUpdateActualBankBalance = async (newBalance: number) => {
+        if (!client || !accountId) return;
+        setIsUpdatingBankBalance(true);
+        try {
+            const updatedCOA = (client.chartOfAccounts || []).map(acc => 
+                acc.id === accountId ? { ...acc, bankBalance: newBalance } : acc
+            );
+            const targetClientId = client.id || client.uid || (params.clientId as string);
+            await updateDoc(doc(db, 'aiAccountantClients', targetClientId), { chartOfAccounts: updatedCOA });
+            toast({ title: "Bank Balance Updated", description: `Actual bank statement balance set to ${formatPrice(newBalance)}.` });
+            fetchClientData();
+            setIsUpdateBankBalanceOpen(false);
+        } catch (e) {
+            console.error("Error updating bank balance:", e);
+            toast({ title: "Error", description: "Could not update bank balance.", variant: "destructive" });
+        } finally {
+            setIsUpdatingBankBalance(false);
         }
     };
 
@@ -4920,6 +5599,45 @@ export function BankTransactionsUI() {
                             const val = (document.getElementById('new-account-name') as HTMLInputElement).value;
                             handleEditAccount(val);
                         }}>Save Changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isUpdateBankBalanceOpen} onOpenChange={setIsUpdateBankBalanceOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Update Actual Bank Balance</DialogTitle>
+                        <DialogDescription>
+                            Set the actual statement balance for {selectedAccount?.description} to reconcile. This automatically syncs to the Bank Accounts Overview.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-2">
+                        <Label htmlFor="actual-bank-bal-input">Actual Bank Balance (from bank statement)</Label>
+                        <Input 
+                            id="actual-bank-bal-input" 
+                            type="number" 
+                            step="0.01" 
+                            defaultValue={selectedAccount?.bankBalance !== undefined ? selectedAccount.bankBalance : ''} 
+                            placeholder="0.00" 
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsUpdateBankBalanceOpen(false)}>Cancel</Button>
+                        <Button 
+                            disabled={isUpdatingBankBalance}
+                            onClick={() => {
+                                const input = document.getElementById('actual-bank-bal-input') as HTMLInputElement;
+                                const val = parseFloat(input?.value);
+                                if (!isNaN(val)) {
+                                    handleUpdateActualBankBalance(val);
+                                } else {
+                                    toast({ title: "Invalid Amount", description: "Please enter a valid numeric balance.", variant: "destructive" });
+                                }
+                            }}
+                        >
+                            {isUpdatingBankBalance && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Save
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -4952,9 +5670,47 @@ export function BankTransactionsUI() {
                         className="w-[280px]"
                         filterAccounts={(acc) => acc.accountNumber.startsWith('8400-')}
                     />
-                     <div className="flex gap-4 text-sm">
-                        <div><span className="text-muted-foreground">Balance: </span><span className="font-semibold">{formatPrice(selectedAccount?.bankBalance || 0)}</span></div>
-                        <div><span className="text-muted-foreground">Unallocated: </span><span className="font-semibold">{unallocatedCount !== null ? unallocatedCount : '...'}</span></div>
+                     <div className="flex flex-wrap items-center gap-4 text-sm mt-1">
+                        <div>
+                            <span className="text-muted-foreground">Calculated Balance: </span>
+                            <span className="font-bold text-foreground font-mono">{formatPrice(calculatedBalance)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground">Actual Bank Balance: </span>
+                            <span className="font-semibold font-mono text-muted-foreground">
+                                {selectedAccount?.bankBalance !== undefined ? formatPrice(selectedAccount.bankBalance) : '-'}
+                            </span>
+                            {selectedAccount && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-1.5 text-xs text-primary hover:bg-primary/10 ml-0.5"
+                                    onClick={() => setIsUpdateBankBalanceOpen(true)}
+                                    title="Edit Actual Bank Statement Balance"
+                                >
+                                    <Pencil className="h-3 w-3 mr-1" /> Edit
+                                </Button>
+                            )}
+                        </div>
+                        {selectedAccount?.bankBalance !== undefined ? (
+                            Math.abs(calculatedBalance - selectedAccount.bankBalance) < 0.01 ? (
+                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold gap-1 py-0.5">
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> Reconciled
+                                </Badge>
+                            ) : (
+                                <Badge className="bg-rose-50 text-rose-700 border-rose-300 font-semibold gap-1 py-0.5" title={`Difference: ${formatPrice(calculatedBalance - selectedAccount.bankBalance)}`}>
+                                    <AlertTriangle className="h-3.5 w-3.5" /> Diff: {formatPrice(calculatedBalance - selectedAccount.bankBalance)}
+                                </Badge>
+                            )
+                        ) : (
+                            <Badge variant="outline" className="text-muted-foreground text-xs">
+                                No Statement Balance
+                            </Badge>
+                        )}
+                        <div>
+                            <span className="text-muted-foreground">Unallocated: </span>
+                            <span className="font-semibold">{unallocatedCount !== null ? unallocatedCount : '...'}</span>
+                        </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 mt-4 md:mt-0">
@@ -4984,7 +5740,7 @@ export function BankTransactionsUI() {
                         <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
                     </TabsList>
                     <TabsContent value="new-transactions" className="p-0">
-                        <NewTransactionsTab client={client} bankAccountId={accountId || ''} currentBalance={selectedAccount?.bankBalance || 0} globalRules={globalRules} onAccountCreated={() => { fetchClientData(); fetchUnallocatedCount(); }} setActiveTab={setActiveTab} customers={customers} suppliers={suppliers} />
+                        <NewTransactionsTab client={client} bankAccountId={accountId || ''} currentBalance={calculatedBalance} globalRules={globalRules} onAccountCreated={() => { fetchClientData(); fetchUnallocatedCount(); }} setActiveTab={setActiveTab} customers={customers} suppliers={suppliers} />
                     </TabsContent>
                     <TabsContent value="ai-workflow" className="p-0">
                         <AIWorkflowTab client={client} bankAccountId={accountId || ''} onAccountCreated={fetchClientData} />
