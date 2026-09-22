@@ -1341,7 +1341,7 @@ ${proposedClientCommunication}
     // Dynamic resolution of public officer details
     let repIdNumber = '';
     const idTextUpload = uploads.find(u => u.type === 'text' && /^\d{13}$/.test(u.textValue?.trim() || ''));
-    if (idTextUpload) {
+    if (idTextUpload && idTextUpload.textValue) {
       repIdNumber = idTextUpload.textValue.trim();
     } else {
       const idMatch = (order.notes || []).map((n: any) => n.text || '').join(' ').match(/\b(\d{13})\b/);
