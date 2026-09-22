@@ -27,7 +27,7 @@ export function DateRangePicker({
   financialYearEnd,
 }: DateRangePickerProps) {
   const [date, setDate] = React.useState<DateRange | undefined>(value);
-  const [preset, setPreset] = React.useState<string>("all");
+  const [preset, setPreset] = React.useState<string>(() => value ? "this_year" : "all");
 
   React.useEffect(() => {
     const isDifferent = (value?.from?.getTime() !== date?.from?.getTime()) || (value?.to?.getTime() !== date?.to?.getTime());

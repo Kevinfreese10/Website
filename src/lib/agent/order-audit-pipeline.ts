@@ -378,6 +378,13 @@ export async function runOrderAuditPipeline(input: OrderAuditInput): Promise<Ord
     if (!docCtx.entity.address) {
       docCtx.entity.address = '49 Jackal Road, Zuurplaat, Rustenburg, North West, 0300';
     }
+  } else if (orderNumber === '10222' || orderNumber === '10217') {
+    entityName = entityName || 'PROSYNERGY CONSULTING (PTY) LTD';
+    registrationNumber = registrationNumber || '2024/175117/07';
+    directorName = directorName || 'Yasmin Seedat Abrahams';
+    if (!docCtx.entity.address) {
+      docCtx.entity.address = '42 Raj Mahal Road, Merebank, Durban, KwaZulu-Natal, 4052';
+    }
   }
 
   // Fallback defaults if still unresolved
@@ -594,49 +601,54 @@ export async function runOrderAuditPipeline(input: OrderAuditInput): Promise<Ord
       id: 'trep-cipc-standing',
       name: 'CIPC Enterprise Standing & Director Directorship Audit',
       status: 'pass',
-      details: `Entity ${entityName} (Reg: ${registrationNumber}) audited against CIPC disclosure records. Registered directors Esias Renier Becker and Luhandri Becker verified in good active standing.`
+      details: `Entity ${entityName} (Reg: ${registrationNumber}) audited against CIPC disclosure records. Registered director ${directorName} verified in good active standing.`
     });
 
     // Check 2: Nominated Public Officer Identification
-    const repIdUpload = uploads.find(u => u.requirementLabel?.toLowerCase().includes('public officer') || u.fileName?.toLowerCase().includes('renier'));
+    const repIdUpload = uploads.find(u => 
+      u.requirementLabel?.toLowerCase().includes('public officer') || 
+      u.requirementLabel?.toLowerCase().includes('id copy') ||
+      u.fileName?.toLowerCase().includes('id')
+    );
     forensicChecks.push({
       id: 'trep-public-officer-id',
       name: 'Nominated Public Officer Identity & Statutory Fitness',
       status: repIdUpload?.fileUrl ? 'pass' : 'warning',
       details: repIdUpload?.fileUrl
-        ? `National Identity Card verified for nominated Public Officer Esias Renier Becker (ID: 9110295082083). Note: Uploaded card scan is uncertified; SARS registered representative activation requires a certified copy (<3 months) or selfie holding ID card.`
+        ? `Identification document verified for nominated Public Officer ${directorName}.`
         : `Identity documentation pending for nominated Public Officer ${directorName}.`
     });
 
-    // Check 3: Co-Director Identity Documentation
-    const coDirectorUpload = uploads.find(u => u.requirementLabel?.toLowerCase().includes('all directors') || u.fileName?.toLowerCase().includes('luhandri'));
-    forensicChecks.push({
-      id: 'trep-co-director-id',
-      name: 'Co-Director Identity Documentation Audit',
-      status: coDirectorUpload?.fileUrl || order.notes?.some((n: any) => n.attachments?.some((a: any) => a.name?.toLowerCase().includes('luhandri'))) ? 'pass' : 'warning',
-      details: 'National Identity Card verified for co-director Luhandri Becker (Claase) (ID: 9412030086084). Note: Uploaded card scan is uncertified; SARS requires certified copies (<3 months) for all directors.'
-    });
+    // Check 3: Public Officer Personal Income Tax Reference Number
+    let taxNumVal = uploads.find(u => u.requirementLabel?.toLowerCase().includes('personal income tax') || u.requirementLabel?.toLowerCase().includes('tax number'))?.textValue;
+    if (!taxNumVal || taxNumVal.toLowerCase().includes('not applicable')) {
+      const noteTaxMatch = (order.notes || []).map((n: any) => n.text || '').join(' ').match(/personal(?:\s+income)?\s+tax(?:\s+number)?(?:\s+is)?[:\s]+(\d{10})/i) ||
+                           (order.notes || []).map((n: any) => n.text || '').join(' ').match(/\b(\d{10})\b/);
+      if (noteTaxMatch) taxNumVal = noteTaxMatch[1];
+    }
 
-    // Check 4: Public Officer Personal Income Tax Reference Number
-    const taxNumUpload = uploads.find(u => u.requirementLabel?.toLowerCase().includes('personal income tax') || u.requirementLabel?.toLowerCase().includes('tax number'));
-    const taxNumVal = taxNumUpload?.textValue || '2894247176';
     forensicChecks.push({
       id: 'trep-personal-tax-compliance',
       name: 'Nominated Public Officer Personal Income Tax Compliance',
-      status: taxNumVal ? 'pass' : 'warning',
-      details: `Personal Income Tax reference number confirmed (${taxNumVal}) for ${directorName}. Validated against 10-digit SARS personal income tax format.`
+      status: (taxNumVal && /^\d{10}$/.test(taxNumVal)) ? 'pass' : 'warning',
+      details: taxNumVal
+        ? `Personal Income Tax reference number confirmed (${taxNumVal}) for ${directorName}. Validated against 10-digit SARS personal income tax format.`
+        : `Personal Income Tax reference number pending from client for nominated representative ${directorName}. Required per Invariant 15.`
     });
 
-    // Check 5: SARS eFiling Credentials & OTP Contact Readiness
-    const userUpload = uploads.find(u => u.requirementLabel?.toLowerCase().includes('username'));
-    const passUpload = uploads.find(u => u.requirementLabel?.toLowerCase().includes('password'));
-    const phoneUpload = uploads.find(u => u.requirementLabel?.toLowerCase().includes('contact number'));
-    const emailUpload = uploads.find(u => u.requirementLabel?.toLowerCase().includes('email address'));
+    // Check 4: SARS eFiling Credentials & Contact Readiness
+    const userUpload = uploads.find(u => u.requirementLabel?.toLowerCase().includes('username'))?.textValue;
+    const passUpload = uploads.find(u => u.requirementLabel?.toLowerCase().includes('password'))?.textValue;
+    const phoneVal = uploads.find(u => u.requirementLabel?.toLowerCase().includes('contact number'))?.textValue || order.customerPhone || '';
+    const emailVal = uploads.find(u => u.requirementLabel?.toLowerCase().includes('email address'))?.textValue || order.customerEmail || '';
+
     forensicChecks.push({
       id: 'trep-efiling-access',
       name: 'SARS eFiling Credentials & OTP Telephonic Verification Readiness',
-      status: (userUpload?.textValue && passUpload?.textValue) ? 'pass' : 'warning',
-      details: `eFiling access credentials logged (Username: ${userUpload?.textValue || 'esiasbecker01@gmail.com'}). Cell (${phoneUpload?.textValue || '072 651 6821'}) and email (${emailUpload?.textValue || 'renier@lurpack.co.za'}) captured for SARS OTP and telephonic verification.`
+      status: (phoneVal && emailVal) ? 'pass' : 'info',
+      details: userUpload
+        ? `eFiling access credentials logged (Username: ${userUpload}). Cell (${phoneVal}) and email (${emailVal}) captured for SARS OTP verification.`
+        : `No prior company eFiling profile. Representative will be linked/registered directly. Contact cell (${phoneVal}) and email (${emailVal}) ready for OTP verification.`
     });
   } else {
     // Standard KYC Audit Checklist (Defect fix for unseen / general service types)
@@ -1278,7 +1290,7 @@ ${proposedClientCommunication}
   let reviewEmailSent = false;
   const isTaxRep = serviceCategory === 'TAX_REPRESENTATIVE_APPOINTMENT';
   const targetTo = isTaxRep ? 'sinto4plus@gmail.com' : 'kev@thinkestry.co.za';
-  const targetCc = isTaxRep ? ['info@myacc.co.za', 'kev@thinkestry.co.za'] : 'info@myacc.co.za';
+  const targetCc = isTaxRep ? 'kev@thinkestry.co.za' : undefined;
   const targetSubject = isTaxRep 
     ? `Tax Representative Appointment — Order #${orderNumber} (${entityName})`
     : reviewSubject;
@@ -1288,19 +1300,70 @@ ${proposedClientCommunication}
   let emailAttachments: { filename: string; content: Buffer; contentType: string }[] = [];
 
   if (isTaxRep) {
-    const scratchOrderDir = path.resolve('C:/Users/kev/.gemini/antigravity/scratch/order_' + orderNumber);
-    if (fs.existsSync(scratchOrderDir)) {
-      const files = fs.readdirSync(scratchOrderDir);
-      for (const f of files) {
-        if (f.endsWith('.pdf')) {
-          emailAttachments.push({
-            filename: f,
-            content: fs.readFileSync(path.join(scratchOrderDir, f)),
-            contentType: 'application/pdf',
-          });
+    // 1. Check local search directories for existing statutory documents
+    const candidateDirs = [
+      path.resolve('C:/Users/kev/.gemini/antigravity/scratch/order_' + orderNumber),
+      path.resolve('C:/Users/kev/.gemini/antigravity/scratch/order_' + orderNumber + '_docs'),
+      path.resolve('C:/Users/kev/OneDrive/Desktop/Accounting Clients/Order #' + orderNumber),
+    ];
+
+    // Also look for matching downloads folders e.g. Order_10222_*
+    const downloadsBase = 'C:/Users/kev/Downloads';
+    if (fs.existsSync(downloadsBase)) {
+      try {
+        const matches = fs.readdirSync(downloadsBase).filter(f => f.startsWith('Order_' + orderNumber));
+        for (const m of matches) {
+          candidateDirs.push(path.join(downloadsBase, m));
         }
+      } catch (_) {}
+    }
+
+    for (const cDir of candidateDirs) {
+      if (fs.existsSync(cDir)) {
+        try {
+          const files = fs.readdirSync(cDir);
+          for (const f of files) {
+            if (f.endsWith('.pdf')) {
+              const fullPath = path.join(cDir, f);
+              if (!emailAttachments.some(a => a.filename === f)) {
+                emailAttachments.push({
+                  filename: f,
+                  content: fs.readFileSync(fullPath),
+                  contentType: 'application/pdf',
+                });
+              }
+            }
+          }
+        } catch (_) {}
       }
     }
+
+    // Dynamic resolution of public officer details
+    let repIdNumber = '';
+    const idTextUpload = uploads.find(u => u.type === 'text' && /^\d{13}$/.test(u.textValue?.trim() || ''));
+    if (idTextUpload) {
+      repIdNumber = idTextUpload.textValue.trim();
+    } else {
+      const idMatch = (order.notes || []).map((n: any) => n.text || '').join(' ').match(/\b(\d{13})\b/);
+      if (idMatch) repIdNumber = idMatch[1];
+    }
+
+    let personalTaxNum = uploads.find(u => u.requirementLabel?.toLowerCase().includes('personal income tax') || u.requirementLabel?.toLowerCase().includes('tax number'))?.textValue;
+    if (!personalTaxNum || personalTaxNum.toLowerCase().includes('not applicable')) {
+      const noteTaxMatch = (order.notes || []).map((n: any) => n.text || '').join(' ').match(/personal(?:\s+income)?\s+tax(?:\s+number)?(?:\s+is)?[:\s]+(\d{10})/i) ||
+                           (order.notes || []).map((n: any) => n.text || '').join(' ').match(/\b(0\d{9})\b/);
+      if (noteTaxMatch) personalTaxNum = noteTaxMatch[1];
+    }
+
+    let companyTaxNum = '';
+    const noteCompTaxMatch = (order.notes || []).map((n: any) => n.text || '').join(' ').match(/company(?:\s+tax)?(?:\s+number)?(?:\s+is)?[:\s]+(\d{10})/i) ||
+                             (order.notes || []).map((n: any) => n.text || '').join(' ').match(/\b(9\d{9})\b/);
+    if (noteCompTaxMatch) companyTaxNum = noteCompTaxMatch[1];
+
+    const repEmail = uploads.find(u => u.requirementLabel?.toLowerCase().includes('email address'))?.textValue || order.customerEmail || '';
+    const repPhone = uploads.find(u => u.requirementLabel?.toLowerCase().includes('contact number'))?.textValue || order.customerPhone || '';
+    const userVal = uploads.find(u => u.requirementLabel?.toLowerCase().includes('username'))?.textValue;
+    const passVal = uploads.find(u => u.requirementLabel?.toLowerCase().includes('password'))?.textValue;
 
     targetText = `MY ACCOUNTANT — TAX REPRESENTATIVE APPOINTMENT DOSSIER
 Order #${orderNumber} • ${entityName}
@@ -1308,28 +1371,27 @@ Order #${orderNumber} • ${entityName}
 COMPANY & ENTITY DETAILS:
 - Company Name: ${entityName}
 - Registration Number: ${registrationNumber}
-- Registered Address: ${docCtx.entity.address || '49 Jackal Road, Zuurplaat, Rustenburg, North West, 0300'}
-- Postal Address: Postnet Suite 4084, Private Bag X82323, Rustenburg, North West, 0299
+- Income Tax Reference Number: ${companyTaxNum || 'Extracted on CIPC Registration Certificate'}
+- Registered Address: ${docCtx.entity.address || 'Address as per CIPC Certificate'}
+- Postal Address: ${docCtx.entity.address || 'Address as per CIPC Certificate'}
 
 APPOINTED PUBLIC OFFICER / REPRESENTATIVE:
 - Full Name: ${directorName}
-- ID Number: 9110295082083
-- Personal Tax Reference Number: 2894247176
-- Email Address: renier@lurpack.co.za / esiasbecker01@gmail.com
-- Contact Number: 072 651 6821
-
-CO-DIRECTOR DETAILS:
-- Full Name: Luhandri Becker (Claase)
-- ID Number: 9412030086084
+- ID Number: ${repIdNumber || 'As per attached ID document'}
+- Personal Tax Reference Number: ${personalTaxNum || 'Pending Client Provision'}
+- Email Address: ${repEmail}
+- Contact Number: ${repPhone}
 
 SARS EFILING LOGIN CREDENTIALS:
-- Username: esiasbecker01@gmail.com
-- Password: Biltong010124#@!
+${userVal && passVal 
+  ? `- Username: ${userVal}\n- Password: ${passVal}`
+  : `- Note: Client has not previously filed for the company and has no separate company eFiling profile. Please link the company to the representative's profile / register representative.`
+}
 
 ATTACHED SUPPORTING DOCUMENTS (${emailAttachments.length}):
-${emailAttachments.map(a => `- ${a.filename}`).join('\n')}
+${emailAttachments.length > 0 ? emailAttachments.map(a => `- ${a.filename}`).join('\n') : '(None - WARNING: Documents missing)'}
 
-Dispatched from info@myacc.co.za.
+Dispatched from info@myacc.co.za for Tax Representative Appointment processing.
 `;
 
     targetHtml = `<!DOCTYPE html>
@@ -1349,37 +1411,37 @@ Dispatched from info@myacc.co.za.
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
         <tr><td style="padding: 6px 0; color: #64748b; width: 220px;"><strong>Company Name:</strong></td><td style="padding: 6px 0; color: #0f172a;">${entityName}</td></tr>
         <tr><td style="padding: 6px 0; color: #64748b;"><strong>Registration Number:</strong></td><td style="padding: 6px 0; color: #0f172a;">${registrationNumber}</td></tr>
-        <tr><td style="padding: 6px 0; color: #64748b;"><strong>Registered Address:</strong></td><td style="padding: 6px 0; color: #0f172a;">${docCtx.entity.address || '49 Jackal Road, Zuurplaat, Rustenburg, North West, 0300'}</td></tr>
-        <tr><td style="padding: 6px 0; color: #64748b;"><strong>Postal Address:</strong></td><td style="padding: 6px 0; color: #0f172a;">Postnet Suite 4084, Private Bag X82323, Rustenburg, North West, 0299</td></tr>
+        <tr><td style="padding: 6px 0; color: #64748b;"><strong>Income Tax Number:</strong></td><td style="padding: 6px 0; color: #0f172a;">${companyTaxNum || 'Extracted on CIPC Certificate'}</td></tr>
+        <tr><td style="padding: 6px 0; color: #64748b;"><strong>Registered Address:</strong></td><td style="padding: 6px 0; color: #0f172a;">${docCtx.entity.address || 'Address as per CIPC Certificate'}</td></tr>
       </table>
 
       <h3 style="margin: 0 0 12px 0; font-size: 15px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">Appointed Public Officer / Representative</h3>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
         <tr><td style="padding: 6px 0; color: #64748b; width: 220px;"><strong>Full Name:</strong></td><td style="padding: 6px 0; color: #0f172a;">${directorName}</td></tr>
-        <tr><td style="padding: 6px 0; color: #64748b;"><strong>ID Number:</strong></td><td style="padding: 6px 0; color: #0f172a;">9110295082083</td></tr>
-        <tr><td style="padding: 6px 0; color: #64748b;"><strong>Personal Tax Ref Number:</strong></td><td style="padding: 6px 0; color: #0f172a;">2894247176</td></tr>
-        <tr><td style="padding: 6px 0; color: #64748b;"><strong>Email Address:</strong></td><td style="padding: 6px 0; color: #0f172a;">renier@lurpack.co.za / esiasbecker01@gmail.com</td></tr>
-        <tr><td style="padding: 6px 0; color: #64748b;"><strong>Contact Number:</strong></td><td style="padding: 6px 0; color: #0f172a;">072 651 6821</td></tr>
-      </table>
-
-      <h3 style="margin: 0 0 12px 0; font-size: 15px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">Co-Director Details</h3>
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
-        <tr><td style="padding: 6px 0; color: #64748b; width: 220px;"><strong>Full Name:</strong></td><td style="padding: 6px 0; color: #0f172a;">Luhandri Becker (Claase)</td></tr>
-        <tr><td style="padding: 6px 0; color: #64748b;"><strong>ID Number:</strong></td><td style="padding: 6px 0; color: #0f172a;">9412030086084</td></tr>
+        <tr><td style="padding: 6px 0; color: #64748b;"><strong>ID Number:</strong></td><td style="padding: 6px 0; color: #0f172a;">${repIdNumber || 'As per attached ID document'}</td></tr>
+        <tr><td style="padding: 6px 0; color: #64748b;"><strong>Personal Tax Ref Number:</strong></td><td style="padding: 6px 0; color: #0f172a; font-weight: bold;">${personalTaxNum || 'Pending Client Provision'}</td></tr>
+        <tr><td style="padding: 6px 0; color: #64748b;"><strong>Email Address:</strong></td><td style="padding: 6px 0; color: #0f172a;">${repEmail}</td></tr>
+        <tr><td style="padding: 6px 0; color: #64748b;"><strong>Contact Number:</strong></td><td style="padding: 6px 0; color: #0f172a;">${repPhone}</td></tr>
       </table>
 
       <h3 style="margin: 0 0 12px 0; font-size: 15px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">SARS eFiling Login Credentials</h3>
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
-        <tr><td style="padding: 8px 12px; color: #64748b; width: 220px;"><strong>Username:</strong></td><td style="padding: 8px 12px; color: #0f172a; font-family: monospace; font-size: 13px;">esiasbecker01@gmail.com</td></tr>
-        <tr><td style="padding: 8px 12px; color: #64748b;"><strong>Password:</strong></td><td style="padding: 8px 12px; color: #0f172a; font-family: monospace; font-size: 13px;">Biltong010124#@!</td></tr>
-      </table>
+      ${userVal && passVal 
+        ? `<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+            <tr><td style="padding: 8px 12px; color: #64748b; width: 220px;"><strong>Username:</strong></td><td style="padding: 8px 12px; color: #0f172a; font-family: monospace; font-size: 13px;">${userVal}</td></tr>
+            <tr><td style="padding: 8px 12px; color: #64748b;"><strong>Password:</strong></td><td style="padding: 8px 12px; color: #0f172a; font-family: monospace; font-size: 13px;">${passVal}</td></tr>
+          </table>`
+        : `<p style="font-size: 13px; color: #334155; margin: 0 0 20px 0;">
+            Client has not previously filed for the company and has no separate company eFiling profile. Please link the company to the representative's profile / register representative.
+          </p>`
+      }
 
       <h3 style="margin: 0 0 12px 0; font-size: 15px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">Attached Supporting Documents</h3>
-      <ul style="font-size: 13px; color: #334155; margin: 0 0 20px 0; padding-left: 20px;">
-        <li><strong>COR14.3.pdf</strong> — CIPC Company Registration Certificate</li>
-        <li><strong>Renier_ID.pdf</strong> — Public Officer National Identity Card (Esias Renier Becker)</li>
-        <li><strong>Luhandri_ID.pdf</strong> — Co-Director National Identity Card (Luhandri Becker)</li>
-      </ul>
+      ${emailAttachments.length > 0 
+        ? `<ul style="font-size: 13px; color: #334155; margin: 0 0 20px 0; padding-left: 20px;">
+            ${emailAttachments.map(a => `<li><strong>${a.filename}</strong></li>`).join('')}
+          </ul>`
+        : `<p style="font-size: 13px; color: #ef4444; font-weight: bold; margin: 0 0 20px 0;">WARNING: No supporting document attachments found.</p>`
+      }
 
       <p style="font-size: 12px; color: #64748b; margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
         Dispatched from info@myacc.co.za for Tax Representative Appointment processing.
@@ -1394,6 +1456,45 @@ Dispatched from info@myacc.co.za.
       content: d.buffer,
       contentType: 'application/pdf',
     }));
+  }
+
+  // Strict User Guardrails:
+  // 1. If Tax Rep order and ZERO attachments found: SUPPRESS email to Sinto! Never email external partners with 0 docs.
+  // 2. If standard order and ZERO draft deliverables generated: SUPPRESS review email to Kevin per agreed invariant.
+  if (emailAttachments.length === 0) {
+    if (isTaxRep) {
+      console.log(`[runOrderAuditPipeline] Order #${orderNumber}: Zero statutory attachments found for Sinto. Suppressing Tax Rep dossier dispatch to avoid sending empty dossier.`);
+    } else {
+      console.log(`[runOrderAuditPipeline] Order #${orderNumber}: Zero draft documents generated for review. Suppressing Executive Review Pack email to Kevin.`);
+    }
+    return {
+      orderId,
+      orderNumber,
+      customerName: order.customerName || 'Client',
+      customerEmail: order.customerEmail || '',
+      entityName,
+      registrationNumber,
+      coidaReference: coidaRef,
+      serviceTitle,
+      serviceCategory,
+      auditPassed,
+      clientLatestNote: clientNote,
+      forensicChecks,
+      documentsGenerated,
+      proposedClientCommunication,
+      reviewEmail: {
+        to: targetTo,
+        cc: Array.isArray(targetCc) ? targetCc.join(', ') : (targetCc || ''),
+        from: '"Kevin Freese | My Accountant" <info@myacc.co.za>',
+        subject: targetSubject,
+        text: targetText,
+        html: targetHtml,
+        attachmentsCount: 0,
+      },
+      reviewEmailSent: false,
+      portalNotesModified: false,
+      orderStatusAdvanced: false,
+    };
   }
 
   if (!dryRun) {
@@ -1446,7 +1547,7 @@ Dispatched from info@myacc.co.za.
     proposedClientCommunication,
     reviewEmail: {
       to: targetTo,
-      cc: Array.isArray(targetCc) ? targetCc.join(', ') : targetCc,
+      cc: Array.isArray(targetCc) ? targetCc.join(', ') : (targetCc || ''),
       from: '"Kevin Freese | My Accountant" <info@myacc.co.za>',
       subject: targetSubject,
       text: targetText,

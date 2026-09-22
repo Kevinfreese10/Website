@@ -198,9 +198,14 @@ When an NCR application is approved subject to proposed conditions:
    #### H. Tax Representative Appointment Protocol
 * **No Document Preparation Invariant**:
   - We do **NOT** prepare any documents for the "Tax Representative Appointment" service.
-  - The client uploads are audited for completeness: CIPC CoR14.3, Director IDs, Public Officer Personal Income Tax Number, Contact Details, and SARS eFiling credentials (Username & Password).
+  - The client uploads are audited for completeness:
+    1. **CIPC CoR 14.3 / Disclosure Certificate**: Contains the company's corporate income tax number (do NOT request company tax number separately if CoR 14.3 is uploaded).
+    2. **Director / Public Officer ID**: Certified copy or clear high-resolution color scan.
+    3. **Tax Representative's Personal Income Tax Number**: **MANDATORY PREREQUISITE**. Must be the individual's personal SARS tax reference number. If the client enters "Not applicable" or omits it, halt progression and request it via Communication History.
+    4. **Contact Details**: Direct cell number and email address of the appointed representative.
+    5. **SARS eFiling Login Credentials**: Username and password (or confirm if a profile needs to be created / linked).
 * **Fulfillment Email Dispatch**:
-  - Once all required information and client uploads are present, immediately compile the dossier and dispatch via email:
+  - Once all required information (strictly including the tax rep's personal tax number) and client uploads are present, immediately compile the dossier and dispatch via email:
     - **To**: `sinto4plus@gmail.com`
     - **From**: `info@myacc.co.za`
     - **CC**: `info@myacc.co.za`, `kev@thinkestry.co.za`
@@ -208,13 +213,14 @@ When an NCR application is approved subject to proposed conditions:
     - **Attachments**: The client's submitted files (CoR14.3, Director ID copies).
   - Client portal communication note acknowledges receipt and advises that the appointment request has been submitted for processing.
 
+
 ---
 
 ### Step 4: Storage Upload & Client Communication History (CRITICAL INVARIANTS)
 
 * **Mandatory User Approval Gate (STRICT)**:
   - **NEVER** upload documents to Cloud Storage, post notes to Firestore (`order.notes`), or dispatch emails to clients until Kevin has reviewed and explicitly approved them.
-  - **Email Pre-Approval Rule**: Even if the agent or agent team is 100% sure of the audit results and reconciliations, ALWAYS email Kevin at `kev@thinkestry.co.za` (CC `info@myacc.co.za`) with the executive audit pack, attached draft PDF, and proposed note text before committing any updates to the portal.
+  - **Email Pre-Approval Rule (Draft Documents Only)**: The agent **ONLY** compiles and dispatches an executive review pack to `kev@thinkestry.co.za` (do NOT CC `info@myacc.co.za`) when draft statutory documents (PDFs) were actually generated and require Kevin's review/signature (`documentsGenerated.length > 0`). If no draft documents were generated (e.g. conversational notes, requests, or questions), **completely suppress** the review email; keep the activity strictly within the portal dashboard.
   - Wait for Kevin's confirmation or instructions before committing changes to the database.
 
 * **Client Communication Formatting Rules**:

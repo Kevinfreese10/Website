@@ -50,3 +50,19 @@ scratch/*.tgz
 worker/portal-runner/.env
 AI_Accountant_*.csv
 AI_Accountant_*.xlsx
+
+# Antigravity multi-agent workspaces & generated project logs
+.agents/*
+!.agents/skills/
+!.agents/rules/
+!.agents/workflows/
+ORIGINAL_REQUEST.md
+PROJECT.md
+TEST_INFRA.md
+TEST_READY.md
+backups/
+scripts/m2-challenger-2-test.ts
+scripts/adversarial-probe.ts
+scripts/execute-migration.ts
+scripts/reset-other-clients-fees.ts
+scripts/verify-acceptance-criteria.ts
