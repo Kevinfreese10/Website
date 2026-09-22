@@ -13,7 +13,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing report data' }, { status: 400 });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const buffer = await renderToBuffer(
       React.createElement(ManagementReportPdfDocument, {
         data,

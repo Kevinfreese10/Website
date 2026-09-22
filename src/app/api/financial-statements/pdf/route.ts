@@ -13,7 +13,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing financial statements data' }, { status: 400 });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const buffer = await renderToBuffer(
       React.createElement(AnnualFinancialStatementsPdfDocument, { data }) as any
     );
