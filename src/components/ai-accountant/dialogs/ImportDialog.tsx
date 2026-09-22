@@ -404,6 +404,7 @@ export function ImportDialog({
                     date: parsedDate.toISOString(),
                     reference: `CSV-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
                     description: description,
+                    rawDescription: description,
                     amount: row.Amount,
                     isExpense: isExpense,
                     bankAccountId: bankAccountId,
@@ -411,9 +412,7 @@ export function ImportDialog({
                     createdAt: serverTimestamp()
                 };
 
-                if (triage.rawDescription || description) txData.rawDescription = triage.rawDescription || description;
-                if (triage.cleanDescription) txData.cleanDescription = triage.cleanDescription;
-                if (triage.merchantKey) txData.merchantKey = triage.merchantKey;
+                // On CSV import: Do not assign merchantKey or cleanDescription per practitioner preference.
                 if (triage.paymentChannel) txData.paymentChannel = triage.paymentChannel;
                 if (triage.branchLocation) txData.branchLocation = triage.branchLocation;
                 if (triage.structuralClues && Object.keys(triage.structuralClues).length > 0) txData.structuralClues = triage.structuralClues;

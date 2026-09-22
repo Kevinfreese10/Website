@@ -324,11 +324,19 @@ export const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>
             const matchedDocs: { ref: any; updates: any }[] = [];
             snapshot.docs.forEach(d => {
                 const tx = d.data() as ImportedTransaction;
-                const txDesc = (tx.cleanDescription || tx.description || '').toUpperCase();
-                if (!txDesc) return;
-                const match = allRules.find(r => r.keywords.some(kw => matchesRuleKeyword(txDesc, kw)));
+                const candidates = [
+                    tx.rawDescription,
+                    tx.description,
+                    tx.cleanDescription,
+                    tx.merchantKey
+                ].filter((s): s is string => typeof s === 'string' && s.trim().length > 0);
+
+                if (candidates.length === 0) return;
+                const match = allRules.find(r => 
+                    r.keywords.some(kw => candidates.some(desc => matchesRuleKeyword(desc, kw)))
+                );
                 if (match) {
-                    const keyword = match.keywords.find(kw => matchesRuleKeyword(txDesc, kw));
+                    const keyword = match.keywords.find(kw => candidates.some(desc => matchesRuleKeyword(desc, kw)));
                     let targetAccountId = match.accountId;
                     let targetAccountType = match.accountType || 'account';
                     if (client.chartOfAccounts && client.chartOfAccounts.length > 0) {
