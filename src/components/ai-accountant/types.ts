@@ -99,8 +99,8 @@ export interface CreateRuleDialogProps {
     defaultValues: Partial<RuleFormValues>;
     transactionDescription?: string | null;
     existingRules: AllocationRule[];
-    customers: ClientCustomer[];
-    suppliers: Supplier[];
+    customers?: ClientCustomer[];
+    suppliers?: Supplier[];
 }
 
 export interface CreateManualTransactionDialogProps {

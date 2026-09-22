@@ -28,7 +28,9 @@ import {
     Layers, 
     ArrowRight, 
     FileSpreadsheet,
-    Search 
+    Search,
+    ChevronDown,
+    AlertTriangle 
 } from 'lucide-react';
 import { 
     getFirestore, 
@@ -48,8 +50,8 @@ import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { ImportedTransaction, User, AllocationRule, SmartAllocationResult } from '@/lib/types';
-import { TransactionGroup } from './types';
+import { ImportedTransaction, User, AllocationRule, SmartAllocationResult, ClientCustomer, Supplier } from '@/lib/types';
+import { TransactionGroup, RuleFormValues } from './types';
 import { cn } from '@/lib/utils';
 import { BankCleaner, matchesRuleKeyword } from '@/lib/bank-cleaner';
 import { resolveAccountForCategory } from '@/lib/chart-of-accounts-mapper';
@@ -57,6 +59,23 @@ import { allVatTypes } from '@/lib/vat-types';
 import { AccountSelector } from '@/components/accounting/AccountSelector';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx-js-style';
+import { 
+    DropdownMenu, 
+    DropdownMenuTrigger, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuSeparator 
+} from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
     proposeRegroups, 
     proposeAiRegroups, 
@@ -73,7 +92,8 @@ import {
 } from '@/app/actions';
 import { 
     CreateGeneralAccountDialog, 
-    GroupTransactionsDialog 
+    GroupTransactionsDialog,
+    CreateRuleDialog 
 } from './dialogs';
 import { useDebounce } from '@/hooks/use-debounce';
 import { MerchantGroupCard } from './components/MerchantGroupCard';
@@ -94,6 +114,8 @@ export interface SmartMatchQueueTabProps {
     onAccountCreated: () => void;
     onAllocationComplete?: () => void;
     globalRules?: AllocationRule[];
+    customers?: ClientCustomer[];
+    suppliers?: Supplier[];
 }
 
 export const SmartMatchQueueTab = ({ 
@@ -101,7 +123,9 @@ export const SmartMatchQueueTab = ({
     bankAccountId, 
     onAccountCreated, 
     onAllocationComplete,
-    globalRules 
+    globalRules,
+    customers = [],
+    suppliers = []
 }: SmartMatchQueueTabProps) => {
     const { user } = useAuth();
     const { toast } = useToast();
@@ -129,6 +153,18 @@ export const SmartMatchQueueTab = ({
     const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false);
     const [isApplyingMerges, setIsApplyingMerges] = useState(false);
     const [selectedMerges, setSelectedMerges] = useState<string[]>([]);
+
+    // Rule Creation on Approval state
+    const [isCreateRuleOpen, setIsCreateRuleOpen] = useState(false);
+    const [ruleDefaultValues, setRuleDefaultValues] = useState<Partial<RuleFormValues>>({});
+    const [stagedGroupForRule, setStagedGroupForRule] = useState<TransactionGroup | null>(null);
+
+    // Destructive AI reanalyze confirmation
+    const [isReanalyzeAlertOpen, setIsReanalyzeAlertOpen] = useState(false);
+
+    // Bulk AI research states
+    const [isBulkResearching, setIsBulkResearching] = useState(false);
+    const [bulkResearchProgress, setBulkResearchProgress] = useState<{ done: number; total: number } | null>(null);
 
     const [sortBy, setSortBy] = useState<'alpha' | 'count'>('alpha');
     const [searchTerm, setSearchTerm] = useState('');
@@ -514,13 +550,8 @@ export const SmartMatchQueueTab = ({
         }
     };
 
-    const handleApproveGroup = async (group: TransactionGroup) => {
+    const commitGroupApproval = async (group: TransactionGroup, settings: any, skipRuleCreation = false) => {
         if (!client?.uid) return;
-        const settings = approvalSettings[group.merchantKey];
-        if (!settings || !settings.accountId) {
-            toast({ title: "Missing Allocation", description: "Please select an account before approving.", variant: "destructive" });
-            return;
-        }
 
         // Phase 1: Snapshot previous state for rollback
         const previousGroups = [...groups];
@@ -559,7 +590,7 @@ export const SmartMatchQueueTab = ({
                 vatType: settings.vatType || 'no_vat'
             }).catch(err => console.warn("Global merchant DB update background error:", err));
 
-            if (settings.createRule) {
+            if (settings.createRule && !skipRuleCreation) {
                 const ruleId = `rule_${Math.random().toString(36).substr(2, 9)}`;
                 batch.update(doc(db, 'aiAccountantClients', client.uid), { 
                     allocationRules: arrayUnion({ 
@@ -591,6 +622,47 @@ export const SmartMatchQueueTab = ({
                 variant: "destructive" 
             }); 
         }
+    };
+
+    const handleApproveGroup = async (group: TransactionGroup) => {
+        if (!client?.uid) return;
+        const settings = approvalSettings[group.merchantKey];
+        if (!settings || !settings.accountId) {
+            toast({ title: "Missing Allocation", description: "Please select an account before approving.", variant: "destructive" });
+            return;
+        }
+
+        // If createRule is enabled, open the Rule Creation modal pre-filled for practitioner review
+        if (settings.createRule) {
+            setStagedGroupForRule(group);
+            setRuleDefaultValues({
+                keywords: group.merchantKey.toUpperCase(),
+                accountId: settings.accountId,
+                accountType: (group.suggestion?.accountType as any) || 'account',
+                vatType: settings.vatType || 'no_vat',
+                description: `Auto-categorization for ${group.merchantKey}`,
+                scope: 'client',
+                mode: 'new'
+            });
+            setIsCreateRuleOpen(true);
+            return;
+        }
+
+        // Fast path: direct instant commit when createRule is unchecked
+        await commitGroupApproval(group, settings);
+    };
+
+    const handleRuleDialogSaved = async () => {
+        if (stagedGroupForRule) {
+            const groupToApprove = stagedGroupForRule;
+            const settings = approvalSettings[groupToApprove.merchantKey];
+            setStagedGroupForRule(null);
+            if (settings) {
+                // Rule was already created and saved by CreateRuleDialog; commit approval skipping duplicate rule creation
+                await commitGroupApproval(groupToApprove, settings, true);
+            }
+        }
+        onAccountCreated();
     };
 
     const handleApproveReadyOnly = async () => {
@@ -761,12 +833,115 @@ export const SmartMatchQueueTab = ({
                     createRule: true
                 }
             }));
+            setGroups((prev: TransactionGroup[]) => prev.map(g => {
+                if (g.merchantKey === group.merchantKey) {
+                    return {
+                        ...g,
+                        suggestion: {
+                            accountId: res.accountId,
+                            accountType: 'account',
+                            vatType: res.vatType,
+                            confidence: res.confidence,
+                            summary: res.summary || `AI research suggested ${res.accountId}`,
+                        },
+                        status: hasLowConfidence ? 'pending' : 'ready'
+                    };
+                }
+                return g;
+            }));
             toast({ title: "Research Complete" });
         } catch (error) {
             console.error("Research Failed", error);
             toast({ title: "Research Failed", variant: "destructive" });
         } finally {
             setIsResearchingId(null);
+        }
+    };
+
+    const handleBulkResearchWithAi = async () => {
+        if (!client || selectedGroupKeys.length === 0) return;
+        const groupsToResearch = groups.filter(g => selectedGroupKeys.includes(g.merchantKey));
+        if (groupsToResearch.length === 0) return;
+
+        setIsBulkResearching(true);
+        setBulkResearchProgress({ done: 0, total: groupsToResearch.length });
+
+        toast({
+            title: "Bulk AI Research Started",
+            description: `Researching ${groupsToResearch.length} selected merchant groups in parallel...`
+        });
+
+        let completed = 0;
+        const chunkSize = 4;
+        
+        try {
+            const token = await getIdToken();
+            const chartOfAccountsStr = JSON.stringify(client.chartOfAccounts || []);
+
+            for (let i = 0; i < groupsToResearch.length; i += chunkSize) {
+                const chunk = groupsToResearch.slice(i, i + chunkSize);
+                await Promise.all(chunk.map(async (group) => {
+                    try {
+                        const res = await researchMerchantWithAi({
+                            idToken: token,
+                            clientId: client.uid,
+                            transactionIds: group.transactions.map(t => t.id),
+                            description: group.transactions[0]?.description || group.merchantKey,
+                            chartOfAccounts: chartOfAccountsStr,
+                            isVatRegistered: !!client.isVatRegistered,
+                            isExpense: true
+                        });
+                        const hasLowConfidence = res.confidence < 20;
+
+                        setApprovalSettings((prev: any) => ({
+                            ...prev,
+                            [group.merchantKey]: {
+                                ...prev[group.merchantKey],
+                                accountId: hasLowConfidence ? '' : res.accountId,
+                                vatType: res.vatType,
+                                createRule: true
+                            }
+                        }));
+
+                        setGroups((prev: TransactionGroup[]) => prev.map(g => {
+                            if (g.merchantKey === group.merchantKey) {
+                                return {
+                                    ...g,
+                                    suggestion: {
+                                        accountId: res.accountId,
+                                        accountType: 'account',
+                                        vatType: res.vatType,
+                                        confidence: res.confidence,
+                                        summary: res.summary || `AI research suggested ${res.accountId}`,
+                                    },
+                                    status: hasLowConfidence ? 'pending' : 'ready'
+                                };
+                            }
+                            return g;
+                        }));
+                    } catch (err) {
+                        console.error(`Research failed for ${group.merchantKey}:`, err);
+                    } finally {
+                        completed++;
+                        setBulkResearchProgress({ done: completed, total: groupsToResearch.length });
+                    }
+                }));
+            }
+
+            toast({
+                title: "Bulk AI Research Completed",
+                description: `Finished researching ${groupsToResearch.length} merchant groups.`
+            });
+        } catch (e: any) {
+            console.error("Bulk AI research error:", e);
+            toast({
+                title: "Bulk Research Failed",
+                description: e?.message || "An error occurred during bulk AI research.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsBulkResearching(false);
+            setBulkResearchProgress(null);
         }
     };
 
@@ -1063,6 +1238,25 @@ export const SmartMatchQueueTab = ({
                                 </Select>
                             )}
                             <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleBulkResearchWithAi}
+                                disabled={isBulkResearching}
+                                className="h-8 text-xs font-semibold border-purple-300 text-purple-700 hover:bg-purple-50 shrink-0"
+                            >
+                                {isBulkResearching ? (
+                                    <>
+                                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                        Researching {bulkResearchProgress ? `(${bulkResearchProgress.done}/${bulkResearchProgress.total})` : '...'}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="mr-1.5 h-3.5 w-3.5 text-purple-600 fill-purple-200" />
+                                        Research Selected with AI ({selectedGroupKeys.length})
+                                    </>
+                                )}
+                            </Button>
+                            <Button
                                 onClick={() => handleApproveAllWithAllocations(true)}
                                 disabled={selectedGroupKeys.filter(key => approvalSettings[key]?.accountId).length === 0}
                                 className="h-8 text-xs font-bold bg-green-600 hover:bg-green-700 text-white shadow-sm ml-2 shrink-0"
@@ -1095,26 +1289,60 @@ export const SmartMatchQueueTab = ({
                     <Button variant="outline" onClick={handleDownloadExcel} disabled={groups.length === 0}>
                         <FileSpreadsheet className="mr-2 h-4 w-4" /> Download Excel
                     </Button>
-                    <Button variant="secondary" onClick={handleAutoConsolidate} disabled={isRegrouping || groups.length < 2} className="border-2 border-primary/20 font-bold">
-                        {isRegrouping ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Zap className="mr-2 h-4 w-4 text-emerald-600 fill-emerald-600" />}
-                        Consolidate Groups (Convergence)
-                    </Button>
-                    <Button variant="outline" onClick={handleCombinedRegroup} disabled={isRegrouping || isAiRegrouping || groups.length < 2} className="border-primary/30 text-primary hover:bg-primary/5 text-xs" title="Review proposed merges">
-                        <Layers className="mr-1.5 h-3.5 w-3.5" />
-                        Review Proposals
-                    </Button>
-                    <Button variant="outline" onClick={handleMatchHistory} disabled={isHistoryMatching || groups.length === 0} className="border-primary/30 text-primary hover:bg-primary/5">
-                        {isHistoryMatching ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <History className="mr-2 h-4 w-4" />}
-                        Match from History
-                    </Button>
-                    <Button variant="outline" onClick={handleRecheckRules} disabled={isRechecking}>
-                        {isRechecking ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RotateCcw className="mr-2 h-4 w-4" />}
-                        Recheck Rules
-                    </Button>
-                    <Button variant="outline" onClick={handleReanalyzeAndRegroup} disabled={isReanalyzing || groups.length === 0} className="border-primary/30 text-primary hover:bg-primary/5">
-                        {isReanalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RotateCw className="mr-2 h-4 w-4" />}
-                        Reanalyze & Regroup
-                    </Button>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" disabled={isRegrouping || groups.length < 2} className="h-8 text-xs border-primary/30 text-primary hover:bg-primary/5 font-semibold">
+                                {isRegrouping ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Layers className="mr-1.5 h-3.5 w-3.5 text-primary" />}
+                                Group Merging
+                                <ChevronDown className="ml-1.5 h-3 w-3 opacity-70" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56 bg-white">
+                            <DropdownMenuItem onClick={handleAutoConsolidate} disabled={isRegrouping || groups.length < 2} className="cursor-pointer text-xs">
+                                <Zap className="mr-2 h-4 w-4 text-emerald-600" />
+                                <span>Consolidate Groups (Convergence)</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleCombinedRegroup} disabled={isRegrouping || isAiRegrouping || groups.length < 2} className="cursor-pointer text-xs">
+                                <Layers className="mr-2 h-4 w-4 text-primary" />
+                                <span>Review Merge Proposals</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" disabled={isRechecking || isHistoryMatching || isReanalyzing} className="h-8 text-xs border-primary/30 text-primary hover:bg-primary/5 font-semibold">
+                                {isRechecking || isHistoryMatching || isReanalyzing ? (
+                                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                    <RotateCw className="mr-1.5 h-3.5 w-3.5 text-primary" />
+                                )}
+                                Re-matching Tools
+                                <ChevronDown className="ml-1.5 h-3 w-3 opacity-70" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-64 bg-white">
+                            <DropdownMenuItem onClick={handleRecheckRules} disabled={isRechecking} className="cursor-pointer text-xs">
+                                <RotateCcw className="mr-2 h-4 w-4 text-blue-600" />
+                                <span>Recheck Rules</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleMatchHistory} disabled={isHistoryMatching || groups.length === 0} className="cursor-pointer text-xs">
+                                <History className="mr-2 h-4 w-4 text-indigo-600" />
+                                <span>Match from History</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                                onClick={() => setIsReanalyzeAlertOpen(true)} 
+                                disabled={isReanalyzing || groups.length === 0} 
+                                className="cursor-pointer text-xs text-destructive focus:text-destructive focus:bg-destructive/10"
+                            >
+                                <AlertTriangle className="mr-2 h-4 w-4 text-destructive" />
+                                <span>Full AI Reanalyze & Regroup</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button variant="outline" onClick={handleSaveDrafts} disabled={isSavingDrafts || groups.length === 0} className="border-primary/30 text-primary hover:bg-primary/5">
                         {isSavingDrafts ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save Drafts
@@ -1221,6 +1449,59 @@ export const SmartMatchQueueTab = ({
                     </Button>
                 </div>
             )}
+
+            <CreateGeneralAccountDialog client={client} onAccountCreated={onAccountCreated} open={isCreateGeneralAccountOpen} onOpenChange={setIsCreateGeneralAccountOpen} />
+
+            <GroupTransactionsDialog 
+                open={!!viewingGroup} 
+                onOpenChange={(open) => { if (!open) setViewingGroup(null); }} 
+                group={viewingGroup} 
+                onMoveToNew={handleMoveSingleTransactionToNew} 
+                onSplitGroup={handleSplitGroupToNew} 
+            />
+
+            <CreateRuleDialog 
+                client={client} 
+                onRuleCreated={handleRuleDialogSaved} 
+                open={isCreateRuleOpen} 
+                onOpenChange={(open) => {
+                    setIsCreateRuleOpen(open);
+                    if (!open) setStagedGroupForRule(null);
+                }} 
+                defaultValues={ruleDefaultValues} 
+                transactionDescription={stagedGroupForRule?.transactions[0]?.description || stagedGroupForRule?.merchantKey || ''} 
+                existingRules={globalRules || []} 
+                customers={customers} 
+                suppliers={suppliers} 
+            />
+
+            <AlertDialog open={isReanalyzeAlertOpen} onOpenChange={setIsReanalyzeAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                            <AlertTriangle className="h-5 w-5" />
+                            Reset & Full AI Re-analysis?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will clear all pending AI allocation suggestions in the Smart Match queue, reset transactions to the AI processing stage, and re-run the transaction detective engine from scratch.
+                            <br /><br />
+                            Are you sure you want to proceed?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={() => {
+                                setIsReanalyzeAlertOpen(false);
+                                handleReanalyzeAndRegroup();
+                            }}
+                            className="bg-destructive hover:bg-destructive/90 text-white font-bold"
+                        >
+                            Yes, Reanalyze All
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

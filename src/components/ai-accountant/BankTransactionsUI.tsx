@@ -262,7 +262,7 @@ export function BankTransactionsUI() {
                         />
                     </TabsContent>
                     <TabsContent value="ai-workflow" className="p-0">
-                        <SmartMatchQueueTab client={client} bankAccountId={accountId || ''} globalRules={globalRules}
+                        <SmartMatchQueueTab client={client} bankAccountId={accountId || ''} globalRules={globalRules} customers={customers} suppliers={suppliers}
                             onAccountCreated={() => { fetchClientData(); fetchCalculatedBalance(); fetchUnallocatedCount(); }} 
                             onAllocationComplete={() => { fetchCalculatedBalance(); fetchUnallocatedCount(); }}
                         />

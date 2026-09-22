@@ -57,8 +57,8 @@ export function CreateRuleDialog({
     onOpenChange, 
     defaultValues, 
     existingRules, 
-    customers, 
-    suppliers 
+    customers = [], 
+    suppliers = [] 
 }: CreateRuleDialogProps) {
     const { toast } = useToast();
     const form = useForm<RuleFormValues>({
