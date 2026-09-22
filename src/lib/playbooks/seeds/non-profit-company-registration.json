@@ -16,7 +16,12 @@
   ],
   "informationToProvide": [
     { "label": "Certified copies of the ID or passport for each member", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back or Green Book) or passport per director / incorporator, Commissioner of Oaths / SAPS stamp dated within 3 months, legible ID number and names. Count them — an NPC needs at least three." },
-    { "label": "How many Directors", "type": "text", "isRequired": true, "helpText": "Minimum three for a non-profit company." },
+    { "label": "How many Directors", "type": "text", "isRequired": true, "helpText": "Select how many directors to register (minimum 3 for an NPC, up to 5+)." },
+    { "label": "Director 1: Full Name", "type": "text", "isRequired": true, "helpText": "Full legal name and surname of the first director." },
+    { "label": "Director 2: Full Name", "type": "text", "isRequired": true, "helpText": "Full legal name and surname of the second director." },
+    { "label": "Director 3: Full Name", "type": "text", "isRequired": true, "helpText": "Full legal name and surname of the third director (minimum 3 required for NPC)." },
+    { "label": "Director 4: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a fourth director to register?", "helpText": "Full legal name and surname of the fourth director." },
+    { "label": "Director 5: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a fifth director to register?", "helpText": "Full legal name and surname of the fifth director." },
     { "label": "Director(s) Home Address", "type": "text", "isRequired": true },
     { "label": "Proof of residential address for each director", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease", "Bank statement showing the address"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per director (utility bill, rates/taxes, lease or bank statement) in the director's own name." },
     { "label": "Director(s) cell number", "type": "text", "isRequired": true },

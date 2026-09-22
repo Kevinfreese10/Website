@@ -310,13 +310,23 @@ export type CompletenessResult = {
   rejected: { id?: string; label: string }[];
 };
 
+import { isDirectorCountRequirement, evaluateDirectorSlotStatus } from '@/lib/director-linkage';
+
 /** Which requirements from a service snapshot still have no upload (or a rejected one). */
 export function checkCompleteness(
   requirements: Pick<ServiceRequirement, 'id' | 'label' | 'isRequired' | 'isConditional'>[],
-  uploads: { requirementId?: string; requirementLabel?: string; status?: string; notAvailableReason?: string }[]
+  uploads: { requirementId?: string; requirementLabel?: string; status?: string; notAvailableReason?: string; textValue?: string }[]
 ): CompletenessResult {
   const res: CompletenessResult = { complete: true, missingRequired: [], missingOptional: [], rejected: [] };
+  const dirCountUpload = uploads.find(u => isDirectorCountRequirement(u.requirementLabel || ''));
+  const dirCountVal = dirCountUpload?.textValue || null;
+
   for (const req of requirements) {
+    const slotStatus = evaluateDirectorSlotStatus(req.label, dirCountVal);
+    if (slotStatus === 'skipped') {
+      continue;
+    }
+
     const match = uploads.find(u => (req.id && u.requirementId === req.id) || (u.requirementLabel || '').trim().toLowerCase() === (req.label || '').trim().toLowerCase());
     const required = req.isRequired !== false && !req.isConditional;
     if (!match) {

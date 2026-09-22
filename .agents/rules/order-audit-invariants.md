@@ -100,3 +100,9 @@ globs: ["*"]
 - **No Reliance on Assumptions or Auto-Lookup**: Never assume SARS eFiling or Sinto will look up the representative's tax number solely from their South African ID number, and never treat this field as optional. If the client enters "Not applicable" or omits it, the agent must immediately flag it as a blocker and request it via Communication History.
 - **Company Tax Number is on CoR 14.3**: The company's income tax reference number is already printed on the official CIPC CoR 14.3 (Enterprise Disclosure Certificate). Do **NOT** ask the client for the company's tax number if a CoR 14.3 has been uploaded. Always extract the company's tax number directly from the document.
 
+### 16. Automated Regulator Autoreply & Ticket Receipt Invariant
+- **Zero Forwarding of Automated Regulator Receipts**: NEVER forward or email automated autoreplies, ticketing acknowledgements, or submission receipts from government regulators (e.g. `CfCallCentre2019@LABOUR.gov.za`, `NoReply@Labour.gov.za`, or any regulator sender with subject containing `Autoreply`, `Automatic reply`, `Query Acknowledgement`, `Ticket Created`) to `kev@thinkestry.co.za`.
+- **Silent Logging to Matched Orders**: If an active order is matched from the email content/subject, silently record the regulator receipt / ticket reference into `orders/{orderId}.notes` (`isInternal: true`) for audit history, but send ZERO emails to Kevin.
+- **Immediate Archive**: Immediately archive the message to `INBOX.Archive` so the active `INBOX` remains completely clean.
+- **Human Regulator Exception**: Substantive correspondence from human regulator officers (e.g. Sinto, NCR analysts, Compensation Fund examiners requesting specific amendments, or approval certificates) MUST continue to be escalated immediately.
+

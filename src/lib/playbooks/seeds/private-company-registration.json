@@ -17,7 +17,12 @@
   ],
   "informationToProvide": [
     { "label": "Certified copies of the ID or passport for each director", "type": "pdf", "documentKind": "sa_id", "inNameOf": "director", "maxAgeDays": 90, "mustBeCertified": true, "alternatives": ["Certified passport copy (foreign director)"], "isRequired": true, "aiHint": "One certified SA ID (Smart Card front and back, or Green Barcoded ID Book) or passport per director, Commissioner of Oaths / SAPS stamp dated within 3 months, legible ID number and full names. Count them against 'How many directors'." },
-    { "label": "How many directors", "type": "text", "isRequired": true },
+    { "label": "How many directors", "type": "text", "isRequired": true, "helpText": "Select how many directors to register upon incorporation (1 to 5+)." },
+    { "label": "Director 1: Full Name", "type": "text", "isRequired": true, "helpText": "Full legal name and surname of the first director." },
+    { "label": "Director 2: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a second director to register?", "helpText": "Full legal name and surname of the second director." },
+    { "label": "Director 3: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a third director to register?", "helpText": "Full legal name and surname of the third director." },
+    { "label": "Director 4: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a fourth director to register?", "helpText": "Full legal name and surname of the fourth director." },
+    { "label": "Director 5: Full Name", "type": "text", "isRequired": false, "isConditional": true, "conditionalQuestion": "Is there a fifth director to register?", "helpText": "Full legal name and surname of the fifth director." },
     { "label": "Director(s) Home Address", "type": "text", "isRequired": true },
     { "label": "Proof of residential address for each director", "type": "pdf", "documentKind": "proof_of_address", "inNameOf": "director", "maxAgeDays": 90, "alternatives": ["Signed lease agreement", "Bank statement showing the address"], "isRequired": true, "aiHint": "Proof of residential address dated within 3 months per director (utility bill, rates/taxes, lease or bank statement) in the director's own name." },
     { "label": "Director(s) Email Address", "type": "text", "isRequired": true },

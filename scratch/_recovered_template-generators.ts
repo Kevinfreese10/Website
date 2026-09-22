@@ -1412,7 +1412,7 @@ export async function generateAccountingOfficerConsentDraft(order: Order, extrac
   page.drawText('Registration Number: 2020 / 548105 / 07', { x: margin, y: currentY, size: 7, font: fontRegular, color: rgb(0.35, 0.4, 0.45) });
   currentY -= 14;
 
-  const sigDateFormatted = '20 August 2026';
+  const sigDateFormatted = details.orderDate || '17 September 2026';
 
   // Digital Signature Box
   const sigBoxW = 270;
@@ -1543,7 +1543,7 @@ export async function generateAccountantsLetterDraft(order: Order, extractedInfo
   currentY -= 22;
 
   // Signature Block
-  const sigDateFormatted = '20 August 2026';
+  const sigDateFormatted = details.orderDate || '17 September 2026';
   const sigBoxW = (width - margin * 2) * 0.65;
   const sigBoxH = 50;
 

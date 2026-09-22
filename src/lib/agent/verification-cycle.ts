@@ -27,6 +27,7 @@ import { checkTextValue } from '@/lib/verification/mechanical';
 import { evaluateDocument, type EntityContext, type RuleOutcome } from '@/lib/verification/rules';
 import type { ExtractedDocumentFacts } from '@/lib/verification/facts';
 import { sendCompleteEmail, sendUndecidedEmail, sendAuditFindingsEmail } from './verification-emails';
+import { isDirectorCountRequirement, parseDirectorCount, evaluateDirectorSlotStatus } from '@/lib/director-linkage';
 
 export type CycleTrigger = 'notify' | 'upload' | 'cron' | 'manual';
 
@@ -130,6 +131,19 @@ export async function runVerificationCycle(orderId: string, trigger: CycleTrigge
     for (const req of svc.requirements || []) {
       const up = findUpload(uploads, svc, req);
       const item: ItemVerdict = { requirementId: req.id, label: req.label, serviceTitle: svc.title, uploadId: up?.id, outcome: 'missing', changedThisRun: false };
+
+      // Director slot linkage check: if numbered director slot is skipped based on selected count
+      const dirCountUp = uploads.find(u =>
+        (!u.serviceId || u.serviceId === svc.serviceId) &&
+        isDirectorCountRequirement(u.requirementLabel || '')
+      );
+      const dirSlotStatus = evaluateDirectorSlotStatus(req.label, dirCountUp?.textValue);
+      if (dirSlotStatus === 'skipped') {
+        item.outcome = 'not_applicable';
+        item.reason = `Skipped: Only ${parseDirectorCount(dirCountUp?.textValue) || 1} director(s) specified.`;
+        result.items.push(item);
+        continue;
+      }
 
       // Conditional answered "No" → not applicable.
       if (req.isConditional && up?.textValue === 'N/A (No)') { item.outcome = 'not_applicable'; result.items.push(item); continue; }

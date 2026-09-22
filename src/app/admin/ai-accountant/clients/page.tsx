@@ -325,10 +325,31 @@ export default function AIAccountantClientsPage() {
 
         setIsSavingRule(true);
         try {
-            const keywordsArray = ruleKeywords
-                .split(',')
-                .map(k => k.trim().toUpperCase())
-                .filter(Boolean);
+            const keywordsArray = Array.from(
+                new Set(
+                    ruleKeywords
+                        .split(',')
+                        .map(k => k.trim().toUpperCase())
+                        .filter(Boolean)
+                )
+            );
+
+            // Collision check: Each keyword can only be part of 1 rule
+            for (const kw of keywordsArray) {
+                const conflict = globalRules.find(r => 
+                    r.id !== selectedRule?.id && 
+                    r.keywords?.some(existingKw => existingKw.trim().toUpperCase() === kw)
+                );
+                if (conflict) {
+                    toast({
+                        title: 'Keyword Conflict',
+                        description: `Keyword "${kw}" is already assigned to rule: "${conflict.description || conflict.id}". Each keyword can only be part of 1 rule.`,
+                        variant: 'destructive',
+                    });
+                    setIsSavingRule(false);
+                    return;
+                }
+            }
 
             const ruleData = {
                 description: ruleDescription.trim(),

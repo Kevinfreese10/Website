@@ -120,6 +120,15 @@ export async function createRuleFromAllocationAction({
   };
 
   if (isGlobal && authCtx.isAdmin) {
+    const existingSnap = await db.collection('allocationRules')
+      .where('keywords', 'array-contains', keyword)
+      .limit(1)
+      .get();
+    if (!existingSnap.empty) {
+      const existingDoc = existingSnap.docs[0].data();
+      throw new Error(`Keyword "${keyword}" is already assigned to rule: "${existingDoc.description || existingDoc.id}". Each keyword can only be part of 1 rule.`);
+    }
+
     await db.collection('allocationRules').doc(ruleId).set({
       ...newRule,
       createdAt: new Date().toISOString(),
@@ -128,6 +137,14 @@ export async function createRuleFromAllocationAction({
   } else {
     // Add to client's allocationRules array
     const clientRef = db.collection('aiAccountantClients').doc(clientId);
+    const clientDoc = await clientRef.get();
+    const clientData = clientDoc.data();
+    const existingClientRules: AllocationRule[] = clientData?.allocationRules || [];
+    const clientCollision = existingClientRules.find(r => r.keywords?.some(k => k.toUpperCase() === keyword));
+    if (clientCollision) {
+      throw new Error(`Keyword "${keyword}" is already assigned to client rule: "${clientCollision.description || clientCollision.id}".`);
+    }
+
     await clientRef.update({
       allocationRules: FieldValue.arrayUnion(newRule),
       updatedAt: new Date().toISOString(),

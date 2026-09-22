@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Search, BookOpen, CheckCircle2, ShieldCheck, Layers, X } from 'lucide-react';
-import { STANDARD_PREREQUISITE_GROUPS, PrerequisitePreset } from '@/lib/service-presets';
+import { STANDARD_PREREQUISITE_GROUPS, PrerequisitePreset, isCoveredByStandardPrerequisitePreset } from '@/lib/service-presets';
 
 interface PrerequisiteMultiSelectDialogProps {
   open: boolean;
@@ -32,17 +32,28 @@ export default function PrerequisiteMultiSelectDialog({
     return new Set(existingTexts.map(t => t.trim().toLowerCase()));
   }, [existingTexts]);
 
-  // Combine standard and previously used
+  // Combine standard and previously used with smart deduplication
   const allGroups = useMemo(() => {
     const groups = [...STANDARD_PREREQUISITE_GROUPS];
     if (previouslyUsed.length > 0) {
-      groups.push({
-        category: 'Previously Used in Store',
-        items: previouslyUsed.map((text, idx) => ({
-          id: `prev_${idx}`,
-          title: text,
-        })),
+      const standardExactSet = new Set(
+        STANDARD_PREREQUISITE_GROUPS.flatMap(g => g.items.map(i => i.title.toLowerCase().trim()))
+      );
+      const filteredPrev = previouslyUsed.filter(text => {
+        if (!text) return false;
+        const key = text.toLowerCase().trim();
+        return !standardExactSet.has(key) && !isCoveredByStandardPrerequisitePreset(text);
       });
+
+      if (filteredPrev.length > 0) {
+        groups.push({
+          category: 'Previously Used in Store',
+          items: filteredPrev.map((text, idx) => ({
+            id: `prev_${idx}`,
+            title: text,
+          })),
+        });
+      }
     }
     return groups;
   }, [previouslyUsed]);
@@ -174,7 +185,7 @@ export default function PrerequisiteMultiSelectDialog({
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
             >
-              All Categories
+              All Categories ({allGroups.reduce((acc, g) => acc + g.items.length, 0)})
             </button>
             {allGroups.map(g => (
               <button
@@ -187,7 +198,7 @@ export default function PrerequisiteMultiSelectDialog({
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                {g.category}
+                {g.category} ({g.items.length})
               </button>
             ))}
           </div>

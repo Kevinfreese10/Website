@@ -192,6 +192,23 @@ export default function GlobalAllocationRulesPage() {
         )
       );
 
+      // Collision check: Each keyword can only be part of 1 rule
+      for (const kw of keywordsArray) {
+        const conflict = rules.find(r => 
+          r.id !== selectedRule?.id && 
+          r.keywords?.some(existingKw => existingKw.trim().toUpperCase() === kw)
+        );
+        if (conflict) {
+          toast({
+            title: 'Keyword Conflict',
+            description: `Keyword "${kw}" is already assigned to rule: "${conflict.description || conflict.id}". Each keyword can only be part of 1 rule.`,
+            variant: 'destructive',
+          });
+          setIsSaving(false);
+          return;
+        }
+      }
+
       const categoryObj = CATEGORY_OPTIONS.find((c) => c.key === ruleCategory);
 
       const ruleData = {

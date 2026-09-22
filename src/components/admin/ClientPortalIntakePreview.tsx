@@ -11,9 +11,15 @@ import {
   FileText, FileSpreadsheet, FileImage, File as FileIcon, Trash2, 
   ExternalLink, Edit3, MessageSquareQuote, ShieldCheck, Clock, 
   Building2, KeyRound, Eye, Sparkles, RefreshCw, Send, CheckCircle,
-  Layers, Info, ArrowLeft, Plus, EyeOff, Check
+  Layers, Info, ArrowLeft, Plus, EyeOff, Check, Users
 } from 'lucide-react';
 import CoidaIndustrySelect from './CoidaIndustrySelect';
+import { 
+  isDirectorCountRequirement, 
+  parseDirectorCount, 
+  getNumberedDirectorIndex, 
+  evaluateDirectorSlotStatus 
+} from '@/lib/director-linkage';
 
 export interface ClientPortalRequirement {
   id?: string;
@@ -236,8 +242,20 @@ export default function ClientPortalIntakePreview({
   };
 
   // Completion calculation
-  const requiredCount = validRequirements.filter(r => r.isRequired !== false).length;
+  const dirCountReq = validRequirements.find(r => isDirectorCountRequirement(r.label));
+  const dirCountVal = dirCountReq ? getRequirementState(dirCountReq, validRequirements.indexOf(dirCountReq)).textValue : null;
+
+  const requiredCount = validRequirements.filter(r => {
+    if (r.isRequired === false) return false;
+    const slotStatus = evaluateDirectorSlotStatus(r.label, dirCountVal);
+    if (slotStatus === 'skipped') return false;
+    return true;
+  }).length;
+
   const completedCount = validRequirements.filter((r, idx) => {
+    const slotStatus = evaluateDirectorSlotStatus(r.label, dirCountVal);
+    if (slotStatus === 'skipped') return false;
+
     const st = getRequirementState(r, idx);
     const hasFiles = (st.files && st.files.length > 0);
     const hasText = Boolean(st.textValue && st.textValue.trim().length > 0);
@@ -449,7 +467,19 @@ export default function ClientPortalIntakePreview({
                 const isSisterOtpNo = sisterOtpState?.textValue?.toLowerCase().includes('no');
                 const isSisterOtpYes = sisterOtpState?.textValue?.toLowerCase().includes('yes');
 
-                const isEffectivelyConditionalNo = isConditionalNo || isSisterOtpNo;
+                // Director count and numbered slot linkage
+                const isDirCountReq = isDirectorCountRequirement(req.label);
+                const sisterDirCountReq = validRequirements.find(r => isDirectorCountRequirement(r.label));
+                const sisterDirCountState = sisterDirCountReq ? getRequirementState(sisterDirCountReq, validRequirements.indexOf(sisterDirCountReq)) : null;
+                const activeDirCountVal = sisterDirCountState?.textValue || (isDirCountReq ? state.textValue : null);
+                const activeDirCount = parseDirectorCount(activeDirCountVal);
+
+                const directorSlotStatus = evaluateDirectorSlotStatus(req.label, activeDirCountVal);
+                const isDirectorSlotSkipped = directorSlotStatus === 'skipped';
+                const isDirectorSlotActive = directorSlotStatus === 'active';
+                const isDirectorSlotPendingCount = directorSlotStatus === 'pending_count';
+
+                const isEffectivelyConditionalNo = isConditionalNo || isSisterOtpNo || isDirectorSlotSkipped;
 
                 const isCardActive = isRejected 
                   ? 'border-rose-300 dark:border-rose-900 bg-rose-50/40 dark:bg-rose-950/20'
@@ -558,8 +588,39 @@ export default function ClientPortalIntakePreview({
                       </div>
                     )}
 
+                    {/* Director Slot Skipped (Only N directors specified) */}
+                    {isDirectorSlotSkipped && (
+                      <div className="p-3 bg-muted/30 border border-dashed rounded-lg text-xs flex items-center justify-between text-muted-foreground">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <Check className="h-4 w-4 text-emerald-600" /> Skipped: Only {activeDirCount} director{activeDirCount && activeDirCount > 1 ? 's' : ''} specified.
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => {
+                            if (sisterDirCountReq) {
+                              const sKey = sisterDirCountReq.id || `req_${validRequirements.indexOf(sisterDirCountReq)}`;
+                              handleTextChange(sKey, String(getNumberedDirectorIndex(req.label) || 2), false);
+                            }
+                          }}
+                          className="h-7 text-xs text-primary font-semibold"
+                        >
+                          Increase to {getNumberedDirectorIndex(req.label)} Directors
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Director Slot Pending Count (Count not selected yet) */}
+                    {isDirectorSlotPendingCount && (
+                      <div className="p-3 bg-muted/20 border border-dashed rounded-lg text-xs flex items-center gap-2 text-muted-foreground">
+                        <Clock className="h-4 w-4 text-amber-500 shrink-0" />
+                        <span>Please select the number of directors above to unlock this field.</span>
+                      </div>
+                    )}
+
                     {/* Conditional Question Gate */}
-                    {!isSisterOtpNo && isConditional && state.conditionalAnswer === null && !isSisterOtpYes && (
+                    {!isSisterOtpNo && !isDirectorSlotSkipped && !isDirectorSlotPendingCount && isConditional && state.conditionalAnswer === null && !isSisterOtpYes && !isDirectorSlotActive && (
                       <div className="p-3.5 bg-muted/40 rounded-lg border border-border space-y-2.5">
                         <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
                           <HelpCircle className="w-4 h-4 text-primary" />
@@ -587,7 +648,7 @@ export default function ClientPortalIntakePreview({
                       </div>
                     )}
 
-                    {!isSisterOtpNo && isConditional && state.conditionalAnswer === false && (
+                    {!isSisterOtpNo && !isDirectorSlotSkipped && !isDirectorSlotPendingCount && isConditional && state.conditionalAnswer === false && (
                       <div className="p-3 bg-muted/30 border rounded-lg text-xs flex items-center justify-between text-muted-foreground">
                         <span>Answered: <strong>Not Applicable (No)</strong></span>
                         <Button
@@ -602,8 +663,8 @@ export default function ClientPortalIntakePreview({
                       </div>
                     )}
 
-                    {/* Main Intake Form Elements (When not gated by conditional No or sister OTP No) */}
-                    {!isSisterOtpNo && (!isConditional || state.conditionalAnswer === true || isSisterOtpYes) && (
+                    {/* Main Intake Form Elements (When not gated by conditional No, sister OTP No, or skipped director slot) */}
+                    {!isSisterOtpNo && !isDirectorSlotSkipped && !isDirectorSlotPendingCount && (!isConditional || state.conditionalAnswer === true || isSisterOtpYes || isDirectorSlotActive) && (
                       <div className="space-y-3 pt-1">
                         {/* 1. Missing Document / Unavailable Note Display */}
                         {hasNote && (
@@ -719,12 +780,54 @@ export default function ClientPortalIntakePreview({
                               </p>
                             )}
                           </div>
+                        ) : isDirCountReq ? (
+                          <div className="space-y-2.5 p-3 bg-muted/20 border rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                                <Users className="h-3.5 w-3.5 text-primary" />
+                                Select number of directors:
+                              </label>
+                              {state.textValue && (
+                                <span className="text-[11px] font-bold text-primary">
+                                  Selected: {state.textValue}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {['1', '2', '3', '4', '5', '5+'].map((countOption) => {
+                                const currentVal = (state.textValue || '').trim();
+                                const isSelected = currentVal === countOption || (countOption === '1' && currentVal === '1 (Sole Director)');
+                                return (
+                                  <Button
+                                    key={countOption}
+                                    type="button"
+                                    size="sm"
+                                    variant={isSelected ? 'default' : 'outline'}
+                                    className={`h-8 px-3 text-xs font-bold gap-1.5 ${isSelected ? 'shadow-xs' : 'bg-background'}`}
+                                    onClick={() => handleTextChange(reqKey, countOption, false)}
+                                  >
+                                    {isSelected && <Check className="h-3 w-3" />}
+                                    {countOption}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Specifying the count automatically updates the required director details below.
+                            </p>
+                          </div>
                         ) : req.type === 'text' ? (
                           <div className="space-y-1.5">
                             <div className="relative">
                               <Input
                                 type={req.isSecret && !revealedSecrets[reqKey] ? 'password' : 'text'}
-                                placeholder={req.isSecret ? 'Enter sensitive access credential / PIN...' : 'Enter requested details here...'}
+                                placeholder={
+                                  req.isSecret 
+                                    ? 'Enter sensitive access credential / PIN...' 
+                                    : getNumberedDirectorIndex(req.label)
+                                    ? `e.g. Full legal first name(s) and surname of Director ${getNumberedDirectorIndex(req.label)}`
+                                    : 'Enter requested details here...'
+                                }
                                 value={state.textValue || ''}
                                 onChange={(e) => handleTextChange(reqKey, e.target.value, req.isSecret)}
                                 className="h-9 text-xs pr-10"

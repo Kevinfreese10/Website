@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Search, BookOpen, CheckCircle2, FileText, Layers, X, HelpCircle } from 'lucide-react';
-import { STANDARD_DOCUMENT_REQUIREMENT_GROUPS, DocumentRequirementPreset } from '@/lib/service-presets';
+import { STANDARD_DOCUMENT_REQUIREMENT_GROUPS, DocumentRequirementPreset, isCoveredByStandardDocumentPreset } from '@/lib/service-presets';
 
 interface DocumentMultiSelectDialogProps {
   open: boolean;
@@ -32,14 +32,25 @@ export default function DocumentMultiSelectDialog({
     return new Set(existingLabels.map(l => l.trim().toLowerCase()));
   }, [existingLabels]);
 
-  // Combine standard and previously used
+  // Combine standard and previously used with smart deduplication
   const allGroups = useMemo(() => {
     const groups = [...STANDARD_DOCUMENT_REQUIREMENT_GROUPS];
     if (previouslyUsed.length > 0) {
-      groups.push({
-        category: 'Previously Used in Store',
-        items: previouslyUsed,
+      const standardExactSet = new Set(
+        STANDARD_DOCUMENT_REQUIREMENT_GROUPS.flatMap(g => g.items.map(i => i.label.toLowerCase().trim()))
+      );
+      const filteredPrev = previouslyUsed.filter(item => {
+        if (!item || !item.label) return false;
+        const key = item.label.toLowerCase().trim();
+        return !standardExactSet.has(key) && !isCoveredByStandardDocumentPreset(item.label);
       });
+
+      if (filteredPrev.length > 0) {
+        groups.push({
+          category: 'Previously Used in Store',
+          items: filteredPrev,
+        });
+      }
     }
     return groups;
   }, [previouslyUsed]);
@@ -205,7 +216,7 @@ export default function DocumentMultiSelectDialog({
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
             >
-              All Categories
+              All Categories ({allGroups.reduce((acc, g) => acc + g.items.length, 0)})
             </button>
             {allGroups.map(g => (
               <button
@@ -218,7 +229,7 @@ export default function DocumentMultiSelectDialog({
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
               >
-                {g.category}
+                {g.category} ({g.items.length})
               </button>
             ))}
           </div>

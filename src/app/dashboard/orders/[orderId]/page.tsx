@@ -14,10 +14,17 @@ import {
   ArrowLeft, Loader2, Upload, ClipboardCheck, MessageSquare, Send, Mail, 
   CheckCircle, AlertTriangle, Paperclip, FileText, FileSpreadsheet, FileImage, 
   File as FileIcon, Trash2, ExternalLink, HelpCircle, Info, Plus, RefreshCw, Edit3, CheckCircle2,
-  MessageSquareQuote, Clock, Calendar, ShoppingBag, CreditCard, User as UserIcon, Phone, Check
+  MessageSquareQuote, Clock, Calendar, ShoppingBag, CreditCard, User as UserIcon, Phone, Check,
+  Users
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDate, isServerActionMismatchError } from '@/lib/utils';
+import { 
+  isDirectorCountRequirement, 
+  parseDirectorCount, 
+  getNumberedDirectorIndex, 
+  evaluateDirectorSlotStatus 
+} from '@/lib/director-linkage';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
@@ -877,6 +884,20 @@ export default function ClientOrderDetailsPage() {
                                             const isSisterOtpNo = (sisterOtpInput && /no/i.test(sisterOtpInput)) || (sisterOtpUpload?.textValue && /no/i.test(sisterOtpUpload.textValue)) || upload?.textValue === 'N/A (No)' || conditionalAnswers[uploadKey] === false;
                                             const isSisterOtpYes = (sisterOtpInput && /yes/i.test(sisterOtpInput)) || (sisterOtpUpload?.textValue && /yes/i.test(sisterOtpUpload.textValue)) || conditionalAnswers[uploadKey] === true;
 
+                                            // Director Count and Numbered Slot Linkage
+                                            const isDirCountReq = isDirectorCountRequirement(info.label);
+                                            const sisterDirCountUpload = order.documentUploads?.find(u => 
+                                                u.serviceId === (item.service?.id || item.id) && isDirectorCountRequirement(u.requirementLabel)
+                                            );
+                                            const sisterDirCountInput = Object.entries(textInputs).find(([k]) => isDirectorCountRequirement(k))?.[1];
+                                            const activeDirCountVal = sisterDirCountInput || sisterDirCountUpload?.textValue || (isDirCountReq ? (textInputs[info.label] || upload?.textValue) : null);
+                                            const activeDirCount = parseDirectorCount(activeDirCountVal);
+
+                                            const directorSlotStatus = evaluateDirectorSlotStatus(info.label, activeDirCountVal);
+                                            const isDirectorSlotSkipped = directorSlotStatus === 'skipped';
+                                            const isDirectorSlotActive = directorSlotStatus === 'active';
+                                            const isDirectorSlotPendingCount = directorSlotStatus === 'pending_count';
+
                                             return (
                                             <div key={infoIndex} className={`space-y-3 p-3.5 rounded-lg border transition-all ${
                                                 isRejected 
@@ -1100,7 +1121,34 @@ export default function ClientOrderDetailsPage() {
                                                                     Change to Yes (OTP Required)
                                                                 </Button>
                                                             </div>
-                                                        ) : info.isConditional && !hasPassedConditional && !isSisterOtpYes && (!upload || upload.textValue !== 'N/A (No)') ? (
+                                                        ) : isDirectorSlotSkipped ? (
+                                                            <div className="p-3 bg-muted/30 border border-dashed rounded-lg text-xs flex items-center justify-between text-muted-foreground">
+                                                                <span className="flex items-center gap-1.5 font-medium">
+                                                                    <Check className="h-4 w-4 text-emerald-600" /> Skipped: Only {activeDirCount} director{activeDirCount && activeDirCount > 1 ? 's' : ''} specified.
+                                                                </span>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="xs"
+                                                                    className="h-7 text-xs text-primary font-semibold"
+                                                                    onClick={async () => {
+                                                                        const sisterReq = item.service?.informationToProvide?.find(r => isDirectorCountRequirement(r.label));
+                                                                        if (sisterReq) {
+                                                                            const newCount = String(getNumberedDirectorIndex(info.label) || 2);
+                                                                            handleTextChange(sisterReq.label, newCount);
+                                                                            await handleTextSubmit(item.service?.id || item.id, sisterReq.label);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    Increase to {getNumberedDirectorIndex(info.label)} Directors
+                                                                </Button>
+                                                            </div>
+                                                        ) : isDirectorSlotPendingCount ? (
+                                                            <div className="p-3 bg-muted/20 border border-dashed rounded-lg text-xs flex items-center gap-2 text-muted-foreground">
+                                                                <Clock className="h-4 w-4 text-amber-500 shrink-0" />
+                                                                <span>Please select the number of directors above to unlock this field.</span>
+                                                            </div>
+                                                        ) : info.isConditional && !hasPassedConditional && !isSisterOtpYes && !isDirectorSlotActive && (!upload || upload.textValue !== 'N/A (No)') ? (
                                                             <div className="flex flex-col gap-2 p-3 bg-muted/50 rounded-lg border">
                                                                 <p className="text-sm font-medium">{info.conditionalQuestion || info.label}</p>
                                                                 <div className="flex gap-2">
@@ -1337,6 +1385,45 @@ export default function ClientOrderDetailsPage() {
                                                                                     </p>
                                                                                 )}
                                                                             </div>
+                                                                        ) : isDirCountReq ? (
+                                                                            <div className="space-y-2.5 p-3 bg-muted/20 border rounded-lg">
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                                                                                        <Users className="h-3.5 w-3.5 text-primary" />
+                                                                                        Select number of directors:
+                                                                                    </label>
+                                                                                    {(textInputs[info.label] || upload?.textValue) && (
+                                                                                        <span className="text-[11px] font-bold text-primary">
+                                                                                            Selected: {textInputs[info.label] || upload?.textValue}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                <div className="flex flex-wrap gap-2">
+                                                                                    {['1', '2', '3', '4', '5', '5+'].map((countOption) => {
+                                                                                        const currentVal = (textInputs[info.label] || upload?.textValue || '').trim();
+                                                                                        const isSelected = currentVal === countOption || (countOption === '1' && currentVal === '1 (Sole Director)');
+                                                                                        return (
+                                                                                            <Button
+                                                                                                key={countOption}
+                                                                                                type="button"
+                                                                                                size="sm"
+                                                                                                variant={isSelected ? 'default' : 'outline'}
+                                                                                                className={`h-8 px-3 text-xs font-bold gap-1.5 ${isSelected ? 'shadow-xs' : 'bg-background'}`}
+                                                                                                onClick={async () => {
+                                                                                                    handleTextChange(info.label, countOption);
+                                                                                                    await handleTextSubmit(item.service?.id || item.id, info.label);
+                                                                                                }}
+                                                                                            >
+                                                                                                {isSelected && <Check className="h-3 w-3" />}
+                                                                                                {countOption}
+                                                                                            </Button>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+                                                                                <p className="text-[11px] text-muted-foreground">
+                                                                                    Specifying the count automatically updates the required director details below.
+                                                                                </p>
+                                                                            </div>
                                                                         ) : (
                                                                             <div className="space-y-2">
                                                                                 {(info.isSecret || info.label.toLowerCase().includes('password') || info.label.toLowerCase().includes('efiling username')) && (
@@ -1354,7 +1441,13 @@ export default function ClientOrderDetailsPage() {
                                                                                     <Input 
                                                                                         type={info.isSecret || info.label.toLowerCase().includes('password') ? "password" : "text"} 
                                                                                         className="h-8 text-xs font-medium" 
-                                                                                        placeholder={info.isSecret || info.label.toLowerCase().includes('password') ? "Enter password securely..." : "Enter information here..."} 
+                                                                                        placeholder={
+                                                                                            info.isSecret || info.label.toLowerCase().includes('password') 
+                                                                                                ? "Enter password securely..." 
+                                                                                                : getNumberedDirectorIndex(info.label)
+                                                                                                ? `e.g. Full legal first name(s) and surname of Director ${getNumberedDirectorIndex(info.label)}`
+                                                                                                : "Enter information here..."
+                                                                                        } 
                                                                                         value={textInputs[info.label] || ''} 
                                                                                         onChange={(e) => handleTextChange(info.label, e.target.value)} 
                                                                                     />

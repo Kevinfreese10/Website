@@ -15,7 +15,7 @@ import {
   generateNcrDirectorResolutionDraft,
   generatePowerOfAttorneyResolutionDraft,
   generateAccountingOfficerConsentDraft,
-} from '../src/lib/pdf/template-generators';
+} from './_recovered_template-generators';
 import { PDFDocument } from 'pdf-lib';
 
 async function uploadToStorage(buffer: Buffer, destStoragePath: string): Promise<string> {
@@ -53,7 +53,7 @@ async function run() {
     address: 'Stand No 51, Makhushane, Phalaborwa, Limpopo, 1390',
     phone: '076 042 2792',
     email: 'peturniamavundlha@gmail.com',
-    taxNumber: 'N/A',
+    taxNumber: '9463449232',
     cipcRegDate: '27/06/2026',
     orderDate: '21 August 2026',
     orderId: '10135',
