@@ -123,24 +123,39 @@ SARS updated South Africa's national VAT registration thresholds effective **1 A
 
 ---
 
-## 💰 Official Live Service Rates (Synced with Firestore Catalog)
+## 💰 Official Live Service Rates & Core Pricing Rules
 
+### Annual Financial Statements (AFS)
+- **Non-VAT Registered Company AFS:** **R 5,000.00** per financial year.
+  - *Full Inclusion Rule*: Fully includes processing raw bank statements, compiling general ledgers, trial balance, and IFRS for SMEs financials. Never quote a separate catch-up bookkeeping fee.
+- **VAT-Registered Company AFS:** **R 7,500.00** per financial year.
+  - *Full Inclusion Rule*: Fully includes processing raw bank statements, bi-monthly VAT reconciliation against SARS VAT201 declarations, trial balance, and IFRS for SMEs financials.
+- **Standard AFS Turnaround:** 7 to 10 working days from receipt of complete bank statements.
+
+### SARS Tax Compliance & Profile Access
+- **SARS Tax Representative Appointment:** **R 1,500.00** per company (Turnaround: 3 to 5 working days for SARS verification). Mandatory disclosure: required to access unlinked or dormant eFiling profiles and does not affect the director's personal tax profile or personal liabilities in any way.
+- **Company Income Tax Return (ITR14):** **R 650.00** per return (calculated from signed AFS).
+- **Individual Income Tax Return (ITR12 - Simple):** **R 750.00** per return (Salary/remuneration, medical, retirement).
+- **Individual Income Tax Return (ITR12 - Complex):** **R 1,150.00** per return (Investments, CGT, local rental income, travel allowance).
+- **Sole Proprietorship / Independent Trading ITR12:** **R 2,950.00** per return (Unincorporated trading turnover).
+
+### Mandatory Proposal Elements
+- **Free CIPC Assessment**: Always offer a complimentary CIPC health audit on corporate/tax proposals (Annual Returns standing, deregistration risk, active directors, Beneficial Ownership).
+- **Exploratory Quotation Link Discipline**: Do not include website catalog links in exploratory proposals unless explicitly requested. Keep communications focused, consultative, and executive.
+- **Accounting Retainer Scoping (VAT Review Invariant)**: When preparing preliminary retainer proposals or engagement letters that encompass VAT201 compliance for an entity that is currently Non-VAT registered, always state that the initial retainer fee applies to the non-VAT trading state, and that the fee will be formally reviewed and adjusted upon active VAT registration.
+
+### Other Official Live Rates (Synced with Firestore Catalog)
 Always verify live pricing from the website catalog (`https://www.myacc.co.za`):
 - **SARS VAT Registration:** **R 1,800.00** &bull; `https://www.myacc.co.za/products/vat-registration`
-- **Historical Catch-Up Bookkeeping:** **R 5,000.00 – R 7,000.00** *(Once-off trading reconstruction)*
-- **Annual Partnership Income & Expense Statement:** **R 5,000.00** *(Once-off per tax year)*
 - **Private Company Registration (Pty Ltd):** **R 950.00** &bull; `https://www.myacc.co.za/products/private-company-registration`
 - **Monthly Ecommerce Accounting Retainer:** **R 1,850.00 – R 2,450.00 / month** &bull; `https://www.myacc.co.za/products/monthly-accounting`
 - **Monthly All-Inclusive Accounting & Payroll (1–5 Staff):** **R 5,500.00 / month**
 - **SARS Tax Clearance PIN (TCS):** **R 350.00** &bull; `https://www.myacc.co.za/products/tax-clearance-pin`
 - **NCR Credit Provider Registration:** **R 1,400.00** &bull; `https://www.myacc.co.za/products/ncr-registration`
-- **Annual Financial Statements (Compilation):** **R 2,500.00** &bull; `https://www.myacc.co.za/products/annual-financial-statements`
-- **Individual Income Tax Return (ITR12 - Simple):** **R 750.00** &bull; `https://www.myacc.co.za/products/individual-income-tax-return-itr12-simple`
-- **Individual Income Tax Return (ITR12 - Complex/Business):** **R 1,150.00** &bull; `https://www.myacc.co.za/products/complex-individual-income-tax-return-itr12`
 - **Provisional Tax Return (IRP6 - Trading):** **R 550.00** &bull; `https://www.myacc.co.za/products/provisional-tax-return-irp6-trading`
 - **Beneficial Ownership Declaration:** **R 550.00** &bull; `https://www.myacc.co.za/products/beneficial-ownership-declaration`
 - **PAYE Registration:** **R 750.00** &bull; `https://www.myacc.co.za/products/paye-registration`
-- **UIF Registration:** **R 1,200.00** &bull; `https://www.myacc.co.za/products/uif-registration`
+- **UIF Registration (Department of Labour):** **R 1,900.00** *(Manual in-person Department of Labour processing)* &bull; `https://www.myacc.co.za/products/uif-registration`
 - **COIDA Registration:** **R 1,400.00** &bull; `https://www.myacc.co.za/products/coida-registration`
 - **CIDB 3-Year Renewal:** **R 1,800.00** &bull; `https://www.myacc.co.za/products/cidb-3-year-renewal`
 - **CIDB Upgrades (Grades 2–9):** **R 1,800.00** &bull; `https://www.myacc.co.za/products/cidb-upgrades-grades-2-9`

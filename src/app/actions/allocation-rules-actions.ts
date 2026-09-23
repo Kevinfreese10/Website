@@ -120,13 +120,22 @@ export async function createRuleFromAllocationAction({
   };
 
   if (isGlobal && authCtx.isAdmin) {
-    const existingSnap = await db.collection('allocationRules')
-      .where('keywords', 'array-contains', keyword)
+    // Check if a global rule for this account already exists
+    const accountRulesSnap = await db.collection('allocationRules')
+      .where('accountId', '==', accountId)
       .limit(1)
       .get();
-    if (!existingSnap.empty) {
-      const existingDoc = existingSnap.docs[0].data();
-      throw new Error(`Keyword "${keyword}" is already assigned to rule: "${existingDoc.description || existingDoc.id}". Each keyword can only be part of 1 rule.`);
+
+    if (!accountRulesSnap.empty) {
+      const existingDoc = accountRulesSnap.docs[0];
+      const existingKws: string[] = existingDoc.data().keywords || [];
+      if (!existingKws.includes(keyword)) {
+        await existingDoc.ref.update({
+          keywords: Array.from(new Set([...existingKws, keyword])).sort(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      return { success: true, rule: { ...existingDoc.data(), keywords: [...existingKws, keyword] } as AllocationRule, derivedKeyword: keyword };
     }
 
     await db.collection('allocationRules').doc(ruleId).set({
@@ -135,21 +144,139 @@ export async function createRuleFromAllocationAction({
       createdBy: authCtx.userId,
     });
   } else {
-    // Add to client's allocationRules array
+    // Add or append to client's single rule for this account
     const clientRef = db.collection('aiAccountantClients').doc(clientId);
     const clientDoc = await clientRef.get();
     const clientData = clientDoc.data();
     const existingClientRules: AllocationRule[] = clientData?.allocationRules || [];
-    const clientCollision = existingClientRules.find(r => r.keywords?.some(k => k.toUpperCase() === keyword));
-    if (clientCollision) {
-      throw new Error(`Keyword "${keyword}" is already assigned to client rule: "${clientCollision.description || clientCollision.id}".`);
+
+    const existingAccountRuleIndex = existingClientRules.findIndex(r => r.accountId === accountId);
+    let updatedClientRules: AllocationRule[];
+
+    if (existingAccountRuleIndex >= 0) {
+      const existingRule = existingClientRules[existingAccountRuleIndex];
+      const mergedKws = Array.from(new Set([...(existingRule.keywords || []), keyword])).sort();
+      updatedClientRules = existingClientRules.map((r, i) => 
+        i === existingAccountRuleIndex ? { ...r, keywords: mergedKws } : r
+      );
+    } else {
+      updatedClientRules = [...existingClientRules, newRule];
     }
 
     await clientRef.update({
-      allocationRules: FieldValue.arrayUnion(newRule),
+      allocationRules: updatedClientRules,
       updatedAt: new Date().toISOString(),
     });
   }
 
   return { success: true, rule: newRule, derivedKeyword: keyword };
 }
+
+/**
+ * Consolidates all allocation rules for a client and across the global database
+ * so each account has strictly 1 rule with all deduplicated keywords.
+ */
+export async function consolidateRulesAction({
+  idToken,
+  clientId,
+}: {
+  idToken: string;
+  clientId?: string;
+}) {
+  const authCtx = await getVerifiedAuthContext(idToken);
+  if (!authCtx) {
+    throw new Error('Unauthorized');
+  }
+
+  const db = getAdminDb();
+  const { consolidateAllocationRules } = await import('@/lib/allocation-rule-consolidator');
+
+  let clientRulesBefore = 0;
+  let clientRulesAfter = 0;
+
+  // 1. Consolidate client rules if clientId is provided
+  if (clientId) {
+    const clientRef = db.collection('aiAccountantClients').doc(clientId);
+    const clientDoc = await clientRef.get();
+    if (clientDoc.exists) {
+      const data = clientDoc.data();
+      const rawRules: AllocationRule[] = data?.allocationRules || [];
+      clientRulesBefore = rawRules.length;
+
+      const consolidated = consolidateAllocationRules(rawRules, {
+        chartOfAccounts: data?.chartOfAccounts || [],
+        isVatRegistered: data?.isVatRegistered || false,
+      });
+      clientRulesAfter = consolidated.length;
+
+      await clientRef.update({
+        allocationRules: consolidated,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  // 2. Consolidate global allocationRules in Firestore collection
+  let globalDuplicatesDeleted = 0;
+  let globalUniqueAccounts = 0;
+
+  if (authCtx.isAdmin) {
+    const globalSnap = await db.collection('allocationRules').get();
+    const globalDocsByAccount = new Map<string, FirebaseFirestore.QueryDocumentSnapshot[]>();
+
+    for (const doc of globalSnap.docs) {
+      const data = doc.data();
+      const accId = data.accountId || data.defaultAccountCode;
+      if (!accId) continue;
+      const key = `${data.accountType || 'account'}:${accId}`;
+      const list = globalDocsByAccount.get(key) || [];
+      list.push(doc);
+      globalDocsByAccount.set(key, list);
+    }
+
+    globalUniqueAccounts = globalDocsByAccount.size;
+
+    for (const [_, docs] of globalDocsByAccount.entries()) {
+      if (docs.length <= 1) continue;
+
+      // Primary doc is the one with global_master scope or the first
+      const primaryDoc = docs.find(d => d.data().scope === 'global_master') || docs[0];
+      const mergedKws = new Set<string>();
+
+      for (const d of docs) {
+        const kws = d.data().keywords;
+        if (Array.isArray(kws)) {
+          for (const k of kws) {
+            if (k && typeof k === 'string') mergedKws.add(k.trim().toUpperCase());
+          }
+        }
+      }
+
+      const sortedKws = Array.from(mergedKws).sort();
+
+      // Update primary doc with all merged keywords
+      await primaryDoc.ref.update({
+        keywords: sortedKws,
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Delete secondary duplicate docs
+      for (const d of docs) {
+        if (d.id !== primaryDoc.id) {
+          await d.ref.delete();
+          globalDuplicatesDeleted++;
+        }
+      }
+    }
+  }
+
+  return {
+    success: true,
+    clientRulesBefore,
+    clientRulesAfter,
+    clientCleaned: clientRulesBefore - clientRulesAfter,
+    globalUniqueAccounts,
+    globalDuplicatesDeleted,
+  };
+}
+

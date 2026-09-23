@@ -14,14 +14,13 @@ describe('Smart Match Queue Enhancements: Bulk AI Research, Rule Modal Trigger, 
             expect(smartTabContent).toMatch(/<CreateRuleDialog[\s\S]*?defaultValues=\{ruleDefaultValues\}/);
         });
 
-        it('1.2: handleApproveGroup checks settings.createRule and opens CreateRuleDialog pre-filled', () => {
-            expect(smartTabContent).toContain('if (settings.createRule) {');
-            expect(smartTabContent).toContain('setStagedGroupForRule(group);');
-            expect(smartTabContent).toContain('setIsCreateRuleOpen(true);');
+        it('1.2: handleApproveGroup handles ruleMode and sanitized keywords', () => {
+            expect(smartTabContent).toContain("const ruleMode = settings.ruleMode || (settings.createRule ? 'new' : 'none');");
+            expect(smartTabContent).toContain("if (ruleMode === 'append' || ruleMode === 'new')");
         });
 
-        it('1.3: handleApproveGroup commits immediately when createRule is unchecked', () => {
-            expect(smartTabContent).toContain('await commitGroupApproval(group, settings);');
+        it('1.3: handleApproveGroup commits approval for group', () => {
+            expect(smartTabContent).toContain('await commitGroupApproval(group, settings, true);');
         });
 
         it('1.4: handleRuleDialogSaved completes approval for the staged group skipping duplicate rule insert', () => {

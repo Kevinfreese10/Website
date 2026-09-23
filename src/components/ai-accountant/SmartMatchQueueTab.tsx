@@ -30,7 +30,8 @@ import {
     FileSpreadsheet,
     Search,
     ChevronDown,
-    AlertTriangle 
+    AlertTriangle,
+    CheckSquare 
 } from 'lucide-react';
 import { 
     getFirestore, 
@@ -44,7 +45,8 @@ import {
     onSnapshot, 
     serverTimestamp, 
     arrayUnion, 
-    deleteField 
+    deleteField,
+    updateDoc 
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp } from '@/lib/firebase';
@@ -54,6 +56,7 @@ import { ImportedTransaction, User, AllocationRule, SmartAllocationResult, Clien
 import { TransactionGroup, RuleFormValues } from './types';
 import { cn } from '@/lib/utils';
 import { BankCleaner, matchesRuleKeyword } from '@/lib/bank-cleaner';
+import { sanitizeKeyword } from '@/lib/keyword-sanitizer';
 import { resolveAccountForCategory } from '@/lib/chart-of-accounts-mapper';
 import { allVatTypes } from '@/lib/vat-types';
 import { AccountSelector } from '@/components/accounting/AccountSelector';
@@ -93,10 +96,13 @@ import {
 import { 
     CreateGeneralAccountDialog, 
     GroupTransactionsDialog,
-    CreateRuleDialog 
+    CreateRuleDialog,
+    AiResearchResultsModal,
+    type AiResearchItemResult
 } from './dialogs';
 import { useDebounce } from '@/hooks/use-debounce';
 import { MerchantGroupCard } from './components/MerchantGroupCard';
+import { consolidateRulesAction } from '@/app/actions/allocation-rules-actions';
 
 const db = getFirestore(firebaseApp);
 // Requirement R2: Page size reduced from 200 to 25 to prevent DOM overload (>15k nodes -> <2k nodes)
@@ -165,6 +171,14 @@ export const SmartMatchQueueTab = ({
     // Bulk AI research states
     const [isBulkResearching, setIsBulkResearching] = useState(false);
     const [bulkResearchProgress, setBulkResearchProgress] = useState<{ done: number; total: number } | null>(null);
+    const [isAiResultsModalOpen, setIsAiResultsModalOpen] = useState(false);
+    const [aiResearchResults, setAiResearchResults] = useState<AiResearchItemResult[]>([]);
+    const [totalResearchedCount, setTotalResearchedCount] = useState(0);
+    const [lowConfidenceCount, setLowConfidenceCount] = useState(0);
+
+    const [confidenceFilter, setConfidenceFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'allocated' | 'pending'>('all');
+    const [isConsolidatingRules, setIsConsolidatingRules] = useState(false);
 
     const [sortBy, setSortBy] = useState<'alpha' | 'count'>('alpha');
     const [searchTerm, setSearchTerm] = useState('');
@@ -176,6 +190,24 @@ export const SmartMatchQueueTab = ({
 
     const filteredGroups = useMemo(() => {
         let sorted = [...groups];
+
+        // 1. Confidence filter
+        if (confidenceFilter === 'high') {
+            sorted = sorted.filter(g => (g.suggestion?.confidence ?? 0) >= 80);
+        } else if (confidenceFilter === 'medium') {
+            sorted = sorted.filter(g => (g.suggestion?.confidence ?? 0) >= 20 && (g.suggestion?.confidence ?? 0) < 80);
+        } else if (confidenceFilter === 'low') {
+            sorted = sorted.filter(g => !g.suggestion || (g.suggestion?.confidence ?? 0) < 20);
+        }
+
+        // 2. Status filter
+        if (statusFilter === 'allocated') {
+            sorted = sorted.filter(g => !!approvalSettings[g.merchantKey]?.accountId);
+        } else if (statusFilter === 'pending') {
+            sorted = sorted.filter(g => !approvalSettings[g.merchantKey]?.accountId);
+        }
+
+        // 3. Search term filter
         if (debouncedSearchTerm.trim()) {
             const term = debouncedSearchTerm.toUpperCase();
             sorted = sorted.filter(g => 
@@ -187,20 +219,22 @@ export const SmartMatchQueueTab = ({
                 )
             );
         }
+
+        // 4. Sort order
         if (sortBy === 'count') {
             sorted.sort((a, b) => b.transactions.length - a.transactions.length);
         } else {
             sorted.sort((a, b) => a.merchantKey.localeCompare(b.merchantKey));
         }
         return sorted;
-    }, [groups, sortBy, debouncedSearchTerm]);
+    }, [groups, sortBy, debouncedSearchTerm, confidenceFilter, statusFilter, approvalSettings]);
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [sortBy, groups.length, debouncedSearchTerm]);
+    }, [sortBy, groups.length, debouncedSearchTerm, confidenceFilter, statusFilter]);
 
     const paginatedGroups = useMemo(() => {
         const start = (currentPage - 1) * PAGE_SIZE;
@@ -239,13 +273,35 @@ export const SmartMatchQueueTab = ({
             setApprovalSettings((prev: any) => {
                 const newSettings = { ...prev };
                 initialGroups.forEach(g => { 
-                    if (!newSettings[g.merchantKey]) {
-                        const hasLowConfidence = g.suggestion && g.suggestion.confidence < 20;
+                    const isRuleMatch = g.transactions.some(tx => tx.allocationSource === 'rule') || !!g.suggestion?.ruleId;
+                    const hasLowConfidence = g.suggestion && g.suggestion.confidence < 20;
+                    const suggestedAccountId = (g.suggestion && !hasLowConfidence) ? g.suggestion.accountId : '';
+                    const suggestedVat = g.suggestion?.vatType || 'no_vat';
+                    const existing = newSettings[g.merchantKey];
+
+                    if (!existing) {
                         newSettings[g.merchantKey] = { 
-                            accountId: (g.suggestion && !hasLowConfidence) ? g.suggestion.accountId : '', 
-                            vatType: g.suggestion?.vatType || 'no_vat', 
-                            createRule: !g.suggestion || hasLowConfidence
+                            accountId: suggestedAccountId, 
+                            vatType: suggestedVat, 
+                            createRule: isRuleMatch ? false : (!g.suggestion || hasLowConfidence),
+                            ruleMode: isRuleMatch ? 'none' : undefined
                         }; 
+                    } else {
+                        if (!existing.accountId && suggestedAccountId) {
+                            newSettings[g.merchantKey] = {
+                                ...existing,
+                                accountId: suggestedAccountId,
+                                vatType: existing.vatType && existing.vatType !== 'no_vat' ? existing.vatType : suggestedVat,
+                                createRule: existing.createRule ?? (isRuleMatch ? false : (!g.suggestion || hasLowConfidence)),
+                                ruleMode: isRuleMatch ? 'none' : existing.ruleMode
+                            };
+                        } else if (isRuleMatch && existing.ruleMode === undefined) {
+                            newSettings[g.merchantKey] = {
+                                ...existing,
+                                createRule: false,
+                                ruleMode: 'none'
+                            };
+                        }
                     }
                 });
                 return newSettings;
@@ -466,6 +522,30 @@ export const SmartMatchQueueTab = ({
         }
     };
 
+    const handleConsolidateRules = async () => {
+        if (!client?.uid) return;
+        setIsConsolidatingRules(true);
+        try {
+            const idToken = await getIdToken();
+            const res = await consolidateRulesAction({ idToken, clientId: client.uid });
+            if (res.success) {
+                toast({
+                    title: "Rules Consolidated",
+                    description: `Consolidated to ${res.clientRulesAfter} unique account rules (merged ${res.clientCleaned} duplicates). Cleaned ${res.globalDuplicatesDeleted} global duplicates.`,
+                });
+                await handleRecheckRules();
+            }
+        } catch (err: any) {
+            toast({
+                title: "Consolidation Failed",
+                description: err.message || "Failed to consolidate allocation rules.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsConsolidatingRules(false);
+        }
+    };
+
     const handleResetAnalysis = async () => {
         if (!client?.uid || !bankAccountId) return;
         setIsReseting(true);
@@ -626,30 +706,78 @@ export const SmartMatchQueueTab = ({
 
     const handleApproveGroup = async (group: TransactionGroup) => {
         if (!client?.uid) return;
-        const settings = approvalSettings[group.merchantKey];
-        if (!settings || !settings.accountId) {
+        const rawSettings = approvalSettings[group.merchantKey];
+        const accountId = rawSettings?.accountId || group.suggestion?.accountId;
+        if (!accountId) {
             toast({ title: "Missing Allocation", description: "Please select an account before approving.", variant: "destructive" });
             return;
         }
 
-        // If createRule is enabled, open the Rule Creation modal pre-filled for practitioner review
-        if (settings.createRule) {
-            setStagedGroupForRule(group);
-            setRuleDefaultValues({
-                keywords: group.merchantKey.toUpperCase(),
-                accountId: settings.accountId,
-                accountType: (group.suggestion?.accountType as any) || 'account',
-                vatType: settings.vatType || 'no_vat',
-                description: `Auto-categorization for ${group.merchantKey}`,
-                scope: 'client',
-                mode: 'new'
-            });
-            setIsCreateRuleOpen(true);
+        const settings = {
+            ...rawSettings,
+            accountId,
+            vatType: rawSettings?.vatType || group.suggestion?.vatType || 'no_vat',
+            createRule: rawSettings?.createRule ?? false,
+            ruleMode: rawSettings?.ruleMode,
+            targetRuleId: rawSettings?.targetRuleId,
+            customKeyword: rawSettings?.customKeyword
+        };
+
+        const ruleMode = settings.ruleMode || (settings.createRule ? 'new' : 'none');
+        const sanitizedKw = (settings.customKeyword || sanitizeKeyword(group.merchantKey)).toUpperCase().trim();
+
+        // 1. If ruleMode === 'append' or ruleMode === 'new':
+        if (ruleMode === 'append' || ruleMode === 'new') {
+            try {
+                const clientRules: AllocationRule[] = client.allocationRules || [];
+                const clientRef = doc(db, 'aiAccountantClients', client.uid);
+                const existingIndex = clientRules.findIndex(r => r.accountId === settings.accountId);
+
+                if (existingIndex >= 0) {
+                    // Always append and deduplicate into the account's existing single rule!
+                    const targetRule = clientRules[existingIndex];
+                    const merged = Array.from(new Set([...(targetRule.keywords || []), sanitizedKw])).sort();
+                    const updated = clientRules.map((r, i) => i === existingIndex ? { ...r, keywords: merged } : r);
+                    await updateDoc(clientRef, { allocationRules: updated });
+                } else {
+                    // Create the single rule for this account
+                    const newRuleId = `rule_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                    const accountObj = client.chartOfAccounts?.find(a => a.id === settings.accountId);
+                    const desc = accountObj 
+                        ? `${accountObj.description || accountObj.name} (${accountObj.code || settings.accountId})`
+                        : `Allocation rule for ${sanitizedKw}`;
+                    const newRule: AllocationRule = {
+                        id: newRuleId,
+                        description: desc,
+                        keywords: [sanitizedKw],
+                        accountId: settings.accountId,
+                        accountType: (group.suggestion?.accountType as any) || 'account',
+                        vatType: (settings.vatType as any) || 'no_vat',
+                        type: 'hard',
+                        scope: 'client',
+                        priority: 99
+                    };
+                    await updateDoc(clientRef, { allocationRules: arrayUnion(newRule) });
+                }
+
+                // Also sync with global rule if one exists for this account
+                try {
+                    const globalMatch = (globalRules || []).find(r => r.accountId === settings.accountId);
+                    if (globalMatch) {
+                        const globalRef = doc(db, 'allocationRules', globalMatch.id);
+                        const mergedGlobal = Array.from(new Set([...(globalMatch.keywords || []), sanitizedKw])).sort();
+                        await updateDoc(globalRef, { keywords: mergedGlobal });
+                    }
+                } catch (_) {}
+            } catch (err) {
+                console.warn("Error saving rule on approve:", err);
+            }
+            await commitGroupApproval(group, settings, true);
             return;
         }
 
-        // Fast path: direct instant commit when createRule is unchecked
-        await commitGroupApproval(group, settings);
+        // 2. Fast path: direct instant commit when ruleMode === 'none'
+        await commitGroupApproval(group, settings, true);
     };
 
     const handleRuleDialogSaved = async () => {
@@ -873,6 +1001,7 @@ export const SmartMatchQueueTab = ({
 
         let completed = 0;
         const chunkSize = 4;
+        const collectedResults: { group: TransactionGroup; res: any }[] = [];
         
         try {
             const token = await getIdToken();
@@ -891,6 +1020,8 @@ export const SmartMatchQueueTab = ({
                             isVatRegistered: !!client.isVatRegistered,
                             isExpense: true
                         });
+                        
+                        collectedResults.push({ group, res });
                         const hasLowConfidence = res.confidence < 20;
 
                         setApprovalSettings((prev: any) => ({
@@ -928,10 +1059,54 @@ export const SmartMatchQueueTab = ({
                 }));
             }
 
-            toast({
-                title: "Bulk AI Research Completed",
-                description: `Finished researching ${groupsToResearch.length} merchant groups.`
+            // Filter for high confidence results (>= 80%)
+            const allRules = [
+                ...(client.allocationRules || []),
+                ...(globalRules || [])
+            ];
+
+            const highConfidenceItems: AiResearchItemResult[] = [];
+            let lowCount = 0;
+
+            collectedResults.forEach(({ group, res }) => {
+                if (res && res.confidence >= 80 && res.accountId) {
+                    const seen = new Set<string>();
+                    const matchingRules = allRules.filter(r => {
+                        if (!r || !r.id || seen.has(r.id)) return false;
+                        seen.add(r.id);
+                        return r.accountId === res.accountId;
+                    });
+
+                    highConfidenceItems.push({
+                        merchantKey: group.merchantKey,
+                        sanitizedKeyword: sanitizeKeyword(group.merchantKey),
+                        group,
+                        suggestedAccountId: res.accountId,
+                        suggestedAccountType: 'account',
+                        suggestedVatType: res.vatType || 'no_vat',
+                        confidence: res.confidence,
+                        summary: res.summary || `AI research suggested ${res.accountId}`,
+                        matchingRules,
+                        action: matchingRules.length > 0 ? 'append' : 'new',
+                        selectedRuleId: matchingRules[0]?.id,
+                        approved: true
+                    });
+                } else {
+                    lowCount++;
+                }
             });
+
+            if (highConfidenceItems.length > 0) {
+                setAiResearchResults(highConfidenceItems);
+                setTotalResearchedCount(groupsToResearch.length);
+                setLowConfidenceCount(lowCount);
+                setIsAiResultsModalOpen(true);
+            } else {
+                toast({
+                    title: "Bulk AI Research Completed",
+                    description: `Researched ${groupsToResearch.length} groups. All results had <80% confidence and remain in queue for manual review.`
+                });
+            }
         } catch (e: any) {
             console.error("Bulk AI research error:", e);
             toast({
@@ -942,6 +1117,129 @@ export const SmartMatchQueueTab = ({
         } finally {
             setIsBulkResearching(false);
             setBulkResearchProgress(null);
+        }
+    };
+
+    const handleApproveAiResearchResults = async (approvedItems: AiResearchItemResult[]) => {
+        if (!client?.uid || approvedItems.length === 0) return;
+
+        const previousGroups = [...groups];
+        const previousSelectedKeys = [...selectedGroupKeys];
+        const approvedMerchantKeys = new Set(approvedItems.map(i => i.merchantKey));
+
+        // Optimistic UI update: Remove approved groups from the queue
+        setGroups(prev => prev.filter(g => !approvedMerchantKeys.has(g.merchantKey)));
+        setSelectedGroupKeys(prev => prev.filter(k => !approvedMerchantKeys.has(k)));
+
+        toast({
+            title: "Committing Allocations",
+            description: `Applying ${approvedItems.length} approved merchant group allocations and updating rules...`
+        });
+
+        try {
+            const transRef = collection(db, 'aiAccountantClients', client.uid, 'transactions');
+            const updates: { txId: string; data: any }[] = [];
+            const newClientRules: AllocationRule[] = [];
+
+            for (const item of approvedItems) {
+                const kwUpper = (item.sanitizedKeyword || sanitizeKeyword(item.merchantKey)).toUpperCase().trim();
+
+                // 1. Transaction allocations
+                item.group.transactions.forEach(tx => {
+                    updates.push({
+                        txId: tx.id,
+                        data: {
+                            status: 'reviewed',
+                            allocatedTo: { value: item.suggestedAccountId, type: 'account' },
+                            vatType: item.suggestedVatType || 'no_vat',
+                            allocatedAt: serverTimestamp(),
+                            allocationSource: 'ai',
+                            matchedKeyword: kwUpper
+                        }
+                    });
+                });
+
+                // 2. Update global merchant DB
+                updateGlobalMerchantDb({
+                    merchantKey: item.merchantKey,
+                    accountId: item.suggestedAccountId,
+                    vatType: item.suggestedVatType || 'no_vat'
+                }).catch(err => console.warn("Global merchant DB update error:", err));
+
+                // 3. Rule handling: none, append, or new
+                if (item.action === 'none') {
+                    continue;
+                }
+
+                if (item.action === 'append' && item.selectedRuleId) {
+                    const rule = item.matchingRules.find(r => r.id === item.selectedRuleId);
+                    if (rule) {
+                        const clientHasRule = (client.allocationRules || []).some(r => r.id === rule.id);
+                        if (clientHasRule) {
+                            const clientRef = doc(db, 'aiAccountantClients', client.uid);
+                            const updatedRules = (client.allocationRules || []).map(r => 
+                                r.id === rule.id 
+                                    ? { ...r, keywords: Array.from(new Set([...(r.keywords || []), kwUpper])) } 
+                                    : r
+                            );
+                            await updateDoc(clientRef, { allocationRules: updatedRules });
+                        }
+                        try {
+                            const globalRef = doc(db, 'allocationRules', rule.id);
+                            const merged = Array.from(new Set([...(rule.keywords || []), kwUpper]));
+                            await updateDoc(globalRef, { keywords: merged });
+                        } catch (_) {}
+                    }
+                } else if (item.action === 'new') {
+                    const newRuleId = `rule_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                    const ruleObj: AllocationRule = {
+                        id: newRuleId,
+                        description: `Auto-categorization for ${kwUpper}`,
+                        keywords: [kwUpper],
+                        accountId: item.suggestedAccountId,
+                        accountType: 'account',
+                        vatType: (item.suggestedVatType as any) || 'no_vat',
+                        type: 'hard',
+                        scope: 'client',
+                        priority: 99
+                    };
+                    newClientRules.push(ruleObj);
+                }
+            }
+
+            // Commit new rules if any
+            if (newClientRules.length > 0) {
+                const clientRef = doc(db, 'aiAccountantClients', client.uid);
+                await updateDoc(clientRef, {
+                    allocationRules: arrayUnion(...newClientRules)
+                });
+            }
+
+            // Commit transaction updates in chunks of 400
+            for (let i = 0; i < updates.length; i += 400) {
+                const chunk = updates.slice(i, i + 400);
+                const batch = writeBatch(db);
+                chunk.forEach(({ txId, data }) => {
+                    batch.update(doc(transRef, txId), data);
+                });
+                await batch.commit();
+            }
+
+            onAllocationComplete?.();
+            onAccountCreated();
+            toast({
+                title: "Research Allocations Applied",
+                description: `Successfully allocated ${approvedItems.length} merchant groups and updated rules.`
+            });
+        } catch (e: any) {
+            console.error("Failed to commit AI research approvals:", e);
+            setGroups(previousGroups);
+            setSelectedGroupKeys(previousSelectedKeys);
+            toast({
+                title: "Approval Failed",
+                description: e?.message || "Could not commit approved allocations. Rolled back.",
+                variant: "destructive"
+            });
         }
     };
 
@@ -1048,6 +1346,18 @@ export const SmartMatchQueueTab = ({
 
     const allocatedCount = groups.filter(g => approvalSettings[g.merchantKey]?.accountId).length;
     const isCurrentlyProcessing = workflowTransactions.some(tx => tx.status === 'ai_processing');
+
+    const targetGroupsForSelect = filteredGroups.length > 0 ? filteredGroups : groups;
+    const isAllGroupsSelected = targetGroupsForSelect.length > 0 && targetGroupsForSelect.every(g => selectedGroupKeys.includes(g.merchantKey));
+
+    const handleToggleSelectAllGroups = () => {
+        const allKeys = targetGroupsForSelect.map(g => g.merchantKey);
+        if (isAllGroupsSelected) {
+            setSelectedGroupKeys(prev => prev.filter(k => !allKeys.includes(k)));
+        } else {
+            setSelectedGroupKeys(prev => Array.from(new Set([...prev, ...allKeys])));
+        }
+    };
 
     return (
         <div className="space-y-6 p-4">
@@ -1168,6 +1478,17 @@ export const SmartMatchQueueTab = ({
                         <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0.5">
                             {groups.length} {groups.length === 1 ? 'group' : 'groups'}
                         </Badge>
+                        {targetGroupsForSelect.length > 0 && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleToggleSelectAllGroups}
+                                className="h-6 px-2 text-[11px] font-medium border-muted-foreground/30 hover:bg-muted ml-1"
+                            >
+                                <CheckSquare className="mr-1.5 h-3 w-3" />
+                                {isAllGroupsSelected ? "Deselect All" : `Select All Groups (${targetGroupsForSelect.length})`}
+                            </Button>
+                        )}
                     </h3>
                     <p className="text-xs text-muted-foreground">Approve matched transactions or research unknown ones with AI.</p>
                 </div>
@@ -1331,6 +1652,10 @@ export const SmartMatchQueueTab = ({
                                 <History className="mr-2 h-4 w-4 text-indigo-600" />
                                 <span>Match from History</span>
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleConsolidateRules} disabled={isConsolidatingRules} className="cursor-pointer text-xs">
+                                {isConsolidatingRules ? <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" /> : <Layers className="mr-2 h-4 w-4 text-emerald-600" />}
+                                <span>Consolidate Rules by Account</span>
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
                                 onClick={() => setIsReanalyzeAlertOpen(true)} 
@@ -1363,6 +1688,29 @@ export const SmartMatchQueueTab = ({
                             className="pl-8 w-60 h-8 text-xs bg-white" 
                         />
                     </div>
+
+                    <Select value={confidenceFilter} onValueChange={(v: any) => setConfidenceFilter(v)}>
+                        <SelectTrigger className="h-8 text-xs min-w-[145px] w-auto bg-white border whitespace-nowrap">
+                            <SelectValue placeholder="Confidence" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Confidence</SelectItem>
+                            <SelectItem value="high">High (≥80%)</SelectItem>
+                            <SelectItem value="medium">Medium (20-79%)</SelectItem>
+                            <SelectItem value="low">Low / None (&lt;20%)</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                        <SelectTrigger className="h-8 text-xs min-w-[135px] w-auto bg-white border whitespace-nowrap">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            <SelectItem value="allocated">Allocated (Ready)</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                        </SelectContent>
+                    </Select>
                     
                     <Button onClick={() => handleApproveReadyOnly()} disabled={groups.filter(g => g.transactions.some(tx => tx.status === 'ready') && approvalSettings[g.merchantKey]?.accountId).length === 0} className="bg-blue-600 hover:bg-blue-700 text-white mr-2">
                         <CheckCircle2 className="mr-2 h-4 w-4" /> Approve Ready ({groups.filter(g => g.transactions.some(tx => tx.status === 'ready') && approvalSettings[g.merchantKey]?.accountId).length})
@@ -1384,6 +1732,7 @@ export const SmartMatchQueueTab = ({
                         isAnalyzingComment={isAnalyzingComment === group.merchantKey}
                         isResearching={isResearchingId === group.merchantKey}
                         client={client}
+                        existingRules={globalRules || []}
                         onToggleSelect={(merchantKey, checked) => setSelectedGroupKeys(p => checked ? [...p, merchantKey] : p.filter(k => k !== merchantKey))}
                         onViewTransactions={(g) => setViewingGroup(g)}
                         onUpdateAccount={(merchantKey, accountId) => setApprovalSettings((p: any) => ({
@@ -1400,11 +1749,14 @@ export const SmartMatchQueueTab = ({
                                 vatType
                             }
                         }))}
-                        onToggleCreateRule={(merchantKey, createRule) => setApprovalSettings((p: any) => ({
+                        onToggleCreateRule={(merchantKey, createRule, ruleMode, targetRuleId, customKeyword) => setApprovalSettings((p: any) => ({
                             ...p,
                             [merchantKey]: {
                                 ...p[merchantKey],
-                                createRule
+                                createRule,
+                                ruleMode: ruleMode || (createRule ? 'new' : 'none'),
+                                targetRuleId,
+                                customKeyword
                             }
                         }))}
                         onCommentChange={(merchantKey, comment) => setGroupComments((p: any) => ({
@@ -1502,6 +1854,17 @@ export const SmartMatchQueueTab = ({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <AiResearchResultsModal
+                open={isAiResultsModalOpen}
+                onOpenChange={setIsAiResultsModalOpen}
+                results={aiResearchResults}
+                totalResearchedCount={totalResearchedCount}
+                lowConfidenceCount={lowConfidenceCount}
+                client={client}
+                isVatRegistered={!!client?.isVatRegistered}
+                onApproveAll={handleApproveAiResearchResults}
+            />
         </div>
     );
 };

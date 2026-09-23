@@ -106,3 +106,57 @@ globs: ["*"]
 - **Immediate Archive**: Immediately archive the message to `INBOX.Archive` so the active `INBOX` remains completely clean.
 - **Human Regulator Exception**: Substantive correspondence from human regulator officers (e.g. Sinto, NCR analysts, Compensation Fund examiners requesting specific amendments, or approval certificates) MUST continue to be escalated immediately.
 
+### 17. Annual Financial Statements (AFS) Pricing & Bank Statement Inclusion Invariant
+- **AFS Pricing Tiers**:
+  - Non-VAT Registered Company AFS: **R 5,000.00** per financial year.
+  - VAT-Registered Company AFS: **R 7,500.00** per financial year (includes bi-monthly VAT reconciliation against SARS VAT201 declarations).
+- **Full In-House Processing Included**: The AFS fee **strictly includes** ingesting, processing, and reconstructing historical raw bank statements into double-entry general ledgers and trial balances. Never quote a separate bookkeeping catch-up fee or ledger reconstruction surcharge for AFS compilations unless specifically instructed by Kevin.
+- **Turnaround Time**: Standard turnaround is **7 to 10 working days** from the date complete bank statements are received.
+
+### 18. Tax Compliance Inquiry & SARS Tax Representative Protocol
+- Whenever an email, inquiry, or lead asks about company tax compliance (ITR14), director tax returns (ITR12), or finding out what returns are outstanding:
+  1. Inform the client that in order to view which returns are outstanding on SARS eFiling and lodge submissions, access to their SARS eFiling profile is required.
+  2. Advise that accessing an unlinked or dormant profile may require a formal **Tax Representative Appointment**.
+  3. State the fixed fee: **R 1,500.00** per company.
+  4. State the turnaround time: **3 to 5 working days** for SARS verification and profile activation once documents are lodged.
+  5. Provide statutory reassurance: Explain that this appointment is a formal requirement under the Tax Administration Act and does **not** affect their personal tax profile or personal liabilities in any way.
+- **Tax Filing Rates**:
+  - Company Income Tax Return (ITR14): **R 650.00** per return (compiled from signed AFS).
+  - Individual Income Tax Return (ITR12 - Simple): **R 750.00** per return (Salary/remuneration, medical aid, retirement).
+  - Individual Income Tax Return (ITR12 - Complex): **R 1,150.00** per return (Investments, capital gains, local rental income, travel allowance).
+  - Sole Proprietorship / Independent Trading ITR12: **R 2,950.00** per return (Unincorporated trading turnover).
+
+### 19. Mandatory Complimentary CIPC Health Assessment on Corporate Inquiries
+- On all corporate, tax, or AFS inquiries, always offer a **Complimentary CIPC Enterprise Compliance Assessment**.
+- The assessment includes:
+  1. Annual Return submission standing and deregistration penalties/risks.
+  2. Active director records and registered office details.
+  3. Beneficial Ownership (BO) compliance status.
+
+### 20. Exploratory Quotation Link Discipline
+- In preliminary exploratory quotation emails, do **not** include website catalog purchase/checkout links unless explicitly requested by the client.
+- Keep the proposal consultative, clean, and focused on requirements, pricing clarity, and next steps.
+
+### 21. Canonical Practice Document Styling & Formatting Invariant (Executive Navy & Gold Trim)
+- **Visual Design Standard**: All generated letters, agreements, resolutions, annexures, and reports must adhere strictly to the **Executive Navy & Gold Trim** practice aesthetic:
+  - **Color Palette**: Deep Navy (`#0f2137`) for firm titles, section headings, and primary signature accents; Warm Gold (`#c5a059`) for header trim dividing bars, metadata card accent borders, subsection vertical pills, and heading underlines; Charcoal/Slate (`#1e293b`, `#475569`) for high-legibility body text; subtle borders (`#e2e8f0`, `#cbd5e1`).
+  - **No Stock Photography**: Never insert placeholder or stock photographs in the header, margins, or letterhead.
+- **Typography & Sizing**:
+  - Primary font: Clean Universal Sans-Serif (system sans-serif / Helvetica: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`).
+  - Title: 14pt – 16.5pt bold uppercase; Headings (H2): 11.5pt – 12pt bold with 1.5px warm gold bottom border; Body text: 10.5pt – 11.5pt with `1.45` line height.
+- **Header Architecture**:
+  - **Page 1 Top Header**: Must always feature the official My Accountant practice block:
+    - *Left*: `My Accountant (Pty) Ltd` (16.5pt bold Deep Navy) | `Registration: 2020 / 548105 / 07 • Practice No: PR-0098553` (with gold accent).
+    - *Right*: `Ground Floor, Waterstone Building, Stonemill Office Park` | `300 Acacia Road, Darrenwood, Johannesburg, 2195` | `Tel: +27 10 109 1625 • Email: info@myacc.co.za • Web: www.myacc.co.za`.
+    - *Divider Trim*: Distinctive horizontal gradient or dual trim bar (Navy 70% / Warm Gold 30%).
+  - **Subsequent Pages (Pages 2+)**: **Never repeat client entity names or registration numbers in the running header**. Display ONLY a clean running page number at the top right (e.g. `• Page 2 of 3`) with a subtle gold bullet and slate border.
+- **Signatures & Footers**:
+  - Dual side-by-side signature blocks for Practice Signatory (left) and Client Signatory (right) with Deep Navy lines.
+  - Clean 1-line practice footnote at the bottom of the final page.
+
+### 22. VAT Retainer Fee Review Invariant (Unregistered / Pending VAT Entities)
+- When drafting an engagement letter, proposal, or retainer agreement that encompasses VAT calculation and VAT201 return submissions for an entity that is not yet VAT-registered (or pending registration):
+  - The VAT service description MUST explicitly include the mandatory disclosure:
+    *"VAT Declarations: Bi-monthly or monthly VAT calculations, output/input reconciliations, and submission of VAT201 returns via SARS eFiling (upon active VAT registration). Please note that our monthly retainer fee will be reviewed and adjusted accordingly once the company is formally registered for VAT."*
+  - This ensures practice economics are preserved as ledger volume and audit exposure expand upon VAT vendor activation.
+
