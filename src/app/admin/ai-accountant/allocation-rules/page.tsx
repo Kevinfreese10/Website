@@ -20,7 +20,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BookOpen, Plus, Search, Edit, Trash2, Loader2, Sparkles, ArrowLeft, Tag, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, Plus, Search, Edit, Trash2, Loader2, Sparkles, ArrowLeft, Tag, RefreshCw, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { exportPracticeAllocationRulesToExcel } from '@/lib/export-practice-allocation-rules';
 
 const db = getFirestore(firebaseApp);
 
@@ -267,6 +268,31 @@ export default function GlobalAllocationRulesPage() {
     return vt ? vt.label : vatName;
   };
 
+  const handleDownloadExcel = () => {
+    try {
+      const categoryMap = CATEGORY_OPTIONS.reduce((acc, cat) => {
+        acc[cat.key] = cat.label;
+        return acc;
+      }, {} as Record<string, string>);
+
+      const result = exportPracticeAllocationRulesToExcel(filteredRules, {
+        categoryLabelMap: categoryMap,
+      });
+
+      toast({
+        title: 'Excel Downloaded',
+        description: `Exported ${result.count} Practice Allocation Rules to ${result.filename}.`,
+      });
+    } catch (err: any) {
+      console.error('Error exporting rules to Excel:', err);
+      toast({
+        title: 'Download Failed',
+        description: err.message || 'Could not export allocation rules to Excel.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -292,6 +318,15 @@ export default function GlobalAllocationRulesPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={handleDownloadExcel}
+            className="font-medium gap-2 border-emerald-500/30 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+          >
+            <Download className="h-4 w-4 text-emerald-600" />
+            Download Excel ({filteredRules.length})
+          </Button>
+
           <Button
             variant="outline"
             onClick={handleSyncMasterRules}

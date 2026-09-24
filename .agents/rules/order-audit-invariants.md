@@ -160,3 +160,8 @@ globs: ["*"]
     *"VAT Declarations: Bi-monthly or monthly VAT calculations, output/input reconciliations, and submission of VAT201 returns via SARS eFiling (upon active VAT registration). Please note that our monthly retainer fee will be reviewed and adjusted accordingly once the company is formally registered for VAT."*
   - This ensures practice economics are preserved as ledger volume and audit exposure expand upon VAT vendor activation.
 
+### 23. Blocked Spam & Bot Sender Invariant (marina.adams68@webmail.co.za)
+- **Automatic Blocklist Filter**: Any emails received from or containing `marina.adams68@webmail.co.za` (including automated contact form submissions) must be immediately intercepted and filtered out.
+- **Zero Actions & Zero Escalations**: The inbox agent must **NEVER** parse as a lead, **NEVER** auto-reply, and **NEVER** forward or notify Kevin (`kev@thinkestry.co.za`).
+- **Immediate Archive / Trash**: Such messages must be routed directly to `INBOX.Trash` or `INBOX.Archive` to preserve complete inbox cleanliness.
+

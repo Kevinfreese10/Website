@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, Search, Building, Archive, PlusCircle, MoreHorizontal, Edit, Trash2, Copy, Sliders, BookOpen, Calculator, Settings, ArrowRightLeft, Percent, Plus, UserPlus, Pin, PinOff } from 'lucide-react';
+import { Loader2, ArrowRight, Search, Building, Archive, PlusCircle, MoreHorizontal, Edit, Trash2, Copy, Sliders, BookOpen, Calculator, Settings, ArrowRightLeft, Percent, Plus, UserPlus, Pin, PinOff, Download } from 'lucide-react';
+import { exportPracticeAllocationRulesToExcel } from '@/lib/export-practice-allocation-rules';
 import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, Timestamp, limit, getDoc, getDocs, where, arrayUnion, arrayRemove, updateDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User, AllocationRule } from '@/lib/types';
@@ -433,6 +434,23 @@ export default function AIAccountantClientsPage() {
         rule.keywords?.some(k => k.toLowerCase().includes(ruleSearchTerm.toLowerCase())) ||
         getAccountLabel(rule.accountId).toLowerCase().includes(ruleSearchTerm.toLowerCase())
     );
+
+    const handleDownloadRulesExcel = () => {
+        try {
+            const result = exportPracticeAllocationRulesToExcel(filteredGlobalRules);
+            toast({
+                title: 'Excel Downloaded',
+                description: `Exported ${result.count} Practice Allocation Rules to ${result.filename}.`,
+            });
+        } catch (err: any) {
+            console.error('Error exporting rules to Excel:', err);
+            toast({
+                title: 'Download Failed',
+                description: err.message || 'Could not export allocation rules to Excel.',
+                variant: 'destructive',
+            });
+        }
+    };
 
     const filteredAccounts = initialChartOfAccounts.filter(acc => {
         const matchesSearch = acc.accountNumber.toLowerCase().includes(accountSearchTerm.toLowerCase()) || 
@@ -892,6 +910,14 @@ export default function AIAccountantClientsPage() {
                                 <p className="text-xs text-muted-foreground">Manage global rules used to auto-allocate bank statements across all clients.</p>
                             </div>
                             <div className="flex items-center gap-2 w-full md:w-auto">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleDownloadRulesExcel}
+                                    className="h-10 font-bold gap-2 border-emerald-500/30 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                                >
+                                    <Download className="h-4 w-4 text-emerald-600" />
+                                    Download Excel ({filteredGlobalRules.length})
+                                </Button>
                                 <div className="relative flex-grow md:w-64">
                                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input 
