@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, Search, Users, PlusCircle, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
-import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, where } from 'firebase/firestore';
+import { Loader2, ArrowRight, Search, Users, PlusCircle, MoreHorizontal, Edit, Trash2, Archive, RotateCcw } from 'lucide-react';
+import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, where, updateDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User } from '@/lib/types';
 import Link from 'next/link';
@@ -98,6 +98,27 @@ export default function AIPayrollClientsPage() {
         }
     };
 
+    const handleToggleArchive = async (client: User, targetStatus: 'Active' | 'Archived') => {
+        try {
+            const clientRef = doc(db, 'aiPayrollClients', client.id);
+            await updateDoc(clientRef, {
+                status: targetStatus,
+                updatedAt: serverTimestamp(),
+            });
+            toast({
+                title: targetStatus === 'Archived' ? 'Client Archived' : 'Client Restored',
+                description: `${client.companyName || client.name} has been ${targetStatus === 'Archived' ? 'moved to archive' : 'restored to active'}.`,
+            });
+        } catch (error) {
+            console.error("Error updating client status:", error);
+            toast({
+                title: 'Update Failed',
+                description: 'Could not update client status.',
+                variant: 'destructive',
+            });
+        }
+    };
+
     const handleDelete = async (clientId: string) => {
         try {
             await deleteDoc(doc(db, "aiPayrollClients", clientId));
@@ -114,6 +135,124 @@ export default function AIPayrollClientsPage() {
         c.email?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const activeClients = filteredClients.filter(c => c.status !== 'Archived');
+    const archivedClients = filteredClients.filter(c => c.status === 'Archived');
+
+    const renderClientTable = (clientList: User[], emptyMessage: string, isArchived = false) => {
+        if (clientList.length === 0) {
+            return (
+                <div className="text-center py-16 text-muted-foreground font-medium">
+                    {isArchived ? (
+                        <Archive className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                    ) : (
+                        <Users className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                    )}
+                    <p>{emptyMessage}</p>
+                </div>
+            );
+        }
+
+        return (
+            <Table>
+                <TableHeader className="bg-muted/10">
+                    <TableRow>
+                        <TableHead className="font-bold">Client / Company</TableHead>
+                        <TableHead className="font-bold">Email Address</TableHead>
+                        <TableHead className="font-bold">Processing Cycle</TableHead>
+                        <TableHead className="font-bold">Status</TableHead>
+                        <TableHead className="text-right font-bold">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {clientList.map(client => (
+                        <TableRow key={client.id} className="hover:bg-muted/5 transition-colors">
+                            <TableCell className="font-bold text-slate-900">
+                                <div className="flex flex-col">
+                                    <span>{client.companyName || client.name}</span>
+                                    <span className="text-[10px] text-muted-foreground font-mono">{client.registrationNumber || 'No Registration Number'}</span>
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-sm text-slate-600">{client.email}</TableCell>
+                            <TableCell>
+                                <Badge variant="outline" className="text-[10px] font-bold border-primary/20 text-primary uppercase bg-primary/5">
+                                    {client.firstProcessingMonth || 'Not Set'}
+                                </Badge>
+                            </TableCell>
+                            <TableCell>
+                                <Badge 
+                                    variant={client.status === 'Archived' ? 'secondary' : (client.status === 'Active' || !client.status ? 'default' : 'outline')} 
+                                    className="text-[10px] uppercase font-bold"
+                                >
+                                    {client.status || 'Active'}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                    <Button variant="outline" size="sm" asChild className="font-bold border-primary/20 text-primary hover:bg-primary hover:text-white transition-all">
+                                        <Link href={`/dashboard/ai-payroll/${client.id}/dashboard`}>
+                                            Open <ArrowRight className="ml-2 h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button aria-label="More actions" variant="ghost" size="icon" className="h-8 w-8">
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Manage</DropdownMenuLabel>
+                                            <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsFormOpen(true); }}>
+                                                <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            {client.status === 'Archived' ? (
+                                                <DropdownMenuItem 
+                                                    onClick={() => handleToggleArchive(client, 'Active')}
+                                                    className="text-emerald-700 focus:text-emerald-800"
+                                                >
+                                                    <RotateCcw className="mr-2 h-4 w-4 text-emerald-600" /> Restore to Active
+                                                </DropdownMenuItem>
+                                            ) : (
+                                                <DropdownMenuItem 
+                                                    onClick={() => handleToggleArchive(client, 'Archived')}
+                                                    className="text-amber-700 focus:text-amber-800"
+                                                >
+                                                    <Archive className="mr-2 h-4 w-4 text-amber-600" /> Archive Client
+                                                </DropdownMenuItem>
+                                            )}
+                                            <DropdownMenuSeparator />
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete Client
+                                                    </DropdownMenuItem>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This will permanently delete the AI Payroll profile for <strong>{client.companyName || client.name}</strong>. This action cannot be undone.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDelete(client.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                            Permanently Delete
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        );
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -122,7 +261,7 @@ export default function AIPayrollClientsPage() {
                         <h1 className="text-3xl font-bold tracking-tight text-slate-900">AI Payroll Clients</h1>
                         {currentUser?.role !== 'admin' && (
                             <Badge variant="secondary" className="font-bold">
-                                {clients.length} / {partner.limits.aiPayroll} Companies Used
+                                {activeClients.length} / {partner.limits.aiPayroll} Active Companies Used
                             </Badge>
                         )}
                     </div>
@@ -139,7 +278,7 @@ export default function AIPayrollClientsPage() {
                         />
                     </div>
                     <Button onClick={() => {
-                        if (currentUser?.role !== 'admin' && clients.length >= partner.limits.aiPayroll) {
+                        if (currentUser?.role !== 'admin' && activeClients.length >= partner.limits.aiPayroll) {
                             setIsLimitModalOpen(true);
                         } else {
                             setSelectedClient(null);
@@ -191,105 +330,62 @@ export default function AIPayrollClientsPage() {
                 </div>
             </div>
 
-            <Card className="border-2 shadow-sm">
-                <CardHeader className="bg-muted/30 pb-4 border-b">
-                    <CardTitle className="text-lg">Practice Portfolio</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    {isLoading ? (
-                        <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-20"><Loader2 className="animate-spin text-primary h-8 w-8" aria-hidden="true" /><span className="sr-only">Loading…</span></div>
-                    ) : filteredClients.length === 0 ? (
-                        <div className="text-center py-20 text-muted-foreground font-medium">
-                            <Users className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                            <p>No AI Payroll clients found.</p>
-                        </div>
-                    ) : (
-                        <Table>
-                            <TableHeader className="bg-muted/10">
-                                <TableRow>
-                                    <TableHead className="font-bold">Client / Company</TableHead>
-                                    <TableHead className="font-bold">Email Address</TableHead>
-                                    <TableHead className="font-bold">Processing Cycle</TableHead>
-                                    <TableHead className="font-bold">Status</TableHead>
-                                    <TableHead className="text-right font-bold">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredClients.map(client => (
-                                    <TableRow key={client.id} className="hover:bg-muted/5 transition-colors">
-                                        <TableCell className="font-bold text-slate-900">
-                                            <div className="flex flex-col">
-                                                <span>{client.companyName || client.name}</span>
-                                                <span className="text-[10px] text-muted-foreground font-mono">{client.registrationNumber || 'No Registration Number'}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-sm text-slate-600">{client.email}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="text-[10px] font-bold border-primary/20 text-primary uppercase bg-primary/5">
-                                                {client.firstProcessingMonth || 'Not Set'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant={client.status === 'Active' ? 'default' : 'secondary'} className="text-[10px] uppercase font-bold">
-                                                {client.status || 'Active'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <Button variant="outline" size="sm" asChild className="font-bold border-primary/20 text-primary hover:bg-primary hover:text-white transition-all">
-                                                    <Link href={`/dashboard/ai-payroll/${client.id}/dashboard`}>
-                                                        Open <ArrowRight className="ml-2 h-4 w-4" />
-                                                    </Link>
-                                                </Button>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button aria-label="More actions" variant="ghost" size="icon" className="h-8 w-8">
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuLabel>Manage</DropdownMenuLabel>
-                                                        <DropdownMenuItem onClick={() => { setSelectedClient(client); setIsFormOpen(true); }}>
-                                                            <Edit className="mr-2 h-4 w-4" /> Edit Profile
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete Client
-                                                                </DropdownMenuItem>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        This will permanently delete the AI Payroll profile for <strong>{client.companyName || client.name}</strong>. This action cannot be undone.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDelete(client.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                                                        Permanently Delete
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                </CardContent>
-                <CardFooter className="bg-muted/30 border-t py-3 text-right justify-end">
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                        Total {filteredClients.length} payroll clients detected
-                    </p>
-                </CardFooter>
-            </Card>
+            {isLoading ? (
+                <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center py-20">
+                    <Loader2 className="animate-spin text-primary h-8 w-8" aria-hidden="true" />
+                    <span className="sr-only">Loading…</span>
+                </div>
+            ) : (
+                <div className="space-y-6">
+                    <Card className="border-2 shadow-sm">
+                        <CardHeader className="bg-primary/5 pb-4 border-b border-primary/10">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <Users className="h-5 w-5 text-primary" />
+                                        Active Payroll Clients
+                                    </CardTitle>
+                                    <CardDescription>Managed companies currently active in payroll processing.</CardDescription>
+                                </div>
+                                <Badge variant="outline" className="font-bold border-primary/20 text-primary bg-primary/5">
+                                    {activeClients.length}
+                                </Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {renderClientTable(activeClients, "No active AI Payroll clients found.")}
+                        </CardContent>
+                        <CardFooter className="bg-muted/10 border-t py-2.5 px-4 text-right justify-between text-xs text-muted-foreground">
+                            <span>Active payroll cycles</span>
+                            <span className="font-semibold">{activeClients.length} {activeClients.length === 1 ? 'client' : 'clients'}</span>
+                        </CardFooter>
+                    </Card>
+
+                    <Card className="border-2 shadow-sm opacity-95">
+                        <CardHeader className="bg-muted/40 pb-4 border-b">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle className="text-lg flex items-center gap-2 text-muted-foreground">
+                                        <Archive className="h-5 w-5 text-slate-500" />
+                                        Archived Payroll Clients
+                                    </CardTitle>
+                                    <CardDescription>Past or inactive payroll client profiles moved to archive.</CardDescription>
+                                </div>
+                                <Badge variant="secondary" className="font-bold">
+                                    {archivedClients.length}
+                                </Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {renderClientTable(archivedClients, "No archived payroll clients found.", true)}
+                        </CardContent>
+                        <CardFooter className="bg-muted/10 border-t py-2.5 px-4 text-right justify-between text-xs text-muted-foreground">
+                            <span>Archived client records preserved</span>
+                            <span className="font-semibold">{archivedClients.length} {archivedClients.length === 1 ? 'client' : 'clients'}</span>
+                        </CardFooter>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }

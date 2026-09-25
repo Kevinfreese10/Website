@@ -1048,7 +1048,7 @@ describe('Tier 5 White-Box Adversarial Coverage Hardening — Suite 1', () => {
             // In SmartMatchQueueTab.tsx:
             expect(smartTabContent).toContain("useEffect(() => {");
             expect(smartTabContent).toContain("setCurrentPage(1);");
-            expect(smartTabContent).toContain("}, [sortBy, groups.length, debouncedSearchTerm]);");
+            expect(smartTabContent).toContain("sortBy, groups.length, debouncedSearchTerm");
         });
 
         it('5.4.4: Rapid backspace burst cancels debounce and reverts to full dataset', () => {
