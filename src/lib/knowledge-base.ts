@@ -42,6 +42,26 @@ export let knowledgeBaseItems: KnowledgeBaseItem[] = [
         id: 'kb-vat-5',
         question: 'What is Exit VAT upon VAT deregistration?',
         answer: 'When a business deregisters from VAT, it must pay exit VAT (output tax) on the lesser of the cost or open market value of all assets and trading stock held immediately before deregistration on which input VAT was previously claimed.'
+    },
+    {
+        id: 'kb-khai-1',
+        question: 'Who is Khai / What does the Support Consultant do?',
+        answer: 'Khai is the Support Consultant at My Accountant. Khai assists clients and website visitors 24/7 with understanding our 100+ accounting, tax, CIPC corporate secretarial, payroll, and business licensing services, clarifying prerequisites and transparent pricing, placing online orders, and providing live order tracking updates.'
+    },
+    {
+        id: 'kb-services-100',
+        question: 'How many services does My Accountant offer?',
+        answer: 'My Accountant offers 100+ transparent, fixed-price statutory accounting, tax, payroll, CIPC corporate secretarial, and business licensing services. You can view all services, fixed pricing, and completion times in our online store at https://www.myacc.co.za/products.'
+    },
+    {
+        id: 'kb-licences-1',
+        question: 'What business licences and statutory permits do you assist with?',
+        answer: 'We assist with a comprehensive range of South African business licences and regulatory permits, including: Transport Operating Licences (Form 1B), Cross-Border Road Transport Permits (C-BRTA), Liquor Licence Application Packs, Electrical Contractor Registration (DoEL Wireman’s Licence), Solar SSEG Grid-Tie Registrations, Food Business Certificates of Acceptability (CoA under R638), Tourism Star Grading (TGCSA), Tourist Guide Registration (CATHSSETA), Property Practitioners (PPRA) Firm Registration, Firearm Application Packs (SAPS 517/271), Traffic Register Numbers (TRN), POPIA Compliance & Governance Packs, and Bankable Business Plans for funding (SEFA, NYDA, Banks).'
+    },
+    {
+        id: 'kb-transport-1',
+        question: 'What are the prerequisites for a Transport Operating Licence (Form 1B)?',
+        answer: 'To apply for a Transport Operating Licence (Form 1B) through the Provincial Regulatory Entity (PRE), the prerequisites include: Private Company Registration (COR14.3), SARS Tax Clearance Certificate (TCS PIN), COIDA Registration, vehicle roadworthy certificates and RC1 registration documents for all fleet vehicles, valid passenger liability insurance, valid professional driving permits (PrDP) and licences for drivers, and an association/route support letter or customer transport service contract.'
     }
 ];
 

@@ -112,7 +112,7 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
       setMessages([
         {
           role: 'bot',
-          content: "Hello! I'm Khai, a Support Specialist at **My Accountant**.\n\nHow can I assist you today?\n\nI'm here to help with any questions you may have about our services, pricing, processes, products, or our company. I can also assist you with placing a new order or tracking an existing order.",
+          content: "Hello! I'm Khai, a Support Consultant at **My Accountant**.\n\nHow can I assist you today?\n\nI'm here to help with any questions you may have about our 100+ services, pricing, processes, products, or our company. I can also assist you with placing a new order or tracking an existing order.",
           timestamp: new Date(),
           confidence: 100
         }
@@ -185,7 +185,7 @@ export default function AiChatTester({ isOpen, onClose }: AiChatTesterProps) {
     setMessages([
       {
         role: 'bot',
-        content: "Hello! I'm Khai, a Support Specialist at **My Accountant**.\n\nHow can I assist you today?\n\nI'm here to help with any questions you may have about our services, pricing, processes, products, or our company. I can also assist you with placing a new order or tracking an existing order.",
+        content: "Hello! I'm Khai, a Support Consultant at **My Accountant**.\n\nHow can I assist you today?\n\nI'm here to help with any questions you may have about our 100+ services, pricing, processes, products, or our company. I can also assist you with placing a new order or tracking an existing order.",
         timestamp: new Date(),
         confidence: 100
       }

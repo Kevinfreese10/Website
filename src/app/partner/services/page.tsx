@@ -180,7 +180,9 @@ function EditServiceDialog({
             metaDescription: override?.metaDescription || service.metaDescription || service.description,
             metaKeywords: (override?.metaKeywords || service.metaKeywords || []).map((v: string) => ({ value: v })),
             whatsIncluded: (override?.whatsIncluded || service.whatsIncluded || []).map((v: string) => ({ value: v })),
-            clientRequirements: (override?.clientRequirements || service.clientRequirements || []).map((v: string) => ({ value: v })),
+            clientRequirements: (override?.clientRequirements || service.clientRequirements || []).map((v: any) => ({ 
+              value: typeof v === 'string' ? v : (v?.text || v?.value || '') 
+            })),
         },
     });
 
@@ -434,7 +436,7 @@ function ViewProductDialog({
                                     {service.clientRequirements.map((req, idx) => (
                                         <li key={idx} className="flex items-start gap-2">
                                             <div className="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0 mt-2" />
-                                            <span>{typeof req === 'string' ? req : (req.type === 'text' ? req.text : req.productId)}</span>
+                                            <span>{typeof req === 'string' ? req : ((req as any).text || (req as any).value || (req as any).productId || '')}</span>
                                         </li>
                                     ))}
                                 </ul>

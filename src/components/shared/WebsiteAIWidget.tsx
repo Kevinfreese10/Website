@@ -159,7 +159,7 @@ export default function WebsiteAIWidget() {
 
     const welcomeMessage: ChatMessage = {
       role: 'bot',
-      text: "Hello! I'm Khai, a Support Specialist at **My Accountant**.\n\nHow can I assist you today?\n\nI'm here to help with any questions you may have about our services, pricing, processes, products, or our company. I can also assist you with placing a new order or tracking an existing order.",
+      text: "Hello! I'm Khai, a Support Consultant at **My Accountant**.\n\nHow can I assist you today?\n\nI'm here to help with any questions you may have about our 100+ services, pricing, processes, products, or our company. I can also assist you with placing a new order or tracking an existing order.",
     };
 
     // 3. Listen to conversation real-time
@@ -309,7 +309,7 @@ export default function WebsiteAIWidget() {
         <CardContent className="flex-1 overflow-y-auto p-6 bg-white flex flex-col justify-center">
           <div className="text-center space-y-2 mb-6">
             <h4 className="text-xl font-extrabold tracking-tight text-slate-900">Welcome to My Accountant</h4>
-            <p className="text-sm text-slate-500">Please enter your details to start chatting with Khai, our AI Support Assistant.</p>
+            <p className="text-sm text-slate-500">Please enter your details to start chatting with Khai, our Support Consultant.</p>
           </div>
           <form onSubmit={handleRegisterEmail} className="flex flex-col gap-4 max-w-sm mx-auto w-full">
             <div className="space-y-1.5 text-left">

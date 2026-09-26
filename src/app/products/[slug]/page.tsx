@@ -149,8 +149,21 @@ export default async function ProductDetailPage({ params }: Props) {
       ? service.whatsIncluded.slice(0, 3).join(", ") + (service.whatsIncluded.length > 3 ? ", and more" : "")
       : "comprehensive compliance, review, and submission support";
       
-    const reqStr = service.clientRequirements && service.clientRequirements.length > 0
-      ? service.clientRequirements.slice(0, 3).join(", ") + (service.clientRequirements.length > 3 ? ", and other supporting documentation" : "")
+    const formatReqText = (item: any): string => {
+      if (!item) return '';
+      if (typeof item === 'string') return item.trim();
+      if (typeof item === 'object') {
+        return (item.text || item.value || '').trim();
+      }
+      return String(item).trim();
+    };
+
+    const cleanReqList = (service.clientRequirements || [])
+      .map(formatReqText)
+      .filter((t: string) => Boolean(t) && t !== '[object Object]');
+
+    const reqStr = cleanReqList.length > 0
+      ? cleanReqList.slice(0, 3).join(", ") + (cleanReqList.length > 3 ? ", and other supporting documentation" : "")
       : "standard company details and representative contact information";
       
     const pricingStr = service.isPriceTbc 

@@ -298,7 +298,18 @@ export async function websiteQAndA(
   // Serialize the website content to pass to the prompt
   const websiteContent = `
     SERVICES:
-    ${services.map(s => `Title: ${s.title}, URL: ${partnerData ? `/p/${partnerData.slug}/products/${s.slug}` : `/products/${s.slug}`}, Description: ${s.longDescription}, Price: ${s.isPriceTbc ? 'Price on Request' : `R${s.price}`}, Turnaround Time: ${s.turnaroundTime}, Prerequisites: ${(s.clientRequirements || []).join(', ')}`).join('\n\n')}
+    ${services.map(s => {
+      const cleanPrereqs = (s.clientRequirements || [])
+        .map((r: any) => {
+          if (!r) return '';
+          if (typeof r === 'string') return r.trim();
+          if (typeof r === 'object') return (r.text || r.value || '').trim();
+          return String(r).trim();
+        })
+        .filter((t: string) => Boolean(t) && t !== '[object Object]')
+        .join('; ');
+      return `Title: ${s.title}, URL: ${partnerData ? `/p/${partnerData.slug}/products/${s.slug}` : `/products/${s.slug}`}, Description: ${s.longDescription}, Price: ${s.isPriceTbc ? 'Price on Request' : `R${s.price}`}, Turnaround Time: ${s.turnaroundTime}, Prerequisites: ${cleanPrereqs || 'None'}`;
+    }).join('\n\n')}
 
     BLOG POSTS:
     ${blogPosts.map(p => `Title: ${p.title}, Excerpt: ${p.excerpt}`).join('\n\n')}
@@ -348,7 +359,7 @@ export async function websiteQAndA(
     model: 'googleai/gemini-3.5-flash',
     input: {schema: WebsiteQAndAInputSchema},
     output: {schema: WebsiteQAndAOutputSchema},
-    prompt: `You are the Support Specialist for ${companyName} (Pty) Ltd. Your name is 'Khai'.
+    prompt: `You are the Support Consultant for ${companyName} (Pty) Ltd. Your name is 'Khai'.
     
     Your primary objective is to:
     - Convert website visitors into paying clients.
@@ -386,6 +397,7 @@ export async function websiteQAndA(
     
     UNIQUE SELLING POINTS:
     Highlight these when relevant to build trust and credibility:
+    - 100+ Accounting, Tax, CIPC, Payroll, and Business Licensing Services with transparent upfront fixed pricing
     - 200+ Five-Star Google Reviews
     - Online service across South Africa
     - Professional accounting and tax specialists
