@@ -6,7 +6,7 @@ export const dynamic = 'force-static';
 const LLMS_TEXT = `# My Accountant
 
 > Online accounting, tax, payroll, SARS, and CIPC compliance services
-> for South African businesses and individuals. Fixed pricing on 75+
+> for South African businesses and individuals. Fixed pricing on 100+
 > services, fully online — no office visit required.
 
 ## What We Do

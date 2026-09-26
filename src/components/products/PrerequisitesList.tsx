@@ -48,7 +48,7 @@ function checkServicePrereqsSatisfied(
   for (let idx = 0; idx < serviceReqs.length; idx++) {
     const req = serviceReqs[idx];
     if (typeof req === 'string' || req.type === 'text') {
-      const text = typeof req === 'string' ? req : req.text;
+      const text = typeof req === 'string' ? req : (req.text || (req as any).value || '');
       const textId = `text_${currentDepth}_${idx}_${text}`;
       if (!confirmedIds.has(textId)) {
         return false;
@@ -206,8 +206,8 @@ export default function PrerequisitesList({
           } else {
             missingProductIds.push(req.productId);
           }
-        } else if (req.type === 'text' && req.text) {
-          result.push({ type: 'text', text: req.text });
+        } else if (req.type === 'text' && (req.text || (req as any).value)) {
+          result.push({ type: 'text', text: req.text || (req as any).value });
         }
       });
 

@@ -496,6 +496,7 @@ export default function AdminServicesPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <ServiceForm 
+                        key={selectedService?.id || 'new'}
                         service={selectedService} 
                         allServices={services}
                         onSubmit={handleFormSubmit}

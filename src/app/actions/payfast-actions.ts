@@ -109,7 +109,19 @@ export async function createPayFastPaymentSessionAction(req: PayFastPaymentReque
 
     const cleanItemName = (req.itemName || `Order #${req.orderId}`).replace(/[\r\n\t]/g, ' ').trim().slice(0, 100);
     const cleanItemDesc = (req.itemDescription || cleanItemName).replace(/[\r\n\t]/g, ' ').trim().slice(0, 255);
-    const cleanPhone = (req.customerPhone || '').replace(/[^0-9+]/g, '').trim();
+    
+    // PayFast strictly enforces South African cell phone formats (0XXXXXXXXX or 27XXXXXXXXX).
+    // Passing international numbers (e.g. +91...) causes PayFast to reject with "400 Bad Request: The cell number format is invalid."
+    // Since cell_number is optional when email_address is present, omit non-SA numbers to let international clients pay.
+    const cleanDigits = (req.customerPhone || '').replace(/[^0-9]/g, '');
+    let cleanPhone: string | undefined = undefined;
+    if (cleanDigits.length === 10 && cleanDigits.startsWith('0')) {
+      cleanPhone = cleanDigits;
+    } else if (cleanDigits.length === 11 && cleanDigits.startsWith('27')) {
+      cleanPhone = cleanDigits;
+    } else if (cleanDigits.length === 9 && ['1', '6', '7', '8'].includes(cleanDigits[0])) {
+      cleanPhone = '0' + cleanDigits;
+    }
 
     const rawData: Record<string, string | undefined> = {
       merchant_id: merchantId,
@@ -120,7 +132,7 @@ export async function createPayFastPaymentSessionAction(req: PayFastPaymentReque
       name_first: firstName,
       name_last: lastName,
       email_address: (req.customerEmail || 'client@myacc.co.za').trim(),
-      cell_number: cleanPhone || undefined,
+      cell_number: cleanPhone,
       m_payment_id: String(req.orderId),
       amount: Number(req.amount).toFixed(2),
       item_name: cleanItemName,

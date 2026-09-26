@@ -89,7 +89,7 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
     "hasMerchantReturnPolicy": {
       "@type": "MerchantReturnPolicy",
       "applicableCountry": "ZA",
-      "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"
+      "returnPolicyCategory": service.returnPolicyCategory || "https://schema.org/MerchantReturnNotPermitted"
     },
     "shippingDetails": {
       "@type": "OfferShippingDetails",

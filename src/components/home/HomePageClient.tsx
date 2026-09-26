@@ -157,7 +157,7 @@ export default function HomePageClient() {
                 </div>
                 <p className="text-xs sm:text-sm font-semibold text-primary/90 flex items-center justify-center gap-1.5 pt-1.5 max-w-xl mx-auto">
                   <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse shrink-0" />
-                  <span>Explore 75+ accounting & tax services with transparent fixed prices and clear completion times in our online store.</span>
+                  <span>Explore 100+ accounting & tax services with transparent fixed prices and clear completion times in our online store.</span>
                 </p>
               </div>
             </div>

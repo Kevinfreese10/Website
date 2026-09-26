@@ -47,6 +47,7 @@ const getCategoryStyle = (category: string) => {
   if (category.includes('CIPC') || category.includes('Compliance')) return { badge: 'bg-white text-purple-700 border-purple-200/80 shadow-2xs', dot: 'bg-purple-500' };
   if (category.includes('Payroll') || category.includes('UIF') || category.includes('COIDA')) return { badge: 'bg-white text-amber-700 border-amber-200/80 shadow-2xs', dot: 'bg-amber-500' };
   if (category.includes('Entity') || category.includes('Company')) return { badge: 'bg-white text-blue-700 border-blue-200/80 shadow-2xs', dot: 'bg-blue-600' };
+  if (category.includes('Licence') || category.includes('Permit')) return { badge: 'bg-white text-indigo-700 border-indigo-200/80 shadow-2xs', dot: 'bg-indigo-600' };
   return { badge: 'bg-white text-slate-700 border-slate-200/80 shadow-2xs', dot: 'bg-slate-500' };
 };
 

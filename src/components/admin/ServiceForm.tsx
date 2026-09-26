@@ -114,7 +114,7 @@ const formSchema = z.object({
   imageHint: z.string().optional(),
   attachmentUrl: z.string().url('A valid URL is required.').or(z.literal('')),
   category: z.string().min(1, 'Category is required.'),
-  department: z.enum(departments).default('Administration'),
+  department: z.preprocess(val => departments.includes(val as any) ? val : 'Administration', z.enum(departments).default('Administration')),
   turnaroundTime: z.string().optional(),
   whatsIncluded: z.array(z.object({ value: z.string() })),
   clientRequirements: z.array(z.object({
@@ -133,14 +133,14 @@ const formSchema = z.object({
     aiHint: z.string().optional(),
     // AI order agent verification fields (plan §5.1)
     documentKind: z.string().optional(),
-    inNameOf: z.enum(['entity', 'director', 'either']).optional(),
+    inNameOf: z.preprocess(val => val === 'person' ? 'either' : (val || undefined), z.enum(['entity', 'director', 'either']).optional()),
     maxAgeDays: z.preprocess(val => (val === '' || val === undefined || val === null ? undefined : Number(val)), z.number().min(0).optional()),
     mustBeCertified: z.boolean().optional(),
     alternativesText: z.string().optional(),
     isSecret: z.boolean().optional(),
   })),
 
-  metaTitle: z.string().min(1, 'Meta Title is required.').max(59, 'Meta Title must be under 60 characters.'),
+  metaTitle: z.string().min(1, 'Meta Title is required.').max(60, 'Meta Title must be 60 characters or less.'),
   metaDescription: z.string().max(160, 'Meta Description must be 160 characters or less.').optional().or(z.literal('')),
   metaKeywords: z.array(z.object({ value: z.string() })).optional(),
   brand: z.string().optional(),
@@ -213,14 +213,16 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
       department: service?.department || 'Administration',
       turnaroundTime: service?.turnaroundTime || '',
       coidaIndustries: service?.coidaIndustries || [],
-      whatsIncluded: service?.whatsIncluded?.map(v => ({ value: v })) || [{ value: '' }],
-      clientRequirements: service?.clientRequirements?.map(item => {
+      whatsIncluded: service?.whatsIncluded?.map((v: any) => ({ 
+        value: typeof v === 'string' ? v : v?.value || '' 
+      })) || [{ value: '' }],
+      clientRequirements: service?.clientRequirements?.map((item: any) => {
         if (typeof item === 'string') {
           return { type: 'text' as const, value: item, productId: '' };
         } else if (item && typeof item === 'object' && item.type === 'product') {
-          return { type: 'product' as const, value: item.text || '', productId: item.productId };
+          return { type: 'product' as const, value: item.text || item.value || '', productId: item.productId || '' };
         } else {
-          return { type: 'text' as const, value: (item as any)?.text || '', productId: '' };
+          return { type: 'text' as const, value: item?.text || item?.value || '', productId: '' };
         }
       }) || [{ type: 'text', value: '', productId: '' }],
       informationToProvide: normalizeRequirementsWithIds(service?.informationToProvide || []).map(r => ({
@@ -229,7 +231,9 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
       })),
       metaTitle: service?.metaTitle || '',
       metaDescription: service?.metaDescription || '',
-      metaKeywords: service?.metaKeywords?.map(v => ({value: v})) || [{ value: '' }],
+      metaKeywords: service?.metaKeywords?.map((v: any) => ({ 
+        value: typeof v === 'string' ? v : v?.value || '' 
+      })) || [{ value: '' }],
       brand: service?.brand || 'My Accountant',
       availability: service?.availability || 'in_stock',
       condition: service?.condition || 'new',
@@ -563,9 +567,24 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
   const currentAttachmentUrl = form.watch('attachmentUrl');
   const attachmentFilename = currentAttachmentUrl ? currentAttachmentUrl.split('/').pop()?.split('?')[0].split('%2F').pop() : '';
 
+  const onInvalid = (errors: any) => {
+    console.error("Form Validation Errors:", errors);
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length > 0) {
+      const firstKey = errorKeys[0];
+      const firstErr = (errors as any)[firstKey];
+      const message = firstErr?.message || (typeof firstErr === 'object' && firstErr?.root?.message ? firstErr.root.message : 'Please check required fields.');
+      toast({
+        title: 'Cannot Save Product',
+        description: `Validation issue in "${firstKey}": ${message}`,
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full overflow-hidden bg-background">
+      <form onSubmit={form.handleSubmit(handleSubmit, onInvalid)} className="flex flex-col h-full overflow-hidden bg-background">
         
         {/* Top Header Bar */}
         <div className="flex items-center justify-between px-6 py-3.5 border-b bg-muted/20 shrink-0">
@@ -1750,7 +1769,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
         <PrerequisiteMultiSelectDialog
           open={isPrereqMultiOpen}
           onOpenChange={setIsPrereqMultiOpen}
-          existingTexts={isPrereqMultiOpen ? (form.getValues('clientRequirements')?.map((r: any) => typeof r === 'string' ? r : r?.value).filter(Boolean) || []) : []}
+          existingTexts={isPrereqMultiOpen ? (form.getValues('clientRequirements')?.map((r: any) => typeof r === 'string' ? r : r?.value || r?.text).filter(Boolean) || []) : []}
           previouslyUsed={previouslyUsedPrerequisites}
           onAddSelected={handleAddMultiplePrerequisites}
         />

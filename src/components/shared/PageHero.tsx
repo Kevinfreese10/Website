@@ -31,7 +31,7 @@ export default function PageHero({
   subtitle,
   primaryCta = { text: 'Visit Our Online Store', href: '/products' },
   secondaryCta = { text: 'Book Free Consultation', href: '/contact' },
-  ctaSubtext = 'Explore 75+ accounting & tax services with transparent fixed prices and clear completion times in our online store.',
+  ctaSubtext = 'Explore 100+ accounting & tax services with transparent fixed prices and clear completion times in our online store.',
   showCredibilityRibbon = true,
   children,
   className = '',
