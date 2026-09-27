@@ -338,6 +338,8 @@ const nextConfig: NextConfig = {
     return [
       // Map SEO-friendly /accountant-<city> URLs to the dynamic route /accountant/[city]
       { source: '/accountant-:city', destination: '/accountant/:city' },
+      // Standard AI crawler discovery path
+      { source: '/.well-known/llms.txt', destination: '/llms.txt' },
     ];
   },
   webpack: (config, { isServer }) => {
