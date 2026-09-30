@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, Edit, MoreHorizontal, FileUp, Download, BookUser } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Edit, MoreHorizontal, FileUp, Download, BookUser, GitMerge } from 'lucide-react';
 import { getFirestore, collection, query, getDocs, doc, deleteDoc, addDoc, writeBatch, orderBy, where, onSnapshot, setDoc } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { Supplier, User } from '@/lib/types';
@@ -68,23 +68,37 @@ function ImportSuppliersDialog({ clientId, onImportComplete }: { clientId: strin
                 const worksheet = workbook.Sheets[sheetName];
                 const json = XLSX.utils.sheet_to_json(worksheet) as Record<string, any>[];
 
-                const supplierNames = json.map(row => row['Supplier Name'] || row['supplierName'] || row['Name']).filter((name): name is string => !!name);
+                const rawNames = json.map(row => row['Supplier Name'] || row['supplierName'] || row['Name']).filter((name): name is string => !!name);
 
-                if (supplierNames.length === 0) {
+                if (rawNames.length === 0) {
                     toast({ title: "No suppliers found", description: "Make sure your file has a column named 'Supplier Name'.", variant: "destructive" });
                     setIsUploading(false);
                     return;
                 }
 
+                // Check existing suppliers in Firestore to prevent duplicates
+                const existingSnap = await getDocs(collection(db, `aiAccountantClients/${clientId}/suppliers`));
+                const existingNames = new Set(existingSnap.docs.map(d => (d.data().name || '').trim().toUpperCase()));
+
+                // Filter unique names not already in Firestore
+                const uniqueNewNames = Array.from(new Set(rawNames.map(n => n.trim().toUpperCase()))).filter(n => !existingNames.has(n));
+
+                if (uniqueNewNames.length === 0) {
+                    toast({ title: "All suppliers already exist", description: "No new unique suppliers to import." });
+                    setIsUploading(false);
+                    setIsOpen(false);
+                    return;
+                }
+
                 const batch = writeBatch(db);
-                supplierNames.forEach(name => {
+                uniqueNewNames.forEach(name => {
                     const docRef = doc(collection(db, `aiAccountantClients/${clientId}/suppliers`));
-                    batch.set(docRef, { name: name.trim().toUpperCase() });
+                    batch.set(docRef, { name });
                 });
 
                 await batch.commit();
 
-                toast({ title: "Import Successful", description: `${supplierNames.length} suppliers have been imported.` });
+                toast({ title: "Import Successful", description: `${uniqueNewNames.length} new suppliers imported (${rawNames.length - uniqueNewNames.length} duplicates skipped).` });
                 onImportComplete();
                 setIsOpen(false);
             } catch (error) {
@@ -199,20 +213,93 @@ export default function SuppliersPage() {
         setIsFormOpen(true);
     };
 
+    const [isDeduplicating, setIsDeduplicating] = useState(false);
+
     const handleFormSubmit = async (data: z.infer<typeof formSchema>) => {
         try {
-            const finalData = { ...data, name: data.name.toUpperCase() };
+            const finalName = data.name.trim().toUpperCase();
             if (selectedSupplier) {
-                await setDoc(doc(db, `aiAccountantClients/${clientId}/suppliers`, selectedSupplier.id), finalData, { merge: true });
+                const isDup = suppliers.some(s => s.id !== selectedSupplier.id && s.name.trim().toUpperCase() === finalName);
+                if (isDup) {
+                    toast({ title: 'Duplicate Name', description: 'Another supplier already exists with this name.', variant: 'destructive' });
+                    return;
+                }
+                await setDoc(doc(db, `aiAccountantClients/${clientId}/suppliers`, selectedSupplier.id), { ...data, name: finalName }, { merge: true });
                 toast({ title: 'Supplier Updated' });
             } else {
-                await addDoc(collection(db, `aiAccountantClients/${clientId}/suppliers`), finalData);
+                const isDup = suppliers.some(s => s.name.trim().toUpperCase() === finalName);
+                if (isDup) {
+                    toast({ title: 'Duplicate Supplier', description: 'A supplier with this name already exists.', variant: 'destructive' });
+                    return;
+                }
+                await addDoc(collection(db, `aiAccountantClients/${clientId}/suppliers`), { ...data, name: finalName });
                 toast({ title: 'Supplier Created' });
             }
             fetchSuppliers();
             setIsFormOpen(false);
         } catch (error) {
             toast({ title: 'Error', description: 'Could not save the supplier.', variant: 'destructive'});
+        }
+    };
+
+    const handleDeduplicate = async () => {
+        setIsDeduplicating(true);
+        try {
+            const snap = await getDocs(collection(db, `aiAccountantClients/${clientId}/suppliers`));
+            const nameMap = new Map<string, Array<{ id: string; name: string }>>();
+            snap.forEach(d => {
+                const name = (d.data().name || '').trim().toUpperCase();
+                if (!nameMap.has(name)) nameMap.set(name, []);
+                nameMap.get(name)!.push({ id: d.id, name });
+            });
+
+            const dupGroups = Array.from(nameMap.entries()).filter(([_, docs]) => docs.length > 1);
+            if (dupGroups.length === 0) {
+                toast({ title: 'No Duplicates Found', description: 'All suppliers have unique names.' });
+                setIsDeduplicating(false);
+                return;
+            }
+
+            const txSnap = await getDocs(collection(db, `aiAccountantClients/${clientId}/transactions`));
+            let totalConsolidated = 0;
+
+            for (const [_, dupDocs] of dupGroups) {
+                const primaryDoc = dupDocs[0];
+                const secondaryDocs = dupDocs.slice(1);
+
+                for (const sec of secondaryDocs) {
+                    const batch = writeBatch(db);
+
+                    txSnap.docs.forEach(tDoc => {
+                        const tData = tDoc.data();
+                        const updates: any = {};
+                        if (tData.allocatedTo?.value === sec.id) {
+                            updates['allocatedTo.value'] = primaryDoc.id;
+                        }
+                        if (tData.accountId === sec.id) {
+                            updates.accountId = primaryDoc.id;
+                        }
+                        if (tData.supplierId === sec.id) {
+                            updates.supplierId = primaryDoc.id;
+                        }
+                        if (Object.keys(updates).length > 0) {
+                            batch.update(tDoc.ref, updates);
+                        }
+                    });
+
+                    batch.delete(doc(db, `aiAccountantClients/${clientId}/suppliers`, sec.id));
+                    await batch.commit();
+                    totalConsolidated++;
+                }
+            }
+
+            toast({ title: 'Suppliers Consolidated', description: `Successfully merged ${totalConsolidated} duplicate supplier(s).` });
+            fetchSuppliers();
+        } catch (error) {
+            console.error('Error consolidating suppliers:', error);
+            toast({ title: 'Consolidation Failed', description: 'An error occurred while merging suppliers.', variant: 'destructive' });
+        } finally {
+            setIsDeduplicating(false);
         }
     };
 
@@ -256,6 +343,18 @@ export default function SuppliersPage() {
                     <div className="flex items-center gap-2">
                         <ImportSuppliersDialog clientId={clientId} onImportComplete={fetchSuppliers} />
                         <Button onClick={handleAdd}><PlusCircle className="mr-2 h-4 w-4" /> Create Supplier</Button>
+                        <Button
+                            variant="outline"
+                            onClick={handleDeduplicate}
+                            disabled={isDeduplicating}
+                        >
+                            {isDeduplicating ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <GitMerge className="mr-2 h-4 w-4" />
+                            )}
+                            Consolidate Duplicates
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
