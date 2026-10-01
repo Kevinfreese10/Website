@@ -1299,3 +1299,37 @@ export interface ProcessedTransaction {
   cleaningVersion?: string;
 }
 
+export interface CVLeadAnalysis {
+  scores?: {
+    atsReadiness?: number;
+    impactAndAchievements?: number;
+    structureAndReadability?: number;
+    roleFit?: number;
+    overallScore?: number;
+  };
+  rationales?: {
+    atsReadiness?: string;
+    impactAndAchievements?: string;
+    structureAndReadability?: string;
+    roleFit?: string;
+  };
+  missingInformation?: string[];
+  suggestions?: string[];
+  improvedSummary?: string;
+  bulletPointRewrites?: Array<{
+    original: string;
+    improved: string;
+    reason: string;
+  }>;
+}
+
+export interface CVLead {
+  id: string;
+  email: string;
+  role?: string;
+  score?: number;
+  cvUrl?: string;
+  createdAt: any;
+  analysis?: CVLeadAnalysis;
+}
+

@@ -5,8 +5,8 @@ import * as React from "react"
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Eye, Calculator, Save, Trash2, FolderOpen } from "lucide-react";
-import { useParams, useRouter, usePathname } from 'next/navigation';
+import { Loader2, Download, Eye, Calculator, Save, Trash2, FolderOpen, ExternalLink, ArrowLeft } from "lucide-react";
+import { useParams, useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { getFirestore, doc, getDoc, collection, onSnapshot, query, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { User, AllocatedTransaction, ImportedTransaction, ChartOfAccount, SavedReport } from '@/lib/types';
@@ -163,9 +163,20 @@ function calculateBalances(client: User, transactions: (ImportedTransaction | Al
 }
 
 function TrialBalanceReport({ client, transactions, dateRange, comparativeDateRange, includeOpeningBalances }: { client: User, transactions: (ImportedTransaction | AllocatedTransaction)[], dateRange?: DateRange, comparativeDateRange?: DateRange, includeOpeningBalances: boolean }) {
+    const router = useRouter();
     const pathname = usePathname();
     const isDashboard = pathname.startsWith('/dashboard');
     const basePath = isDashboard ? `/dashboard/ai-accountant/${client.id}` : `/admin/ai-accountant/${client.id}`;
+
+    const getAccountGLUrl = (accountId: string) => {
+        const p = new URLSearchParams({
+            accountId,
+            autoOpen: 'true',
+        });
+        if (dateRange?.from) p.set('from', dateRange.from.toISOString());
+        if (dateRange?.to) p.set('to', dateRange.to.toISOString());
+        return `${basePath}/reports/general-ledger?${p.toString()}`;
+    };
     
     const primaryBalances = useMemo(() => calculateBalances(client, transactions, dateRange, includeOpeningBalances), [client, transactions, dateRange, includeOpeningBalances]);
     const showComparison = !!comparativeDateRange;
@@ -274,20 +285,31 @@ function TrialBalanceReport({ client, transactions, dateRange, comparativeDateRa
                             const creditAmount = item.balance < 0 ? -item.balance : 0;
                             const compDebitAmount = item.comparativeBalance > 0 ? item.comparativeBalance : 0;
                             const compCreditAmount = item.comparativeBalance < 0 ? -item.comparativeBalance : 0;
+                            const glUrl = getAccountGLUrl(item.id);
                             
                             return (
-                                <TableRow key={item.id}>
+                                <TableRow 
+                                    key={item.id}
+                                    className="cursor-pointer hover:bg-slate-100/80 transition-colors group"
+                                    onClick={() => router.push(glUrl)}
+                                    title={`View transactions for ${item.accountNumber} - ${item.description}`}
+                                >
                                     <TableCell>
-                                        <p className="font-medium">{item.accountNumber}</p>
-                                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-semibold text-slate-850 group-hover:text-primary transition-colors">{item.accountNumber}</p>
+                                                <p className="text-xs text-muted-foreground">{item.description}</p>
+                                            </div>
+                                            <ExternalLink className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0 group-hover:text-primary" />
+                                        </div>
                                     </TableCell>
-                                    <TableCell className="text-right font-mono">
-                                        <Link href={`${basePath}/reports/general-ledger?accountId=${item.id}`} className="hover:underline text-blue-600">
+                                    <TableCell className="text-right font-mono font-medium group-hover:text-primary transition-colors">
+                                        <Link href={glUrl} onClick={(e) => e.stopPropagation()} className="hover:underline">
                                             {formatPrice(debitAmount)}
                                         </Link>
                                     </TableCell>
-                                    <TableCell className="text-right font-mono">
-                                         <Link href={`${basePath}/reports/general-ledger?accountId=${item.id}`} className="hover:underline text-blue-600">
+                                    <TableCell className="text-right font-mono font-medium group-hover:text-primary transition-colors">
+                                        <Link href={glUrl} onClick={(e) => e.stopPropagation()} className="hover:underline">
                                             {formatPrice(creditAmount)}
                                         </Link>
                                     </TableCell>
@@ -345,7 +367,12 @@ function TrialBalanceReport({ client, transactions, dateRange, comparativeDateRa
 export default function TrialBalancePage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const clientId = params.clientId as string;
+
+    const fromQuery = searchParams?.get('from');
+    const toQuery = searchParams?.get('to');
+    const autoOpenQuery = searchParams?.get('autoOpen');
 
     const [client, setClient] = useState<User | null>(null);
     const [transactions, setTransactions] = useState<(ImportedTransaction | AllocatedTransaction)[]>([]);
@@ -354,10 +381,26 @@ export default function TrialBalancePage() {
     const [comparativeDateRange, setComparativeDateRange] = React.useState<DateRange | undefined>(undefined);
     const [showComparison, setShowComparison] = useState(false);
     const [includeOpeningBalances, setIncludeOpeningBalances] = useState(true);
+    const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
     const { toast } = useToast();
     const [isSavingReport, setIsSavingReport] = useState(false);
     const [reportName, setReportName] = useState('');
     const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+
+    useEffect(() => {
+        if (fromQuery || toQuery) {
+            setDateRange({
+                from: fromQuery ? new Date(fromQuery) : undefined,
+                to: toQuery ? new Date(toQuery) : undefined,
+            });
+        }
+    }, [fromQuery, toQuery]);
+
+    useEffect(() => {
+        if (autoOpenQuery === 'true' && client && !isLoading) {
+            setIsReportDialogOpen(true);
+        }
+    }, [autoOpenQuery, client, isLoading]);
     
     const augmentedClient = useMemo(() => {
         if (!client) return null;
@@ -573,7 +616,7 @@ export default function TrialBalancePage() {
                         {isLoading ? (
                             <Loader2 className="animate-spin" />
                         ) : client ? (
-                            <Dialog>
+                            <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button>View Report</Button>
                                 </DialogTrigger>

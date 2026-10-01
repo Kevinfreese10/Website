@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { BadgeCheck, Clock, ClipboardCheck, ChevronRight, Home, ShoppingCart, FileUp, RefreshCw, CheckCircle2, ArrowRight, Star } from 'lucide-react';
 import { cn, formatPrice } from '@/lib/utils';
@@ -21,11 +21,30 @@ export const revalidate = 900;
 
 async function getService(slug: string): Promise<Service | null> {
     const adminDb = getAdminDb();
-    const snap = await adminDb.collection('services').where('slug', '==', slug).get();
+    const cleanSlug = slug.trim().toLowerCase();
+    const singleHyphenSlug = cleanSlug.replace(/--+/g, '-');
 
+    // 1. Direct query with requested slug
+    let snap = await adminDb.collection('services').where('slug', '==', cleanSlug).get();
+
+    // 2. If not found and input had multiple hyphens, query normalized single-hyphen slug
+    if (snap.empty && cleanSlug !== singleHyphenSlug) {
+        snap = await adminDb.collection('services').where('slug', '==', singleHyphenSlug).get();
+    }
+
+    // 3. Fallback: match by normalized single-hyphen slug against all services
     if (snap.empty) {
+        const allSnap = await adminDb.collection('services').get();
+        const found = allSnap.docs.find(d => {
+            const dbSlug = (d.data().slug || '').toLowerCase().replace(/--+/g, '-');
+            return dbSlug === singleHyphenSlug;
+        });
+        if (found) {
+            return toPlainObject({ id: found.id, ...found.data() }) as Service;
+        }
         return null;
     }
+
     const doc = snap.docs[0];
     const data = doc.data();
 
@@ -103,6 +122,11 @@ export default async function ProductDetailPage({ params }: Props) {
 
   if (!service) {
     notFound();
+  }
+
+  // 301 Permanent Redirect if requested slug contains double-hyphens but canonical is single-hyphen
+  if (slug.includes('--') && service.slug && !service.slug.includes('--')) {
+    permanentRedirect(`/products/${service.slug}`);
   }
 
   // Generate structured data server-side

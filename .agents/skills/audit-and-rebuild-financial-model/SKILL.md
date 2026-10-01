@@ -53,3 +53,58 @@ This skill provides the end-to-end standard operating procedure for auditing ban
    - In `Trial Balance FY(N+1)`, Column `Opening Balance` is dynamically linked to `= 'Trial Balance FY(N)'!G{row}` for all Balance Sheet accounts.
    - Income Statement accounts open at `0.00`.
 3. **Verification**: Run automated double-entry and VAT reconciliations ensuring GL debits == credits, TB debits == credits, and bank statement differences == R0.00.
+
+---
+
+## 📜 Statutory AFS Compilation Report Letterhead & Signature Protocol (CRITICAL INVARIANT)
+
+Whenever Annual Financial Statements (AFS) are compiled, audited, or finalized from accounting software (CaseWare, Draftworx, Sage) or internal engines, the **Practitioner's Compilation Report** (typically Page 4 or 5 of the AFS) must be issued on official practice stationery with verified credentials.
+
+### 1. New Letterhead Applied
+* **Top Header**:
+  - Left: **MY ACCOUNTANT (PTY) LTD** (13.5pt Arial Bold, Navy `#0F2137`), `REGISTRATION NUMBER: 2020 / 548105 / 07` (6.5pt Arial Bold, Slate Grey `#64748B`), `ACCOUNTING  •  PAYROLL  •  TAX  •  ADVISORY` (6.5pt Arial Bold, Warm Gold `#C5A059`).
+  - Right: `Ground Floor, Waterstone Building, Stonemill Office Park`, `300 Acacia Road, Darrenwood, Johannesburg, 2195`, `Tel: 010 109 1625 | Email: info@myacc.co.za | Web: www.myacc.co.za` (7.2pt Arial, Slate Grey `#64748B`).
+  - Divider: 1.5pt Warm Gold rule (`#C5A059`) at `y = 68` spanning margins (`left_x = 49.4` to `right_x = 548.2`).
+* **Software Placeholder Redaction**:
+  - Automatically redact CaseWare/Draftworx placeholder icons (`[+]` icon at top, `Double click to insert your logo` box & divider line at bottom).
+
+### 2. Removed Outdated Sign-Off Block
+* Permanently remove/redact legacy references:
+  - Any reference to `Jude Capital (Pty) Ltd`
+  - Obsolete designation `BAP (SA)` or `Partner`
+  - Obsolete location `Springs`
+
+### 3. Added Correct Signature & Practice Details
+* **Signature Line & Image**:
+  - Clean black signature line (`0.75pt` width, 180pt length) positioned with ample breathing space below Paragraph 5.
+  - Transparent digital signature ([`Signature_Kevin_New.png`](file:///c:/myacc/public/templates/Signature_Kevin_New.png)) resting naturally across the signature line.
+* **Authoritative Sign-Off Block**:
+  ```text
+  My Accountant (Pty) Ltd
+  Kevin Freese
+  Director
+  Chartered Business Accountant in Practice (SA)
+  CIBA CBAP (SA) #3561 | SARS PR-0098553
+
+  <Date>
+  Johannesburg
+  ```
+
+### 4. Canonical Deliverable Naming & Output Standard
+* Never distribute raw software filenames (e.g. `Financialstatements-SME[69].pdf`).
+* Rename deliverable to:
+  `[Entity Name] - Annual Financial Statements [YYYY].pdf`
+* Automatically export the standalone 1-page Compilation Report:
+  `Practitioners_Compilation_Report_[Entity_Name].pdf`
+* Always create an automatic safety backup of the original before modifying:
+  `[Original_Name]_ORIGINAL_BACKUP.pdf`
+
+### 5. Automated Execution CLI
+Execute the automated branding tool:
+```bash
+uv run --with pymupdf python .agents/skills/audit-and-rebuild-financial-model/scripts/brand_compilation_report.py \
+  --pdf "C:/path/to/Financialstatements.pdf" \
+  --entity "Entity Name (Pty) Ltd" \
+  --date "29 September 2026"
+```
+

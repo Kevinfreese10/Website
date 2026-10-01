@@ -857,20 +857,22 @@ export default function AdminDashboardPage() {
                 </Card>
 
                 {/* Metric 4: CV Candidates */}
-                <Card className="hover:shadow-md transition-all">
-                    <CardContent className="p-4 flex items-center justify-between">
-                        <div className="space-y-1">
-                            <span className="text-[10px] font-extrabold uppercase text-emerald-600 tracking-wider flex items-center gap-1">
-                                <UserIcon className="h-3.5 w-3.5" /> Candidate Applications
-                            </span>
-                            <div className="text-2xl font-black text-slate-850">{cvLeadsList.length}</div>
-                            <p className="text-[11px] text-slate-400 font-medium">CV Submissions</p>
-                        </div>
-                        <Badge variant="outline" className="px-2.5 py-1 text-xs font-bold text-emerald-600 border-emerald-200 bg-emerald-50">
-                            Recruiting
-                        </Badge>
-                    </CardContent>
-                </Card>
+                <Link href="/admin/cv-leads" className="block group">
+                    <Card className="hover:shadow-md transition-all border-emerald-100 hover:border-emerald-300 cursor-pointer">
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div className="space-y-1">
+                                <span className="text-[10px] font-extrabold uppercase text-emerald-600 tracking-wider flex items-center gap-1 group-hover:text-emerald-700">
+                                    <UserIcon className="h-3.5 w-3.5" /> Candidate Applications
+                                </span>
+                                <div className="text-2xl font-black text-slate-850">{cvLeadsList.length}</div>
+                                <p className="text-[11px] text-slate-400 font-medium group-hover:text-emerald-600 transition-colors">CV Submissions &bull; View details &rarr;</p>
+                            </div>
+                            <Badge variant="outline" className="px-2.5 py-1 text-xs font-bold text-emerald-600 border-emerald-200 bg-emerald-50 group-hover:bg-emerald-100">
+                                Recruiting
+                            </Badge>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
 
             {/* ACTION SECTION: Community Moderation & Outsourced Orders Queues */}

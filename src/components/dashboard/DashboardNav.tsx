@@ -22,6 +22,7 @@ import {
   Calculator,
   MessageSquare,
   UserPlus,
+  UserCheck,
   Mail,
 } from 'lucide-react';
 
@@ -97,6 +98,7 @@ export default function DashboardNav({ user }: { user: UserType }) {
     { href: '/admin/ai-payroll/clients', label: 'AI Payroll', icon: Users, roles: ['admin', 'staff'] },
     { href: '/admin/pages', label: 'Pages', icon: FileText, roles: ['admin'] },
     { href: '/admin/demo-leads', label: 'Demo Leads', icon: Presentation, roles: ['admin'] },
+    { href: '/admin/cv-leads', label: 'Candidate Applications', icon: UserCheck, roles: ['admin', 'staff'] },
     { href: '/admin/resellers', label: 'Manage Partners', icon: Users, roles: ['admin'] },
     { href: '/admin/clients', label: 'Manage Clients', icon: Briefcase, roles: ['admin'] },
     { href: '/admin/services', label: 'Manage Products', icon: Briefcase, roles: ['admin'] },

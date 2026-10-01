@@ -8,7 +8,7 @@ import React, { useState, useEffect, useMemo, ReactNode } from "react";
 import { User, ChartOfAccount, AllocatedTransaction, ImportedTransaction, VatType, Supplier, ClientCustomer } from "@/lib/types";
 import { getFirestore, doc, getDoc, collection, query, onSnapshot, updateDoc, writeBatch, deleteDoc, where, getDocs, deleteField, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
-import { Loader2, Download, Eye, Trash2, Search, Scale, ChevronsUpDown, CheckCheck, FileText } from "lucide-react";
+import { Loader2, Download, Eye, Trash2, Search, Scale, ChevronsUpDown, CheckCheck, FileText, ArrowLeft } from "lucide-react";
 import { useParams, useSearchParams, usePathname } from 'next/navigation';
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
@@ -799,7 +799,12 @@ export default function GeneralLedgerPage() {
     const pathname = usePathname();
     const isDashboard = pathname.startsWith('/dashboard');
     const clientId = params.clientId as string;
+    const basePath = isDashboard ? `/dashboard/ai-accountant/${clientId}` : `/admin/ai-accountant/${clientId}`;
+
     const accountIdFromQuery = searchParams.get('accountId');
+    const autoOpenFromQuery = searchParams.get('autoOpen');
+    const fromQuery = searchParams.get('from');
+    const toQuery = searchParams.get('to');
 
     const [client, setClient] = useState<User | null>(null);
     const [transactions, setTransactions] = useState<(ImportedTransaction | AllocatedTransaction)[]>([]);
@@ -810,6 +815,7 @@ export default function GeneralLedgerPage() {
     const [fromAccount, setFromAccount] = useState<string | undefined>();
     const [toAccount, setToAccount] = useState<string | undefined>();
     const [isReportOpen, setIsReportOpen] = useState(false);
+    const [hasAutoOpened, setHasAutoOpened] = useState(false);
     const [isReallocateOpen, setIsReallocateOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
     const { toast } = useToast();
@@ -823,38 +829,33 @@ export default function GeneralLedgerPage() {
     const [isSavingReport, setIsSavingReport] = useState(false);
 
     useEffect(() => {
-        if (!clientId) return;
-        const q = query(
-            collection(db, 'aiAccountantClients', clientId, 'savedReports'),
-            orderBy('createdAt', 'desc')
-        );
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const fetched = snapshot.docs.map(d => {
-                const data = d.data();
-                return {
-                    id: d.id,
-                    name: data.name,
-                    filterMode: data.filterMode || 'specific',
-                    accountIds: data.accountIds || [],
-                    fromAccount: data.fromAccount || undefined,
-                    toAccount: data.toAccount || undefined,
-                    dateRange: data.dateRange || undefined,
-                    createdAt: data.createdAt
-                } as SavedReport;
+        if (fromQuery || toQuery) {
+            setDateRange({
+                from: fromQuery ? new Date(fromQuery) : undefined,
+                to: toQuery ? new Date(toQuery) : undefined,
             });
-            setSavedReports(fetched);
-        }, (error) => {
-            console.error("Error fetching saved reports:", error);
-        });
-        return () => unsubscribe();
-    }, [clientId]);
+        }
+    }, [fromQuery, toQuery]);
 
     useEffect(() => {
         if (accountIdFromQuery) {
             setFromAccount(accountIdFromQuery);
             setToAccount(accountIdFromQuery);
+            setFilterMode('range');
         }
-    }, [accountIdFromQuery]);
+        if (accountIdFromQuery && client && !hasAutoOpened && (autoOpenFromQuery === 'true' || autoOpenFromQuery === null)) {
+            setIsReportOpen(true);
+            setHasAutoOpened(true);
+        }
+    }, [accountIdFromQuery, client, hasAutoOpened, autoOpenFromQuery]);
+
+    const getBackToTrialBalanceUrl = () => {
+        const p = new URLSearchParams();
+        if (dateRange?.from) p.set('from', dateRange.from.toISOString());
+        if (dateRange?.to) p.set('to', dateRange.to.toISOString());
+        p.set('autoOpen', 'true');
+        return `${basePath}/reports/trial-balance?${p.toString()}`;
+    };
 
 
     useEffect(() => {
@@ -1061,14 +1062,22 @@ export default function GeneralLedgerPage() {
                                         Filter and view the general ledger for a specific period.
                                     </CardDescription>
                                 </div>
-                                {!isDashboard && (
-                                    <Button asChild variant="outline">
-                                        <Link href={`/admin/ai-accountant/${clientId}/reports/gl-recon`}>
-                                            <Scale className="mr-2 h-4 w-4"/>
-                                            Go to GL Recon Tool
+                                <div className="flex items-center gap-2">
+                                    <Button asChild variant="outline" size="sm" className="text-xs font-semibold">
+                                        <Link href={getBackToTrialBalanceUrl()}>
+                                            <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+                                            Back to Trial Balance
                                         </Link>
                                     </Button>
-                                )}
+                                    {!isDashboard && (
+                                        <Button asChild variant="outline" size="sm" className="text-xs font-semibold">
+                                            <Link href={`/admin/ai-accountant/${clientId}/reports/gl-recon`}>
+                                                <Scale className="mr-2 h-4 w-4"/>
+                                                Go to GL Recon Tool
+                                            </Link>
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -1215,11 +1224,22 @@ export default function GeneralLedgerPage() {
                                                 </Button>
                                             </DialogTrigger>
                                             <DialogContent className="sm:max-w-6xl">
-                                                <DialogHeader className="text-center mb-4">
-                                                    <DialogTitle className="text-lg">{client.companyName || client.name}</DialogTitle>
-                                                    <DialogDescription>
-                                                        General Ledger {getReportDateString()}
-                                                    </DialogDescription>
+                                                <DialogHeader className="mb-4">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b">
+                                                        <Button variant="outline" size="sm" asChild className="text-xs font-bold text-slate-700 hover:text-primary shrink-0 self-start sm:self-auto">
+                                                            <Link href={getBackToTrialBalanceUrl()}>
+                                                                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+                                                                Back to Trial Balance
+                                                            </Link>
+                                                        </Button>
+                                                        <div className="text-center flex-1">
+                                                            <DialogTitle className="text-lg font-bold text-slate-850">{client.companyName || client.name}</DialogTitle>
+                                                            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                                                                General Ledger {getReportDateString()}
+                                                            </DialogDescription>
+                                                        </div>
+                                                        <div className="hidden sm:block w-[140px]" />
+                                                    </div>
                                                 </DialogHeader>
                                                 <GeneralLedgerReport 
                                                     client={client} 

@@ -510,7 +510,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
   };
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    const slug = values.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+    const slug = service?.slug?.replace(/--+/g, '-') || values.title.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     
     const structuredRequirements = values.clientRequirements
       .map(item => {
@@ -1492,7 +1492,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
                       asChild
                     >
                       <a 
-                        href={`/products/${service?.slug || (watchedTitle ? watchedTitle.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '') : 'product-slug')}`} 
+                        href={`/products/${service?.slug?.replace(/--+/g, '-') || (watchedTitle ? watchedTitle.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : 'product-slug')}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                       >
@@ -1517,7 +1517,7 @@ export default function ServiceForm({ service, allServices, onSubmit, onCancel }
 
                 <div className="p-4 rounded-lg bg-muted/20 border text-left space-y-1 font-sans">
                   {(() => {
-                    const currentSlug = service?.slug || (watchedTitle ? watchedTitle.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '') : 'product-slug');
+                    const currentSlug = service?.slug?.replace(/--+/g, '-') || (watchedTitle ? watchedTitle.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : 'product-slug');
                     const targetUrl = `/products/${currentSlug}`;
                     return (
                       <>
