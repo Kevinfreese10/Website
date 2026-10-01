@@ -54,7 +54,7 @@ const Footer = () => {
                 <ul className="space-y-2 text-sm">
                     <li><Link href="/monthly-accounting" className="text-muted-foreground hover:text-primary">Monthly Accounting & CFO</Link></li>
                     <li><Link href="/annual-financial-statements" className="text-muted-foreground hover:text-primary">Annual Financial Statements</Link></li>
-                    <li><Link href="/bookkeeping-services" className="text-muted-foreground hover:text-primary">Professional Bookkeeping</Link></li>
+                    <li><Link href="/bookkeeping" className="text-muted-foreground hover:text-primary">Professional Bookkeeping</Link></li>
                     <li><Link href="/monthly-payroll" className="text-muted-foreground hover:text-primary">Monthly Payroll Services</Link></li>
                     <li><Link href="/coida-letter-of-good-standing" className="text-muted-foreground hover:text-primary">COIDA Letter of Good Standing</Link></li>
                     <li><Link href="/uif-compliance" className="text-muted-foreground hover:text-primary">UIF & SDL Compliance</Link></li>

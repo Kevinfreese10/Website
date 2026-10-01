@@ -7,7 +7,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Accounting for Hospitality & Restaurants | My Accountant',
+  title: 'Accounting for Hospitality & Restaurants',
   description: 'Full-service accounting for restaurants, hotels, and cafes in South Africa. We manage POS integration, inventory control, and complex hospitality payroll.',
   alternates: {
       canonical: `${SITE_URL}/industries/hospitality`,

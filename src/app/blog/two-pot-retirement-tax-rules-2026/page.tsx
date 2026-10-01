@@ -9,7 +9,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import ShareWidget from '@/components/blog/ShareWidget';
 
 export const metadata: Metadata = {
-  title: 'Two-Pot Retirement Tax Rules for 2026 | My Accountant',
+  title: 'Two-Pot Retirement Tax Rules for 2026',
   description: 'Understand the new two-pot retirement system in South Africa and the essential tax rules effective for 2026. Learn how to manage your savings efficiently.',
   alternates: {
     canonical: `${SITE_URL}/blog/two-pot-retirement-tax-rules-2026`,

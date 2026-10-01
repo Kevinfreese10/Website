@@ -43,7 +43,7 @@ export default function AccountingServicesSouthAfricaPage() {
       title: "Bookkeeping Services",
       description: "Accurate day-to-day recording of your business transactions on Xero or Sage cloud platforms.",
       icon: FileText,
-      link: "/bookkeeping-services"
+      link: "/bookkeeping"
     }
   ];
 

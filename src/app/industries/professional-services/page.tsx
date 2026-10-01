@@ -7,7 +7,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Accounting for Professional Services & Agencies | My Accountant',
+  title: 'Accounting for Professional Services & Agencies',
   description: 'Accounting, tax, and trust account management for consultants, marketing agencies, lawyers, and professional services firms in South Africa.',
   alternates: {
       canonical: `${SITE_URL}/industries/professional-services`,

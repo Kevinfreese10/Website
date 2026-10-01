@@ -8,7 +8,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import ShareWidget from '@/components/blog/ShareWidget';
 
 export const metadata: Metadata = {
-  title: 'Crypto Asset Tax Reporting to SARS in 2026 | My Accountant',
+  title: 'Crypto Asset Tax Reporting to SARS in 2026',
   description: 'A comprehensive guide to reporting crypto asset gains, losses, and income to SARS for the 2026 tax year. Stay compliant and avoid penalties.',
   alternates: {
     canonical: `${SITE_URL}/blog/crypto-asset-tax-reporting-sars-2026`,

@@ -194,13 +194,6 @@ export function generateOrganizationSchema() {
       "https://www.linkedin.com/company/myaccountantza",
       "https://www.google.com/maps?q=My+Accountant,+Stonemill+Office+Park,+300+Acacia+Road,+Darrenwood,+Johannesburg"
     ],
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "204",
-      "bestRating": "5",
-      "worstRating": "1"
-    },
     "founder": {
       "@type": "Person",
       "name": "Kevin Freese",

@@ -35,7 +35,7 @@ export default function SmeAccountingPage() {
       title: "Bookkeeping Services",
       description: "Accurate bookkeeping is the foundation of sound financial management. Our bookkeeping service covers transaction processing, bank reconciliation, creditor and debtor management, and VAT-ready record-keeping — all tailored to the needs and budgets of small and medium enterprises.",
       icon: BookOpen,
-      link: "/bookkeeping-services",
+      link: "/bookkeeping",
     },
     {
       title: "Management Accounts",

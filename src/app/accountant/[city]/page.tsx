@@ -37,14 +37,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!cityData) {
     return {
-      title: 'City Accountant Not Found | My Accountant',
+      title: { absolute: 'City Accountant Not Found | My Accountant' },
     };
   }
 
   const canonicalUrl = `https://www.myacc.co.za/accountant-${cityData.slug}`;
 
   return {
-    title: cityData.metaTitle,
+    title: { absolute: cityData.metaTitle },
     description: cityData.metaDescription,
     alternates: {
       canonical: canonicalUrl,
@@ -104,52 +104,75 @@ export default async function CityAccountantPage({ params }: PageProps) {
     },
   ];
 
-  // LocalBusiness & FAQPage JSON-LD Schemas
+  const isHeadquarters = cityData.slug === 'johannesburg' || cityData.slug === 'randburg';
+
+  const cityServiceSchema: any = {
+    '@type': isHeadquarters ? ['AccountingService', 'LocalBusiness'] : ['AccountingService', 'ProfessionalService'],
+    '@id': `https://www.myacc.co.za/accountant-${cityData.slug}#${isHeadquarters ? 'localbusiness' : 'service'}`,
+    name: `My Accountant - ${cityData.name}`,
+    url: `https://www.myacc.co.za/accountant-${cityData.slug}`,
+    description: cityData.metaDescription,
+    telephone: '+27101091625',
+    email: 'info@myacc.co.za',
+    priceRange: 'R250 - R4500',
+    image: 'https://www.myacc.co.za/logo.png',
+    areaServed: {
+      '@type': 'AdministrativeArea',
+      name: `${cityData.name}, ${cityData.province}, South Africa`,
+    },
+    provider: {
+      '@type': 'Organization',
+      name: 'My Accountant',
+      url: 'https://www.myacc.co.za',
+      telephone: '+27101091625',
+      email: 'info@myacc.co.za',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: 'Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood',
+        addressLocality: 'Johannesburg',
+        addressRegion: 'Gauteng',
+        postalCode: '2195',
+        addressCountry: 'ZA',
+      },
+    },
+    openingHoursSpecification: [
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        opens: '08:00',
+        closes: '17:00',
+      },
+    ],
+    founder: {
+      '@type': 'Person',
+      name: 'Kevin Freese',
+      jobTitle: 'Managing Director & Registered Tax Practitioner',
+      identifier: 'SARS PR-0098553',
+    },
+  };
+
+  // Only attach physical address and geo coordinates for actual physical headquarters
+  if (isHeadquarters) {
+    cityServiceSchema.address = {
+      '@type': 'PostalAddress',
+      streetAddress: 'Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood',
+      addressLocality: 'Johannesburg',
+      addressRegion: 'Gauteng',
+      postalCode: '2195',
+      addressCountry: 'ZA',
+    };
+    cityServiceSchema.geo = {
+      '@type': 'GeoCoordinates',
+      latitude: cityData.latitude,
+      longitude: cityData.longitude,
+    };
+  }
+
+  // Schema & FAQPage JSON-LD
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': ['AccountingService', 'LocalBusiness'],
-        '@id': `https://www.myacc.co.za/accountant-${cityData.slug}#localbusiness`,
-        name: `My Accountant - ${cityData.name}`,
-        url: `https://www.myacc.co.za/accountant-${cityData.slug}`,
-        description: cityData.metaDescription,
-        telephone: '+27101091625',
-        email: 'info@myacc.co.za',
-        priceRange: 'R250 - R4500',
-        image: 'https://www.myacc.co.za/logo.png',
-        address: {
-          '@type': 'PostalAddress',
-          streetAddress: 'Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood',
-          addressLocality: 'Johannesburg',
-          addressRegion: 'Gauteng',
-          postalCode: '2195',
-          addressCountry: 'ZA',
-        },
-        geo: {
-          '@type': 'GeoCoordinates',
-          latitude: cityData.latitude,
-          longitude: cityData.longitude,
-        },
-        areaServed: {
-          '@type': 'AdministrativeArea',
-          name: `${cityData.name}, ${cityData.province}, South Africa`,
-        },
-        openingHoursSpecification: [
-          {
-            '@type': 'OpeningHoursSpecification',
-            dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-            opens: '08:00',
-            closes: '17:00',
-          },
-        ],
-        founder: {
-          '@type': 'Person',
-          name: 'Kevin Freese',
-          jobTitle: 'Managing Director & Registered Tax Practitioner',
-          identifier: 'SARS PR-0098553',
-        },
-      },
+      cityServiceSchema,
       {
         '@type': 'FAQPage',
         mainEntity: cityData.faqs.map((f) => ({

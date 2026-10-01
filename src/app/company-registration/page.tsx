@@ -71,7 +71,7 @@ export default function CompanyRegistrationPage() {
       title: "CIPC Registration Packages",
       description: "Explore our comprehensive CIPC registration packages that bundle company registration, tax registrations, and compliance setup into a single affordable offering — perfect for entrepreneurs starting a new venture.",
       icon: Landmark,
-      link: "/cipc-company-registration-online",
+      link: "/products/private-company-registration",
     },
   ];
 

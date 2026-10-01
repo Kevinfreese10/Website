@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { BookOpen, ArrowRight, Calculator, BarChart3, MapPin, Layers } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
@@ -17,13 +18,58 @@ export async function generateMetadata(): Promise<Metadata> {
     return getStaticPageMetadata('bookkeeping', defaults);
 }
 
+const bookkeepingFaqs = [
+  {
+    q: "What does your monthly bookkeeping service include?",
+    a: "Our monthly bookkeeping includes capturing and categorizing all bank and credit card transactions, monthly bank reconciliations, accounts payable and receivable tracking, general ledger maintenance, and generating monthly trial balances and management accounts.",
+  },
+  {
+    q: "What is the difference between bookkeeping and accounting?",
+    a: "Bookkeeping is the systematic recording and organising of daily financial transactions — including sales, purchases, receipts, and payments. Accounting takes that recorded data and interprets it to produce financial statements, tax returns, and strategic insights. In practice, a bookkeeper captures the data while an accountant analyses it. Most small businesses in South Africa need both: accurate bookkeeping as the foundation, and professional accounting for compliance and decision-making.",
+  },
+  {
+    q: "How much does bookkeeping cost in South Africa?",
+    a: "Bookkeeping fees in South Africa depend on the volume of transactions, whether the business is VAT-registered, and the complexity of the chart of accounts. For a small business processing fewer than 100 transactions per month, fees typically range from R1,500 to R4,000 per month. VAT-registered businesses and those with multiple bank accounts or foreign currency transactions can expect higher fees. Our packages are transparent and all-inclusive — no hidden costs for bank reconciliations or monthly reports.",
+  },
+  {
+    q: "Which cloud accounting platforms do you support?",
+    a: "We work with all leading South African cloud platforms including Xero, Sage Business Cloud, and QuickBooks Online, ensuring your financial data is secure, backed up, and accessible in real time. As certified Xero Silver Partners and Sage Certified Advisers, we can also set up and configure new software profiles for your business.",
+  },
+  {
+    q: "How does bookkeeping integrate with VAT submissions?",
+    a: "Accurate bookkeeping is the foundation of flawless VAT201 filing. We reconcile all input VAT against valid tax invoices and output VAT against sales, protecting your business against SARS audit assessments and disallowances.",
+  },
+  {
+    q: "Do you offer catch-up bookkeeping for backlog years?",
+    a: "Yes. If your bookkeeping is months or years behind, we provide historical catch-up bookkeeping to reconstruct your general ledgers and prepare clean figures for annual financial statements and tax filings.",
+  },
+  {
+    q: "How do I submit my bank statements and invoices to my bookkeeper?",
+    a: "You can upload documents securely through our digital client portal, integrate automated bank feeds directly from major South African banks, or forward digital supplier invoices to a dedicated email address that extracts invoice data automatically.",
+  },
+];
+
+const bookkeepingSchema = generateServicePillarSchema({
+  title: 'Professional Bookkeeping Services South Africa',
+  description: 'Monthly bookkeeping, bank reconciliations, accounts payable and receivable, management reports, and cloud accounting setup for South African SMEs.',
+  slug: '/bookkeeping',
+  serviceType: 'AccountingService',
+  priceRange: 'From R850/month',
+  breadcrumbs: [
+    { name: 'Home', url: '/' },
+    { name: 'Accounting Services', url: '/products#accounting' },
+    { name: 'Bookkeeping', url: '/bookkeeping' }
+  ],
+  faqs: bookkeepingFaqs
+});
+
 export default function BookkeepingPage() {
   const services = [
     {
       title: "Bookkeeping Services",
       description: "Comprehensive bookkeeping for South African businesses of all sizes. We handle bank reconciliations, creditor and debtor management, general ledger maintenance, and monthly trial balance preparation using cloud-based platforms.",
       icon: Calculator,
-      link: "/bookkeeping-services",
+      link: "/bookkeeping",
     },
     {
       title: "Monthly Accounting",
@@ -45,23 +91,14 @@ export default function BookkeepingPage() {
     },
   ];
 
-  const faqs = [
-    {
-      q: "What is the difference between bookkeeping and accounting?",
-      a: "Bookkeeping is the systematic recording and organising of daily financial transactions — including sales, purchases, receipts, and payments. Accounting takes that recorded data and interprets it to produce financial statements, tax returns, and strategic insights. In practice, a bookkeeper captures the data while an accountant analyses it. Most small businesses in South Africa need both: accurate bookkeeping as the foundation, and professional accounting for compliance and decision-making.",
-    },
-    {
-      q: "How much does bookkeeping cost in South Africa?",
-      a: "Bookkeeping fees in South Africa depend on the volume of transactions, whether the business is VAT-registered, and the complexity of the chart of accounts. For a small business processing fewer than 100 transactions per month, fees typically range from R1,500 to R4,000 per month. VAT-registered businesses and those with multiple bank accounts or foreign currency transactions can expect higher fees. Our packages are transparent and all-inclusive — no hidden costs for bank reconciliations or monthly reports.",
-    },
-    {
-      q: "What software do South African bookkeepers use?",
-      a: "The most widely used bookkeeping software in South Africa includes Xero, Sage Business Cloud Accounting (formerly Sage One), QuickBooks Online, and Dext (formerly Receipt Bank) for automated receipt capture. These cloud-based platforms allow real-time collaboration between business owners and their bookkeepers, automatic bank feeds from major South African banks, and SARS-ready reporting. Our team is proficient across all major platforms and can recommend the best fit for your business needs and budget.",
-    },
-  ];
+  const faqs = bookkeepingFaqs;
 
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(bookkeepingSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />

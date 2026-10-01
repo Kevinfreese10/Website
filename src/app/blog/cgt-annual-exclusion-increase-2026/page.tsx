@@ -8,7 +8,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import ShareWidget from '@/components/blog/ShareWidget';
 
 export const metadata: Metadata = {
-  title: 'CGT Annual Exclusion Increase for 2026 | My Accountant',
+  title: 'CGT Annual Exclusion Increase for 2026',
   description: 'Learn about the 2026 increase in the Capital Gains Tax (CGT) annual exclusion in South Africa and how it benefits individual investors and trusts.',
   alternates: {
     canonical: `${SITE_URL}/blog/cgt-annual-exclusion-increase-2026`,

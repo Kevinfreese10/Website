@@ -4,7 +4,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Client Case Studies & Testimonials | My Accountant',
+  title: 'Client Case Studies & Testimonials',
   description: 'Read real success stories and case studies from businesses and individuals who have transformed their accounting with My Accountant.',
   alternates: {
     canonical: `${SITE_URL}/case-studies`,

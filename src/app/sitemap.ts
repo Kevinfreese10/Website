@@ -23,11 +23,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/sars-disputes',
     '/remission-of-fines',
     '/liquidations',
-    '/bookkeeping-services',
     '/tax-consultant',
-    '/cipc-company-registration-online',
     '/bookkeeping-services-johannesburg',
-    '/register-company-south-africa-price',
     '/xero-accountant-south-africa',
     '/sage-accountant-south-africa',
     '/zoho-accountant-south-africa',
@@ -179,6 +176,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const blogPosts = blogPostsSnapshot.docs.map(doc => serializeDbData(doc.data()) as BlogPost);
     
     const retiredSlugs = new Set([
+      // Legacy doorway pages
       'my-accoutant-sa-best-accountants-your-financial-partner',
       'my-accountant-the-best-accountants-in-cape-town',
       'find-the-best-accountant-near-me-my-accountant-guide',
@@ -189,7 +187,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       'find-the-best-accountant-in-roodepoort-my-accountant',
       'my-accountant-the-best-accountant-in-sandton',
       'my-accountant-best-accountants-in-durban-explored',
-      'my-accountant-sas-best-accounting--tax-firm-guide'
+      'my-accountant-sas-best-accounting--tax-firm-guide',
+      // Redirected double-hyphen / obsolete posts (R3)
+      'sars-objections-your-taxpayer-rights--how-to-object',
+      'sars-objections-your-taxpayer-rights-how-to-object',
+      'provisional-tax-due-21-july-2025--19-jan-2026--act-now',
+      'provisional-tax-due-21-july-2025-19-jan-2026-act-now',
+      'sars-fines--penalties-remission-your-success-guide',
+      'sars-fines-penalties-remission-your-success-guide',
+      'accountants-letter-why-you-need-one--how-we-help',
+      'accountants-letter-why-you-need-one-how-we-help',
+      'remission-of-sars-interest--penalties-your-guide',
+      'remission-of-sars-interest-penalties-your-guide',
+      'ai--future-of-bookkeeping-a-south-african-view',
+      'ai-future-of-bookkeeping-a-south-african-view'
     ]);
 
     blogPostRoutes = blogPosts

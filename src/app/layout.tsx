@@ -19,9 +19,6 @@ export const metadata: Metadata = {
     template: '%s | My Accountant',
   },
   description: 'Professional online tax, accounting, CIPC, SARS and compliance services for South African businesses.',
-  alternates: {
-    canonical: SITE_URL,
-  },
   openGraph: {
     title: 'My Accountant | Professional Accounting & Tax Services',
     description: 'Professional online tax, accounting, CIPC, SARS and compliance services for South African businesses.',

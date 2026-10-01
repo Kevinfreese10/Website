@@ -8,7 +8,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import ShareWidget from '@/components/blog/ShareWidget';
 
 export const metadata: Metadata = {
-  title: 'New VAT Registration Thresholds in South Africa (Effective 1 April 2026) | My Accountant',
+  title: 'New VAT Registration Thresholds in South Africa (Effective 1 April 2026)',
   description: 'South Africa’s VAT thresholds increased: Compulsory registration is now R2.3 Million and Voluntary is R120,000. Learn how this impacts your business, existing registrations, and exit tax rules.',
   alternates: {
     canonical: `${SITE_URL}/blog/new-vat-registration-thresholds-south-africa-2026`,

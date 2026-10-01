@@ -7,7 +7,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Accounting for Healthcare & Medical Practices | My Accountant',
+  title: 'Accounting for Healthcare & Medical Practices',
   description: 'Specialised accounting and tax services for doctors, dentists, and medical practices in South Africa. HPCSA compliance and medical billing support.',
   alternates: {
       canonical: `${SITE_URL}/industries/healthcare-medical-practices`,

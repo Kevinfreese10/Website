@@ -8,7 +8,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import ShareWidget from '@/components/blog/ShareWidget';
 
 export const metadata: Metadata = {
-  title: 'VAT Registration Threshold for SMEs in 2026 | My Accountant',
+  title: 'VAT Registration Threshold for SMEs in 2026',
   description: 'Understand the mandatory and voluntary VAT registration thresholds for South African SMEs in the 2026 tax year.',
   alternates: {
     canonical: `${SITE_URL}/blog/vat-registration-threshold-sme-2026`,

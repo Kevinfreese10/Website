@@ -30,7 +30,7 @@ import SarsExpertCta from '@/components/sars-online-query/SarsExpertCta';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'SARS Online Query System (SOQS) Complete Guide 2026 | My Accountant',
+  title: 'SARS Online Query System (SOQS) Complete Guide 2026',
   description: 'Complete guide to the SARS Online Query System (SOQS). Access official online tax services, request tax numbers, TCS PINs, IT150, submit documents, and verify compliance.',
   alternates: {
     canonical: `${SITE_URL}/sars-online-query-system-guide`,

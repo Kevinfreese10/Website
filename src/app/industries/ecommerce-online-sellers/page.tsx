@@ -7,7 +7,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Accounting for E-commerce & Online Sellers | My Accountant',
+  title: 'Accounting for E-commerce & Online Sellers',
   description: 'Specialised accounting and tax services for E-commerce businesses in South Africa. We help Shopify, Takealot, and WooCommerce sellers with VAT, inventory, and multi-currency tracking.',
   alternates: {
       canonical: `${SITE_URL}/industries/ecommerce-online-sellers`,

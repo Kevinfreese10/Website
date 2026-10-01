@@ -52,8 +52,6 @@ import { Separator } from '@/components/ui/separator';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { KEVIN_FREESE_PROFILE_IMAGE } from '@/lib/constants';
 import Script from 'next/script';
-import { useBlog } from '@/contexts/BlogContext';
-import { format } from 'date-fns';
 import { Service } from '@/lib/types';
 import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
@@ -62,7 +60,6 @@ const db = getFirestore(firebaseApp);
 
 export default function HomePageClient() {
   const [mounted, setMounted] = useState(false);
-  const { blogPosts, isLoading: isBlogLoading } = useBlog();
   const [services, setServices] = useState<Service[]>([]);
   const [isLoadingServices, setIsLoadingServices] = useState(true);
 

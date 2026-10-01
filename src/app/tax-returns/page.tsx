@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { FileText, ArrowRight, User, UserCog, Building, Briefcase } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { generateServicePillarSchema } from '@/lib/schema/productSchema';
 
 export const revalidate = 3600;
 
@@ -16,6 +17,35 @@ export async function generateMetadata(): Promise<Metadata> {
     };
     return getStaticPageMetadata('tax-returns', defaults);
 }
+
+const taxReturnsFaqs = [
+  {
+    q: "What are the SARS tax return filing deadlines?",
+    a: "SARS tax season typically opens in July each year for individual taxpayers. Non-provisional taxpayers filing via eFiling usually have until late October, while provisional taxpayers have until late January of the following year. Companies must file their ITR14 within 12 months of their financial year-end. It's critical to file on time — late submissions attract administrative penalties that accumulate monthly. Contact us early to ensure your return is prepared well before the deadline.",
+  },
+  {
+    q: "What documents do I need to file my tax return?",
+    a: "For an individual ITR12, you'll typically need your IRP5/IT3(a) certificate from your employer, medical aid tax certificate (IT3(a)), retirement annuity fund certificate, investment income certificates (IT3(b)), logbook records if claiming travel, rental income statements, and proof of any other income or deductions. For companies filing an ITR14, you'll need signed annual financial statements, a trial balance, and supporting schedules. We provide a complete checklist tailored to your situation when you engage our services.",
+  },
+  {
+    q: "What happens if I submit my tax return late?",
+    a: "SARS imposes administrative non-compliance penalties for late submissions under Section 210 of the Tax Administration Act. The penalty amount depends on your taxable income and ranges from R250 to R16,000 per month, accumulating for up to 47 months. Beyond penalties, late filing can affect your tax compliance status, prevent you from obtaining a Tax Clearance Certificate, and delay any refunds you may be owed. If you have outstanding returns from previous years, we can help you catch up and get compliant.",
+  },
+];
+
+const taxReturnsSchema = generateServicePillarSchema({
+  title: 'SARS Tax Return Filing & Submission Services South Africa',
+  description: 'Professional tax return filing for individuals (ITR12), companies (ITR14), and sole proprietors. Accurate, on-time submissions by registered tax practitioners.',
+  slug: '/tax-returns',
+  serviceType: 'TaxConsultant',
+  priceRange: 'From R450',
+  breadcrumbs: [
+    { name: 'Home', url: '/' },
+    { name: 'Tax Services', url: '/products#tax-returns' },
+    { name: 'Tax Returns', url: '/tax-returns' }
+  ],
+  faqs: taxReturnsFaqs
+});
 
 export default function TaxReturnsPage() {
   const services = [
@@ -45,23 +75,14 @@ export default function TaxReturnsPage() {
     },
   ];
 
-  const faqs = [
-    {
-      q: "What are the SARS tax return filing deadlines?",
-      a: "SARS tax season typically opens in July each year for individual taxpayers. Non-provisional taxpayers filing via eFiling usually have until late October, while provisional taxpayers have until late January of the following year. Companies must file their ITR14 within 12 months of their financial year-end. It's critical to file on time — late submissions attract administrative penalties that accumulate monthly. Contact us early to ensure your return is prepared well before the deadline.",
-    },
-    {
-      q: "What documents do I need to file my tax return?",
-      a: "For an individual ITR12, you'll typically need your IRP5/IT3(a) certificate from your employer, medical aid tax certificate (IT3(a)), retirement annuity fund certificate, investment income certificates (IT3(b)), logbook records if claiming travel, rental income statements, and proof of any other income or deductions. For companies filing an ITR14, you'll need signed annual financial statements, a trial balance, and supporting schedules. We provide a complete checklist tailored to your situation when you engage our services.",
-    },
-    {
-      q: "What happens if I submit my tax return late?",
-      a: "SARS imposes administrative non-compliance penalties for late submissions under Section 210 of the Tax Administration Act. The penalty amount depends on your taxable income and ranges from R250 to R16,000 per month, accumulating for up to 47 months. Beyond penalties, late filing can affect your tax compliance status, prevent you from obtaining a Tax Clearance Certificate, and delay any refunds you may be owed. If you have outstanding returns from previous years, we can help you catch up and get compliant.",
-    },
-  ];
+  const faqs = taxReturnsFaqs;
 
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(taxReturnsSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />

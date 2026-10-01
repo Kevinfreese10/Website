@@ -329,6 +329,43 @@ const nextConfig: NextConfig = {
       { source: '/tax-consultation', destination: '/tax-consulting', permanent: true },
       { source: '/articles/directors-duties', destination: '/blog', permanent: true },
 
+      // --- Service Cluster Cannibalization 301 Redirects (R5) ---
+      { source: '/bookkeeping-services', destination: '/bookkeeping', permanent: true },
+      { source: '/cipc-company-registration-online', destination: '/company-registration', permanent: true },
+      { source: '/register-company-south-africa-price', destination: '/company-registration', permanent: true },
+
+      // --- Broken / Historical Blog Slug 301 Redirects (R3, R5) ---
+      // SARS Objections & Disputes
+      { source: '/blog/sars-objections-your-taxpayer-rights-how-to-object', destination: '/sars-disputes', permanent: true },
+      { source: '/blog/sars-objections-your-taxpayer-rights--how-to-object', destination: '/sars-disputes', permanent: true },
+
+      // Provisional Tax (historical deadline period)
+      { source: '/blog/provisional-tax-due-21-july-2025-19-jan-2026-act-now', destination: '/provisional-tax', permanent: true },
+      { source: '/blog/provisional-tax-due-21-july-2025--19-jan-2026--act-now', destination: '/provisional-tax', permanent: true },
+
+      // Double-hyphen blog consolidation
+      { source: '/blog/sars-fines-penalties-remission-your-success-guide', destination: '/remission-of-fines', permanent: true },
+      { source: '/blog/sars-fines--penalties-remission-your-success-guide', destination: '/remission-of-fines', permanent: true },
+      { source: '/blog/accountants-letter-why-you-need-one-how-we-help', destination: '/accounting-services-south-africa', permanent: true },
+      { source: '/blog/accountants-letter-why-you-need-one--how-we-help', destination: '/accounting-services-south-africa', permanent: true },
+      { source: '/blog/remission-of-sars-interest-penalties-your-guide', destination: '/remission-of-fines', permanent: true },
+      { source: '/blog/remission-of-sars-interest--penalties-your-guide', destination: '/remission-of-fines', permanent: true },
+      { source: '/blog/ai-future-of-bookkeeping-a-south-african-view', destination: '/bookkeeping', permanent: true },
+      { source: '/blog/ai--future-of-bookkeeping-a-south-african-view', destination: '/bookkeeping', permanent: true },
+
+      // Historical / Truncated Blog Crawl Errors
+      { source: '/blog/tax-record-keeping-tips', destination: '/bookkeeping', permanent: true },
+      { source: '/blog/ncr-registration', destination: '/blog/ncr-registration-your-essential-guide-in-south-africa', permanent: true },
+      { source: '/blog/ncr-registration-your-', destination: '/blog/ncr-registration-your-essential-guide-in-south-africa', permanent: true },
+      { source: '/blog/remission-', destination: '/remission-of-fines', permanent: true },
+      { source: '/blog/are-you-providing-loans-in-south-africa-perhaps-even-informally-', destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance', permanent: true },
+      { source: '/blog/sars-and-cipc-compliance', destination: '/compliance', permanent: true },
+      { source: '/blog/from-soweto-to-sandton-inspiring-stories-of-local-entrepreneurs-who-made-it-big', destination: '/case-studies', permanent: true },
+      { source: '/blog/reduce-your-sars-debt-legally-with-s200-of-the-taa', destination: '/sars-compromise', permanent: true },
+      { source: '/blog/top-10-low-cost-business-ideas-for-south-africans-in-2025', destination: '/blog/start-a-business-in-sa-for-under-r500-your-guide', permanent: true },
+      { source: '/blog/legally-reduce-your-', destination: '/sars-compromise', permanent: true },
+      { source: '/blog/beneficial-ownership-', destination: '/cipc-beneficial-ownership-register-south-africa', permanent: true },
+
       // --- City landing pages: canonical form is the hyphenated /accountant-<city> URL.
       // Redirect the old slash form so nav/sitemap/canonical all agree on one URL. ---
       { source: '/accountant/:city', destination: '/accountant-:city', permanent: true },

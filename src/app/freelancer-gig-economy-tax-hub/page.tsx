@@ -8,7 +8,7 @@ import PageHero from '@/components/shared/PageHero';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Freelancer & Gig Economy Tax Hub | My Accountant',
+  title: 'Freelancer & Gig Economy Tax Hub',
   description: 'The ultimate tax and accounting hub for South African freelancers, digital nomads, and independent contractors. Master provisional tax, foreign income, and home office deductions.',
   alternates: {
       canonical: `${SITE_URL}/freelancer-gig-economy-tax-hub`,
