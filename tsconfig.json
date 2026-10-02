@@ -40,6 +40,7 @@
     "scratch",
     "workspace",
     ".next",
-    "worker"
+    "worker",
+    "scripts"
   ]
 }

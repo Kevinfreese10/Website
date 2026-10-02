@@ -14,7 +14,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import nextConfig from '../next.config';
 
 interface CrawlResult {
   url: string;
@@ -103,9 +102,11 @@ function getSitemapStaticRoutes(): string[] {
 // Extract static redirects from next.config.ts
 async function getRedirectRules(): Promise<Array<{ source: string; destination: string; permanent?: boolean }>> {
   try {
-    const list = (await nextConfig.redirects?.()) || [];
+    const configModule: any = await import('../next.config');
+    const nextConfig = configModule.default || configModule;
+    const list: Array<{ source: string; destination: string; permanent?: boolean }> = (await nextConfig.redirects?.()) || [];
     // Filter out regex or host-based catch-all redirects (e.g. /:path*)
-    return list.filter((r) => !r.source.includes(':') && !r.source.includes('*'));
+    return list.filter((r: { source: string }) => !r.source.includes(':') && !r.source.includes('*'));
   } catch (err) {
     console.error('Failed to load redirects from next.config.ts:', err);
     return [];

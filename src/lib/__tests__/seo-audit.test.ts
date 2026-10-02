@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import nextConfig from '../../../next.config';
 import { generateOrganizationSchema } from '@/lib/schema/productSchema';
 import { CITIES_DATA } from '@/lib/cities';
 import { SITE_URL } from '@/lib/constants';
@@ -183,8 +182,10 @@ describe('SEO Audit & Indexing Optimization Contract Suite', () => {
     let redirectsList: Array<{ source: string; destination: string; permanent?: boolean }> = [];
 
     it('loads next.config.ts redirects() without error', async () => {
-      expect(nextConfig.redirects).toBeDefined();
-      redirectsList = (await nextConfig.redirects!()) || [];
+      const configModule: any = await import('../../../next.config');
+      const loadedConfig = configModule.default || configModule;
+      expect(loadedConfig.redirects).toBeDefined();
+      redirectsList = (await loadedConfig.redirects!()) || [];
       expect(redirectsList.length).toBeGreaterThan(50);
     });
 

@@ -14,15 +14,15 @@ export function getAdminApp() {
     return getApps()[0];
   }
 
-  // Ensure environment variables are loaded if not already in process.env
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT && !process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  // Ensure environment variables are loaded if not already in process.env (development only)
+  if (process.env.NODE_ENV !== 'production' && !process.env.FIREBASE_SERVICE_ACCOUNT && !process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     const envPaths = [
       'C:/Users/kev/.gemini/antigravity/scratch/.env',
       'c:/myacc/.env.local',
       'c:/myacc/.env'
     ];
     for (const p of envPaths) {
-      if (fs.existsSync(p)) {
+      if (fs.existsSync(/*turbopackIgnore: true*/ p)) {
         try {
           require('dotenv').config({ path: p });
         } catch (_) {}
