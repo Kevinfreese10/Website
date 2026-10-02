@@ -20,7 +20,7 @@ export default function AIAccountantSignupPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4 sm:p-6 lg:p-8">
       <Card className="w-full max-w-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold tracking-tight">AI Accountant Signup</CardTitle>
+          <h1 className="text-2xl font-bold tracking-tight text-card-foreground">AI Accountant Signup</h1>
           <CardDescription>Create an account to start automating your bookkeeping.</CardDescription>
         </CardHeader>
         <CardContent>

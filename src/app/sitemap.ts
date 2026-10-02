@@ -1,6 +1,7 @@
 import { BlogPost, Service } from '@/lib/types';
 import { MetadataRoute } from 'next';
 import { getAdminDb, serializeDbData } from '@/lib/firebase-admin';
+import { CATEGORIES_LIST } from '@/lib/categories';
 
 const BASE_URL = 'https://www.myacc.co.za';
 
@@ -17,7 +18,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/partner-signup',
     '/products',
     '/become-a-partner',
-    '/ai-accountant-signup',
     '/ai-accountant',
     '/sars-compromise',
     '/sars-disputes',
@@ -230,8 +230,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Error fetching blog posts for sitemap:", error);
   }
 
+  const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES_LIST.map((cat) => ({
+    url: `${BASE_URL}/products/category/${cat.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as any,
+    priority: 0.85,
+  }));
+
   // Combine all routes and deduplicate by URL
-  const allRoutes = [...staticRoutes, ...serviceRoutes, ...blogPostRoutes];
+  const allRoutes = [...staticRoutes, ...categoryRoutes, ...serviceRoutes, ...blogPostRoutes];
   const uniqueRoutes = Array.from(new Map(allRoutes.map(r => [r.url, r])).values());
   return uniqueRoutes;
 }

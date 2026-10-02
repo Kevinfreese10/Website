@@ -16,8 +16,8 @@ export const viewport = {
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Our Products | My Accountant',
-        description: 'Comprehensive solutions to meet all your financial needs. We offer a range of services for individuals and businesses.',
+        title: 'Online Accounting, Tax & CIPC Compliance Services | My Accountant',
+        description: 'Browse our complete catalog of South African accounting, tax clearance, VAT, payroll, CIPC company registration, and compliance services at transparent fixed fees.',
     };
     return getStaticPageMetadata('products', defaults);
 }

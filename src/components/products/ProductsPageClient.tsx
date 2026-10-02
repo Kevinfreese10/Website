@@ -32,6 +32,7 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { Badge } from '@/components/ui/badge';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { cn, formatPrice } from '@/lib/utils';
+import { getCategorySlugByName } from '@/lib/categories';
 
 const db = getFirestore(firebaseApp);
 
@@ -367,10 +368,18 @@ export default function ProductsPageClient({
             ) : (
                 categorizedServices.map(category => (
                 <section key={category.id} id={category.name.toLowerCase().replace(/ /g, '-')} className="scroll-m-20">
-                    <div className="flex items-center gap-3 mb-6">
-                      <h2 className="text-2xl font-black text-foreground">{category.name}</h2>
-                      <div className="flex-1 h-px bg-gradient-to-r from-primary/20 to-transparent" />
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{category.data.length} service{category.data.length !== 1 ? 's' : ''}</span>
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-2xl font-black text-foreground">{category.name}</h2>
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">({category.data.length} service{category.data.length !== 1 ? 's' : ''})</span>
+                      </div>
+                      <Link
+                        href={`/products/category/${getCategorySlugByName(category.name)}`}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary/80 transition-colors group/link"
+                      >
+                        <span>View All {category.name}</span>
+                        <ArrowRight className="h-3.5 w-3.5 group-hover/link:translate-x-0.5 transition-transform" />
+                      </Link>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {category.data.map(service => (

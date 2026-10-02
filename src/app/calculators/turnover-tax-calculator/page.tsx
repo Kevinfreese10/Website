@@ -28,19 +28,19 @@ export default function TurnoverTaxCalculatorPage() {
       return { tax: 0, effectiveRate: 0, isExceeded: false };
     }
 
-    if (numTurnover > 1000000) {
+    if (numTurnover > 2300000) {
       return { tax: 0, effectiveRate: 0, isExceeded: true };
     }
 
     let tax = 0;
-    if (numTurnover <= 335000) {
+    if (numTurnover <= 600000) {
       tax = 0;
-    } else if (numTurnover <= 500000) {
-      tax = (numTurnover - 335000) * 0.01;
-    } else if (numTurnover <= 750000) {
-      tax = 1650 + (numTurnover - 500000) * 0.02;
+    } else if (numTurnover <= 950000) {
+      tax = (numTurnover - 600000) * 0.01;
+    } else if (numTurnover <= 1400000) {
+      tax = 3500 + (numTurnover - 950000) * 0.02;
     } else {
-      tax = 6650 + (numTurnover - 750000) * 0.03;
+      tax = 12500 + (numTurnover - 1400000) * 0.03;
     }
 
     const effectiveRate = numTurnover > 0 ? (tax / numTurnover) * 100 : 0;
@@ -66,13 +66,13 @@ export default function TurnoverTaxCalculatorPage() {
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
             <Calculator className="w-3.5 h-3.5" />
-            Micro-Business Tax Tool
+            Micro-Business Tax Tool 2026/2027
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            SARS Turnover Tax Calculator
+            SARS Turnover Tax Calculator (2026/2027)
           </h1>
           <p className="text-slate-600 max-w-xl mx-auto text-sm sm:text-base">
-            Calculate your estimated SARS Turnover Tax payable for micro-businesses with annual gross revenue up to R1 million.
+            Calculate your estimated SARS Turnover Tax payable for micro-businesses with annual gross revenue up to R2.3 million (effective 1 April 2026).
           </p>
         </div>
 
@@ -95,14 +95,14 @@ export default function TurnoverTaxCalculatorPage() {
                   <Input
                     id="turnover"
                     type="number"
-                    placeholder="e.g. 450000"
+                    placeholder="e.g. 750000"
                     className="pl-8 text-base font-bold text-slate-900"
                     value={turnover}
                     onChange={(e) => setTurnover(e.target.value)}
                   />
                 </div>
                 <p className="text-xs text-slate-500">
-                  Gross income received before deducting expenses. Max qualifying limit is R1,000,000.
+                  Gross income received before deducting expenses. Max qualifying limit is R2,300,000.
                 </p>
               </div>
 
@@ -112,7 +112,7 @@ export default function TurnoverTaxCalculatorPage() {
                   Turnover Tax Benefits
                 </div>
                 <p className="leading-relaxed">
-                  Replaces Income Tax, VAT, Provisional Tax, and CGT with a single tax payment. The first R335,000 of turnover is completely tax-free!
+                  Replaces Income Tax, VAT, Provisional Tax, and CGT with a single tax payment. The first R600,000 of turnover is completely tax-free!
                 </p>
               </div>
             </CardContent>
@@ -131,10 +131,10 @@ export default function TurnoverTaxCalculatorPage() {
                 <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 space-y-2 text-xs">
                   <div className="flex items-center gap-2 font-bold text-amber-700 text-sm">
                     <AlertCircle className="w-5 h-5 text-amber-600" />
-                    Exceeds R1M Qualifying Limit
+                    Exceeds R2.3M Qualifying Limit
                   </div>
                   <p className="leading-relaxed">
-                    Turnover Tax is strictly restricted to micro-businesses with annual turnover of R1,000,000 or less.
+                    Turnover Tax is strictly restricted to micro-businesses with annual turnover of R2,300,000 or less.
                   </p>
                   <p className="font-semibold">
                     We recommend checking out Small Business Corporation (SBC) tax rates or Standard Company Tax instead!
@@ -157,12 +157,12 @@ export default function TurnoverTaxCalculatorPage() {
                     <div className="flex justify-between py-1.5 border-b border-slate-100">
                       <span className="font-medium text-slate-500">Qualifying Bracket</span>
                       <span className="font-bold text-slate-900">
-                        {parseFloat(turnover) <= 335000 ? '0% (Tax Free)' : parseFloat(turnover) <= 500000 ? '1%' : parseFloat(turnover) <= 750000 ? '2%' : '3%'}
+                        {parseFloat(turnover) <= 600000 ? '0% (Tax Free)' : parseFloat(turnover) <= 950000 ? '1%' : parseFloat(turnover) <= 1400000 ? '2%' : '3%'}
                       </span>
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-slate-100">
                       <span className="font-medium text-slate-500">Tax Exempt Amount</span>
-                      <span className="font-bold text-emerald-600">R335,000</span>
+                      <span className="font-bold text-emerald-600">R600,000</span>
                     </div>
                   </div>
                 </>
@@ -188,7 +188,7 @@ export default function TurnoverTaxCalculatorPage() {
           <CardHeader className="border-b border-slate-100 bg-slate-50/50">
             <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-blue-600" />
-              Turnover Tax Brackets Summary
+              Turnover Tax Brackets Summary (Effective 1 April 2026)
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 text-xs text-slate-600 space-y-4">
@@ -205,20 +205,20 @@ export default function TurnoverTaxCalculatorPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   <tr>
-                    <td className="p-2.5 font-medium">R0 – R335,000</td>
-                    <td className="p-2.5 text-emerald-700 font-bold">0%</td>
+                    <td className="p-2.5 font-medium">R0 – R600,000</td>
+                    <td className="p-2.5 text-emerald-700 font-bold">0% (Tax Free)</td>
                   </tr>
                   <tr>
-                    <td className="p-2.5 font-medium">R335,001 – R500,000</td>
-                    <td className="p-2.5">1% of amount above R335,000</td>
+                    <td className="p-2.5 font-medium">R600,001 – R950,000</td>
+                    <td className="p-2.5">1% of amount above R600,000</td>
                   </tr>
                   <tr>
-                    <td className="p-2.5 font-medium">R500,001 – R750,000</td>
-                    <td className="p-2.5">R1,650 + 2% of amount above R500,000</td>
+                    <td className="p-2.5 font-medium">R950,001 – R1,400,000</td>
+                    <td className="p-2.5">R3,500 + 2% of amount above R950,000</td>
                   </tr>
                   <tr>
-                    <td className="p-2.5 font-medium">R750,001 – R1,000,000</td>
-                    <td className="p-2.5">R6,650 + 3% of amount above R750,000</td>
+                    <td className="p-2.5 font-medium">R1,400,001 – R2,300,000</td>
+                    <td className="p-2.5">R12,500 + 3% of amount above R1,400,000</td>
                   </tr>
                 </tbody>
               </table>

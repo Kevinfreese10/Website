@@ -98,11 +98,12 @@ describe('SEO Audit & Indexing Optimization Contract Suite', () => {
       }
     });
 
-    it('updates VAT Calculator title to current tax year 2025/2026 (rejects outdated 2024/2025)', () => {
+    it('updates VAT Calculator title to current tax year 2026/2027 (rejects outdated 2025/2026)', () => {
       const vatLayoutPath = path.join(ROOT_DIR, 'src/app/calculators/vat-calculator/layout.tsx');
       const vatContent = fs.readFileSync(vatLayoutPath, 'utf-8');
 
-      expect(vatContent).toContain('2025/2026');
+      expect(vatContent).toContain('2026/2027');
+      expect(vatContent).not.toContain('2025/2026');
       expect(vatContent).not.toContain('2024/2025');
     });
 
@@ -122,29 +123,31 @@ describe('SEO Audit & Indexing Optimization Contract Suite', () => {
   describe('Single Brand Title Enforcement Across All Routes (R4)', () => {
     const cityPagePath = path.join(ROOT_DIR, 'src/app/accountant/[city]/page.tsx');
 
-    it('ensures city landing pages use { absolute: cityData.metaTitle } to prevent double branding', () => {
+    it('ensures city landing pages use { absolute: fullTitle } to prevent double branding', () => {
       expect(fs.existsSync(cityPagePath)).toBe(true);
       const content = fs.readFileSync(cityPagePath, 'utf-8');
 
-      // The page must bypass the root layout template '%s | My Accountant' using absolute
-      expect(content).toMatch(/title:\s*\{\s*absolute:\s*cityData\.metaTitle\s*\}/);
+      // The page must bypass the root layout template '%s | My Accountant' using absolute fullTitle
+      expect(content).toMatch(/title:\s*\{\s*absolute:\s*fullTitle\s*\}/);
     });
 
-    it('validates that all 14 city metaTitles contain exactly one clean brand suffix', () => {
+    it('validates that all 14 city metaTitles do not contain brand suffix and resolved fullTitles contain exactly one', () => {
       const cityKeys = Object.keys(CITIES_DATA);
       expect(cityKeys.length).toBe(14);
 
       for (const key of cityKeys) {
         const cityData = CITIES_DATA[key];
-        const title = cityData.metaTitle;
+        const rawTitle = cityData.metaTitle;
+        // The raw metaTitle in cities.ts must NOT have 'My Accountant' baked into it
+        expect(rawTitle).not.toMatch(/My Accountant/);
 
-        // Count occurrences of 'My Accountant' in the title
-        const brandMatches = title.match(/My Accountant/g);
-        expect(brandMatches?.length ?? 0, `City ${key} title contains multiple or missing brand suffix: "${title}"`).toBe(1);
+        const resolvedFullTitle = `${rawTitle} | My Accountant`;
+        const brandMatches = resolvedFullTitle.match(/My Accountant/g);
+        expect(brandMatches?.length ?? 0, `City ${key} title contains multiple or missing brand suffix: "${resolvedFullTitle}"`).toBe(1);
 
         // Assert no double pipe duplication
-        expect(title).not.toMatch(/\|\s*My Accountant\s*\|\s*My Accountant/);
-        expect(title).not.toMatch(/\|\s*MyAcc\s*\|\s*My Accountant/);
+        expect(resolvedFullTitle).not.toMatch(/\|\s*My Accountant\s*\|\s*My Accountant/);
+        expect(resolvedFullTitle).not.toMatch(/\|\s*MyAcc\s*\|\s*My Accountant/);
       }
     });
 

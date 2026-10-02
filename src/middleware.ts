@@ -5,13 +5,26 @@ const MAIN_DOMAIN = 'myacc.co.za';
 const FIREBASE_PROJECT_ID = 'studio-2604127518-57889';
 
 export async function middleware(request: NextRequest) {
-  const hostname = request.headers.get('host') || '';
+  const rawHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
+  const hostname = rawHost.split(':')[0].toLowerCase();
   
-  // Skip if it's the main domain, localhost, or Vercel domains
+  // 1. Force 301 Permanent Redirect from apex non-www (myacc.co.za) to canonical www (www.myacc.co.za)
+  if (hostname === 'myacc.co.za') {
+    const url = request.nextUrl.clone();
+    url.hostname = 'www.myacc.co.za';
+    url.protocol = 'https';
+    url.port = '';
+    return NextResponse.redirect(url, 301);
+  }
+
+  // Skip partner domain rewrites if it's the canonical www domain, localhost, or deployment preview domains
   if (
-      hostname.includes(MAIN_DOMAIN) || 
+      hostname === 'www.myacc.co.za' || 
+      hostname.endsWith('.myacc.co.za') ||
       hostname.includes('localhost') || 
-      hostname.includes('.vercel.app')
+      hostname.includes('.vercel.app') ||
+      hostname.includes('.web.app') ||
+      hostname.includes('.firebaseapp.com')
   ) {
     return NextResponse.next();
   }

@@ -43,14 +43,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const canonicalUrl = `https://www.myacc.co.za/accountant-${cityData.slug}`;
 
+  const fullTitle = `${cityData.metaTitle} | My Accountant`;
+
   return {
-    title: { absolute: cityData.metaTitle },
+    title: { absolute: fullTitle },
     description: cityData.metaDescription,
     alternates: {
       canonical: canonicalUrl,
     },
     openGraph: {
-      title: cityData.metaTitle,
+      title: fullTitle,
       description: cityData.metaDescription,
       url: canonicalUrl,
       type: 'website',
@@ -59,7 +61,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     twitter: {
       card: 'summary_large_image',
-      title: cityData.metaTitle,
+      title: fullTitle,
       description: cityData.metaDescription,
     },
   };

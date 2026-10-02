@@ -72,14 +72,19 @@ export async function generateMetadata(
   }
 
   const canonicalUrl = `${SITE_URL}/products/${service.slug}`;
-  const rawTitle = service.metaTitle || `${service.title} | My Accountant`;
   
-  // Strip " | My Accountant" suffix if present to prevent duplication by the layout's title.template
-  const title = rawTitle.endsWith(' | My Accountant')
-    ? rawTitle.slice(0, -' | My Accountant'.length)
-    : rawTitle;
-    
-  const description = service.metaDescription || service.description;
+  // 1. Clean product title: eliminate legacy "| R750 | 1-2 Days" format
+  let baseTitle = service.title;
+  if (service.metaTitle && !/\|\s*R\d+/i.test(service.metaTitle)) {
+    baseTitle = service.metaTitle.replace(/\s*\|\s*My Accountant\s*$/i, '').trim();
+  }
+  const fullTitle = `${baseTitle} | My Accountant`;
+
+  // 2. Ensure meta description is rich and never missing
+  const rawDesc = (service.metaDescription || service.description || '').trim();
+  const description = rawDesc.length >= 40
+    ? rawDesc
+    : `${service.title} services in South Africa by My Accountant. Transparent fixed pricing, professional turnaround, and audit-ready SARS & CIPC compliance.`;
   
   let ogImage = service.seoImageUrl || service.imageUrl || GLOBAL_OG_IMAGE;
   if (ogImage.startsWith('/')) {
@@ -87,13 +92,13 @@ export async function generateMetadata(
   }
  
   return {
-    title: { absolute: title },
+    title: { absolute: fullTitle },
     description: description,
     alternates: {
         canonical: canonicalUrl,
     },
     openGraph: {
-      title: rawTitle,
+      title: fullTitle,
       description: description,
       url: canonicalUrl,
       siteName: 'My Accountant',
@@ -108,11 +113,11 @@ export async function generateMetadata(
     },
     twitter: {
       card: 'summary_large_image',
-      title: rawTitle,
+      title: fullTitle,
       description: description,
       images: [ogImage],
     },
-  }
+  };
 }
 
 
