@@ -78,6 +78,20 @@ export async function generateMetadata(
   if (service.metaTitle && !/\|\s*R\d+/i.test(service.metaTitle)) {
     baseTitle = service.metaTitle.replace(/\s*\|\s*My Accountant\s*$/i, '').trim();
   }
+
+  // Expand short titles under 30 characters
+  const SHORT_TITLE_EXPANSIONS: Record<string, string> = {
+    'bee-affidavit': 'B-BBEE Affidavit Certificate (EME)',
+    'coida-renewal': 'COIDA Renewal & Good Standing Letter',
+    'add-director': 'Appoint Company Director (CIPC CoR39)',
+  };
+
+  if (SHORT_TITLE_EXPANSIONS[slug]) {
+    baseTitle = SHORT_TITLE_EXPANSIONS[slug];
+  } else if (baseTitle.length < 20) {
+    baseTitle = `${baseTitle} Compliance Service`;
+  }
+
   const fullTitle = `${baseTitle} | My Accountant`;
 
   // 2. Ensure meta description is rich and never missing
@@ -263,21 +277,41 @@ export default async function ProductDetailPage({ params }: Props) {
     ]
   };
 
+  const canonicalUrl = `${SITE_URL}/products/${service.slug}`;
+
+  const productGraph = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        ...jsonLd,
+        "@context": undefined,
+      },
+      {
+        ...faqSchema,
+        "@context": undefined,
+        "@id": `${canonicalUrl}#faq`,
+        "isPartOf": {
+          "@type": "WebSite",
+          "@id": `${SITE_URL}/#website`
+        },
+        "publisher": {
+          "@type": "Organization",
+          "@id": `${SITE_URL}/#organization`
+        }
+      },
+      {
+        ...breadcrumbSchema,
+        "@context": undefined,
+        "@id": `${canonicalUrl}#breadcrumb`
+      }
+    ]
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productGraph) }}
       />
 
       {/* BREADCRUMB */}

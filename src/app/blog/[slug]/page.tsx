@@ -143,9 +143,44 @@ export default async function BlogPostPage({ params }: Props) {
     }
   ];
 
+  const postUrl = `${SITE_URL}/blog/${post.slug}`;
+
+  const breadcrumbSchema = {
+    "@type": "BreadcrumbList",
+    "@id": `${postUrl}#breadcrumb`,
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": SITE_URL
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Tax Tip Blog",
+        "item": `${SITE_URL}/blog`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": post.title,
+        "item": postUrl
+      }
+    ]
+  };
+
   const faqSchema = {
-    "@context": "https://schema.org",
     "@type": "FAQPage",
+    "@id": `${postUrl}#faq`,
+    "isPartOf": {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`
+    },
+    "publisher": {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`
+    },
     "mainEntity": postFaqs.map(item => ({
       "@type": "Question",
       "name": item.q,
@@ -157,11 +192,15 @@ export default async function BlogPostPage({ params }: Props) {
   };
 
   const articleSchema = {
-    "@context": "https://schema.org",
     "@type": "BlogPosting",
+    "@id": `${postUrl}#article`,
+    "isPartOf": {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`
+    },
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": `${SITE_URL}/blog/${post.slug}`
+      "@id": postUrl
     },
     "headline": post.title,
     "description": post.metaDescription || post.excerpt,
@@ -172,9 +211,13 @@ export default async function BlogPostPage({ params }: Props) {
     "dateModified": post.date,
     "author": {
       "@type": "Person",
+      "@id": `${SITE_URL}/#kevin-freese`,
       "name": "Kevin Freese",
       "jobTitle": "Managing Director & Senior Accountant",
       "url": `${SITE_URL}`,
+      "worksFor": {
+        "@id": `${SITE_URL}/#organization`
+      },
       "hasCredential": [
         {
           "@type": "EducationalOccupationalCredential",
@@ -210,12 +253,25 @@ export default async function BlogPostPage({ params }: Props) {
     },
     "publisher": {
       "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
       "name": "My Accountant",
+      "url": SITE_URL,
       "logo": {
         "@type": "ImageObject",
-        "url": `${SITE_URL}/logo.png`
+        "@id": `${SITE_URL}/#logo`,
+        "url": `${SITE_URL}/logo.png`,
+        "contentUrl": `${SITE_URL}/logo.png`
       }
     }
+  };
+
+  const blogPostGraph = {
+    "@context": "https://schema.org",
+    "@graph": [
+      breadcrumbSchema,
+      faqSchema,
+      articleSchema
+    ]
   };
 
   const isKevin = true; // Globally override to Kevin Freese as requested by the user
@@ -235,11 +291,7 @@ export default async function BlogPostPage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostGraph) }}
       />
       
       {/* DYNAMIC PREMIUM HERO SECTION */}

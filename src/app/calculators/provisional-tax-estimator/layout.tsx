@@ -1,13 +1,13 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Provisional Tax Estimator South Africa 2026/2027 | My Accountant' },
+  title: { absolute: 'Provisional Tax Estimator 2026/2027 | My Accountant' },
   description: 'Estimate your first and second period SARS provisional tax payable based on the latest tax brackets and primary rebates.',
   alternates: {
     canonical: 'https://www.myacc.co.za/calculators/provisional-tax-estimator',
   },
   openGraph: {
-    title: 'Provisional Tax Estimator South Africa 2026/2027 | My Accountant',
+    title: 'Provisional Tax Estimator 2026/2027 | My Accountant',
     description: 'Estimate your provisional tax payable in South Africa based on current SARS tax brackets.',
     url: 'https://www.myacc.co.za/calculators/provisional-tax-estimator',
   },

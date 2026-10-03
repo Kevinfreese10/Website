@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import ExternalScripts from '@/components/layout/ExternalScripts';
 import Script from 'next/script';
-import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/schema/productSchema';
+import { generateRootEntityGraphSchema } from '@/lib/schema/productSchema';
 import { SITE_URL, STATIC_OG_IMAGE } from '@/lib/constants';
 import { ConnectivityBanner } from '@/components/shared/ConnectivityBanner';
 
@@ -55,20 +55,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const organizationSchema = generateOrganizationSchema();
-  const websiteSchema = generateWebSiteSchema();
+  const rootEntityGraph = generateRootEntityGraphSchema();
 
   return (
     <html lang="en-ZA" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://cdn.trustindex.io" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://cdn.trustindex.io" />
+      </head>
       <body className={cn("antialiased", bodyFont.variable, headlineFont.variable)} suppressHydrationWarning>
         <ExternalScripts />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(rootEntityGraph) }}
         />
         <AuthProvider>
             <ClientProviders>

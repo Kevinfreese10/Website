@@ -9,13 +9,13 @@ import SarsExpertCta from '@/components/sars-online-query/SarsExpertCta';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: "SARS Turnover Tax Registration & Tax Rate Guide (2026/2027) | Micro-Business Tax",
+  title: "SARS Turnover Tax Guide & Rates 2026/2027",
   description: "Complete guide to SARS Turnover Tax registration for South African micro-businesses with turnover under R2.3 million (effective 1 April 2026). Calculate rates, download TT01 form, and apply online.",
   alternates: {
     canonical: `${SITE_URL}/sars-turnover-tax-registration`,
   },
   openGraph: {
-    title: "SARS Turnover Tax Registration & Tax Rate Guide (2026/2027) | My Accountant",
+    title: "SARS Turnover Tax Guide & Rates 2026/2027 | My Accountant",
     description: "Learn how Turnover Tax works in SA. Qualifying criteria (up to R2.3M), tax tables (0% up to R600k), TT01 application steps, and expert assistance.",
     url: `${SITE_URL}/sars-turnover-tax-registration`,
     siteName: "My Accountant",

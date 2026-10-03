@@ -3,8 +3,8 @@ import PageHero from '@/components/shared/PageHero';
 import { SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Tax Glossary',
-  description: 'Understand common tax terms and definitions with our comprehensive South African tax glossary.',
+  title: "South African Business Tax Glossary",
+  description: "Comprehensive glossary of South African tax, accounting, and CIPC terms. Understand VAT, PAYE, turnover tax, and statutory filing definitions.",
   alternates: {
     canonical: `${SITE_URL}/tax-glossary`,
   },

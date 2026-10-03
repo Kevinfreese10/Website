@@ -28,13 +28,13 @@ import {
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Autonomous AI Accountant South Africa | Automated SARS Tax Filing & Bookkeeping',
-  description: 'South Africa’s premier AI Accountant platform. Automated bank reconciliation, smart match allocation, instant VAT201/EMP201 preparation, and AFS compilation signed off by registered SARS tax practitioners.',
+  title: { absolute: "AI Accountant South Africa | Automated SARS Tax & Books" },
+  description: "Autonomous AI Accountant for South Africa. Automated bank recons, smart match allocations, instant VAT201 & EMP201 filing, and AFS signed off by SARS pros.",
   alternates: {
     canonical: 'https://www.myacc.co.za/ai-accountant',
   },
   openGraph: {
-    title: 'Autonomous AI Accountant South Africa | Automated SARS Filing',
+    title: 'AI Accountant South Africa | Automated SARS Tax & Books',
     description: 'Instant bank reconciliation, smart match allocation, and automated SARS tax preparation backed by registered Chartered Business Accountants.',
     url: 'https://www.myacc.co.za/ai-accountant',
     type: 'website',

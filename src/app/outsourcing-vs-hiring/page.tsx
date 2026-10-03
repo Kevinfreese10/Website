@@ -21,8 +21,8 @@ import {
 import { SITE_URL, KEVIN_FREESE_PROFILE_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Outsourcing vs Hiring Staff: The Complete Guide for Accountants',
-  description: 'Struggling to scale your accounting practice? Compare the true costs, risks and benefits of hiring more staff vs outsourcing to My Accountant\'s partner network. The smarter choice for South African accountants and bookkeepers.',
+  title: "Outsourcing vs Hiring Practice Staff Guide",
+  description: "Compare the true costs, risks, and benefits of hiring staff vs outsourcing for your South African accounting practice. Discover how to scale without the risk.",
   keywords: ['outsourcing accounting', 'hire accountant staff south africa', 'accounting practice growth', 'bookkeeper outsource', 'become accounting partner south africa'],
   alternates: {
     canonical: `${SITE_URL}/outsourcing-vs-hiring`,

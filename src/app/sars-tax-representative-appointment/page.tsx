@@ -9,13 +9,13 @@ import SarsExpertCta from '@/components/sars-online-query/SarsExpertCta';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: "Appoint Registered Tax Representative / Public Officer | SARS SOQS",
+  title: { absolute: "SARS Tax Representative Appointment Guide (2026)" },
   description: "Appoint or update a registered tax representative or Public Officer for a company, trust, or individual with SARS online via SOQS.",
   alternates: {
     canonical: `${SITE_URL}/sars-tax-representative-appointment`,
   },
   openGraph: {
-    title: "Appoint Registered Tax Representative / Public Officer",
+    title: "SARS Tax Representative Appointment Guide (2026)",
     description: "Update official Public Officer and Tax Representative details with SARS online.",
     url: `${SITE_URL}/sars-tax-representative-appointment`,
     siteName: "My Accountant",

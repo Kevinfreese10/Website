@@ -8,13 +8,13 @@ import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import ShareWidget from '@/components/blog/ShareWidget';
 
 export const metadata: Metadata = {
-  title: 'New VAT Registration Thresholds in South Africa (Effective 1 April 2026)',
+  title: { absolute: "New SARS VAT Registration Thresholds 2026/2027" },
   description: 'South Africa’s VAT thresholds increased: Compulsory registration is now R2.3 Million and Voluntary is R120,000. Learn how this impacts your business, existing registrations, and exit tax rules.',
   alternates: {
     canonical: `${SITE_URL}/blog/new-vat-registration-thresholds-south-africa-2026`,
   },
   openGraph: {
-    title: 'New South African VAT Registration Thresholds (Effective 1 April 2026)',
+    title: "New SARS VAT Registration Thresholds 2026/2027",
     description: 'Compulsory VAT registration is now R2.3M and Voluntary is R120k. Complete guide for South African SMEs by qualified accountants.',
     url: `${SITE_URL}/blog/new-vat-registration-thresholds-south-africa-2026`,
     siteName: 'My Accountant',

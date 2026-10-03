@@ -35,7 +35,9 @@ import {
   Lock,
   Star,
   CalendarDays,
-  ExternalLink
+  ExternalLink,
+  HeartPulse,
+  Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,26 +54,16 @@ import { Separator } from '@/components/ui/separator';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import { KEVIN_FREESE_PROFILE_IMAGE } from '@/lib/constants';
 import Script from 'next/script';
-import { Service } from '@/lib/types';
-import { getFirestore, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { firebaseApp } from '@/lib/firebase';
 
-const db = getFirestore(firebaseApp);
+interface HomePageClientProps {
+  initialPrices?: Record<string, number | string>;
+}
 
-export default function HomePageClient() {
+export default function HomePageClient({ initialPrices = {} }: HomePageClientProps) {
   const [mounted, setMounted] = useState(false);
-  const [services, setServices] = useState<Service[]>([]);
-  const [isLoadingServices, setIsLoadingServices] = useState(true);
-
-
 
   useEffect(() => {
     setMounted(true);
-    const unsub = onSnapshot(query(collection(db, 'services'), orderBy('title')), (snap) => {
-        setServices(snap.docs.map(d => ({ ...d.data(), id: d.id } as Service)));
-        setIsLoadingServices(false);
-    });
-    return () => unsub();
   }, []);
 
   const formatPrice = (price: number) => {
@@ -84,9 +76,12 @@ export default function HomePageClient() {
   };
 
   const getServicePrice = (slug: string, fallback: string): string => {
-    const service = services.find(s => s.slug === slug);
-    if (service && service.price !== undefined && service.price !== null) {
-      return formatPrice(service.price);
+    const price = initialPrices[slug];
+    if (typeof price === 'number') {
+      return formatPrice(price);
+    }
+    if (typeof price === 'string') {
+      return price;
     }
     return fallback;
   };
@@ -784,7 +779,292 @@ export default function HomePageClient() {
           </div>
       </section>
 
+      {/* INTERACTIVE CALCULATORS SECTION */}
+      <section className="py-20 bg-background border-b border-white/[0.06] relative overflow-hidden">
+        <div className="absolute inset-0 bg-dot-grid opacity-20" />
+        <div className="container relative z-10 mx-auto px-4">
+          <div className="text-center mb-14 space-y-3">
+            <span className="text-xs font-black uppercase text-primary tracking-[0.2em]">Tax & Accounting Tools</span>
+            <h2 className="text-3xl font-black text-foreground md:text-5xl tracking-tighter font-headline">Free Interactive Business & Tax Calculators</h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Instant statutory estimations for South African entrepreneurs, employers, and provisional taxpayers.</p>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-2">
+                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 mb-2 group-hover:scale-110 transition-transform duration-300">
+                  <Calculator className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-lg font-bold text-foreground">
+                  <Link href="/calculators/vat" className="hover:text-primary transition-colors flex items-center justify-between">
+                    VAT Calculator
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">Calculate standard 15% VAT inclusive and exclusive amounts with SARS VAT201 input/output reconciliation.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-2">
+                <Link href="/calculators/vat" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Launch Calculator &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-2">
+                <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-2 group-hover:scale-110 transition-transform duration-300">
+                  <Wallet className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-lg font-bold text-foreground">
+                  <Link href="/calculators/salary-tax" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Salary Tax Calculator
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">Estimate monthly PAYE withholding, statutory tax rebates, and net take-home pay under SARS tax tables.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-2">
+                <Link href="/calculators/salary-tax" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Launch Calculator &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-2">
+                <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500 mb-2 group-hover:scale-110 transition-transform duration-300">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-lg font-bold text-foreground">
+                  <Link href="/calculators/turnover-tax" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Turnover Tax Calculator
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">Compute micro-business turnover tax liabilities for eligible businesses with annual turnover under R1 million.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-2">
+                <Link href="/calculators/turnover-tax" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Launch Calculator &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-2">
+                <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 mb-2 group-hover:scale-110 transition-transform duration-300">
+                  <User className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-lg font-bold text-foreground">
+                  <Link href="/calculators/freelance-tax" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Freelance Tax Calculator
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">Model freelance tax obligations, allowable business expenses, and provisional tax requirements for sole proprietors.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-2">
+                <Link href="/calculators/freelance-tax" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Launch Calculator &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-2">
+                <div className="h-10 w-10 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-500 mb-2 group-hover:scale-110 transition-transform duration-300">
+                  <Building className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-lg font-bold text-foreground">
+                  <Link href="/calculators/small-business-tax" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Small Business Tax Calculator
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">Calculate Section 12E Small Business Corporation (SBC) tax rates and compare potential tax savings.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-2">
+                <Link href="/calculators/small-business-tax" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Launch Calculator &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-2">
+                <div className="h-10 w-10 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500 mb-2 group-hover:scale-110 transition-transform duration-300">
+                  <CalendarDays className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-lg font-bold text-foreground">
+                  <Link href="/calculators/provisional-tax" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Provisional Tax Calculator
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">Determine IRP6 first and second period provisional tax payments, preventing SARS Section 211 underestimation penalties.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-2">
+                <Link href="/calculators/provisional-tax" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Launch Calculator &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* INDUSTRY HUBS SECTION */}
+      <section className="py-20 bg-background border-b border-white/[0.06] relative overflow-hidden">
+        <div className="container relative z-10 mx-auto px-4">
+          <div className="text-center mb-14 space-y-3">
+            <span className="text-xs font-black uppercase text-primary tracking-[0.2em]">Sector Specialisations</span>
+            <h2 className="text-3xl font-black text-foreground md:text-5xl tracking-tighter font-headline">Accounting & Tax Solutions Tailored to Your Industry</h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Specialised compliance frameworks, statutory filing, and advisory aligned with your sector's regulatory landscape.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-3">
+                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 mb-3 group-hover:scale-110 transition-transform duration-300">
+                  <Building className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  <Link href="/industries/sme" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Small & Medium Enterprises
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">Turnover tax, Section 12E SBC deductions, CIPC Beneficial Ownership, and cloud bookkeeping for growing SA businesses.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-0">
+                <Link href="/industries/sme" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Explore SME Solutions &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-3">
+                <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 mb-3 group-hover:scale-110 transition-transform duration-300">
+                  <HardHat className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  <Link href="/industries/construction" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Construction & Contractors
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">CIDB contractor grade accounts, COIDA Letters of Good Standing, project job-costing, and retention VAT accounting.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-0">
+                <Link href="/industries/construction" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Explore Construction Solutions &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-3">
+                <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500 mb-3 group-hover:scale-110 transition-transform duration-300">
+                  <Utensils className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  <Link href="/industries/hospitality" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Hospitality & Restaurants
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">POS system reconciliations, Sectoral Determination 14 payroll, delivery platform accounting, and liquor licensing support.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-0">
+                <Link href="/industries/hospitality" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Explore Hospitality Solutions &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-3">
+                <div className="h-10 w-10 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500 mb-3 group-hover:scale-110 transition-transform duration-300">
+                  <HeartPulse className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  <Link href="/industries/healthcare-medical-practices" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Healthcare & Medical Practices
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">HPCSA-compliant accounting, medical aid remittance recons, Section 12(h) VAT exemption, and locum doctor tax management.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-0">
+                <Link href="/industries/healthcare-medical-practices" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Explore Healthcare Solutions &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-3">
+                <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 mb-3 group-hover:scale-110 transition-transform duration-300">
+                  <ShoppingCart className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  <Link href="/industries/ecommerce-online-sellers" className="hover:text-primary transition-colors flex items-center justify-between">
+                    E-Commerce & Online Sellers
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">Shopify, WooCommerce, Takealot portal recons, payment gateway clearing, and import/export customs VAT compliance.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-0">
+                <Link href="/industries/ecommerce-online-sellers" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Explore E-Commerce Solutions &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-3">
+                <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 mb-3 group-hover:scale-110 transition-transform duration-300">
+                  <Briefcase className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  <Link href="/industries/professional-services" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Professional Services
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">Work-in-progress tracking, retainer management, Personal Service Provider (PSP) vetting, and partner tax optimization.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-0">
+                <Link href="/industries/professional-services" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Explore Professional Solutions &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+
+            <Card className="border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-primary/40 transition-all duration-300 group">
+              <CardHeader className="pb-3">
+                <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500 mb-3 group-hover:scale-110 transition-transform duration-300">
+                  <Camera className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-base font-bold text-foreground">
+                  <Link href="/industries/influencers" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Content Creators & Influencers
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">Sponsorship barter valuation, foreign platform AdSense taxation, home studio deductions, and provisional tax filing.</CardDescription>
+              </CardHeader>
+              <CardFooter className="pt-0">
+                <Link href="/industries/influencers" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Explore Creator Solutions &rarr;
+                </Link>
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+      </section>
 
       {/* GENERAL FAQ SECTION */}
       <section className="py-24 bg-background border-t border-white/[0.06] scroll-m-20 relative overflow-hidden">

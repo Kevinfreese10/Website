@@ -64,8 +64,13 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
       "name": service.brand || "My Accountant"
     },
     // Service-specific properties
+    "isPartOf": {
+      "@type": "WebSite",
+      "@id": `${baseUrl}/#website`
+    },
     "provider": {
       "@type": "Organization",
+      "@id": `${baseUrl}/#organization`,
       "name": service.brand || "My Accountant",
       "url": baseUrl
     },
@@ -83,6 +88,7 @@ export function generateStructuredData(service: Service, customCanonicalUrl?: st
     "priceValidUntil": expiryDate,
     "seller": {
       "@type": "Organization",
+      "@id": `${baseUrl}/#organization`,
       "name": "My Accountant"
     },
     // Service-grade intangible stubs to guarantee zero warnings in strict Merchant listings
@@ -160,6 +166,7 @@ export function generateOrganizationSchema() {
   return {
     "@context": "https://schema.org",
     "@type": ["Organization", "AccountingService", "TaxConsultant", "FinancialService", "ProfessionalService"],
+    "@id": `${baseUrl}/#organization`,
     "name": "My Accountant",
     "url": baseUrl,
     "priceRange": "R100–R7500",
@@ -196,8 +203,13 @@ export function generateOrganizationSchema() {
     ],
     "founder": {
       "@type": "Person",
+      "@id": `${baseUrl}/#kevin-freese`,
       "name": "Kevin Freese",
       "jobTitle": "Managing Director & Senior Accountant",
+      "url": baseUrl,
+      "worksFor": {
+        "@id": `${baseUrl}/#organization`
+      },
       "hasCredential": [
         {
           "@type": "EducationalOccupationalCredential",
@@ -250,14 +262,20 @@ export function generateOrganizationSchema() {
 
 /**
  * Global WebSite schema for My Accountant.
+ * Explicitly linked to #organization via publisher.
  */
 export function generateWebSiteSchema() {
   const baseUrl = SITE_URL;
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": `${baseUrl}/#website`,
     "name": "My Accountant",
     "url": baseUrl,
+    "description": "Professional online tax, accounting, CIPC, SARS and compliance services for South African businesses.",
+    "publisher": {
+      "@id": `${baseUrl}/#organization`
+    },
     "potentialAction": {
       "@type": "SearchAction",
       "target": {
@@ -266,6 +284,42 @@ export function generateWebSiteSchema() {
       },
       "query-input": "required name=search_term_string"
     }
+  };
+}
+
+/**
+ * Merges root Organization and WebSite into a unified single-script @graph.
+ */
+export function generateRootEntityGraphSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      generateOrganizationSchema(),
+      generateWebSiteSchema()
+    ]
+  };
+}
+
+export interface BreadcrumbItem {
+  name: string;
+  url: string;
+}
+
+/**
+ * Generates a valid Schema.org BreadcrumbList.
+ */
+export function generateBreadcrumbSchema(items: BreadcrumbItem[], pageUrl?: string) {
+  const baseUrl = SITE_URL;
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    ...(pageUrl ? { "@id": `${pageUrl.startsWith('http') ? pageUrl : `${baseUrl}${pageUrl.startsWith('/') ? pageUrl : `/${pageUrl}`}`}#breadcrumb` } : {}),
+    "itemListElement": items.map((item, idx) => ({
+      "@type": "ListItem",
+      "position": idx + 1,
+      "name": item.name,
+      "item": item.url.startsWith('http') ? item.url : `${baseUrl}${item.url.startsWith('/') ? item.url : `/${item.url}`}`
+    }))
   };
 }
 
@@ -360,8 +414,13 @@ export function generateServicePillarSchema(config: PillarSchemaConfig) {
       "description": config.description,
       "url": pageUrl,
       "serviceType": config.serviceType,
+      "isPartOf": {
+        "@type": "WebSite",
+        "@id": `${baseUrl}/#website`
+      },
       "provider": {
         "@type": "ProfessionalService",
+        "@id": `${baseUrl}/#organization`,
         "name": "My Accountant",
         "url": baseUrl,
         "telephone": "+27101091625"
@@ -391,6 +450,14 @@ export function generateServicePillarSchema(config: PillarSchemaConfig) {
     graph.push({
       "@type": "FAQPage",
       "@id": `${pageUrl}#faq`,
+      "isPartOf": {
+        "@type": "WebSite",
+        "@id": `${baseUrl}/#website`
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": `${baseUrl}/#organization`
+      },
       "mainEntity": config.faqs.map(faq => ({
         "@type": "Question",
         "name": faq.q,

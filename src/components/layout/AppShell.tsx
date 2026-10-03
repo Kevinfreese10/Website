@@ -11,7 +11,7 @@ const WebsiteAIWidget = dynamic(() => import('@/components/shared/WebsiteAIWidge
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
+  const [isWidgetReady, setIsWidgetReady] = useState(false);
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
@@ -23,8 +23,42 @@ export default function AppShell({ children }: { children: ReactNode }) {
   ) : false;
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (isDashboardPage || isWidgetReady) return;
+
+    let idleCallbackId: number | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    const triggerMount = () => {
+      setIsWidgetReady(true);
+      cleanup();
+    };
+
+    const interactionEvents: (keyof WindowEventMap)[] = ['scroll', 'pointerdown', 'keydown', 'touchstart'];
+
+    const cleanup = () => {
+      interactionEvents.forEach((evt) => {
+        window.removeEventListener(evt, triggerMount);
+      });
+      if (idleCallbackId !== null && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleCallbackId);
+      }
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
+
+    interactionEvents.forEach((evt) => {
+      window.addEventListener(evt, triggerMount, { once: true, passive: true });
+    });
+
+    if ('requestIdleCallback' in window) {
+      idleCallbackId = window.requestIdleCallback(triggerMount, { timeout: 4000 });
+    } else {
+      timeoutId = setTimeout(triggerMount, 4000);
+    }
+
+    return cleanup;
+  }, [isDashboardPage, isWidgetReady]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -56,7 +90,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {shouldShowHeader && <Header />}
       <main id="main-content" tabIndex={-1} className="flex-grow bg-background relative">{children}</main>
       {shouldShowFooter && <Footer />}
-      {mounted && !isDashboardPage && <WebsiteAIWidget />}
+      {isWidgetReady && !isDashboardPage && <WebsiteAIWidget />}
     </>
   );
 
