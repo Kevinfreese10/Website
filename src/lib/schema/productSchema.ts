@@ -182,6 +182,12 @@ export function generateOrganizationSchema() {
       "postalCode": "2195",
       "addressCountry": "ZA"
     },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -26.1337308,
+      "longitude": 27.9752252
+    },
+    "hasMap": "https://www.google.com/maps/place/?q=place_id:ChIJBTx5IqWflR4RUg7OfZtiiJo",
     "openingHoursSpecification": [
       {
         "@type": "OpeningHoursSpecification",
@@ -199,7 +205,7 @@ export function generateOrganizationSchema() {
     "sameAs": [
       "https://www.facebook.com/myaccountantza",
       "https://www.linkedin.com/company/myaccountantza",
-      "https://www.google.com/maps?q=My+Accountant,+Stonemill+Office+Park,+300+Acacia+Road,+Darrenwood,+Johannesburg"
+      "https://www.google.com/maps/place/?q=place_id:ChIJBTx5IqWflR4RUg7OfZtiiJo"
     ],
     "founder": {
       "@type": "Person",

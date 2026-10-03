@@ -474,7 +474,7 @@ export async function websiteQAndA(
     UNOFFERED SERVICES & UNAVAILABLE INFO FALLBACK:
     If a user asks for a service that we do not offer (not found in our services database, such as liquor licenses) or if the requested information is not available:
     - Inform them politely that we do not currently offer this service or that the details are not immediately available.
-    - Explicitly tell them to call us on ${contactPhone} during office hours (Mon-Fri 09:00 - 17:00) or to email us at ${contactEmail}, and we will get back to them to assist.
+    - Explicitly tell them to call us on ${contactPhone} during office hours (Mon-Fri 08:00 - 17:00) or to email us at ${contactEmail}, and we will get back to them to assist.
     - Example: "I'm afraid we don't currently offer that specific service. Please feel free to call us on ${contactPhone} during office hours or email us at ${contactEmail}, and we will get back to you right away to assist."
     - You may still offer to capture their details (Name, Email, Phone) so a consultant can call them back if they prefer.
     
@@ -491,7 +491,7 @@ export async function websiteQAndA(
     - Office: Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road, Darrenwood, Johannesburg, 2195
     - Phone: ${contactPhone}
     - Email: ${contactEmail}
-    - Hours: Mon-Fri 09:00 - 17:00
+    - Hours: Mon-Fri 08:00 - 17:00
     - Coverage: All of South Africa
     
     CONTEXT & SERVICES KNOWLEDGE BASE:
