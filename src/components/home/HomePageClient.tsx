@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
 import { 
   Rocket, 
@@ -271,13 +272,12 @@ export default function HomePageClient({ initialPrices = {} }: HomePageClientPro
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
                   {/* Left Column: Avatar & Credentials */}
                   <div className="md:col-span-4 flex flex-col items-center text-center p-6 bg-white/[0.01] border border-white/[0.04] rounded-xl">
-                    <img
-                      src={KEVIN_FREESE_PROFILE_IMAGE}
+                    <Image
+                      src="/kevin-freese.webp"
                       alt="Kevin Freese - Managing Director & Founder"
+                      width={96}
+                      height={96}
                       className="h-24 w-24 rounded-full object-cover border-4 border-white/20 shadow-xl shrink-0 mb-4"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/kevin-freese.jpg';
-                      }}
                     />
                     <h3 className="text-lg font-black text-foreground">Kevin Freese</h3>
                     <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director & Founder</p>
@@ -796,7 +796,7 @@ export default function HomePageClient({ initialPrices = {} }: HomePageClientPro
                   <Calculator className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-lg font-bold text-foreground">
-                  <Link href="/calculators/vat" className="hover:text-primary transition-colors flex items-center justify-between">
+                  <Link href="/calculators/vat-calculator" className="hover:text-primary transition-colors flex items-center justify-between">
                     VAT Calculator
                     <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </Link>
@@ -804,7 +804,7 @@ export default function HomePageClient({ initialPrices = {} }: HomePageClientPro
                 <CardDescription className="text-xs text-muted-foreground">Calculate standard 15% VAT inclusive and exclusive amounts with SARS VAT201 input/output reconciliation.</CardDescription>
               </CardHeader>
               <CardFooter className="pt-2">
-                <Link href="/calculators/vat" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                <Link href="/calculators/vat-calculator" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
                   Launch Calculator &rarr;
                 </Link>
               </CardFooter>
@@ -836,15 +836,15 @@ export default function HomePageClient({ initialPrices = {} }: HomePageClientPro
                   <TrendingUp className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-lg font-bold text-foreground">
-                  <Link href="/calculators/turnover-tax" className="hover:text-primary transition-colors flex items-center justify-between">
+                  <Link href="/calculators/turnover-tax-calculator" className="hover:text-primary transition-colors flex items-center justify-between">
                     Turnover Tax Calculator
                     <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </Link>
                 </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">Compute micro-business turnover tax liabilities for eligible businesses with annual turnover under R1 million.</CardDescription>
+                <CardDescription className="text-xs text-muted-foreground">Compute micro-business turnover tax liabilities for eligible businesses with annual turnover under R2.3 million.</CardDescription>
               </CardHeader>
               <CardFooter className="pt-2">
-                <Link href="/calculators/turnover-tax" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                <Link href="/calculators/turnover-tax-calculator" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
                   Launch Calculator &rarr;
                 </Link>
               </CardFooter>
@@ -856,16 +856,16 @@ export default function HomePageClient({ initialPrices = {} }: HomePageClientPro
                   <User className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-lg font-bold text-foreground">
-                  <Link href="/calculators/freelance-tax" className="hover:text-primary transition-colors flex items-center justify-between">
-                    Freelance Tax Calculator
+                  <Link href="/freelancer-gig-economy-tax-hub" className="hover:text-primary transition-colors flex items-center justify-between">
+                    Freelance & Gig Tax Hub
                     <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </Link>
                 </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">Model freelance tax obligations, allowable business expenses, and provisional tax requirements for sole proprietors.</CardDescription>
+                <CardDescription className="text-xs text-muted-foreground">Master freelance tax obligations, allowable business expenses, and provisional tax requirements for sole proprietors.</CardDescription>
               </CardHeader>
               <CardFooter className="pt-2">
-                <Link href="/calculators/freelance-tax" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                  Launch Calculator &rarr;
+                <Link href="/freelancer-gig-economy-tax-hub" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                  Explore Tax Hub &rarr;
                 </Link>
               </CardFooter>
             </Card>
@@ -876,7 +876,7 @@ export default function HomePageClient({ initialPrices = {} }: HomePageClientPro
                   <Building className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-lg font-bold text-foreground">
-                  <Link href="/calculators/small-business-tax" className="hover:text-primary transition-colors flex items-center justify-between">
+                  <Link href="/calculators/sbc-tax-estimator" className="hover:text-primary transition-colors flex items-center justify-between">
                     Small Business Tax Calculator
                     <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </Link>
@@ -884,7 +884,7 @@ export default function HomePageClient({ initialPrices = {} }: HomePageClientPro
                 <CardDescription className="text-xs text-muted-foreground">Calculate Section 12E Small Business Corporation (SBC) tax rates and compare potential tax savings.</CardDescription>
               </CardHeader>
               <CardFooter className="pt-2">
-                <Link href="/calculators/small-business-tax" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                <Link href="/calculators/sbc-tax-estimator" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
                   Launch Calculator &rarr;
                 </Link>
               </CardFooter>
@@ -896,7 +896,7 @@ export default function HomePageClient({ initialPrices = {} }: HomePageClientPro
                   <CalendarDays className="h-5 w-5" />
                 </div>
                 <CardTitle className="text-lg font-bold text-foreground">
-                  <Link href="/calculators/provisional-tax" className="hover:text-primary transition-colors flex items-center justify-between">
+                  <Link href="/calculators/provisional-tax-estimator" className="hover:text-primary transition-colors flex items-center justify-between">
                     Provisional Tax Calculator
                     <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </Link>
@@ -904,7 +904,7 @@ export default function HomePageClient({ initialPrices = {} }: HomePageClientPro
                 <CardDescription className="text-xs text-muted-foreground">Determine IRP6 first and second period provisional tax payments, preventing SARS Section 211 underestimation penalties.</CardDescription>
               </CardHeader>
               <CardFooter className="pt-2">
-                <Link href="/calculators/provisional-tax" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                <Link href="/calculators/provisional-tax-estimator" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
                   Launch Calculator &rarr;
                 </Link>
               </CardFooter>

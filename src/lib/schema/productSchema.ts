@@ -165,7 +165,7 @@ export function generateOrganizationSchema() {
   const baseUrl = SITE_URL;
   return {
     "@context": "https://schema.org",
-    "@type": ["Organization", "AccountingService", "TaxConsultant", "FinancialService", "ProfessionalService"],
+    "@type": ["Organization", "AccountingService", "FinancialService", "ProfessionalService"],
     "@id": `${baseUrl}/#organization`,
     "name": "My Accountant",
     "url": baseUrl,

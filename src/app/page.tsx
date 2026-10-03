@@ -9,7 +9,7 @@ export const revalidate = 3600;
 export async function generateMetadata(): Promise<Metadata> {
   const defaults: Metadata = {
     title: 'My Accountant | Top Online Accounting & Tax Firm in SA',
-    description: 'Trusted by 10,000+ SA businesses with 200+ 5-star reviews. Expert online accounting, SARS tax returns, VAT filing, and CIPC compliance. Book a consult today.',
+    description: 'Professional online accounting, bookkeeping, VAT registration, tax returns, and CIPC compliance for South African businesses. Free expert consultation.',
   };
   const metadata = await getStaticPageMetadata('home', defaults);
   // Ensure any cached or overridden title does not contain the star symbol
@@ -24,6 +24,12 @@ export async function generateMetadata(): Promise<Metadata> {
   ) {
     metadata.title = { absolute: 'My Accountant | Top Online Accounting & Tax Firm in SA' };
   }
+
+  // Ensure meta description is calibrated between 140-158 chars with core keywords
+  if (!metadata.description || metadata.description.length < 140 || metadata.description.length > 158) {
+    metadata.description = 'Professional online accounting, bookkeeping, VAT registration, tax returns, and CIPC compliance for South African businesses. Free expert consultation.';
+  }
+
   return metadata;
 }
 

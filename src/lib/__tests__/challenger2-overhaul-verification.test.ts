@@ -390,16 +390,16 @@ describe('Adversarial Challenger 2: Bundle Decoupling, Schema Entity Graph, DOM 
       const homeSource = fs.readFileSync(homeClientPath, 'utf-8');
 
       const requiredCalculators = [
-        '/calculators/vat',
+        '/calculators/vat-calculator',
         '/calculators/salary-tax',
-        '/calculators/turnover-tax',
-        '/calculators/freelance-tax',
-        '/calculators/small-business-tax',
-        '/calculators/provisional-tax',
+        '/calculators/turnover-tax-calculator',
+        '/freelancer-gig-economy-tax-hub',
+        '/calculators/sbc-tax-estimator',
+        '/calculators/provisional-tax-estimator',
       ];
 
       for (const calcPath of requiredCalculators) {
-        // Assert crawlable <Link href="/calculators/..." exists
+        // Assert crawlable <Link href="..." exists
         const linkRegex = new RegExp(`<Link\\s+[^>]*href=["']${calcPath}["']`, 'i');
         expect(homeSource).toMatch(linkRegex);
       }

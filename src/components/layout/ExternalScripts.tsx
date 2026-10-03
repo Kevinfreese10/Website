@@ -37,6 +37,11 @@ export default function ExternalScripts() {
     return null;
   }
 
+  const isOrderConfirmation = pathname ? (
+    pathname.startsWith('/order-confirmation') ||
+    pathname.startsWith('/payment-success')
+  ) : false;
+
   return (
     <>
       <Script
@@ -53,10 +58,11 @@ export default function ExternalScripts() {
         `}
       </Script>
       
-      {/* Google Customer Reviews Platform Script */}
-      <Script src="https://apis.google.com/js/platform.js?onload=renderOptIn" strategy="lazyOnload" />
-      
-      <Script id="google-reviews-opt-in" strategy="lazyOnload">
+      {/* Google Customer Reviews Platform Script (Only needed on order completion) */}
+      {isOrderConfirmation && (
+        <>
+          <Script src="https://apis.google.com/js/platform.js?onload=renderOptIn" strategy="lazyOnload" />
+          <Script id="google-reviews-opt-in" strategy="lazyOnload">
         {`
           window.renderOptIn = function(orderData) {
             if (!orderData || !orderData.id || !orderData.customerEmail || !orderData.estimated_delivery_date) {
@@ -84,6 +90,8 @@ export default function ExternalScripts() {
           }
         `}
       </Script>
+      </>
+      )}
 
       <Script
         id="merchant-widget"

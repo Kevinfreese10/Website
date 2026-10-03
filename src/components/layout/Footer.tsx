@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Script from 'next/script';
 import { MapPin, Mail, Phone, Clock } from 'lucide-react';
 
 const Footer = () => {
@@ -83,7 +82,7 @@ const Footer = () => {
                     <li><Link href="/#about" className="text-muted-foreground hover:text-primary min-h-[44px] flex items-center transition-colors">About Us</Link></li>
                     <li><Link href="/reviews" className="text-muted-foreground hover:text-primary min-h-[44px] flex items-center transition-colors">Client Reviews</Link></li>
                     <li><Link href="/blog" className="text-muted-foreground hover:text-primary min-h-[44px] flex items-center transition-colors">Tax Tip Blog</Link></li>
-                    <li><Link href="/free-tax-clearance-status-check" className="text-muted-foreground hover:text-primary min-h-[44px] flex items-center transition-colors">Free Tax Clearance Check</Link></li>
+                    <li><Link href="/sars-verify-tax-compliance-status" className="text-muted-foreground hover:text-primary min-h-[44px] flex items-center transition-colors">Free Tax Clearance Check</Link></li>
                     <li><Link href="/sars-tax-refund" className="text-muted-foreground hover:text-primary min-h-[44px] flex items-center transition-colors">Free Tax Refund Check</Link></li>
                     <li><Link href="/become-a-partner" className="text-muted-foreground hover:text-primary min-h-[44px] flex items-center transition-colors">Partner Program</Link></li>
                     <li><Link href="/popia" className="text-muted-foreground hover:text-primary min-h-[44px] flex items-center transition-colors">POPIA Privacy Policy</Link></li>
@@ -122,9 +121,6 @@ const Footer = () => {
               <span className="text-xs text-muted-foreground font-mono bg-white/[0.05] border-white/10 border px-2 py-0.5 rounded">PR-0098553</span>
             </div>
           </div>
-        </div>
-        <div className="mt-8 flex justify-center mb-8">
-          <Script src='https://cdn.trustindex.io/loader-cert.js?a78a37175c7b7428511669d1ff3' strategy="lazyOnload" />
         </div>
         <div className="text-center text-sm text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} My Accountant. All rights reserved.</p>

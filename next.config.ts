@@ -369,6 +369,14 @@ const nextConfig: NextConfig = {
       // --- City landing pages: canonical form is the hyphenated /accountant-<city> URL.
       // Redirect the old slash form so nav/sitemap/canonical all agree on one URL. ---
       { source: '/accountant/:city', destination: '/accountant-:city', permanent: true },
+
+      // --- Calculator & Compliance 301 Permanent Redirects ---
+      { source: '/calculators/vat', destination: '/calculators/vat-calculator', permanent: true },
+      { source: '/calculators/turnover-tax', destination: '/calculators/turnover-tax-calculator', permanent: true },
+      { source: '/calculators/provisional-tax', destination: '/calculators/provisional-tax-estimator', permanent: true },
+      { source: '/calculators/small-business-tax', destination: '/calculators/sbc-tax-estimator', permanent: true },
+      { source: '/calculators/freelance-tax', destination: '/freelancer-gig-economy-tax-hub', permanent: true },
+      { source: '/free-tax-clearance-status-check', destination: '/sars-verify-tax-compliance-status', permanent: true },
     ];
   },
   async rewrites() {
