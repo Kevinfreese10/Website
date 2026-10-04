@@ -8,6 +8,7 @@ import Header from '@/components/layout/Header';
 import dynamic from 'next/dynamic';
 
 const WebsiteAIWidget = dynamic(() => import('@/components/shared/WebsiteAIWidget'), { ssr: false });
+const ServiceFinderModal = dynamic(() => import('@/components/shared/ServiceFinderModal'), { ssr: false });
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -91,6 +92,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <main id="main-content" tabIndex={-1} className="flex-grow bg-background relative">{children}</main>
       {shouldShowFooter && <Footer />}
       {isWidgetReady && !isDashboardPage && <WebsiteAIWidget />}
+      {isWidgetReady && !isDashboardPage && !isAuthPage && <ServiceFinderModal />}
     </>
   );
 

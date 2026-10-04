@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, LogIn, Menu, ChevronDown } from 'lucide-react';
+import { ShoppingCart, LogIn, Menu, ChevronDown, Search } from 'lucide-react';
+import { openServiceFinder } from '@/lib/service-finder';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -139,9 +140,11 @@ const Header = () => {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isMac, setIsMac] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    setIsMac(typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || ''));
   }, []);
   
   const isAuthPage = pathname === '/login' || pathname === '/signup';
@@ -154,7 +157,7 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full glass-nav shadow-none">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-4 lg:gap-8">
+        <div className="flex items-center gap-3 lg:gap-5 2xl:gap-8">
           {/*
             * Brand / home link. The header previously contained NO logo or wordmark at any
             * breakpoint — its only child was the desktop nav, which is `hidden` below 1024px. On
@@ -167,19 +170,19 @@ const Header = () => {
             className="flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="My Accountant — home"
           >
-            <span className="text-base font-medium tracking-tight text-foreground sm:text-lg">
+            <span className="text-base font-medium tracking-tight text-foreground sm:text-lg whitespace-nowrap">
               My Accountant
             </span>
           </Link>
           {!isAuthPage && (
-            <nav className="hidden items-center gap-2 xl:flex">
+            <nav className="hidden items-center gap-0.5 2xl:gap-1.5 xl:flex">
               {navGroups.map(group => (
                 group.items && group.items.length > 0 ? (
                   <DropdownMenu key={group.label}>
                       <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-9 px-3 text-sm font-medium hover:bg-transparent hover:text-primary gap-1">
+                          <Button variant="ghost" className="h-9 px-2 2xl:px-3 text-xs 2xl:text-sm font-medium hover:bg-transparent hover:text-primary gap-1 whitespace-nowrap">
                               {group.label}
-                              <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                              <ChevronDown className="h-3 w-3 opacity-50 shrink-0" />
                           </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-64 max-h-[80vh] overflow-y-auto">
@@ -193,7 +196,7 @@ const Header = () => {
                       </DropdownMenuContent>
                   </DropdownMenu>
                 ) : (
-                  <Button key={group.label} variant="ghost" className="h-9 px-3 text-sm font-medium hover:bg-transparent hover:text-primary" asChild>
+                  <Button key={group.label} variant="ghost" className="h-9 px-2 2xl:px-3 text-xs 2xl:text-sm font-medium hover:bg-transparent hover:text-primary whitespace-nowrap" asChild>
                     <Link href={group.href}>{group.label}</Link>
                   </Button>
                 )
@@ -202,7 +205,22 @@ const Header = () => {
           )}
         </div>
 
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          {!isAuthPage && (
+            <button
+              type="button"
+              onClick={() => openServiceFinder()}
+              aria-label="Search services: view prices and turnaround times"
+              aria-haspopup="dialog"
+              className="group relative flex h-9 shrink-0 items-center justify-center gap-2 rounded-full border border-slate-200/90 bg-slate-100/70 p-0 text-xs font-medium text-slate-600 shadow-2xs transition-all hover:border-primary/40 hover:bg-white hover:text-foreground hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-200 w-9 sm:w-auto sm:px-3 whitespace-nowrap"
+            >
+              <Search className="h-3.5 w-3.5 text-slate-400 transition-colors group-hover:text-primary shrink-0" aria-hidden="true" />
+              <span className="hidden sm:inline-block whitespace-nowrap">Find a service</span>
+              <kbd className="hidden 2xl:inline-flex items-center rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 shadow-2xs transition-colors group-hover:border-slate-300 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400" aria-hidden="true">
+                {mounted && isMac ? '⌘K' : 'Ctrl K'}
+              </kbd>
+            </button>
+          )}
           <Button variant="ghost" size="icon" asChild className="relative">
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
