@@ -377,6 +377,69 @@ const nextConfig: NextConfig = {
       { source: '/calculators/small-business-tax', destination: '/calculators/sbc-tax-estimator', permanent: true },
       { source: '/calculators/freelance-tax', destination: '/freelancer-gig-economy-tax-hub', permanent: true },
       { source: '/free-tax-clearance-status-check', destination: '/sars-verify-tax-compliance-status', permanent: true },
+
+      // --- Search Console Coverage Audit 404 Fixes (2026-10-04) ---
+      // Homepage variations
+      { source: '/home', destination: '/', permanent: true },
+      { source: '/home/', destination: '/', permanent: true },
+
+      // TrustIndex broken widget relative links
+      { source: '/www.trustindex.io', destination: 'https://www.trustindex.io', permanent: true },
+      { source: '/www.trustindex.io/:path*', destination: 'https://www.trustindex.io/:path*', permanent: true },
+      { source: '/blog/www.trustindex.io', destination: 'https://www.trustindex.io', permanent: true },
+      { source: '/blog/www.trustindex.io/:path*', destination: 'https://www.trustindex.io/:path*', permanent: true },
+
+      // Search template link
+      { source: '/search', destination: '/products', permanent: true },
+
+      // Deprecated/WP root paths
+      { source: '/Members', destination: '/login', permanent: true },
+      { source: '/demo', destination: '/', permanent: true },
+      { source: '/demo/', destination: '/', permanent: true },
+
+      // Old WP products
+      { source: '/product/coida-annual-renewal-letter-of-good-standing', destination: '/products/coida-renewal', permanent: true },
+      { source: '/product/coida-registration', destination: '/products/coida-registration', permanent: true },
+      { source: '/product/company-', destination: '/products/private-company-registration', permanent: true },
+      { source: '/product/ncr-registration', destination: '/products/ncr-registration', permanent: true },
+      { source: '/product/income-', destination: '/products/individual-income-tax-return-itr12-simple', permanent: true },
+      { source: '/product/income-tax-return-individuals-it14-2', destination: '/products/individual-income-tax-return-itr12-simple', permanent: true },
+      { source: '/product/ncr-', destination: '/products/ncr-registration', permanent: true },
+      { source: '/product/beneficial-', destination: '/products/beneficial-ownership-declaration', permanent: true },
+      { source: '/product/tender-ready-registration-package', destination: '/products/tender-ready-company-registration-package', permanent: true },
+      { source: '/product-category/psira-services/:path*', destination: '/products/category/security-services-psira', permanent: true },
+
+      // Product 404s (reversed/renamed slugs)
+      { source: '/products/itr14-company-income-tax-return-nil', destination: '/products/company-income-tax-return-itr14-nil', permanent: true },
+      { source: '/products/itr14-company-income-tax-return-nil-filing', destination: '/products/company-income-tax-return-itr14-nil', permanent: true },
+      { source: '/products/income-tax-return-for-sole-proprietors-itr12', destination: '/products/sole-proprietor-income-tax-return-itr12', permanent: true },
+      { source: '/products/irp6-provisional-tax-return-nil', destination: '/products/provisional-tax-return-irp6-nil', permanent: true },
+      { source: '/products/complex-individual-income-tax-return-itr12-filing', destination: '/products/complex-individual-income-tax-return-itr12', permanent: true },
+      { source: '/products/copy-of-uif-registration', destination: '/products/uif-registration', permanent: true },
+      { source: '/products/nbc-provident-fund-registration', destination: '/products/nbc-provident-fund-company-registration', permanent: true },
+      { source: '/products/vat201-nil-return-submission', destination: '/products/vat201-return-submission-nil', permanent: true },
+      { source: '/products/emp501-nil-return-submission', destination: '/products/emp501-return-submission-nil', permanent: true },
+      { source: '/products/emp201-nil-return-submission', destination: '/products/emp201-return-submission-nil', permanent: true },
+      { source: '/products/private-', destination: '/products/private-company-registration', permanent: true },
+      { source: '/products/private', destination: '/products/private-company-registration', permanent: true },
+      { source: '/products/ncr-form-40-application--compliance', destination: '/products/ncr-form-40-application-compliance', permanent: true },
+      { source: '/products/sars-login-assistance--troubleshooting', destination: '/products/sars-login-assistance-troubleshooting', permanent: true },
+
+      // Industry URL typos
+      { source: '/industries/freelancer', destination: '/industries/freelancers', permanent: true },
+      { source: '/industries/film', destination: '/movie-film-production-accounting-south-africa', permanent: true },
+      { source: '/industries/retail', destination: '/industries/ecommerce-online-sellers', permanent: true },
+
+      // Old WP blog
+      { source: '/blog/2021/07/23/ncr-registration', destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance', permanent: true },
+      { source: '/blog/2021/07/23/ncr-registration/', destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance', permanent: true },
+
+      // NCR Blog Consolidation (Phase 5: 368 clicks winner vs 28 clicks weaker post)
+      { source: '/blog/ncr-registration-your-essential-guide-in-south-africa', destination: '/blog/ncr-registration-your-key-to-sa-credit-compliance', permanent: true },
+
+      // Duplicate products found in Coverage audit
+      { source: '/products/irp6-provisional-tax-return-filing-for-trading-entities', destination: '/products/provisional-tax-return-irp6-for-trading-entities', permanent: true },
+      { source: '/products/company-registration-package', destination: '/products/tender-ready-company-registration-package', permanent: true },
     ];
   },
   async rewrites() {

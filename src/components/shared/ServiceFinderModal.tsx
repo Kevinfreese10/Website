@@ -148,17 +148,28 @@ export default function ServiceFinderModal() {
     return () => window.removeEventListener('keydown', onKey);
   }, [openFinder]);
 
-  // Auto-open once per visitor, after a delay, only on eligible marketing pages.
+  // Auto-open once per visitor on desktop only (delay or exit intent), never on mobile (Google intrusive interstitial protection)
   useEffect(() => {
-    if (!isAutoOpenEligiblePath(pathname) || readStoredState()) return;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile || !isAutoOpenEligiblePath(pathname) || readStoredState()) return;
+
     const prefetch = window.setTimeout(() => void loadItems().catch(() => undefined), AUTO_OPEN_DELAY_MS - 2500);
     const timer = window.setTimeout(() => {
       if (readStoredState() || isBusyElsewhere()) return;
       openFinder('auto');
     }, AUTO_OPEN_DELAY_MS);
+
+    const onExitIntent = (e: MouseEvent) => {
+      if (e.clientY <= 10 && !readStoredState() && !isBusyElsewhere()) {
+        openFinder('auto');
+      }
+    };
+    document.addEventListener('mouseleave', onExitIntent);
+
     return () => {
       window.clearTimeout(prefetch);
       window.clearTimeout(timer);
+      document.removeEventListener('mouseleave', onExitIntent);
     };
   }, [pathname, openFinder]);
 

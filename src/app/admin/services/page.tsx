@@ -221,6 +221,20 @@ export default function AdminServicesPage() {
     
     try {
         if (id) {
+            // Automatically preserve old slug redirect if slug was renamed
+            const oldService = services.find(s => s.id === id);
+            if (oldService?.slug && cleanData.slug && oldService.slug.toLowerCase() !== cleanData.slug.toLowerCase()) {
+                try {
+                    await setDoc(doc(db, "slugRedirects", oldService.slug.toLowerCase().trim()), {
+                        oldSlug: oldService.slug.toLowerCase().trim(),
+                        newSlug: cleanData.slug.toLowerCase().trim(),
+                        serviceId: id,
+                        updatedAt: serverTimestamp(),
+                    });
+                } catch (slugErr) {
+                    console.error("Error recording slug redirect:", slugErr);
+                }
+            }
             await setDoc(doc(db, "services", id), cleanData, { merge: true });
             toast({ title: 'Product Updated', description: 'The product details have been saved.' });
         } else {

@@ -8,7 +8,6 @@ import {
   persistentMultipleTabManager,
   Firestore 
 } from 'firebase/firestore';
-import { getAnalytics, Analytics } from 'firebase/analytics';
 
 export const firebaseConfig = {
   apiKey: "AIzaSyAxu9Wf1LY0q828bpZxq0US_ckbgONv6eI",
@@ -60,13 +59,4 @@ function initializeFirebase(): FirebaseServices {
 // Immediately initialize and export the services.
 const { app: firebaseApp, auth, db } = initializeFirebase();
 
-let analytics: Analytics | undefined;
-if (typeof window !== 'undefined') {
-  try {
-    analytics = getAnalytics(firebaseApp);
-  } catch {
-    // Analytics ignored if blocked or unsupported
-  }
-}
-
-export { firebaseApp, auth, db, analytics };
+export { firebaseApp, auth, db };

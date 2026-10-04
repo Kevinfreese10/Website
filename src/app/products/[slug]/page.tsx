@@ -16,6 +16,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import Link from 'next/link';
 
 import { toPlainObject } from '@/lib/serialize-firestore';
+import { buildFallbackRedirectUrl } from '@/lib/slug-matcher';
 
 export const revalidate = 900;
 
@@ -56,6 +57,41 @@ async function getService(slug: string): Promise<Service | null> {
     return toPlainObject(serviceData) as Service;
 }
 
+async function resolveServiceOrRedirect(slug: string): Promise<
+  | { type: 'service'; service: Service }
+  | { type: 'redirect'; destination: string }
+> {
+  const service = await getService(slug);
+  if (service) {
+    if (slug.includes('--') && service.slug && !service.slug.includes('--')) {
+      return { type: 'redirect', destination: `/products/${service.slug}` };
+    }
+    return { type: 'service', service };
+  }
+
+  // Check Firestore slugRedirects collection or smart fuzzy fallback
+  try {
+    const adminDb = getAdminDb();
+    const cleanSlug = slug.trim().toLowerCase();
+    const redirectDoc = await adminDb.collection('slugRedirects').doc(cleanSlug).get();
+    if (redirectDoc.exists && redirectDoc.data()?.newSlug) {
+      return { type: 'redirect', destination: `/products/${redirectDoc.data()!.newSlug}` };
+    }
+
+    const allSnap = await adminDb.collection('services').get();
+    const candidates = allSnap.docs.map(d => ({
+      slug: (d.data().slug || '').toLowerCase(),
+      title: d.data().title,
+    })).filter(c => c.slug);
+
+    const destination = buildFallbackRedirectUrl(cleanSlug, candidates);
+    return { type: 'redirect', destination };
+  } catch (err) {
+    console.error('Error resolving fallback slug redirect:', err);
+    return { type: 'redirect', destination: `/products?search=${encodeURIComponent(slug.replace(/[-_]+/g, ' '))}` };
+  }
+}
+
 type Props = {
   params: Promise<{ slug: string }>
 }
@@ -65,11 +101,12 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { slug } = await params;
-  const service = await getService(slug);
+  const resolution = await resolveServiceOrRedirect(slug);
 
-  if (!service) {
-    return { title: 'Product Not Found' }
+  if (resolution.type === 'redirect') {
+    permanentRedirect(resolution.destination);
   }
+  const service = resolution.service;
 
   const canonicalUrl = `${SITE_URL}/products/${service.slug}`;
   
@@ -137,16 +174,12 @@ export async function generateMetadata(
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
-  const service = await getService(slug);
+  const resolution = await resolveServiceOrRedirect(slug);
 
-  if (!service) {
-    notFound();
+  if (resolution.type === 'redirect') {
+    permanentRedirect(resolution.destination);
   }
-
-  // 301 Permanent Redirect if requested slug contains double-hyphens but canonical is single-hyphen
-  if (slug.includes('--') && service.slug && !service.slug.includes('--')) {
-    permanentRedirect(`/products/${service.slug}`);
-  }
+  const service = resolution.service;
 
   // Generate structured data server-side
   const jsonLd = generateStructuredData(service);

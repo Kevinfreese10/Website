@@ -8,13 +8,13 @@ export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const defaults: Metadata = {
-    title: 'My Accountant | Top Online Accounting & Tax Firm in SA',
-    description: 'Professional online accounting, bookkeeping, VAT registration, tax returns, and CIPC compliance for South African businesses. Free expert consultation.',
+    title: { absolute: 'Online Accountants South Africa: Tax, VAT & CIPC' },
+    description: 'Fixed-price online accounting for SA businesses: tax returns, VAT registration, CIPC and payroll. Rated 4.9 on Google with 100+ reviews. Get started today.',
   };
   const metadata = await getStaticPageMetadata('home', defaults);
   // Ensure any cached or overridden title does not contain the star symbol
   if (typeof metadata.title === 'string' && metadata.title.includes('★')) {
-    metadata.title = 'My Accountant | Top Online Accounting & Tax Firm in SA';
+    metadata.title = { absolute: 'Online Accountants South Africa: Tax, VAT & CIPC' };
   } else if (
     metadata.title &&
     typeof metadata.title === 'object' &&
@@ -22,12 +22,12 @@ export async function generateMetadata(): Promise<Metadata> {
     typeof metadata.title.absolute === 'string' &&
     metadata.title.absolute.includes('★')
   ) {
-    metadata.title = { absolute: 'My Accountant | Top Online Accounting & Tax Firm in SA' };
+    metadata.title = { absolute: 'Online Accountants South Africa: Tax, VAT & CIPC' };
   }
 
   // Ensure meta description is calibrated between 140-158 chars with core keywords
   if (!metadata.description || metadata.description.length < 140 || metadata.description.length > 158) {
-    metadata.description = 'Professional online accounting, bookkeeping, VAT registration, tax returns, and CIPC compliance for South African businesses. Free expert consultation.';
+    metadata.description = 'Fixed-price online accounting for SA businesses: tax returns, VAT registration, CIPC and payroll. Rated 4.9 on Google with 100+ reviews. Get started today.';
   }
 
   return metadata;

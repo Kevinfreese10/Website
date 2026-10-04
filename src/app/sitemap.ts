@@ -107,6 +107,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/sars-vat-vendor-search-verification',
     '/sars-report-digital-fraud',
     '/sars-report-employee-corruption',
+    '/nbc-provident-fund-guide',
     // Tax Hubs & Resources
     '/freelancer-gig-economy-tax-hub',
     '/tax-deadlines-calendar-2026',
