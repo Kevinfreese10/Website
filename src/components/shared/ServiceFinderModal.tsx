@@ -508,8 +508,8 @@ function ResultRow({ item, onSelect }: { item: ServiceFinderItem; onSelect: (i: 
       <GroupIcon group={item.group} className="h-10 w-10" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[15px] font-bold text-foreground sm:text-base">{item.title}</p>
-        <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-slate-500">
-          <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <p className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium text-emerald-600">
+          <Clock className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
           {item.turnaround}
         </p>
       </div>
@@ -537,8 +537,8 @@ function PopularCard({ item, onSelect }: { item: ServiceFinderItem; onSelect: (i
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <p className="text-[15px] font-bold leading-snug text-foreground">{item.title}</p>
         <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 text-[13px] text-slate-500">
-            <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span className="flex items-center gap-1.5 text-[13px] font-medium text-emerald-600">
+            <Clock className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
             {item.turnaround}
           </span>
           <span className="text-base font-black text-slate-900">{price}</span>
