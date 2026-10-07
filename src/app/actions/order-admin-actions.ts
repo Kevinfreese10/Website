@@ -3,7 +3,7 @@
 import { getAdminDb, getAdminAuth, cleanFirestoreData, serializeDbData } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { AuditEntry, Order, DocumentUpload, OrderChecklistItem, OrderServiceSnapshot } from '@/lib/types';
-import { sendOrderStatusUpdateEmailAction } from './order-actions';
+import { sendOrderStatusUpdateEmailAction, notifyStaffOfAssignment } from './order-actions';
 import { sendOrderConfirmationEmailAction } from './notifications';
 import { resolvePartnerMirrorOrderId, stripInternalAiData } from '@/lib/service-utils';
 import { getVerifiedAuthContext, getAuthContext } from '@/lib/server-auth';
@@ -142,11 +142,31 @@ export async function transitionOrderStatusAtomic(
 
     const auditLog = [...(orderData.auditLog || []), auditEntry];
 
+    // Don't assign orders until they are paid. When paid, auto-assign to Kevin so Kevin can reassign.
+    let autoAssignedStaffId: string | null = null;
+    if (
+      (previousStatus === 'Pending Payment' || newStatus === 'Processing') &&
+      (!orderData.assignedTo || orderData.assignedTo.length === 0) &&
+      newStatus !== 'Pending Payment' &&
+      newStatus !== 'Cancelled'
+    ) {
+      const staffSnap = await db.collection('users').where('role', 'in', ['admin', 'staff']).get();
+      const kevinDoc = staffSnap.docs.find(d => {
+        const data = d.data();
+        const email = (data.email || '').toLowerCase().trim();
+        return email === 'kev@thinkestry.co.za' || email === 'accountant@myacc.co.za' || data.role === 'admin';
+      });
+      if (kevinDoc) {
+        autoAssignedStaffId = kevinDoc.id;
+      }
+    }
+
     const updatePayload: Record<string, any> = {
       status: newStatus,
       fulfillmentStatus: targetFulfillmentStatus,
       auditLog,
       updatedAt: new Date().toISOString(),
+      ...(autoAssignedStaffId ? { assignedTo: [autoAssignedStaffId] } : {}),
     };
 
     batch.update(orderRef, updatePayload);
@@ -164,11 +184,20 @@ export async function transitionOrderStatusAtomic(
           fulfillmentStatus: targetFulfillmentStatus,
           auditLog: originalAuditLog,
           updatedAt: new Date().toISOString(),
+          ...(autoAssignedStaffId ? { assignedTo: [autoAssignedStaffId] } : {}),
         });
       }
     }
 
     await batch.commit();
+
+    if (autoAssignedStaffId) {
+      try {
+        await notifyStaffOfAssignment(orderId, autoAssignedStaffId);
+      } catch (assignErr) {
+        console.warn('[transitionOrderStatusAtomic] Failed to notify assigned staff:', assignErr);
+      }
+    }
 
     // Trigger order status update email (includes review request when Completed)
     try {

@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: title,
     description: description,
     robots: {
-      index: true,
+      index: false,
       follow: true,
     },
     /*
@@ -56,9 +56,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
      * South African accounting terms, which is what would happen if each self-canonicalised
      * (the underlying service content is largely identical across them).
      *
-     * Consequences, accepted:
+     * Crawl & Indexing Policy:
      *   - partner custom domains cannot rank under their own brand
-     *   - /p/ is disallowed in robots.txt, so these pages are not indexed on the main domain either
+     *   - /p/ is allowed in robots.txt so Googlebot can crawl and process X-Robots-Tag: noindex, follow
+     *     and child canonicals, preventing "Indexed, though blocked by robots.txt" coverage traps.
      *   - custom domains have no robots.txt or sitemap of their own (middleware.ts does not route
      *     those paths), which is consistent with them not being intended to rank
      *

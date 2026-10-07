@@ -23,19 +23,28 @@ import SarsExpertCta from '@/components/sars-online-query/SarsExpertCta';
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'SARS VAT Vendor Search & Verification (2026)',
-  description: 'Verify active SARS VAT vendor registration numbers online in seconds. Step-by-step VAT search guide, official eFiling portal links, and invoice audit tips.',
+  title: 'VAT Vendor Search & SARS Verification Guide',
+  description:
+    'Free SARS VAT vendor search guide. Instantly verify 10-digit South African supplier VAT registration numbers online to protect your 15% input tax claims.',
   alternates: {
     canonical: `${SITE_URL}/sars-vat-vendor-search-verification`,
   },
   openGraph: {
-    title: 'SARS VAT Vendor Search & Verification (2026) | My Accountant',
-    description: 'Verify active SARS VAT vendor registration numbers online in seconds. Step-by-step VAT search guide, official eFiling portal links, and invoice audit tips.',
+    title: 'VAT Vendor Search & SARS Verification Guide | My Accountant',
+    description:
+      'Free SARS VAT vendor search guide. Instantly verify 10-digit South African supplier VAT registration numbers online to protect your 15% input tax claims.',
     url: `${SITE_URL}/sars-vat-vendor-search-verification`,
     siteName: 'My Accountant',
     locale: 'en_ZA',
     type: 'website',
     images: [{ url: GLOBAL_OG_IMAGE, width: 1200, height: 630, alt: 'Verify SARS VAT Vendor' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'VAT Vendor Search & SARS Verification Guide | My Accountant',
+    description:
+      'Free SARS VAT vendor search guide. Instantly verify 10-digit South African supplier VAT registration numbers online to protect your 15% input tax claims.',
+    images: [GLOBAL_OG_IMAGE],
   },
 };
 

@@ -10,7 +10,6 @@ export default function robots(): MetadataRoute.Robots {
     '/admin',
     '/partner/',     // Authenticated partner portal — not indexable
     '/reseller/',    // Reseller portal — not indexable
-    '/p/',           // Partner/vendor pages — not indexable
   ];
 
   const aiBots = [

@@ -65,6 +65,12 @@ const nextConfig: NextConfig = {
       { source: '/signup', headers: noCacheHeaders },
       { source: '/cart', headers: noCacheHeaders },
       { source: '/checkout', headers: noCacheHeaders },
+      {
+        source: '/p/:path*',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, follow' },
+        ],
+      },
     ];
   },
   async redirects() {

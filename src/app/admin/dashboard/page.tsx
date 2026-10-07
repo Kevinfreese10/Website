@@ -1,6 +1,8 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
 import { AdminKpis } from '@/components/dashboard/AdminKpis';
+import { StaffKpis } from '@/components/dashboard/StaffKpis';
+import { getStatusVariant } from '@/lib/order-status';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -140,6 +142,7 @@ export default function AdminDashboardPage() {
     const [pendingPosts, setPendingPosts] = useState<any[]>([]);
     const [allOrdersList, setAllOrdersList] = useState<Order[]>([]);
     const [cvLeadsList, setCvLeadsList] = useState<any[]>([]);
+    const [staffAllocatedOrders, setStaffAllocatedOrders] = useState<Order[]>([]);
 
     useEffect(() => {
         setIsLoading(true);
@@ -149,18 +152,20 @@ export default function AdminDashboardPage() {
             setAllUsers(fetchedUsers.sort((a,b) => (a.name || '').localeCompare(b.name || '')));
         }).catch(err => console.error('[CommandCenter] users fetch error:', err));
 
-        // 1. Fetch Command Center secondary feeds via getDocs (fast, resilient, avoids socket contention)
-        getDocs(query(collection(db, 'community_posts'), where('status', '==', 'pending')))
-            .then(snap => setPendingPosts(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-            .catch(err => console.log('[CommandCenter] community_posts fetch:', err));
+        // 1. Fetch Command Center secondary feeds for admin only
+        if (user?.role !== 'staff') {
+            getDocs(query(collection(db, 'community_posts'), where('status', '==', 'pending')))
+                .then(snap => setPendingPosts(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+                .catch(err => console.log('[CommandCenter] community_posts fetch:', err));
 
-        getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(50)))
-            .then(snap => setAllOrdersList(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))))
-            .catch(err => console.log('[CommandCenter] orders fetch:', err));
+            getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(50)))
+                .then(snap => setAllOrdersList(snap.docs.map(d => ({ id: d.id, ...d.data() } as Order))))
+                .catch(err => console.log('[CommandCenter] orders fetch:', err));
 
-        getDocs(query(collection(db, 'cvLeads'), orderBy('createdAt', 'desc'), limit(10)))
-            .then(snap => setCvLeadsList(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-            .catch(err => console.log('[CommandCenter] cvLeads fetch:', err));
+            getDocs(query(collection(db, 'cvLeads'), orderBy('createdAt', 'desc'), limit(10)))
+                .then(snap => setCvLeadsList(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+                .catch(err => console.log('[CommandCenter] cvLeads fetch:', err));
+        }
 
         // 2. Real-time tasks stream
         const tasksUnsubscribe = onSnapshot(query(collection(db, 'tasks'), orderBy('dueDate', 'asc')), (snapshot) => {
@@ -244,16 +249,32 @@ export default function AdminDashboardPage() {
             }, (err) => console.warn('[CommandCenter] assigned orders listener:', err));
         }
 
-        const demoLeadsUnsubscribe = onSnapshot(query(collection(db, 'demoLeads'), orderBy('createdAt', 'desc'), limit(10)), (snapshot) => {
-            setDemoLeads(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as DemoLead)));
-        }, (err) => console.warn('[CommandCenter] demoLeads listener:', err));
+        let staffOrdersUnsubscribe = () => {};
+        if (user?.role === 'staff' && user?.id) {
+            const staffOrdersQ = query(
+                collection(db, 'orders'),
+                where('assignedTo', 'array-contains', user.id),
+                orderBy('date', 'desc'),
+                limit(15)
+            );
+            staffOrdersUnsubscribe = onSnapshot(staffOrdersQ, (snapshot) => {
+                setStaffAllocatedOrders(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Order)));
+            }, (err) => console.warn('[StaffDashboard] orders listener:', err));
+        }
+
+        const demoLeadsUnsubscribe = user?.role === 'admin'
+            ? onSnapshot(query(collection(db, 'demoLeads'), orderBy('createdAt', 'desc'), limit(10)), (snapshot) => {
+                setDemoLeads(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as DemoLead)));
+            }, (err) => console.warn('[CommandCenter] demoLeads listener:', err))
+            : () => {};
 
         return () => {
             try { tasksUnsubscribe(); } catch {}
             try { ordersUnsubscribe(); } catch {}
             try { demoLeadsUnsubscribe(); } catch {}
+            try { staffOrdersUnsubscribe(); } catch {}
         };
-    }, [user?.id]);
+    }, [user?.id, user?.role]);
 
     const handleApprovePost = async (postId: string) => {
         try {
@@ -304,18 +325,26 @@ export default function AdminDashboardPage() {
             return isPast(dueDate) && !isSameDay(dueDate, new Date()) && task.status !== 'Done';
         });
 
+        if (user?.role === 'staff') {
+            const currentUserId = user.id || (user as any)?.uid;
+            filtered = filtered.filter(task => 
+                (Array.isArray(task.assignedTo) && task.assignedTo.includes(currentUserId)) ||
+                task.createdBy === currentUserId
+            );
+        }
+
         if (overdueTaskTypeFilter !== 'all') {
             filtered = filtered.filter(task => task.type === overdueTaskTypeFilter);
         }
 
         return filtered.sort((a, b) => getTaskDate(a).getTime() - getTaskDate(b).getTime());
-    }, [tasks, overdueTaskTypeFilter]);
+    }, [tasks, overdueTaskTypeFilter, user]);
 
     const myTasks = useMemo(() => {
         if (!user) return [];
+        const currentUserId = user.id || (user as any)?.uid;
         return tasks.filter(task => 
-            Array.isArray(task.assignedTo) && 
-            task.assignedTo.includes(user.id) &&
+            ((Array.isArray(task.assignedTo) && task.assignedTo.includes(currentUserId)) || task.createdBy === currentUserId) &&
             task.status !== 'Done' &&
             !isPast(getTaskDate(task))
         ).sort((a,b) => getTaskDate(a).getTime() - getTaskDate(b).getTime());
@@ -328,25 +357,40 @@ export default function AdminDashboardPage() {
             task.status !== 'Done'
         );
 
+        if (user?.role === 'staff') {
+            const currentUserId = user.id || (user as any)?.uid;
+            filtered = filtered.filter(task => 
+                Array.isArray(task.assignedTo) && task.assignedTo.includes(currentUserId)
+            );
+        }
+
         if (taskTypeFilter !== 'all') {
             filtered = filtered.filter(task => task.type === taskTypeFilter);
         }
 
         return filtered.sort((a,b) => getTaskDate(a).getTime() - getTaskDate(b).getTime());
-    }, [tasks, taskTypeFilter]);
+    }, [tasks, taskTypeFilter, user]);
 
     // For the Kanban board (all tasks or filtered by scope/assignee)
     const boardTasks = useMemo(() => {
         let filtered = tasks;
         
-        // Scope Filter
-        if (boardScope === 'my' && user) {
-            filtered = filtered.filter(t => Array.isArray(t.assignedTo) && t.assignedTo.includes(user.id));
-        }
-        
-        // Assignee Filter
-        if (boardAssignee !== 'all') {
-            filtered = filtered.filter(t => Array.isArray(t.assignedTo) && t.assignedTo.includes(boardAssignee));
+        if (user?.role === 'staff') {
+            const currentUserId = user.id || (user as any)?.uid;
+            filtered = filtered.filter(t => 
+                (Array.isArray(t.assignedTo) && t.assignedTo.includes(currentUserId)) || 
+                t.createdBy === currentUserId
+            );
+        } else {
+            // Scope Filter
+            if (boardScope === 'my' && user) {
+                filtered = filtered.filter(t => Array.isArray(t.assignedTo) && t.assignedTo.includes(user.id));
+            }
+            
+            // Assignee Filter
+            if (boardAssignee !== 'all') {
+                filtered = filtered.filter(t => Array.isArray(t.assignedTo) && t.assignedTo.includes(boardAssignee));
+            }
         }
 
         // Service Filter
@@ -372,12 +416,20 @@ export default function AdminDashboardPage() {
 
     // Practice progress indicator calculations
     const practiceMetrics = useMemo(() => {
-        const active = tasks.filter(t => t.status !== 'Done');
-        const done = tasks.filter(t => t.status === 'Done');
+        let relevantTasks = tasks;
+        if (user?.role === 'staff') {
+            const currentUserId = user.id || (user as any)?.uid;
+            relevantTasks = tasks.filter(t => 
+                (Array.isArray(t.assignedTo) && t.assignedTo.includes(currentUserId)) ||
+                t.createdBy === currentUserId
+            );
+        }
+        const active = relevantTasks.filter(t => t.status !== 'Done');
+        const done = relevantTasks.filter(t => t.status === 'Done');
         const total = active.length + done.length;
         const completionRate = total > 0 ? Math.round((done.length / total) * 100) : 100;
         return { activeCount: active.length, doneCount: done.length, completionRate };
-    }, [tasks]);
+    }, [tasks, user]);
 
     const availableTaskTypes = useMemo(() => {
         const types = new Set<string>();
@@ -779,7 +831,10 @@ export default function AdminDashboardPage() {
             </div>
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-xl w-full flex flex-col max-h-[90vh] bg-white p-0 overflow-hidden">
+                <DialogContent 
+                    closeButtonClassName="text-white hover:text-white hover:bg-white/20 data-[state=open]:bg-white/10 data-[state=open]:text-white opacity-100 h-8 w-8 rounded-full border border-white/20 top-4 right-4 focus:ring-white/40"
+                    className="sm:max-w-xl w-full flex flex-col max-h-[90vh] bg-white p-0 overflow-hidden"
+                >
                     <div className="p-6 border-b bg-gradient-to-r from-slate-900 to-slate-800 text-white relative">
                         <DialogHeader className="text-left mb-0">
                             <DialogTitle className="text-2xl font-black text-white leading-tight">{selectedTask ? 'Edit Task' : 'Create Task'}</DialogTitle>
@@ -803,10 +858,86 @@ export default function AdminDashboardPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* PREMIUM UI: Interactive business KPIs */}
-            <AdminKpis />
+            {/* PREMIUM UI: Interactive business KPIs (Admin vs Staff) */}
+            {user?.role === 'staff' ? (
+                <StaffKpis userId={user.id} tasks={tasks} />
+            ) : (
+                <AdminKpis />
+            )}
 
-            {/* CENTRAL COMMAND HUB: Real-Time Operational Action Banners */}
+            {/* STAFF VIEW: Dedicated Allocated Orders Section */}
+            {user?.role === 'staff' && (
+                <Card className="border-border/60 shadow-sm overflow-hidden">
+                    <CardHeader className="p-4 pb-3 flex flex-row items-center justify-between bg-muted/20 border-b">
+                        <div>
+                            <CardTitle className="text-base font-bold flex items-center gap-2">
+                                <ClipboardList className="h-4 w-4 text-primary" /> My Allocated Orders
+                            </CardTitle>
+                            <CardDescription className="text-xs">
+                                Client orders actively assigned to you for review and execution.
+                            </CardDescription>
+                        </div>
+                        <Button variant="outline" size="sm" asChild className="text-xs font-bold">
+                            <Link href="/admin/orders">View All My Orders</Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {staffAllocatedOrders.length === 0 ? (
+                            <div className="p-8 text-center space-y-2">
+                                <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto" />
+                                <p className="text-sm font-semibold text-foreground">All caught up!</p>
+                                <p className="text-xs text-muted-foreground">You currently have no orders allocated to you.</p>
+                            </div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="text-xs">
+                                        <TableHead>Order #</TableHead>
+                                        <TableHead>Client</TableHead>
+                                        <TableHead>Services</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {staffAllocatedOrders.map(ord => (
+                                        <TableRow key={ord.id} className="text-xs hover:bg-muted/40 transition-colors">
+                                            <TableCell className="font-bold text-primary">
+                                                <Link href={`/admin/orders/${ord.id}`} className="hover:underline">
+                                                    #{ord.originalOrderId || ord.id}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="font-semibold text-foreground">{ord.customerName}</div>
+                                                <div className="text-[11px] text-muted-foreground">{ord.customerEmail}</div>
+                                            </TableCell>
+                                            <TableCell className="max-w-[200px] truncate">
+                                                {ord.items?.map(i => i.title).join(', ') || 'Custom Services'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className={cn("text-[10px] font-bold", getStatusVariant(ord.status as any))}>
+                                                    {ord.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button size="xs" variant="outline" asChild className="text-[11px] font-bold">
+                                                    <Link href={`/admin/orders/${ord.id}`}>
+                                                        Open <ArrowRight className="ml-1 h-3 w-3" />
+                                                    </Link>
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* CENTRAL COMMAND HUB: Real-Time Operational Action Banners (Admin Only) */}
+            {user?.role !== 'staff' && (
+                <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Metric 1: Community Moderation */}
                 <Card className="hover:shadow-md transition-all">
@@ -963,6 +1094,8 @@ export default function AdminDashboardPage() {
                     )}
                 </div>
             )}
+                </>
+            )}
 
             {/* Practice Metrics & Performance Banner */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -1041,8 +1174,8 @@ export default function AdminDashboardPage() {
                     </CardContent>
                 </Card>
             )}
-            {/* Recent Communications */}
-            {unarchivedComms.length > 0 && (
+            {/* Recent Communications (Admin Only) */}
+            {user?.role !== 'staff' && unarchivedComms.length > 0 && (
                 <div className="space-y-4">
                     <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 flex items-center gap-2 px-2">
                         <MessageSquare className="h-4 w-4" /> Recent Client Emails
@@ -1145,38 +1278,42 @@ export default function AdminDashboardPage() {
                         </div>
                         
                         <div className={cn("flex flex-wrap items-center gap-2 transition-opacity duration-300", !isTaskBoardOpen && "opacity-0 pointer-events-none")}>
-                            <div className="bg-white p-0.5 rounded-md border flex items-center shadow-sm">
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className={cn("h-7 text-[10px] font-bold px-2.5", boardScope === 'my' ? "bg-primary/10 text-primary" : "text-slate-500 hover:text-slate-900")}
-                                    onClick={() => setBoardScope('my')}
-                                >
-                                    My Tasks
-                                </Button>
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className={cn("h-7 text-[10px] font-bold px-2.5", boardScope === 'all' ? "bg-primary/10 text-primary" : "text-slate-500 hover:text-slate-900")}
-                                    onClick={() => setBoardScope('all')}
-                                >
-                                    Practice Tasks
-                                </Button>
-                            </div>
+                            {user?.role !== 'staff' && (
+                                <>
+                                    <div className="bg-white p-0.5 rounded-md border flex items-center shadow-sm">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className={cn("h-7 text-[10px] font-bold px-2.5", boardScope === 'my' ? "bg-primary/10 text-primary" : "text-slate-500 hover:text-slate-900")}
+                                            onClick={() => setBoardScope('my')}
+                                        >
+                                            My Tasks
+                                        </Button>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className={cn("h-7 text-[10px] font-bold px-2.5", boardScope === 'all' ? "bg-primary/10 text-primary" : "text-slate-500 hover:text-slate-900")}
+                                            onClick={() => setBoardScope('all')}
+                                        >
+                                            Practice Tasks
+                                        </Button>
+                                    </div>
 
-                            <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+                                    <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block"></div>
 
-                            <Select value={boardAssignee} onValueChange={setBoardAssignee}>
-                                <SelectTrigger className="w-[140px] h-8 text-xs font-semibold bg-white shadow-sm border-slate-200">
-                                    <SelectValue placeholder="Assignee" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Assignees</SelectItem>
-                                    {assignableStaff.map(staff => (
-                                        <SelectItem key={staff.id} value={staff.id}>{staff.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                    <Select value={boardAssignee} onValueChange={setBoardAssignee}>
+                                        <SelectTrigger className="w-[140px] h-8 text-xs font-semibold bg-white shadow-sm border-slate-200">
+                                            <SelectValue placeholder="Assignee" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Assignees</SelectItem>
+                                            {assignableStaff.map(staff => (
+                                                <SelectItem key={staff.id} value={staff.id}>{staff.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </>
+                            )}
 
                             <Select value={taskTypeFilter} onValueChange={setTaskTypeFilter}>
                                 <SelectTrigger className="w-[150px] h-8 text-xs font-semibold bg-white shadow-sm border-slate-200">

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
+import { generateAccountingHeadTermSchema } from '@/lib/schema/productSchema';
 import { 
   Building2, 
   Calculator, 
@@ -19,11 +20,13 @@ export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
     const defaults: Metadata = {
-        title: 'Accounting Services South Africa | Top Accountants | My Accountant',
-        description: 'Professional accounting services in South Africa for small to medium businesses. Monthly accounting, management accounts, and bookkeeping on Xero & Sage.',
+        title: 'Accounting Services & Experts South Africa | My Accountant',
+        description: 'Rated 4.9/5 by 200+ businesses. Expert South African accounting services, monthly bookkeeping, management accounts & SARS tax compliance. Get a quote today.',
     };
     return getStaticPageMetadata('accounting-services-south-africa', defaults);
 }
+
+const headTermSchema = generateAccountingHeadTermSchema();
 
 export default function AccountingServicesSouthAfricaPage() {
   const services = [
@@ -82,6 +85,10 @@ export default function AccountingServicesSouthAfricaPage() {
 
   return (
     <div className="space-y-16 pb-24 bg-background relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(headTermSchema) }}
+      />
       {/* Hero Section */}
       <section className="text-foreground py-20 lg:py-32 bg-background relative overflow-hidden">
         <div className="aurora-blob aurora-cyan w-[500px] h-[500px] -top-40 -left-40 animate-aurora-drift" />

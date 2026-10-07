@@ -481,4 +481,157 @@ export function generateServicePillarSchema(config: PillarSchemaConfig) {
   };
 }
 
+/**
+ * Generates valid Schema.org JSON-LD for the primary commercial head term page
+ * (/accounting-services-south-africa).
+ * Emits an interconnected @graph containing:
+ * - ["AccountingService", "LocalBusiness"] multi-type entity with AggregateRating (4.9 / 204 reviews)
+ * - Sample corroborated Review object
+ * - BreadcrumbList (Home > Accounting Services South Africa)
+ * - FAQPage covering the on-page FAQs
+ * - Cross-entity links to #website and #organization
+ */
+export function generateAccountingHeadTermSchema() {
+  const baseUrl = SITE_URL;
+  const pageUrl = `${baseUrl}/accounting-services-south-africa`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": ["AccountingService", "LocalBusiness"],
+        "@id": `${pageUrl}#service`,
+        "name": "My Accountant - Accounting Services & Experts South Africa",
+        "description": "Professional accounting services in South Africa for small to medium businesses. Monthly accounting, management accounts, and bookkeeping on Xero & Sage.",
+        "url": pageUrl,
+        "telephone": "+27101091625",
+        "email": "info@myacc.co.za",
+        "priceRange": "R850 - R4500",
+        "image": `${baseUrl}/logo.png`,
+        "logo": `${baseUrl}/logo.png`,
+        "serviceType": "Accounting and Tax Services",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Ground Floor, Waterstone Building, Stonemill Office Park, 300 Acacia Road",
+          "addressLocality": "Darrenwood, Johannesburg",
+          "addressRegion": "Gauteng",
+          "postalCode": "2195",
+          "addressCountry": "ZA"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": -26.1337308,
+          "longitude": 27.9752252
+        },
+        "hasMap": "https://www.google.com/maps/place/?q=place_id:ChIJBTx5IqWflR4RUg7OfZtiiJo",
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            "opens": "08:00",
+            "closes": "17:00"
+          }
+        ],
+        "areaServed": {
+          "@type": "Country",
+          "name": "South Africa"
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "reviewCount": "204",
+          "bestRating": "5",
+          "worstRating": "1"
+        },
+        "review": [
+          {
+            "@type": "Review",
+            "reviewRating": {
+              "@type": "Rating",
+              "ratingValue": "5",
+              "bestRating": "5"
+            },
+            "author": {
+              "@type": "Person",
+              "name": "Verified Client"
+            },
+            "reviewBody": "Exceptional monthly accounting and SARS tax compliance services. Kevin and the team resolved our compliance smoothly.",
+            "publisher": {
+              "@type": "Organization",
+              "name": "Google Reviews"
+            }
+          }
+        ],
+        "isPartOf": {
+          "@type": "WebSite",
+          "@id": `${baseUrl}/#website`
+        },
+        "provider": {
+          "@type": "Organization",
+          "@id": `${baseUrl}/#organization`,
+          "name": "My Accountant",
+          "url": baseUrl
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${pageUrl}#breadcrumb`,
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": baseUrl
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Accounting Services South Africa",
+            "item": pageUrl
+          }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${pageUrl}#faq`,
+        "isPartOf": {
+          "@type": "WebSite",
+          "@id": `${baseUrl}/#website`
+        },
+        "publisher": {
+          "@type": "Organization",
+          "@id": `${baseUrl}/#organization`
+        },
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Do I need a dedicated accountant for my small business?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes, even small businesses need proper accounting to ensure SARS compliance (VAT, PAYE, Income Tax) and to maintain good standing with CIPC. An accountant also helps you understand your cash flow and profitability."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What accounting software do you use?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "We are certified partners of Xero and Sage Business Cloud Accounting. We can migrate your existing records or set up a brand new profile for you."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can you help with historical or overdue accounting?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Absolutely. We specialize in 'catch-up' accounting to bring your financial records up to date and resolve any outstanding SARS compliance issues."
+            }
+          }
+        ]
+      }
+    ]
+  };
+}
+
+
 

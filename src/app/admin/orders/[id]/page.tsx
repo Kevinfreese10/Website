@@ -138,6 +138,7 @@ export default function AdminOrderDetailsPage() {
   const [customDocLabel, setCustomDocLabel] = useState('');
   const [customDocType, setCustomDocType] = useState<'pdf' | 'text'>('pdf');
   const [isSubmittingCustomDoc, setIsSubmittingCustomDoc] = useState(false);
+  const [isAccessDenied, setIsAccessDenied] = useState(false);
 
   // Order Dependency States
   const [prereqOrders, setPrereqOrders] = useState<Order[]>([]);
@@ -236,6 +237,17 @@ export default function AdminOrderDetailsPage() {
                         uploadedAt: doc.uploadedAt?.toDate ? doc.uploadedAt.toDate().toISOString() : (doc.uploadedAt ? (typeof doc.uploadedAt === 'string' ? doc.uploadedAt : new Date(doc.uploadedAt).toISOString()) : new Date().toISOString())
                     }));
                 }
+          }
+
+          // Staff role restriction: staff can only view orders allocated to them
+          const currentUserId = currentUser?.id || (currentUser as any)?.uid;
+          if (currentUser?.role === 'staff') {
+            const isAssigned = Array.isArray(fetchedOrder.assignedTo) && fetchedOrder.assignedTo.includes(currentUserId);
+            if (!isAssigned) {
+              setIsAccessDenied(true);
+              setIsLoading(false);
+              return;
+            }
           }
 
           setOrder(fetchedOrder);
@@ -862,6 +874,30 @@ export default function AdminOrderDetailsPage() {
   
   if (isLoading) {
     return <div role="status" aria-live="polite" aria-busy="true" className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" aria-hidden="true" /><span className="sr-only">Loading…</span></div>;
+  }
+
+  if (isAccessDenied) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4">
+        <Card className="border-destructive/30 shadow-sm text-center p-8 space-y-4">
+          <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center">
+            <Lock className="w-6 h-6" />
+          </div>
+          <CardTitle className="text-xl">Access Restricted</CardTitle>
+          <CardDescription className="text-sm">
+            Order #{id} is not allocated to your account. As a staff member, you can only view and manage orders assigned to you.
+          </CardDescription>
+          <div className="pt-4">
+            <Button asChild>
+              <Link href="/admin/orders">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to My Orders
+              </Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (!order) return notFound();

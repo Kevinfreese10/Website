@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter, RefreshCw, Link as LinkIcon, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { MoreHorizontal, Loader2, PlusCircle, MessageSquare, Server, Search, Filter, RefreshCw, Link as LinkIcon, AlertTriangle, CheckCircle2, X, User as UserIcon } from 'lucide-react';
 import { TableSkeleton } from '@/components/ui/skeletons';
 import { EmptyState } from '@/components/ui/empty-state';
 import { OrdersTable } from '@/components/admin/orders/OrdersTable';
@@ -210,7 +210,13 @@ export default function AdminOrdersPage() {
             return (isDirectOrder || isOutsourcedWork || isPartnerDirectPurchase || isPartnerPurchase);
         });
 
-        setOrders(visibleOrders);
+        const isStaffUser = user?.role === 'staff';
+        const currentUserId = user?.id || (user as any)?.uid;
+        const staffScopedOrders = isStaffUser
+            ? visibleOrders.filter(order => Array.isArray(order.assignedTo) && order.assignedTo.includes(currentUserId))
+            : visibleOrders;
+
+        setOrders(staffScopedOrders);
         setIsLoading(false);
     }, (error) => {
         console.error("Error fetching orders in real-time:", error);
@@ -223,8 +229,12 @@ export default function AdminOrdersPage() {
 
   // Load saved filters on mount
   useEffect(() => {
-    const savedAssigned = localStorage.getItem('adminOrdersAssignedFilter');
-    if (savedAssigned) setAssignedFilter(savedAssigned);
+    if (user?.role === 'staff') {
+      setAssignedFilter('mine');
+    } else {
+      const savedAssigned = localStorage.getItem('adminOrdersAssignedFilter');
+      if (savedAssigned) setAssignedFilter(savedAssigned);
+    }
     
     const savedStatus = localStorage.getItem('adminOrdersStatusFilter');
     if (savedStatus && savedStatus !== 'active') {
@@ -232,9 +242,13 @@ export default function AdminOrdersPage() {
     } else {
       setStatusFilter('all');
     }
-  }, []);
+  }, [user]);
 
   const handleAssignedFilterChange = (value: string) => {
+    if (user?.role === 'staff') {
+      setAssignedFilter('mine');
+      return;
+    }
     setAssignedFilter(value);
     localStorage.setItem('adminOrdersAssignedFilter', value);
   };
@@ -282,7 +296,10 @@ export default function AdminOrdersPage() {
         }
 
         // Assigned filter
-        if (assignedFilter === 'mine') {
+        if (user?.role === 'staff') {
+            const currentUserId = user?.id || (user as any)?.uid;
+            if (!currentUserId || !order.assignedTo?.includes(currentUserId)) return false;
+        } else if (assignedFilter === 'mine') {
             const currentUserId = user?.id || (user as any)?.uid;
             if (!currentUserId || !order.assignedTo?.includes(currentUserId)) return false;
         } else if (assignedFilter === 'unassigned') {
@@ -668,14 +685,20 @@ export default function AdminOrdersPage() {
     <div className="space-y-8">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Manage Orders</h1>
-                <p className="text-sm text-muted-foreground">Monitor and update client orders across the practice.</p>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {user?.role === 'staff' ? 'My Orders' : 'Manage Orders'}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {user?.role === 'staff' ? 'Monitor and update client orders allocated to you.' : 'Monitor and update client orders across the practice.'}
+                </p>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-              <Button variant="outline" onClick={handleReconcile} disabled={isReconciling} className="w-full sm:w-auto justify-center">
-                {isReconciling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                {isReconciling ? 'Reconciling...' : 'Reconcile Payments'}
-              </Button>
+              {user?.role !== 'staff' && (
+                <Button variant="outline" onClick={handleReconcile} disabled={isReconciling} className="w-full sm:w-auto justify-center">
+                  {isReconciling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  {isReconciling ? 'Reconciling...' : 'Reconcile Payments'}
+                </Button>
+              )}
               <Button asChild className="w-full sm:w-auto justify-center">
                 <Link href="/admin/orders/new">
                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -689,9 +712,9 @@ export default function AdminOrdersPage() {
             <CardHeader className="pb-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="space-y-1">
-                        <CardTitle>All Client Orders</CardTitle>
+                        <CardTitle>{user?.role === 'staff' ? 'My Assigned Orders' : 'All Client Orders'}</CardTitle>
                         <CardDescription>
-                            {user?.role === 'staff' ? 'Showing all orders assigned to you.' : 'View and manage all active orders in the system.'}
+                            {user?.role === 'staff' ? 'Showing all orders allocated to you.' : 'View and manage all active orders in the system.'}
                         </CardDescription>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -715,23 +738,31 @@ export default function AdminOrdersPage() {
                             )}
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
-                            <Select value={assignedFilter} onValueChange={handleAssignedFilterChange}>
-                                <SelectTrigger className="h-10 w-full sm:w-[180px] font-bold border-primary/10">
-                                    <SelectValue placeholder="All Staff" />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[300px]">
-                                    <SelectItem value="all">All Staff</SelectItem>
-                                    <SelectItem value="mine">My Orders</SelectItem>
-                                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                                    {eligibleStaff.length > 0 && <SelectSeparator />}
-                                    {eligibleStaff.map(staff => (
-                                        <SelectItem key={staff.id} value={staff.id}>
-                                            {staff.name || staff.email} {staff.department ? `(${staff.department})` : ''}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            {user?.role === 'staff' ? (
+                                <Badge variant="outline" className="h-10 px-3 flex items-center gap-1.5 font-bold text-xs bg-muted/40 border-primary/20 text-foreground">
+                                    <UserIcon className="h-3.5 w-3.5 text-primary" /> Allocated to Me
+                                </Badge>
+                            ) : (
+                                <>
+                                    <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                                    <Select value={assignedFilter} onValueChange={handleAssignedFilterChange}>
+                                        <SelectTrigger className="h-10 w-full sm:w-[180px] font-bold border-primary/10">
+                                            <SelectValue placeholder="All Staff" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-[300px]">
+                                            <SelectItem value="all">All Staff</SelectItem>
+                                            <SelectItem value="mine">My Orders</SelectItem>
+                                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                                            {eligibleStaff.length > 0 && <SelectSeparator />}
+                                            {eligibleStaff.map(staff => (
+                                                <SelectItem key={staff.id} value={staff.id}>
+                                                    {staff.name || staff.email} {staff.department ? `(${staff.department})` : ''}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </>
+                            )}
                             <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                                 <SelectTrigger className="h-10 w-full sm:w-[180px] font-bold border-primary/10">
                                     <SelectValue placeholder="All Statuses" />

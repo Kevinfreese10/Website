@@ -113,7 +113,11 @@ export default function AdminTasksPage() {
   const filteredTasks = useMemo(() => {
     let tasksToFilter = tasks;
     if (user?.role === 'staff') {
-        tasksToFilter = tasks.filter(task => Array.isArray(task.assignedTo) && task.assignedTo.includes(user.id));
+        const currentUserId = user.id || (user as any)?.uid;
+        tasksToFilter = tasks.filter(task => 
+          (Array.isArray(task.assignedTo) && task.assignedTo.includes(currentUserId)) ||
+          task.createdBy === currentUserId
+        );
     }
     
     if (taskTypeFilter !== 'all' && taskTypeFilter !== 'All Tasks') {
@@ -486,7 +490,10 @@ export default function AdminTasksPage() {
 
       {/* Task Modal */}
       <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setSelectedTask(null);}}>
-         <DialogContent className="sm:max-w-xl w-full flex flex-col max-h-[90vh] bg-white p-0 overflow-hidden">
+         <DialogContent 
+            closeButtonClassName="text-white hover:text-white hover:bg-white/20 data-[state=open]:bg-white/10 data-[state=open]:text-white opacity-100 h-8 w-8 rounded-full border border-white/20 top-4 right-4 focus:ring-white/40"
+            className="sm:max-w-xl w-full flex flex-col max-h-[90vh] bg-white p-0 overflow-hidden"
+         >
               <div className="p-6 border-b bg-gradient-to-r from-slate-900 to-slate-800 text-white relative">
                   <DialogHeader className="text-left">
                       <div className="flex justify-between items-center">

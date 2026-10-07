@@ -12,6 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { SITE_URL, GLOBAL_OG_IMAGE } from '@/lib/constants';
 import TrustIndexWidget from '@/components/shared/TrustIndexWidget';
 import ShareWidget from '@/components/blog/ShareWidget';
+import { CURATED_BLOG_FAQS } from '@/lib/blog-faqs';
+import BlogContextualCta, { hasContextualCta } from '@/components/blog/BlogContextualCta';
 
 export const revalidate = 1800;
 
@@ -128,7 +130,7 @@ export default async function BlogPostPage({ params }: Props) {
 
   // Standard fallback FAQ generator for blog posts
   const titleClean = post.title.replace(/[?.!]/g, "");
-  const postFaqs = [
+  const fallbackFaqs = [
     {
       q: `What is the key takeaway from "${titleClean}"?`,
       a: post.excerpt || `In this article, we explore the essential concepts of "${titleClean}" to help South African businesses and individuals make informed financial decisions.`
@@ -142,6 +144,15 @@ export default async function BlogPostPage({ params }: Props) {
       a: "Our team of qualified Chartered Business Accountants and Tax Practitioners offers complete, online accounting, bookkeeping, VAT submissions, and tax dispute support to keep your business compliant with SARS and CIPC."
     }
   ];
+
+  // Resolve FAQs: post.faqs || CURATED_BLOG_FAQS[post.slug] || fallbackFaqs
+  const rawPostFaqs = (post as any).faqs;
+  const postFaqs: { q: string; a: string }[] = (rawPostFaqs && rawPostFaqs.length > 0)
+    ? rawPostFaqs.map((f: any) => ({
+        q: f.q || f.question || '',
+        a: f.a || f.answer || '',
+      }))
+    : (CURATED_BLOG_FAQS[post.slug] || fallbackFaqs);
 
   const postUrl = `${SITE_URL}/blog/${post.slug}`;
 
@@ -365,24 +376,29 @@ export default async function BlogPostPage({ params }: Props) {
           suppressHydrationWarning
         />
 
-        {/* PROMINENT CTA BLOCK TO REDIRECT TRAFFIC */}
-        <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
-          <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white font-headline">Need Expert Help?</h2>
-            <p className="text-lg text-slate-300 font-medium">
-              Don't let tax compliance slow you down. Book a free consultation today or browse our online store.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
-              <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-blue-600 hover:bg-blue-500 text-white transition-all duration-300 w-full sm:w-auto">
-                <Link href="/contact">Book Free Consultation</Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="h-14 px-8 text-base font-bold bg-white/10 hover:bg-white/20 border-white/20 text-white transition-all duration-300 w-full sm:w-auto backdrop-blur-md">
-                <Link href="/products">Visit Online Store</Link>
-              </Button>
+        {/* Topic-Specific Contextual CTA for Conversion Funnels */}
+        <BlogContextualCta slug={post.slug} />
+
+        {/* Generic Fallback CTA Block for Other Blog Posts */}
+        {!hasContextualCta(post.slug) && (
+          <div className="my-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-8 md:p-12 border shadow-2xl text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
+            <div className="relative z-10 max-w-2xl mx-auto space-y-6">
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white font-headline">Need Expert Help?</h2>
+              <p className="text-lg text-slate-300 font-medium">
+                Don't let tax compliance slow you down. Book a free consultation today or browse our online store.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
+                <Button asChild size="lg" className="h-14 px-8 text-base font-bold shadow-xl bg-blue-600 hover:bg-blue-500 text-white transition-all duration-300 w-full sm:w-auto">
+                  <Link href="/contact">Book Free Consultation</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="h-14 px-8 text-base font-bold bg-white/10 hover:bg-white/20 border-white/20 text-white transition-all duration-300 w-full sm:w-auto backdrop-blur-md">
+                  <Link href="/products">Visit Online Store</Link>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* FAQ SECTION (Strictly aligned with Google Search Engine requirements) */}
         {postFaqs && postFaqs.length > 0 && (
