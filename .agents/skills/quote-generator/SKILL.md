@@ -25,7 +25,7 @@ A client must be able to scan any email in **approximately 30 seconds** and imme
 |---|---|---|
 | **Standard Fixed Catalog Service** | Matches 100% of fixed one-off website catalog items (e.g. Company Reg, VAT Reg, Tax Clearance, CIDB renewals, ITR14) | **Full Autonomy:** Automatically generate the 30-Second Executive HTML email and dispatch directly to the client. |
 | **Accounting / Payroll Retainer** | Monthly accounting retainers, monthly bookkeeping, or payroll packages | **Strict Review Protocol (Requires Kevin's Input):** NEVER send automated pricing or proposals to the client. Retainers require Kevin's direct evaluation first. Auto-reply with an executive consultation acknowledgment and forward the inquiry to `kev@thinkestry.co.za` for scoping. |
-| **SARS Tax Debt Compromise** | Tax debt compromise, debt relief, or tax settlement inquiries | **Free Assessment Protocol:** Prompt the client for (1) the approximate total debt value, and (2) SARS eFiling login credentials to conduct a free assessment. Alert `kev@thinkestry.co.za`. |
+| **SARS Tax Debt Compromise** | Tax debt compromise, debt relief, or tax settlement inquiries | **Assessment Protocol:** Prompt client for approximate debt value and eFiling access for initial assessment. Standard terms: **R20,000 upfront retainer** + **5% success fee**; lodgement within **5 working days** of information delivery; SARS review **30–90 business days**. Banking: FNB Acc **63084378223** (Ref: Entity Name). Alert `kev@thinkestry.co.za`. |
 | **Custom / Complex Advisory Scope** | Multi-entity restructures, foreign corporate holding advisory, Section 200 compromises, or custom pricing | **Review Protocol:** Auto-draft the proposal into IMAP Drafts and email the preview to `kev@thinkestry.co.za` for one-click approval before sending. |
 
 > [!CRITICAL]
@@ -192,4 +192,14 @@ SARS updated South Africa's national VAT registration thresholds effective **1 A
 - **CIDB Upgrades (Grades 2–9):** **R 1,800.00** &bull; `https://www.myacc.co.za/products/cidb-upgrades-grades-2-9`
 - **CIDB Annual Renewal:** **R 650.00** &bull; `https://www.myacc.co.za/products/cidb-annual-renewal`
 - **CIDB Grade 1 Registration:** **R 1,150.00** &bull; `https://www.myacc.co.za/products/cidb-registration`
+
+### CIPC Statutory Disbursements & Turnaround Reference (V2.0 Matrix)
+When quoting corporate secretarial and statutory amendments, ensure quotes account for official CIPC statutory fees (or distinguish our professional fees from CIPC fees):
+- **Director Changes (CoR 39):** CIPC Fee: **R 0.00 (Free)** &bull; Electronic (`eservicescoreg@cipc.co.za`): **5 business days** vs Manual (`manualcor39@cipc.co.za`): **30 business days** *(always execute electronically)*.
+- **Profit Company Long Form / Personal Liability Inc (CoR 14.1 & 15.1B):** CIPC Fee: **R 475.00** (minus name reservation fee) &bull; Submitted to `companydocs@cipc.co.za` *(5–10 business days)*.
+- **Company & CC Re-instatement (CoR 40.5):** CIPC Fee: **R 200.00** &bull; 6-part dossier to `re-instatements@cipc.co.za` *(15–30 business days)*.
+- **MOI Amendments & Special Resolutions (CoR 15.2):** CIPC Fee: **R 250.00** &bull; Submitted to `moiamendments@cipc.co.za` *(10–15 business days)*.
+- **Voluntary Solvent Liquidation (CoR 40.1):** CIPC Fee: **R 250.00** &bull; Form JM12 + special resolution to `liquidations@cipc.co.za` *(10–15 business days)*.
+- **Voluntary Insolvent Liquidation (CM 26 / CM 100):** CIPC Fee: **R 80.00** *(plus R150 penalty if lodged >1 month post-meeting)* &bull; To `liquidations@cipc.co.za` *(10–15 business days)*.
+- **Close Corporation Accounting Officer Change (CK2A):** CIPC Fee: **R 0.00 (Free)** &bull; Appointment letter + consent letter to CIPC *(5–10 business days)*.
 

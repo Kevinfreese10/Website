@@ -272,12 +272,15 @@ export default function HomePageClient({ initialPrices = {} }: HomePageClientPro
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
                   {/* Left Column: Avatar & Credentials */}
                   <div className="md:col-span-4 flex flex-col items-center text-center p-6 bg-white/[0.01] border border-white/[0.04] rounded-xl">
-                    <Image
-                      src="/kevin-freese.webp"
+                    <img
+                      src={KEVIN_FREESE_PROFILE_IMAGE}
                       alt="Kevin Freese - Managing Director & Founder"
                       width={96}
                       height={96}
                       className="h-24 w-24 rounded-full object-cover border-4 border-white/20 shadow-xl shrink-0 mb-4"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/kevin-freese.jpg';
+                      }}
                     />
                     <h3 className="text-lg font-black text-foreground">Kevin Freese</h3>
                     <p className="text-xs text-primary font-bold uppercase tracking-wider mt-0.5">Managing Director & Founder</p>
