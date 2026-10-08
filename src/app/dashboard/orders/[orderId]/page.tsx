@@ -15,7 +15,7 @@ import {
   CheckCircle, AlertTriangle, Paperclip, FileText, FileSpreadsheet, FileImage, 
   File as FileIcon, Trash2, ExternalLink, HelpCircle, Info, Plus, RefreshCw, Edit3, CheckCircle2,
   MessageSquareQuote, Clock, Calendar, ShoppingBag, CreditCard, User as UserIcon, Phone, Check,
-  Users
+  Users, Lock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDate, isServerActionMismatchError } from '@/lib/utils';
@@ -752,7 +752,7 @@ export default function ClientOrderDetailsPage() {
 
         <div className="grid grid-cols-1 gap-8 items-start">
             <div className="space-y-8">
-                {allSubmitted && (
+                {allSubmitted && order.status !== 'Pending Payment' && (
                     isCurrentlyUnderReview ? (
                         <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-green-800">
                             <div className="flex items-start gap-3">
@@ -839,9 +839,32 @@ export default function ClientOrderDetailsPage() {
                                     </div>
                                     <p className="font-bold text-foreground text-lg">{formatPrice(item.price)}</p>
                                 </div>
-                                {item.combinedRequirements && item.combinedRequirements.length > 0 && (
-                                    <div className="space-y-4">
-                                        <h4 className="font-semibold text-sm text-foreground/90">Documents & Data Required:</h4>
+                                {order.status === 'Pending Payment' ? (
+                                    index === 0 && (
+                                        <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-6 md:p-8 text-center space-y-4 shadow-sm my-4">
+                                            <div className="mx-auto w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
+                                                <Lock className="w-6 h-6" />
+                                            </div>
+                                            <div className="space-y-2 max-w-md mx-auto">
+                                                <h3 className="text-lg font-bold text-slate-900">Payment Required to Unlock Document Submission</h3>
+                                                <p className="text-sm text-slate-600 leading-relaxed">
+                                                    This order is currently pending payment. Once payment is received, document submission will unlock and our accounting team will immediately begin processing your order.
+                                                </p>
+                                            </div>
+                                            <div className="pt-2">
+                                                <Button asChild size="lg" className="font-bold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+                                                    <Link href={`/order-confirmation/${order.id}`}>
+                                                        <CreditCard className="w-4 h-4" />
+                                                        Complete Payment Now ({formatPrice(order.total || item.price)})
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )
+                                ) : (
+                                    item.combinedRequirements && item.combinedRequirements.length > 0 && (
+                                        <div className="space-y-4">
+                                            <h4 className="font-semibold text-sm text-foreground/90">Documents & Data Required:</h4>
                                         {item.combinedRequirements.map((info: any, infoIndex: number) => {
                                             const upload = order.documentUploads?.find(d => 
                                                 (info.id && d.requirementId === info.id) ||
@@ -1492,6 +1515,7 @@ export default function ClientOrderDetailsPage() {
                                             </div>
                                         )})}
                                     </div>
+                                )
                                 )}
                                 {index < orderedItemsWithServices.length - 1 && <Separator className="my-6" />}
                             </div>
@@ -1502,7 +1526,7 @@ export default function ClientOrderDetailsPage() {
                             <span>{formatPrice(order.total)}</span>
                         </div>
                     </CardContent>
-                    {allRequirements.length > 0 && (
+                    {order.status !== 'Pending Payment' && allRequirements.length > 0 && (
                         <CardFooter className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
                             <div className="text-xs text-muted-foreground">
                                 {allSubmitted ? (

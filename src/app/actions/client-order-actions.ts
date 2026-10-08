@@ -60,6 +60,13 @@ export async function submitClientDocumentUploadAction(params: SubmitClientDocPa
       return { success: false, error: 'Forbidden: You do not have permission to upload documents to this order.' };
     }
 
+    if (order.status === 'Pending Payment') {
+      return {
+        success: false,
+        error: `Order #${params.orderId} is awaiting payment. Document upload and information submission unlock once payment has been received and the order moves to Processing.`,
+      };
+    }
+
     const currentUploads: DocumentUpload[] = order.documentUploads || [];
     const uploadId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const nowIso = new Date().toISOString();
@@ -217,6 +224,13 @@ export async function removeClientDocumentFileAction(params: RemoveClientDocFile
       return { success: false, error: 'Forbidden: You do not have permission to remove files from this order.' };
     }
 
+    if (order.status === 'Pending Payment') {
+      return {
+        success: false,
+        error: `Order #${params.orderId} is awaiting payment. Cannot modify documents while the order is pending payment.`,
+      };
+    }
+
     const currentUploads: DocumentUpload[] = order.documentUploads || [];
     const existingIndex = currentUploads.findIndex(d => 
       (d.serviceId === params.serviceId || d.serviceId === order.items?.[0]?.id) && 
@@ -332,6 +346,13 @@ export async function syncClientQuestionnaireAction(params: SyncQuestionnairePar
       return { success: false, error: 'Forbidden: Cannot update this questionnaire.' };
     }
 
+    if (order.status === 'Pending Payment') {
+      return {
+        success: false,
+        error: `Order #${params.orderId} is awaiting payment. Questionnaire submission unlocks once payment has been received and the order moves to Processing.`,
+      };
+    }
+
     const currentUploads: DocumentUpload[] = order.documentUploads || [];
     const uploadId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const nowIso = new Date().toISOString();
@@ -423,6 +444,13 @@ export async function notifyConsultantAndVerifyAction(params: { idToken: string;
                      authCtx.isAdmin ||
                      authCtx.isStaff;
     if (!isClient) return { success: false, error: 'Forbidden: You do not have permission to update this order.' };
+
+    if (order.status === 'Pending Payment') {
+      return {
+        success: false,
+        error: `Order #${params.orderId} is awaiting payment. Please complete payment before submitting for review.`,
+      };
+    }
 
     const nowIso = new Date().toISOString();
     const auditEntry: AuditEntry = {

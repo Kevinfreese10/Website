@@ -381,13 +381,15 @@ export default function PartnerOrderDetailsPage() {
       const orderId = order?.originalOrderId || order?.id;
 
       if (type === 'payment') {
-          text += `This is a friendly reminder that your invoice for order #${orderId} is still outstanding. Please make payment at your earliest convenience to proceed.\n\n`;
+          text += `Hope you're having a wonderful week!\n\nJust a gentle follow-up regarding the outstanding invoice for order #${orderId}. Once payment reflects, our team will immediately dive into processing your order.\n\nIf you have already processed the payment or need any assistance with an invoice or statement, please let us know!\n\n`;
       } else if (type === 'docs') {
-          text += `This is a reminder to please upload the required documents for your order #${orderId} so that we can begin processing it.\n\n`;
+          text += `Hope you're having a great day!\n\nWe're all set and excited to get started on your order #${orderId}. Whenever you have a moment, please log into your client portal and upload the required documents so we can begin working on this for you right away.\n\nIf you have any questions or need any help with the requested documents, please feel free to reach out—we're here to help!\n\n`;
       } else if (type === 'review') {
-          text += `We hope you were happy with our service for order #${orderId}. If you have a moment, we would greatly appreciate it if you could leave us a review.\n\n`;
+          text += `It was truly a pleasure assisting you with order #${orderId}! ⭐\n\n` +
+          `We always aim to provide exceptional service, and your feedback means a great deal to our team. If you have just 30 seconds to spare, would you mind sharing your experience with a quick review?\n\n` +
+          `Thank you so much for your trust and support. If there's ever anything else we can assist you with, we're always here for you!\n\n`;
       }
-      text += `Kind regards,\nThe ${currentUser?.companyName || 'My Accountant'} Team`;
+      text += `Warm regards,\nThe ${currentUser?.companyName || 'My Accountant'} Team`;
       noteForm.setValue('noteText', text);
   };
 

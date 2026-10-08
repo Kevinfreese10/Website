@@ -912,32 +912,35 @@ export default function AdminOrderDetailsPage() {
       const orderId = order.originalOrderId || order.id;
 
       if (type === 'payment') {
-          text += `This is a friendly reminder that your invoice for order #${orderId} is still outstanding. Please make payment at your earliest convenience to proceed.\n\n`;
+          text += `Hope you're having a wonderful week!\n\nJust a gentle follow-up regarding the outstanding invoice for order #${orderId}. Once payment reflects, our team will immediately dive into processing your order.\n\nIf you have already processed the payment or need any assistance with an invoice or statement, please let us know!\n\n`;
       } else if (type === 'docs') {
-          text += `This is a reminder to please upload the required documents for your order #${orderId} so that we can begin processing it.\n\n`;
+          text += `Hope you're having a great day!\n\nWe're all set and excited to get started on your order #${orderId}. Whenever you have a moment, please log into your client portal and upload the required documents so we can begin working on this for you right away.\n\nIf you have any questions or need any help with the requested documents, please feel free to reach out—we're here to help!\n\n`;
       } else if (type === 'outstanding_docs') {
           const outstandingRequirements: string[] = [];
           orderItemsWithServices.forEach(item => {
               item.service?.informationToProvide?.forEach(req => {
                   const upload = order.documentUploads?.find(d => (d.serviceId === item.id || d.serviceId === item.service?.id) && d.requirementLabel === req.label);
                   if (!upload || upload.status === 'pending' || upload.status === 'rejected') {
-                      const statusLabel = upload ? `(${upload.status})` : '(missing)';
-                      outstandingRequirements.push(`- ${req.label} ${statusLabel}`);
+                      const statusLabel = upload?.status === 'rejected' ? '(needs replacement)' : '(awaiting upload)';
+                      outstandingRequirements.push(`• ${req.label} ${statusLabel}`);
                   }
               });
           });
-          text += `This is a reminder that we still require the following outstanding information / documents for order #${orderId} before we can proceed:\n\n`;
+          text += `Thank you so much for your order! We've made great progress on order #${orderId}, and we just need a few remaining items from your side to finalize everything smoothly:\n\n`;
           if (outstandingRequirements.length > 0) {
               text += outstandingRequirements.join('\n') + '\n\n';
           } else {
-              text += `Please check the portal for outstanding items.\n\n`;
+              text += `Please check your client portal for the remaining outstanding items.\n\n`;
           }
-          text += `Please log in to the portal and upload these items at your earliest convenience.\n\n`;
+          text += `You can easily upload these directly in your client portal whenever you're ready. Please don't hesitate to let us know if you need any guidance with any of these items!\n\n`;
       } else if (type === 'review') {
-          text += `We hope you were happy with our service for order #${orderId}. If you have a moment, we would greatly appreciate it if you could leave us a review on Google at the link below:\n\nhttps://g.page/r/CVIOzn2bYoiaEAE/review\n\n`;
+          text += `It was truly a pleasure assisting you with order #${orderId}! ⭐\n\n` +
+          `We always aim to provide exceptional, seamless service, and your feedback means a great deal to our team. If you have just 30 seconds to spare, would you mind sharing your experience with a quick review on Google?\n\n` +
+          `👉 https://g.page/r/CVIOzn2bYoiaEAE/review\n\n` +
+          `Thank you so much for your trust and support. If there's ever anything else we can assist you with, we're always here for you!\n\n`;
       }
       
-      text += 'Kind regards,\nThe My Accountant Team';
+      text += 'Warm regards,\nThe My Accountant Team';
       noteForm.setValue('noteText', text);
   }
   
@@ -1452,6 +1455,12 @@ export default function AdminOrderDetailsPage() {
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {order.status === 'Pending Payment' && (
+                                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs flex items-center gap-2.5 font-medium">
+                                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                                    <span>This order is currently <strong>Pending Payment</strong>. Document upload in the client portal is locked until payment is received and the order moves to Processing.</span>
+                                </div>
+                            )}
                             {orderItemsWithServices.map(item => (
                                 <div key={item.id} className="space-y-2">
                                     <h4 className="font-bold text-sm text-foreground">{item.title}</h4>

@@ -48,13 +48,14 @@ const prompt = ai.definePrompt({
   model: 'googleai/gemini-3.5-flash',
   input: { schema: ProofreadNoteInputSchema },
   output: { schema: ProofreadNoteOutputSchema },
-  prompt: `You are an expert editor for an accounting firm. Your task is to proofread the following note.
+  prompt: `You are an expert client communications specialist for a premier South African accounting firm, My Accountant. Your task is to proofread, polish, and warm up the following communication note meant for a client.
 
   **Instructions:**
-  1.  Correct all spelling and grammatical errors.
-  2.  Ensure the tone is friendly but professional.
-  3.  Keep the message concise and clear.
-  4.  Do NOT add any formal greetings or closings (like "Hi," or "Regards,"). Just return the corrected body of the note.
+  1.  **Warm Greeting**: Ensure the message starts with a warm, friendly greeting (e.g., "Hi [Client Name],", "Good day [Client Name],", or "Hello," if no name is present). If a greeting is already present, polish it to feel warm and natural.
+  2.  **Friendly & Welcoming Tone**: Ensure the tone is genuinely warm, courteous, and helpful—never cold, abrupt, or purely bureaucratic. Use conversational warmth (e.g., "Hope you're having a wonderful week!", "Thank you for choosing us", "We're here to help if you have any questions").
+  3.  **Spelling & Grammar**: Correct all spelling, grammar, punctuation, and typographical mistakes.
+  4.  **Preserve Key Details**: Retain all specific information such as order numbers, URLs/links, bullet points, requirement names, and amounts.
+  5.  **Polite Closing**: End with a warm, professional closing (e.g., "Warm regards,\nThe My Accountant Team" or "Kind regards,").
 
   **Original Note:**
   {{{text}}}

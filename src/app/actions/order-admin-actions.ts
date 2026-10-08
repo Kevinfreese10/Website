@@ -664,6 +664,12 @@ export async function requestCustomDocumentAtomic(
     }
 
     const orderData = orderDoc.data() as Order;
+    if (orderData.status === 'Pending Payment') {
+      return {
+        success: false,
+        error: `Cannot request documents on order #${orderId} while it is pending payment. Please wait until payment is received and the order moves to Processing.`,
+      };
+    }
     const actor = await resolveVerifiedActor(performer, orderData);
 
     const nowIso = new Date().toISOString();
