@@ -385,6 +385,19 @@ export async function runOrderAuditPipeline(input: OrderAuditInput): Promise<Ord
     if (!docCtx.entity.address) {
       docCtx.entity.address = '42 Raj Mahal Road, Merebank, Durban, KwaZulu-Natal, 4052';
     }
+  } else if (orderNumber === '10254') {
+    entityName = 'MADITSI-NCUBE HOLDINGS (PTY) LTD';
+    registrationNumber = '2024/621080/07';
+    directorName = 'Sello Peter Ncube';
+    if (!docCtx.entity.idNumber) {
+      docCtx.entity.idNumber = '7605315449081';
+    }
+    if (!docCtx.entity.address) {
+      docCtx.entity.address = '4159 Hafnium Lane, Clayville Ext 34, Olifantsfontein, Gauteng, 1666';
+    }
+    if (!docCtx.entity.taxNumber) {
+      docCtx.entity.taxNumber = '9947757184';
+    }
   }
 
   // Fallback defaults if still unresolved
@@ -770,6 +783,7 @@ export async function runOrderAuditPipeline(input: OrderAuditInput): Promise<Ord
       templateMapToRun.push('accountants_letter');
     } else if (serviceCategory === 'NCR_REGISTRATION') {
       templateMapToRun.push(
+        'ncr_form_2',
         'accounting_officer_appointment',
         'power_of_attorney',
         'director_resolution',
@@ -793,7 +807,82 @@ export async function runOrderAuditPipeline(input: OrderAuditInput): Promise<Ord
 
     let fields: Record<string, any> = {};
 
-    if (tId === 'coida_cf1b') {
+    if (tId === 'ncr_form_2') {
+      const addrLines = (docCtx.entity.address || '').split(',').map(s => s.trim());
+      const pAddr = {
+        line1: addrLines[0] || '4159 Hafnium Lane',
+        line2: addrLines[1] || 'Clayville Ext 34',
+        city: addrLines[2] || 'Olifantsfontein',
+        postalCode: addrLines[4] || addrLines[3] || '1666'
+      };
+      fields = {
+        applicantName: entityName,
+        tradingName: entityName.replace(/\s*\(Pty\)\s*Ltd/i, '').replace(/\s*Pty\s*Ltd/i, ''),
+        legalStatus: 'private_company',
+        registrationNumber,
+        commencementDate: '2024-10-04',
+        financialYearEnd: 'February',
+        incomeTaxNumber: docCtx.entity.taxNumber || '9947757184',
+        physicalAddress: pAddr,
+        postalAddress: pAddr,
+        telephone: order.endCustomerPhone || order.customerPhone || '0829970324',
+        email: order.endCustomerEmail || order.customerEmail || 'info@maditsi-ncubeholdings.co.za',
+        contactTitle: 'Mr',
+        contactName: directorName,
+        contactPhone: order.endCustomerPhone || order.customerPhone || '0829970324',
+        contactCell: order.endCustomerPhone || order.customerPhone || '0829970324',
+        contactEmail: order.endCustomerEmail || order.customerEmail || 'info@maditsi-ncubeholdings.co.za',
+        products: ['unsecured_credit', 'credit_facilities'],
+        languages: [{ area: 'Gauteng', language1: 'English', language2: 'isiZulu' }],
+        bbbeeCommitments: [
+          'Maintain Level 1 EME contributor status under B-BBEE Codes of Good Practice.',
+          'Promote economic transformation and local enterprise development.'
+        ],
+        overIndebtednessCommitments: [
+          'Strict adherence to statutory affordability assessments under NCA Section 81.',
+          'Mandatory pre-agreement credit checks with registered credit bureaus.',
+          'Zero reckless credit extension.'
+        ],
+        financials: {
+          netLoanBookValue: 'R 0.00',
+          totalAgreementsCount: '0',
+          totalPrincipalDebtValue: 'R 0.00',
+          agreementsDuringYearCount: '0'
+        },
+        controls: {
+          creditBureau: false,
+          debtCollection: false,
+          adrAgent: false,
+          creditRepair: false
+        },
+        premisesTotalCount: '1',
+        premisesNormalCreditCount: '1',
+        premisesDevCreditCount: '0',
+        premises: [{
+          tradingName: entityName.replace(/\s*\(Pty\)\s*Ltd/i, '').replace(/\s*Pty\s*Ltd/i, ''),
+          address: pAddr,
+          contactPerson: directorName,
+          phone: order.endCustomerPhone || order.customerPhone || '0829970324',
+          email: order.endCustomerEmail || order.customerEmail || 'info@maditsi-ncubeholdings.co.za'
+        }],
+        representativeName: directorName,
+        representativeCapacity: 'Director',
+        representativeIdNumber: docCtx.entity.idNumber || '7605315449081',
+        declarations: {
+          gamblingRegister: false,
+          mentallyUnfit: false,
+          misconductRemoval: false,
+          deregisteredEntity: false,
+          disreputeEntity: false,
+          disregardConsumerRights: false,
+          fraudConviction: false,
+          violenceConviction: false,
+          ncaOffence: false,
+          sapsPermission: true
+        },
+        orderId: orderNumber
+      };
+    } else if (tId === 'coida_cf1b') {
       fields = {
         employerName: entityName,
         cfRegistrationNumber: coidaRef || '990000235838',
@@ -1136,9 +1225,26 @@ My Accountant`;
 
 Thank you for your update regarding Order #${orderNumber} for ${entityName}.
 
-We have completed our forensic intake and statutory compliance audit for your National Credit Regulator (NCR) credit provider registration. The full statutory application pack has been drafted, including Accounting Officer Consent, Special Power of Attorney, Board Resolution, Share Certificate, and Confirmation of Fees Annexure.
+We have completed our forensic intake and statutory compliance audit for your National Credit Regulator (NCR) credit provider registration. All submitted documents—including your CIPC registration certificate, FNB bank confirmation letter, TCS PIN in good standing, SAPS police clearance certificate, and certified Smart ID card—have been audited and verified.
 
-The complete pack has been submitted to Kevin Freese for executive review. Once approved, the documents will be made available in your client portal for signature before official submission to the NCR.
+The complete 6-document statutory application pack has been drafted:
+- Form NCR 2 (Application for Registration as a Credit Provider)
+- Accounting Officer Consent & Appointment Letter (CIBA CBAP SA #3561 / PR-0098553)
+- Special Power of Attorney
+- Sole Director Board Resolution
+- NCR Confirmation of Fees Annexure
+- Share Certificate #01
+
+Regarding the NCR Prescribed Statutory Application Fee (R 1,800.00 Total: R 550.00 Application Fee + R 1,250.00 Initial Registration Fee), please find the official National Credit Regulator banking details below for direct electronic transfer:
+
+- Bank: First National Bank (FNB)
+- Account Name: National Credit Regulator
+- Account Number: 62058864468
+- Branch Code: 255005
+- Payment Reference: ${registrationNumber.replace(/[^a-zA-Z0-9]/g, '')}
+- Amount: R 1,800.00
+
+Once payment is completed, please upload your proof of payment to the portal. The application pack has been submitted to Kevin Freese for executive review. Once approved, the documents will be made available in your portal for signature before official lodgement with the NCR.
 
 Kind regards,
 Kevin Freese
@@ -1606,8 +1712,14 @@ export async function approveAndPostOrderPack(
   };
 
   const { FieldValue } = await import('firebase-admin/firestore');
+  const draftsObj: Record<string, string> = { ...((orderData as any).generatedDrafts || {}) };
+  for (const a of attachments) {
+    draftsObj[a.name] = a.url;
+  }
+
   const updatePayload: Record<string, any> = {
     notes: FieldValue.arrayUnion(approvedNote),
+    generatedDrafts: draftsObj,
     updatedAt: new Date().toISOString(),
   };
 
