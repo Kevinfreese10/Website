@@ -23,7 +23,8 @@ import {
     RotateCw, 
     FileSpreadsheet, 
     Users, 
-    Loader2 
+    Loader2,
+    Receipt
 } from 'lucide-react';
 import { 
     getFirestore, 
@@ -72,8 +73,10 @@ import {
     AIAllocationReviewDialog, 
     SplitTransactionDialog, 
     ImportDialog, 
-    SmartMatchQueueModal 
+    SmartMatchQueueModal,
+    CustomerReceiptMatcherDialog
 } from './dialogs';
+
 import { formatPrice } from './types';
 import { useDebounce } from '@/hooks/use-debounce';
 import { NewTransactionRow } from './components/NewTransactionRow';
@@ -141,6 +144,8 @@ export const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>
     const [isSupplierMatching, setIsSupplierMatching] = useState(false);
     const [isSubmittingToWorkflow, setIsSubmittingToWorkflow] = useState(false);
     const [isSmartMatchOpen, setIsSmartMatchOpen] = useState(false);
+    const [isCustomerReceiptMatcherOpen, setIsCustomerReceiptMatcherOpen] = useState(false);
+    const [singleTxForReceiptMatch, setSingleTxForReceiptMatch] = useState<ImportedTransaction | null>(null);
 
     const smartMatchSelectedTxs = useMemo(() => {
         return allTransactions.filter(tx => selectedTransactions.includes(tx.id));
@@ -677,6 +682,19 @@ export const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>
                                 {isSupplierMatching ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Users className="mr-2 h-4 w-4" />} Match Suppliers
                             </Button>
 
+                            {activeSubTab === 'income' && (
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => {
+                                        setSingleTxForReceiptMatch(null);
+                                        setIsCustomerReceiptMatcherOpen(true);
+                                    }} 
+                                    className="font-bold border-emerald-500/30 text-emerald-700 bg-emerald-50/50 hover:bg-emerald-100/60"
+                                >
+                                    <Receipt className="mr-2 h-4 w-4 text-emerald-600" /> Match Customer Receipts
+                                </Button>
+                            )}
+
                             <Button 
                                 variant="outline" 
                                 onClick={() => setIsSmartMatchOpen(true)} 
@@ -735,6 +753,10 @@ export const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>
                                     onToggleSelect={(id, checked) => setSelectedTransactions(prev => checked ? [...prev, id] : prev.filter(item => item !== id))}
                                     onAllocationChange={(id, alloc) => setAllocations((p: any) => ({ ...p, [id]: alloc }))}
                                     onAiResearch={handleAiResearch}
+                                    onMatchReceipt={(tx) => {
+                                        setSingleTxForReceiptMatch(tx);
+                                        setIsCustomerReceiptMatcherOpen(true);
+                                    }}
                                     onEdit={(tx) => {
                                         setTransactionToEdit(tx);
                                         setIsEditTxOpen(true);
@@ -759,6 +781,18 @@ export const NewTransactionsTab = React.forwardRef<any, NewTransactionsTabProps>
                     <Button onClick={handleSaveAllocations} disabled={isSaving || Object.keys(allocations).length === 0}>Save Allocations</Button>
                 </CardFooter>
             </Card>
+
+            <CustomerReceiptMatcherDialog
+                open={isCustomerReceiptMatcherOpen}
+                onOpenChange={setIsCustomerReceiptMatcherOpen}
+                client={client}
+                bankAccountId={bankAccountId}
+                singleTransaction={singleTxForReceiptMatch}
+                onAllocationSuccess={() => {
+                    onAllocationComplete?.();
+                    onRefreshBalance?.();
+                }}
+            />
 
             <SmartMatchQueueModal
                 open={isSmartMatchOpen}

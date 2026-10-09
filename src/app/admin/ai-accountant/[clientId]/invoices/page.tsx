@@ -212,72 +212,100 @@ export default function InvoicesPage() {
     };
 
     const handleSavePayment = async () => {
-        if (!paymentInvoice || !client || !paymentAccountId || paymentAmount <= 0) {
-            toast({ title: "Error", description: "Please enter a valid amount and select an account.", variant: "destructive" });
+        if (!paymentInvoice || !client || paymentAmount <= 0) {
+            toast({ title: "Error", description: "Please enter a valid amount.", variant: "destructive" });
             return;
         }
         setIsSavingPayment(true);
         try {
             const batch = writeBatch(db);
-            const customerControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '8000-001')?.id;
+            let customerReceiptsControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '8000-005')?.id;
+            const customerControlAccount = client.chartOfAccounts?.find(acc => acc.accountNumber === '8000-001')?.id || '8000-001';
 
-            if (!customerControlAccount) {
-                throw new Error("Customer Control Account not found.");
+            // Ensure 8000-005 exists in client's chartOfAccounts
+            if (!customerReceiptsControlAccount) {
+                customerReceiptsControlAccount = '8000-005';
+                const clientDocRef = doc(db, 'aiAccountantClients', client.id);
+                const updatedCoa = [
+                    ...(client.chartOfAccounts || []),
+                    {
+                        id: '8000-005',
+                        accountNumber: '8000-005',
+                        description: 'Customer Receipts Control Account',
+                        section: 'Balance Sheet' as const,
+                        category: 'Current Assets' as const,
+                        fsGroup: 'Trade and other receivables'
+                    }
+                ];
+                batch.update(clientDocRef, { chartOfAccounts: updatedCoa });
             }
 
-            // Debit Selected Bank Account
+            // 1. Debit Customer Receipts Control Account (8000-005)
             const debitRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
             batch.set(debitRef, {
                 clientId: client.id,
                 date: paymentDate.toISOString(),
-                reference: paymentReference,
-                description: `Payment for Invoice ${paymentInvoice.id}`,
+                reference: paymentReference || `RCPT-INV-${paymentInvoice.id}`,
+                description: `Customer Receipt for Invoice #${paymentInvoice.id}`,
                 amount: paymentAmount,
                 isExpense: false,
                 bankAccountId: 'JOURNAL',
-                allocatedTo: { value: paymentAccountId, type: 'account' },
+                allocatedTo: { value: customerReceiptsControlAccount, type: 'account' },
+                accountNumber: '8000-005',
+                customerId: paymentInvoice.customerId,
+                invoiceId: paymentInvoice.id,
+                receiptType: 'customer_receipt',
+                clearedWithBankTxId: null,
                 vatType: 'no_vat',
                 vatAmount: 0,
                 status: 'allocated',
                 allocatedAt: serverTimestamp()
             });
 
-            // Credit Accounts Receivable
+            // 2. Credit Customer Accounts Receivable (8000-001)
             const creditRef = doc(collection(db, 'aiAccountantClients', client.id, 'transactions'));
             batch.set(creditRef, {
                 clientId: client.id,
                 date: paymentDate.toISOString(),
-                reference: paymentReference,
-                description: `Payment applied to Invoice ${paymentInvoice.id}`,
+                reference: paymentReference || `RCPT-INV-${paymentInvoice.id}`,
+                description: `Payment applied to Invoice #${paymentInvoice.id}`,
                 amount: -paymentAmount,
                 isExpense: false,
                 bankAccountId: 'JOURNAL',
                 allocatedTo: { value: customerControlAccount, type: 'account' },
+                accountNumber: '8000-001',
+                customerId: paymentInvoice.customerId,
+                invoiceId: paymentInvoice.id,
+                receiptType: 'customer_receipt',
                 vatType: 'no_vat',
                 vatAmount: 0,
                 status: 'allocated',
                 allocatedAt: serverTimestamp()
             });
 
-            // Update Invoice
+            // 3. Update Invoice Status & Balances
             const currentPaid = paymentInvoice.amountPaid || 0;
             const newPaid = currentPaid + paymentAmount;
             const currentBalance = paymentInvoice.balanceDue !== undefined ? paymentInvoice.balanceDue : paymentInvoice.total;
-            const newBalance = currentBalance - paymentAmount;
+            const newBalance = Math.max(0, currentBalance - paymentAmount);
             
-            let newStatus = paymentInvoice.status;
-            if (newBalance <= 0) newStatus = 'paid';
+            let newStatus: Invoice['status'] = paymentInvoice.status;
+            if (newBalance <= 0.001) newStatus = 'paid';
             else if (newPaid > 0) newStatus = 'partial';
 
             const invRef = doc(db, `aiAccountantClients/${client.id}/invoices`, paymentInvoice.id);
             batch.update(invRef, {
                 amountPaid: newPaid,
                 balanceDue: newBalance,
-                status: newStatus
+                status: newStatus,
+                lastPaymentDate: paymentDate.toISOString(),
             });
 
             await batch.commit();
-            toast({ title: 'Payment Recorded', description: 'The payment has been successfully recorded.' });
+            toast({ 
+                title: 'Invoice Marked as Paid', 
+                description: `Receipt of ${formatPrice(paymentAmount, paymentInvoice.currency)} recorded to Customer Receipts Control Account (8000-005).` 
+            });
             setPaymentInvoice(null);
             fetchData();
         } catch(e: any) {
@@ -287,6 +315,7 @@ export default function InvoicesPage() {
             setIsSavingPayment(false);
         }
     };
+
 
     const handleSendEmail = async () => {
         if (!emailInvoice || !emailAddress || !client) return;
@@ -752,12 +781,12 @@ export default function InvoicesPage() {
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onSelect={() => {
                                                                     setPaymentInvoice(invoice);
-                                                                    setPaymentAmount(invoice.balanceDue !== undefined ? invoice.balanceDue : invoice.total);
+                                                                    const bal = invoice.balanceDue !== undefined ? invoice.balanceDue : invoice.total;
+                                                                    setPaymentAmount(bal);
                                                                     setPaymentDate(new Date());
-                                                                    setPaymentAccountId('');
-                                                                    setPaymentReference(`Payment INV-${invoice.id}`);
+                                                                    setPaymentReference(`RCPT-INV-${invoice.id}`);
                                                                 }}>
-                                                                    <CheckCircle className="mr-2 h-4 w-4" />Record Payment
+                                                                    <CheckCircle className="mr-2 h-4 w-4 text-emerald-600" />Mark as Paid
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onSelect={() => handleDuplicateInvoice(invoice)}><Copy className="mr-2 h-4 w-4" />Duplicate</DropdownMenuItem>
                                                                 <DropdownMenuItem onSelect={() => router.push(`/admin/ai-accountant/${clientId}/credit-notes?invoiceId=${invoice.id}`)}>
@@ -832,14 +861,67 @@ export default function InvoicesPage() {
             </Dialog>
 
             <Dialog open={!!paymentInvoice} onOpenChange={(isOpen) => !isOpen && setPaymentInvoice(null)}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Record Payment</DialogTitle>
-                        <DialogDescription>Record a payment for Invoice #{paymentInvoice?.id}</DialogDescription>
+                        <DialogTitle>Mark Invoice as Paid</DialogTitle>
+                        <DialogDescription>
+                            Record customer receipt for Invoice #{paymentInvoice?.id} against Customer Receipts Control Account (8000-005).
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-2">
+                        <div className="rounded-lg bg-slate-50 border p-3 text-xs space-y-1">
+                            <div className="flex justify-between text-slate-600">
+                                <span>Customer:</span>
+                                <span className="font-semibold text-slate-800">{customers.find(c => c.id === paymentInvoice?.customerId)?.name || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between text-slate-600">
+                                <span>Invoice Total:</span>
+                                <span className="font-mono">{formatPrice(paymentInvoice?.total || 0, paymentInvoice?.currency)}</span>
+                            </div>
+                            <div className="flex justify-between text-slate-600">
+                                <span>Already Paid:</span>
+                                <span className="font-mono text-emerald-600">{formatPrice(paymentInvoice?.amountPaid || 0, paymentInvoice?.currency)}</span>
+                            </div>
+                            <div className="flex justify-between font-bold border-t pt-1 text-slate-900">
+                                <span>Outstanding Balance:</span>
+                                <span className="font-mono text-primary">
+                                    {formatPrice(paymentInvoice?.balanceDue !== undefined ? paymentInvoice.balanceDue : (paymentInvoice?.total || 0), paymentInvoice?.currency)}
+                                </span>
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
-                            <Label className="mb-2 block font-medium text-sm">Amount Received</Label>
+                            <Label className="text-sm font-medium">Payment Option</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                    type="button"
+                                    variant={paymentAmount === (paymentInvoice?.balanceDue !== undefined ? paymentInvoice.balanceDue : paymentInvoice?.total) ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => {
+                                        const bal = paymentInvoice?.balanceDue !== undefined ? paymentInvoice.balanceDue : (paymentInvoice?.total || 0);
+                                        setPaymentAmount(bal);
+                                    }}
+                                >
+                                    Full Amount
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={paymentAmount !== (paymentInvoice?.balanceDue !== undefined ? paymentInvoice.balanceDue : paymentInvoice?.total) ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => {
+                                        const currentBal = paymentInvoice?.balanceDue !== undefined ? paymentInvoice.balanceDue : (paymentInvoice?.total || 0);
+                                        if (paymentAmount >= currentBal) {
+                                            setPaymentAmount(Math.round((currentBal / 2) * 100) / 100);
+                                        }
+                                    }}
+                                >
+                                    Partial Amount
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-sm font-medium">Amount Received</Label>
                             <Input 
                                 type="number" 
                                 step="0.01" 
@@ -847,8 +929,9 @@ export default function InvoicesPage() {
                                 onChange={e => setPaymentAmount(parseFloat(e.target.value) || 0)} 
                             />
                         </div>
+
                         <div className="space-y-2 flex flex-col">
-                            <Label className="mb-2 block font-medium text-sm">Payment Date</Label>
+                            <Label className="text-sm font-medium">Payment Date</Label>
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-10", !paymentDate && "text-muted-foreground")}>
@@ -861,31 +944,27 @@ export default function InvoicesPage() {
                                 </PopoverContent>
                             </Popover>
                         </div>
-                        <div className="space-y-2 flex flex-col">
-                            <Label className="mb-2 block font-medium text-sm">Deposited To (Bank Account)</Label>
-                            <AccountSelector 
-                                client={client} 
-                                customers={customers} 
-                                showAccounts={true} 
-                                showCustomers={false} 
-                                value={paymentAccountId ? { value: paymentAccountId, type: 'account' } : null} 
-                                onChange={s => setPaymentAccountId(s.value)} 
-                                placeholder="Select bank account..."
-                            />
-                        </div>
+
                         <div className="space-y-2">
-                            <Label className="mb-2 block font-medium text-sm">Reference</Label>
+                            <Label className="text-sm font-medium">Receipt Reference</Label>
                             <Input value={paymentReference} onChange={e => setPaymentReference(e.target.value)} />
+                        </div>
+
+                        <div className="rounded bg-blue-50 border border-blue-200 p-2.5 text-xs text-blue-800">
+                            <p className="font-semibold mb-0.5">Control Account Clearing:</p>
+                            <p>Debit: 8000-005 (Customer Receipts Control Account)</p>
+                            <p>Credit: 8000-001 (Customer Accounts Receivable)</p>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setPaymentInvoice(null)}>Cancel</Button>
-                        <Button onClick={handleSavePayment} disabled={isSavingPayment || !paymentAmount || !paymentAccountId}>
-                            {isSavingPayment ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Saving...</> : "Save Payment"}
+                        <Button onClick={handleSavePayment} disabled={isSavingPayment || !paymentAmount || paymentAmount <= 0}>
+                            {isSavingPayment ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Processing...</> : "Mark as Paid"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
         </>
     );
 }

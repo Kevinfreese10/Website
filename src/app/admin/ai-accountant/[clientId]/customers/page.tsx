@@ -21,7 +21,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Edit, Trash2, BookUser } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, BookUser, FileText } from 'lucide-react';
+import CustomerStatementDialog from '@/components/admin/CustomerStatementDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -149,16 +150,24 @@ function ImportCustomersDialog({ clientId, onImportComplete }: { clientId: strin
 export default function ClientCustomersPage() {
     const params = useParams();
     const clientId = params.clientId as string;
+    const [client, setClient] = useState<User | null>(null);
     const [customers, setCustomers] = useState<ClientCustomer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<ClientCustomer | null>(null);
+    const [statementCustomer, setStatementCustomer] = useState<ClientCustomer | null>(null);
 
     const fetchCustomers = useCallback(async () => {
         if (!clientId) return;
         setIsLoading(true);
         try {
+            const clientDocRef = doc(db, 'aiAccountantClients', clientId);
+            const clientSnap = await getDoc(clientDocRef);
+            if (clientSnap.exists()) {
+                setClient({ id: clientSnap.id, ...clientSnap.data() } as User);
+            }
+
             const custQuery = query(collection(db, `aiAccountantClients/${clientId}/customers`), orderBy("name"));
             const custSnapshot = await getDocs(custQuery);
             const fetchedCustomers = custSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ClientCustomer));
@@ -179,6 +188,7 @@ export default function ClientCustomersPage() {
     useEffect(() => {
         fetchCustomers();
     }, [fetchCustomers]);
+
     
     const handleAdd = () => {
         setSelectedCustomer(null);
@@ -313,12 +323,15 @@ export default function ClientCustomersPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                        <DropdownMenuItem onSelect={() => setStatementCustomer(customer)}>
+                                                            <FileText className="mr-2 h-4 w-4" /> View Statement
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem onSelect={() => handleEdit(customer)}>
                                                             <Edit className="mr-2 h-4 w-4" /> Edit
                                                         </DropdownMenuItem>
                                                         <AlertDialogTrigger asChild>
                                                             <DropdownMenuItem className="text-destructive">
-                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                             </DropdownMenuItem>
                                                         </AlertDialogTrigger>
                                                     </DropdownMenuContent>
@@ -346,6 +359,15 @@ export default function ClientCustomersPage() {
                     )}
                 </CardContent>
             </Card>
+
+            <CustomerStatementDialog
+                open={!!statementCustomer}
+                onOpenChange={(open) => !open && setStatementCustomer(null)}
+                client={client}
+                customer={statementCustomer}
+                clientId={clientId}
+            />
         </div>
     );
 }
+

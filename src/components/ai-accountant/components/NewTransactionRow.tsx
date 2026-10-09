@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader2, Sparkles, MoreHorizontal } from 'lucide-react';
+import { Loader2, Sparkles, MoreHorizontal, Receipt } from 'lucide-react';
 import { AccountSelector } from '@/components/accounting/AccountSelector';
 import { allVatTypes } from '@/lib/vat-types';
 import { formatPrice } from '../types';
@@ -25,11 +25,13 @@ export interface NewTransactionRowProps {
     onToggleSelect: (id: string, checked: boolean) => void;
     onAllocationChange: (id: string, allocation: { value: string; type: 'account' | 'customer' | 'supplier'; vatType?: string }) => void;
     onAiResearch: (tx: ImportedTransaction) => void;
+    onMatchReceipt?: (tx: ImportedTransaction) => void;
     onEdit: (tx: ImportedTransaction) => void;
     onSplit: (tx: ImportedTransaction) => void;
     onCreateRule: (tx: ImportedTransaction) => void;
     onDelete: (id: string) => void;
 }
+
 
 /**
  * Custom equality comparator for NewTransactionRow
@@ -63,6 +65,7 @@ export const NewTransactionRow = memo(function NewTransactionRow({
     onToggleSelect,
     onAllocationChange,
     onAiResearch,
+    onMatchReceipt,
     onEdit,
     onSplit,
     onCreateRule,
@@ -140,12 +143,21 @@ export const NewTransactionRow = memo(function NewTransactionRow({
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                            {tx.amount > 0 && onMatchReceipt && (
+                                <>
+                                    <DropdownMenuItem onClick={() => onMatchReceipt(tx)} className="text-emerald-700 font-medium">
+                                        <Receipt className="h-4 w-4 mr-2 text-emerald-600" /> Match Customer Receipt
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                </>
+                            )}
                             <DropdownMenuItem onClick={() => onEdit(tx)}>Edit Transaction</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => onSplit(tx)}>Split Transaction</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => onCreateRule(tx)}>Create Rule</DropdownMenuItem>
                             <DropdownMenuSeparator />
+
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>Delete Transaction</DropdownMenuItem>

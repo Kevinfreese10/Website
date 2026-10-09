@@ -889,3 +889,422 @@ export async function matchTransactionsToHistory({ clientId, bankAccountId, idTo
 
     return { count };
 }
+
+export interface CustomerReceiptCandidate {
+    matchType: 'receipt' | 'invoice';
+    candidateId: string;
+    customerName: string;
+    customerId?: string;
+    invoiceId?: string;
+    amount: number;
+    reference: string;
+    date?: string;
+    confidence: number;
+    matchReasons: string[];
+}
+
+export interface TransactionReceiptMatchResult {
+    transactionId: string;
+    description: string;
+    reference: string;
+    amount: number;
+    date: string;
+    topMatch?: CustomerReceiptCandidate;
+    candidates: CustomerReceiptCandidate[];
+}
+
+export async function findCustomerReceiptMatchesAction({
+    clientId,
+    bankAccountId,
+    transactionId,
+    idToken
+}: {
+    clientId: string;
+    bankAccountId?: string;
+    transactionId?: string;
+    idToken: string;
+}): Promise<{ success: boolean; matches: TransactionReceiptMatchResult[]; error?: string }> {
+    await requireAiAccountantAccess(idToken, clientId);
+
+    try {
+        const adminDb = getAdminDb();
+        const clientRef = adminDb.collection('aiAccountantClients').doc(clientId);
+
+        // 1. Fetch Customers
+        const custSnap = await clientRef.collection('customers').get();
+        const customerMap = new Map<string, string>();
+        custSnap.docs.forEach(d => {
+            customerMap.set(d.id, d.data().name || 'Unknown Customer');
+        });
+
+        // 2. Fetch Pending Customer Receipts (accountNumber == '8000-005' or receiptType == 'customer_receipt')
+        const allTxSnap = await clientRef.collection('transactions').get();
+        const pendingReceipts: {
+            id: string;
+            amount: number;
+            reference: string;
+            description: string;
+            customerId?: string;
+            invoiceId?: string;
+            date?: string;
+        }[] = [];
+
+        allTxSnap.docs.forEach(d => {
+            const data = d.data();
+            const isReceiptAccount = data.accountNumber === '8000-005' || data.receiptType === 'customer_receipt';
+            const isDebitReceipt = (data.amount || 0) > 0;
+            const isUncleared = !data.clearedWithBankTxId && data.bankAccountId === 'JOURNAL';
+
+            if (isReceiptAccount && isDebitReceipt && isUncleared) {
+                pendingReceipts.push({
+                    id: d.id,
+                    amount: data.amount,
+                    reference: data.reference || '',
+                    description: data.description || '',
+                    customerId: data.customerId,
+                    invoiceId: data.invoiceId,
+                    date: data.date,
+                });
+            }
+        });
+
+        // 3. Fetch Open Invoices (status in ['final', 'partial', 'overdue'])
+        const invSnap = await clientRef.collection('invoices')
+            .where('status', 'in', ['final', 'partial', 'overdue'])
+            .get();
+
+        const openInvoices: {
+            id: string;
+            invoiceNumber: string;
+            customerId: string;
+            customerName: string;
+            total: number;
+            balanceDue: number;
+            reference: string;
+            date: string;
+        }[] = invSnap.docs.map(d => {
+            const data = d.data();
+            const cName = customerMap.get(data.customerId) || 'Unknown Customer';
+            const bal = data.balanceDue !== undefined ? data.balanceDue : data.total;
+            return {
+                id: d.id,
+                invoiceNumber: d.id,
+                customerId: data.customerId,
+                customerName: cName,
+                total: data.total,
+                balanceDue: bal,
+                reference: data.reference || '',
+                date: data.invoiceDate?.toDate ? data.invoiceDate.toDate().toISOString() : (data.invoiceDate || ''),
+            };
+        });
+
+        // 4. Fetch Unallocated Income Transactions
+        let incomeTxs: ImportedTransaction[] = [];
+        if (transactionId) {
+            const singleDoc = await clientRef.collection('transactions').doc(transactionId).get();
+            if (singleDoc.exists) {
+                incomeTxs.push({ id: singleDoc.id, ...singleDoc.data() } as any);
+            }
+        } else {
+            let q = clientRef.collection('transactions')
+                .where('status', 'in', ['new', 'ai_review']);
+            if (bankAccountId) {
+                q = q.where('bankAccountId', '==', bankAccountId);
+            }
+            const snap = await q.get();
+            incomeTxs = snap.docs
+                .map(d => ({ id: d.id, ...d.data() } as any))
+                .filter(tx => tx.isExpense === false || (tx.amount || 0) > 0);
+        }
+
+        // 5. Score and Match
+        const results: TransactionReceiptMatchResult[] = [];
+
+        for (const tx of incomeTxs) {
+            const txAmt = Math.abs(tx.amount || 0);
+            const txDescUpper = (tx.description || '').toUpperCase();
+            const txRefUpper = (tx.reference || '').toUpperCase();
+            const txCleanUpper = (tx.cleanDescription || '').toUpperCase();
+            const fullTxText = `${txDescUpper} ${txRefUpper} ${txCleanUpper}`;
+
+            const candidates: CustomerReceiptCandidate[] = [];
+
+            // A. Check Pending Receipts
+            for (const r of pendingReceipts) {
+                let score = 0;
+                const reasons: string[] = [];
+                const cName = r.customerId ? (customerMap.get(r.customerId) || '') : '';
+
+                // Exact Amount Match
+                if (Math.abs(txAmt - r.amount) < 0.01) {
+                    score += 50;
+                    reasons.push('Exact amount match');
+                } else if (Math.abs(txAmt - r.amount) / r.amount < 0.05) {
+                    score += 20;
+                    reasons.push('Approximate amount match (within 5%)');
+                }
+
+                // Invoice # match in reference/text
+                if (r.invoiceId && (fullTxText.includes(r.invoiceId.toUpperCase()) || fullTxText.includes(`INV-${r.invoiceId.toUpperCase()}`))) {
+                    score += 35;
+                    reasons.push(`Invoice #${r.invoiceId} in transaction text`);
+                }
+
+                // Receipt reference in text
+                if (r.reference && fullTxText.includes(r.reference.toUpperCase())) {
+                    score += 35;
+                    reasons.push(`Receipt reference '${r.reference}' matched`);
+                }
+
+                // Customer Name match
+                if (cName && (fullTxText.includes(cName.toUpperCase()) || BankCleaner.getSimilarity(txDescUpper, cName.toUpperCase()).score > 0.8)) {
+                    score += 30;
+                    reasons.push(`Customer name '${cName}' matched`);
+                }
+
+                if (score >= 40) {
+                    candidates.push({
+                        matchType: 'receipt',
+                        candidateId: r.id,
+                        customerName: cName || 'Customer Receipt',
+                        customerId: r.customerId,
+                        invoiceId: r.invoiceId,
+                        amount: r.amount,
+                        reference: r.reference || `RCPT-${r.id.slice(0, 8)}`,
+                        date: r.date,
+                        confidence: Math.min(100, score),
+                        matchReasons: reasons,
+                    });
+                }
+            }
+
+            // B. Check Open Invoices
+            for (const inv of openInvoices) {
+                let score = 0;
+                const reasons: string[] = [];
+
+                // Exact Balance Match
+                if (Math.abs(txAmt - inv.balanceDue) < 0.01) {
+                    score += 50;
+                    reasons.push('Exact outstanding invoice balance match');
+                } else if (Math.abs(txAmt - inv.total) < 0.01) {
+                    score += 45;
+                    reasons.push('Exact total invoice amount match');
+                }
+
+                // Invoice # Match
+                if (fullTxText.includes(inv.invoiceNumber.toUpperCase()) || fullTxText.includes(`INV-${inv.invoiceNumber.toUpperCase()}`)) {
+                    score += 35;
+                    reasons.push(`Invoice #${inv.invoiceNumber} in transaction text`);
+                }
+
+                // Customer Name Match
+                if (inv.customerName && (fullTxText.includes(inv.customerName.toUpperCase()) || BankCleaner.getSimilarity(txDescUpper, inv.customerName.toUpperCase()).score > 0.8)) {
+                    score += 30;
+                    reasons.push(`Customer '${inv.customerName}' matched`);
+                }
+
+                if (score >= 45) {
+                    candidates.push({
+                        matchType: 'invoice',
+                        candidateId: inv.id,
+                        customerName: inv.customerName,
+                        customerId: inv.customerId,
+                        invoiceId: inv.id,
+                        amount: inv.balanceDue,
+                        reference: inv.reference || `INV-${inv.invoiceNumber}`,
+                        date: inv.date,
+                        confidence: Math.min(100, score),
+                        matchReasons: reasons,
+                    });
+                }
+            }
+
+            // Sort candidates by confidence descending
+            candidates.sort((a, b) => b.confidence - a.confidence);
+
+            results.push({
+                transactionId: tx.id,
+                description: tx.cleanDescription || tx.description,
+                reference: tx.reference || '',
+                amount: txAmt,
+                date: tx.date,
+                topMatch: candidates[0],
+                candidates: candidates.slice(0, 5),
+            });
+        }
+
+        return { success: true, matches: results };
+    } catch (e: any) {
+        console.error('Error finding customer receipt matches:', e);
+        return { success: false, matches: [], error: e.message || 'Failed to find matches' };
+    }
+}
+
+export async function allocateIncomeToCustomerReceiptAction({
+    clientId,
+    transactionId,
+    matchType,
+    matchId,
+    idToken
+}: {
+    clientId: string;
+    transactionId: string;
+    matchType: 'receipt' | 'invoice';
+    matchId: string;
+    idToken: string;
+}): Promise<{ success: boolean; error?: string }> {
+    await requireAiAccountantAccess(idToken, clientId);
+
+    try {
+        const adminDb = getAdminDb();
+        const clientRef = adminDb.collection('aiAccountantClients').doc(clientId);
+        const clientSnap = await clientRef.get();
+        if (!clientSnap.exists) throw new Error('Client not found');
+        const clientData = clientSnap.data() as User;
+
+        const txRef = clientRef.collection('transactions').doc(transactionId);
+        const txSnap = await txRef.get();
+        if (!txSnap.exists) throw new Error('Bank transaction not found');
+        const txData = txSnap.data() as ImportedTransaction;
+        const txAmount = Math.abs(txData.amount || 0);
+
+        // Find or ensure 8000-005 in chart of accounts
+        let customerReceiptsControlAccount = clientData.chartOfAccounts?.find(acc => acc.accountNumber === '8000-005')?.id || '8000-005';
+        const customerControlAccount = clientData.chartOfAccounts?.find(acc => acc.accountNumber === '8000-001')?.id || '8000-001';
+
+        const batch = adminDb.batch();
+
+        if (!clientData.chartOfAccounts?.some(acc => acc.accountNumber === '8000-005')) {
+            const updatedCoa = [
+                ...(clientData.chartOfAccounts || []),
+                {
+                    id: '8000-005',
+                    accountNumber: '8000-005',
+                    description: 'Customer Receipts Control Account',
+                    section: 'Balance Sheet' as const,
+                    category: 'Current Assets' as const,
+                    fsGroup: 'Trade and other receivables'
+                }
+            ];
+            batch.update(clientRef, { chartOfAccounts: updatedCoa });
+        }
+
+        if (matchType === 'receipt') {
+            // Receipt was already pre-marked via 'Mark as Paid'
+            const receiptRef = clientRef.collection('transactions').doc(matchId);
+            const receiptSnap = await receiptRef.get();
+            const rData = receiptSnap.exists ? receiptSnap.data() : null;
+
+            // Clear the receipt
+            batch.update(receiptRef, {
+                clearedWithBankTxId: transactionId,
+                clearedAt: FieldValue.serverTimestamp(),
+            });
+
+            // Allocate the bank income transaction
+            batch.update(txRef, {
+                status: 'reviewed',
+                allocatedTo: { value: customerReceiptsControlAccount, type: 'account' },
+                accountNumber: '8000-005',
+                vatType: 'no_vat',
+                vatAmount: 0,
+                allocationSource: 'customer_receipt',
+                matchedReceiptId: matchId,
+                customerId: rData?.customerId || null,
+                invoiceId: rData?.invoiceId || null,
+                allocatedAt: FieldValue.serverTimestamp(),
+            });
+        } else if (matchType === 'invoice') {
+            // Matched directly to an open invoice
+            const invRef = clientRef.collection('invoices').doc(matchId);
+            const invSnap = await invRef.get();
+            if (!invSnap.exists) throw new Error('Invoice not found');
+            const invData = invSnap.data() as any;
+
+            const currentPaid = invData.amountPaid || 0;
+            const newPaid = currentPaid + txAmount;
+            const currentBal = invData.balanceDue !== undefined ? invData.balanceDue : invData.total;
+            const newBal = Math.max(0, currentBal - txAmount);
+            const newStatus = newBal <= 0.001 ? 'paid' : 'partial';
+
+            batch.update(invRef, {
+                amountPaid: newPaid,
+                balanceDue: newBal,
+                status: newStatus,
+                lastPaymentDate: txData.date,
+            });
+
+            // Credit Customer Accounts Receivable
+            const creditRef = clientRef.collection('transactions').doc();
+            batch.set(creditRef, {
+                clientId: clientId,
+                date: txData.date,
+                reference: txData.reference || `RCPT-INV-${invData.id}`,
+                description: `Payment applied to Invoice #${invData.id}`,
+                amount: -txAmount,
+                isExpense: false,
+                bankAccountId: 'JOURNAL',
+                allocatedTo: { value: customerControlAccount, type: 'account' },
+                accountNumber: '8000-001',
+                customerId: invData.customerId,
+                invoiceId: invData.id,
+                receiptType: 'customer_receipt',
+                vatType: 'no_vat',
+                vatAmount: 0,
+                status: 'allocated',
+                allocatedAt: FieldValue.serverTimestamp(),
+            });
+
+            // Allocate Bank Transaction to Customer Receipts Control Account
+            batch.update(txRef, {
+                status: 'reviewed',
+                allocatedTo: { value: customerReceiptsControlAccount, type: 'account' },
+                accountNumber: '8000-005',
+                vatType: 'no_vat',
+                vatAmount: 0,
+                customerId: invData.customerId,
+                invoiceId: invData.id,
+                allocationSource: 'customer_receipt',
+                allocatedAt: FieldValue.serverTimestamp(),
+            });
+        }
+
+        await batch.commit();
+        return { success: true };
+    } catch (e: any) {
+        console.error('Error allocating income to customer receipt:', e);
+        return { success: false, error: e.message || 'Allocation failed' };
+    }
+}
+
+export async function batchAllocateCustomerReceiptsAction({
+    clientId,
+    matches,
+    idToken
+}: {
+    clientId: string;
+    matches: { transactionId: string; matchType: 'receipt' | 'invoice'; matchId: string }[];
+    idToken: string;
+}): Promise<{ success: boolean; count: number; error?: string }> {
+    await requireAiAccountantAccess(idToken, clientId);
+
+    let allocatedCount = 0;
+    try {
+        for (const m of matches) {
+            const res = await allocateIncomeToCustomerReceiptAction({
+                clientId,
+                transactionId: m.transactionId,
+                matchType: m.matchType,
+                matchId: m.matchId,
+                idToken
+            });
+            if (res.success) allocatedCount++;
+        }
+        return { success: true, count: allocatedCount };
+    } catch (e: any) {
+        console.error('Error in batchAllocateCustomerReceiptsAction:', e);
+        return { success: false, count: allocatedCount, error: e.message };
+    }
+}
+

@@ -168,6 +168,7 @@ export let chartOfAccounts: ChartOfAccount[] = [
   { id: '8000-002', accountNumber: '8000-002', description: 'Sundry Customers', section: 'Balance Sheet', category: 'Current Assets', fsGroup: 'Trade and other receivables' },
   { id: '8000-003', accountNumber: '8000-003', description: 'Provisional Tax Payments', section: 'Balance Sheet', category: 'Current Assets', fsGroup: 'Current tax receivable', fsNote: 'Note 7: Taxation' },
   { id: '8000-004', accountNumber: '8000-004', description: 'Bank - Current Account', section: 'Balance Sheet', category: 'Current Assets', fsGroup: 'Cash and cash equivalents', fsNote: 'Note 2: Cash and cash equivalents' },
+  { id: '8000-005', accountNumber: '8000-005', description: 'Customer Receipts Control Account', section: 'Balance Sheet', category: 'Current Assets', fsGroup: 'Trade and other receivables' },
 
   // EQUITY & SHAREHOLDER LOANS (9000 series)
   { id: '9000-000', accountNumber: '9000-000', description: 'Share Capital', section: 'Balance Sheet', category: 'Equity', fsGroup: 'Share capital', fsNote: 'Note 3: Share capital' },

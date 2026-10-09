@@ -9,3 +9,4 @@ export * from './SplitTransactionDialog';
 export * from './SmartMatchQueueModal';
 export * from './GroupTransactionsDialog';
 export * from './AiResearchResultsModal';
+export * from './CustomerReceiptMatcherDialog';
