@@ -465,16 +465,23 @@ export default function AIAccountantClientsPage() {
             if (selectedClient?.id) {
                 // Update
                 const clientRef = doc(db, "aiAccountantClients", selectedClient.id);
-                await setDoc(clientRef, {
+                const isBlank = Boolean(data.isBlankProfile);
+                const updatePayload: any = {
                     ...data,
                     updatedAt: serverTimestamp(),
-                }, { merge: true });
+                };
+                if (isBlank) {
+                    updatePayload.chartOfAccounts = [];
+                    updatePayload.allocationRules = [];
+                    updatePayload.disableGlobalRules = true;
+                }
+                await setDoc(clientRef, updatePayload, { merge: true });
                 toast({ title: 'Client Updated', description: 'Changes have been saved successfully.' });
             } else {
                 // Create
                 const newDocRef = doc(collection(db, 'aiAccountantClients'));
                 const isBlank = Boolean(data.isBlankProfile);
-                const clientCoA = isBlank ? [] : (data.chartOfAccounts || initialChartOfAccounts);
+                const clientCoA = isBlank ? [] : (data.chartOfAccounts && data.chartOfAccounts.length > 0 ? data.chartOfAccounts : initialChartOfAccounts);
                 const clientRules = isBlank ? [] : alignRulesToChartOfAccounts(data.allocationRules || [], clientCoA);
 
                 const newClientData = {
@@ -485,6 +492,7 @@ export default function AIAccountantClientsPage() {
                     source: 'AI Accountant' as const,
                     clientSource: 'admin',
                     hasNumeraProfile: true,
+                    disableGlobalRules: isBlank ? true : Boolean(data.disableGlobalRules),
                     chartOfAccounts: clientCoA,
                     allocationRules: clientRules,
                     createdAt: serverTimestamp(),

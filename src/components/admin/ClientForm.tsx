@@ -11,12 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '../ui/separator';
 import { Switch } from '../ui/switch';
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Trash2, CheckCircle2, AlertCircle, Building, Landmark, CreditCard, Image as ImageIcon, ShieldAlert, Settings, Eraser, Info, CalendarIcon, ReceiptText } from 'lucide-react';
+import { Loader2, CheckCircle2, Building, Landmark, CreditCard, Image as ImageIcon, ShieldAlert, Settings, Eraser, Info, CalendarIcon, ReceiptText } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { allVatTypes } from '@/lib/vat-types';
 import { chartOfAccounts as masterChartOfAccounts } from '@/lib/chart-of-accounts';
 import { alignRuleAccountId, alignRulesToChartOfAccounts } from '@/lib/chart-of-accounts-mapper';
@@ -219,12 +218,38 @@ export default function ClientForm({
                 firstProcessingMonth: values.firstProcessingMonth ?? null,
             };
 
-            // Logic: If Isolated Mode or Blank Profile is ON, we force shouldImport to false.
-            const shouldImport = useGlobalRules && !disableGlobalRules && !isBlankProfile && !isPayrollClient;
+            // Logic: If Blank Profile is ON, no standard COA or rules should ever be created.
+            // If Isolated Mode is ON, no rules imported.
+            const isBlank = Boolean(isBlankProfile);
+            const shouldImport = !isBlank && useGlobalRules && !disableGlobalRules && !isPayrollClient;
 
-            const processedRules = shouldImport ? (initialRules || []).map(r => ({
+            let rulesToProcess = initialRules || [];
+            if (shouldImport && rulesToProcess.length === 0) {
+                try {
+                    const rulesRef = collection(db, 'allocationRules');
+                    const q = query(rulesRef, orderBy('description'));
+                    const snapshot = await getDocs(q);
+                    rulesToProcess = snapshot.docs.map(doc => {
+                        const data = doc.data() as AllocationRule;
+                        return {
+                            id: doc.id,
+                            description: data.description || '',
+                            keywords: (data.keywords || []).join(', '),
+                            accountId: alignRuleAccountId(data.accountId, masterChartOfAccounts, {
+                                description: data.description,
+                                category: (data as any).category
+                            }),
+                            vatType: data.vatType,
+                        };
+                    });
+                } catch (e) {
+                    console.error("Failed to fetch global rules for initial import:", e);
+                }
+            }
+
+            const processedRules = shouldImport ? rulesToProcess.map(r => ({
                 ...r,
-                keywords: r.keywords.split(',').map(k => k.trim().toUpperCase()).filter(Boolean),
+                keywords: typeof r.keywords === 'string' ? r.keywords.split(',').map(k => k.trim().toUpperCase()).filter(Boolean) : (r.keywords || []),
                 accountId: alignRuleAccountId(r.accountId, masterChartOfAccounts, { description: r.description }),
                 type: 'hard' as const,
                 scope: 'client' as const,
@@ -233,9 +258,10 @@ export default function ClientForm({
 
             await onSubmit({
                 ...submitData,
-                disableGlobalRules,
-                isBlankProfile,
-                allocationRules: processedRules
+                disableGlobalRules: isBlank ? true : disableGlobalRules,
+                isBlankProfile: isBlank,
+                chartOfAccounts: isBlank ? [] : undefined,
+                allocationRules: isBlank ? [] : processedRules
             });
         } finally {
             setIsSaving(false);
@@ -564,101 +590,9 @@ export default function ClientForm({
                         )}
 
                         {useGlobalRules && !client?.id && !isIsolatedMode && !isBlankProfile && (
-                            <div className="space-y-4">
-                                {isLoadingRules ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-                                        <span className="text-sm text-muted-foreground">Fetching global rules...</span>
-                                    </div>
-                                ) : fields.length > 0 ? (
-                                    <Accordion type="single" collapsible className="w-full border rounded-lg overflow-hidden">
-                                        {fields.map((field, index) => (
-                                            <AccordionItem key={field.id} value={field.id} className="border-b last:border-0 px-4">
-                                                <AccordionTrigger className="hover:no-underline py-3">
-                                                    <div className="flex items-center gap-2 text-left">
-                                                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                                        <span className="font-medium text-sm">{form.watch(`initialRules.${index}.description`)}</span>
-                                                    </div>
-                                                </AccordionTrigger>
-                                                <AccordionContent className="space-y-4 pb-4">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <FormField
-                                                            control={form.control}
-                                                            name={`initialRules.${index}.description`}
-                                                            render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-xs">Rule Name</FormLabel>
-                                                                    <FormControl><Input {...field} className="h-8 text-xs" /></FormControl>
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                        <FormField
-                                                            control={form.control}
-                                                            name={`initialRules.${index}.accountId`}
-                                                            render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-xs">Allocate To</FormLabel>
-                                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                                        <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger></FormControl>
-                                                                        <SelectContent>
-                                                                            {masterChartOfAccounts.map(acc => (
-                                                                                <SelectItem key={acc.id} value={acc.id}>{acc.description}</SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                    </div>
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`initialRules.${index}.keywords`}
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel className="text-xs">Keywords (comma-separated)</FormLabel>
-                                                                <FormControl><Input {...field} className="h-8 text-xs" /></FormControl>
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                    <div className="flex justify-between items-center">
-                                                        <FormField
-                                                            control={form.control}
-                                                            name={`initialRules.${index}.vatType`}
-                                                            render={({ field }) => (
-                                                                <FormItem className="flex-grow mr-4">
-                                                                    <FormLabel className="text-xs">VAT Treatment</FormLabel>
-                                                                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!isVatRegistered}>
-                                                                        <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger></FormControl>
-                                                                        <SelectContent>
-                                                                            {allVatTypes.map(vt => (
-                                                                                <SelectItem key={vt.name} value={vt.name}>{vt.label}</SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                        <Button 
-                                                            type="button" 
-                                                            variant="ghost" 
-                                                            size="sm" 
-                                                            className="text-destructive mt-6"
-                                                            onClick={() => remove(index)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4 mr-1" />
-                                                            Don't Import
-                                                        </Button>
-                                                    </div>
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        ))}
-                                    </Accordion>
-                                ) : (
-                                    <div className="text-center py-6 bg-muted/30 rounded-lg border-2 border-dashed">
-                                        <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                                        <p className="text-sm text-muted-foreground">No global rules found to import.</p>
-                                    </div>
-                                )}
+                            <div className="flex items-center gap-2 p-3 text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                                <span>Default practice allocation rules will automatically be imported into this client's profile upon creation.</span>
                             </div>
                         )}
                     </section>

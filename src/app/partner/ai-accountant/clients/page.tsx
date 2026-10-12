@@ -295,6 +295,7 @@ export default function AIAccountantClientsPage() {
                 source: 'AI Accountant',
                 clientSource: 'ai_accountant',
                 hasNumeraProfile: true,
+                disableGlobalRules: isBlank ? true : Boolean(data.disableGlobalRules),
                 chartOfAccounts: clientCoA,
                 allocationRules: clientRules,
             };

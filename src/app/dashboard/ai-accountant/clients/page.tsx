@@ -277,7 +277,7 @@ export default function AIAccountantClientsPage() {
             // This is a new client creation
             const { createAIProfile, ...clientFormData } = data;
             const isBlank = Boolean(data.isBlankProfile);
-            const clientCoA = isBlank ? [] : (data.chartOfAccounts || initialChartOfAccounts);
+            const clientCoA = isBlank ? [] : (data.chartOfAccounts && data.chartOfAccounts.length > 0 ? data.chartOfAccounts : initialChartOfAccounts);
             const clientRules = isBlank ? [] : alignRulesToChartOfAccounts(data.allocationRules || [], clientCoA);
 
             const newClientData: Partial<User> = {
@@ -287,6 +287,7 @@ export default function AIAccountantClientsPage() {
                 source: 'AI Accountant',
                 clientSource: 'ai_accountant',
                 hasNumeraProfile: true,
+                disableGlobalRules: isBlank ? true : Boolean(data.disableGlobalRules),
                 chartOfAccounts: clientCoA,
                 allocationRules: clientRules,
             };
