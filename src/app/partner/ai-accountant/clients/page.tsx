@@ -15,7 +15,7 @@ import { firebaseApp } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePartner } from '@/contexts/PartnerContext';
 import ClientForm from '@/components/admin/ClientForm';
-import { chartOfAccounts as initialChartOfAccounts } from '@/lib/chart-of-accounts';
+import { chartOfAccounts as initialChartOfAccounts, balanceSheetControlAccounts } from '@/lib/chart-of-accounts';
 import { allocationRules as initialAllocationRules } from '@/lib/allocation-rules';
 import { alignRulesToChartOfAccounts } from '@/lib/chart-of-accounts-mapper';
 import Link from 'next/link';
@@ -253,6 +253,7 @@ export default function AIAccountantClientsPage() {
         if (selectedClient?.id) {
             // This is an update, only merge the fields from the form
             const { createAIProfile, ...clientFormData } = data;
+            const isBlank = Boolean(data.isBlankProfile);
             const updateData: Partial<User> = {
                 ...clientFormData,
                 yearEnd: data.yearEnd || null,
@@ -261,6 +262,11 @@ export default function AIAccountantClientsPage() {
              if (!data.isVatRegistered) {
                 updateData.vatNumber = null as any;
                 updateData.vatCategory = null as any;
+            }
+            if (isBlank) {
+                updateData.chartOfAccounts = balanceSheetControlAccounts;
+                updateData.allocationRules = [];
+                updateData.disableGlobalRules = true;
             }
             await setDoc(doc(db, "aiAccountantClients", selectedClient.id), updateData, { merge: true });
             toast({ title: 'Client Updated'});
@@ -284,7 +290,7 @@ export default function AIAccountantClientsPage() {
             }
 
             const isBlank = Boolean(data.isBlankProfile);
-            const clientCoA = isBlank ? [] : partnerChartOfAccounts;
+            const clientCoA = isBlank ? balanceSheetControlAccounts : partnerChartOfAccounts;
             const rawRules = data.allocationRules || partnerAllocationRules || [];
             const clientRules = isBlank ? [] : alignRulesToChartOfAccounts(rawRules, clientCoA);
 

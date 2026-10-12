@@ -187,3 +187,11 @@ export let chartOfAccounts: ChartOfAccount[] = [
 export function setMasterChartOfAccounts(newAccounts: ChartOfAccount[]) {
   chartOfAccounts = newAccounts;
 }
+
+export const balanceSheetControlAccounts: ChartOfAccount[] = chartOfAccounts.filter(
+  acc => acc.section === 'Balance Sheet'
+);
+
+export function getBalanceSheetControlAccounts(): ChartOfAccount[] {
+  return chartOfAccounts.filter(acc => acc.section === 'Balance Sheet');
+}

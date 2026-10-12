@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import ClientForm from '@/components/admin/ClientForm';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { chartOfAccounts as initialChartOfAccounts } from '@/lib/chart-of-accounts';
+import { chartOfAccounts as initialChartOfAccounts, balanceSheetControlAccounts } from '@/lib/chart-of-accounts';
 import { allocationRules as initialAllocationRules } from '@/lib/allocation-rules';
 import { alignRulesToChartOfAccounts } from '@/lib/chart-of-accounts-mapper';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -471,7 +471,7 @@ export default function AIAccountantClientsPage() {
                     updatedAt: serverTimestamp(),
                 };
                 if (isBlank) {
-                    updatePayload.chartOfAccounts = [];
+                    updatePayload.chartOfAccounts = balanceSheetControlAccounts;
                     updatePayload.allocationRules = [];
                     updatePayload.disableGlobalRules = true;
                 }
@@ -481,7 +481,7 @@ export default function AIAccountantClientsPage() {
                 // Create
                 const newDocRef = doc(collection(db, 'aiAccountantClients'));
                 const isBlank = Boolean(data.isBlankProfile);
-                const clientCoA = isBlank ? [] : (data.chartOfAccounts && data.chartOfAccounts.length > 0 ? data.chartOfAccounts : initialChartOfAccounts);
+                const clientCoA = isBlank ? balanceSheetControlAccounts : (data.chartOfAccounts && data.chartOfAccounts.length > 0 ? data.chartOfAccounts : initialChartOfAccounts);
                 const clientRules = isBlank ? [] : alignRulesToChartOfAccounts(data.allocationRules || [], clientCoA);
 
                 const newClientData = {

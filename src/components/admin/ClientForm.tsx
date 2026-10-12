@@ -17,7 +17,7 @@ import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/fire
 import { firebaseApp } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { allVatTypes } from '@/lib/vat-types';
-import { chartOfAccounts as masterChartOfAccounts } from '@/lib/chart-of-accounts';
+import { chartOfAccounts as masterChartOfAccounts, balanceSheetControlAccounts } from '@/lib/chart-of-accounts';
 import { alignRuleAccountId, alignRulesToChartOfAccounts } from '@/lib/chart-of-accounts-mapper';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -260,7 +260,7 @@ export default function ClientForm({
                 ...submitData,
                 disableGlobalRules: isBlank ? true : disableGlobalRules,
                 isBlankProfile: isBlank,
-                chartOfAccounts: isBlank ? [] : undefined,
+                chartOfAccounts: isBlank ? balanceSheetControlAccounts : undefined,
                 allocationRules: isBlank ? [] : processedRules
             });
         } finally {
@@ -513,7 +513,7 @@ export default function ClientForm({
                                         <FormLabel className="text-sm font-bold">Blank Profile</FormLabel>
                                     </div>
                                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                                        Create a profile with no Chart of Accounts or default rules. Forces Isolated Practice Mode.
+                                        Initializes standard Balance Sheet control accounts only (no Income Statement accounts or rules). Forces Isolated Practice Mode.
                                     </p>
                                 </div>
                                 <FormControl>
@@ -534,9 +534,9 @@ export default function ClientForm({
                         {isBlankProfile && (
                             <Alert className="bg-primary/5 border-primary/20">
                                 <Info className="h-4 w-4 text-primary" />
-                                <AlertTitle className="text-xs font-bold uppercase">Manual Setup Required</AlertTitle>
+                                <AlertTitle className="text-xs font-bold uppercase">Balance Sheet Controls Only</AlertTitle>
                                 <AlertDescription className="text-[10px]">
-                                    You will need to manually add General Ledger accounts before allocating transactions.
+                                    Standard Balance Sheet control accounts (Bank, Customers, Suppliers, VAT, Tax) are initialized. You can import or manually create custom Income Statement (Revenue & Expense) accounts.
                                 </AlertDescription>
                             </Alert>
                         )}
