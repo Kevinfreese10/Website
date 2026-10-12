@@ -60,11 +60,25 @@ async function fetchCmd(orderId: string) {
       console.log(`${idx + 1}. [${step.status.toUpperCase()}] ${step.title} ${art}`);
     });
   }
+
+  console.log('\n--- COMMUNICATION HISTORY (NOTES) ---');
+  const notes = (order as any).notes || [];
+  if (notes.length === 0) {
+    console.log('No notes posted yet.');
+  } else {
+    notes.forEach((n: any, idx: number) => {
+      console.log(`\nNote #${idx + 1} | Author: ${n.author || n.userName} | Date: ${n.createdAt || n.timestamp}`);
+      console.log(n.message || n.text || n.content);
+      if (n.attachments?.length) {
+        console.log('Attachments:', n.attachments.map((a: any) => a.fileName || a.name).join(', '));
+      }
+    });
+  }
 }
 
-async function auditCmd(orderId: string, dryRun: boolean = true) {
-  console.log(`Executing full audit and statutory document generation pipeline for Order #${orderId}...`);
-  const result = await runOrderAuditPipeline({ orderId, dryRun });
+async function auditCmd(orderId: string, dryRun: boolean = true, force: boolean = false) {
+  console.log(`Executing full audit and statutory document generation pipeline for Order #${orderId}... (force: ${force})`);
+  const result = await runOrderAuditPipeline({ orderId, dryRun, forceRegenerate: force });
   console.log('\n====================================================');
   console.log(`AUDIT FINISHED: #${result.orderNumber} (${result.entityName})`);
   console.log('====================================================');
@@ -98,11 +112,12 @@ async function main() {
   const orderId = orderIdIdx !== -1 ? args[orderIdIdx + 1] : undefined;
 
   if (!orderId) {
-    console.error('Usage: npx tsx scripts/audit_order.ts <fetch|audit|generate|approve> --order-id <ID> [--dry-run|--live|--approve-and-post]');
+    console.error('Usage: npx tsx scripts/audit_order.ts <fetch|audit|generate|approve> --order-id <ID> [--dry-run|--live|--approve-and-post|--force]');
     process.exit(1);
   }
 
   const dryRun = !args.includes('--live');
+  const force = args.includes('--force');
   const approveAndPost = command === 'approve' || args.includes('--approve-and-post');
 
   if (approveAndPost) {
@@ -110,7 +125,7 @@ async function main() {
   } else if (command === 'fetch' || command === 'status') {
     await fetchCmd(orderId);
   } else if (command === 'audit' || command === 'generate' || command === 'run' || command?.startsWith('--')) {
-    await auditCmd(orderId, dryRun);
+    await auditCmd(orderId, dryRun, force);
   } else {
     console.error(`Unknown command: ${command}`);
     process.exit(1);

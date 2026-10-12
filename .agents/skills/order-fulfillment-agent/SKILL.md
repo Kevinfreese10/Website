@@ -169,10 +169,35 @@ Before drafting any Accountant's Letter, perform the following forensic tests on
   4. **04. Sole Director Written Resolution (1 Page)**: Formal board resolution authorizing NCR registration and agent mandate.
   5. **05. NCR Confirmation of Fees Annexure (1 Page)**: Breakdown (R550 App Fee + R1,250 Branch Fee = R1,800 Total) confirming payment.
   6. **06. Share Certificate #01 (1 Page Landscape)**: Certifying 100 ordinary shares held by sole director.
+* **Official National Credit Regulator (NCR) Statutory Banking Details**:
+  - **Bank**: Standard Bank of South Africa
+  - **Account Name**: National Credit Regulator
+  - **Account Number**: `200456490`
+  - **Branch**: Parktown
+  - **Branch Code**: `000355` (Universal Branch Code: `051001`)
+  - **Payment Reference**: Client CIPC Registration Number (digits only, e.g. `202412345607`)
+  - **Prescribed Fees**: R 1,800.00 Total (R 550.00 Application Fee + R 1,250.00 Initial Registration/Branch Fee)
+  - **CRITICAL INVARIANT**: NEVER quote or provide FNB banking details for the NCR statutory fee. The National Credit Regulator does NOT bank with FNB; all official regulator fees must be directed strictly to their Standard Bank account.
 * **Output Path**: Save copies to `C:\Users\kev\Downloads\Order_<ID>_<Entity>_Statutory_Pack\` and `c:/myacc/scratch/order_<ID>_pack`.
 * **Signed Conditions Lodgement Protocol (Section 48(6))**: When an NCR application is approved subject to proposed conditions:
   - Required Attachments: Initialled Proposed Conditions Notice + Signed Annexure A (Consent) + Signed Annexure B (Staff Count).
   - Dispatch to `registrations@ncr.org.za` and assigned officer (e.g. `Tneshehe@ncr.org.za`), CCing client and `info@myacc.co.za`. Set order to `Waiting on External`.
+* **Section 45(2)(a) Notice of Outstanding Information Protocol (Letter of Acknowledgement of Receipt)**:
+  - **Statutory Authority**: Section 45(2)(a) of the National Credit Act 34 of 2005.
+  - **Statutory Deadline**: Strictly **15 business days** from the date of the NCR letter. If not remedied within 15 business days, the NCR may deem the application lapsed or refuse registration.
+  - **Standard Defect Trigger**: The NCR issues a *"LETTER OF ACKNOWLEDGEMENT OF RECEIPT OF APPLICATION AND REQUIRED OUTSTANDING INFORMATION"* requesting:
+    1. **Part 6 (Declaration)**: Must be completed with **exact full legal names as per Identity document** (including all first and middle names character-for-character as reflected on the green ID book or Smart ID card, e.g. "Nastasia Harriet Benedet Benton"), signed, and dated.
+    2. **Part 7 (Disqualification Undertaking & Consent)**: Must be completed with **exact full legal names as per ID**, signed, and dated.
+  - **Full Legal Name Consistency Invariant**:
+    - The applicant/director name across Part 1, Part 6, Part 7, Director Resolution, Power of Attorney, Accounting Officer Appointment, and CIPC certificate MUST match the certified ID copy character-for-character.
+    - **NEVER** truncate names to initials or drop middle names (e.g. if the ID states "Nastasia Harriet Benedet Benton", never submit as "Nastasia Benton" or "N. H. B. Benton"). Even a single omitted middle name triggers an NCR Section 45(2)(a) rejection.
+  - **Agent Action Protocol**:
+    1. Ingest the Section 45(2)(a) notice (or client forward referencing `APP <number>` / `acknowledgement of receipt`).
+    2. Audit the submitted certified ID copy to extract the exact full legal first names, middle names, and surname.
+    3. Re-generate Form NCR 2 with full legal names populated identically across all sections.
+    4. Post the re-generated Form NCR 2 to the order's Communication History (`orders/{orderId}.notes`) with explicit instructions detailing that Part 6 and Part 7 must be signed and dated with full legal names, warning the client of the strict **15-business-day deadline**.
+    5. Set order status to `Waiting on Customer`.
+    6. Upon receipt of the newly signed form, immediately lodge the remediation pack to `registrations@ncr.org.za` and the assigned NCR officer referencing the `APP` reference number, and set status to `Waiting on External`.
 
 ### Playbook B: Accountant's Income & Financial Standing Confirmation
 * **Authority**: Issued under Kevin Freese (Director, CBAP SA #3561, Practice No: PR-0098553).
