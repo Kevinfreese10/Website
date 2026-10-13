@@ -34,6 +34,10 @@ export function generateManagementReportPdf({
   const rightMargin = 16;
   const contentWidth = pageWidth - leftMargin - rightMargin;
 
+  const isMultiMonth = (data.period.months?.length || 0) > 1;
+  const monthSlices = data.period.months || [];
+  const numMonths = monthSlices.length;
+
   const currentPeriodDates = `${formatDateStr(data.period.startDate)} – ${formatDateStr(data.period.endDate)}`;
   const priorPeriodDates = `${formatDateStr(data.period.comparativeStartDate)} – ${formatDateStr(data.period.comparativeEndDate)}`;
   const asAtCurrent = formatDateStr(data.period.endDate);
@@ -54,11 +58,12 @@ export function generateManagementReportPdf({
   };
 
   const drawPageHeader = (title: string, subtitle?: string) => {
+    const curWidth = doc.internal.pageSize.getWidth();
     // Header top accent line
     doc.setFillColor(15, 39, 68); // Deep Navy
-    doc.rect(0, 0, pageWidth, 5, 'F');
+    doc.rect(0, 0, curWidth, 5, 'F');
     doc.setFillColor(37, 99, 235); // Royal Blue accent
-    doc.rect(0, 5, pageWidth, 1.5, 'F');
+    doc.rect(0, 5, curWidth, 1.5, 'F');
 
     // Company & Meta
     doc.setFont('helvetica', 'bold');
@@ -90,19 +95,21 @@ export function generateManagementReportPdf({
 
     doc.setDrawColor(203, 213, 225);
     doc.setLineWidth(0.4);
-    doc.line(leftMargin, subtitle ? 35 : 31, pageWidth - rightMargin, subtitle ? 35 : 31);
+    doc.line(leftMargin, subtitle ? 35 : 31, curWidth - rightMargin, subtitle ? 35 : 31);
   };
 
   const drawPageFooter = (pageNum: number, totalPages: number = 4) => {
+    const curWidth = doc.internal.pageSize.getWidth();
+    const curHeight = doc.internal.pageSize.getHeight();
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.3);
-    doc.line(leftMargin, pageHeight - 14, pageWidth - rightMargin, pageHeight - 14);
+    doc.line(leftMargin, curHeight - 14, curWidth - rightMargin, curHeight - 14);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(148, 163, 184);
-    doc.text('Prepared by My Accountant (Pty) Ltd • Confidential Executive Management Report', leftMargin, pageHeight - 9);
-    doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - rightMargin, pageHeight - 9, { align: 'right' });
+    doc.text('Prepared by My Accountant (Pty) Ltd • Confidential Executive Management Report', leftMargin, curHeight - 9);
+    doc.text(`Page ${pageNum} of ${totalPages}`, curWidth - rightMargin, curHeight - 9, { align: 'right' });
   };
 
   // ==========================================
@@ -146,14 +153,25 @@ export function generateManagementReportPdf({
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(191, 219, 254);
-  doc.text('CURRENT REPORTING PERIOD:', leftMargin + 4, 38.5);
-  doc.text('COMPARATIVE PRIOR PERIOD:', leftMargin + (contentWidth / 2) + 2, 38.5);
+  if (isMultiMonth) {
+    doc.text('REPORTING PERIOD (MULTI-MONTH):', leftMargin + 4, 38.5);
+    doc.text('MONTHLY BREAKDOWN:', leftMargin + (contentWidth / 2) + 2, 38.5);
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(255, 255, 255);
-  doc.text(`${data.period.label}  (${currentPeriodDates})`, leftMargin + 4, 44);
-  doc.text(`${data.period.comparativeLabel}  (${priorPeriodDates})`, leftMargin + (contentWidth / 2) + 2, 44);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${data.period.label}  (${currentPeriodDates})`, leftMargin + 4, 44);
+    doc.text(`${numMonths} Months (${monthSlices.map((m) => m.shortLabel).join(', ')})`, leftMargin + (contentWidth / 2) + 2, 44);
+  } else {
+    doc.text('CURRENT REPORTING PERIOD:', leftMargin + 4, 38.5);
+    doc.text('COMPARATIVE PRIOR PERIOD:', leftMargin + (contentWidth / 2) + 2, 38.5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${data.period.label}  (${currentPeriodDates})`, leftMargin + 4, 44);
+    doc.text(`${data.period.comparativeLabel}  (${priorPeriodDates})`, leftMargin + (contentWidth / 2) + 2, 44);
+  }
 
   // Key KPI Summary Grid (8 Colored Cards)
   let kpiY = 60;
@@ -396,10 +414,19 @@ export function generateManagementReportPdf({
   // ==========================================
   // PAGE 2: STATEMENT OF COMPREHENSIVE INCOME (P&L)
   // ==========================================
-  doc.addPage();
+  if (isMultiMonth && numMonths > 4) {
+    doc.addPage('a4', 'landscape');
+  } else {
+    doc.addPage('a4', 'portrait');
+  }
+
+  const pnlSubtitle = isMultiMonth
+    ? `Monthly Breakdown Statement (${data.period.label}, ${numMonths} Months)`
+    : `Comparing Current Period (${currentPeriodDates}) with Prior Period (${priorPeriodDates})`;
+
   drawPageHeader(
     'Statement of Comprehensive Income (Profit & Loss)',
-    `Comparing Current Period (${currentPeriodDates}) with Prior Period (${priorPeriodDates})`
+    pnlSubtitle
   );
 
   const pnlStatements = [
@@ -410,77 +437,148 @@ export function generateManagementReportPdf({
 
   const pnlRows: any[] = [];
 
-  // Helper for row colors
   pnlStatements.forEach((stmt) => {
     // Category Header
     pnlRows.push([
       {
         content: stmt.title,
-        colSpan: 5,
+        colSpan: isMultiMonth ? numMonths + 2 : 5,
         styles: { fontStyle: 'bold', fillColor: [15, 39, 68], textColor: [255, 255, 255], fontSize: 8 },
       },
     ]);
 
     // Items
     stmt.data.items.forEach((item) => {
-      const varAmt = item.varianceAmount || (item.currentAmount - (item.priorAmount || 0));
-      const varPct = item.variancePct || (item.priorAmount ? (varAmt / item.priorAmount) * 100 : 0);
-      const isGood = stmt.isPositiveGood ? varAmt >= 0 : varAmt <= 0;
+      const itemTitle = `  ${item.accountNumber ? item.accountNumber + ' - ' : ''}${item.name}`;
+      if (isMultiMonth) {
+        const monthCols = monthSlices.map((m) => formatRand(item.monthlyAmounts?.[m.key] ?? 0));
+        pnlRows.push([
+          itemTitle,
+          ...monthCols,
+          {
+            content: formatRand(item.currentAmount),
+            styles: { fontStyle: 'bold', fillColor: [248, 250, 252] },
+          },
+        ]);
+      } else {
+        const varAmt = item.varianceAmount || (item.currentAmount - (item.priorAmount || 0));
+        const varPct = item.variancePct || (item.priorAmount ? (varAmt / item.priorAmount) * 100 : 0);
+        const isGood = stmt.isPositiveGood ? varAmt >= 0 : varAmt <= 0;
 
-      pnlRows.push([
-        `  ${item.accountNumber ? item.accountNumber + ' - ' : ''}${item.name}`,
-        formatRand(item.currentAmount),
-        formatRand(item.priorAmount || 0),
-        {
-          content: formatRand(varAmt),
-          styles: { textColor: isGood ? [22, 101, 52] : [185, 28, 28] },
-        },
-        {
-          content: formatPct(varPct),
-          styles: { textColor: isGood ? [22, 101, 52] : [185, 28, 28] },
-        },
-      ]);
+        pnlRows.push([
+          itemTitle,
+          formatRand(item.currentAmount),
+          formatRand(item.priorAmount || 0),
+          {
+            content: formatRand(varAmt),
+            styles: { textColor: isGood ? [22, 101, 52] : [185, 28, 28] },
+          },
+          {
+            content: formatPct(varPct),
+            styles: { textColor: isGood ? [22, 101, 52] : [185, 28, 28] },
+          },
+        ]);
+      }
     });
 
     // Subtotal
-    const subVarAmt = stmt.data.varianceAmount || (stmt.data.currentTotal - stmt.data.priorTotal);
-    const subVarPct = stmt.data.variancePct || (stmt.data.priorTotal ? (subVarAmt / stmt.data.priorTotal) * 100 : 0);
-    pnlRows.push([
-      { content: `Total ${stmt.data.title}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-      { content: formatRand(stmt.data.currentTotal), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-      { content: formatRand(stmt.data.priorTotal || 0), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-      { content: formatRand(subVarAmt), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-      { content: formatPct(subVarPct), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-    ]);
+    if (isMultiMonth) {
+      const subMonthCols = monthSlices.map((m) => ({
+        content: formatRand(stmt.data.monthlyTotals?.[m.key] ?? 0),
+        styles: { fontStyle: 'bold', fillColor: [241, 245, 249] },
+      }));
+      pnlRows.push([
+        { content: `Total ${stmt.data.title}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        ...subMonthCols,
+        { content: formatRand(stmt.data.currentTotal), styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } },
+      ]);
+    } else {
+      const subVarAmt = stmt.data.varianceAmount || (stmt.data.currentTotal - stmt.data.priorTotal);
+      const subVarPct = stmt.data.variancePct || (stmt.data.priorTotal ? (subVarAmt / stmt.data.priorTotal) * 100 : 0);
+      pnlRows.push([
+        { content: `Total ${stmt.data.title}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: formatRand(stmt.data.currentTotal), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: formatRand(stmt.data.priorTotal || 0), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: formatRand(subVarAmt), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: formatPct(subVarPct), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      ]);
+    }
 
     // Insert Gross Profit row right after Cost of Sales
     if (stmt.title === 'COST OF SALES') {
       const gp = data.profitAndLoss.grossProfit;
-      pnlRows.push([
-        { content: 'GROSS PROFIT', styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
-        { content: formatRand(gp.current), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
-        { content: formatRand(gp.prior), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
-        { content: formatRand(gp.variance), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
-        { content: formatPct(gp.variancePct), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
-      ]);
+      if (isMultiMonth) {
+        const gpMonthCols = monthSlices.map((m) => ({
+          content: formatRand(gp.monthly?.[m.key] ?? 0),
+          styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 },
+        }));
+        pnlRows.push([
+          { content: 'GROSS PROFIT', styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+          ...gpMonthCols,
+          { content: formatRand(gp.current), styles: { fontStyle: 'bold', fillColor: [186, 230, 253], textColor: [3, 105, 161], fontSize: 8.5 } },
+        ]);
+      } else {
+        pnlRows.push([
+          { content: 'GROSS PROFIT', styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+          { content: formatRand(gp.current), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+          { content: formatRand(gp.prior), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+          { content: formatRand(gp.variance), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+          { content: formatPct(gp.variancePct), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+        ]);
+      }
     }
   });
 
   // Net Profit Row
   const np = data.profitAndLoss.netProfitBeforeTax;
-  pnlRows.push([
-    { content: 'NET PROFIT / (LOSS) BEFORE TAX', styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
-    { content: formatRand(np.current), styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
-    { content: formatRand(np.prior), styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
-    { content: formatRand(np.variance), styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
-    { content: formatPct(np.variancePct), styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
-  ]);
+  if (isMultiMonth) {
+    const npMonthCols = monthSlices.map((m) => ({
+      content: formatRand(np.monthly?.[m.key] ?? 0),
+      styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 },
+    }));
+    pnlRows.push([
+      { content: 'NET PROFIT / (LOSS) BEFORE TAX', styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
+      ...npMonthCols,
+      { content: formatRand(np.current), styles: { fontStyle: 'bold', fillColor: [187, 247, 208], textColor: [21, 128, 61], fontSize: 9 } },
+    ]);
+  } else {
+    pnlRows.push([
+      { content: 'NET PROFIT / (LOSS) BEFORE TAX', styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
+      { content: formatRand(np.current), styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
+      { content: formatRand(np.prior), styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
+      { content: formatRand(np.variance), styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
+      { content: formatPct(np.variancePct), styles: { fontStyle: 'bold', fillColor: [220, 252, 231], textColor: [21, 128, 61], fontSize: 9 } },
+    ]);
+  }
 
-  autoTable(doc, {
-    startY: 38,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'grid',
-    head: [
+  const p2CurWidth = doc.internal.pageSize.getWidth();
+  const p2ContentWidth = p2CurWidth - leftMargin - rightMargin;
+
+  let pnlColStyles: Record<number, any>;
+  let pnlHead: string[][];
+
+  if (isMultiMonth) {
+    pnlHead = [
+      [
+        'Account Description',
+        ...monthSlices.map((m) => m.shortLabel),
+        'Total (ZAR)',
+      ],
+    ];
+    const valColCount = numMonths + 1; // months + Total
+    const descWidth = numMonths > 4
+      ? Math.max(65, p2ContentWidth * 0.32)
+      : Math.max(60, p2ContentWidth - (valColCount * 27));
+    const valWidth = (p2ContentWidth - descWidth - 1) / valColCount;
+
+    pnlColStyles = {
+      0: { cellWidth: descWidth, halign: 'left' },
+    };
+    for (let i = 1; i <= valColCount; i++) {
+      pnlColStyles[i] = { cellWidth: valWidth, halign: 'right' };
+    }
+  } else {
+    pnlHead = [
       [
         'Account Description',
         `Current Period\n(${currentPeriodDates})`,
@@ -488,23 +586,31 @@ export function generateManagementReportPdf({
         'Movement (R)',
         'Movement %',
       ],
-    ],
-    body: pnlRows,
-    styles: { fontSize: 7.5, cellPadding: 2, textColor: [30, 41, 59] },
-    headStyles: {
-      fillColor: [15, 39, 68],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 7.5,
-      halign: 'center',
-    },
-    columnStyles: {
+    ];
+    pnlColStyles = {
       0: { cellWidth: 70, halign: 'left' },
       1: { cellWidth: 28, halign: 'right' },
       2: { cellWidth: 28, halign: 'right' },
       3: { cellWidth: 26, halign: 'right' },
       4: { cellWidth: 26, halign: 'right' },
+    };
+  }
+
+  autoTable(doc, {
+    startY: 38,
+    margin: { left: leftMargin, right: rightMargin },
+    theme: 'grid',
+    head: pnlHead,
+    body: pnlRows,
+    styles: { fontSize: isMultiMonth && numMonths > 6 ? 6.5 : 7.5, cellPadding: 2, textColor: [30, 41, 59] },
+    headStyles: {
+      fillColor: [15, 39, 68],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: isMultiMonth && numMonths > 6 ? 6.5 : 7.5,
+      halign: 'center',
     },
+    columnStyles: pnlColStyles,
     alternateRowStyles: { fillColor: [250, 250, 250] },
   });
 
@@ -513,10 +619,19 @@ export function generateManagementReportPdf({
   // ==========================================
   // PAGE 3: STATEMENT OF FINANCIAL POSITION (BALANCE SHEET)
   // ==========================================
-  doc.addPage();
+  if (isMultiMonth && numMonths > 4) {
+    doc.addPage('a4', 'landscape');
+  } else {
+    doc.addPage('a4', 'portrait');
+  }
+
+  const bsSubtitle = isMultiMonth
+    ? `Financial Position Monthly Trend (${data.period.label}, As at ${asAtCurrent})`
+    : `Financial Position as at ${asAtCurrent} compared to ${asAtPrior}`;
+
   drawPageHeader(
     'Statement of Financial Position (Balance Sheet)',
-    `Financial Position as at ${asAtCurrent} compared to ${asAtPrior}`
+    bsSubtitle
   );
 
   const bsCategories = [
@@ -534,72 +649,144 @@ export function generateManagementReportPdf({
     bsRows.push([
       {
         content: cat.title,
-        colSpan: 5,
+        colSpan: isMultiMonth ? numMonths + 2 : 5,
         styles: { fontStyle: 'bold', fillColor: [15, 39, 68], textColor: [255, 255, 255], fontSize: 8 },
       },
     ]);
 
     // Items
     cat.data.items.forEach((item) => {
-      const varAmt = item.varianceAmount || (item.currentAmount - (item.priorAmount || 0));
-      const varPct = item.variancePct || (item.priorAmount ? (varAmt / item.priorAmount) * 100 : 0);
+      const itemTitle = `  ${item.accountNumber ? item.accountNumber + ' - ' : ''}${item.name}`;
+      if (isMultiMonth) {
+        const monthCols = monthSlices.map((m) => formatRand(item.monthlyAmounts?.[m.key] ?? 0));
+        bsRows.push([
+          itemTitle,
+          ...monthCols,
+          {
+            content: formatRand(item.currentAmount),
+            styles: { fontStyle: 'bold', fillColor: [248, 250, 252] },
+          },
+        ]);
+      } else {
+        const varAmt = item.varianceAmount || (item.currentAmount - (item.priorAmount || 0));
+        const varPct = item.variancePct || (item.priorAmount ? (varAmt / item.priorAmount) * 100 : 0);
 
-      bsRows.push([
-        `  ${item.accountNumber ? item.accountNumber + ' - ' : ''}${item.name}`,
-        formatRand(item.currentAmount),
-        formatRand(item.priorAmount || 0),
-        formatRand(varAmt),
-        formatPct(varPct),
-      ]);
+        bsRows.push([
+          itemTitle,
+          formatRand(item.currentAmount),
+          formatRand(item.priorAmount || 0),
+          formatRand(varAmt),
+          formatPct(varPct),
+        ]);
+      }
     });
 
     // Subtotal
-    const subVarAmt = cat.data.varianceAmount || (cat.data.currentTotal - cat.data.priorTotal);
-    const subVarPct = cat.data.variancePct || (cat.data.priorTotal ? (subVarAmt / cat.data.priorTotal) * 100 : 0);
-    bsRows.push([
-      { content: `Total ${cat.data.title}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-      { content: formatRand(cat.data.currentTotal), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-      { content: formatRand(cat.data.priorTotal || 0), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-      { content: formatRand(subVarAmt), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-      { content: formatPct(subVarPct), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
-    ]);
+    if (isMultiMonth) {
+      const subMonthCols = monthSlices.map((m) => ({
+        content: formatRand(cat.data.monthlyTotals?.[m.key] ?? 0),
+        styles: { fontStyle: 'bold', fillColor: [241, 245, 249] },
+      }));
+      bsRows.push([
+        { content: `Total ${cat.data.title}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        ...subMonthCols,
+        { content: formatRand(cat.data.currentTotal), styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } },
+      ]);
+    } else {
+      const subVarAmt = cat.data.varianceAmount || (cat.data.currentTotal - cat.data.priorTotal);
+      const subVarPct = cat.data.variancePct || (cat.data.priorTotal ? (subVarAmt / cat.data.priorTotal) * 100 : 0);
+      bsRows.push([
+        { content: `Total ${cat.data.title}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: formatRand(cat.data.currentTotal), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: formatRand(cat.data.priorTotal || 0), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: formatRand(subVarAmt), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+        { content: formatPct(subVarPct), styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } },
+      ]);
+    }
 
     // Total Assets insert
     if (cat.title === 'CURRENT ASSETS') {
-      const totAssetsCur = data.balanceSheet.totalAssets.current;
-      const totAssetsPri = data.balanceSheet.totalAssets.prior;
-      const totAssetsVar = totAssetsCur - totAssetsPri;
-      const totAssetsVarPct = totAssetsPri ? (totAssetsVar / totAssetsPri) * 100 : 0;
+      if (isMultiMonth) {
+        const totMonthCols = monthSlices.map((m) => ({
+          content: formatRand(data.balanceSheet.totalAssets.monthly?.[m.key] ?? 0),
+          styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 },
+        }));
+        bsRows.push([
+          { content: 'TOTAL ASSETS', styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+          ...totMonthCols,
+          { content: formatRand(data.balanceSheet.totalAssets.current), styles: { fontStyle: 'bold', fillColor: [186, 230, 253], textColor: [3, 105, 161], fontSize: 8.5 } },
+        ]);
+      } else {
+        const totAssetsCur = data.balanceSheet.totalAssets.current;
+        const totAssetsPri = data.balanceSheet.totalAssets.prior;
+        const totAssetsVar = totAssetsCur - totAssetsPri;
+        const totAssetsVarPct = totAssetsPri ? (totAssetsVar / totAssetsPri) * 100 : 0;
 
-      bsRows.push([
-        { content: 'TOTAL ASSETS', styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
-        { content: formatRand(totAssetsCur), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
-        { content: formatRand(totAssetsPri), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
-        { content: formatRand(totAssetsVar), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
-        { content: formatPct(totAssetsVarPct), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
-      ]);
+        bsRows.push([
+          { content: 'TOTAL ASSETS', styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+          { content: formatRand(totAssetsCur), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+          { content: formatRand(totAssetsPri), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+          { content: formatRand(totAssetsVar), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+          { content: formatPct(totAssetsVarPct), styles: { fontStyle: 'bold', fillColor: [224, 242, 254], textColor: [3, 105, 161], fontSize: 8.5 } },
+        ]);
+      }
     }
   });
 
   // Total Equity & Liabilities
-  const totEqLiabCur = data.balanceSheet.totalEquityAndLiabilities.current;
-  const totEqLiabPri = data.balanceSheet.totalEquityAndLiabilities.prior;
-  const totEqLiabVar = totEqLiabCur - totEqLiabPri;
-  const totEqLiabVarPct = totEqLiabPri ? (totEqLiabVar / totEqLiabPri) * 100 : 0;
+  if (isMultiMonth) {
+    const totEqMonthCols = monthSlices.map((m) => ({
+      content: formatRand(data.balanceSheet.totalEquityAndLiabilities.monthly?.[m.key] ?? 0),
+      styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 },
+    }));
+    bsRows.push([
+      { content: 'TOTAL EQUITY & LIABILITIES', styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
+      ...totEqMonthCols,
+      { content: formatRand(data.balanceSheet.totalEquityAndLiabilities.current), styles: { fontStyle: 'bold', fillColor: [203, 213, 225], textColor: [15, 23, 42], fontSize: 8.5 } },
+    ]);
+  } else {
+    const totEqLiabCur = data.balanceSheet.totalEquityAndLiabilities.current;
+    const totEqLiabPri = data.balanceSheet.totalEquityAndLiabilities.prior;
+    const totEqLiabVar = totEqLiabCur - totEqLiabPri;
+    const totEqLiabVarPct = totEqLiabPri ? (totEqLiabVar / totEqLiabPri) * 100 : 0;
 
-  bsRows.push([
-    { content: 'TOTAL EQUITY & LIABILITIES', styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
-    { content: formatRand(totEqLiabCur), styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
-    { content: formatRand(totEqLiabPri), styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
-    { content: formatRand(totEqLiabVar), styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
-    { content: formatPct(totEqLiabVarPct), styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
-  ]);
+    bsRows.push([
+      { content: 'TOTAL EQUITY & LIABILITIES', styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
+      { content: formatRand(totEqLiabCur), styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
+      { content: formatRand(totEqLiabPri), styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
+      { content: formatRand(totEqLiabVar), styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
+      { content: formatPct(totEqLiabVarPct), styles: { fontStyle: 'bold', fillColor: [226, 232, 240], textColor: [15, 23, 42], fontSize: 8.5 } },
+    ]);
+  }
 
-  autoTable(doc, {
-    startY: 38,
-    margin: { left: leftMargin, right: rightMargin },
-    theme: 'grid',
-    head: [
+  const p3CurWidth = doc.internal.pageSize.getWidth();
+  const p3ContentWidth = p3CurWidth - leftMargin - rightMargin;
+
+  let bsColStyles: Record<number, any>;
+  let bsHead: string[][];
+
+  if (isMultiMonth) {
+    bsHead = [
+      [
+        'Balance Sheet Category / Item',
+        ...monthSlices.map((m) => `As at\n${m.shortLabel}`),
+        'Latest Position',
+      ],
+    ];
+    const valColCount = numMonths + 1;
+    const descWidth = numMonths > 4
+      ? Math.max(65, p3ContentWidth * 0.32)
+      : Math.max(60, p3ContentWidth - (valColCount * 27));
+    const valWidth = (p3ContentWidth - descWidth - 1) / valColCount;
+
+    bsColStyles = {
+      0: { cellWidth: descWidth, halign: 'left' },
+    };
+    for (let i = 1; i <= valColCount; i++) {
+      bsColStyles[i] = { cellWidth: valWidth, halign: 'right' };
+    }
+  } else {
+    bsHead = [
       [
         'Statement Category / Item',
         `Current Position\n(As at ${asAtCurrent})`,
@@ -607,23 +794,31 @@ export function generateManagementReportPdf({
         'Movement (R)',
         'Movement %',
       ],
-    ],
-    body: bsRows,
-    styles: { fontSize: 7.5, cellPadding: 2, textColor: [30, 41, 59] },
-    headStyles: {
-      fillColor: [15, 39, 68],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 7.5,
-      halign: 'center',
-    },
-    columnStyles: {
+    ];
+    bsColStyles = {
       0: { cellWidth: 70, halign: 'left' },
       1: { cellWidth: 28, halign: 'right' },
       2: { cellWidth: 28, halign: 'right' },
       3: { cellWidth: 26, halign: 'right' },
       4: { cellWidth: 26, halign: 'right' },
+    };
+  }
+
+  autoTable(doc, {
+    startY: 38,
+    margin: { left: leftMargin, right: rightMargin },
+    theme: 'grid',
+    head: bsHead,
+    body: bsRows,
+    styles: { fontSize: isMultiMonth && numMonths > 6 ? 6.5 : 7.5, cellPadding: 2, textColor: [30, 41, 59] },
+    headStyles: {
+      fillColor: [15, 39, 68],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: isMultiMonth && numMonths > 6 ? 6.5 : 7.5,
+      halign: 'center',
     },
+    columnStyles: bsColStyles,
     alternateRowStyles: { fillColor: [250, 250, 250] },
   });
 
@@ -632,7 +827,7 @@ export function generateManagementReportPdf({
   // ==========================================
   // PAGE 4: CASH FLOW, WORKING CAPITAL & TAX COMPLIANCE
   // ==========================================
-  doc.addPage();
+  doc.addPage('a4', 'portrait');
   drawPageHeader(
     'Cash Flow, Working Capital & SARS Tax Compliance',
     `Liquidity and Statutory Overview for ${data.period.label} (${currentPeriodDates})`
