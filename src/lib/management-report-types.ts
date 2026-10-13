@@ -1,3 +1,11 @@
+export interface ManagementReportMonthSlice {
+  key: string; // e.g. "2026-07"
+  label: string; // e.g. "July 2026"
+  shortLabel: string; // e.g. "Jul 2026"
+  startDate: string;
+  endDate: string;
+}
+
 export interface ManagementReportSectionItem {
   accountNumber?: string;
   name: string;
@@ -7,6 +15,7 @@ export interface ManagementReportSectionItem {
   variancePct: number;
   isCategoryHeader?: boolean;
   isSubtotal?: boolean;
+  monthlyAmounts?: Record<string, number>;
 }
 
 export interface ManagementReportStatement {
@@ -16,6 +25,7 @@ export interface ManagementReportStatement {
   priorTotal: number;
   varianceAmount: number;
   variancePct: number;
+  monthlyTotals?: Record<string, number>;
 }
 
 export interface ManagementReportKPIs {
@@ -64,23 +74,24 @@ export interface ManagementReportData {
     comparativeLabel: string;
     comparativeStartDate: string;
     comparativeEndDate: string;
+    months?: ManagementReportMonthSlice[];
   };
   kpis: ManagementReportKPIs;
   profitAndLoss: {
     revenue: ManagementReportStatement;
     costOfSales: ManagementReportStatement;
-    grossProfit: { current: number; prior: number; variance: number; variancePct: number };
+    grossProfit: { current: number; prior: number; variance: number; variancePct: number; monthly?: Record<string, number> };
     operatingExpenses: ManagementReportStatement;
-    netProfitBeforeTax: { current: number; prior: number; variance: number; variancePct: number };
+    netProfitBeforeTax: { current: number; prior: number; variance: number; variancePct: number; monthly?: Record<string, number> };
   };
   balanceSheet: {
     nonCurrentAssets: ManagementReportStatement;
     currentAssets: ManagementReportStatement;
-    totalAssets: { current: number; prior: number };
+    totalAssets: { current: number; prior: number; monthly?: Record<string, number> };
     equity: ManagementReportStatement;
     nonCurrentLiabilities: ManagementReportStatement;
     currentLiabilities: ManagementReportStatement;
-    totalEquityAndLiabilities: { current: number; prior: number };
+    totalEquityAndLiabilities: { current: number; prior: number; monthly?: Record<string, number> };
   };
   cashFlow: {
     operatingCashFlow: number;

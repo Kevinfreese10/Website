@@ -9,7 +9,44 @@ import type {
   ManagementReportAgeingBucket,
   ManagementReportTopEntity,
   ManagementReportData,
+  ManagementReportMonthSlice,
 } from '@/lib/management-report-types';
+
+function getMonthSlices(startDate: Date, endDate: Date): ManagementReportMonthSlice[] {
+  const slices: ManagementReportMonthSlice[] = [];
+  const curr = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  const endLimit = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const shortMonthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  while (curr <= endLimit) {
+    const y = curr.getFullYear();
+    const m = curr.getMonth();
+    const mStr = String(m + 1).padStart(2, '0');
+    const key = `${y}-${mStr}`;
+
+    const mStart = new Date(y, m, 1, 0, 0, 0, 0);
+    const mEnd = new Date(y, m + 1, 0, 23, 59, 59, 999);
+
+    slices.push({
+      key,
+      label: `${monthNames[m]} ${y}`,
+      shortLabel: `${shortMonthNames[m]} ${y}`,
+      startDate: mStart.toISOString(),
+      endDate: mEnd.toISOString(),
+    });
+
+    curr.setMonth(curr.getMonth() + 1);
+  }
+  return slices;
+}
 
 export async function getManagementReportDataAction({
   clientId,
@@ -71,6 +108,22 @@ export async function getManagementReportDataAction({
     const priorStart = new Date(comparativeStartDateStr);
     const priorEnd = new Date(comparativeEndDateStr);
 
+    // Monthly breakdown slices
+    const monthSlices = getMonthSlices(currentStart, currentEnd);
+    const monthlyPeriodBalances = new Map<string, Map<string, number>>();
+    const monthlyCumulativeBalances = new Map<string, Map<string, number>>();
+
+    monthSlices.forEach((m) => {
+      const pMap = new Map<string, number>();
+      const cMap = new Map<string, number>();
+      chartOfAccounts.forEach((acc) => {
+        pMap.set(acc.id, 0);
+        cMap.set(acc.id, 0);
+      });
+      monthlyPeriodBalances.set(m.key, pMap);
+      monthlyCumulativeBalances.set(m.key, cMap);
+    });
+
     // Helpers to accumulate account balances for period
     const currentPeriodBalances = new Map<string, number>();
     const priorPeriodBalances = new Map<string, number>();
@@ -99,7 +152,8 @@ export async function getManagementReportDataAction({
       isCurrent?: boolean,
       isPrior?: boolean,
       isCumCurrent?: boolean,
-      isCumPrior?: boolean
+      isCumPrior?: boolean,
+      txnDate?: Date
     ) => {
       let targetId = accountId;
       if (type === 'supplier') targetId = supplierControlId;
@@ -126,6 +180,21 @@ export async function getManagementReportDataAction({
       if (isCumPrior) {
         cumulativePriorBalances.set(effectiveId, (cumulativePriorBalances.get(effectiveId) || 0) + amt);
       }
+
+      if (txnDate) {
+        monthSlices.forEach((m) => {
+          const mStartDate = new Date(m.startDate);
+          const mEndDate = new Date(m.endDate);
+          if (txnDate >= mStartDate && txnDate <= mEndDate) {
+            const pMap = monthlyPeriodBalances.get(m.key);
+            if (pMap) pMap.set(effectiveId, (pMap.get(effectiveId) || 0) + amt);
+          }
+          if (txnDate <= mEndDate) {
+            const cMap = monthlyCumulativeBalances.get(m.key);
+            if (cMap) cMap.set(effectiveId, (cMap.get(effectiveId) || 0) + amt);
+          }
+        });
+      }
     };
 
     allTxs.forEach((tx) => {
@@ -138,7 +207,7 @@ export async function getManagementReportDataAction({
       if (!isCurrent && !isPrior && !isCumCurrent && !isCumPrior) return;
 
       const postEntry = (accId: string, amt: number, type?: string) => {
-        processAllocation(accId, amt, type, isCurrent, isPrior, isCumCurrent, isCumPrior);
+        processAllocation(accId, amt, type, isCurrent, isPrior, isCumCurrent, isCumPrior, d);
       };
 
       if (tx.bankAccountId === 'JOURNAL') {
@@ -246,9 +315,17 @@ export async function getManagementReportDataAction({
           // Revenue in credits (negative) => convert to positive
           const curVal = -cur;
           const priVal = -pri;
+          const monthlyAmounts: Record<string, number> = {};
+          let hasAnyMonthly = false;
+          monthSlices.forEach((m) => {
+            const mVal = -(monthlyPeriodBalances.get(m.key)?.get(acc.id) || 0);
+            monthlyAmounts[m.key] = mVal;
+            if (Math.abs(mVal) > 0.001) hasAnyMonthly = true;
+          });
+
           currentRevenue += curVal;
           priorRevenue += priVal;
-          if (curVal !== 0 || priVal !== 0) {
+          if (curVal !== 0 || priVal !== 0 || hasAnyMonthly) {
             const varAmt = curVal - priVal;
             const varPct = priVal !== 0 ? (varAmt / Math.abs(priVal)) * 100 : curVal > 0 ? 100 : 0;
             revenueItems.push({
@@ -258,12 +335,21 @@ export async function getManagementReportDataAction({
               priorAmount: priVal,
               varianceAmount: varAmt,
               variancePct: parseFloat(varPct.toFixed(1)),
+              monthlyAmounts,
             });
           }
         } else if (isCostOfSales) {
+          const monthlyAmounts: Record<string, number> = {};
+          let hasAnyMonthly = false;
+          monthSlices.forEach((m) => {
+            const mVal = monthlyPeriodBalances.get(m.key)?.get(acc.id) || 0;
+            monthlyAmounts[m.key] = mVal;
+            if (Math.abs(mVal) > 0.001) hasAnyMonthly = true;
+          });
+
           currentCostOfSales += cur;
           priorCostOfSales += pri;
-          if (cur !== 0 || pri !== 0) {
+          if (cur !== 0 || pri !== 0 || hasAnyMonthly) {
             const varAmt = cur - pri;
             const varPct = pri !== 0 ? (varAmt / Math.abs(pri)) * 100 : cur > 0 ? 100 : 0;
             cosItems.push({
@@ -273,13 +359,22 @@ export async function getManagementReportDataAction({
               priorAmount: pri,
               varianceAmount: varAmt,
               variancePct: parseFloat(varPct.toFixed(1)),
+              monthlyAmounts,
             });
           }
         } else {
           // Operating Expenses
+          const monthlyAmounts: Record<string, number> = {};
+          let hasAnyMonthly = false;
+          monthSlices.forEach((m) => {
+            const mVal = monthlyPeriodBalances.get(m.key)?.get(acc.id) || 0;
+            monthlyAmounts[m.key] = mVal;
+            if (Math.abs(mVal) > 0.001) hasAnyMonthly = true;
+          });
+
           currentOpex += cur;
           priorOpex += pri;
-          if (cur !== 0 || pri !== 0) {
+          if (cur !== 0 || pri !== 0 || hasAnyMonthly) {
             const varAmt = cur - pri;
             const varPct = pri !== 0 ? (varAmt / Math.abs(pri)) * 100 : cur > 0 ? 100 : 0;
             opexItems.push({
@@ -289,6 +384,7 @@ export async function getManagementReportDataAction({
               priorAmount: pri,
               varianceAmount: varAmt,
               variancePct: parseFloat(varPct.toFixed(1)),
+              monthlyAmounts,
             });
           }
         }
@@ -304,6 +400,20 @@ export async function getManagementReportDataAction({
     const priorNetProfit = priorGrossProfit - priorOpex;
     const npVarAmt = currentNetProfit - priorNetProfit;
     const npVarPct = priorNetProfit !== 0 ? (npVarAmt / Math.abs(priorNetProfit)) * 100 : currentNetProfit > 0 ? 100 : 0;
+
+    const revenueMonthlyTotals: Record<string, number> = {};
+    const cosMonthlyTotals: Record<string, number> = {};
+    const gpMonthlyTotals: Record<string, number> = {};
+    const opexMonthlyTotals: Record<string, number> = {};
+    const npMonthlyTotals: Record<string, number> = {};
+
+    monthSlices.forEach((m) => {
+      revenueMonthlyTotals[m.key] = revenueItems.reduce((acc, i) => acc + (i.monthlyAmounts?.[m.key] || 0), 0);
+      cosMonthlyTotals[m.key] = cosItems.reduce((acc, i) => acc + (i.monthlyAmounts?.[m.key] || 0), 0);
+      gpMonthlyTotals[m.key] = revenueMonthlyTotals[m.key] - cosMonthlyTotals[m.key];
+      opexMonthlyTotals[m.key] = opexItems.reduce((acc, i) => acc + (i.monthlyAmounts?.[m.key] || 0), 0);
+      npMonthlyTotals[m.key] = gpMonthlyTotals[m.key] - opexMonthlyTotals[m.key];
+    });
 
     // 2. BALANCE SHEET CALCULATIONS (Cumulative to period end)
     let nonCurrentAssetsTotalCur = 0;
@@ -378,9 +488,17 @@ export async function getManagementReportDataAction({
             num.startsWith('9500-'));
 
         if (isNca) {
+          const monthlyAmounts: Record<string, number> = {};
+          let hasAnyMonthly = false;
+          monthSlices.forEach((m) => {
+            const mVal = monthlyCumulativeBalances.get(m.key)?.get(acc.id) || 0;
+            monthlyAmounts[m.key] = mVal;
+            if (Math.abs(mVal) > 0.001) hasAnyMonthly = true;
+          });
+
           nonCurrentAssetsTotalCur += cur;
           nonCurrentAssetsTotalPri += pri;
-          if (cur !== 0 || pri !== 0) {
+          if (cur !== 0 || pri !== 0 || hasAnyMonthly) {
             ncaItems.push({
               accountNumber: acc.accountNumber,
               name: acc.description,
@@ -388,12 +506,21 @@ export async function getManagementReportDataAction({
               priorAmount: pri,
               varianceAmount: cur - pri,
               variancePct: pri !== 0 ? parseFloat(((cur - pri) / Math.abs(pri) * 100).toFixed(1)) : 0,
+              monthlyAmounts,
             });
           }
         } else if (isCa) {
+          const monthlyAmounts: Record<string, number> = {};
+          let hasAnyMonthly = false;
+          monthSlices.forEach((m) => {
+            const mVal = monthlyCumulativeBalances.get(m.key)?.get(acc.id) || 0;
+            monthlyAmounts[m.key] = mVal;
+            if (Math.abs(mVal) > 0.001) hasAnyMonthly = true;
+          });
+
           currentAssetsTotalCur += cur;
           currentAssetsTotalPri += pri;
-          if (cur !== 0 || pri !== 0) {
+          if (cur !== 0 || pri !== 0 || hasAnyMonthly) {
             caItems.push({
               accountNumber: acc.accountNumber,
               name: acc.description,
@@ -401,14 +528,23 @@ export async function getManagementReportDataAction({
               priorAmount: pri,
               varianceAmount: cur - pri,
               variancePct: pri !== 0 ? parseFloat(((cur - pri) / Math.abs(pri) * 100).toFixed(1)) : 0,
+              monthlyAmounts,
             });
           }
         } else if (isEq) {
           const curVal = -cur;
           const priVal = -pri;
+          const monthlyAmounts: Record<string, number> = {};
+          let hasAnyMonthly = false;
+          monthSlices.forEach((m) => {
+            const mVal = -(monthlyCumulativeBalances.get(m.key)?.get(acc.id) || 0);
+            monthlyAmounts[m.key] = mVal;
+            if (Math.abs(mVal) > 0.001) hasAnyMonthly = true;
+          });
+
           equityTotalCur += curVal;
           equityTotalPri += priVal;
-          if (curVal !== 0 || priVal !== 0) {
+          if (curVal !== 0 || priVal !== 0 || hasAnyMonthly) {
             eqItems.push({
               accountNumber: acc.accountNumber,
               name: acc.description,
@@ -416,14 +552,23 @@ export async function getManagementReportDataAction({
               priorAmount: priVal,
               varianceAmount: curVal - priVal,
               variancePct: priVal !== 0 ? parseFloat(((curVal - priVal) / Math.abs(priVal) * 100).toFixed(1)) : 0,
+              monthlyAmounts,
             });
           }
         } else if (isNcl) {
           const curVal = -cur;
           const priVal = -pri;
+          const monthlyAmounts: Record<string, number> = {};
+          let hasAnyMonthly = false;
+          monthSlices.forEach((m) => {
+            const mVal = -(monthlyCumulativeBalances.get(m.key)?.get(acc.id) || 0);
+            monthlyAmounts[m.key] = mVal;
+            if (Math.abs(mVal) > 0.001) hasAnyMonthly = true;
+          });
+
           nonCurrentLiabilitiesTotalCur += curVal;
           nonCurrentLiabilitiesTotalPri += priVal;
-          if (curVal !== 0 || priVal !== 0) {
+          if (curVal !== 0 || priVal !== 0 || hasAnyMonthly) {
             nclItems.push({
               accountNumber: acc.accountNumber,
               name: acc.description,
@@ -431,14 +576,23 @@ export async function getManagementReportDataAction({
               priorAmount: priVal,
               varianceAmount: curVal - priVal,
               variancePct: priVal !== 0 ? parseFloat(((curVal - priVal) / Math.abs(priVal) * 100).toFixed(1)) : 0,
+              monthlyAmounts,
             });
           }
         } else if (isCl) {
           const curVal = -cur;
           const priVal = -pri;
+          const monthlyAmounts: Record<string, number> = {};
+          let hasAnyMonthly = false;
+          monthSlices.forEach((m) => {
+            const mVal = -(monthlyCumulativeBalances.get(m.key)?.get(acc.id) || 0);
+            monthlyAmounts[m.key] = mVal;
+            if (Math.abs(mVal) > 0.001) hasAnyMonthly = true;
+          });
+
           currentLiabilitiesTotalCur += curVal;
           currentLiabilitiesTotalPri += priVal;
-          if (curVal !== 0 || priVal !== 0) {
+          if (curVal !== 0 || priVal !== 0 || hasAnyMonthly) {
             clItems.push({
               accountNumber: acc.accountNumber,
               name: acc.description,
@@ -446,6 +600,7 @@ export async function getManagementReportDataAction({
               priorAmount: priVal,
               varianceAmount: curVal - priVal,
               variancePct: priVal !== 0 ? parseFloat(((curVal - priVal) / Math.abs(priVal) * 100).toFixed(1)) : 0,
+              monthlyAmounts,
             });
           }
         }
@@ -464,6 +619,18 @@ export async function getManagementReportDataAction({
       }
     });
 
+    const monthlyRetainedProfit: Record<string, number> = {};
+    monthSlices.forEach((m) => {
+      let mCumNet = 0;
+      chartOfAccounts.forEach((acc) => {
+        if (acc.section === 'Income Statement') {
+          const val = monthlyCumulativeBalances.get(m.key)?.get(acc.id) || 0;
+          mCumNet -= val;
+        }
+      });
+      monthlyRetainedProfit[m.key] = mCumNet;
+    });
+
     equityTotalCur += cumulativeNetProfitCur;
     equityTotalPri += cumulativeNetProfitPri;
     eqItems.push({
@@ -472,6 +639,27 @@ export async function getManagementReportDataAction({
       priorAmount: cumulativeNetProfitPri,
       varianceAmount: cumulativeNetProfitCur - cumulativeNetProfitPri,
       variancePct: cumulativeNetProfitPri !== 0 ? parseFloat(((cumulativeNetProfitCur - cumulativeNetProfitPri) / Math.abs(cumulativeNetProfitPri) * 100).toFixed(1)) : 0,
+      monthlyAmounts: monthlyRetainedProfit,
+    });
+
+    // Balance Sheet section and grand monthly totals
+    const ncaMonthlyTotals: Record<string, number> = {};
+    const caMonthlyTotals: Record<string, number> = {};
+    const totalAssetsMonthly: Record<string, number> = {};
+    const eqMonthlyTotals: Record<string, number> = {};
+    const nclMonthlyTotals: Record<string, number> = {};
+    const clMonthlyTotals: Record<string, number> = {};
+    const totalEquityAndLiabMonthly: Record<string, number> = {};
+
+    monthSlices.forEach((m) => {
+      ncaMonthlyTotals[m.key] = ncaItems.reduce((acc, i) => acc + (i.monthlyAmounts?.[m.key] || 0), 0);
+      caMonthlyTotals[m.key] = caItems.reduce((acc, i) => acc + (i.monthlyAmounts?.[m.key] || 0), 0);
+      totalAssetsMonthly[m.key] = ncaMonthlyTotals[m.key] + caMonthlyTotals[m.key];
+
+      eqMonthlyTotals[m.key] = eqItems.reduce((acc, i) => acc + (i.monthlyAmounts?.[m.key] || 0), 0);
+      nclMonthlyTotals[m.key] = nclItems.reduce((acc, i) => acc + (i.monthlyAmounts?.[m.key] || 0), 0);
+      clMonthlyTotals[m.key] = clItems.reduce((acc, i) => acc + (i.monthlyAmounts?.[m.key] || 0), 0);
+      totalEquityAndLiabMonthly[m.key] = eqMonthlyTotals[m.key] + nclMonthlyTotals[m.key] + clMonthlyTotals[m.key];
     });
 
     const totalAssetsCur = nonCurrentAssetsTotalCur + currentAssetsTotalCur;
@@ -653,6 +841,7 @@ export async function getManagementReportDataAction({
         comparativeLabel: comparativePeriodLabel,
         comparativeStartDate: comparativeStartDateStr,
         comparativeEndDate: comparativeEndDateStr,
+        months: monthSlices,
       },
       kpis,
       profitAndLoss: {
@@ -663,6 +852,7 @@ export async function getManagementReportDataAction({
           priorTotal: priorRevenue,
           varianceAmount: currentRevenue - priorRevenue,
           variancePct: priorRevenue !== 0 ? parseFloat(((currentRevenue - priorRevenue) / Math.abs(priorRevenue) * 100).toFixed(1)) : 0,
+          monthlyTotals: revenueMonthlyTotals,
         },
         costOfSales: {
           title: 'Cost of Sales',
@@ -671,12 +861,14 @@ export async function getManagementReportDataAction({
           priorTotal: priorCostOfSales,
           varianceAmount: currentCostOfSales - priorCostOfSales,
           variancePct: priorCostOfSales !== 0 ? parseFloat(((currentCostOfSales - priorCostOfSales) / Math.abs(priorCostOfSales) * 100).toFixed(1)) : 0,
+          monthlyTotals: cosMonthlyTotals,
         },
         grossProfit: {
           current: currentGrossProfit,
           prior: priorGrossProfit,
           variance: gpVarAmt,
           variancePct: parseFloat(gpVarPct.toFixed(1)),
+          monthly: gpMonthlyTotals,
         },
         operatingExpenses: {
           title: 'Operating Expenses',
@@ -685,12 +877,14 @@ export async function getManagementReportDataAction({
           priorTotal: priorOpex,
           varianceAmount: currentOpex - priorOpex,
           variancePct: priorOpex !== 0 ? parseFloat(((currentOpex - priorOpex) / Math.abs(priorOpex) * 100).toFixed(1)) : 0,
+          monthlyTotals: opexMonthlyTotals,
         },
         netProfitBeforeTax: {
           current: currentNetProfit,
           prior: priorNetProfit,
           variance: npVarAmt,
           variancePct: parseFloat(npVarPct.toFixed(1)),
+          monthly: npMonthlyTotals,
         },
       },
       balanceSheet: {
@@ -701,6 +895,7 @@ export async function getManagementReportDataAction({
           priorTotal: nonCurrentAssetsTotalPri,
           varianceAmount: nonCurrentAssetsTotalCur - nonCurrentAssetsTotalPri,
           variancePct: nonCurrentAssetsTotalPri !== 0 ? parseFloat(((nonCurrentAssetsTotalCur - nonCurrentAssetsTotalPri) / Math.abs(nonCurrentAssetsTotalPri) * 100).toFixed(1)) : 0,
+          monthlyTotals: ncaMonthlyTotals,
         },
         currentAssets: {
           title: 'Current Assets',
@@ -709,10 +904,12 @@ export async function getManagementReportDataAction({
           priorTotal: currentAssetsTotalPri,
           varianceAmount: currentAssetsTotalCur - currentAssetsTotalPri,
           variancePct: currentAssetsTotalPri !== 0 ? parseFloat(((currentAssetsTotalCur - currentAssetsTotalPri) / Math.abs(currentAssetsTotalPri) * 100).toFixed(1)) : 0,
+          monthlyTotals: caMonthlyTotals,
         },
         totalAssets: {
           current: totalAssetsCur,
           prior: totalAssetsPri,
+          monthly: totalAssetsMonthly,
         },
         equity: {
           title: 'Capital & Reserves (Equity)',
@@ -721,6 +918,7 @@ export async function getManagementReportDataAction({
           priorTotal: equityTotalPri,
           varianceAmount: equityTotalCur - equityTotalPri,
           variancePct: equityTotalPri !== 0 ? parseFloat(((equityTotalCur - equityTotalPri) / Math.abs(equityTotalPri) * 100).toFixed(1)) : 0,
+          monthlyTotals: eqMonthlyTotals,
         },
         nonCurrentLiabilities: {
           title: 'Non-Current Liabilities',
@@ -729,6 +927,7 @@ export async function getManagementReportDataAction({
           priorTotal: nonCurrentLiabilitiesTotalPri,
           varianceAmount: nonCurrentLiabilitiesTotalCur - nonCurrentLiabilitiesTotalPri,
           variancePct: nonCurrentLiabilitiesTotalPri !== 0 ? parseFloat(((nonCurrentLiabilitiesTotalCur - nonCurrentLiabilitiesTotalPri) / Math.abs(nonCurrentLiabilitiesTotalPri) * 100).toFixed(1)) : 0,
+          monthlyTotals: nclMonthlyTotals,
         },
         currentLiabilities: {
           title: 'Current Liabilities',
@@ -737,10 +936,12 @@ export async function getManagementReportDataAction({
           priorTotal: currentLiabilitiesTotalPri,
           varianceAmount: currentLiabilitiesTotalCur - currentLiabilitiesTotalPri,
           variancePct: currentLiabilitiesTotalPri !== 0 ? parseFloat(((currentLiabilitiesTotalCur - currentLiabilitiesTotalPri) / Math.abs(currentLiabilitiesTotalPri) * 100).toFixed(1)) : 0,
+          monthlyTotals: clMonthlyTotals,
         },
         totalEquityAndLiabilities: {
           current: totalEquityAndLiabCur,
           prior: totalEquityAndLiabPri,
+          monthly: totalEquityAndLiabMonthly,
         },
       },
       cashFlow: {

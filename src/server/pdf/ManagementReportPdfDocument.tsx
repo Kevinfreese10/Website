@@ -260,6 +260,22 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
   const asAtCurrent = formatDate(period.endDate);
   const asAtPrior = formatDate(period.comparativeEndDate);
 
+  const isMultiMonth = Boolean(period.months && period.months.length > 1);
+  const months = period.months || [];
+  const multiMonthOrientation = isMultiMonth && months.length >= 3 ? 'landscape' : 'portrait';
+
+  // Calculate dynamic column widths for multi-month PDF tables:
+  const colCount = months.length + 1; // months + Total
+  const descWidthPct = isMultiMonth
+    ? multiMonthOrientation === 'landscape'
+      ? Math.max(26, 100 - colCount * (months.length > 5 ? 7.5 : 12))
+      : Math.max(30, 100 - colCount * 14)
+    : 44;
+  const colWidthPct = isMultiMonth ? (100 - descWidthPct) / colCount : 19;
+
+  const pdfDescWidth = `${descWidthPct}%`;
+  const pdfColWidth = `${colWidthPct}%`;
+
   return (
     <Document title={`Management Report - ${client.companyName} - ${period.label}`}>
       {/* PAGE 1: EXECUTIVE SUMMARY & FINANCIAL HIGHLIGHTS */}
@@ -424,7 +440,7 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
       </Page>
 
       {/* PAGE 2: STATEMENT OF PROFIT OR LOSS */}
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation={multiMonthOrientation} style={styles.page}>
         {/* Header */}
         <View style={styles.headerContainer}>
           <View>
@@ -432,28 +448,47 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
             <Text style={styles.subHeader}>Statement of Comprehensive Income (Profit & Loss)</Text>
           </View>
           <View style={styles.reportBadgeContainer}>
-            <Text style={styles.periodLabelBold}>Current: {period.label} ({currentDates})</Text>
-            <Text style={styles.subHeader}>Comparative: {period.comparativeLabel} ({priorDates})</Text>
+            <Text style={styles.periodLabelBold}>
+              {isMultiMonth ? `${period.label} (${months.length} Months)` : `Current: ${period.label} (${currentDates})`}
+            </Text>
+            {!isMultiMonth && <Text style={styles.subHeader}>Comparative: {period.comparativeLabel} ({priorDates})</Text>}
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Profit & Loss Performance</Text>
+        <Text style={styles.sectionTitle}>
+          {isMultiMonth ? `Profit & Loss Monthly Breakdown (${period.label})` : 'Profit & Loss Performance'}
+        </Text>
         <View style={styles.table}>
           <View style={styles.tableHeaderRow}>
-            <View style={styles.colDesc}>
+            <View style={{ width: isMultiMonth ? pdfDescWidth : '44%' }}>
               <Text style={styles.tableHeaderCell}>Account Description</Text>
             </View>
-            <View style={styles.colCur}>
-              <Text style={styles.tableHeaderCell}>Current Period</Text>
-              <Text style={styles.tableHeaderCellSub}>{currentDates}</Text>
-            </View>
-            <View style={styles.colPri}>
-              <Text style={styles.tableHeaderCell}>Prior Period</Text>
-              <Text style={styles.tableHeaderCellSub}>{priorDates}</Text>
-            </View>
-            <View style={styles.colVar}>
-              <Text style={styles.tableHeaderCell}>Variance (R)</Text>
-            </View>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <View key={m.key} style={{ width: pdfColWidth, alignItems: 'flex-end' }}>
+                    <Text style={styles.tableHeaderCell}>{months.length > 5 ? m.shortLabel : m.label}</Text>
+                  </View>
+                ))}
+                <View style={{ width: pdfColWidth, alignItems: 'flex-end' }}>
+                  <Text style={styles.tableHeaderCell}>Total (ZAR)</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.colCur}>
+                  <Text style={styles.tableHeaderCell}>Current Period</Text>
+                  <Text style={styles.tableHeaderCellSub}>{currentDates}</Text>
+                </View>
+                <View style={styles.colPri}>
+                  <Text style={styles.tableHeaderCell}>Prior Period</Text>
+                  <Text style={styles.tableHeaderCellSub}>{priorDates}</Text>
+                </View>
+                <View style={styles.colVar}>
+                  <Text style={styles.tableHeaderCell}>Variance (R)</Text>
+                </View>
+              </>
+            )}
           </View>
 
           {/* Revenue */}
@@ -462,21 +497,51 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
           </View>
           {profitAndLoss.revenue.items.map((item, idx) => (
             <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}>
-              <Text style={[styles.cellText, styles.colDesc]}>
+              <Text style={[styles.cellText, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>
                 {item.accountNumber ? `${item.accountNumber} - ` : ''}{item.name}
               </Text>
-              <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
-              <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
-              <Text style={[item.varianceAmount >= 0 ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
-                {formatZar(item.varianceAmount)}
-              </Text>
+              {isMultiMonth ? (
+                <>
+                  {months.map((m) => (
+                    <Text key={m.key} style={[styles.cellText, { width: pdfColWidth, textAlign: 'right' }]}>
+                      {formatZar(item.monthlyAmounts?.[m.key] || 0)}
+                    </Text>
+                  ))}
+                  <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(item.currentAmount)}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
+                  <Text style={[item.varianceAmount >= 0 ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
+                    {formatZar(item.varianceAmount)}
+                  </Text>
+                </>
+              )}
             </View>
           ))}
           <View style={styles.tableSubtotalRow}>
-            <Text style={[styles.cellTextBold, styles.colDesc]}>Total Revenue</Text>
-            <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(profitAndLoss.revenue.currentTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(profitAndLoss.revenue.priorTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(profitAndLoss.revenue.varianceAmount)}</Text>
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>Total Revenue</Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(profitAndLoss.revenue.monthlyTotals?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right', color: '#16A34A' }]}>
+                  {formatZar(profitAndLoss.revenue.currentTotal)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(profitAndLoss.revenue.currentTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(profitAndLoss.revenue.priorTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(profitAndLoss.revenue.varianceAmount)}</Text>
+              </>
+            )}
           </View>
 
           {/* Cost of Sales */}
@@ -485,35 +550,80 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
           </View>
           {profitAndLoss.costOfSales.items.map((item, idx) => (
             <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}>
-              <Text style={[styles.cellText, styles.colDesc]}>
+              <Text style={[styles.cellText, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>
                 {item.accountNumber ? `${item.accountNumber} - ` : ''}{item.name}
               </Text>
-              <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
-              <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
-              <Text style={[item.varianceAmount <= 0 ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
-                {formatZar(item.varianceAmount)}
-              </Text>
+              {isMultiMonth ? (
+                <>
+                  {months.map((m) => (
+                    <Text key={m.key} style={[styles.cellText, { width: pdfColWidth, textAlign: 'right' }]}>
+                      {formatZar(item.monthlyAmounts?.[m.key] || 0)}
+                    </Text>
+                  ))}
+                  <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(item.currentAmount)}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
+                  <Text style={[item.varianceAmount <= 0 ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
+                    {formatZar(item.varianceAmount)}
+                  </Text>
+                </>
+              )}
             </View>
           ))}
           <View style={styles.tableSubtotalRow}>
-            <Text style={[styles.cellTextBold, styles.colDesc]}>Total Cost of Sales</Text>
-            <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(profitAndLoss.costOfSales.currentTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(profitAndLoss.costOfSales.priorTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(profitAndLoss.costOfSales.varianceAmount)}</Text>
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>Total Cost of Sales</Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(profitAndLoss.costOfSales.monthlyTotals?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                  {formatZar(profitAndLoss.costOfSales.currentTotal)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(profitAndLoss.costOfSales.currentTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(profitAndLoss.costOfSales.priorTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(profitAndLoss.costOfSales.varianceAmount)}</Text>
+              </>
+            )}
           </View>
 
           {/* Gross Profit */}
           <View style={[styles.tableTotalRow, { backgroundColor: '#E0F2FE' }]}>
-            <Text style={[styles.cellTextBold, styles.colDesc, { color: '#0369A1' }]}>GROSS PROFIT</Text>
-            <Text style={[styles.cellTextBold, styles.colCur, { color: '#0369A1' }]}>
-              {formatZar(profitAndLoss.grossProfit.current)}
-            </Text>
-            <Text style={[styles.cellTextBold, styles.colPri, { color: '#0369A1' }]}>
-              {formatZar(profitAndLoss.grossProfit.prior)}
-            </Text>
-            <Text style={[styles.cellTextBold, styles.colVar, { color: '#0369A1' }]}>
-              {formatZar(profitAndLoss.grossProfit.variance)}
-            </Text>
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%', color: '#0369A1' }]}>GROSS PROFIT</Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right', color: '#0369A1' }]}>
+                    {formatZar(profitAndLoss.grossProfit.monthly?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right', color: '#0369A1' }]}>
+                  {formatZar(profitAndLoss.grossProfit.current)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur, { color: '#0369A1' }]}>
+                  {formatZar(profitAndLoss.grossProfit.current)}
+                </Text>
+                <Text style={[styles.cellTextBold, styles.colPri, { color: '#0369A1' }]}>
+                  {formatZar(profitAndLoss.grossProfit.prior)}
+                </Text>
+                <Text style={[styles.cellTextBold, styles.colVar, { color: '#0369A1' }]}>
+                  {formatZar(profitAndLoss.grossProfit.variance)}
+                </Text>
+              </>
+            )}
           </View>
 
           {/* Operating Expenses */}
@@ -522,39 +632,86 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
           </View>
           {profitAndLoss.operatingExpenses.items.map((item, idx) => (
             <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}>
-              <Text style={[styles.cellText, styles.colDesc]}>
+              <Text style={[styles.cellText, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>
                 {item.accountNumber ? `${item.accountNumber} - ` : ''}{item.name}
               </Text>
-              <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
-              <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
-              <Text style={[item.varianceAmount <= 0 ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
-                {formatZar(item.varianceAmount)}
-              </Text>
+              {isMultiMonth ? (
+                <>
+                  {months.map((m) => (
+                    <Text key={m.key} style={[styles.cellText, { width: pdfColWidth, textAlign: 'right' }]}>
+                      {formatZar(item.monthlyAmounts?.[m.key] || 0)}
+                    </Text>
+                  ))}
+                  <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(item.currentAmount)}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
+                  <Text style={[item.varianceAmount <= 0 ? styles.cellTextPositive : styles.cellTextNegative, styles.colVar]}>
+                    {formatZar(item.varianceAmount)}
+                  </Text>
+                </>
+              )}
             </View>
           ))}
           <View style={styles.tableSubtotalRow}>
-            <Text style={[styles.cellTextBold, styles.colDesc]}>Total Operating Expenses</Text>
-            <Text style={[styles.cellTextBold, styles.colCur]}>
-              {formatZar(profitAndLoss.operatingExpenses.currentTotal)}
-            </Text>
-            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(profitAndLoss.operatingExpenses.priorTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colVar]}>
-              {formatZar(profitAndLoss.operatingExpenses.varianceAmount)}
-            </Text>
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>Total Operating Expenses</Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(profitAndLoss.operatingExpenses.monthlyTotals?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                  {formatZar(profitAndLoss.operatingExpenses.currentTotal)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur]}>
+                  {formatZar(profitAndLoss.operatingExpenses.currentTotal)}
+                </Text>
+                <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(profitAndLoss.operatingExpenses.priorTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colVar]}>
+                  {formatZar(profitAndLoss.operatingExpenses.varianceAmount)}
+                </Text>
+              </>
+            )}
           </View>
 
           {/* Net Profit */}
           <View style={[styles.tableTotalRow, { backgroundColor: '#DCFCE7' }]}>
-            <Text style={[styles.cellTextBold, styles.colDesc, { color: '#15803D' }]}>NET OPERATING PROFIT / (LOSS) BEFORE TAX</Text>
-            <Text style={[styles.cellTextBold, styles.colCur, { color: '#15803D' }]}>
-              {formatZar(profitAndLoss.netProfitBeforeTax.current)}
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%', color: '#15803D' }]}>
+              NET OPERATING PROFIT / (LOSS) BEFORE TAX
             </Text>
-            <Text style={[styles.cellTextBold, styles.colPri, { color: '#15803D' }]}>
-              {formatZar(profitAndLoss.netProfitBeforeTax.prior)}
-            </Text>
-            <Text style={[styles.cellTextBold, styles.colVar, { color: '#15803D' }]}>
-              {formatZar(profitAndLoss.netProfitBeforeTax.variance)}
-            </Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right', color: '#15803D' }]}>
+                    {formatZar(profitAndLoss.netProfitBeforeTax.monthly?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right', color: '#15803D' }]}>
+                  {formatZar(profitAndLoss.netProfitBeforeTax.current)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur, { color: '#15803D' }]}>
+                  {formatZar(profitAndLoss.netProfitBeforeTax.current)}
+                </Text>
+                <Text style={[styles.cellTextBold, styles.colPri, { color: '#15803D' }]}>
+                  {formatZar(profitAndLoss.netProfitBeforeTax.prior)}
+                </Text>
+                <Text style={[styles.cellTextBold, styles.colVar, { color: '#15803D' }]}>
+                  {formatZar(profitAndLoss.netProfitBeforeTax.variance)}
+                </Text>
+              </>
+            )}
           </View>
         </View>
 
@@ -567,7 +724,7 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
       </Page>
 
       {/* PAGE 3: BALANCE SHEET & FINANCIAL POSITION */}
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" orientation={multiMonthOrientation} style={styles.page}>
         {/* Header */}
         <View style={styles.headerContainer}>
           <View>
@@ -575,28 +732,47 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
             <Text style={styles.subHeader}>Statement of Financial Position (Balance Sheet)</Text>
           </View>
           <View style={styles.reportBadgeContainer}>
-            <Text style={styles.periodLabelBold}>Current: As at {asAtCurrent}</Text>
-            <Text style={styles.subHeader}>Prior: As at {asAtPrior}</Text>
+            <Text style={styles.periodLabelBold}>
+              {isMultiMonth ? `As at ${asAtCurrent} (${months.length} Months)` : `Current: As at ${asAtCurrent}`}
+            </Text>
+            {!isMultiMonth && <Text style={styles.subHeader}>Prior: As at {asAtPrior}</Text>}
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Financial Position Summary</Text>
+        <Text style={styles.sectionTitle}>
+          {isMultiMonth ? `Financial Position Monthly Trend (${period.label})` : 'Financial Position Summary'}
+        </Text>
         <View style={styles.table}>
           <View style={styles.tableHeaderRow}>
-            <View style={styles.colDesc}>
+            <View style={{ width: isMultiMonth ? pdfDescWidth : '44%' }}>
               <Text style={styles.tableHeaderCell}>Balance Sheet Category</Text>
             </View>
-            <View style={styles.colCur}>
-              <Text style={styles.tableHeaderCell}>Current Position</Text>
-              <Text style={styles.tableHeaderCellSub}>As at {asAtCurrent}</Text>
-            </View>
-            <View style={styles.colPri}>
-              <Text style={styles.tableHeaderCell}>Prior Position</Text>
-              <Text style={styles.tableHeaderCellSub}>As at {asAtPrior}</Text>
-            </View>
-            <View style={styles.colVar}>
-              <Text style={styles.tableHeaderCell}>Movement (R)</Text>
-            </View>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <View key={m.key} style={{ width: pdfColWidth, alignItems: 'flex-end' }}>
+                    <Text style={styles.tableHeaderCell}>As at {months.length > 5 ? m.shortLabel : m.label}</Text>
+                  </View>
+                ))}
+                <View style={{ width: pdfColWidth, alignItems: 'flex-end' }}>
+                  <Text style={styles.tableHeaderCell}>Latest Position</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.colCur}>
+                  <Text style={styles.tableHeaderCell}>Current Position</Text>
+                  <Text style={styles.tableHeaderCellSub}>As at {asAtCurrent}</Text>
+                </View>
+                <View style={styles.colPri}>
+                  <Text style={styles.tableHeaderCell}>Prior Position</Text>
+                  <Text style={styles.tableHeaderCellSub}>As at {asAtPrior}</Text>
+                </View>
+                <View style={styles.colVar}>
+                  <Text style={styles.tableHeaderCell}>Movement (R)</Text>
+                </View>
+              </>
+            )}
           </View>
 
           {/* Non-Current Assets */}
@@ -605,17 +781,47 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
           </View>
           {balanceSheet.nonCurrentAssets.items.map((item, idx) => (
             <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}>
-              <Text style={[styles.cellText, styles.colDesc]}>{item.name}</Text>
-              <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
-              <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
-              <Text style={[styles.cellText, styles.colVar]}>{formatZar(item.varianceAmount)}</Text>
+              <Text style={[styles.cellText, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>{item.name}</Text>
+              {isMultiMonth ? (
+                <>
+                  {months.map((m) => (
+                    <Text key={m.key} style={[styles.cellText, { width: pdfColWidth, textAlign: 'right' }]}>
+                      {formatZar(item.monthlyAmounts?.[m.key] || 0)}
+                    </Text>
+                  ))}
+                  <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(item.currentAmount)}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colVar]}>{formatZar(item.varianceAmount)}</Text>
+                </>
+              )}
             </View>
           ))}
           <View style={styles.tableSubtotalRow}>
-            <Text style={[styles.cellTextBold, styles.colDesc]}>Total Non-Current Assets</Text>
-            <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(balanceSheet.nonCurrentAssets.currentTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.nonCurrentAssets.priorTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(balanceSheet.nonCurrentAssets.varianceAmount)}</Text>
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>Total Non-Current Assets</Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(balanceSheet.nonCurrentAssets.monthlyTotals?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                  {formatZar(balanceSheet.nonCurrentAssets.currentTotal)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(balanceSheet.nonCurrentAssets.currentTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.nonCurrentAssets.priorTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(balanceSheet.nonCurrentAssets.varianceAmount)}</Text>
+              </>
+            )}
           </View>
 
           {/* Current Assets */}
@@ -624,27 +830,72 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
           </View>
           {balanceSheet.currentAssets.items.map((item, idx) => (
             <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}>
-              <Text style={[styles.cellText, styles.colDesc]}>{item.name}</Text>
-              <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
-              <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
-              <Text style={[styles.cellText, styles.colVar]}>{formatZar(item.varianceAmount)}</Text>
+              <Text style={[styles.cellText, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>{item.name}</Text>
+              {isMultiMonth ? (
+                <>
+                  {months.map((m) => (
+                    <Text key={m.key} style={[styles.cellText, { width: pdfColWidth, textAlign: 'right' }]}>
+                      {formatZar(item.monthlyAmounts?.[m.key] || 0)}
+                    </Text>
+                  ))}
+                  <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(item.currentAmount)}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colVar]}>{formatZar(item.varianceAmount)}</Text>
+                </>
+              )}
             </View>
           ))}
           <View style={styles.tableSubtotalRow}>
-            <Text style={[styles.cellTextBold, styles.colDesc]}>Total Current Assets</Text>
-            <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(balanceSheet.currentAssets.currentTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.currentAssets.priorTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(balanceSheet.currentAssets.varianceAmount)}</Text>
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>Total Current Assets</Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(balanceSheet.currentAssets.monthlyTotals?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                  {formatZar(balanceSheet.currentAssets.currentTotal)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(balanceSheet.currentAssets.currentTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.currentAssets.priorTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(balanceSheet.currentAssets.varianceAmount)}</Text>
+              </>
+            )}
           </View>
 
           {/* Total Assets */}
           <View style={[styles.tableTotalRow, { backgroundColor: '#E0F2FE' }]}>
-            <Text style={[styles.cellTextBold, styles.colDesc, { color: '#0369A1' }]}>TOTAL ASSETS</Text>
-            <Text style={[styles.cellTextBold, styles.colCur, { color: '#0369A1' }]}>{formatZar(balanceSheet.totalAssets.current)}</Text>
-            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.totalAssets.prior)}</Text>
-            <Text style={[styles.cellTextBold, styles.colVar]}>
-              {formatZar(balanceSheet.totalAssets.current - balanceSheet.totalAssets.prior)}
-            </Text>
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%', color: '#0369A1' }]}>TOTAL ASSETS</Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right', color: '#0369A1' }]}>
+                    {formatZar(balanceSheet.totalAssets.monthly?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right', color: '#0369A1' }]}>
+                  {formatZar(balanceSheet.totalAssets.current)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur, { color: '#0369A1' }]}>{formatZar(balanceSheet.totalAssets.current)}</Text>
+                <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.totalAssets.prior)}</Text>
+                <Text style={[styles.cellTextBold, styles.colVar]}>
+                  {formatZar(balanceSheet.totalAssets.current - balanceSheet.totalAssets.prior)}
+                </Text>
+              </>
+            )}
           </View>
 
           {/* Equity */}
@@ -653,31 +904,80 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
           </View>
           {balanceSheet.equity.items.map((item, idx) => (
             <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}>
-              <Text style={[styles.cellText, styles.colDesc]}>{item.name}</Text>
-              <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
-              <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
-              <Text style={[styles.cellText, styles.colVar]}>{formatZar(item.varianceAmount)}</Text>
+              <Text style={[styles.cellText, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>{item.name}</Text>
+              {isMultiMonth ? (
+                <>
+                  {months.map((m) => (
+                    <Text key={m.key} style={[styles.cellText, { width: pdfColWidth, textAlign: 'right' }]}>
+                      {formatZar(item.monthlyAmounts?.[m.key] || 0)}
+                    </Text>
+                  ))}
+                  <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(item.currentAmount)}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colVar]}>{formatZar(item.varianceAmount)}</Text>
+                </>
+              )}
             </View>
           ))}
           <View style={styles.tableSubtotalRow}>
-            <Text style={[styles.cellTextBold, styles.colDesc]}>Total Equity</Text>
-            <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(balanceSheet.equity.currentTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.equity.priorTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(balanceSheet.equity.varianceAmount)}</Text>
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>Total Equity</Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(balanceSheet.equity.monthlyTotals?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                  {formatZar(balanceSheet.equity.currentTotal)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(balanceSheet.equity.currentTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.equity.priorTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(balanceSheet.equity.varianceAmount)}</Text>
+              </>
+            )}
           </View>
 
           {/* Non-Current Liabilities */}
-          <View style={styles.tableCategoryRow}>
-            <Text style={styles.tableCategoryText}>Non-Current Liabilities</Text>
-          </View>
-          {balanceSheet.nonCurrentLiabilities.items.map((item, idx) => (
-            <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}>
-              <Text style={[styles.cellText, styles.colDesc]}>{item.name}</Text>
-              <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
-              <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
-              <Text style={[styles.cellText, styles.colVar]}>{formatZar(item.varianceAmount)}</Text>
-            </View>
-          ))}
+          {balanceSheet.nonCurrentLiabilities.items.length > 0 && (
+            <>
+              <View style={styles.tableCategoryRow}>
+                <Text style={styles.tableCategoryText}>Non-Current Liabilities</Text>
+              </View>
+              {balanceSheet.nonCurrentLiabilities.items.map((item, idx) => (
+                <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}>
+                  <Text style={[styles.cellText, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>{item.name}</Text>
+                  {isMultiMonth ? (
+                    <>
+                      {months.map((m) => (
+                        <Text key={m.key} style={[styles.cellText, { width: pdfColWidth, textAlign: 'right' }]}>
+                          {formatZar(item.monthlyAmounts?.[m.key] || 0)}
+                        </Text>
+                      ))}
+                      <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                        {formatZar(item.currentAmount)}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
+                      <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
+                      <Text style={[styles.cellText, styles.colVar]}>{formatZar(item.varianceAmount)}</Text>
+                    </>
+                  )}
+                </View>
+              ))}
+            </>
+          )}
 
           {/* Current Liabilities */}
           <View style={styles.tableCategoryRow}>
@@ -685,27 +985,72 @@ export const ManagementReportPdfDocument: React.FC<ManagementReportPdfDocumentPr
           </View>
           {balanceSheet.currentLiabilities.items.map((item, idx) => (
             <View key={idx} style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}>
-              <Text style={[styles.cellText, styles.colDesc]}>{item.name}</Text>
-              <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
-              <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
-              <Text style={[styles.cellText, styles.colVar]}>{formatZar(item.varianceAmount)}</Text>
+              <Text style={[styles.cellText, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>{item.name}</Text>
+              {isMultiMonth ? (
+                <>
+                  {months.map((m) => (
+                    <Text key={m.key} style={[styles.cellText, { width: pdfColWidth, textAlign: 'right' }]}>
+                      {formatZar(item.monthlyAmounts?.[m.key] || 0)}
+                    </Text>
+                  ))}
+                  <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(item.currentAmount)}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.cellText, styles.colCur]}>{formatZar(item.currentAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colPri]}>{formatZar(item.priorAmount)}</Text>
+                  <Text style={[styles.cellText, styles.colVar]}>{formatZar(item.varianceAmount)}</Text>
+                </>
+              )}
             </View>
           ))}
           <View style={styles.tableSubtotalRow}>
-            <Text style={[styles.cellTextBold, styles.colDesc]}>Total Current Liabilities</Text>
-            <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(balanceSheet.currentLiabilities.currentTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.currentLiabilities.priorTotal)}</Text>
-            <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(balanceSheet.currentLiabilities.varianceAmount)}</Text>
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>Total Current Liabilities</Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(balanceSheet.currentLiabilities.monthlyTotals?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                  {formatZar(balanceSheet.currentLiabilities.currentTotal)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(balanceSheet.currentLiabilities.currentTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.currentLiabilities.priorTotal)}</Text>
+                <Text style={[styles.cellTextBold, styles.colVar]}>{formatZar(balanceSheet.currentLiabilities.varianceAmount)}</Text>
+              </>
+            )}
           </View>
 
           {/* Total Equity & Liabilities */}
           <View style={[styles.tableTotalRow, { backgroundColor: '#E2E8F0' }]}>
-            <Text style={[styles.cellTextBold, styles.colDesc]}>TOTAL EQUITY & LIABILITIES</Text>
-            <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(balanceSheet.totalEquityAndLiabilities.current)}</Text>
-            <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.totalEquityAndLiabilities.prior)}</Text>
-            <Text style={[styles.cellTextBold, styles.colVar]}>
-              {formatZar(balanceSheet.totalEquityAndLiabilities.current - balanceSheet.totalEquityAndLiabilities.prior)}
-            </Text>
+            <Text style={[styles.cellTextBold, { width: isMultiMonth ? pdfDescWidth : '44%' }]}>TOTAL EQUITY & LIABILITIES</Text>
+            {isMultiMonth ? (
+              <>
+                {months.map((m) => (
+                  <Text key={m.key} style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                    {formatZar(balanceSheet.totalEquityAndLiabilities.monthly?.[m.key] || 0)}
+                  </Text>
+                ))}
+                <Text style={[styles.cellTextBold, { width: pdfColWidth, textAlign: 'right' }]}>
+                  {formatZar(balanceSheet.totalEquityAndLiabilities.current)}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.cellTextBold, styles.colCur]}>{formatZar(balanceSheet.totalEquityAndLiabilities.current)}</Text>
+                <Text style={[styles.cellTextBold, styles.colPri]}>{formatZar(balanceSheet.totalEquityAndLiabilities.prior)}</Text>
+                <Text style={[styles.cellTextBold, styles.colVar]}>
+                  {formatZar(balanceSheet.totalEquityAndLiabilities.current - balanceSheet.totalEquityAndLiabilities.prior)}
+                </Text>
+              </>
+            )}
           </View>
         </View>
 

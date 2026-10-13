@@ -65,10 +65,77 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
 
   // Dates
   const now = useMemo(() => new Date(), []);
+  const fyStartYear = useMemo(() => {
+    return now.getMonth() < 2 ? now.getFullYear() - 1 : now.getFullYear();
+  }, [now]);
+
+  // Available months list for dropdowns (last 24 months + current + next)
+  const availableMonths = useMemo(() => {
+    const list: { value: string; label: string; date: Date }[] = [];
+    for (let i = 24; i >= -1; i--) {
+      const d = subMonths(now, i);
+      list.push({
+        value: format(d, 'yyyy-MM'),
+        label: format(d, 'MMM yyyy'),
+        date: d,
+      });
+    }
+    return list;
+  }, [now]);
+
+  // Selected From/To months (defaults to Financial YTD: March to current month)
+  const [fromMonth, setFromMonth] = useState<string>(() => {
+    const n = new Date();
+    const startYear = n.getMonth() < 2 ? n.getFullYear() - 1 : n.getFullYear();
+    return `${startYear}-03`;
+  });
+  const [toMonth, setToMonth] = useState<string>(() => {
+    return format(new Date(), 'yyyy-MM');
+  });
+
   const [customRange, setCustomRange] = useState<DateRange | undefined>({
     from: startOfMonth(now),
     to: endOfMonth(now),
   });
+
+  // Handle Preset Changes
+  const handlePeriodPresetChange = (preset: string) => {
+    setPeriodPreset(preset);
+    if (preset === 'current_month') {
+      const cur = format(now, 'yyyy-MM');
+      setFromMonth(cur);
+      setToMonth(cur);
+    } else if (preset === 'prior_month') {
+      const prior = format(subMonths(now, 1), 'yyyy-MM');
+      setFromMonth(prior);
+      setToMonth(prior);
+    } else if (preset === 'quarter_to_date') {
+      setFromMonth(format(subMonths(now, 2), 'yyyy-MM'));
+      setToMonth(format(now, 'yyyy-MM'));
+    } else if (preset === 'financial_ytd') {
+      setFromMonth(`${fyStartYear}-03`);
+      setToMonth(format(now, 'yyyy-MM'));
+    } else if (preset === 'full_year') {
+      setFromMonth(`${fyStartYear}-03`);
+      setToMonth(`${fyStartYear + 1}-02`);
+    }
+  };
+
+  const handleFromMonthChange = (val: string) => {
+    setFromMonth(val);
+    if (val > toMonth) {
+      setToMonth(val);
+    }
+    setPeriodPreset('month_range');
+  };
+
+  const handleToMonthChange = (val: string) => {
+    setToMonth(val);
+    if (val < fromMonth) {
+      setFromMonth(val);
+    }
+    setPeriodPreset('month_range');
+  };
 
   // Report Data state
   const [isLoading, setIsLoading] = useState(true);
@@ -83,7 +150,7 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
   // Active tab
   const [activeTab, setActiveTab] = useState('executive');
 
-  // Compute start/end dates from preset
+  // Compute start/end dates from preset / month range
   const computedDates = useMemo(() => {
     let start: Date;
     let end: Date;
@@ -99,16 +166,35 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
       end = endOfMonth(priorM);
       periodLabel = format(start, 'MMMM yyyy');
     } else if (periodPreset === 'quarter_to_date') {
-      start = subMonths(now, 3);
-      end = now;
+      const qStart = startOfMonth(subMonths(now, 2));
+      start = qStart;
+      end = endOfMonth(now);
       periodLabel = `Last 3 Months (${format(start, 'MMM')} - ${format(end, 'MMM yyyy')})`;
     } else if (periodPreset === 'financial_ytd') {
-      start = new Date(now.getFullYear(), 2, 1); // 1 March (SA Tax year start)
-      if (now.getMonth() < 2) {
-        start = new Date(now.getFullYear() - 1, 2, 1);
+      start = new Date(fyStartYear, 2, 1); // 1 March
+      end = endOfMonth(now);
+      periodLabel = `FY${fyStartYear + 1} YTD (${format(start, 'MMM yyyy')} - ${format(end, 'MMM yyyy')})`;
+    } else if (periodPreset === 'full_year') {
+      start = new Date(fyStartYear, 2, 1);
+      end = new Date(fyStartYear + 1, 2, 0); // End of Feb
+      periodLabel = `Full Financial Year FY${fyStartYear + 1} (${format(start, 'MMM yyyy')} - ${format(end, 'MMM yyyy')})`;
+    } else if (periodPreset === 'month_range') {
+      const [fy, fm] = fromMonth.split('-').map(Number);
+      const [ty, tm] = toMonth.split('-').map(Number);
+      const fDate = new Date(fy, fm - 1, 1);
+      const tDate = new Date(ty, tm, 0);
+      if (fDate <= tDate) {
+        start = startOfMonth(fDate);
+        end = endOfMonth(tDate);
+      } else {
+        start = startOfMonth(tDate);
+        end = endOfMonth(fDate);
       }
-      end = now;
-      periodLabel = `FY${start.getFullYear() + 1} YTD (${format(start, 'MMM yyyy')} - ${format(end, 'MMM yyyy')})`;
+      if (fromMonth === toMonth) {
+        periodLabel = format(start, 'MMMM yyyy');
+      } else {
+        periodLabel = `${format(start, 'MMM yyyy')} – ${format(end, 'MMM yyyy')}`;
+      }
     } else {
       start = customRange?.from || startOfMonth(now);
       end = customRange?.to || endOfMonth(now);
@@ -144,7 +230,7 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
       comparativeEndDateStr: compEnd.toISOString(),
       comparativePeriodLabel: compLabel,
     };
-  }, [periodPreset, comparativePreset, customRange, now]);
+  }, [periodPreset, comparativePreset, customRange, fromMonth, toMonth, fyStartYear, now]);
 
   // Fetch Report Data
   const fetchReportData = useCallback(async () => {
@@ -191,6 +277,9 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
     fetchReportData();
   }, [fetchReportData]);
 
+  const isMultiMonth = Boolean(reportData?.period.months && reportData.period.months.length > 1);
+  const monthSlices = reportData?.period.months || [];
+
   // Excel Export
   const handleExportExcel = () => {
     if (!reportData) return;
@@ -222,47 +311,142 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
       XLSX.utils.book_append_sheet(wb, wsKpi, 'Executive Summary');
 
       // 2. Profit & Loss Sheet
-      const plRows = [
-        ['STATEMENT OF COMPREHENSIVE INCOME (PROFIT & LOSS)'],
-        ['Company', reportData.client.companyName],
-        ['Period', reportData.period.label],
-        [],
-        ['Account Code', 'Account Description', 'Current Period (ZAR)', 'Prior Period (ZAR)', 'Variance (ZAR)', 'Variance %'],
-        ['REVENUE'],
-        ...reportData.profitAndLoss.revenue.items.map((i) => [i.accountNumber || '', i.name, i.currentAmount, i.priorAmount, i.varianceAmount, `${i.variancePct}%`]),
-        ['Total Revenue', '', reportData.profitAndLoss.revenue.currentTotal, reportData.profitAndLoss.revenue.priorTotal, reportData.profitAndLoss.revenue.varianceAmount, `${reportData.profitAndLoss.revenue.variancePct}%`],
-        [],
-        ['COST OF SALES'],
-        ...reportData.profitAndLoss.costOfSales.items.map((i) => [i.accountNumber || '', i.name, i.currentAmount, i.priorAmount, i.varianceAmount, `${i.variancePct}%`]),
-        ['Total Cost of Sales', '', reportData.profitAndLoss.costOfSales.currentTotal, reportData.profitAndLoss.costOfSales.priorTotal, reportData.profitAndLoss.costOfSales.varianceAmount, `${reportData.profitAndLoss.costOfSales.variancePct}%`],
-        [],
-        ['GROSS PROFIT', '', reportData.profitAndLoss.grossProfit.current, reportData.profitAndLoss.grossProfit.prior, reportData.profitAndLoss.grossProfit.variance, `${reportData.profitAndLoss.grossProfit.variancePct}%`],
-        [],
-        ['OPERATING EXPENSES'],
-        ...reportData.profitAndLoss.operatingExpenses.items.map((i) => [i.accountNumber || '', i.name, i.currentAmount, i.priorAmount, i.varianceAmount, `${i.variancePct}%`]),
-        ['Total Operating Expenses', '', reportData.profitAndLoss.operatingExpenses.currentTotal, reportData.profitAndLoss.operatingExpenses.priorTotal, reportData.profitAndLoss.operatingExpenses.varianceAmount, `${reportData.profitAndLoss.operatingExpenses.variancePct}%`],
-        [],
-        ['NET OPERATING PROFIT / (LOSS)', '', reportData.profitAndLoss.netProfitBeforeTax.current, reportData.profitAndLoss.netProfitBeforeTax.prior, reportData.profitAndLoss.netProfitBeforeTax.variance, `${reportData.profitAndLoss.netProfitBeforeTax.variancePct}%`],
-      ];
+      let plRows: any[];
+      if (isMultiMonth) {
+        plRows = [
+          ['STATEMENT OF COMPREHENSIVE INCOME (PROFIT & LOSS)'],
+          ['Company', reportData.client.companyName],
+          ['Period', reportData.period.label],
+          [],
+          ['Account Code', 'Account Description', ...monthSlices.map((m) => m.label), 'Total (ZAR)'],
+          ['REVENUE'],
+          ...reportData.profitAndLoss.revenue.items.map((i) => [
+            i.accountNumber || '',
+            i.name,
+            ...monthSlices.map((m) => i.monthlyAmounts?.[m.key] ?? 0),
+            i.currentAmount,
+          ]),
+          ['Total Revenue', '', ...monthSlices.map((m) => reportData.profitAndLoss.revenue.monthlyTotals?.[m.key] ?? 0), reportData.profitAndLoss.revenue.currentTotal],
+          [],
+          ['COST OF SALES'],
+          ...reportData.profitAndLoss.costOfSales.items.map((i) => [
+            i.accountNumber || '',
+            i.name,
+            ...monthSlices.map((m) => i.monthlyAmounts?.[m.key] ?? 0),
+            i.currentAmount,
+          ]),
+          ['Total Cost of Sales', '', ...monthSlices.map((m) => reportData.profitAndLoss.costOfSales.monthlyTotals?.[m.key] ?? 0), reportData.profitAndLoss.costOfSales.currentTotal],
+          [],
+          ['GROSS PROFIT', '', ...monthSlices.map((m) => reportData.profitAndLoss.grossProfit.monthly?.[m.key] ?? 0), reportData.profitAndLoss.grossProfit.current],
+          [],
+          ['OPERATING EXPENSES'],
+          ...reportData.profitAndLoss.operatingExpenses.items.map((i) => [
+            i.accountNumber || '',
+            i.name,
+            ...monthSlices.map((m) => i.monthlyAmounts?.[m.key] ?? 0),
+            i.currentAmount,
+          ]),
+          ['Total Operating Expenses', '', ...monthSlices.map((m) => reportData.profitAndLoss.operatingExpenses.monthlyTotals?.[m.key] ?? 0), reportData.profitAndLoss.operatingExpenses.currentTotal],
+          [],
+          ['NET OPERATING PROFIT / (LOSS)', '', ...monthSlices.map((m) => reportData.profitAndLoss.netProfitBeforeTax.monthly?.[m.key] ?? 0), reportData.profitAndLoss.netProfitBeforeTax.current],
+        ];
+      } else {
+        plRows = [
+          ['STATEMENT OF COMPREHENSIVE INCOME (PROFIT & LOSS)'],
+          ['Company', reportData.client.companyName],
+          ['Period', reportData.period.label],
+          [],
+          ['Account Code', 'Account Description', 'Current Period (ZAR)', 'Prior Period (ZAR)', 'Variance (ZAR)', 'Variance %'],
+          ['REVENUE'],
+          ...reportData.profitAndLoss.revenue.items.map((i) => [i.accountNumber || '', i.name, i.currentAmount, i.priorAmount, i.varianceAmount, `${i.variancePct}%`]),
+          ['Total Revenue', '', reportData.profitAndLoss.revenue.currentTotal, reportData.profitAndLoss.revenue.priorTotal, reportData.profitAndLoss.revenue.varianceAmount, `${reportData.profitAndLoss.revenue.variancePct}%`],
+          [],
+          ['COST OF SALES'],
+          ...reportData.profitAndLoss.costOfSales.items.map((i) => [i.accountNumber || '', i.name, i.currentAmount, i.priorAmount, i.varianceAmount, `${i.variancePct}%`]),
+          ['Total Cost of Sales', '', reportData.profitAndLoss.costOfSales.currentTotal, reportData.profitAndLoss.costOfSales.priorTotal, reportData.profitAndLoss.costOfSales.varianceAmount, `${reportData.profitAndLoss.costOfSales.variancePct}%`],
+          [],
+          ['GROSS PROFIT', '', reportData.profitAndLoss.grossProfit.current, reportData.profitAndLoss.grossProfit.prior, reportData.profitAndLoss.grossProfit.variance, `${reportData.profitAndLoss.grossProfit.variancePct}%`],
+          [],
+          ['OPERATING EXPENSES'],
+          ...reportData.profitAndLoss.operatingExpenses.items.map((i) => [i.accountNumber || '', i.name, i.currentAmount, i.priorAmount, i.varianceAmount, `${i.variancePct}%`]),
+          ['Total Operating Expenses', '', reportData.profitAndLoss.operatingExpenses.currentTotal, reportData.profitAndLoss.operatingExpenses.priorTotal, reportData.profitAndLoss.operatingExpenses.varianceAmount, `${reportData.profitAndLoss.operatingExpenses.variancePct}%`],
+          [],
+          ['NET OPERATING PROFIT / (LOSS)', '', reportData.profitAndLoss.netProfitBeforeTax.current, reportData.profitAndLoss.netProfitBeforeTax.prior, reportData.profitAndLoss.netProfitBeforeTax.variance, `${reportData.profitAndLoss.netProfitBeforeTax.variancePct}%`],
+        ];
+      }
       const wsPl = XLSX.utils.aoa_to_sheet(plRows);
       XLSX.utils.book_append_sheet(wb, wsPl, 'Profit & Loss');
 
       // 3. Balance Sheet
-      const bsRows = [
-        ['STATEMENT OF FINANCIAL POSITION (BALANCE SHEET)'],
-        ['Company', reportData.client.companyName],
-        ['As At', reportData.period.endDate],
-        [],
-        ['Category', 'Current Position (ZAR)', 'Prior Position (ZAR)', 'Movement (ZAR)'],
-        ['Non-Current Assets', reportData.balanceSheet.nonCurrentAssets.currentTotal, reportData.balanceSheet.nonCurrentAssets.priorTotal, reportData.balanceSheet.nonCurrentAssets.varianceAmount],
-        ['Current Assets', reportData.balanceSheet.currentAssets.currentTotal, reportData.balanceSheet.currentAssets.priorTotal, reportData.balanceSheet.currentAssets.varianceAmount],
-        ['TOTAL ASSETS', reportData.balanceSheet.totalAssets.current, reportData.balanceSheet.totalAssets.prior, reportData.balanceSheet.totalAssets.current - reportData.balanceSheet.totalAssets.prior],
-        [],
-        ['Capital & Reserves (Equity)', reportData.balanceSheet.equity.currentTotal, reportData.balanceSheet.equity.priorTotal, reportData.balanceSheet.equity.varianceAmount],
-        ['Non-Current Liabilities', reportData.balanceSheet.nonCurrentLiabilities.currentTotal, reportData.balanceSheet.nonCurrentLiabilities.priorTotal, reportData.balanceSheet.nonCurrentLiabilities.varianceAmount],
-        ['Current Liabilities', reportData.balanceSheet.currentLiabilities.currentTotal, reportData.balanceSheet.currentLiabilities.priorTotal, reportData.balanceSheet.currentLiabilities.varianceAmount],
-        ['TOTAL EQUITY & LIABILITIES', reportData.balanceSheet.totalEquityAndLiabilities.current, reportData.balanceSheet.totalEquityAndLiabilities.prior, reportData.balanceSheet.totalEquityAndLiabilities.current - reportData.balanceSheet.totalEquityAndLiabilities.prior],
-      ];
+      let bsRows: any[];
+      if (isMultiMonth) {
+        bsRows = [
+          ['STATEMENT OF FINANCIAL POSITION (BALANCE SHEET)'],
+          ['Company', reportData.client.companyName],
+          ['As At', reportData.period.endDate],
+          [],
+          ['Category / Account Code', 'Account Description', ...monthSlices.map((m) => `As at ${m.label}`), 'Latest Position (ZAR)'],
+          ['NON-CURRENT ASSETS', '', ...monthSlices.map((m) => reportData.balanceSheet.nonCurrentAssets.monthlyTotals?.[m.key] ?? 0), reportData.balanceSheet.nonCurrentAssets.currentTotal],
+          ...reportData.balanceSheet.nonCurrentAssets.items.map((i) => [
+            i.accountNumber || '',
+            i.name,
+            ...monthSlices.map((m) => i.monthlyAmounts?.[m.key] ?? 0),
+            i.currentAmount,
+          ]),
+          [],
+          ['CURRENT ASSETS', '', ...monthSlices.map((m) => reportData.balanceSheet.currentAssets.monthlyTotals?.[m.key] ?? 0), reportData.balanceSheet.currentAssets.currentTotal],
+          ...reportData.balanceSheet.currentAssets.items.map((i) => [
+            i.accountNumber || '',
+            i.name,
+            ...monthSlices.map((m) => i.monthlyAmounts?.[m.key] ?? 0),
+            i.currentAmount,
+          ]),
+          [],
+          ['TOTAL ASSETS', '', ...monthSlices.map((m) => reportData.balanceSheet.totalAssets.monthly?.[m.key] ?? 0), reportData.balanceSheet.totalAssets.current],
+          [],
+          ['CAPITAL & RESERVES (EQUITY)', '', ...monthSlices.map((m) => reportData.balanceSheet.equity.monthlyTotals?.[m.key] ?? 0), reportData.balanceSheet.equity.currentTotal],
+          ...reportData.balanceSheet.equity.items.map((i) => [
+            i.accountNumber || '',
+            i.name,
+            ...monthSlices.map((m) => i.monthlyAmounts?.[m.key] ?? 0),
+            i.currentAmount,
+          ]),
+          [],
+          ['NON-CURRENT LIABILITIES', '', ...monthSlices.map((m) => reportData.balanceSheet.nonCurrentLiabilities.monthlyTotals?.[m.key] ?? 0), reportData.balanceSheet.nonCurrentLiabilities.currentTotal],
+          ...reportData.balanceSheet.nonCurrentLiabilities.items.map((i) => [
+            i.accountNumber || '',
+            i.name,
+            ...monthSlices.map((m) => i.monthlyAmounts?.[m.key] ?? 0),
+            i.currentAmount,
+          ]),
+          [],
+          ['CURRENT LIABILITIES', '', ...monthSlices.map((m) => reportData.balanceSheet.currentLiabilities.monthlyTotals?.[m.key] ?? 0), reportData.balanceSheet.currentLiabilities.currentTotal],
+          ...reportData.balanceSheet.currentLiabilities.items.map((i) => [
+            i.accountNumber || '',
+            i.name,
+            ...monthSlices.map((m) => i.monthlyAmounts?.[m.key] ?? 0),
+            i.currentAmount,
+          ]),
+          [],
+          ['TOTAL EQUITY & LIABILITIES', '', ...monthSlices.map((m) => reportData.balanceSheet.totalEquityAndLiabilities.monthly?.[m.key] ?? 0), reportData.balanceSheet.totalEquityAndLiabilities.current],
+        ];
+      } else {
+        bsRows = [
+          ['STATEMENT OF FINANCIAL POSITION (BALANCE SHEET)'],
+          ['Company', reportData.client.companyName],
+          ['As At', reportData.period.endDate],
+          [],
+          ['Category', 'Current Position (ZAR)', 'Prior Position (ZAR)', 'Movement (ZAR)'],
+          ['Non-Current Assets', reportData.balanceSheet.nonCurrentAssets.currentTotal, reportData.balanceSheet.nonCurrentAssets.priorTotal, reportData.balanceSheet.nonCurrentAssets.varianceAmount],
+          ['Current Assets', reportData.balanceSheet.currentAssets.currentTotal, reportData.balanceSheet.currentAssets.priorTotal, reportData.balanceSheet.currentAssets.varianceAmount],
+          ['TOTAL ASSETS', reportData.balanceSheet.totalAssets.current, reportData.balanceSheet.totalAssets.prior, reportData.balanceSheet.totalAssets.current - reportData.balanceSheet.totalAssets.prior],
+          [],
+          ['Capital & Reserves (Equity)', reportData.balanceSheet.equity.currentTotal, reportData.balanceSheet.equity.priorTotal, reportData.balanceSheet.equity.varianceAmount],
+          ['Non-Current Liabilities', reportData.balanceSheet.nonCurrentLiabilities.currentTotal, reportData.balanceSheet.nonCurrentLiabilities.priorTotal, reportData.balanceSheet.nonCurrentLiabilities.varianceAmount],
+          ['Current Liabilities', reportData.balanceSheet.currentLiabilities.currentTotal, reportData.balanceSheet.currentLiabilities.priorTotal, reportData.balanceSheet.currentLiabilities.varianceAmount],
+          ['TOTAL EQUITY & LIABILITIES', reportData.balanceSheet.totalEquityAndLiabilities.current, reportData.balanceSheet.totalEquityAndLiabilities.prior, reportData.balanceSheet.totalEquityAndLiabilities.current - reportData.balanceSheet.totalEquityAndLiabilities.prior],
+        ];
+      }
       const wsBs = XLSX.utils.aoa_to_sheet(bsRows);
       XLSX.utils.book_append_sheet(wb, wsBs, 'Balance Sheet');
 
@@ -348,43 +532,83 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
         </div>
 
         {/* Period Selector Row */}
-        <div className="flex flex-wrap items-center gap-4 pt-3 border-t text-xs">
+        <div className="flex flex-wrap items-center gap-3 pt-3 border-t text-xs">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-700">Period:</span>
-            <Select value={periodPreset} onValueChange={setPeriodPreset}>
+            <Select value={periodPreset} onValueChange={handlePeriodPresetChange}>
               <SelectTrigger className="h-8 w-44 font-medium text-xs">
                 <SelectValue placeholder="Select Period" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="month_range">Month Range (Multi-Month)</SelectItem>
+                <SelectItem value="financial_ytd">Financial Year YTD</SelectItem>
+                <SelectItem value="quarter_to_date">Last 3 Months (Quarter)</SelectItem>
+                <SelectItem value="full_year">Full Financial Year</SelectItem>
                 <SelectItem value="current_month">Current Month ({format(now, 'MMM yyyy')})</SelectItem>
                 <SelectItem value="prior_month">Prior Month ({format(subMonths(now, 1), 'MMM yyyy')})</SelectItem>
-                <SelectItem value="quarter_to_date">Quarter to Date (3 Mo)</SelectItem>
-                <SelectItem value="financial_ytd">Financial Year YTD</SelectItem>
-                <SelectItem value="custom">Custom Date Range</SelectItem>
+                <SelectItem value="custom">Custom Date Range (Days)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {periodPreset === 'custom' && (
+          {/* Month Range Selectors (From Month -> To Month) */}
+          {periodPreset !== 'custom' ? (
+            <div className="flex items-center gap-1.5 bg-slate-50 border px-2 py-1 rounded-md">
+              <span className="text-[11px] font-bold text-slate-600">From:</span>
+              <Select value={fromMonth} onValueChange={handleFromMonthChange}>
+                <SelectTrigger className="h-7 w-28 font-medium text-xs bg-white">
+                  <SelectValue placeholder="From Month" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {availableMonths.map((m) => (
+                    <SelectItem key={m.value} value={m.value} className="text-xs">
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <span className="text-[11px] font-bold text-slate-600 ml-1">To:</span>
+              <Select value={toMonth} onValueChange={handleToMonthChange}>
+                <SelectTrigger className="h-7 w-28 font-medium text-xs bg-white">
+                  <SelectValue placeholder="To Month" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {availableMonths.map((m) => (
+                    <SelectItem key={m.value} value={m.value} className="text-xs">
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
             <DateRangePicker
               value={customRange}
               onDateChange={setCustomRange}
             />
           )}
 
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-700">Compare vs:</span>
-            <Select value={comparativePreset} onValueChange={setComparativePreset}>
-              <SelectTrigger className="h-8 w-44 font-medium text-xs">
-                <SelectValue placeholder="Comparative Period" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="prior_month">Prior Month</SelectItem>
-                <SelectItem value="prior_year">Prior Year (Same Period)</SelectItem>
-                <SelectItem value="prior_period">Immediate Prior Period</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {isMultiMonth ? (
+            <div className="flex items-center gap-1.5 text-xs bg-blue-50/80 border border-blue-200 text-blue-900 px-2.5 py-1 rounded-md font-medium">
+              <span className="font-bold">{monthSlices.length} Months selected</span>
+              <span className="text-blue-700/80">• Multi-column monthly breakdown + Total</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-700">Compare vs:</span>
+              <Select value={comparativePreset} onValueChange={setComparativePreset}>
+                <SelectTrigger className="h-8 w-44 font-medium text-xs">
+                  <SelectValue placeholder="Comparative Period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="prior_month">Prior Month</SelectItem>
+                  <SelectItem value="prior_year">Prior Year (Same Period)</SelectItem>
+                  <SelectItem value="prior_period">Immediate Prior Period</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <Button
             size="sm"
@@ -661,56 +885,148 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
             <TabsContent value="executive" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* P&L Snapshot */}
-                <Card className="shadow-sm">
+                <Card className="shadow-sm overflow-hidden">
                   <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
                     <div>
                       <CardTitle className="text-sm font-bold">Profit & Loss Summary</CardTitle>
-                      <CardDescription className="text-xs">{reportData.period.label} vs {reportData.period.comparativeLabel}</CardDescription>
+                      <CardDescription className="text-xs">
+                        {isMultiMonth
+                          ? `${reportData.period.label} (${monthSlices.length} Months Monthly Breakdown)`
+                          : `${reportData.period.label} vs ${reportData.period.comparativeLabel}`}
+                      </CardDescription>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => setActiveTab('profit_loss')} className="text-xs text-primary font-bold">
                       View Full P&L →
                     </Button>
                   </CardHeader>
-                  <CardContent className="p-0">
+                  <CardContent className="p-0 overflow-x-auto">
                     <Table className="text-xs">
                       <TableHeader className="bg-slate-50">
                         <TableRow>
-                          <TableHead>Line Item</TableHead>
-                          <TableHead className="text-right">Current</TableHead>
-                          <TableHead className="text-right">Prior</TableHead>
-                          <TableHead className="text-right">Variance</TableHead>
+                          <TableHead className="min-w-[130px]">Line Item</TableHead>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableHead key={m.key} className="text-right whitespace-nowrap min-w-[85px]">
+                                  {m.shortLabel}
+                                </TableHead>
+                              ))}
+                              <TableHead className="text-right font-bold bg-slate-100 min-w-[95px]">Total (ZAR)</TableHead>
+                            </>
+                          ) : (
+                            <>
+                              <TableHead className="text-right">Current</TableHead>
+                              <TableHead className="text-right">Prior</TableHead>
+                              <TableHead className="text-right">Variance</TableHead>
+                            </>
+                          )}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         <TableRow className="font-bold">
                           <TableCell>Revenue & Turnover</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.revenue.currentTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.revenue.priorTotal)}</TableCell>
-                          <TableCell className="text-right text-emerald-600">{formatZar(reportData.profitAndLoss.revenue.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(reportData.profitAndLoss.revenue.monthlyTotals?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-black text-emerald-600 bg-slate-50/50">
+                                {formatZar(reportData.profitAndLoss.revenue.currentTotal)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.revenue.currentTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.revenue.priorTotal)}</TableCell>
+                              <TableCell className="text-right text-emerald-600">{formatZar(reportData.profitAndLoss.revenue.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                         <TableRow>
                           <TableCell className="text-slate-600">Cost of Sales</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.currentTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.priorTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(reportData.profitAndLoss.costOfSales.monthlyTotals?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-bold bg-slate-50/50">
+                                {formatZar(reportData.profitAndLoss.costOfSales.currentTotal)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.currentTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.priorTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                         <TableRow className="bg-blue-50/60 font-bold text-blue-900">
                           <TableCell>GROSS PROFIT</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.current)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.prior)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.variance)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(reportData.profitAndLoss.grossProfit.monthly?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-black bg-blue-100/60">
+                                {formatZar(reportData.profitAndLoss.grossProfit.current)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.current)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.prior)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.variance)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                         <TableRow>
                           <TableCell className="text-slate-600">Operating Expenses</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.currentTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.priorTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(reportData.profitAndLoss.operatingExpenses.monthlyTotals?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-bold bg-slate-50/50">
+                                {formatZar(reportData.profitAndLoss.operatingExpenses.currentTotal)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.currentTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.priorTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                         <TableRow className="bg-emerald-50 font-bold text-emerald-900 text-sm">
                           <TableCell>NET PROFIT / (LOSS)</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.current)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.prior)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.variance)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right font-black">
+                                  {formatZar(reportData.profitAndLoss.netProfitBeforeTax.monthly?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-black bg-emerald-100">
+                                {formatZar(reportData.profitAndLoss.netProfitBeforeTax.current)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.current)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.prior)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.variance)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                       </TableBody>
                     </Table>
@@ -718,62 +1034,169 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
                 </Card>
 
                 {/* Balance Sheet Snapshot */}
-                <Card className="shadow-sm">
+                <Card className="shadow-sm overflow-hidden">
                   <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
                     <div>
                       <CardTitle className="text-sm font-bold">Financial Position Snapshot</CardTitle>
-                      <CardDescription className="text-xs">As at {reportData.period.endDate}</CardDescription>
+                      <CardDescription className="text-xs">
+                        {isMultiMonth ? `Monthly Balance Sheet Movement as at ${reportData.period.endDate}` : `As at ${reportData.period.endDate}`}
+                      </CardDescription>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => setActiveTab('balance_sheet')} className="text-xs text-primary font-bold">
                       View Balance Sheet →
                     </Button>
                   </CardHeader>
-                  <CardContent className="p-0">
+                  <CardContent className="p-0 overflow-x-auto">
                     <Table className="text-xs">
                       <TableHeader className="bg-slate-50">
                         <TableRow>
-                          <TableHead>Category</TableHead>
-                          <TableHead className="text-right">Current</TableHead>
-                          <TableHead className="text-right">Prior</TableHead>
-                          <TableHead className="text-right">Movement</TableHead>
+                          <TableHead className="min-w-[130px]">Category</TableHead>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableHead key={m.key} className="text-right whitespace-nowrap min-w-[85px]">
+                                  {m.shortLabel}
+                                </TableHead>
+                              ))}
+                              <TableHead className="text-right font-bold bg-slate-100 min-w-[95px]">
+                                Latest ({monthSlices[monthSlices.length - 1]?.shortLabel})
+                              </TableHead>
+                            </>
+                          ) : (
+                            <>
+                              <TableHead className="text-right">Current</TableHead>
+                              <TableHead className="text-right">Prior</TableHead>
+                              <TableHead className="text-right">Movement</TableHead>
+                            </>
+                          )}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         <TableRow>
                           <TableCell className="font-medium">Non-Current Assets</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.currentTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.priorTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(reportData.balanceSheet.nonCurrentAssets.monthlyTotals?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-bold bg-slate-50/50">
+                                {formatZar(reportData.balanceSheet.nonCurrentAssets.currentTotal)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.currentTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.priorTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                         <TableRow>
                           <TableCell className="font-medium">Current Assets</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.currentTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.priorTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(reportData.balanceSheet.currentAssets.monthlyTotals?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-bold bg-slate-50/50">
+                                {formatZar(reportData.balanceSheet.currentAssets.currentTotal)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.currentTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.priorTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                         <TableRow className="bg-slate-100 font-bold">
                           <TableCell>TOTAL ASSETS</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.current)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.prior)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.current - reportData.balanceSheet.totalAssets.prior)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right font-black">
+                                  {formatZar(reportData.balanceSheet.totalAssets.monthly?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-black bg-slate-200/80">
+                                {formatZar(reportData.balanceSheet.totalAssets.current)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.current)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.prior)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.current - reportData.balanceSheet.totalAssets.prior)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                         <TableRow>
                           <TableCell className="font-medium">Capital & Reserves (Equity)</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.currentTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.priorTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(reportData.balanceSheet.equity.monthlyTotals?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-bold bg-slate-50/50">
+                                {formatZar(reportData.balanceSheet.equity.currentTotal)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.currentTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.priorTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                         <TableRow>
                           <TableCell className="font-medium">Current Liabilities</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.currentTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.priorTotal)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(reportData.balanceSheet.currentLiabilities.monthlyTotals?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-bold bg-slate-50/50">
+                                {formatZar(reportData.balanceSheet.currentLiabilities.currentTotal)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.currentTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.priorTotal)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                         <TableRow className="bg-slate-100 font-bold">
                           <TableCell>TOTAL EQUITY & LIABILITIES</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.current)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.prior)}</TableCell>
-                          <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.current - reportData.balanceSheet.totalEquityAndLiabilities.prior)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right font-black">
+                                  {formatZar(reportData.balanceSheet.totalEquityAndLiabilities.monthly?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-black bg-slate-200/80">
+                                {formatZar(reportData.balanceSheet.totalEquityAndLiabilities.current)}
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.current)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.prior)}</TableCell>
+                              <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.current - reportData.balanceSheet.totalEquityAndLiabilities.prior)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                       </TableBody>
                     </Table>
@@ -784,99 +1207,228 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
 
             {/* TAB 2: DETAILED PROFIT & LOSS */}
             <TabsContent value="profit_loss">
-              <Card className="shadow-sm">
+              <Card className="shadow-sm overflow-hidden">
                 <CardHeader className="pb-3 border-b">
                   <CardTitle className="text-base font-bold">Statement of Profit or Loss (Detailed Line Items)</CardTitle>
                   <CardDescription className="text-xs">
-                    Comprehensive comparative statement for {reportData.period.label} vs {reportData.period.comparativeLabel}
+                    {isMultiMonth
+                      ? `Monthly breakdown statement for ${reportData.period.label} (${monthSlices.length} individual months)`
+                      : `Comprehensive comparative statement for ${reportData.period.label} vs ${reportData.period.comparativeLabel}`}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent className="p-0 overflow-x-auto">
                   <Table className="text-xs">
                     <TableHeader className="bg-slate-100 font-bold">
                       <TableRow>
-                        <TableHead className="w-[120px]">Account Code</TableHead>
-                        <TableHead>Account Description</TableHead>
-                        <TableHead className="text-right">{reportData.period.label}</TableHead>
-                        <TableHead className="text-right">{reportData.period.comparativeLabel}</TableHead>
-                        <TableHead className="text-right">Variance (R)</TableHead>
-                        <TableHead className="text-right">Variance %</TableHead>
+                        <TableHead className="w-[100px] min-w-[90px]">Account Code</TableHead>
+                        <TableHead className="min-w-[180px]">Account Description</TableHead>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableHead key={m.key} className="text-right whitespace-nowrap min-w-[85px]">
+                                {m.label}
+                              </TableHead>
+                            ))}
+                            <TableHead className="text-right font-bold bg-slate-200/70 min-w-[100px]">Total (ZAR)</TableHead>
+                          </>
+                        ) : (
+                          <>
+                            <TableHead className="text-right">{reportData.period.label}</TableHead>
+                            <TableHead className="text-right">{reportData.period.comparativeLabel}</TableHead>
+                            <TableHead className="text-right">Variance (R)</TableHead>
+                            <TableHead className="text-right">Variance %</TableHead>
+                          </>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {/* Revenue */}
                       <TableRow className="bg-slate-50 font-bold">
                         <TableCell colSpan={2}>1. REVENUE & TURNOVER</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.revenue.currentTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.revenue.priorTotal)}</TableCell>
-                        <TableCell className="text-right text-emerald-600">{formatZar(reportData.profitAndLoss.revenue.varianceAmount)}</TableCell>
-                        <TableCell className="text-right text-emerald-600">{formatPct(reportData.profitAndLoss.revenue.variancePct)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-bold">
+                                {formatZar(reportData.profitAndLoss.revenue.monthlyTotals?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right text-emerald-600 font-black bg-slate-100">
+                              {formatZar(reportData.profitAndLoss.revenue.currentTotal)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.revenue.currentTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.revenue.priorTotal)}</TableCell>
+                            <TableCell className="text-right text-emerald-600">{formatZar(reportData.profitAndLoss.revenue.varianceAmount)}</TableCell>
+                            <TableCell className="text-right text-emerald-600">{formatPct(reportData.profitAndLoss.revenue.variancePct)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
                       {reportData.profitAndLoss.revenue.items.map((i, idx) => (
                         <TableRow key={idx} className="hover:bg-slate-50/50">
                           <TableCell className="font-mono text-[11px] text-slate-500">{i.accountNumber || '—'}</TableCell>
                           <TableCell>{i.name}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
-                          <TableCell className="text-right">{formatPct(i.variancePct)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(i.monthlyAmounts?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-semibold bg-slate-50/50">{formatZar(i.currentAmount)}</TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                              <TableCell className="text-right">{formatPct(i.variancePct)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                       ))}
 
                       {/* Cost of Sales */}
                       <TableRow className="bg-slate-50 font-bold">
                         <TableCell colSpan={2}>2. COST OF SALES</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.currentTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.priorTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.varianceAmount)}</TableCell>
-                        <TableCell className="text-right">{formatPct(reportData.profitAndLoss.costOfSales.variancePct)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-bold">
+                                {formatZar(reportData.profitAndLoss.costOfSales.monthlyTotals?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-black bg-slate-100">
+                              {formatZar(reportData.profitAndLoss.costOfSales.currentTotal)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.currentTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.priorTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.costOfSales.varianceAmount)}</TableCell>
+                            <TableCell className="text-right">{formatPct(reportData.profitAndLoss.costOfSales.variancePct)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
                       {reportData.profitAndLoss.costOfSales.items.map((i, idx) => (
                         <TableRow key={idx} className="hover:bg-slate-50/50">
                           <TableCell className="font-mono text-[11px] text-slate-500">{i.accountNumber || '—'}</TableCell>
                           <TableCell>{i.name}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
-                          <TableCell className="text-right">{formatPct(i.variancePct)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(i.monthlyAmounts?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-semibold bg-slate-50/50">{formatZar(i.currentAmount)}</TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                              <TableCell className="text-right">{formatPct(i.variancePct)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                       ))}
 
                       {/* Gross Profit */}
                       <TableRow className="bg-blue-100/70 font-black text-blue-950 text-sm">
                         <TableCell colSpan={2}>GROSS PROFIT</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.current)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.prior)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.variance)}</TableCell>
-                        <TableCell className="text-right">{formatPct(reportData.profitAndLoss.grossProfit.variancePct)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-black">
+                                {formatZar(reportData.profitAndLoss.grossProfit.monthly?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-black bg-blue-200/70">
+                              {formatZar(reportData.profitAndLoss.grossProfit.current)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.current)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.prior)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.grossProfit.variance)}</TableCell>
+                            <TableCell className="text-right">{formatPct(reportData.profitAndLoss.grossProfit.variancePct)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
 
                       {/* Operating Expenses */}
                       <TableRow className="bg-slate-50 font-bold">
                         <TableCell colSpan={2}>3. OPERATING EXPENDITURE (OPEX)</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.currentTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.priorTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.varianceAmount)}</TableCell>
-                        <TableCell className="text-right">{formatPct(reportData.profitAndLoss.operatingExpenses.variancePct)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-bold">
+                                {formatZar(reportData.profitAndLoss.operatingExpenses.monthlyTotals?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-black bg-slate-100">
+                              {formatZar(reportData.profitAndLoss.operatingExpenses.currentTotal)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.currentTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.priorTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.operatingExpenses.varianceAmount)}</TableCell>
+                            <TableCell className="text-right">{formatPct(reportData.profitAndLoss.operatingExpenses.variancePct)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
                       {reportData.profitAndLoss.operatingExpenses.items.map((i, idx) => (
                         <TableRow key={idx} className="hover:bg-slate-50/50">
                           <TableCell className="font-mono text-[11px] text-slate-500">{i.accountNumber || '—'}</TableCell>
                           <TableCell>{i.name}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
-                          <TableCell className="text-right">{formatPct(i.variancePct)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(i.monthlyAmounts?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-semibold bg-slate-50/50">{formatZar(i.currentAmount)}</TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                              <TableCell className="text-right">{formatPct(i.variancePct)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                       ))}
 
                       {/* Net Profit */}
                       <TableRow className="bg-emerald-100 font-black text-emerald-950 text-base">
                         <TableCell colSpan={2}>NET OPERATING PROFIT / (LOSS)</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.current)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.prior)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.variance)}</TableCell>
-                        <TableCell className="text-right">{formatPct(reportData.profitAndLoss.netProfitBeforeTax.variancePct)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-black">
+                                {formatZar(reportData.profitAndLoss.netProfitBeforeTax.monthly?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-black bg-emerald-200/80">
+                              {formatZar(reportData.profitAndLoss.netProfitBeforeTax.current)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.current)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.prior)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.profitAndLoss.netProfitBeforeTax.variance)}</TableCell>
+                            <TableCell className="text-right">{formatPct(reportData.profitAndLoss.netProfitBeforeTax.variancePct)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -886,103 +1438,311 @@ export default function ManagementReportView({ clientId }: ManagementReportViewP
 
             {/* TAB 3: BALANCE SHEET */}
             <TabsContent value="balance_sheet">
-              <Card className="shadow-sm">
+              <Card className="shadow-sm overflow-hidden">
                 <CardHeader className="pb-3 border-b">
                   <CardTitle className="text-base font-bold">Statement of Financial Position (Balance Sheet)</CardTitle>
-                  <CardDescription className="text-xs">Cumulative position as at {reportData.period.endDate}</CardDescription>
+                  <CardDescription className="text-xs">
+                    {isMultiMonth
+                      ? `Monthly cumulative position across ${monthSlices.length} months as at ${reportData.period.endDate}`
+                      : `Cumulative position as at ${reportData.period.endDate}`}
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent className="p-0 overflow-x-auto">
                   <Table className="text-xs">
                     <TableHeader className="bg-slate-100 font-bold">
                       <TableRow>
-                        <TableHead className="w-[120px]">Account Code</TableHead>
-                        <TableHead>Account Description</TableHead>
-                        <TableHead className="text-right">Current (ZAR)</TableHead>
-                        <TableHead className="text-right">Prior (ZAR)</TableHead>
-                        <TableHead className="text-right">Movement</TableHead>
+                        <TableHead className="w-[100px] min-w-[90px]">Account Code</TableHead>
+                        <TableHead className="min-w-[180px]">Account Description</TableHead>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableHead key={m.key} className="text-right whitespace-nowrap min-w-[85px]">
+                                As at {m.label}
+                              </TableHead>
+                            ))}
+                            <TableHead className="text-right font-bold bg-slate-200/70 min-w-[100px]">Latest Position</TableHead>
+                          </>
+                        ) : (
+                          <>
+                            <TableHead className="text-right">Current (ZAR)</TableHead>
+                            <TableHead className="text-right">Prior (ZAR)</TableHead>
+                            <TableHead className="text-right">Movement</TableHead>
+                          </>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {/* Non-Current Assets */}
                       <TableRow className="bg-slate-50 font-bold">
                         <TableCell colSpan={2}>NON-CURRENT ASSETS</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.currentTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.priorTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.varianceAmount)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-bold">
+                                {formatZar(reportData.balanceSheet.nonCurrentAssets.monthlyTotals?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-black bg-slate-100">
+                              {formatZar(reportData.balanceSheet.nonCurrentAssets.currentTotal)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.currentTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.priorTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentAssets.varianceAmount)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
                       {reportData.balanceSheet.nonCurrentAssets.items.map((i, idx) => (
-                        <TableRow key={idx}>
+                        <TableRow key={idx} className="hover:bg-slate-50/50">
                           <TableCell className="font-mono text-[11px] text-slate-500">{i.accountNumber || '—'}</TableCell>
                           <TableCell>{i.name}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(i.monthlyAmounts?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-semibold bg-slate-50/50">{formatZar(i.currentAmount)}</TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                       ))}
 
                       {/* Current Assets */}
                       <TableRow className="bg-slate-50 font-bold">
                         <TableCell colSpan={2}>CURRENT ASSETS</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.currentTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.priorTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.varianceAmount)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-bold">
+                                {formatZar(reportData.balanceSheet.currentAssets.monthlyTotals?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-black bg-slate-100">
+                              {formatZar(reportData.balanceSheet.currentAssets.currentTotal)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.currentTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.priorTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentAssets.varianceAmount)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
                       {reportData.balanceSheet.currentAssets.items.map((i, idx) => (
-                        <TableRow key={idx}>
+                        <TableRow key={idx} className="hover:bg-slate-50/50">
                           <TableCell className="font-mono text-[11px] text-slate-500">{i.accountNumber || '—'}</TableCell>
                           <TableCell>{i.name}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(i.monthlyAmounts?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-semibold bg-slate-50/50">{formatZar(i.currentAmount)}</TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                       ))}
 
                       <TableRow className="bg-slate-200 font-black text-slate-900 text-sm">
                         <TableCell colSpan={2}>TOTAL ASSETS</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.current)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.prior)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.current - reportData.balanceSheet.totalAssets.prior)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-black">
+                                {formatZar(reportData.balanceSheet.totalAssets.monthly?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-black bg-slate-300/80">
+                              {formatZar(reportData.balanceSheet.totalAssets.current)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.current)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.prior)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalAssets.current - reportData.balanceSheet.totalAssets.prior)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
 
                       {/* Equity */}
                       <TableRow className="bg-slate-50 font-bold">
                         <TableCell colSpan={2}>CAPITAL & RESERVES (EQUITY)</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.currentTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.priorTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.varianceAmount)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-bold">
+                                {formatZar(reportData.balanceSheet.equity.monthlyTotals?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-black bg-slate-100">
+                              {formatZar(reportData.balanceSheet.equity.currentTotal)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.currentTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.priorTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.equity.varianceAmount)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
                       {reportData.balanceSheet.equity.items.map((i, idx) => (
-                        <TableRow key={idx}>
+                        <TableRow key={idx} className="hover:bg-slate-50/50">
                           <TableCell className="font-mono text-[11px] text-slate-500">{i.accountNumber || '—'}</TableCell>
                           <TableCell>{i.name}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(i.monthlyAmounts?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-semibold bg-slate-50/50">{formatZar(i.currentAmount)}</TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                       ))}
+
+                      {/* Non-Current Liabilities */}
+                      {reportData.balanceSheet.nonCurrentLiabilities.items.length > 0 && (
+                        <>
+                          <TableRow className="bg-slate-50 font-bold">
+                            <TableCell colSpan={2}>NON-CURRENT LIABILITIES</TableCell>
+                            {isMultiMonth ? (
+                              <>
+                                {monthSlices.map((m) => (
+                                  <TableCell key={m.key} className="text-right font-bold">
+                                    {formatZar(reportData.balanceSheet.nonCurrentLiabilities.monthlyTotals?.[m.key] || 0)}
+                                  </TableCell>
+                                ))}
+                                <TableCell className="text-right font-black bg-slate-100">
+                                  {formatZar(reportData.balanceSheet.nonCurrentLiabilities.currentTotal)}
+                                </TableCell>
+                              </>
+                            ) : (
+                              <>
+                                <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentLiabilities.currentTotal)}</TableCell>
+                                <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentLiabilities.priorTotal)}</TableCell>
+                                <TableCell className="text-right">{formatZar(reportData.balanceSheet.nonCurrentLiabilities.varianceAmount)}</TableCell>
+                              </>
+                            )}
+                          </TableRow>
+                          {reportData.balanceSheet.nonCurrentLiabilities.items.map((i, idx) => (
+                            <TableRow key={idx} className="hover:bg-slate-50/50">
+                              <TableCell className="font-mono text-[11px] text-slate-500">{i.accountNumber || '—'}</TableCell>
+                              <TableCell>{i.name}</TableCell>
+                              {isMultiMonth ? (
+                                <>
+                                  {monthSlices.map((m) => (
+                                    <TableCell key={m.key} className="text-right">
+                                      {formatZar(i.monthlyAmounts?.[m.key] || 0)}
+                                    </TableCell>
+                                  ))}
+                                  <TableCell className="text-right font-semibold bg-slate-50/50">{formatZar(i.currentAmount)}</TableCell>
+                                </>
+                              ) : (
+                                <>
+                                  <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
+                                  <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
+                                  <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                                </>
+                              )}
+                            </TableRow>
+                          ))}
+                        </>
+                      )}
 
                       {/* Current Liabilities */}
                       <TableRow className="bg-slate-50 font-bold">
                         <TableCell colSpan={2}>CURRENT LIABILITIES</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.currentTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.priorTotal)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.varianceAmount)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-bold">
+                                {formatZar(reportData.balanceSheet.currentLiabilities.monthlyTotals?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-black bg-slate-100">
+                              {formatZar(reportData.balanceSheet.currentLiabilities.currentTotal)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.currentTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.priorTotal)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.currentLiabilities.varianceAmount)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
                       {reportData.balanceSheet.currentLiabilities.items.map((i, idx) => (
-                        <TableRow key={idx}>
+                        <TableRow key={idx} className="hover:bg-slate-50/50">
                           <TableCell className="font-mono text-[11px] text-slate-500">{i.accountNumber || '—'}</TableCell>
                           <TableCell>{i.name}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
-                          <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                          {isMultiMonth ? (
+                            <>
+                              {monthSlices.map((m) => (
+                                <TableCell key={m.key} className="text-right">
+                                  {formatZar(i.monthlyAmounts?.[m.key] || 0)}
+                                </TableCell>
+                              ))}
+                              <TableCell className="text-right font-semibold bg-slate-50/50">{formatZar(i.currentAmount)}</TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="text-right">{formatZar(i.currentAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.priorAmount)}</TableCell>
+                              <TableCell className="text-right">{formatZar(i.varianceAmount)}</TableCell>
+                            </>
+                          )}
                         </TableRow>
                       ))}
 
                       <TableRow className="bg-slate-200 font-black text-slate-900 text-sm">
                         <TableCell colSpan={2}>TOTAL EQUITY & LIABILITIES</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.current)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.prior)}</TableCell>
-                        <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.current - reportData.balanceSheet.totalEquityAndLiabilities.prior)}</TableCell>
+                        {isMultiMonth ? (
+                          <>
+                            {monthSlices.map((m) => (
+                              <TableCell key={m.key} className="text-right font-black">
+                                {formatZar(reportData.balanceSheet.totalEquityAndLiabilities.monthly?.[m.key] || 0)}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-black bg-slate-300/80">
+                              {formatZar(reportData.balanceSheet.totalEquityAndLiabilities.current)}
+                            </TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.current)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.prior)}</TableCell>
+                            <TableCell className="text-right">{formatZar(reportData.balanceSheet.totalEquityAndLiabilities.current - reportData.balanceSheet.totalEquityAndLiabilities.prior)}</TableCell>
+                          </>
+                        )}
                       </TableRow>
                     </TableBody>
                   </Table>
