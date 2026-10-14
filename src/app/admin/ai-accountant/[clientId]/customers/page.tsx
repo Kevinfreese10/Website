@@ -262,6 +262,7 @@ export default function ClientCustomersPage() {
             </div>
             <Card>
                 <CardHeader>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-2">
                         <ImportCustomersDialog clientId={clientId} onImportComplete={fetchCustomers} />
                         <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setSelectedCustomer(null); }}>
@@ -285,6 +286,13 @@ export default function ClientCustomersPage() {
                                 />
                             </DialogContent>
                         </Dialog>
+                        </div>
+                        <Button variant="outline" asChild className="gap-2">
+                            <Link href={`/admin/ai-accountant/${clientId}/reports/customer-statements`}>
+                                <FileText className="h-4 w-4 text-primary" />
+                                Customer Statements Report
+                            </Link>
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent>

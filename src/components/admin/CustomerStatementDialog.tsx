@@ -50,13 +50,21 @@ const formatCurrency = (val: number, currency = 'ZAR') => {
   }).format(val);
 };
 
-export default function CustomerStatementDialog({
-  open,
-  onOpenChange,
+export interface CustomerStatementViewProps {
+  client: User | null;
+  customer: ClientCustomer | null;
+  clientId: string;
+  onClose?: () => void;
+  showCloseButton?: boolean;
+}
+
+export function CustomerStatementView({
   client,
   customer,
   clientId,
-}: CustomerStatementDialogProps) {
+  onClose,
+  showCloseButton = false,
+}: CustomerStatementViewProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -395,40 +403,39 @@ export default function CustomerStatementDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-0 gap-0">
-        <style jsx global>{`
-          @media print {
-            body * {
-              visibility: hidden;
-            }
-            #statement-printable,
-            #statement-printable * {
-              visibility: visible;
-            }
-            #statement-printable {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              padding: 20px;
-              background: white !important;
-              color: black !important;
-            }
-            .no-print {
-              display: none !important;
-            }
+    <div className="w-full bg-white text-slate-900 rounded-lg overflow-hidden">
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
           }
-        `}</style>
+          #statement-printable,
+          #statement-printable * {
+            visibility: visible;
+          }
+          #statement-printable {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+            background: white !important;
+            color: black !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
 
-        {/* Top Control Bar (Hidden during print) */}
-        <div className="sticky top-0 z-20 flex items-center justify-between p-4 bg-background border-b no-print">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <DialogTitle className="text-lg font-semibold">
-              Customer Statement: {customer?.name}
-            </DialogTitle>
-          </div>
+      {/* Top Control Bar (Hidden during print) */}
+      <div className="sticky top-0 z-20 flex items-center justify-between p-4 bg-background border-b no-print">
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-semibold text-slate-900">
+            Customer Statement: {customer?.name}
+          </h2>
+        </div>
           <div className="flex items-center gap-3">
             <div className="w-[300px]">
               <DateRangePicker
@@ -724,14 +731,41 @@ export default function CustomerStatementDialog({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="p-4 border-t bg-slate-50 no-print flex justify-between items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">
-            Print preview formats automatically for A4 / Letter paper.
-          </p>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-        </DialogFooter>
+        {showCloseButton && (
+          <div className="p-4 border-t bg-slate-50 no-print flex justify-between items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              Print preview formats automatically for A4 / Letter paper.
+            </p>
+            {onClose && (
+              <Button variant="outline" onClick={onClose}>
+                Close
+              </Button>
+            )}
+          </div>
+        )}
+    </div>
+  );
+}
+
+export default function CustomerStatementDialog({
+  open,
+  onOpenChange,
+  client,
+  customer,
+  clientId,
+}: CustomerStatementDialogProps) {
+  if (!open) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-0 gap-0">
+        <CustomerStatementView
+          client={client}
+          customer={customer}
+          clientId={clientId}
+          onClose={() => onOpenChange(false)}
+          showCloseButton={true}
+        />
       </DialogContent>
     </Dialog>
   );
