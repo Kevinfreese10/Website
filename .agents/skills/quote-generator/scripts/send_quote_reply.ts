@@ -88,15 +88,17 @@ if (require.main === module || (process.argv[1] && process.argv[1].endsWith('sen
   const htmlFile = getArg('htmlFile');
   const html = htmlFile ? fs.readFileSync(htmlFile, 'utf8') : getArg('html');
   const inReplyTo = getArg('inReplyTo');
+  const cc = getArg('cc');
   const originalUid = getArg('uid') ? parseInt(getArg('uid')!, 10) : undefined;
 
   if (!to || !subject || !html) {
-    console.error('Usage: npx tsx send_quote_reply.ts --to <email> --subject <subj> --htmlFile <path> [--inReplyTo <id>] [--uid <num>]');
+    console.error('Usage: npx tsx send_quote_reply.ts --to <email> --subject <subj> --htmlFile <path> [--cc <email>] [--inReplyTo <id>] [--uid <num>]');
     process.exit(1);
   }
 
   sendQuoteReply({
     to,
+    cc,
     subject,
     html,
     inReplyTo,

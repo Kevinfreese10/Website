@@ -346,6 +346,38 @@ Every statutory PDF generated must strictly adhere to the unified **Executive Na
 | **Location of Company Records** | **CoR 22** | N/A | Certified ID of applicant | `companychanges@cipc.co.za` | **R0.00** (Free) | 5 Business Days |
 | **Annual Financial Statements (AFS)** | XBRL / PDF | CoR 30.2 FAS | Audited or independently reviewed Annual Financial Statements | `financialstatements@cipc.co.za` *(or CIPC portal)* | **R0.00** (Free) | Immediate / Batch |
 
+#### 3. CIPC eServices Electronic Lodgement Invariants (`eServicesCoReg@cipc.co.za`)
+
+> [!CRITICAL]
+> **Strict Subject Line Invariant for `eServicesCoReg@cipc.co.za`**:
+> The email subject line MUST BE THE REGISTRATION APPLICATION TRACKING NUMBER ONLY (Nothing else).
+> 
+> - **Format**: `9468810967`
+> - **FORBIDDEN SUBJECT PATTERNS**:
+>   - ❌ `CIPC Submission - 9468810967`
+>   - ❌ `Company Registration 9468810967`
+>   - ❌ `Order #10233 - 9468810967`
+>   - ❌ `9468810967 - EMINENT GLOBAL (PTY) LTD`
+>
+> CIPC's automated mailbox parser matches incoming PDF attachments to the electronic transaction using an exact match on the email subject. Any text other than the numeric tracking number will break automated ingestion.
+
+* **Tracking Number Disambiguation**:
+  - **Name Reservation Number** (e.g. `9467715865`): Used only during the preliminary CoR 9.4 name reservation stage.
+  - **Registration Application Number** (e.g. `9468810967`): Displayed on the top right of the generated CoR 15.1A form.
+  - **INVARIANT**: Always use the **Registration Application Number** from the CoR 15.1A as the lodgement subject.
+
+* **Mandatory Attachment Checklist**:
+  1. **Signed CoR 15.1A Application**: Signed and dated by all incorporators and directors.
+  2. **Certified Local Director ID**: Certified RSA Smart ID Card (both sides certified within 3 months) or green ID book for South African incorporators/directors.
+  3. **Apostilled Foreign Director Passports**: Certified and apostilled (e.g. Hague Apostille / MEA Apostille) passport copies for all foreign directors.
+  4. **Power of Attorney / Mandate**: Signed mandate if third-party lodgement.
+
+* **Post-Lodgement Order State Machine**:
+  - `status`: Advance to `Waiting on External`.
+  - `fulfillmentStatus`: Set to `Lodged with CIPC`.
+  - `cipcTrackingNumber`: Record the tracking number on the Firestore order document.
+  - **Communication History**: Post a clean plain-text client note confirming formal lodgement under the tracking number and advising that the CoR 14.3 certificate is pending issuance.
+
 ---
 
 ## 🏛️ Autonomous Regulator Follow-Up Engine (SLA Cadence)
@@ -421,22 +453,23 @@ For statutory orders in **`Waiting on External`** (NCR Credit Provider Applicati
 ---
 
 ## 🛠️ CLI Execution Commands
+*(Tip: On Windows PowerShell, prefer `.\node_modules\.bin\tsx.cmd --env-file=.env.local <script>` to avoid npm registry stalls and ensure local environment variables load immediately)*
 
 ### 1. Inspect Order Details & Uploads
 ```bash
-npx tsx .agents/skills/order-fulfillment-agent/scripts/audit_order.ts fetch --order-id <ID>
+.\node_modules\.bin\tsx.cmd --env-file=.env.local .agents/skills/order-fulfillment-agent/scripts/audit_order.ts fetch --order-id <ID>
 ```
 
 ### 2. Autonomous Audit & Statutory Pack Compilation (Dry-Run Preview)
 ```bash
-npx tsx .agents/skills/order-fulfillment-agent/scripts/audit_order.ts audit --order-id <ID> --dry-run
+.\node_modules\.bin\tsx.cmd --env-file=.env.local .agents/skills/order-fulfillment-agent/scripts/audit_order.ts audit --order-id <ID> --dry-run
 # Or using pipeline script directly:
-npx tsx src/lib/agent/order-audit-pipeline.ts --order-id <ID> --dry-run
+.\node_modules\.bin\tsx.cmd --env-file=.env.local src/lib/agent/order-audit-pipeline.ts --order-id <ID> --dry-run
 ```
 
 ### 3. Explicit Executive Sign-Off & Deliverables Commitment (After Kevin's Review)
 ```bash
-npx tsx .agents/skills/order-fulfillment-agent/scripts/audit_order.ts approve --order-id <ID>
+.\node_modules\.bin\tsx.cmd --env-file=.env.local .agents/skills/order-fulfillment-agent/scripts/audit_order.ts approve --order-id <ID>
 # Or via pipeline runner:
-npx tsx src/lib/agent/order-audit-pipeline.ts --order-id <ID> --approve-and-post
+.\node_modules\.bin\tsx.cmd --env-file=.env.local src/lib/agent/order-audit-pipeline.ts --order-id <ID> --approve-and-post
 ```
